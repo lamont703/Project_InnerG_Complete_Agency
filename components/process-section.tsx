@@ -1,0 +1,80 @@
+import { Search, PenTool, Code2, Rocket } from "lucide-react"
+
+const steps = [
+  {
+    icon: Search,
+    step: "01",
+    title: "Discover & Assess",
+    description:
+      "We deep-dive into your enterprise landscape, identifying high-impact opportunities where AI and blockchain can deliver measurable ROI.",
+  },
+  {
+    icon: PenTool,
+    step: "02",
+    title: "Design & Architect",
+    description:
+      "Our architects design tailored solutions with clear technical blueprints, ensuring scalability, security, and alignment with business objectives.",
+  },
+  {
+    icon: Code2,
+    step: "03",
+    title: "Build & Integrate",
+    description:
+      "Agile development with rigorous testing. We build production-grade solutions and integrate them seamlessly into your existing infrastructure.",
+  },
+  {
+    icon: Rocket,
+    step: "04",
+    title: "Launch & Scale",
+    description:
+      "From deployment to commercialization, we support go-to-market execution and ensure your solution scales as your business grows.",
+  },
+]
+
+export function ProcessSection() {
+  return (
+    <section id="process" className="relative py-32">
+      {/* Subtle divider glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-1/2 bg-gradient-to-r from-transparent via-primary/30 to-transparent" aria-hidden="true" />
+
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="text-center">
+          <p className="text-sm font-semibold uppercase tracking-widest text-primary">
+            Our Process
+          </p>
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
+            From Vision to Velocity
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
+            A proven four-phase methodology that transforms enterprise ambition into
+            production-ready AI and blockchain solutions.
+          </p>
+        </div>
+
+        <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step, i) => (
+            <div key={step.step} className="relative group">
+              {/* Connector line */}
+              {i < steps.length - 1 && (
+                <div className="absolute top-12 left-full hidden h-px w-8 bg-gradient-to-r from-primary/30 to-transparent lg:block" aria-hidden="true" />
+              )}
+
+              <div className="rounded-2xl glass-panel p-8 transition-all duration-300 hover:border-primary/30 h-full">
+                <div className="mb-5 flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <step.icon className="h-5 w-5" />
+                  </div>
+                  <span className="font-mono text-sm font-bold text-primary/60">{step.step}</span>
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">{step.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                  {step.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
