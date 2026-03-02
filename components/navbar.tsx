@@ -6,11 +6,11 @@ import { Menu, X, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const navLinks = [
-  { label: "Services", href: "#services" },
+  { label: "Capabilities", href: "#services" },
   { label: "Process", href: "#process" },
-  { label: "Solutions", href: "#solutions" },
-  { label: "Results", href: "#results" },
-  { label: "Contact", href: "#contact" },
+  { label: "Roadmap", href: "#maturity" },
+  { label: "Performance", href: "#results" },
+  { label: "Growth Audit", href: "#contact" },
 ]
 
 export function Navbar() {
@@ -26,8 +26,8 @@ export function Navbar() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled
-          ? "glass-panel-strong py-3"
-          : "bg-transparent py-5"
+        ? "glass-panel-strong py-3"
+        : "bg-transparent py-5"
         }`}
     >
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6">
@@ -66,7 +66,7 @@ export function Navbar() {
             className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
             asChild
           >
-            <Link href="#contact">
+            <Link href="/login">
               Get Started
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -97,7 +97,7 @@ export function Navbar() {
             ))}
             <div className="mt-3 border-t border-border pt-3">
               <Button className="w-full bg-primary text-primary-foreground gap-2" asChild>
-                <Link href="#contact" onClick={() => setIsMobileOpen(false)}>
+                <Link href="/login" onClick={() => setIsMobileOpen(false)}>
                   Get Started
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>

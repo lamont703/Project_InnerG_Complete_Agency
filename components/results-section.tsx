@@ -1,27 +1,28 @@
 const results = [
   {
-    industry: "Financial Services",
-    metric: "340%",
-    metricLabel: "ROI Increase",
+    category: "Operational Efficiency",
+    metric: "84%",
+    metricLabel: "Time Reclaimed",
     description:
-      "Deployed AI-powered fraud detection system for a top-10 bank, reducing false positives by 67% and saving $48M annually.",
-    tags: ["AI/ML", "Risk Analytics", "Real-time Processing"],
+      "Automated manual data processing and customer support workflows for a growth-stage firm, reclaiming 1,200+ team hours monthly.",
+    tags: ["AI Automation", "Process Optimization", "ROI Focus"],
   },
   {
-    industry: "Supply Chain",
-    metric: "52%",
-    metricLabel: "Cost Reduction",
+    category: "Infrastructure Scaling",
+    metric: "10x",
+    metricLabel: "Throughput Boost",
     description:
-      "Built a blockchain-based traceability platform for a Fortune 500 logistics firm, cutting verification time from days to seconds.",
-    tags: ["Blockchain", "Supply Chain", "Smart Contracts"],
+      "Re-architected core database and cloud infrastructure to handle a massive surge in user demand without performance degradation.",
+    highlights: ["Database Scaling", "Cloud Architecture", "Zero Downtime"],
+    tags: ["Scalability", "Database Optimization", "Cloud Ops"],
   },
   {
-    industry: "Healthcare",
-    metric: "12x",
-    metricLabel: "Faster Diagnosis",
+    category: "Revenue Expansion",
+    metric: "42%",
+    metricLabel: "LTV Increase",
     description:
-      "Developed computer vision models for a leading health system, enabling automated analysis of medical imaging at scale.",
-    tags: ["Computer Vision", "Healthcare AI", "HIPAA Compliant"],
+      "Deployed a personalization engine that boosted customer lifetime value and retention through AI-driven behavioral insights.",
+    tags: ["Personalization", "Retention AI", "Data Intelligence"],
   },
 ]
 
@@ -47,14 +48,14 @@ export function ResultsSection() {
         <div className="mt-16 grid gap-8 lg:grid-cols-3">
           {results.map((result) => (
             <div
-              key={result.industry}
+              key={result.category}
               className="group relative rounded-2xl glass-panel p-8 transition-all duration-300 hover:border-primary/30"
             >
               <div className="absolute inset-0 rounded-2xl bg-primary/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true" />
 
               <div className="relative z-10">
                 <span className="text-xs font-semibold uppercase tracking-widest text-primary">
-                  {result.industry}
+                  {result.category}
                 </span>
 
                 <div className="mt-5 flex items-baseline gap-2">

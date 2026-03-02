@@ -25,19 +25,18 @@ export function CtaSection() {
               Get Started
             </p>
             <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-              Ready to Transform Your Business?
+              Let's Architect Your Scale.
             </h2>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
-              Schedule a complimentary discovery call with our senior architects. We will assess your
-              technology landscape and identify the highest-impact opportunities for AI and blockchain
-              in your organization.
+              Schedule a complimentary Growth Audit with our senior architects. We'll identify your
+              highest-leverage scaling bottlenecks and design a roadmap for automated, data-driven expansion.
             </p>
 
             <div className="mt-10 space-y-6">
               {[
-                { label: "Custom Strategy Session", desc: "Tailored to your enterprise context" },
-                { label: "Technical Assessment", desc: "Deep-dive into your infrastructure" },
-                { label: "ROI Projection", desc: "Data-driven impact analysis" },
+                { label: "Infrastructure Gap Analysis", desc: "Identify the technical debt holding you back" },
+                { label: "Automation ROI Assessment", desc: "Calculate the exact hours we can reclaim for your team" },
+                { label: "Fractional CTO Strategy", desc: "Long-term partnership to guide your evolution" },
               ].map((item) => (
                 <div key={item.label} className="flex items-start gap-4">
                   <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
@@ -57,9 +56,9 @@ export function CtaSection() {
                 <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <ArrowRight className="h-6 w-6" />
                 </div>
-                <h3 className="text-2xl font-bold text-foreground">Thank You</h3>
+                <h3 className="text-2xl font-bold text-foreground">Audit Requested</h3>
                 <p className="mt-3 text-muted-foreground">
-                  Our team will reach out within 24 hours to schedule your discovery call.
+                  Our team will reach out within 24 hours to schedule your strategy session.
                 </p>
               </div>
             ) : (
@@ -71,9 +70,9 @@ export function CtaSection() {
                 className="space-y-5"
               >
                 <div>
-                  <h3 className="text-xl font-semibold text-foreground">Book a Discovery Call</h3>
+                  <h3 className="text-xl font-semibold text-foreground">Schedule a Growth Audit</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Fill out the form and our team will get in touch.
+                    Get a clear technical roadmap for your next phase of growth.
                   </p>
                 </div>
 
@@ -103,7 +102,7 @@ export function CtaSection() {
                   />
                 </div>
                 <Textarea
-                  placeholder="Tell us about your project or challenge..."
+                  placeholder="What is your biggest scaling challenge right now?"
                   className="min-h-[120px] bg-input/50 border-border text-foreground placeholder:text-muted-foreground focus:border-primary"
                   rows={4}
                 />
@@ -113,7 +112,7 @@ export function CtaSection() {
                   size="lg"
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2 glow-primary"
                 >
-                  Schedule Discovery Call
+                  Request Growth Audit
                   <ArrowRight className="h-4 w-4" />
                 </Button>
 

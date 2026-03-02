@@ -42,17 +42,16 @@ export function HeroSection() {
         {/* Headline */}
         <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
           <span className="text-balance block text-foreground">
-            Architect the Future
+            Architect Your Next
           </span>
           <span className="text-balance block text-gradient mt-2">
-            of Your Business
+            Phase of Growth
           </span>
         </h1>
 
         {/* Subheadline */}
-        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
-          We help small to medium-sized businesses architect, build, and commercialize AI and blockchain solutions
-          to drive real business innovation and lasting competitive advantage.
+        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl text-balance">
+          We partner with CEOs and Founders to architect,build, and scale custom AI and Blockchain solutions to drive real business innovation and lasting competitive advantage.
         </p>
 
         {/* CTAs */}
@@ -63,7 +62,7 @@ export function HeroSection() {
             asChild
           >
             <Link href="#contact">
-              Schedule a Discovery Call
+              Schedule a Growth Audit
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
@@ -73,20 +72,20 @@ export function HeroSection() {
             className="border-border text-foreground hover:bg-secondary/50 gap-2 px-8 py-6 text-base"
             asChild
           >
-            <Link href="#services">Explore Our Solutions</Link>
+            <Link href="#maturity">View the Scaling Roadmap</Link>
           </Button>
         </div>
 
         {/* Core Pillars */}
         <div className="mt-20 glass-panel rounded-2xl p-6">
           <p className="mb-6 text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Our Core Pillars
+            Built for Scale
           </p>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
             {[
-              { title: "Integrity", label: "Transparent & ethical AI development" },
-              { title: "Human-Centric", label: "Technology built for people" },
-              { title: "Practicality", label: "Implementation that drives ROI" },
+              { title: "Scalability", label: "Architecture that grows with your revenue" },
+              { title: "Efficiency", label: "Automations that reclaim your team's time" },
+              { title: "Intelligence", label: "Data insights that drive predictable ROI" },
             ].map((item) => (
               <div key={item.title} className="text-center sm:text-left px-4">
                 <div className="text-xl font-bold text-foreground">{item.title}</div>

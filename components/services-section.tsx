@@ -1,49 +1,49 @@
 "use client"
 
-import { Brain, Blocks, Rocket, Shield, Cpu, BarChart3 } from "lucide-react"
+import { Brain, Blocks, Rocket, Shield, Cpu, BarChart3, Database, Zap, LineChart, Users, ChessKnight, LayoutDashboard } from "lucide-react"
 
 const services = [
   {
-    icon: Brain,
-    title: "AI Strategy & Architecture",
+    icon: Database,
+    title: "Scalable Architecture",
     description:
-      "Custom AI roadmaps aligned with your business goals. From LLMs to computer vision, we design architectures that scale.",
-    highlights: ["Custom AI Roadmaps", "Model Selection", "Data Strategy"],
+      "Future-proof your business with robust database foundations and cloud infrastructure designed to handle 10x growth without crumbling.",
+    highlights: ["Database Optimization", "Cloud Scaling", "High Availability"],
   },
   {
-    icon: Blocks,
-    title: "Blockchain Engineering",
+    icon: Zap,
+    title: "Advanced Automations",
     description:
-      "Business-grade blockchain solutions. Smart contracts, tokenization, and decentralized infrastructure built for performance.",
-    highlights: ["Smart Contracts", "Tokenization", "DeFi Infrastructure"],
+      "Transform manual bottlenecks into automated workflows. We deploy AI agents that work 24/7 to reclaim your team's most valuable hours.",
+    highlights: ["AI Workflows", "Process Mapping", "Operational ROI"],
   },
   {
-    icon: Rocket,
-    title: "Product Commercialization",
+    icon: LineChart,
+    title: "Data Analytics",
     description:
-      "Turn technology into revenue. We help you build go-to-market strategies and launch AI and blockchain products at scale.",
-    highlights: ["GTM Strategy", "Revenue Modeling", "Market Validation"],
+      "Turn fragmented data into growth intelligence. We build unified dashboards that tell you exactly where to double down on your spend.",
+    highlights: ["Growth Intelligence", "Predictive Modeling", "Unified Data Lakes"],
   },
   {
-    icon: Shield,
-    title: "Security & Compliance",
+    icon: Users,
+    title: "Customer Personalization",
     description:
-      "Business-grade security for AI and blockchain deployments. Audits, compliance frameworks, and risk mitigation.",
-    highlights: ["Smart Contract Audits", "Compliance", "Risk Assessment"],
+      "Leverage AI to deliver hyper-personalized experiences. Increase LTV and retention by treating every customer like your only customer.",
+    highlights: ["Retention Strategy", "Dynamic Content", "Behavioral Tuning"],
   },
   {
-    icon: Cpu,
-    title: "AI Integration & Deployment",
+    icon: ChessKnight,
+    title: "Fractional CTO & Strategy",
     description:
-      "Seamless integration of AI capabilities into your existing tech stack. MLOps, APIs, and production-ready deployments.",
-    highlights: ["MLOps Pipelines", "API Development", "Edge AI"],
+      "A long-term strategic partnership focused on technical leadership and resource allocation without the full-time executive cost.",
+    highlights: ["Technical Roadmap", "Team Mentorship", "Vendor Management"],
   },
   {
-    icon: BarChart3,
-    title: "Data & Analytics",
+    icon: LayoutDashboard,
+    title: "Performance Monitoring",
     description:
-      "Transform raw data into strategic insights. Advanced analytics, real-time dashboards, and predictive modeling.",
-    highlights: ["Predictive Analytics", "Real-time Dashboards", "Data Lakes"],
+      "Real-time visibility into your new infrastructure. We ensure every system we build is measurable, transparent, and high-performing.",
+    highlights: ["KPI Tracking", "Uptime Assurance", "Real-time Audits"],
   },
 ]
 
@@ -54,14 +54,14 @@ export function ServicesSection() {
         {/* Header */}
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">
-            Our Expertise
+            Our Capability Suite
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            Solutions for the Modern SMB
+            Engineered for Scaling Businesses
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            We deliver high-impact AI and blockchain services tailored for Retail, Finance, and Healthcare,
-            helping small to medium businesses bridge the gap between innovation and reality.
+            We provide the technical bedrock and strategic foresight that
+            growth-stage founders need to outpace the competition.
           </p>
         </div>
 
