@@ -49,10 +49,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${_inter.variable} ${_jetbrainsMono.variable} scroll-smooth`}>
+    <html lang="en" className={`${_inter.variable} ${_jetbrainsMono.variable}`}>
       <body className="font-sans antialiased">
-        {children}
         <Analytics />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }`,
+          }}
+        />
+        {children}
       </body>
     </html>
   )

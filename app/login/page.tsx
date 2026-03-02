@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowRight, Mail, Lock, Sparkles } from "lucide-react"
@@ -19,7 +19,7 @@ export default function LoginPage() {
 
         // Simulate mock authentication
         setTimeout(() => {
-            router.push("/dashboard")
+            router.push("/select-portal")
         }, 1000)
     }
 
