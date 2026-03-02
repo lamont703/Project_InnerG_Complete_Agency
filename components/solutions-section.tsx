@@ -6,36 +6,49 @@ import Link from "next/link"
 
 const solutions = [
   {
-    label: "AI Solutions",
-    title: "Intelligent Systems That Learn, Adapt, and Scale",
+    label: "Retail Solutions",
+    title: "Complete Customized AI for Modern Retailing",
     description:
-      "From custom LLMs to predictive analytics, we build AI systems that solve your most complex business challenges and create new revenue streams.",
+      "We build total customized AI solutions that integrate with your existing inventory and POS systems to drive measurable growth.",
     features: [
-      "Custom Large Language Models & Fine-Tuning",
-      "Computer Vision & Image Recognition",
-      "Natural Language Processing Pipelines",
-      "Predictive Analytics & Forecasting",
-      "Autonomous Agent Architectures",
-      "Real-time Decision Engines",
+      "Custom Inventory Prediction Models",
+      "Localized Customer Churn Analysis",
+      "Personalized Marketing Automation",
+      "AI-Powered Demand Forecasting",
+      "Seamless E-commerce Integrations",
     ],
     accentClass: "text-primary bg-primary/10 border-primary/20",
     glowClass: "bg-primary/8",
   },
   {
-    label: "Blockchain Solutions",
-    title: "Decentralized Infrastructure for Enterprise Trust",
+    label: "Financial Systems",
+    title: "Secure Payment Processing & Integrations",
     description:
-      "We engineer enterprise blockchain solutions that enhance transparency, automate processes, and unlock new business models through tokenization.",
+      "Enterprise-grade blockchain and AI integrations for secure, fast, and transparent financial operations.",
     features: [
-      "Enterprise Smart Contract Development",
-      "Asset Tokenization & Digital Securities",
-      "DeFi Protocol Architecture",
-      "Cross-chain Interoperability",
-      "Supply Chain Traceability",
-      "Decentralized Identity Solutions",
+      "Custom Payment Gateway Integrations",
+      "Secure Blockchain Transactions",
+      "Automated Financial Auditing",
+      "Risk Mitigation Algos",
+      "Real-time Balance Reconciliation",
     ],
     accentClass: "text-accent bg-accent/10 border-accent/20",
     glowClass: "bg-accent/8",
+  },
+  {
+    label: "Healthcare Operations",
+    title: "Operational Efficiency Through Innovation",
+    description:
+      "Leveraging AI and Blockchain to streamline healthcare workflows while ensuring data integrity and patient privacy.",
+    features: [
+      "Workflow Automation Tools",
+      "Secure Patient Record Management",
+      "Resource Allocation AI",
+      "Operational Bottleneck Analysis",
+      "Compliance Monitoring Systems",
+    ],
+    accentClass: "text-primary bg-primary/10 border-primary/20",
+    glowClass: "bg-primary/8",
   },
 ]
 
@@ -50,15 +63,15 @@ export function SolutionsSection() {
             Solutions
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            Tailored Technology for Enterprise Growth
+            Industry-Specific Innovation
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            We specialize in the two most transformative technologies of our era.
-            Each solution is architected specifically for your enterprise context.
+            We specialize in tailoring AI and blockchain for high-impact sectors.
+            Each solution is architected specifically for your business context.
           </p>
         </div>
 
-        <div className="mt-16 grid gap-8 lg:grid-cols-2">
+        <div className="mt-16 grid gap-8 lg:grid-cols-3">
           {solutions.map((solution) => (
             <div
               key={solution.label}

@@ -11,15 +11,15 @@ const features = [
   },
   {
     icon: Lock,
-    title: "Enterprise Security",
+    title: "Business Security",
     stat: "SOC 2",
-    description: "All solutions built with enterprise-grade security, compliance, and audit-ready architecture.",
+    description: "All solutions built with business-grade security, compliance, and audit-ready architecture.",
   },
   {
     icon: Zap,
     title: "Rapid Deployment",
     stat: "12 wk",
-    description: "Average time from strategy to production deployment for enterprise AI solutions.",
+    description: "Average time from strategy to production deployment for business AI solutions.",
   },
   {
     icon: Globe,
@@ -43,7 +43,7 @@ export function FeatureHighlight() {
             Why Inner G Complete
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            Built for Enterprise Scale
+            Built for Business Scale
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
             We combine deep technical expertise with business acumen to deliver solutions

@@ -25,7 +25,7 @@ export function CtaSection() {
               Get Started
             </p>
             <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-              Ready to Transform Your Enterprise?
+              Ready to Transform Your Business?
             </h2>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
               Schedule a complimentary discovery call with our senior architects. We will assess your

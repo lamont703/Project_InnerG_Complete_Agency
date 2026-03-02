@@ -4,30 +4,30 @@ const steps = [
   {
     icon: Search,
     step: "01",
-    title: "Discover & Assess",
+    title: "Project Audit",
     description:
-      "We deep-dive into your enterprise landscape, identifying high-impact opportunities where AI and blockchain can deliver measurable ROI.",
+      "We deep-dive into your business landscape, identifying high-impact opportunities where AI and blockchain can delivered measurable results for your specific scale.",
   },
   {
     icon: PenTool,
     step: "02",
-    title: "Design & Architect",
+    title: "Tailored Design",
     description:
-      "Our architects design tailored solutions with clear technical blueprints, ensuring scalability, security, and alignment with business objectives.",
+      "Our architects design custom solutions with clear blueprints, ensuring scalability and direct alignment with your operational objectives.",
   },
   {
     icon: Code2,
     step: "03",
-    title: "Build & Integrate",
+    title: "Agile Build",
     description:
-      "Agile development with rigorous testing. We build production-grade solutions and integrate them seamlessly into your existing infrastructure.",
+      "Rapid development with iterative testing. We build production-ready solutions and integrate them seamlessly into your existing tools.",
   },
   {
     icon: Rocket,
     step: "04",
-    title: "Launch & Scale",
+    title: "Continuous Optimization",
     description:
-      "From deployment to commercialization, we support go-to-market execution and ensure your solution scales as your business grows.",
+      "We don't just launch and leave. We continuously optimize your systems to ensure they evolve with your business and keep driving growth.",
   },
 ]
 
@@ -43,10 +43,10 @@ export function ProcessSection() {
             Our Process
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            From Vision to Velocity
+            The Inner G Methodology
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            A proven four-phase methodology that transforms enterprise ambition into
+            A proven four-phase methodology that transforms business ambition into
             production-ready AI and blockchain solutions.
           </p>
         </div>

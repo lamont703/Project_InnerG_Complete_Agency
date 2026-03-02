@@ -14,9 +14,10 @@ const _jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Inner G Complete Agency | Enterprise AI & Blockchain Solutions',
+  title: 'Inner G Complete Agency | AI Consulting for Retail & Blockchain for SMBs',
   description:
-    'We help enterprises architect, build, and commercialize AI and blockchain solutions to drive real business innovation.',
+    'Expert AI and blockchain consulting for small to medium-sized businesses. Total customized solutions for retail, payment processing, and operational efficiency.',
+  keywords: ['AI consulting for retail', 'blockchain agency for SMBs', 'AI and blockchain consulting'],
   generator: 'v0.app',
   icons: {
     icon: [

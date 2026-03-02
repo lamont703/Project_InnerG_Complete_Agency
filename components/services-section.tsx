@@ -7,14 +7,14 @@ const services = [
     icon: Brain,
     title: "AI Strategy & Architecture",
     description:
-      "Custom AI roadmaps aligned with your enterprise goals. From LLMs to computer vision, we design architectures that scale.",
+      "Custom AI roadmaps aligned with your business goals. From LLMs to computer vision, we design architectures that scale.",
     highlights: ["Custom AI Roadmaps", "Model Selection", "Data Strategy"],
   },
   {
     icon: Blocks,
     title: "Blockchain Engineering",
     description:
-      "Enterprise-grade blockchain solutions. Smart contracts, tokenization, and decentralized infrastructure built for performance.",
+      "Business-grade blockchain solutions. Smart contracts, tokenization, and decentralized infrastructure built for performance.",
     highlights: ["Smart Contracts", "Tokenization", "DeFi Infrastructure"],
   },
   {
@@ -28,7 +28,7 @@ const services = [
     icon: Shield,
     title: "Security & Compliance",
     description:
-      "Enterprise-grade security for AI and blockchain deployments. Audits, compliance frameworks, and risk mitigation.",
+      "Business-grade security for AI and blockchain deployments. Audits, compliance frameworks, and risk mitigation.",
     highlights: ["Smart Contract Audits", "Compliance", "Risk Assessment"],
   },
   {
@@ -54,14 +54,14 @@ export function ServicesSection() {
         {/* Header */}
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">
-            Our Services
+            Our Expertise
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            End-to-End Enterprise Solutions
+            Solutions for the Modern SMB
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            From strategy to deployment, we deliver comprehensive AI and blockchain services
-            that transform how enterprises operate and compete.
+            We deliver high-impact AI and blockchain services tailored for Retail, Finance, and Healthcare,
+            helping small to medium businesses bridge the gap between innovation and reality.
           </p>
         </div>
 
@@ -70,8 +70,13 @@ export function ServicesSection() {
           {services.map((service) => (
             <div
               key={service.title}
-              className="group relative rounded-2xl glass-panel p-8 transition-all duration-300 hover:border-primary/30 hover:bg-secondary/30"
+              className={`group relative rounded-2xl glass-panel p-8 transition-all duration-300 hover:border-primary/30 hover:bg-secondary/30 ${service.title === "AI Strategy & Architecture" ? "border-primary/40 ring-1 ring-primary/20 scale-[1.02] shadow-xl shadow-primary/5" : ""}`}
             >
+              {service.title === "AI Strategy & Architecture" && (
+                <div className="absolute -top-3 left-8 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
+                  Flagship Offering
+                </div>
+              )}
               {/* Hover glow */}
               <div className="absolute inset-0 rounded-2xl bg-primary/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true" />
 

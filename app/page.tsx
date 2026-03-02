@@ -3,6 +3,7 @@ import { HeroSection } from "@/components/hero-section"
 import { ServicesSection } from "@/components/services-section"
 import { ProcessSection } from "@/components/process-section"
 import { FeatureHighlight } from "@/components/feature-highlight"
+import { FoundersVision } from "@/components/founders-vision"
 import { SolutionsSection } from "@/components/solutions-section"
 import { ResultsSection } from "@/components/results-section"
 import { TestimonialsSection } from "@/components/testimonials-section"
@@ -17,6 +18,7 @@ export default function Home() {
       <ServicesSection />
       <ProcessSection />
       <FeatureHighlight />
+      <FoundersVision />
       <SolutionsSection />
       <ResultsSection />
       <TestimonialsSection />

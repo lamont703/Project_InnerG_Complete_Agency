@@ -25,20 +25,18 @@ export function Navbar() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        isScrolled
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled
           ? "glass-panel-strong py-3"
           : "bg-transparent py-5"
-      }`}
+        }`}
     >
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-3 group" aria-label="Inner G Complete Agency Home">
-          <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 border border-primary/20 group-hover:border-primary/40 transition-colors">
-            <div className="h-3 w-3 rounded-sm bg-primary animate-pulse-glow" />
-            <div className="absolute -inset-1 rounded-xl bg-primary/5 blur-sm group-hover:bg-primary/10 transition-colors" />
+        <Link href="/" className="flex items-center gap-2 group" aria-label="Inner G Complete Agency Home">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105">
+            <span className="text-xl font-bold">G</span>
           </div>
-          <span className="text-lg font-semibold tracking-tight text-foreground">
-            Inner G <span className="text-primary">Complete</span>
+          <span className="text-xl font-bold tracking-tight text-foreground sm:block">
+            Inner G<span className="hidden lg:inline text-muted-foreground font-normal"> Complete Agency</span>
           </span>
         </Link>
 

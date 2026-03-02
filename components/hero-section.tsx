@@ -36,7 +36,7 @@ export function HeroSection() {
         {/* Badge */}
         <div className="mb-8 inline-flex items-center gap-2 rounded-full glass-panel px-5 py-2.5">
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium text-primary">Enterprise AI & Blockchain Partner</span>
+          <span className="text-sm font-medium text-primary">Inner G Complete Agency</span>
         </div>
 
         {/* Headline */}
@@ -45,13 +45,13 @@ export function HeroSection() {
             Architect the Future
           </span>
           <span className="text-balance block text-gradient mt-2">
-            of Your Enterprise
+            of Your Business
           </span>
         </h1>
 
         {/* Subheadline */}
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
-          We help enterprises architect, build, and commercialize AI and blockchain solutions
+          We help small to medium-sized businesses architect, build, and commercialize AI and blockchain solutions
           to drive real business innovation and lasting competitive advantage.
         </p>
 
@@ -77,20 +77,19 @@ export function HeroSection() {
           </Button>
         </div>
 
-        {/* Trust indicators */}
+        {/* Core Pillars */}
         <div className="mt-20 glass-panel rounded-2xl p-6">
           <p className="mb-6 text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Trusted by forward-thinking enterprises
+            Our Core Pillars
           </p>
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
             {[
-              { metric: "150+", label: "Enterprise Clients" },
-              { metric: "$2.4B", label: "Value Generated" },
-              { metric: "98%", label: "Client Retention" },
-              { metric: "40+", label: "Industries Served" },
+              { title: "Integrity", label: "Transparent & ethical AI development" },
+              { title: "Human-Centric", label: "Technology built for people" },
+              { title: "Practicality", label: "Implementation that drives ROI" },
             ].map((item) => (
-              <div key={item.label} className="text-center">
-                <div className="text-2xl font-bold text-foreground sm:text-3xl">{item.metric}</div>
+              <div key={item.title} className="text-center sm:text-left px-4">
+                <div className="text-xl font-bold text-foreground">{item.title}</div>
                 <div className="mt-1 text-sm text-muted-foreground">{item.label}</div>
               </div>
             ))}
