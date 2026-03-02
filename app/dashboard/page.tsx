@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -65,7 +65,7 @@ const statusItems = [
 
 import { ChatInterface } from "@/components/dashboard/chat-interface"
 
-export default function DashboardPage() {
+function DashboardContent() {
     const searchParams = useSearchParams()
     const projectType = searchParams.get("project")
     const isPlentyOfHearts = projectType === "plenty-of-hearts"
@@ -582,5 +582,13 @@ export default function DashboardPage() {
                 </div>
             </main >
         </div >
+    )
+}
+
+export default function DashboardPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-[#020617]" />}>
+            <DashboardContent />
+        </Suspense>
     )
 }
