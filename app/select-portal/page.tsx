@@ -15,53 +15,117 @@ import {
     Calendar,
     Users,
     Heart,
-    Music2
+    Music2,
+    Loader2,
+    AlertCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { createBrowserClient } from "@/lib/supabase/browser"
+import type { PortalCard } from "@/types"
 
-const projects = [
-    {
-        id: "kanes-bookstore",
-        name: "Project Kanes Bookstore",
-        client: "Kane's Bookstore",
-        status: "Active",
-        type: "Retail & Ebook Ecosystem",
-        campaign: "Free Ebook Giveaway",
-        lastActivity: "2 minutes ago",
-        metrics: "4.8k leads, 65% activation",
-        icon: BookOpen,
-        href: "/dashboard"
-    },
-    {
-        id: "plenty-of-hearts",
-        name: "Project Plenty of Hearts",
-        client: "Plenty of Hearts",
-        status: "Active",
-        type: "Social Community & Dating",
-        campaign: "Community Growth",
-        lastActivity: "Just now",
-        metrics: "TikTok Bridge: Live, DB: Linked",
-        icon: Heart,
-        href: "/dashboard?project=plenty-of-hearts"
-    }
-]
+// Map project types to icons
+const ICON_MAP: Record<string, any> = {
+    ecommerce: BookOpen,
+    retail: BookOpen,
+    community: Heart,
+    dating: Heart,
+    social: Music2,
+    general: Layout,
+}
 
 export default function SelectPortalPage() {
     const [searchQuery, setSearchQuery] = useState("")
+    const [projects, setProjects] = useState<PortalCard[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [userData, setUserData] = useState<{ name: string; role: string } | null>(null)
     const router = useRouter()
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const supabase = createBrowserClient()
+
+                // 1. Fetch User Data for Header
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from("users")
+                        .select("full_name, role")
+                        .eq("id", user.id)
+                        .single() as any
+
+                    if (profile) {
+                        setUserData({
+                            name: profile.full_name || "User",
+                            role: profile.role.replace("_", " ").toUpperCase()
+                        })
+                    }
+                }
+
+                // 2. Fetch Projects (Joined with Clients)
+                const { data: projectData, error: projectError } = await supabase
+                    .from("projects")
+                    .select(`
+                        id,
+                        name,
+                        slug,
+                        type,
+                        status,
+                        active_campaign_name,
+                        clients (
+                            name
+                        )
+                    `)
+                    .eq("status", "active") as any
+
+                if (projectError) throw projectError
+
+                // 3. Map to PortalCard interface
+                const mappedProjects: PortalCard[] = projectData.map((p: any) => ({
+                    id: p.slug,
+                    name: `Project ${p.name}`,
+                    client: p.clients?.name || "Unknown Client",
+                    status: p.status.charAt(0).toUpperCase() + p.status.slice(1),
+                    type: p.type.charAt(0).toUpperCase() + p.type.slice(1),
+                    campaign: p.active_campaign_name || "N/A",
+                    lastActivity: "Live Now", // Placeholder until activity_log wiring
+                    metrics: "Data Streaming", // Placeholder until snapshot wiring
+                    icon: ICON_MAP[p.type.toLowerCase()] || Layout,
+                    href: `/dashboard/${p.slug}`,
+                }))
+
+                setProjects(mappedProjects)
+            } catch (err: any) {
+                console.error("[SelectPortal] Error:", err)
+                setError("Unable to load client portals. Please try again.")
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchData()
+    }, [])
 
     const filteredProjects = projects.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.client.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    useEffect(() => {
-    }, [])
+    if (isLoading) {
+        return (
+            <main className="min-h-screen bg-[#020617] flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+                    <p className="text-muted-foreground">Initializing growth architectures...</p>
+                </div>
+            </main>
+        )
+    }
 
     return (
         <main className="min-h-screen bg-[#020617] text-foreground relative w-full">
-            {/* Background Decorations */}
             <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[160px] opacity-20 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/10 rounded-full blur-[140px] opacity-10 pointer-events-none" />
 
@@ -78,18 +142,18 @@ export default function SelectPortalPage() {
                             </span>
                         </Link>
                         <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight">Enterprise Client Portals</h1>
-                        <p className="mt-4 text-muted-foreground text-base md:text-lg max-w-2xl">
+                        <p className="mt-4 text-muted-foreground text-base md:text-lg max-w-2xl leading-relaxed">
                             Select an active growth architecture to access specific project analytics, campaign performance, and AI-driven insights.
                         </p>
                     </div>
 
                     <div className="flex items-center gap-4 mt-8 md:mt-0 p-4 rounded-2xl glass-panel md:bg-transparent md:border-none">
-                        <div className="h-12 w-12 rounded-full border border-white/10 flex items-center justify-center bg-white/5">
+                        <div className="h-12 w-12 rounded-full border border-primary/20 flex items-center justify-center bg-primary/10 transition-colors">
                             <Users className="h-6 w-6 text-primary" />
                         </div>
                         <div className="text-right">
-                            <p className="font-bold text-foreground">System Administrator</p>
-                            <p className="text-xs text-primary uppercase tracking-widest font-semibold">Master Access</p>
+                            <p className="font-bold text-foreground">{userData?.name || "User"}</p>
+                            <p className="text-[10px] text-primary uppercase tracking-widest font-bold">{userData?.role || "CLIENT"}</p>
                         </div>
                     </div>
                 </div>
@@ -99,23 +163,44 @@ export default function SelectPortalPage() {
                     <div className="relative w-full">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input
+                            id="search-projects"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search projects..."
+                            placeholder="Search active portals..."
                             className="bg-white/5 border-white/10 pl-12 h-14 text-base md:text-lg rounded-2xl focus:border-primary transition-all w-full"
                         />
                     </div>
                     <div className="flex flex-wrap md:flex-nowrap gap-4">
-                        <Button variant="outline" className="flex-1 md:flex-none h-14 px-6 border-white/10 rounded-2xl gap-2 hover:bg-white/5 order-2 md:order-1">
+                        <Button
+                            id="btn-filter-status"
+                            variant="outline"
+                            className="flex-1 md:flex-none h-14 px-6 border-white/10 rounded-2xl gap-2 hover:bg-white/5 order-2 md:order-1"
+                        >
                             <Filter className="h-5 w-5" />
                             Status: Active
                         </Button>
-                        <Button className="flex-1 md:flex-auto h-14 px-8 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl gap-2 glow-primary order-1 md:order-2">
-                            <PlusCircle className="h-5 w-5" />
-                            Request New Portal
-                        </Button>
+                        {userData?.role === "SUPER ADMIN" && (
+                            <Button
+                                id="btn-request-portal"
+                                className="flex-1 md:flex-auto h-14 px-8 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl gap-2 glow-primary order-1 md:order-2"
+                                asChild
+                            >
+                                <Link href="/admin/invites">
+                                    <PlusCircle className="h-5 w-5" />
+                                    Generate New Portal Invite
+                                </Link>
+                            </Button>
+                        )}
                     </div>
                 </div>
+
+                {/* Error handling */}
+                {error && (
+                    <div className="mb-8 rounded-2xl bg-destructive/10 border border-destructive/20 p-6 flex items-center gap-4 text-destructive">
+                        <AlertCircle className="h-6 w-6" />
+                        <p className="font-medium">{error}</p>
+                    </div>
+                )}
 
                 {/* Project List */}
                 <div className="grid grid-cols-1 gap-6 flex-1">
@@ -124,7 +209,8 @@ export default function SelectPortalPage() {
                             <Link
                                 key={project.id}
                                 href={project.href}
-                                className="group relative block glass-panel-strong hover:border-primary/50 transition-all duration-300 p-8 rounded-3xl shadow-2xl" // Removed overflow-hidden
+                                id={`portal-card-${project.id}`}
+                                className="group relative block glass-panel-strong hover:border-primary/50 transition-all duration-300 p-8 rounded-3xl shadow-2xl"
                             >
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-[100px] -mr-8 -mt-8 transition-transform group-hover:scale-110" />
 
@@ -161,14 +247,14 @@ export default function SelectPortalPage() {
 
                                     <div className="flex flex-col md:flex-row items-center gap-8 pr-4">
                                         <div className="text-right flex flex-col items-center md:items-end w-full md:w-auto">
-                                            <p className="text-xs uppercase font-bold tracking-tighter text-muted-foreground mb-1">Live Feed Metric</p>
+                                            <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">Architecture State</p>
                                             <p className="text-lg font-bold text-foreground">{project.metrics}</p>
                                             <p className="text-[10px] text-primary mt-1 font-semibold flex items-center gap-1">
                                                 <Calendar className="h-3 w-3" />
-                                                Active Audit: {project.lastActivity}
+                                                Active Session: {project.lastActivity}
                                             </p>
                                         </div>
-                                        <div className="h-12 w-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center transition-all group-hover:translate-x-2 group-hover:glow-primary">
+                                        <div className="h-12 w-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center transition-all group-hover:translate-x-2 group-hover:glow-primary shadow-lg shadow-primary/20">
                                             <ChevronRight className="h-6 w-6" />
                                         </div>
                                     </div>
@@ -176,10 +262,10 @@ export default function SelectPortalPage() {
                             </Link>
                         ))
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-20 glass-panel-strong rounded-3xl border-dashed border-white/5 opacity-50">
-                            <Search className="h-12 w-12 mb-4" />
-                            <p className="text-xl font-semibold">No portals match your search.</p>
-                            <p className="text-sm">Try searching for 'Bookstore' or 'Kane'.</p>
+                        <div className="flex flex-col items-center justify-center py-24 glass-panel-strong rounded-3xl border-dashed border-white/5 opacity-50">
+                            <Search className="h-12 w-12 mb-4 text-muted-foreground" />
+                            <p className="text-xl font-semibold mb-1">No architectures found</p>
+                            <p className="text-sm">Verify your access permissions or adjust filters.</p>
                         </div>
                     )}
                 </div>
@@ -190,8 +276,7 @@ export default function SelectPortalPage() {
                         Securely managed by <span className="text-foreground">Inner G Infrastructure</span>
                     </p>
                     <div className="flex items-center gap-8">
-                        <Link href="/dashboard" className="text-xs text-muted-foreground hover:text-primary transition-colors uppercase tracking-widest font-bold">Standard Dashboard</Link>
-                        <Link href="/login" className="text-xs text-muted-foreground hover:text-destructive transition-colors uppercase tracking-widest font-bold">Sign Out</Link>
+                        <Link href="/login" className="text-xs text-muted-foreground hover:text-destructive transition-colors uppercase tracking-widest font-bold tracking-tighter">Sign Out</Link>
                     </div>
                 </div>
             </div>

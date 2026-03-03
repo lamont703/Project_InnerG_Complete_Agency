@@ -1,31 +1,51 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowRight, Mail, Lock, Sparkles } from "lucide-react"
+import { ArrowRight, Mail, Lock, Sparkles, Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { createBrowserClient } from "@/lib/supabase/browser"
 
-export default function LoginPage() {
+function LoginContent() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const redirectTo = searchParams.get("redirect") || "/select-portal"
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
+        setError(null)
 
-        // Simulate mock authentication
-        setTimeout(() => {
-            router.push("/select-portal")
-        }, 1000)
+        try {
+            const supabase = createBrowserClient()
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            })
+
+            if (authError) {
+                setError(authError.message)
+                setIsLoading(false)
+                return
+            }
+
+            router.push(redirectTo)
+            router.refresh()
+        } catch (err) {
+            console.error("[Login] Unexpected error:", err)
+            setError("An unexpected error occurred. Please try again.")
+            setIsLoading(false)
+        }
     }
 
     return (
         <main className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
-            {/* Background orbs */}
             <div className="absolute top-1/4 -left-32 h-96 w-96 bg-primary/10 rounded-full blur-3xl" />
             <div className="absolute bottom-1/4 -right-32 h-96 w-96 bg-accent/8 rounded-full blur-3xl" />
 
@@ -44,7 +64,7 @@ export default function LoginPage() {
                         <span className="text-xs font-medium text-primary uppercase tracking-wider">Client Portal Access</span>
                     </div>
                     <h1 className="text-3xl font-bold text-foreground">Welcome Back</h1>
-                    <p className="mt-2 text-muted-foreground text-sm">
+                    <p className="mt-2 text-muted-foreground text-sm text-balance">
                         Please enter your credentials to access your growth dashboard.
                     </p>
                 </div>
@@ -52,51 +72,79 @@ export default function LoginPage() {
                 <div className="glass-panel-strong rounded-2xl p-8 shadow-2xl border-white/5">
                     <form onSubmit={handleLogin} className="space-y-5">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-foreground ml-1">Work Email</label>
+                            <label htmlFor="email" className="text-sm font-medium text-foreground ml-1">Work Email</label>
                             <div className="relative">
                                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
+                                    id="email"
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="name@company.com"
                                     className="bg-background/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary"
                                     required
+                                    autoComplete="email"
+                                    disabled={isLoading}
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
                             <div className="flex justify-between items-center ml-1">
-                                <label className="text-sm font-medium text-foreground">Password</label>
-                                <Link href="#" className="text-xs text-primary hover:underline">Forgot password?</Link>
+                                <label htmlFor="password" className="text-sm font-medium text-foreground">Password</label>
+                                <Link
+                                    href="/forgot-password"
+                                    className="text-xs text-primary hover:underline"
+                                >
+                                    Forgot password?
+                                </Link>
                             </div>
                             <div className="relative">
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
+                                    id="password"
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••"
                                     className="bg-background/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary"
                                     required
+                                    autoComplete="current-password"
+                                    disabled={isLoading}
                                 />
                             </div>
                         </div>
 
+                        {error && (
+                            <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 flex items-start gap-3">
+                                <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                                <p className="text-sm text-destructive">{error}</p>
+                            </div>
+                        )}
+
                         <Button
+                            id="btn-sign-in"
                             type="submit"
                             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] glow-primary mt-2"
                             disabled={isLoading}
                         >
-                            {isLoading ? "Signing in..." : "Sign Into Portal"}
-                            {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    Authenticating...
+                                </>
+                            ) : (
+                                <>
+                                    Sign Into Portal
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                </>
+                            )}
                         </Button>
                     </form>
 
                     <div className="mt-8 text-center border-t border-border pt-6">
                         <p className="text-sm text-muted-foreground">
-                            Don't have access yet?{" "}
+                            Don&apos;t have access yet?{" "}
                             <Link href="/#contact" className="text-primary font-semibold hover:underline">
                                 Request a Growth Audit
                             </Link>
@@ -109,5 +157,13 @@ export default function LoginPage() {
                 </p>
             </div>
         </main>
+    )
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-background" />}>
+            <LoginContent />
+        </Suspense>
     )
 }

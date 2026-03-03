@@ -6,15 +6,19 @@
 
 | Field                  | Value                                                                  |
 | ---------------------- | ---------------------------------------------------------------------- |
-| **Status**             | 📐 Proposed — No API Routes or Edge Functions Exist Yet                |
-| **Last Updated**       | 2026-03-02                                                             |
-| **Stack**              | Supabase JS SDK v2 · Supabase Edge Functions (Deno) · Next.js App Router |
+| **Status**            | 📐 Proposed — No API Routes or Edge Functions Exist Yet                    |
+| **Last Updated**      | 2026-03-03                                                              |
+| **Stack**             | Supabase JS SDK v2 · Supabase Edge Functions (Deno) · Next.js App Router |
 | **Base URL (Browser SDK)** | `NEXT_PUBLIC_SUPABASE_URL` (env var)                               |
 | **Base URL (Edge Functions)** | `{SUPABASE_URL}/functions/v1/{function-name}`                 |
-| **Auth Method**        | Supabase JWT (Bearer token in `Authorization` header)                  |
-| **API Version**        | v1                                                                     |
-| **Data Format**        | JSON · ISO 8601 timestamps · UUID primary keys                         |
-| **Source Context**     | Phase 1 Frontend Audit + Phase 2 Data Model                           |
+| **Auth Method**       | Supabase JWT (Bearer token in `Authorization` header)                   |
+| **API Version**       | v1                                                                      |
+| **Data Format**       | JSON · ISO 8601 timestamps · UUID primary keys                          |
+| **Production URL**    | `https://agency.innergcomplete.com`                                     |
+| **AI Provider**       | Google Gemini (preferred) — multi-model switching with rate limiting     |
+| **GHL Scope**         | Inner G's own GHL account only — client-specific GHL built per-client   |
+| **Social APIs**       | Deferred — Instagram + TikTok demo placeholders until client requests   |
+| **Source Context**    | Phase 1 Audit · Phase 2 Data Model · Clarifying Questions (2026-03-03)  |
 
 ---
 
@@ -37,13 +41,13 @@
 │                       │        │  ├── submit-growth-audit-lead   │
 │ Tables exposed:       │        │  ├── send-chat-message          │
 │  • projects           │        │  ├── resolve-signal             │
-│  • campaign_metrics   │        │  ├── sync-ghl-contacts          │
-│  • ai_signals         │        │  ├── sync-social-metrics        │
-│  • activity_log       │        │  ├── run-health-check           │
-│  • chat_sessions      │        │  └── generate-daily-snapshot    │
-│  • chat_messages      │        └─────────────────┬───────────────┘
-│  • growth_audit_leads │                          │
-└──────────┬────────────┘                          │
+│  • campaign_metrics   │        │  ├── sync-ghl-contacts (cron)  │
+│  • ai_signals         │        │  ├── run-health-check (cron)   │
+│  • activity_log       │        │  ├── generate-daily-snapshot   │
+│  • chat_sessions      │        │  ├── generate-invite-link      │
+│  • chat_messages      │        │  └── process-embedding-jobs    │
+│  • growth_audit_leads │        │      (cron — RAG vector sync)  │
+└──────────┬────────────┘        └─────────────────┬───────────────┘
            │                                       │
            └──────────────┬────────────────────────┘
                           │
@@ -51,19 +55,25 @@
         ┌─────────────────────────────────────────┐
         │     SUPABASE POSTGRESQL DATABASE        │
         │  (RLS enforced on all tables)           │
-        │  14 tables · 16 enums · triggers        │
+        │  20 tables · 21 enums · triggers        │
+        │  pgvector enabled (RAG embeddings)      │
         └────────────────┬────────────────────────┘
                          │
-          ┌──────────────┼──────────────┐
-          ▼              ▼              ▼
-  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-  │GoHighLevel   │ │Instagram     │ │ TikTok       │
-  │CRM API       │ │Graph API     │ │ Creator API  │
-  └──────────────┘ └──────────────┘ └──────────────┘
+          ┌──────────────┴──────────────┐
+          ▼                            ▼
+  ┌──────────────┐           ┌──────────────────────┐
+  │ GoHighLevel  │           │ Google Gemini API    │
+  │ CRM (Inner G │           │ Chat: Flash / Pro    │
+  │ own account) │           │ Embeddings: text-    │
+  └──────────────┘           │   embedding-004      │
+                             └──────────────────────┘
+
+  ⚠️  Instagram Graph API and TikTok Creator API are DEFERRED.
+      They appear as demo placeholders in the dashboard only.
+      Real integrations will be built per-client, on-demand.
 
 WEBHOOKS (Inbound):
-  GHL → /functions/v1/webhook-ghl      (new contact created / updated)
-  Instagram → /functions/v1/webhook-ig  (post webhook subscription)
+  GHL → /functions/v1/webhook-ghl      (new contact created / updated in Inner G's CRM)
 ```
 
 ### Decision Framework: SDK vs. Edge Function
@@ -75,13 +85,16 @@ WEBHOOKS (Inbound):
 | Read recent activity feed               | Direct SDK query      | Simple ordered SELECT with `limit`                              |
 | Read unresolved AI signals              | Direct SDK query      | Filtered SELECT, RLS-protected                                  |
 | Read/write chat messages                | Direct SDK query      | Append-only per user, RLS ensures isolation                     |
-| Submit the Growth Audit contact form    | Edge Function         | Needs to call GHL API + send confirmation email after saving    |
+| Submit the Growth Audit contact form    | Edge Function         | Needs to call GHL API (Inner G's own CRM) + save lead atomically |
 | Sign in / Sign out                      | Supabase Auth SDK     | Auth is a first-class Supabase feature, no custom logic needed  |
-| Resolve an AI signal + trigger action   | Edge Function         | Must call an external API (GHL/IG) AND update the DB atomically |
-| Sync GHL contacts                       | Edge Function (cron)  | Requires GHL API key — must stay server-side                    |
-| Sync Instagram/TikTok metrics           | Edge Function (cron)  | Requires platform access tokens — must stay server-side         |
-| Run system health checks                | Edge Function (cron)  | Pings external APIs, writes to `system_connections`             |
-| Generate daily metric snapshots         | Edge Function (cron)  | Aggregates data from GHL+Social APIs, runs on a schedule        |
+| Resolve an AI signal + trigger action   | Edge Function         | Must update DB + optionally call GHL workflow atomically        |
+| Sync GHL contacts (Inner G's own CRM)   | Edge Function (cron)  | Requires GHL API key — must stay server-side                    |
+| Sync social metrics (per-client, on demand) | Edge Function (cron) | Platform access tokens — must stay server-side; DEFERRED until first client requests it |
+| Run system health checks                | Edge Function (cron)  | Pings external APIs (including Gemini), writes to `system_connections` |
+| Generate daily metric snapshots         | Edge Function (cron)  | Aggregates data from connected sources; schedules per project config |
+| Send AI chat message                    | Edge Function         | RAG search → Gemini API call; requires API key + rate limiting server-side |
+| Generate client invite link             | Edge Function         | Creates cryptographically random token in `invite_links` table; super_admin only |
+| Process embedding jobs (RAG)            | Edge Function (cron)  | Reads `embedding_jobs` queue, calls Gemini Embeddings API (`text-embedding-004`), writes vectors to `document_embeddings` |
 
 ---
 
@@ -98,8 +111,8 @@ Supabase Auth manages the full authentication lifecycle. The frontend uses the `
 | **Unauthenticated** | Public visitor (no session)                   | `anon`           | CTA form submit only              |
 | **Client Viewer** | Logged-in client (read-only access)             | `authenticated`  | Own project data, read-only       |
 | **Client Admin**  | Logged-in client with editor rights             | `authenticated`  | Own project data + signal resolve |
-| **Agency Member** | Inner G staff                                   | `authenticated`  | All clients + write access        |
-| **Super Admin**   | Inner G owner                                   | `authenticated`  | Unrestricted access               |
+| **Developer**     | Inner G team member (manages assigned clients)  | `authenticated`  | Assigned clients + write access   |
+| **Super Admin**   | Lamont — Inner G owner (full access)            | `authenticated`  | Unrestricted access + user management |
 
 > Role discrimination within `authenticated` users is handled by the `users.role` column in the database, enforced by RLS policies. The JWT itself only distinguishes `anon` vs `authenticated`.
 
@@ -475,8 +488,8 @@ const { data, error } = await supabase
 ```typescript
 interface SystemConnection {
   id: string;
-  system_name: string;         // "Database Connection", "GoHighLevel Sync"
-  system_key: string;          // "database", "ghl", "instagram", "tiktok"
+  system_name: string;         // "Database Connection", "AI Agent Engine", "GoHighLevel Sync"
+  system_key: string;          // "database", "ai_engine", "ghl", "instagram", "tiktok"
   status: 'active' | 'degraded' | 'offline';
   details: string | null;
   latency_ms: number | null;
@@ -649,7 +662,7 @@ const { data, error } = await supabase
 ```typescript
 interface AiSignal {
   id: string;
-  signal_type: 'inventory' | 'conversion' | 'social' | 'system' | 'ai_insight';
+  signal_type: 'inventory' | 'conversion' | 'social' | 'system' | 'ai_insight' | 'ai_action';
   title: string;
   body: string;
   action_label: string | null;
@@ -657,6 +670,8 @@ interface AiSignal {
   severity: 'info' | 'warning' | 'critical';
   created_at: string;
 }
+
+// Note: 'system' and 'ai_action' signal types trigger the notification bell
 
 type GetAiSignalsResponse = AiSignal[];
 ```
@@ -723,6 +738,8 @@ interface SendChatMessageRequest {
   session_id?: string;      // Omit to create a new session
   project_id: string;       // UUID — which project context
   content: string;          // User's message — max 4000 chars
+  model?: string;           // Optional: user selects model (e.g., 'gemini-1.5-pro', 'gemini-1.5-flash')
+                            // Defaults to 'gemini-1.5-flash' if omitted
 }
 ```
 
@@ -735,7 +752,7 @@ interface SendChatMessageResponse {
     assistant_message: {
       id: string;
       content: string;
-      model: string;          // e.g., "gpt-4o-mini"
+      model: string;          // e.g., "gemini-1.5-flash", "gemini-1.5-pro"
       token_count: number;
       created_at: string;
     };
@@ -746,21 +763,24 @@ interface SendChatMessageResponse {
 
 **Business Logic Sequence:**
 ```
-1. Validate JWT → get user.id
+1. Validate JWT → get user.id (available to ALL authenticated roles: super_admin, developer, client_admin, client_viewer)
 2. Validate request body (Zod schema)
-3. If session_id provided:
+3. Determine AI model: use request.model if provided AND in allowed list; else default to 'gemini-1.5-flash'
+4. Apply per-user rate limiting (Upstash Redis): 20 msgs/min per user_id
+   → If exceeded: return RATE_LIMITED (429)
+5. If session_id provided:
      a. Verify session belongs to user (auth.uid() = chat_sessions.user_id)
    Else:
-     a. INSERT new chat_sessions row { user_id, project_id, title: null }
+     a. INSERT new chat_sessions row { user_id, project_id, title: null, model_used: chosen_model }
      b. session_id = new row id
-4. INSERT user's message → chat_messages { session_id, role: 'user', content }
-5. Fetch last N messages from chat_sessions for context window
-6. Fetch project context (project name, active campaign summary)
-7. Call LLM API (e.g., OpenAI /chat/completions) with system prompt + history
-8. Parse LLM response → assistant_content, token_usage
-9. INSERT assistant's message → chat_messages { session_id, role: 'assistant', content, model, token_count }
-10. If session.title is null: set title = first 50 chars of user's first message
-11. Return { session_id, user_message_id, assistant_message }
+6. INSERT user's message → chat_messages { session_id, role: 'user', content }
+7. Fetch last N messages from session for context window (last 10 by default)
+8. Fetch project context (project name, active campaign summary, latest metrics snapshot)
+9. Call Gemini API (google.generativeai or Vertex AI SDK) with system prompt + history + context
+10. Parse response → assistant_content, token_usage
+11. INSERT assistant's message → chat_messages { session_id, role: 'assistant', content, model: chosen_model, token_count }
+12. If session.title is null: set title = first 50 chars of user's first message
+13. Return { session_id, user_message_id, assistant_message }
 ```
 
 ---
@@ -881,41 +901,38 @@ interface SubmitLeadResponse {
 **Method:** Triggered by Supabase cron (pg_cron) — NOT called from the browser  
 **Auth Required:** Service Role key (internal trigger only)  
 **Schedule:** Every 4 hours
+**Scope:** Inner G's own GHL account only — this syncs contacts from Inner G's own CRM
 
 **Business Logic Sequence:**
 ```
-1. For each active project with ghl_location_id set:
-   a. Call GHL API: GET /contacts with location_id and since=last_synced_at
+1. Query clients with a non-null ghl_location_id:
+   a. Call GHL API: GET /contacts with Inner G's location_id and since=last_synced_at
    b. For each returned contact:
         - UPSERT ghl_contacts { project_id, ghl_contact_id, email, phone, full_name, tags, pipeline_stage }
         - ON CONFLICT (project_id, ghl_contact_id) DO UPDATE
    c. INSERT integration_sync_logs { project_id, source: 'ghl', status, records_synced }
    d. INSERT activity_log { project_id, category: 'crm', action: 'GHL Contact Sync Completed', metadata: { count } }
 2. UPDATE projects.last_activity_at (via trigger on activity_log insert)
+
+NOTE: Client-specific GHL integrations (if a client uses GHL for their own campaigns)
+will be custom-built per-client engagement and NOT covered by this generic cron function.
 ```
 
 ---
 
-#### `fn/sync-social-metrics` (Edge Function — Cron)
-**Method:** Triggered by Supabase cron — NOT called from browser  
-**Auth Required:** Service Role key  
-**Schedule:** Daily at 02:00 UTC
+#### `fn/sync-social-metrics` (Edge Function — Cron) ⚠️ DEFERRED
+**Status:** DEFERRED — Instagram and TikTok APIs are demo placeholders.
+This function will be built on-demand when the first real client requests social metric tracking.
 
-**Business Logic Sequence:**
-```
-1. For each active social_account:
-   a. If platform = 'instagram':
-        - Call Instagram Graph API: /media?fields=reach,engagement,timestamp
-        - Call Instagram Insights API: /insights?metric=reach,impressions
-        - Aggregate to campaign_metrics for today's recorded_date
-   b. If platform = 'tiktok':
-        - Call TikTok Creator API: /video/list and /video/data
-        - Aggregate reach + engagement into campaign_metrics
-   c. UPSERT campaign_metrics (campaign_id, recorded_date) with social data
-   d. Compute sentiment_positive_pct from comment analysis (if available via platform API)
-   e. INSERT integration_sync_logs { source, status, records_synced }
-2. Run evaluate-signals (see below) after metrics are fresh
-```
+**When activated per-client:**
+- Built as a configurable Edge Function that reads which social platform a project uses
+- Supports Instagram Graph API, TikTok Creator API (and future platforms)
+- Each client's social tokens are stored encrypted in `social_accounts`
+- Sync schedule configurable per client (default: daily 02:00 UTC)
+
+**Current dashboard behavior:** Instagram (Kane's) and TikTok (Plenty of Hearts) connection cards
+show mock data seeded in `system_connections`. These will be replaced with real health checks
+once a client's social API is wired.
 
 ---
 
@@ -927,10 +944,11 @@ interface SubmitLeadResponse {
 **Business Logic Sequence:**
 ```
 1. For each project in system_connections:
-   a. system_key = 'database'  → SELECT 1 on Supabase DB (ping own connection)
-   b. system_key = 'ghl'       → GET /users from GHL API with the project's location_id
-   c. system_key = 'instagram' → GET /me from Instagram Graph API using stored access_token
-   d. system_key = 'tiktok'    → GET /user/info from TikTok Creator API
+   a. system_key = 'database'   → SELECT 1 on Supabase DB (ping own connection)
+   b. system_key = 'ai_engine'  → Ping Gemini API health endpoint (or minimal token count call)
+   c. system_key = 'ghl'        → GET /users from GHL API (only if project has ghl_location_id)
+   d. system_key = 'instagram'  → GET /me from Instagram Graph API (only if social_account exists)
+   e. system_key = 'tiktok'     → GET /user/info from TikTok Creator API (only if social_account exists)
 
    For each check:
      - Measure latency_ms (performance.now())
@@ -938,6 +956,10 @@ interface SubmitLeadResponse {
 
 2. UPSERT system_connections SET status, latency_ms, details, last_checked_at = now()
    ON CONFLICT (project_id, system_key) DO UPDATE
+
+3. For any connection that changes to 'offline' or 'degraded':
+   → INSERT ai_signals { signal_type: 'system', severity: 'critical', title: '{system_name} Offline' }
+   → This triggers the notification bell in the dashboard header
 ```
 
 **Dashboard Impact:** This makes the connection status cards show **real data** instead of randomized `Math.random()` latency values.
@@ -1003,19 +1025,19 @@ interface GHLContactWebhookPayload {
 | Scenario                                    | Use                          | SDK Method / Function             | Reason                                                    |
 | ------------------------------------------- | ---------------------------- | --------------------------------- | --------------------------------------------------------- |
 | Sign in / sign out / session check          | Supabase Auth SDK            | `supabase.auth.*`                 | Auth is first-class — no custom logic needed              |
-| Load portal selector project list           | Direct SDK query             | `supabase.from('projects').select()` | Simple SELECT, RLS handles access control              |
+| Load portal selector project list           | Direct SDK query             | `supabase.from('projects').select()` | Simple SELECT, RLS handles access control (developer scope limited to assigned clients) |
 | Load dashboard connection status cards      | Direct SDK query             | `supabase.from('system_connections')` | Pre-computed by cron health checks — fast read        |
 | Load KPI metric cards                       | Direct SDK query             | `supabase.from('campaign_metrics')` | Sorted SELECT by date, RLS-scoped                      |
 | Load activity feed                          | Direct SDK query             | `supabase.from('activity_log')`    | Ordered SELECT with limit — no complex logic           |
 | Load AI signal cards                        | Direct SDK query             | `supabase.from('ai_signals')`      | Filtered SELECT (unresolved, not expired)              |
 | Load chat history                           | Direct SDK query             | `supabase.from('chat_messages')`   | Ordered SELECT per session — RLS-isolated              |
-| Submit the Growth Audit contact form        | Edge Function                | `fn/submit-growth-audit-lead`     | Must call GHL API + send email — logic is server-side  |
-| Send a chat message (AI response)           | Edge Function                | `fn/send-chat-message`            | Must call LLM API — API key must stay server-side      |
-| Resolve an AI signal                        | Edge Function                | `fn/resolve-signal`               | Must trigger GHL automation + write activity atomically |
-| Sync GHL contacts                           | Edge Function (cron)         | `fn/sync-ghl-contacts`            | GHL API key is a secret — cannot be in browser         |
-| Sync social media metrics                   | Edge Function (cron)         | `fn/sync-social-metrics`          | Platform access tokens must stay server-side           |
-| Run system health checks                    | Edge Function (cron)         | `fn/run-health-check`             | Polls external APIs — must run server-side on schedule |
-| Receive GHL contact webhooks                | Edge Function (inbound)      | `fn/webhook-ghl`                  | Webhook receiver needs HMAC signature verification     |
+| Submit the Growth Audit contact form        | Edge Function                | `fn/submit-growth-audit-lead`     | Must call Inner G's GHL API + save lead atomically     |
+| Send a chat message (AI response)           | Edge Function                | `fn/send-chat-message`            | Must call Gemini API with model selection — key must stay server-side |
+| Resolve an AI signal                        | Edge Function                | `fn/resolve-signal`               | Must trigger optional GHL automation + write activity atomically |
+| Sync Inner G's GHL contacts                 | Edge Function (cron)         | `fn/sync-ghl-contacts`            | GHL API key is a secret — cannot be in browser         |
+| Sync social media metrics                   | Edge Function (cron, deferred)| `fn/sync-social-metrics`         | DEFERRED — built per-client on demand                  |
+| Run system health checks (incl. Gemini)     | Edge Function (cron)         | `fn/run-health-check`             | Polls external APIs (DB, Gemini, GHL) — writes to system_connections |
+| Receive GHL webhook (Inner G's CRM)         | Edge Function (inbound)      | `fn/webhook-ghl`                  | Webhook receiver needs HMAC signature verification     |
 
 ---
 
@@ -1037,9 +1059,10 @@ interface GHLContactWebhookPayload {
 | Variable                | Scope           | Purpose                                     |
 | ----------------------- | --------------- | ------------------------------------------- |
 | `GHL_WEBHOOK_SECRET`    | Edge Function   | HMAC key to verify inbound GHL payloads     |
-| `GHL_API_KEY`           | Edge Function   | GHL private API key for outbound API calls  |
-| `INSTAGRAM_APP_SECRET`  | Edge Function   | Instagram webhook signature validation      |
-| `OPENAI_API_KEY`        | Edge Function   | LLM API key for the AI chat assistant       |
+| `GHL_API_KEY`           | Edge Function   | GHL private API key for outbound API calls (Inner G's own account) |
+| `GEMINI_API_KEY`        | Edge Function   | Google Gemini API key for AI chat assistant |
+| `UPSTASH_REDIS_URL`     | Edge Function   | Rate limiting (chat + lead form)            |
+| `UPSTASH_REDIS_TOKEN`   | Edge Function   | Rate limiting auth                          |
 
 ---
 
@@ -1227,10 +1250,12 @@ supabase functions deploy send-chat-message                          # for authe
 # Deploy all functions at once
 supabase functions deploy
 
-# Set environment secrets (required for GHL API key, OpenAI key, etc.)
+# Set environment secrets (required for GHL API key, Gemini key, etc.)
 supabase secrets set GHL_API_KEY=<value>
-supabase secrets set OPENAI_API_KEY=<value>
+supabase secrets set GEMINI_API_KEY=<value>
 supabase secrets set GHL_WEBHOOK_SECRET=<value>
+supabase secrets set UPSTASH_REDIS_URL=<value>
+supabase secrets set UPSTASH_REDIS_TOKEN=<value>
 
 # View function logs
 supabase functions logs send-chat-message --tail

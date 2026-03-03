@@ -7,13 +7,18 @@
 | Field                  | Value                                                                |
 | ---------------------- | -------------------------------------------------------------------- |
 | **Status**             | 📐 Proposed — No Backend Exists Yet                                  |
-| **Last Updated**       | 2026-03-02                                                           |
+| **Last Updated**       | 2026-03-03                                                           |
 | **Stack**              | Supabase (PostgreSQL 15) · Supabase Auth · Supabase Edge Functions   |
-| **Payment Provider**   | None currently — Stripe recommended for future billing               |
-| **Email Provider**     | Supabase built-in (transactional) + GoHighLevel (marketing)          |
-| **3rd Party Integrations** | GoHighLevel CRM · Instagram Graph API · TikTok Creator API       |
+| **Payment Provider**   | None currently — deferred to Phase 5+                               |
+| **Email Provider**     | GoHighLevel workflows (all transactional + marketing emails)         |
+| **Email From Address** | `passwordreset@innergcomplete.com`                                   |
+| **Production URL**     | `https://agency.innergcomplete.com` (Vercel)                        |
+| **GHL Integration**    | Inner G's own GHL account only — client-specific GHL integrations built per-client on-demand |
+| **AI Provider**        | Google Gemini (preferred) — multi-model switching planned with rate limiting |
+| **Social API Status**  | Instagram + TikTok deferred — demo placeholders only until real client requests |
+| **3rd Party Integrations** | GoHighLevel CRM (Inner G's own) · Gemini API · social APIs per-client |
 | **Authored By**        | Phase 2 Backend Data Modeling Protocol (Senior Cloud Architect Pass) |
-| **Source Context**     | Based on Phase 1 Frontend Audit + all codebase UI/business logic     |
+| **Source Context**     | Based on Phase 1 Frontend Audit + all clarifying question answers (2026-03-03) |
 
 ---
 
@@ -21,13 +26,14 @@
 
 No backend, no migrations, no Edge Functions currently exist in this repository. This document **proposes** the complete PostgreSQL schema for Supabase based on the following evidence from the frontend:
 
-1. The dashboard tracks **Projects** and **Clients** (Kane's Bookstore, Plenty of Hearts)
-2. The portal requires **User Authentication** with role-based access (Agency vs. Client)
-3. Campaigns produce **KPI Metrics** (signups, app installs, funnel conversion rates)
-4. The CTA form captures **Leads / Growth Audit Requests**
+1. The dashboard tracks **Projects** and **Clients** — beginning with two mock demo clients (Kane's Bookstore, Plenty of Hearts) to showcase the platform
+2. The portal requires **User Authentication** with role-based access — `super_admin` (Lamont), `developer` (Inner G team), `client_admin`, `client_viewer`
+3. Campaigns produce **KPI Metrics** (signups, app installs, funnel conversion rates) — each client's metrics are sourced from their specific integrations
+4. The CTA form captures **Growth Audit Leads** → immediately synced to Inner G's GoHighLevel CRM
 5. The dashboard surfaces **Activity Logs**, **Funnel Events**, and **AI Signal Cards**
-6. External integrations (GoHighLevel, Instagram, TikTok) must sync data back into the database
-7. An **AI Chat** assistant will need **conversation history** stored per session/user
+6. **External integrations are per-client and on-demand** — not all clients use GHL or the same social platform
+7. An **AI Chat** assistant using **Google Gemini** (with multi-model switching) will need conversation history stored per session/user
+8. The **AI Agent Engine** connection card monitors the **Gemini API** connection status
 
 ---
 
@@ -35,17 +41,19 @@ No backend, no migrations, no Edge Functions currently exist in this repository.
 
 Domain-to-table mapping:
 
-| Domain             | Tables                                                                  | Purpose                                                    |
-| ------------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------- |
-| **Identity**       | `users`, `user_roles`, `agency_members`                                | Who can access the system and at what level                |
-| **Agency**         | `clients`, `projects`                                                   | Inner G's client roster and active engagements             |
-| **Campaigns**      | `campaigns`, `campaign_metrics`, `funnel_stages`, `funnel_events`       | Campaign performance data for each client project          |
-| **Signals**        | `ai_signals`                                                             | AI-generated intelligence cards shown in dashboard          |
-| **Leads**          | `growth_audit_leads`                                                     | Contacts who submitted the Growth Audit form on the website |
-| **Activity**       | `activity_log`                                                           | Timestamped feed of system events shown in dashboard        |
-| **Integrations**   | `ghl_contacts`, `social_accounts`, `integration_sync_logs`              | Records of synced 3rd-party data                           |
-| **AI Assistant**   | `chat_sessions`, `chat_messages`                                         | Persistent AI growth assistant conversation history        |
-| **System Health**  | `system_connections`                                                     | Connection status records for dashboard status cards        |
+| Domain               | Tables                                                                          | Purpose                                                              |
+| -------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| **Identity**         | `users`, `developer_client_access`, `project_user_access`                      | Who can access the system and at what level                          |
+| **Agency**           | `clients`, `projects`                                                           | Inner G's client roster and active engagements                       |
+| **Campaigns**        | `campaigns`, `campaign_metrics`, `funnel_stages`, `funnel_events`               | Campaign performance data for each client project                    |
+| **Signals**          | `ai_signals`                                                                     | AI-generated intelligence cards shown in dashboard                    |
+| **Leads**            | `growth_audit_leads`                                                             | Contacts who submitted the Growth Audit form on the website          |
+| **Activity**         | `activity_log`                                                                   | Timestamped feed of system events shown in dashboard                  |
+| **Integrations**     | `ghl_contacts`, `social_accounts`, `integration_sync_logs`, `client_db_connections` | Records of synced 3rd-party data + external client DB connectors |
+| **AI Assistant**     | `chat_sessions`, `chat_messages`                                                 | Persistent AI growth assistant conversation history                  |
+| **AI Knowledge**     | `document_embeddings`, `embedding_jobs`                                          | RAG vector store — enables AI to search project knowledge            |
+| **System Health**    | `system_connections`                                                             | Connection status records for dashboard status cards                  |
+| **Access & Invites** | `invite_links`                                                                   | Share-link based client invitation system                            |
 
 ---
 
@@ -73,18 +81,21 @@ Supabase Auth manages the `auth.users` table. We create a **public profile mirro
 
 ---
 
-#### `agency_members`
+#### `developer_client_access`
 
-Tracks Inner G staff who have admin/agency-level portal access.
+Many-to-many junction table that restricts which clients a `developer` role user can see and manage. A single developer can be assigned to a portfolio of multiple clients.
 
-| Column          | Type            | Nullable | Default | Notes                                    |
-| --------------- | --------------- | -------- | ------- | ---------------------------------------- |
-| `id`            | `uuid`          | ❌        | `gen_random_uuid()` | PRIMARY KEY                    |
-| `user_id`       | `uuid`          | ❌        | —       | FK → `users.id` ON DELETE CASCADE        |
-| `title`         | `text`          | ✅        | `null`  | e.g., "Senior Architect", "Account Lead" |
-| `department`    | `text`          | ✅        | `null`  | e.g., "Engineering", "Strategy"          |
-| `can_manage_clients` | `boolean`  | ❌        | `false` | Permission to create/archive clients     |
-| `created_at`    | `timestamptz`   | ❌        | `now()` |                                          |
+| Column       | Type          | Nullable | Default             | Notes                                          |
+| ------------ | ------------- | -------- | ------------------- | ---------------------------------------------- |
+| `id`         | `uuid`        | ❌        | `gen_random_uuid()` | PRIMARY KEY                                    |
+| `user_id`    | `uuid`        | ❌        | —                   | FK → `users.id` ON DELETE CASCADE (must have role='developer') |
+| `client_id`  | `uuid`        | ❌        | —                   | FK → `clients.id` ON DELETE CASCADE            |
+| `granted_at` | `timestamptz` | ❌        | `now()`             | When this assignment was created               |
+| `granted_by` | `uuid`        | ✅        | `null`              | FK → `users.id` — super_admin who made the assignment |
+
+**Constraint:** `UNIQUE(user_id, client_id)` — a developer cannot be assigned to the same client twice.
+
+> **RLS Implication:** When a developer queries `projects`, `campaigns`, `ai_signals`, etc., an RLS policy joins through this table: only rows where `project.client_id` is in their assigned client list are returned.
 
 ---
 
@@ -329,6 +340,27 @@ Mirrors GHL contact records for reference lookups.
 
 ---
 
+#### `client_db_connections`
+
+Stores connection configuration for external client databases. Uses the **KPI Aggregation** approach: Inner G connects to the external DB, aggregates KPIs, then stores only the totals in `campaign_metrics`. No raw client data is stored in Inner G's database.
+
+| Column           | Type                          | Nullable | Default             | Notes                                                       |
+| ---------------- | ----------------------------- | -------- | ------------------- | ----------------------------------------------------------- |
+| `id`             | `uuid`                        | ❌        | `gen_random_uuid()` | PRIMARY KEY                                                 |
+| `project_id`     | `uuid`                        | ❌        | —                   | FK → `projects.id` ON DELETE CASCADE                        |
+| `db_type`        | `external_db_type_enum`       | ❌        | —                   | See Enums: `supabase`, `vercel_postgres`, `postgres`, `mysql`, `other` |
+| `display_name`   | `text`                        | ❌        | —                   | e.g., "Kane's Bookstore Supabase DB"                        |
+| `connection_url` | `text`                        | ✅        | `null`              | Encrypted connection string — never exposed to browser      |
+| `is_active`      | `boolean`                     | ❌        | `true`              |                                                             |
+| `last_synced_at` | `timestamptz`                 | ✅        | `null`              | When the aggregation cron last ran for this connection      |
+| `sync_config`    | `jsonb`                       | ✅        | `null`              | Aggregation queries and field mappings per KPI              |
+| `created_at`     | `timestamptz`                 | ❌        | `now()`             |                                                             |
+| `updated_at`     | `timestamptz`                 | ❌        | `now()`             | Updated by trigger                                          |
+
+> **Security:** `connection_url` is stored encrypted (app layer encrypts before INSERT, decrypts only inside Edge Functions that run as service role). Never returned to the browser.
+
+---
+
 #### `social_accounts`
 
 Tracks which social media accounts are linked per project.
@@ -395,14 +427,15 @@ Powers the dashboard "Connection Status" cards with live health data per project
 
 One row per user chat session with the Growth Assistant.
 
-| Column       | Type          | Nullable | Default          | Notes                                        |
-| ------------ | ------------- | -------- | ---------------- | -------------------------------------------- |
-| `id`         | `uuid`        | ❌        | `gen_random_uuid()` | PRIMARY KEY                              |
-| `user_id`    | `uuid`        | ❌        | —                | FK → `users.id` ON DELETE CASCADE            |
-| `project_id` | `uuid`        | ✅        | `null`           | FK → `projects.id` — which project context   |
-| `title`      | `text`        | ✅        | `null`           | Auto-generated session title (first message) |
-| `created_at` | `timestamptz` | ❌        | `now()`          |                                              |
-| `updated_at` | `timestamptz` | ❌        | `now()`          | Updated on last message                      |
+| Column        | Type          | Nullable | Default             | Notes                                                       |
+| ------------- | ------------- | -------- | ------------------- | ----------------------------------------------------------- |
+| `id`          | `uuid`        | ❌        | `gen_random_uuid()` | PRIMARY KEY                                                 |
+| `user_id`     | `uuid`        | ❌        | —                   | FK → `users.id` ON DELETE CASCADE                           |
+| `project_id`  | `uuid`        | ✅        | `null`              | FK → `projects.id` — which project context                  |
+| `title`       | `text`        | ✅        | `null`              | Auto-generated session title (first message)                |
+| `model_used`  | `text`        | ✅        | `'gemini-1.5-flash'` | Last Gemini model used in this session — stored for audit  |
+| `created_at`  | `timestamptz` | ❌        | `now()`             |                                                             |
+| `updated_at`  | `timestamptz` | ❌        | `now()`             | Updated on last message                                     |
 
 ---
 
@@ -422,13 +455,77 @@ Individual messages within a chat session.
 
 ---
 
+### Domain: AI Knowledge (RAG)
+
+---
+
+#### `document_embeddings`
+
+Vector store for the RAG (Retrieval Augmented Generation) system. When the AI chat function receives a user message, it first queries this table using semantic similarity search (`pgvector`) to find the most relevant project facts, then passes those facts as context to Gemini. This ensures the AI has accurate, project-specific knowledge even as the dataset grows large.
+
+| Column        | Type           | Nullable | Default             | Notes                                                                     |
+| ------------- | -------------- | -------- | ------------------- | ------------------------------------------------------------------------- |
+| `id`          | `uuid`         | ❌        | `gen_random_uuid()` | PRIMARY KEY                                                               |
+| `project_id`  | `uuid`         | ❌        | —                   | FK → `projects.id` ON DELETE CASCADE — scopes embeddings to a project     |
+| `source_type` | `text`         | ❌        | —                   | What kind of data was embedded: `campaign_metric`, `ai_signal`, `activity`, `ghl_contact_summary` |
+| `source_id`   | `uuid`         | ✅        | `null`              | FK to the originating row (for cache invalidation when source row updates) |
+| `content`     | `text`         | ❌        | —                   | The plaintext chunk that was embedded (for display/debugging)             |
+| `embedding`   | `vector(1536)` | ❌        | —                   | The Gemini text-embedding vector (`text-embedding-004` model, 1536 dims)  |
+| `created_at`  | `timestamptz`  | ❌        | `now()`             |                                                                           |
+| `updated_at`  | `timestamptz`  | ❌        | `now()`             | Updated by trigger                                                        |
+
+**Index:** `CREATE INDEX ON document_embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)` — enables fast approximate nearest-neighbor search.
+
+---
+
+#### `embedding_jobs`
+
+Tracks the queue of rows that need to be (re-)embedded. When a new `campaign_metrics` row is added or an `ai_signal` is created, a row is written here. A background Edge Function processes the queue and calls the Gemini Embeddings API.
+
+| Column        | Type                     | Nullable | Default             | Notes                                                    |
+| ------------- | ------------------------ | -------- | ------------------- | -------------------------------------------------------- |
+| `id`          | `uuid`                   | ❌        | `gen_random_uuid()` | PRIMARY KEY                                              |
+| `project_id`  | `uuid`                   | ❌        | —                   | FK → `projects.id`                                       |
+| `source_type` | `text`                   | ❌        | —                   | Matches `document_embeddings.source_type`                |
+| `source_id`   | `uuid`                   | ❌        | —                   | The row that needs to be embedded                        |
+| `status`      | `embed_job_status_enum`  | ❌        | `'pending'`         | See Enums: `pending`, `processing`, `done`, `failed`     |
+| `error`       | `text`                   | ✅        | `null`              | Error message if status = failed                         |
+| `created_at`  | `timestamptz`            | ❌        | `now()`             |                                                          |
+| `processed_at` | `timestamptz`           | ✅        | `null`              | When processing completed                                |
+
+---
+
+### Domain: Access & Invites
+
+---
+
+#### `invite_links`
+
+Supports the **share-link client invitation flow**. When a super_admin is ready to invite a client, the system generates a unique, time-limited secret token. The admin copies the link and sends it to the client however they choose (Slack, text, personal email). The client clicks the link and is taken to an account setup page.
+
+| Column       | Type                    | Nullable | Default             | Notes                                                          |
+| ------------ | ----------------------- | -------- | ------------------- | -------------------------------------------------------------- |
+| `id`         | `uuid`                  | ❌        | `gen_random_uuid()` | PRIMARY KEY                                                    |
+| `token`      | `text`                  | ❌        | —                   | Cryptographically random secret — forms the invite URL path    |
+| `project_id` | `uuid`                  | ❌        | —                   | FK → `projects.id` — which portal the invite grants access to  |
+| `role`       | `user_role_enum`        | ❌        | `'client_admin'`    | The role that will be assigned when the invite is accepted     |
+| `invited_email` | `text`              | ✅        | `null`              | Optional — pre-fill the email field on the setup page          |
+| `created_by` | `uuid`                  | ❌        | —                   | FK → `users.id` — which super_admin generated this link        |
+| `expires_at` | `timestamptz`           | ❌        | `now() + interval '7 days'` | Link expires after 7 days                            |
+| `accepted_at` | `timestamptz`          | ✅        | `null`              | Set when the invite is used — prevents re-use                  |
+| `created_at` | `timestamptz`           | ❌        | `now()`             |                                                                |
+
+**Constraint:** Token is `UNIQUE`. Once `accepted_at` is set, the link cannot be used again.
+
+---
+
 ## 3. Enums & Constants
 
 ```sql
 -- User & Access
 CREATE TYPE user_role_enum AS ENUM (
-    'super_admin',    -- Inner G owner — full access to everything
-    'agency_member',  -- Inner G staff — access to assigned clients
+    'super_admin',    -- Inner G owner (Lamont) — full access to everything; only 1 account
+    'developer',      -- Inner G team members — can create/manage their own client accounts only
     'client_admin',   -- Client's lead contact — full project dashboard access
     'client_viewer'   -- Client's read-only stakeholder
 );
@@ -488,10 +585,11 @@ CREATE TYPE campaign_status_enum AS ENUM (
 -- Signals
 CREATE TYPE signal_type_enum AS ENUM (
     'inventory',    -- Database/inventory-based alert
-    'conversion',   -- GHL funnel / checkout alert
-    'social',       -- Instagram/TikTok engagement spike
-    'system',       -- Infrastructure / connection alert
-    'ai_insight'    -- General AI-generated recommendation
+    'conversion',   -- Funnel / checkout alert
+    'social',       -- Social media engagement spike
+    'system',       -- Infrastructure / connection failure alert (triggers notification bell)
+    'ai_insight',   -- General AI-generated recommendation
+    'ai_action'     -- Gemini-recommended specific action
 );
 
 CREATE TYPE signal_severity_enum AS ENUM (
@@ -534,6 +632,7 @@ CREATE TYPE integration_source_enum AS ENUM (
     'instagram',
     'tiktok',
     'stripe',
+    'client_db',  -- external client database aggregation
     'manual'
 );
 
@@ -555,6 +654,23 @@ CREATE TYPE chat_role_enum AS ENUM (
     'assistant',
     'system'
 );
+
+-- External Client Database Connector
+CREATE TYPE external_db_type_enum AS ENUM (
+    'supabase',        -- Another Supabase project (most common for Inner G clients)
+    'vercel_postgres', -- Vercel-hosted Postgres
+    'postgres',        -- Generic Postgres
+    'mysql',           -- MySQL / PlanetScale
+    'other'            -- Open-ended for future connector types
+);
+
+-- RAG Embedding Jobs
+CREATE TYPE embed_job_status_enum AS ENUM (
+    'pending',
+    'processing',
+    'done',
+    'failed'
+);
 ```
 
 ---
@@ -564,15 +680,17 @@ CREATE TYPE chat_role_enum AS ENUM (
 ```
 auth.users (Supabase managed)
     │── 1:1 ──► users (public profile mirror, id = auth.uid())
-                    │── 1:N ──► project_user_access
+                    │── 1:N ──► project_user_access   (client portal access grants)
+                    │── 1:N ──► developer_client_access (M:N — developer manages a portfolio of clients)
                     │── 1:N ──► chat_sessions
-                    │── 1:N ──► agency_members (if role = agency_member)
+                    │── 1:N ──► invite_links (created_by)
 
 clients
+    │── M:N ──► users[developer] via developer_client_access
     │── 1:N ──► projects (CASCADE DELETE on archive; use soft delete instead)
                     │── 1:N ──► project_user_access (who can see this project)
                     │── 1:N ──► campaigns
-                    │           │── 1:N ──► campaign_metrics (daily snapshot)
+                    │           │── 1:N ──► campaign_metrics (daily KPI snapshot)
                     │           │── 1:N ──► funnel_stages
                     │                       │── 1:N ──► funnel_events (daily count)
                     │── 1:N ──► ai_signals
@@ -580,11 +698,15 @@ clients
                     │── 1:N ──► ghl_contacts
                     │── 1:N ──► social_accounts
                     │── 1:N ──► integration_sync_logs
+                    │── 1:N ──► client_db_connections  (KPI aggregation connectors)
                     │── 1:N ──► system_connections
                     │── 1:N ──► chat_sessions
+                    │── 1:N ──► document_embeddings    (RAG vector store — scoped per project)
+                    │── 1:N ──► embedding_jobs          (queue for embedding new rows)
+                    │── 1:N ──► invite_links            (share-link client invitations)
 
 growth_audit_leads
-    │── N:1 ──► users (assigned_to — which agency member owns the lead)
+    │── N:1 ──► users (assigned_to — which developer owns the lead)
     (No foreign key to clients — leads are not yet clients)
 ```
 
@@ -597,25 +719,31 @@ growth_audit_leads
 
 ## 5. Indexes
 
-| Index Name                          | Table                    | Columns                          | Type    | Rationale                                                     |
-| ----------------------------------- | ------------------------ | -------------------------------- | ------- | ------------------------------------------------------------- |
-| `idx_users_email`                   | `users`                  | `email`                          | UNIQUE  | Fast auth lookup by email                                     |
-| `idx_users_role`                    | `users`                  | `role`                           | B-tree  | Filter agency members vs. clients                             |
-| `idx_projects_slug`                 | `projects`               | `slug`                           | UNIQUE  | Fast dashboard URL lookup (e.g., `/dashboard/kanes-bookstore`)|
-| `idx_projects_client_id`            | `projects`               | `client_id`                      | B-tree  | Fetch all projects for a given client                         |
-| `idx_project_access_user`           | `project_user_access`    | `user_id`                        | B-tree  | "What projects can this user see?" — portal selector query    |
-| `idx_project_access_project`        | `project_user_access`    | `project_id`                     | B-tree  | "Who has access to this project?" — admin view                |
-| `idx_campaigns_project_status`      | `campaigns`              | `(project_id, status)`           | B-tree  | Fetch active campaigns for a project                          |
-| `idx_metrics_campaign_date`         | `campaign_metrics`       | `(campaign_id, recorded_date)`   | B-tree  | Time-series queries for charts (most recent N days)           |
-| `idx_funnel_events_stage_date`      | `funnel_events`          | `(funnel_stage_id, recorded_date)` | B-tree | Funnel visualization queries                                |
-| `idx_ai_signals_project_unresolved` | `ai_signals`             | `(project_id, is_resolved)`      | B-tree  | Fetch active (unresolved) signals for a project               |
-| `idx_activity_log_project_time`     | `activity_log`           | `(project_id, created_at DESC)`  | B-tree  | Sorted activity feed queries                                  |
-| `idx_leads_status`                  | `growth_audit_leads`     | `status`                         | B-tree  | Filter leads by pipeline stage                                |
-| `idx_leads_ghl_contact`             | `growth_audit_leads`     | `ghl_contact_id`                 | B-tree  | Deduplicate when syncing from GHL                             |
-| `idx_ghl_contacts_project_ghl_id`   | `ghl_contacts`           | `(project_id, ghl_contact_id)`   | UNIQUE  | Prevent duplicate GHL contacts per project                    |
-| `idx_social_accounts_platform`      | `social_accounts`        | `(project_id, platform)`         | UNIQUE  | One Instagram/TikTok account per project                      |
-| `idx_chat_messages_session`         | `chat_messages`          | `(session_id, created_at ASC)`   | B-tree  | Chronological message retrieval per session                   |
-| `idx_system_connections_project_key`| `system_connections`     | `(project_id, system_key)`       | UNIQUE  | One status record per system per project                      |
+| Index Name                             | Table                     | Columns                              | Type        | Rationale                                                     |
+| -------------------------------------- | ------------------------- | ------------------------------------ | ----------- | ------------------------------------------------------------- |
+| `idx_users_email`                      | `users`                   | `email`                              | UNIQUE      | Fast auth lookup by email                                     |
+| `idx_users_role`                       | `users`                   | `role`                               | B-tree      | Filter developers vs. clients                                 |
+| `idx_dev_client_access_user`           | `developer_client_access` | `user_id`                            | B-tree      | "What clients can this developer see?" — portfolio query      |
+| `idx_dev_client_access_client`         | `developer_client_access` | `client_id`                          | B-tree      | "Which developers manage this client?" — admin view           |
+| `idx_projects_slug`                    | `projects`                | `slug`                               | UNIQUE      | Fast dashboard URL lookup                                     |
+| `idx_projects_client_id`              | `projects`                | `client_id`                          | B-tree      | Fetch all projects for a given client                         |
+| `idx_project_access_user`             | `project_user_access`     | `user_id`                            | B-tree      | "What projects can this client see?"                          |
+| `idx_project_access_project`          | `project_user_access`     | `project_id`                         | B-tree      | "Who has access to this project?"                             |
+| `idx_campaigns_project_status`        | `campaigns`               | `(project_id, status)`               | B-tree      | Fetch active campaigns for a project                          |
+| `idx_metrics_campaign_date`           | `campaign_metrics`        | `(campaign_id, recorded_date)`       | B-tree      | Time-series queries for charts (most recent N days)           |
+| `idx_funnel_events_stage_date`        | `funnel_events`           | `(funnel_stage_id, recorded_date)`   | B-tree      | Funnel visualization queries                                  |
+| `idx_ai_signals_project_unresolved`   | `ai_signals`              | `(project_id, is_resolved)`          | B-tree      | Fetch active (unresolved) signals for a project               |
+| `idx_activity_log_project_time`       | `activity_log`            | `(project_id, created_at DESC)`      | B-tree      | Sorted activity feed queries                                  |
+| `idx_leads_status`                    | `growth_audit_leads`      | `status`                             | B-tree      | Filter leads by pipeline stage                                |
+| `idx_leads_ghl_contact`              | `growth_audit_leads`      | `ghl_contact_id`                     | B-tree      | Deduplicate when syncing from GHL                             |
+| `idx_ghl_contacts_project_ghl_id`    | `ghl_contacts`            | `(project_id, ghl_contact_id)`       | UNIQUE      | Prevent duplicate GHL contacts per project                    |
+| `idx_social_accounts_platform`        | `social_accounts`         | `(project_id, platform)`             | UNIQUE      | One Instagram/TikTok account per project                      |
+| `idx_chat_messages_session`          | `chat_messages`           | `(session_id, created_at ASC)`       | B-tree      | Chronological message retrieval per session                   |
+| `idx_system_connections_project_key` | `system_connections`      | `(project_id, system_key)`           | UNIQUE      | One status record per system per project                      |
+| `idx_embeddings_project_source`      | `document_embeddings`     | `(project_id, source_type)`          | B-tree      | Filter embeddings by project + source type before vector search |
+| `idx_embeddings_vector`              | `document_embeddings`     | `embedding`                          | ivfflat     | Approximate nearest-neighbor vector similarity search (pgvector) |
+| `idx_embed_jobs_status`              | `embedding_jobs`          | `(project_id, status)`               | B-tree      | Fetch pending jobs for cron processor                         |
+| `idx_invite_links_token`             | `invite_links`            | `token`                              | UNIQUE      | Fast invite lookup by URL token                               |
 
 ---
 
@@ -704,7 +832,7 @@ ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 | Role            | SELECT   | INSERT   | UPDATE   | DELETE   | Condition                              |
 | --------------- | -------- | -------- | -------- | -------- | -------------------------------------- |
 | Self            | ✅        | ✅ (via trigger) | ✅ (own row only) | ❌  | `id = auth.uid()`                 |
-| Agency Member   | ✅ (all) | ❌        | ❌        | ❌        | `auth.uid() in (select user_id from agency_members)` |
+| Developer       | ✅ (assigned clients' users only) | ❌ | ❌ | ❌ | `(select role from users where id = auth.uid()) = 'developer'` + restricted to assigned clients |
 | Super Admin     | ✅        | ✅        | ✅        | ✅        | `(select role from users where id = auth.uid()) = 'super_admin'` |
 
 ---
@@ -714,8 +842,8 @@ ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 | Role            | SELECT                  | INSERT   | UPDATE   | DELETE   | Condition                                                             |
 | --------------- | ----------------------- | -------- | -------- | -------- | --------------------------------------------------------------------- |
 | Client (any)    | ✅ (own projects only)  | ❌        | ❌        | ❌        | `id IN (SELECT project_id FROM project_user_access WHERE user_id = auth.uid())` |
-| Agency Member   | ✅ (all)                | ✅        | ✅        | ❌        | `auth.uid() in (select user_id from agency_members)`                 |
-| Super Admin     | ✅                      | ✅        | ✅        | ✅        | Always                                                                |
+| Developer       | ✅ (assigned clients' projects only) | ✅ | ✅ | ❌ | Developer can only see/manage clients they've been assigned to |
+| Super Admin     | ✅                      | ✅        | ✅        | ✅        | Always |
 
 ---
 
@@ -811,24 +939,33 @@ For tables that don't need full history (most tables here), the `updated_at` tri
 
 ## 11. Business Rules Summary
 
-| ID   | Domain      | Rule                                                                                   | Enforcement Location  |
-| ---- | ----------- | -------------------------------------------------------------------------------------- | --------------------- |
-| B-01 | Projects    | A client must exist before a project can be created                                    | FK constraint         |
-| B-02 | Projects    | Only one portal dashboard per project slug (URL)                                       | UNIQUE index on `slug`|
-| B-03 | Projects    | A user can access a project only if a `project_user_access` row exists for them        | RLS policy            |
-| B-04 | Campaigns   | A campaign must have a `start_date` before moving from `draft` to `active`             | App layer / Edge Fn   |
-| B-05 | Campaigns   | `end_date` must be null or after `start_date`                                          | CHECK constraint      |
-| B-06 | Metrics     | Only one `campaign_metrics` row per campaign per day                                   | UNIQUE constraint     |
-| B-07 | Metrics     | `activation_rate` cannot exceed 100% or be negative                                   | CHECK constraint      |
-| B-08 | Integrations| Only one social account per platform per project (one Instagram, one TikTok per client)| UNIQUE constraint     |
-| B-09 | Integrations| `social_accounts.access_token` must be stored encrypted, not plaintext                 | App layer (encrypt before insert) |
-| B-10 | Leads       | Any person may submit the Growth Audit form without logging in                          | RLS (anon INSERT allowed) |
-| B-11 | Leads       | Once submitted, a lead's `email` cannot be changed (immutable record of submission)    | App layer — no UPDATE on email |
-| B-12 | Signals     | An AI signal is hidden from the dashboard once `is_resolved = true`                    | App-layer filter + RLS|
-| B-13 | Chat        | A user can only read/write their own chat sessions                                     | RLS policy            |
-| B-14 | Chat        | Chat messages cannot be updated after creation (append-only)                           | RLS — no UPDATE       |
-| B-15 | Users       | A user's `role` can only be changed by a `super_admin`                                 | RLS + App layer check |
-| B-16 | Users       | Deactivating a user (`is_active = false`) does NOT delete their data                   | Soft-disable pattern  |
+| ID   | Domain       | Rule                                                                                                                       | Enforcement Location              |
+| ---- | ------------ | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| B-01 | Projects     | A client must exist before a project can be created                                                                        | FK constraint                     |
+| B-02 | Projects     | Only one portal dashboard per project slug (URL)                                                                           | UNIQUE index on `slug`            |
+| B-03 | Projects     | A client user can access a project only if a `project_user_access` row exists for them                                     | RLS policy                        |
+| B-04 | Campaigns    | A campaign must have a `start_date` before moving from `draft` to `active`                                                 | App layer / Edge Fn               |
+| B-05 | Campaigns    | `end_date` must be null or after `start_date`                                                                              | CHECK constraint                  |
+| B-06 | Metrics      | Only one `campaign_metrics` row per campaign per day                                                                       | UNIQUE constraint                 |
+| B-07 | Metrics      | `activation_rate` cannot exceed 100% or be negative                                                                       | CHECK constraint                  |
+| B-08 | Integrations | Only one social account per platform per project                                                                           | UNIQUE constraint                 |
+| B-09 | Integrations | `social_accounts.access_token` and `client_db_connections.connection_url` must be stored encrypted — never plaintext       | App layer (encrypt before insert) |
+| B-10 | Leads        | Any person may submit the Growth Audit form without logging in                                                              | RLS (anon INSERT allowed)         |
+| B-11 | Leads        | Once submitted, a lead's `email` cannot be changed                                                                         | App layer — no UPDATE on email    |
+| B-12 | Signals      | An AI signal is hidden from dashboard once `is_resolved = true`                                                            | App-layer filter + RLS            |
+| B-13 | Chat         | A user can only read/write their own chat sessions                                                                         | RLS policy                        |
+| B-14 | Chat         | Chat messages cannot be updated after creation (append-only)                                                               | RLS — no UPDATE                   |
+| B-15 | Users        | A user's `role` can only be changed by a `super_admin`                                                                     | RLS + App layer check             |
+| B-16 | Users        | Deactivating a user (`is_active = false`) does NOT delete their data                                                       | Soft-disable pattern              |
+| B-17 | Users        | A `developer` can manage a **portfolio** of clients; access is restricted to clients in their `developer_client_access` list | RLS policy (developer scope)    |
+| B-18 | Users        | No self-signup; accounts created via share-link invites or super_admin action; invite links expire in 7 days               | `invite_links` table + Edge Fn    |
+| B-19 | Sessions     | Access tokens expire after 1 hour; all users redirected to `/login` after password reset                                   | Supabase Auth default             |
+| B-20 | System Conn  | `system_connections` tracks `database` + `ai_engine` per project always; `ghl`/`instagram`/`tiktok` only when configured  | RLS + cron function               |
+| B-21 | Signals      | New AI signals AND system connection failures trigger notification bell items                                               | App layer via Supabase Realtime   |
+| B-22 | RAG          | When a new `campaign_metrics`, `ai_signal`, or `activity_log` row is created, a row is queued in `embedding_jobs`         | Database trigger                  |
+| B-23 | RAG          | The AI chat function performs a vector similarity search on `document_embeddings` before calling Gemini                    | Edge Function business logic      |
+| B-24 | Client DB    | External client databases use KPI Aggregation only — Inner G stores only daily totals, never raw client data               | Edge Function + `sync_config` JSONB |
+| B-25 | Client DB    | `client_db_connections.connection_url` is decrypted only inside Edge Functions running as service role — never returned to browser | App layer + RLS              |
 
 ---
 
@@ -836,19 +973,22 @@ For tables that don't need full history (most tables here), the `updated_at` tri
 
 This is a **greenfield** proposal. No migrations exist yet. The recommended migration order:
 
-| Migration #  | Name                              | Purpose                                                            |
-| ------------ | --------------------------------- | ------------------------------------------------------------------ |
-| `001`        | `create_enums`                    | All `CREATE TYPE` enum definitions                                 |
-| `002`        | `create_users`                    | Public `users` table + auth trigger + `updated_at` trigger        |
-| `003`        | `create_agency`                   | `clients`, `projects`, `agency_members`, `project_user_access` tables |
-| `004`        | `create_campaigns`                | `campaigns`, `funnel_stages` tables                                |
-| `005`        | `create_metrics`                  | `campaign_metrics`, `funnel_events` tables + UNIQUE constraints    |
-| `006`        | `create_signals_activity`         | `ai_signals`, `activity_log` tables + `last_activity_at` trigger   |
-| `007`        | `create_integrations`             | `ghl_contacts`, `social_accounts`, `integration_sync_logs`, `system_connections` |
-| `008`        | `create_ai_chat`                  | `chat_sessions`, `chat_messages` tables                            |
-| `009`        | `create_leads`                    | `growth_audit_leads` table                                         |
-| `010`        | `enable_rls`                      | `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` on all tables          |
-| `011`        | `create_rls_policies`             | All SELECT/INSERT/UPDATE/DELETE RLS policies                       |
-| `012`        | `create_indexes`                  | All performance indexes                                            |
-| `013`        | `create_views`                    | `active_projects`, `active_clients` soft-delete views              |
-| `014`        | `seed_system_connections`         | Seed `system_connections` rows for each project (DB, AI, GHL, Social) |
+| Migration #  | Name                              | Purpose                                                                                               |
+| ------------ | --------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `001`        | `create_enums`                    | All `CREATE TYPE` enum definitions (incl. `developer`, `ai_action`, `embed_job_status`, `external_db_type`) |
+| `002`        | `create_users`                    | `users` table + `developer_client_access` + auth trigger + `updated_at` trigger                       |
+| `003`        | `create_agency`                   | `clients`, `projects`, `project_user_access` tables                                                   |
+| `004`        | `create_campaigns`                | `campaigns`, `funnel_stages` tables                                                                   |
+| `005`        | `create_metrics`                  | `campaign_metrics`, `funnel_events` tables + UNIQUE constraints                                       |
+| `006`        | `create_signals_activity`         | `ai_signals`, `activity_log` tables + `last_activity_at` trigger                                      |
+| `007`        | `create_integrations`             | `ghl_contacts`, `social_accounts`, `integration_sync_logs`, `system_connections`, `client_db_connections` |
+| `008`        | `create_ai_chat`                  | `chat_sessions` (with `model_used`), `chat_messages` tables                                           |
+| `009`        | `create_leads`                    | `growth_audit_leads` table                                                                            |
+| `010`        | `create_rag`                      | Enable `pgvector` extension; create `document_embeddings` (with ivfflat index) + `embedding_jobs`     |
+| `011`        | `create_invites`                  | `invite_links` table                                                                                  |
+| `012`        | `enable_rls`                      | `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` on all tables                                             |
+| `013`        | `create_rls_policies`             | All SELECT/INSERT/UPDATE/DELETE RLS policies — includes `developer` portfolio scoping                  |
+| `014`        | `create_indexes`                  | All performance indexes including ivfflat vector index                                                |
+| `015`        | `create_views`                    | `active_projects`, `active_clients` soft-delete views                                                 |
+| `016`        | `seed_system_connections`         | Seed `system_connections`: `database` + `ai_engine` per project; GHL/social only if integration configured |
+| `017`        | `seed_demo_clients`               | Seed Kane's Bookstore and Plenty of Hearts as mock demo clients with placeholder data                  |

@@ -20,9 +20,9 @@
 
 **The website you see today serves two distinct purposes:**
 
-1. **A Marketing Storefront** — A public-facing website that tells the world who Inner G Complete Agency is, what they do, and invites potential clients to book a "Growth Audit" call.
+1. **A Marketing Storefront** — A public-facing website at `https://agency.innergcomplete.com` that tells the world who Inner G Complete Agency is, what they do, and invites potential clients to book a "Growth Audit" call.
 
-2. **A Client Dashboard Portal** — A private, password-protected area where existing clients (like Kane's Bookstore and Plenty of Hearts) can log in and see the performance of their AI-powered growth campaigns.
+2. **A Client Intelligence Portal** — A private, password-protected area where the Inner G team can manage all client engagements from one place, and where clients (like future onboarded clients) can log in and see the performance of their campaigns. Currently, the portal showcases two **mock/demo client projects** — Kane's Bookstore and Plenty of Hearts — with placeholder data to demonstrate the platform's capabilities.
 
 ---
 
@@ -169,9 +169,9 @@ After "logging in," the client lands on the **Enterprise Client Portals** page. 
 - A "Request New Portal" button (no action connected yet)
 - A list of active project cards
 
-**Current Projects Listed:**
-1. **Project Kanes Bookstore** — Retail & Ebook Ecosystem. Active campaign: Free Ebook Giveaway. Metrics: 4.8k leads, 65% activation.
-2. **Project Plenty of Hearts** — Social Community & Dating. Active campaign: Community Growth. Metrics: TikTok Bridge: Live, DB: Linked.
+**Current Projects Listed (Mock Demo Clients):**
+1. **Project Kanes Bookstore** — Retail & Ebook Ecosystem. Active campaign: Free Ebook Giveaway. Metrics: 4.8k leads, 65% activation. *Note: This is a mock/demo client with placeholder data — not a real active client.*
+2. **Project Plenty of Hearts** — Social Community & Dating App. Active campaign: Community Growth. Metrics: TikTok Bridge: Live, DB: Linked. *Note: This is a mock/demo client with placeholder data — not a real active client.*
 
 Clicking a project card takes you directly to its dashboard.
 
@@ -199,7 +199,7 @@ The headline section on the page, showing the "Free Ebook Giveaway" campaign res
 - **Funnel Conv. Rate:** 65.1% — how many signups became active users
 - **Total IG Reach:** 82.4k — total people reached on Instagram
 
-**Why the numbers look the way they do:** Each number also shows a growth percentage badge (e.g., +12%). These indicate improvement vs. a prior period. Currently, all these numbers are placeholder values — they are not pulled from real data yet.
+**Why the numbers look the way they do:** Each number also shows a growth percentage badge (e.g., +12%). These indicate improvement vs. a prior period. **All numbers are mock/placeholder values** — they are used to demonstrate the platform's dashboard UI and will be replaced with real client data once integrations are wired up.
 
 **Instagram Social Analytics Panel:**
 Shows top post engagement (2.4k interactions), a mini bar chart visualization, and a comments sentiment rating (92% positive). Also lists "Top GHL Referral Source" and "Highest Performing Post."
@@ -297,7 +297,7 @@ The table below is a factual, honest accounting of what is not yet fully working
 | 6  | AI chat uses canned responses  | The chat assistant replies with pre-written text, not a real AI model         | 🟠 Fix Soon  |
 | 7  | Forgot Password doesn't work   | The link is a placeholder                                                     | 🟡 Fix Later |
 | 8  | Notification bell is decorative| The bell with a red dot has no notification system behind it                  | 🟡 Fix Later |
-| 9  | Action buttons don't act       | "Trigger Retargeting Flow," "Automate Restock," etc. are UI-only              | 🟡 Fix Later |
+| 9  | Action buttons don't act       | "Trigger Retargeting Flow," "Automate Restock," etc. are UI-only. **"Request New Portal"** (super admin only) and **"Monitoring"/"Infrastructure"** sidebar links will either be removed or wired to real functionality | 🟡 Fix Later |
 | 10 | "Forgot Password" is a dead link | No recovery flow exists                                                     | 🟡 Fix Later |
 
 ---

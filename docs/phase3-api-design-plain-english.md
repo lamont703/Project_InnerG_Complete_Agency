@@ -7,9 +7,12 @@
 | Field            | Value                                                                    |
 | ---------------- | ------------------------------------------------------------------------ |
 | **Status**       | 📐 Proposed — No API Routes or Edge Functions Exist Yet                   |
-| **Last Updated** | 2026-03-02                                                               |
+| **Last Updated** | 2026-03-03                                                               |
 | **Audience**     | Founder / Non-Technical Stakeholder                                      |
-| **Stack**        | Supabase · Next.js · GoHighLevel API · Instagram API · TikTok API · OpenAI |
+| **Platform URL** | `https://agency.innergcomplete.com`                                      |
+| **AI Model**     | Google Gemini (preferred) — multi-model switching with rate limiting     |
+| **GHL Scope**    | Inner G's own CRM only — client GHL integrations built per-client        |
+| **Social APIs**  | Deferred — Instagram + TikTok are demo placeholders                     |
 
 ---
 
@@ -32,7 +35,7 @@ The API is the agreement between all three parties on **what can be requested, w
 | Type | Plain English Name | When It's Used |
 | --- | --- | --- |
 | **Direct SDK Query** | "Order directly from the kitchen window" | Simple, safe requests — just reading data |
-| **Edge Function** | "Full waiter service with multiple kitchens" | Complex orders involving outside restaurants (GHL, Instagram, OpenAI) |
+| **Edge Function** | "Full waiter service with multiple kitchens" | Complex orders involving outside services (Inner G's GHL CRM, Google Gemini AI) |
 
 ---
 
@@ -159,14 +162,17 @@ This is the most visible public API endpoint — the "Schedule a Growth Audit" f
 
 1. You type a question and press send
 2. Your message is saved to the database immediately (so there's always a history)
-3. A server-side function receives your message along with the last several messages for context
-4. The function also pulls in your project's context (campaign name, active metrics) as background for the AI
-5. The function sends everything to an AI language model (e.g., OpenAI GPT-4o)
-6. The AI generates a response
-7. The response is saved to the database (so the conversation is persistent)
-8. The response appears in your chat window
+3. You can also select which AI model to use (e.g., Gemini Flash for faster responses, Gemini Pro for deeper analysis)
+4. A server-side function receives your message along with the last 10 messages for context
+5. The function also pulls in your project's context (campaign name, active metrics, recent activity) as background for the AI
+6. The function sends everything to **Google Gemini** (the chosen model)
+7. The AI generates a response and can suggest specific actions based on your real data
+8. The response is saved to the database (so the conversation is persistent)
+9. The response appears in your chat window
 
-**What changes from today:** Today, the chat uses keyword matching (type "ghl" → get a pre-written GHL response). Once wired up, it uses a real AI model with knowledge of your actual project data — it can say "Your signup rate dropped 8% this week" because it has access to your real campaign metrics.
+**Multi-model switching:** Both Inner G team members and clients can use the AI chat. Users can switch between different AI models at any time — rate limiting prevents abuse. The model choice per message is stored in the database so you can see which model gave which answer.
+
+**What changes from today:** Today, the chat uses keyword matching (type "ghl" → get a pre-written response). Once wired up, it uses real Google Gemini with knowledge of your actual project data — it can say "Your signup rate dropped 8% this week" because it has access to your real campaign metrics.
 
 **Why conversations are saved:** So you can close the browser, come back next week, and the full conversation history is still there. Right now, closing the page wipes the entire chat.
 
@@ -212,8 +218,8 @@ Once you're in, your wristband also tells every room (every data table) what you
 | Any visitor (no wristband) | Submit the Growth Audit form only |
 | Client Viewer | Read their project's dashboard — no buttons |
 | Client Admin | Read + resolve AI signals on their projects |
-| Inner G Agency Member | Read + write on all clients |
-| Super Admin (Inner G founder) | Everything — no restrictions |
+| Inner G Developer | Read + write on their assigned clients only |
+| Super Admin (Lamont, the founder) | Everything — no restrictions; the only person who can invite new accounts or change roles |
 
 This is enforced automatically at the database level. If a Client Viewer tries to see another client's data — even by crafting a clever URL — the database simply returns no data. The security isn't enforced by the web page; it's enforced by the database itself.
 
@@ -221,24 +227,21 @@ This is enforced automatically at the database level. If a Client Viewer tries t
 
 ## 5. Third-Party Integrations: How GHL & Social Platforms Talk Back
 
-### GoHighLevel (GHL) — Two-Way Sync
+### GoHighLevel (GHL) — Inner G's Own CRM
 
-**Inner G → GHL:** When a Growth Audit form is submitted, the platform immediately creates a new contact in GHL. The sales team sees the lead in their CRM dashboards within seconds.
+**Inner G → GHL (Immediate):** When a Growth Audit form is submitted on the Inner G marketing site, the platform immediately creates a new contact in Inner G's GoHighLevel CRM. The Inner G sales team sees the new lead within seconds.
 
-**GHL → Inner G:** When things change in GHL (a new lead comes in through a different source, a contact changes pipeline stage, a campaign completes), GHL **pushes a notification** to the Inner G platform automatically. This is called a **webhook**.
+**GHL → Inner G (Webhook):** When things change in Inner G's GHL (a contact updates their info, a pipeline stage changes), GHL pushes a notification automatically to the Inner G platform.
 
 Think of a webhook like this: instead of Inner G constantly calling GHL to ask "Has anything changed?", GHL calls Inner G to say "Hey, something just happened — here's what it was."
 
-The Inner G platform has a dedicated "webhook receiver" address that GHL is configured to send these notifications to. When a notification arrives:
-- The platform verifies it's actually from GHL (using a secret digital handshake)
-- Processes the event (updates contacts, triggers signals, logs activity)
-- Responds with "received" so GHL doesn't retry
+> **What about my clients' GHL accounts?** Some clients Inner G works with may also use GHL for their own campaigns. When that's needed, Inner G builds a custom per-client GHL connection tailored to that specific engagement. This is built on-demand, not automatically.
 
-### Instagram & TikTok — Scheduled Syncing
+### Instagram & TikTok — Deferred (Demo Only)
 
-Social media data (reach, engagement, comments) is pulled from Instagram and TikTok on a **daily schedule** — a server robot that wakes up at 2:00 AM UTC every night, asks "What happened on Instagram/TikTok today?", processes the numbers, and saves them to the database.
+The dashboard currently shows Instagram (Kane's Bookstore) and TikTok (Plenty of Hearts) connection cards with placeholder data. **Real Instagram and TikTok integrations are not built yet** — they exist as demo UI to show what's possible.
 
-This is how the social data cards on the dashboard will have real numbers without the dashboard needing to call Instagram every time someone opens it.
+When a real client specifically needs social media tracking as part of their engagement, Inner G will build a custom per-client social integration at that time. The data model and backend architecture already support this — it just needs to be activated per-client.
 
 ---
 
@@ -281,28 +284,26 @@ Server function fetches the last 10 messages in the conversation (context)
     ↓
 Server function fetches this project's active campaign summary (context for the AI)
     ↓
-All of this is packaged and sent to the AI model (OpenAI GPT-4o)
+All of this is packaged and sent to **Google Gemini** (the selected model)
     ↓
-AI generates a response (typically 1-3 seconds)
+Gemini generates a response using your real project data as context (typically 1-3 seconds)
     ↓
-AI response saved to the database under "assistant" role
+AI response saved to the database under "assistant" role (with the model name recorded)
     ↓
 Response appears in the chat window
     ↓
 If this was the first message: session title is auto-set to the first 50 characters of the question
 ```
 
-### What the Background Robot Does Every Night (Metric Sync)
+### What the Background Robot Does (Metric Sync — Per Enabled Client)
 
 ```
-2:00 AM UTC — Supabase scheduler triggers the sync function
+[Scheduled trigger based on client's configuration]
     ↓
-For each active project with a connected social account:
+For each project with a connected social account (built per-client, on-demand):
     ↓
-    Calls Instagram API: "What were your numbers yesterday?"
+    Calls the configured platform API (Instagram, TikTok, etc.):
       → Reach, engagement, ad impressions, landing page visits
-    ↓
-    OR calls TikTok API for TikTok-connected projects
     ↓
     Saves today's snapshot row to campaign_metrics table
     ↓
@@ -313,10 +314,10 @@ After metrics are fresh: runs the AI Signal evaluation
     → If a social post passed 500 comments: create a "Social Signal" card
     → etc.
     ↓
-Activity log entry: "Daily Metrics Sync Completed — 4 projects updated"
+Activity log entry: "Daily Metrics Sync Completed"
 ```
 
-When you open the dashboard at 9 AM, all of yesterday's data is already there — ready instantly. No waiting, no live API calls.
+> **Note for demo clients (Kane's Bookstore, Plenty of Hearts):** These clients use mock/placeholder data. No real social sync runs for them. Once real client engagements are onboarded and their social APIs are connected, this function kicks in for those projects.
 
 ---
 

@@ -9,16 +9,18 @@
 | **Status**                | 📐 Proposed — Greenfield Design (No Backend Exists Yet)                        |
 | **Last Updated**          | 2026-03-03                                                                     |
 | **Project**               | Inner G Complete Agency — Client Intelligence Portal                           |
-| **Frontend URL**          | Deployed via Vercel (URL TBD at production setup)                              |
+| **Frontend URL**          | `https://agency.innergcomplete.com` (Vercel)                                   |
 | **Backend URL**           | `https://<project-ref>.supabase.co`                                            |
 | **Database**              | Supabase PostgreSQL 15                                                         |
 | **Auth Provider**         | Supabase Auth (GoTrue)                                                         |
 | **File Storage**          | Supabase Storage                                                               |
 | **Edge Runtime**          | Supabase Edge Functions (Deno 1.x)                                             |
-| **Email Provider**        | Supabase Auth (transactional SMTP) + GoHighLevel (marketing automation)        |
-| **3rd Party Services**    | GoHighLevel CRM · Instagram Graph API · TikTok Creator API · OpenAI API       |
+| **Email Provider**        | GoHighLevel workflows — all transactional email from `passwordreset@innergcomplete.com` |
+| **AI Provider**           | Google Gemini (preferred) — multi-model with rate limiting; OpenAI as fallback |
+| **GHL Scope**             | Inner G's own GHL account only — client-specific GHL built per-client on-demand |
+| **Social APIs**           | Instagram + TikTok deferred — demo placeholders only; built per-client on demand |
 | **Authored By**           | Phase 4 Backend Architecture Protocol (Senior Principal Engineer Pass)         |
-| **Source Context**        | Phase 1 Frontend Audit · Phase 2 Data Model · Phase 3 API Design              |
+| **Source Context**        | Phase 1 Frontend Audit · Phase 2 Data Model · Phase 3 API Design · Clarifying Questions (2026-03-03) |
 
 ---
 
@@ -39,10 +41,12 @@
 | **Analytics**          | @vercel/analytics                  | Latest   | Privacy-friendly page view tracking                       |
 | **Schema Validation**  | Zod                                | 3.24.1   | Runtime type validation in Edge Functions + frontend forms |
 | **Form Management**    | react-hook-form                    | 7.54.1   | Form state, dirty tracking and submission in frontend      |
-| **AI/LLM**             | OpenAI API                         | GPT-4o   | AI chat assistant response generation                     |
-| **CRM**                | GoHighLevel (GHL) API              | v1       | Contact management, pipeline, marketing automation        |
-| **Social (Kane)**      | Instagram Graph API                | v21      | Reach, engagement, ad metrics for ebook campaign          |
-| **Social (Hearts)**    | TikTok Creator API                 | v2       | Reach and engagement data for community campaign          |
+| **AI/LLM**             | Google Gemini API             | Gemini 1.5 Flash / Pro | AI chat assistant + text embeddings (RAG) — multi-model with rate limiting |
+| **Vector Search**      | pgvector (Supabase built-in)  | 0.7.x    | RAG vector similarity search (ivfflat index, cosine distance)     |
+| **Data Visualization** | Recharts                      | Latest   | Dashboard charts: 30-day KPI trend, funnel waterfall, social engagement breakdown |
+| **CRM**                | GoHighLevel (GHL) API         | v1       | Inner G's own CRM: lead capture, pipeline, contact management |
+| **Social (Kane)**      | Instagram Graph API           | v21      | DEFERRED — demo placeholder; build per-client on demand       |
+| **Social (Hearts)**    | TikTok Creator API            | v2       | DEFERRED — demo placeholder; build per-client on demand       |
 
 ---
 
@@ -106,11 +110,14 @@
 │   │   ├── 007_create_integrations.sql
 │   │   ├── 008_create_ai_chat.sql
 │   │   ├── 009_create_leads.sql
-│   │   ├── 010_enable_rls.sql
-│   │   ├── 011_create_rls_policies.sql
-│   │   ├── 012_create_indexes.sql
-│   │   ├── 013_create_views.sql
-│   │   └── 014_seed_system_connections.sql
+│   │   ├── 010_create_rag.sql
+│   │   ├── 011_create_invites.sql
+│   │   ├── 012_enable_rls.sql
+│   │   ├── 013_create_rls_policies.sql
+│   │   ├── 014_create_indexes.sql
+│   │   ├── 015_create_views.sql
+│   │   ├── 016_seed_system_connections.sql
+│   │   └── 017_seed_demo_clients.sql
 │   ├── functions/                # Supabase Edge Functions (Deno)
 │   │   ├── _shared/              # Shared utilities: CORS headers, auth helpers, error factory
 │   │   │   ├── cors.ts
@@ -124,11 +131,15 @@
 │   │   │   └── index.ts
 │   │   ├── sync-ghl-contacts/
 │   │   │   └── index.ts
-│   │   ├── sync-social-metrics/
+│   │   ├── sync-social-metrics/      # DEFERRED — built per-client on demand
 │   │   │   └── index.ts
 │   │   ├── run-health-check/
 │   │   │   └── index.ts
 │   │   ├── generate-daily-snapshot/
+│   │   │   └── index.ts
+│   │   ├── generate-invite-link/     # Generate share-link for client onboarding
+│   │   │   └── index.ts
+│   │   ├── process-embedding-jobs/  # RAG: batch-embed pending rows via Gemini Embeddings API
 │   │   │   └── index.ts
 │   │   └── webhook-ghl/
 │   │       └── index.ts
@@ -157,13 +168,14 @@
 
 ## 3. Database Schema Overview
 
-14 tables organized into 8 functional domains:
+20 tables organized into 11 functional domains:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ DOMAIN: IDENTITY                                                         │
-│   users · agency_members · project_user_access                          │
-│   → Who is in the system and what rooms they can enter                  │
+│   users · developer_client_access · project_user_access                 │
+│   → Who is in the system, which clients developers manage (portfolio),  │
+│     and which projects clients can access                               │
 ├─────────────────────────────────────────────────────────────────────────┤
 │ DOMAIN: AGENCY                                                           │
 │   clients · projects                                                     │
@@ -187,12 +199,22 @@
 ├─────────────────────────────────────────────────────────────────────────┤
 │ DOMAIN: INTEGRATIONS                                                     │
 │   ghl_contacts · social_accounts · integration_sync_logs                │
-│   · system_connections                                                   │
-│   → Mirror tables for GHL + Social data, sync logs, health status      │
+│   · system_connections · client_db_connections                           │
+│   → Mirror tables for GHL + Social data, sync logs, health status,     │
+│     and external client DB KPI aggregation connectors                   │
 ├─────────────────────────────────────────────────────────────────────────┤
 │ DOMAIN: AI ASSISTANT                                                     │
 │   chat_sessions · chat_messages                                          │
 │   → Persistent conversation history for the Growth Assistant            │
+├─────────────────────────────────────────────────────────────────────────┤
+│ DOMAIN: AI KNOWLEDGE (RAG)                                               │
+│   document_embeddings · embedding_jobs                                   │
+│   → pgvector store for Retrieval Augmented Generation:                  │
+│     AI searches this before every Gemini call for project accuracy      │
+├─────────────────────────────────────────────────────────────────────────┤
+│ DOMAIN: ACCESS & INVITES                                                 │
+│   invite_links                                                           │
+│   → Share-link client invitation system (7-day expiry, single-use)     │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -217,7 +239,7 @@ Supabase Auth issues JWTs with the following relevant claims:
 }
 ```
 
-> **Important:** The JWT `role` claim only distinguishes `anon` vs `authenticated`. Business roles (`super_admin`, `agency_member`, `client_admin`) are stored in the `users.role` column and are **not** embedded in the JWT. RLS policies query this column using `auth.uid()` as the lookup key.
+> **Important:** The JWT `role` claim only distinguishes `anon` vs `authenticated`. Business roles (`super_admin`, `developer`, `client_admin`) are stored in the `users.role` column and are **not** embedded in the JWT. RLS policies query this column using `auth.uid()` as the lookup key.
 
 ### Session Lifecycle
 
@@ -283,7 +305,8 @@ const { data: userProfile } = await supabase
 // Gate logic
 if (!userProfile.is_active) throw new Error('ACCOUNT_INACTIVE')
 if (userProfile.role === 'client_viewer') { /* read-only mode */ }
-if (['agency_member', 'super_admin'].includes(userProfile.role)) { /* admin mode */ }
+if (['developer', 'super_admin'].includes(userProfile.role)) { /* admin mode */ }
+// Note: developers also need a secondary check — they can only see clients assigned to them
 ```
 
 ### middleware.ts (To Be Created)
@@ -392,29 +415,31 @@ $$ LANGUAGE sql SECURITY DEFINER STABLE;
 | Table | Operation | Who Can | Policy Expression |
 | ----- | --------- | ------- | ----------------- |
 | `users` | SELECT | Self | `id = auth.uid()` |
-| `users` | SELECT | Agency/Admin | `is_agency_member() OR is_super_admin()` |
+| `users` | SELECT | Developer (assigned) | `is_developer_assigned() OR is_super_admin()` |
+| `users` | SELECT | Super Admin | `is_super_admin()` |
 | `users` | UPDATE | Self (own row) | `id = auth.uid()` |
 | `users` | DELETE | Super Admin | `is_super_admin()` |
 | `projects` | SELECT | Client | `id IN (SELECT project_id FROM project_user_access WHERE user_id = auth.uid())` |
-| `projects` | SELECT | Agency/Admin | `is_agency_member() OR is_super_admin()` |
-| `projects` | INSERT | Agency/Admin | `is_agency_member() OR is_super_admin()` |
-| `projects` | UPDATE | Agency/Admin | `is_agency_member() OR is_super_admin()` |
+| `projects` | SELECT | Developer | `is_developer_assigned_to_project(id) OR is_super_admin()` |
+| `projects` | SELECT | Super Admin | `is_super_admin()` |
+| `projects` | INSERT | Developer/Admin | `is_developer() OR is_super_admin()` |
+| `projects` | UPDATE | Developer/Admin | `is_developer_assigned_to_project(id) OR is_super_admin()` |
 | `campaign_metrics` | SELECT | Client | `campaign_id IN (SELECT c.id FROM campaigns c WHERE has_project_access(c.project_id))` |
-| `campaign_metrics` | SELECT/INSERT/UPDATE | Agency/Admin | `is_agency_member() OR is_super_admin()` |
+| `campaign_metrics` | SELECT/INSERT/UPDATE | Developer/Admin | `is_developer() OR is_super_admin()` |
 | `ai_signals` | SELECT | Client | `has_project_access(project_id)` |
 | `ai_signals` | UPDATE (`is_resolved`) | Client Admin | `has_project_access(project_id) AND (SELECT role FROM users WHERE id = auth.uid()) = 'client_admin'` |
-| `ai_signals` | INSERT | Agency/Admin | `is_agency_member() OR is_super_admin()` |
+| `ai_signals` | INSERT | Developer/Admin | `is_developer() OR is_super_admin()` |
 | `activity_log` | SELECT | Client | `has_project_access(project_id)` |
-| `activity_log` | INSERT | Agency/Admin, System | `is_agency_member() OR is_super_admin()` |
+| `activity_log` | INSERT | Developer/Admin, System | `is_developer() OR is_super_admin()` |
 | `growth_audit_leads` | INSERT | Anyone (anon) | `true` — Supabase anon key INSERT allowed |
-| `growth_audit_leads` | SELECT | Agency/Admin | `is_agency_member() OR is_super_admin()` |
-| `growth_audit_leads` | UPDATE | Agency (assigned) | `assigned_to = auth.uid() OR is_super_admin()` |
+| `growth_audit_leads` | SELECT | Developer/Admin | `is_developer() OR is_super_admin()` |
+| `growth_audit_leads` | UPDATE | Developer (assigned) | `assigned_to = auth.uid() OR is_super_admin()` |
 | `chat_sessions` | SELECT/INSERT | Self | `user_id = auth.uid()` |
 | `chat_messages` | SELECT/INSERT | Self | `session_id IN (SELECT id FROM chat_sessions WHERE user_id = auth.uid())` |
 | `system_connections` | SELECT | Client | `has_project_access(project_id)` |
 | `system_connections` | UPSERT | Service Role | Edge Function (cron) uses service role key — bypasses RLS |
-| `ghl_contacts` | SELECT | Client / Agency | `has_project_access(project_id) AND is_agency_member()` |
-| `integration_sync_logs` | SELECT | Agency/Admin | `is_agency_member() OR is_super_admin()` |
+| `ghl_contacts` | SELECT | Client / Developer | `has_project_access(project_id) AND is_developer()` |
+| `integration_sync_logs` | SELECT | Developer/Admin | `is_developer() OR is_super_admin()` |
 
 ---
 
@@ -546,14 +571,14 @@ export function createSuccess<T>(data: T, status: number = 200): Response {
 
 | Function Name                  | Trigger             | Auth Required | Description                                                                              |
 | ------------------------------ | ------------------- | ------------- | ---------------------------------------------------------------------------------------- |
-| `submit-growth-audit-lead`     | HTTP POST (public)  | None (anon)   | Saves CTA form submission → calls GHL API → triggers confirmation email                  |
-| `send-chat-message`            | HTTP POST           | Yes           | Saves user message → calls OpenAI → saves assistant reply → returns response            |
-| `resolve-signal`               | HTTP POST           | Yes (admin)   | Marks `ai_signals.is_resolved = true` → triggers GHL action → logs activity            |
-| `sync-ghl-contacts`            | Cron (every 4h)     | Service Role  | Pulls GHL contacts for all active projects → UPSERTs to `ghl_contacts`                 |
-| `sync-social-metrics`          | Cron (daily 02:00)  | Service Role  | Pulls IG + TikTok metrics → writes to `campaign_metrics` → triggers signal evaluation  |
-| `generate-daily-snapshot`      | Cron (daily 03:00)  | Service Role  | Aggregates multi-source data into single daily `campaign_metrics` row per campaign      |
-| `run-health-check`             | Cron (every 15min)  | Service Role  | Pings DB, GHL, IG, TikTok → UPSERTs `system_connections` with live status + latency   |
-| `webhook-ghl`                  | HTTP POST (inbound) | GHL HMAC sig  | Receives GHL contact events → UPSERTs `ghl_contacts` → may generate `ai_signals`       |
+| `submit-growth-audit-lead`     | HTTP POST (public)  | None (anon)   | Saves CTA form submission → calls Inner G's GHL API → creates contact in CRM |
+| `send-chat-message`            | HTTP POST           | Yes           | Saves user message → calls Google Gemini (multi-model) → saves assistant reply → returns response |
+| `resolve-signal`               | HTTP POST           | Yes (admin)   | Marks `ai_signals.is_resolved = true` → optionally triggers GHL action → logs activity |
+| `sync-ghl-contacts`            | Cron (every 4h)     | Service Role  | Pulls Inner G's GHL contacts → UPSERTs to `ghl_contacts` for assigned projects |
+| `sync-social-metrics`          | Cron (daily 02:00)  | Service Role  | DEFERRED — built per-client when social integration is activated |
+| `generate-daily-snapshot`      | Cron (daily 03:00)  | Service Role  | Aggregates multi-source data into single daily `campaign_metrics` row per campaign |
+| `run-health-check`             | Cron (every 15min)  | Service Role  | Pings DB + Gemini API + GHL + social (if active) → UPSERTs `system_connections` → generates 'system' signals if offline |
+| `webhook-ghl`                  | HTTP POST (inbound) | GHL HMAC sig  | Receives Inner G GHL contact events → UPSERTs `ghl_contacts` → may generate `ai_signals` |
 
 ### Cron Schedule Configuration (`supabase/config.toml`)
 
@@ -707,7 +732,7 @@ serve(async (req) => {
 | `ACCOUNT_INACTIVE` | 403 | Role check | Show "Contact support" panel |
 | `NOT_FOUND` | 404 | DB returns null | Show "Not found" state |
 | `CONFLICT` | 409 | Duplicate / already-resolved | Show "Already done" toast |
-| `EXTERNAL_API_FAILURE` | 422 | GHL/IG/OpenAI error | Show "Degraded — retrying" warning |
+| `EXTERNAL_API_FAILURE` | 422 | GHL/Gemini error | Show "Degraded — retrying" warning |
 | `RATE_LIMITED` | 429 | Rate limiter | Show "Slow down" + retry timer |
 | `INTERNAL_ERROR` | 500 | Unexpected exception | Show "Something went wrong" + log |
 
@@ -794,37 +819,37 @@ e.g., `a3b8d1b6-0b3b-4b1a-9c1a-1a2b3c4d5e6f/logos/kanes-bookstore-logo.png`
 | **Webhook Secret** | `GHL_WEBHOOK_SECRET` — HMAC-SHA256 signature verification on all inbound events |
 | **Rate Limit** | GHL: 100 req/min per location — cron syncs must respect this |
 
-### Instagram Graph API
+### Google Gemini API
 
 | Detail | Value |
 | --- | --- |
-| **API Version** | Graph API v21 |
-| **Auth** | Per-account OAuth access token (stored encrypted in `social_accounts.access_token`) |
-| **Key Endpoints** | `/me/insights`, `/me/media`, `/me/media/{id}/insights` |
-| **Data Fetched** | Reach, impressions, engagement (likes + comments + shares), sentiment |
-| **Token Expiry** | Long-lived tokens (60 days) — must refresh before `token_expires_at` |
-| **Direction** | Outbound only (Inner G calls IG API on schedule) |
-
-### TikTok Creator API
-
-| Detail | Value |
-| --- | --- |
-| **API Version** | TikTok Creator API v2 |
-| **Auth** | OAuth 2.0 access token (stored encrypted in `social_accounts.access_token`) |
-| **Key Endpoints** | `/video/list/`, `/video/data/` |
-| **Data Fetched** | View count, like count, comment count, share count per video |
-| **Direction** | Outbound only (Inner G calls TikTok on schedule) |
-
-### OpenAI API
-
-| Detail | Value |
-| --- | --- |
-| **Model** | GPT-4o (primary) / GPT-4o-mini (cost fallback) |
-| **Auth** | API Key (`OPENAI_API_KEY` — Edge Function env var only) |
+| **Models** | `gemini-1.5-flash` (default) · `gemini-1.5-pro` (deep analysis) |
+| **Auth** | API Key (`GEMINI_API_KEY` — Edge Function env var only) |
 | **Usage** | `send-chat-message` function only — generates AI Growth Assistant responses |
-| **Context Window** | Last 10 messages + project context (campaign name, recent metrics summary) |
+| **Model selection** | User can select model per session; `gemini-1.5-flash` is default (faster, cheaper) |
+| **Context Window** | Last 10 messages + project context (campaign name, recent metrics, latest signals) |
 | **Token Budget** | Max 4096 completion tokens per response — `token_count` stored per `chat_messages` row |
+| **Rate Limiting** | 20 messages/user/minute (Upstash Redis) — enforced in Edge Function |
 | **Direction** | Outbound only |
+| **Fallback** | OpenAI (GPT-4o) if Gemini rate limited or unavailable — activate via `OPENAI_API_KEY` |
+
+### Instagram Graph API ⚠️ DEFERRED
+
+| Detail | Value |
+| --- | --- |
+| **Status** | **DEFERRED** — demo placeholder; Kane's Bookstore Instagram card shows mock data |
+| **When activated** | Built per-client engagement when client specifically requests social metric tracking |
+| **API Version** | Graph API v21 |
+| **Data Fetched** | Reach, impressions, engagement, sentiment |
+
+### TikTok Creator API ⚠️ DEFERRED
+
+| Detail | Value |
+| --- | --- |
+| **Status** | **DEFERRED** — demo placeholder; Plenty of Hearts TikTok card shows mock data |
+| **When activated** | Built per-client engagement when client specifically requests social metric tracking |
+| **API Version** | TikTok Creator API v2 |
+| **Data Fetched** | View count, like count, comment count, share count per video |
 
 ---
 
@@ -845,14 +870,15 @@ e.g., `a3b8d1b6-0b3b-4b1a-9c1a-1a2b3c4d5e6f/logos/kanes-bookstore-logo.png`
 | `SUPABASE_URL` | ✅ Yes | Auto-injected in Edge Functions (same as `NEXT_PUBLIC_SUPABASE_URL`) |
 | `SUPABASE_ANON_KEY` | ✅ Yes | Auto-injected in Edge Functions |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ Yes | Admin key — bypasses RLS. Used only in cron functions. Never expose. |
-| `GHL_API_KEY` | ✅ Yes | GoHighLevel REST API key |
+| `GHL_API_KEY` | ✅ Yes | GoHighLevel REST API key (Inner G's own GHL account) |
 | `GHL_WEBHOOK_SECRET` | ✅ Yes | HMAC key for verifying inbound GHL webhook signatures |
-| `OPENAI_API_KEY` | ✅ Yes | OpenAI API key for AI chat assistant |
-| `INSTAGRAM_APP_SECRET` | ✅ Yes | Used for validating IG webhook signatures (if IG webhooks added) |
-| `TIKTOK_CLIENT_KEY` | ⚠️ If TikTok enabled | TikTok OAuth client key |
-| `TIKTOK_CLIENT_SECRET` | ⚠️ If TikTok enabled | TikTok OAuth client secret |
-| `UPSTASH_REDIS_REST_URL` | ⚠️ If rate limiting | Upstash Redis URL for rate limiting implementation |
-| `UPSTASH_REDIS_REST_TOKEN` | ⚠️ If rate limiting | Upstash Redis auth token |
+| `GEMINI_API_KEY` | ✅ Yes | Google Gemini API key for AI chat assistant |
+| `OPENAI_API_KEY` | ⚠️ Fallback | OpenAI API key — used if Gemini is unavailable (optional at launch) |
+| `INSTAGRAM_APP_SECRET` | ⚠️ Per-client | Used when a client's Instagram integration is activated |
+| `TIKTOK_CLIENT_KEY` | ⚠️ Per-client | TikTok OAuth client key — only when client's TikTok integration is activated |
+| `TIKTOK_CLIENT_SECRET` | ⚠️ Per-client | TikTok OAuth client secret |
+| `UPSTASH_REDIS_REST_URL` | ✅ Yes | Upstash Redis URL for chat + lead form rate limiting |
+| `UPSTASH_REDIS_REST_TOKEN` | ✅ Yes | Upstash Redis auth token |
 
 ### Setting Secrets for Edge Functions
 
@@ -860,8 +886,11 @@ e.g., `a3b8d1b6-0b3b-4b1a-9c1a-1a2b3c4d5e6f/logos/kanes-bookstore-logo.png`
 # Set all required secrets
 supabase secrets set GHL_API_KEY="<value>"
 supabase secrets set GHL_WEBHOOK_SECRET="<value>"
+supabase secrets set GEMINI_API_KEY="<value>"
+supabase secrets set UPSTASH_REDIS_REST_URL="<value>"
+supabase secrets set UPSTASH_REDIS_REST_TOKEN="<value>"
+# Optional fallback
 supabase secrets set OPENAI_API_KEY="<value>"
-supabase secrets set INSTAGRAM_APP_SECRET="<value>"
 
 # View currently set secrets (values are redacted)
 supabase secrets list
@@ -932,17 +961,18 @@ This is a **proposed, greenfield** backend. No migrations have been written yet.
 
 | Migration # | File Name | Purpose | Planned Status |
 | --- | --- | --- | --- |
-| `001` | `create_enums.sql` | All `CREATE TYPE` enum definitions (16 enums) | ⏳ Not yet run |
+| `001` | `create_enums.sql` | All `CREATE TYPE` enum definitions (17 enums — includes `developer` role + `ai_action` signal type) | ⏳ Not yet run |
 | `002` | `create_users.sql` | `users` table + auth trigger + `updated_at` trigger | ⏳ Not yet run |
-| `003` | `create_agency.sql` | `clients`, `projects`, `agency_members`, `project_user_access` | ⏳ Not yet run |
+| `003` | `create_agency.sql` | `clients`, `projects`, `developer_client_access`, `project_user_access` | ⏳ Not yet run |
 | `004` | `create_campaigns.sql` | `campaigns`, `funnel_stages` tables | ⏳ Not yet run |
 | `005` | `create_metrics.sql` | `campaign_metrics`, `funnel_events` + UNIQUE constraints | ⏳ Not yet run |
 | `006` | `create_signals_activity.sql` | `ai_signals`, `activity_log` + `last_activity_at` trigger | ⏳ Not yet run |
 | `007` | `create_integrations.sql` | `ghl_contacts`, `social_accounts`, `integration_sync_logs`, `system_connections` | ⏳ Not yet run |
-| `008` | `create_ai_chat.sql` | `chat_sessions`, `chat_messages` tables | ⏳ Not yet run |
+| `008` | `create_ai_chat.sql` | `chat_sessions` (with `model_used` column), `chat_messages` tables | ⏳ Not yet run |
 | `009` | `create_leads.sql` | `growth_audit_leads` table | ⏳ Not yet run |
 | `010` | `enable_rls.sql` | `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` on all 14 tables | ⏳ Not yet run |
-| `011` | `create_rls_policies.sql` | All SELECT/INSERT/UPDATE/DELETE RLS policies + helper functions | ⏳ Not yet run |
+| `011` | `create_rls_policies.sql` | All SELECT/INSERT/UPDATE/DELETE RLS policies + helper functions (includes `developer` role scope) | ⏳ Not yet run |
 | `012` | `create_indexes.sql` | All 17 performance indexes | ⏳ Not yet run |
 | `013` | `create_views.sql` | `active_projects`, `active_clients` soft-delete views | ⏳ Not yet run |
-| `014` | `seed_system_connections.sql` | Seed 4 system_connections rows per project (DB, AI, GHL, Social) | ⏳ Not yet run |
+| `014` | `seed_system_connections.sql` | Seed `database` + `ai_engine` rows per project; GHL/social only if integration configured | ⏳ Not yet run |
+| `015` | `seed_demo_clients.sql` | Seed Kane's Bookstore + Plenty of Hearts as mock demo clients with placeholder data | ⏳ Not yet run |

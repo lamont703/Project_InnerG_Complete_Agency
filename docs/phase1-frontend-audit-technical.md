@@ -7,7 +7,7 @@
 | Field         | Value                                                               |
 | ------------- | ------------------------------------------------------------------- |
 | **Status**    | ✅ Complete — As-Built Snapshot                                      |
-| **Last Updated** | 2026-03-02                                                       |
+| **Last Updated** | 2026-03-03                                                       |
 | **Stack**     | Next.js 16 · React 19 · TypeScript 5.7 · Tailwind CSS v4 · Supabase JS |
 | **Authored By** | Phase 1 Discovery Protocol (Senior Solutions Architect Pass)      |
 | **Scope**     | All files in `/app`, `/components`, `/lib`, `/hooks`, `globals.css` |
@@ -52,6 +52,9 @@
 - There is **no middleware.ts** file — all routing is unguarded at the Next.js level.
 - Authentication is **mocked** (simulated `setTimeout` in `login/page.tsx`). No real Supabase Auth calls are wired yet.
 - All components marked `"use client"` — no React Server Component data fetching is in use.
+- **Production URL:** `https://agency.innergcomplete.com` (deployed to Vercel)
+- **Kane's Bookstore** and **Plenty of Hearts** are **mock/demo clients only** — not real active clients. All dashboard data is placeholder values to showcase the platform.
+- The `/free-ebook/` flow is a **separate microsite in a separate repository** — it is NOT part of this Next.js project and should not be documented here.
 
 ---
 
@@ -560,12 +563,13 @@ UX Features:
 | T-06 | **Forms**             | `components/cta-section.tsx`                  | Contact form has no backend submission — `setSubmitted(true)` only, no data is stored | 🟠 High |
 | T-07 | **Forms**             | `app/login/page.tsx`, `components/cta-section.tsx` | `react-hook-form` and `zod` installed but unused; HTML5 `required` only | 🟠 High |
 | T-08 | **Types**             | Entire codebase                               | No centralized `/types` directory — all interfaces are inline and anonymous | 🟡 Medium |
-| T-09 | **UI Buttons**        | `app/dashboard/page.tsx`                      | "Monitoring", "Infrastructure", "Automate Restock Order", "Trigger Retargeting Flow", "Deploy Bio-Link Update", "Request New Portal", "Export Report", "View Historical Audit Data" — all non-functional buttons | 🟡 Medium |
+| T-09 | **UI Buttons**        | `app/dashboard/page.tsx`                      | "Automate Restock Order", "Trigger Retargeting Flow", "Deploy Bio-Link Update", "Export Report", "View Historical Audit Data" — non-functional buttons. **"Request New Portal"** is planned for super_admin only (creates new project + assigns developer + client). **"Monitoring"** and **"Infrastructure"** sidebar links are to be removed until real pages exist. | 🟡 Medium |
 | T-10 | **Navigation**        | `app/login/page.tsx:72`                       | "Forgot password?" links to `href="#"` — no recovery flow | 🟡 Medium |
 | T-11 | **UI Dashboard**      | `app/dashboard/page.tsx`                      | Bell notification icon has a red dot indicator but no notification system | 🟡 Medium |
 | T-12 | **Supabase Config**   | `lib/supabase.ts`                             | Single browser client — no Server Component client or Admin client configured | 🟡 Medium |
 | T-13 | **UI Components**     | `components/ui/sidebar.tsx`                   | Full shadcn sidebar system installed (21KB) but not used — dashboard uses a custom inline sidebar | 🟢 Low |
 | T-14 | **UI Components**     | `components/ui/chart.tsx`, `sonner.tsx`, `toast.tsx` | Installed but not actively used in any current page | 🟢 Low |
-| T-15 | **Services Section**  | `components/services-section.tsx:73`          | Conditional badge checks for `service.title === "AI Strategy & Architecture"` — this service title does not exist in the `services` array, so the badge/ring never renders | 🟢 Low |
+| T-15 | **Services Section**  | `components/services-section.tsx:73`          | Conditional badge checks for `service.title === "AI Strategy & Architecture"` — this service title does not match. Correct title is **"Scalable AI & Blockchain Strategy"** — fix the badge condition | 🟡 Medium |
+| T-16 | **Mock Data**         | `app/dashboard/page.tsx`, `app/select-portal/page.tsx` | Kane's Bookstore and Plenty of Hearts are **mock/demo clients only** — all metrics, funnel data, signal cards, and activity entries are placeholder values showcasing the platform. No real client data exists yet. | 🟡 Medium (documentation context) |
 | T-16 | **Scroll Restoration** | `app/layout.tsx:57`                          | `history.scrollRestoration = 'manual'` is set globally — may cause UX issues on browser back navigation to non-dashboard pages | 🟢 Low |
 | T-17 | **SEO**               | `app/login/page.tsx`, `app/select-portal/page.tsx`, `app/dashboard/page.tsx` | No per-page `<title>` or `<meta description>` tags — only the root `layout.tsx` metadata is set | 🟢 Low |

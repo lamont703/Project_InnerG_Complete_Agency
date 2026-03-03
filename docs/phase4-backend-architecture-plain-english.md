@@ -10,7 +10,10 @@
 | **Last Updated** | 2026-03-03                                                                       |
 | **Audience**     | Founder / Non-Technical Stakeholder                                              |
 | **Project**      | Inner G Complete Agency — Client Intelligence Portal                             |
-| **Stack**        | Supabase · Next.js · GoHighLevel · Instagram · TikTok · OpenAI                  |
+| **Platform URL** | `https://agency.innergcomplete.com`                                              |
+| **AI Model**     | Google Gemini (preferred) — multi-model switching with rate limiting             |
+| **GHL Scope**    | Inner G's own CRM only — client GHL integrations built per-client on-demand      |
+| **Social APIs**  | Deferred — Instagram + TikTok are demo placeholders until client requests them  |
 
 ---
 
@@ -92,20 +95,21 @@ No migrations exist yet — we are starting fresh. Here is the full construction
 
 | Migration | What Gets Built |
 | --- | --- |
-| 001 | All the "fixed option lists" (enums) — like "lead status can only be: new, contacted, qualified..." |
+| 001 | All the "fixed option lists" (enums) — including the new `developer` role and `ai_action` signal type |
 | 002 | The Users table + the auto-timestamp robot |
-| 003 | Clients, Projects, and the Access Control list |
+| 003 | Clients, Projects, developer-client assignment table, and the Access Control list |
 | 004 | Campaigns and Funnel Stages |
 | 005 | Daily metric snapshots + funnel event counts |
 | 006 | AI Signals and the Activity Log |
-| 007 | GoHighLevel contacts, social accounts, sync logs, and system health records |
-| 008 | AI chat sessions and messages |
+| 007 | GoHighLevel contacts, social accounts (per-client), sync logs, and system health records |
+| 008 | AI chat sessions (with chosen model tracked) and chat messages |
 | 009 | Growth Audit form leads |
 | 010 | Turn on the security locks (RLS) on all tables |
-| 011 | Configure all the security rules |
+| 011 | Configure all the security rules (including developer role scoping to assigned clients) |
 | 012 | Add all the speed-boost indexes |
 | 013 | Create the "Active only" filter views |
-| 014 | Seed the initial system health records for each project |
+| 014 | Seed the initial system health records (Database and AI Engine per project) |
+| 015 | Seed Kane's Bookstore + Plenty of Hearts as mock demo clients with placeholder data |
 
 ---
 
@@ -158,14 +162,14 @@ Think of each Edge Function like a specialized employee. They each have exactly 
 
 | Specialist | Their Job | When Called |
 | --- | --- | --- |
-| **Growth Audit Lead Taker** | Saves contact form submissions + immediately adds to GoHighLevel | When someone submits the Growth Audit form on the website |
-| **AI Chat Coordinator** | Receives your chat message → asks OpenAI → saves and returns the response | Every time you type a message to the Growth Assistant |
-| **Signal Resolver** | Marks an AI alert as "handled" + triggers the corresponding GHL automation | When a client admin clicks "Trigger Retargeting Flow" etc. |
-| **GHL Contact Syncer** | Calls GoHighLevel API and pulls updated contact data into our database | Every 4 hours, automatically (background robot) |
-| **Social Metrics Syncer** | Calls Instagram or TikTok API and saves today's performance numbers | Every night at 2:00 AM UTC (background robot) |
-| **Daily Snapshot Builder** | Aggregates all data sources into one clean daily KPI row per campaign | Every night at 3:00 AM UTC (after the social sync finishes) |
-| **Health Checker** | Pings all connected systems (database, GHL, Instagram, TikTok) and records their status | Every 15 minutes, automatically (background robot) |
-| **GHL Webhook Receiver** | Listens for GoHighLevel to call US when a contact is created or updated | Triggered by GHL in real-time, not by us |
+| **Growth Audit Lead Taker** | Saves contact form submissions + immediately adds contact to Inner G's GoHighLevel CRM | When someone submits the Growth Audit form on the Inner G website |
+| **AI Chat Coordinator** | Receives your chat message → calls Google Gemini (user's chosen model) → saves and returns the response | Every time you type a message to the Growth Assistant |
+| **Signal Resolver** | Marks an AI alert as "handled" + optionally triggers a GHL automation if the signal includes one | When a client admin or developer clicks "Trigger Retargeting Flow" etc. |
+| **GHL Contact Syncer** | Calls Inner G's GoHighLevel account and pulls updated contact data into our database | Every 4 hours, automatically (background robot) |
+| **Social Metrics Syncer** | Calls the configured social platform (Instagram/TikTok) and saves today's performance numbers | Per-client, on-demand — built when a client's social integration is activated ⚠️ DEFERRED |
+| **Daily Snapshot Builder** | Aggregates all data sources into one clean daily KPI row per campaign | Every night at 3:00 AM UTC (after the social sync finishes, if active) |
+| **Health Checker** | Pings all connected systems (database, Gemini AI, GHL, social if active) and records their status | Every 15 minutes, automatically (background robot) |
+| **GHL Webhook Receiver** | Listens for Inner G's GoHighLevel to call US when a contact is created or updated in the CRM | Triggered by GHL in real-time, not by us |
 
 ---
 
@@ -234,9 +238,9 @@ Dashboard page begins loading
 [5 requests fire in PARALLEL — not one-at-a-time]:
 
   Request A: "Give me the system health cards for this project"
-  → Database replies: Database ✅ Active (12ms) · AI ✅ Active (18ms)
-     · GHL ✅ Active (31ms) · Instagram ✅ Active (22ms)
-  (These were written by the Health Checker robot 8 minutes ago)
+  → Database replies: Database ✅ Active (12ms) · AI Engine ✅ Active (18ms)
+     · GHL ✅ Active (31ms)
+  (These were written by the Health Checker robot 8 minutes ago — no live API calls made)
 
   Request B: "Give me today's KPI metrics"
   → Database replies: 4,822 signups · 3,140 installs · 65.1% activation · 82.4k reach
@@ -379,33 +383,39 @@ A client's logo should not be in the same "bucket" as public website images, bec
 
 ## 11. External Services
 
-Four external platforms are integrated into the Inner G backend:
+Three external platforms are integrated into the Inner G backend at launch:
 
-### GoHighLevel — The CRM
+### GoHighLevel — Inner G's CRM
 
-GoHighLevel (GHL) is the central nervous system for client engagement management. The Inner G platform and GHL stay in sync via a **two-way connection**:
+GoHighLevel (GHL) is the central nervous system for Inner G's own lead and contact management. The platform and GHL stay in sync via a **two-way connection**:
 
-- **Inner G → GHL:** When a Growth Audit lead is submitted, GHL receives the contact within seconds. When a signal is resolved (e.g., "Trigger Retargeting Flow"), GHL activates the relevant automation workflow.
+- **Inner G → GHL:** When a Growth Audit lead is submitted on the Inner G marketing site, GHL receives the new contact within seconds. When a signal is resolved (e.g., "Trigger Retargeting Flow"), GHL activates the relevant automation workflow.
 
-- **GHL → Inner G:** When contacts are created or updated in GHL through other channels (ads, referrals, manual entry), GHL sends a real-time notification to Inner G. Our platform receives it, processes it, and updates our local records.
+- **GHL → Inner G:** When contacts are created or updated in Inner G's GHL through other channels (ads, referrals, manual entry), GHL sends a real-time notification. The platform receives it, processes it, and updates local records.
 
 **Why store GHL data in our own database too?** Because calling GHL's API every time the dashboard loads is slow and depends on GHL being available. By keeping a local copy (synced every 4 hours), the dashboard is always fast — and still works even during GHL maintenance windows.
 
-### Instagram Graph API
+> **What about clients who use GHL for their own campaigns?** If Inner G is running a campaign for a client that uses GHL, a custom per-client GHL integration will be built for that specific engagement. It is not automatically built for all clients.
 
-Used exclusively for **Kane's Bookstore campaign metrics**. The platform pulls reach, engagement, and sentiment data from Instagram on a nightly schedule. The results feed directly into the daily metric snapshot row written to the database.
+### Google Gemini API — AI Growth Assistant
 
-Notably: Instagram access tokens expire every 60 days. The system tracks token expiry in the database (`social_accounts.token_expires_at`) and must trigger a refresh before they expire, or the social sync will start failing.
+When you type a message in the Growth Assistant chat, the message — along with your recent conversation history and a summary of your project's current metrics and signals — is sent to Google Gemini. The platform supports multiple Gemini models so users can choose between speed (Gemini Flash) and depth (Gemini Pro).
 
-### TikTok Creator API
+The AI's response is saved to the database (so the full history is always preserved) and displayed in the chat window. Both Inner G team members and clients can use the chat assistant.
 
-Used exclusively for **Plenty of Hearts campaign metrics**. Same pattern as Instagram — nightly pull, saved to daily snapshot, powers the dashboard metrics. TikTok uses its own OAuth system, separate from Instagram.
+**AI model choices available:**
+- `Gemini 1.5 Flash` — faster, more affordable; great for quick questions and summaries
+- `Gemini 1.5 Pro` — deeper reasoning; best for complex strategic analysis
 
-### OpenAI API (AI Growth Assistant)
+**Privacy note:** Only non-sensitive campaign summaries (aggregate numbers, campaign names) are shared with Gemini — never individual user personal data like names or emails from GHL.
 
-When you type a message in the Growth Assistant chat, the message — along with your recent conversation history and a summary of your project's current metrics — is sent to OpenAI's GPT-4o model. The model returns a contextual, informed response. The response is saved to the database (so history is preserved) and displayed in the chat window.
+**Fallback:** If Gemini is unavailable, the system can fall back to OpenAI (GPT-4o).
 
-**Privacy note:** Only non-sensitive campaign summaries (aggregate numbers, campaign names) are shared with OpenAI — never individual user personal data like names or emails from GHL.
+### Instagram / TikTok — Deferred (Demo Only)
+
+The dashboard currently shows an Instagram card (Kane's Bookstore) and a TikTok card (Plenty of Hearts) as demo UI. **These are placeholders** — no real Instagram or TikTok integration exists yet.
+
+When a real client specifically needs social media metric tracking as part of their engagement, Inner G will build a custom per-client social data pipeline at that time. The architecture already supports it — it just hasn't been activated for any real client yet.
 
 ---
 
@@ -418,8 +428,8 @@ These are the specific decisions made during architecture that ensure the platfo
 | **Pre-computed daily snapshots** | Dashboard loads are still instant even with 50 clients each running 3 campaigns. All numbers were calculated at 3 AM — they're just being read, not computed, on page load. |
 | **Speed indexes on every important column** | Database queries stay fast even with millions of rows. Like having tabs in a filing cabinet — you jump straight to the right section. |
 | **Parallel data loading** | The dashboard fires all 5 data requests simultaneously. Adding more clients doesn't add load time — it just means more rows in the database (still indexed). |
-| **Background robots for heavy work** | GHL syncs, social pulls, AI signal evaluations all happen server-side on a schedule — never during dashboard load. Adding a new client adds it to the nightly sync, not to your page load time. |
+| **Background robots for heavy work** | GHL syncs, social pulls (when active), AI signal evaluations all happen server-side on a schedule — never during dashboard load. Adding a new client adds it to the nightly sync, not to your page load time. |
 | **Soft archiving instead of deletion** | When a client engagement ends, you archive them — you don't delete them. Their historical data is preserved for reporting. The "active" view still only shows active clients. |
-| **Service isolation** | GHL going down doesn't break the dashboard (we have local copies). Instagram going down doesn't break the chat. Each service failure is isolated and handled independently. |
-| **Upgrading the AI model is one line** | The model name (`gpt-4o`) is a variable. Switching from GPT-4o to a future more capable model means changing one string in one Edge Function — no database changes, no UI changes. |
+| **Service isolation** | GHL going down doesn't break the dashboard (we have local copies). The Gemini API being slow doesn't break the activity feed. Each service failure is isolated and handled independently. |
+| **Upgrading the AI model is one config change** | The model name (`gemini-1.5-flash`) is a configurable variable. Switching models or adding a new one means changing config — no database migrations, no UI rebuilds. |
 | **Connection pooling** | As more dashboard users log in simultaneously, the database connection pool ensures they don't overwhelm the server. Built-in via Supabase's Supavisor layer. |

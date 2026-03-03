@@ -70,9 +70,9 @@ export function ServicesSection() {
           {services.map((service) => (
             <div
               key={service.title}
-              className={`group relative rounded-2xl glass-panel p-8 transition-all duration-300 hover:border-primary/30 hover:bg-secondary/30 ${service.title === "AI Strategy & Architecture" ? "border-primary/40 ring-1 ring-primary/20 scale-[1.02] shadow-xl shadow-primary/5" : ""}`}
+              className={`group relative rounded-2xl glass-panel p-8 transition-all duration-300 hover:border-primary/30 hover:bg-secondary/30 ${service.title === "Scalable Architecture" ? "border-primary/40 ring-1 ring-primary/20 scale-[1.02] shadow-xl shadow-primary/5" : ""}`}
             >
-              {service.title === "AI Strategy & Architecture" && (
+              {service.title === "Scalable Architecture" && (
                 <div className="absolute -top-3 left-8 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
                   Flagship Offering
                 </div>

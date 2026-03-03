@@ -7,11 +7,13 @@
 | Field            | Value                                                                    |
 | ---------------- | ------------------------------------------------------------------------ |
 | **Status**       | 📐 Proposed — No Backend Exists Yet                                       |
-| **Last Updated** | 2026-03-02                                                               |
+| **Last Updated** | 2026-03-03                                                               |
 | **Audience**     | Founder / Non-Technical Stakeholder                                      |
 | **Stack**        | Supabase (cloud database) · PostgreSQL 15 · Supabase Auth                |
-| **Payments**     | None presently — Stripe to be added in a future phase                   |
-| **Email**        | Supabase (transactional) · GoHighLevel (marketing automation)            |
+| **Platform URL** | `https://agency.innergcomplete.com`                                      |
+| **Payments**     | None presently — deferred to Phase 5+                                   |
+| **Email**        | GoHighLevel workflows — `passwordreset@innergcomplete.com`               |
+| **AI Model**     | Google Gemini (preferred) — multi-model switching with rate limiting     |
 
 ---
 
@@ -40,14 +42,14 @@ Think of the database as the **warehouse** behind the store. The website is the 
 
 **Who can sign into the Inner G platform?**
 
-There are two main types of people who will log in:
+There are four levels of access in the Inner G portal. Think of them as **different colored keycards**:
 
 ### Inner G Team (Agency Side)
 
 | Role | Who They Are | What They Can Do |
 | --- | --- | --- |
-| **Super Admin** | The Inner G owner/founder | See and manage everything — all clients, all data, all settings |
-| **Agency Member** | Inner G staff (architects, account leads) | See their assigned clients, upload data, manage campaigns |
+| **Super Admin** | Lamont (Inner G owner) — only 1 account | See and manage everything — all clients, all data, all settings. The only person who can change roles or invite new developers. |
+| **Developer** | Inner G team members | Manage ONLY the clients and projects Lamont has assigned to them. Cannot see other developers' clients. |
 
 ### Clients (Customer Side)
 
@@ -56,7 +58,15 @@ There are two main types of people who will log in:
 | **Client Admin** | The CEO/Founder of the client company | See their full project dashboard, resolve AI signal cards |
 | **Client Viewer** | A read-only stakeholder at the client company | See dashboard data, cannot take actions |
 
-> **The "keycard" analogy:** The database will act like a building's keycard system. Each person's account is their keycard, and their role determines which rooms (dashboards, data) they can access. A Kane's Bookstore employee cannot accidentally see the Plenty of Hearts dashboard, and vice versa.
+**How accounts are created:** Nobody can create their own account. Accounts are created by invitation only. When Lamont is ready to invite a new developer, or a developer is ready to invite a client, the system generates a **secret one-time link** (like a VIP backstage pass). That link is copied and sent to the invitee however is most convenient — Slack message, text, personal email. The invitee clicks the link, sets up their password, and their account is created. The link expires in 7 days and can only be used once.
+
+**Different email wording based on role:** A developer receiving their invite sees team-focused language. A client receiving their invite sees client-focused, branded language. After a password reset, every user lands on the **login page** — regardless of role.
+
+**Session duration:** Users stay logged in for **1 hour** before being asked to sign in again. Supabase refreshes the session silently in the background if the user is active on the page.
+
+**Developer portfolios:** A developer is not limited to one client. Lamont can assign a developer to manage multiple clients — their version of the portal selector shows only the clients assigned to them.
+
+> **The "keycard" analogy:** The database acts like a building's keycard system. A developer managing "Client A" cannot accidentally see "Client B" even though both are Inner G clients. A Kane's Bookstore viewer cannot see the Plenty of Hearts dashboard. The database enforces this automatically at the storage level.
 
 **What happens if someone's account needs to be suspended?**
 
@@ -68,13 +78,13 @@ Instead of deleting their account, we simply flip an "is_active" switch to off. 
 
 ### The Clients Filing Cabinet
 
-The database keeps a master record for every company Inner G works with. For each client, it stores:
+The database keeps a master record for every company Inner G works with. Currently, **Kane's Bookstore** and **Plenty of Hearts** are seeded as **mock demo clients** to showcase the platform — they are not real active engagements. Real clients will be onboarded and added to the database as the agency grows. For each client, the database stores:
 
 - **Company name** (e.g., "Kane's Bookstore")
-- **Industry** (e.g., "Retail," "Social Community")
+- **Industry** (e.g., "Retail," "Dating App")
 - **Status** (Active / Onboarding / Paused / Archived)
 - **Primary contact name and email** (the client's main person to reach)
-- **GoHighLevel location ID** — the link between this client and their GHL sub-account
+- **GoHighLevel location ID** — relevant only for clients using GHL; not every client will
 - **Notes** — internal agency notes on the engagement
 
 When an engagement ends, we **archive** the client rather than deleting them. Their history is preserved.
@@ -190,38 +200,65 @@ This log is append-only — meaning events are only ever added, never deleted. T
 
 ## 8. The Integrations: How Our Database Talks to the Outside World
 
-### GoHighLevel (GHL) — The CRM
+### GoHighLevel (GHL) — Inner G's Own CRM
 
-GoHighLevel is the marketing automation platform used to manage leads, contacts, and campaigns. Here is how the two systems stay in sync:
+GoHighLevel is the marketing automation and CRM platform that **Inner G Complete Agency uses internally** to manage its own leads and client pipeline. Here's how it connects:
 
-1. A person submits the ebook giveaway form (on a GHL landing page)
-2. GHL creates a contact record for them
-3. A **sync process** runs and copies that contact into our database's `ghl_contacts` table
-4. Our dashboard can now show GHL data without calling GHL's API on every page load
-5. Every sync run is **logged** — success, failure, how many records were synced — so we always know what happened and when
+1. A potential client submits the "Growth Audit" form on the Inner G marketing site
+2. The form submission is saved to the database instantly
+3. Simultaneously, a server function calls GHL's API and creates a new contact in Inner G's GHL account
+4. The Inner G sales team can immediately see the lead in GHL
+5. Every sync and action is **logged** — so there's always a record of what was sent to GHL and when
 
-### Instagram / TikTok — The Social Accounts
+> **What about client-specific GHL integrations?** Some clients Inner G works with may also use GHL for their own marketing. When that happens, Inner G builds a custom per-client GHL integration at the time of onboarding. This is NOT a universal feature — it's built on demand for clients who specifically request it.
 
-Social media accounts (one Instagram per project, one TikTok per project) are linked/authenticated and stored in the database. Each account link stores:
-- The platform (Instagram or TikTok)
-- The account handle (e.g., "@kanesbooks")
-- An **access token** (a digital key that lets our system pull data from their API — stored encrypted)
-- The token expiry date (tokens expire, and the system needs to know when to request a refresh)
+### Instagram / TikTok — Social Platform Integration (Deferred)
 
-Every time our system pulls social data (reach, engagement, sentiment), it logs the sync — just like GHL.
+Instagram and TikTok connections are **currently placeholder demo items** in the dashboard. The `system_connections` health cards showing Instagram (Kane's) and TikTok (Plenty of Hearts) use mock data. Real social API integrations will be built **on-demand, per client**, when a specific client requests social media tracking as part of their engagement. The database schema supports this — it just hasn't been wired to real APIs yet.
+
+The social platform options supported once integrated: Instagram, TikTok, YouTube, Twitter/X.
+
+### External Client Databases — KPI Aggregation
+
+Some clients Inner G builds dashboards for will have their own existing databases (e.g., their own Supabase project, a Postgres database, or a Vercel-hosted database). The platform supports connecting to these external databases — but with an important cost-saving design decision:
+
+**We never copy all their raw data into Inner G's database.** Instead, we connect to their database, calculate the daily summary numbers (KPIs), and only store those summaries. Think of it like a financial auditor who doesn't take all your receipts home — they just write down the totals.
+
+This means:
+- Inner G's storage costs stay very low even if a client has millions of rows of data
+- The client's raw data never leaves their own database
+- The dashboard metrics for that client are still fast (we read from our own summary table, not their live database)
+
+Connection configuration and aggregation settings are stored securely for each client. The raw database password/URL is encrypted and never accessible from the browser — only from secure server-side functions.
 
 ---
 
-## 9. The AI Chat: Conversation History
+## 9. The AI Chat: Conversation History + Smart Context (RAG)
 
-The "Growth Assistant" chat on the dashboard will be connected to a real AI model. To make it actually useful, it needs to **remember what you've talked about**. Here's how:
+The "Growth Assistant" chat on the dashboard will be connected to one or more real AI models, starting with **Google Gemini**. Users will be able to switch between available LLM models from within the chat interface (with built-in rate limiting so the platform isn't abused). To make the chat actually useful, it needs to **remember what you've talked about**. Here's how:
 
 - Each conversation is stored as a **Chat Session** in the database
 - Each message (yours and the AI's) is stored as a **Chat Message** under that session
-- Messages are linked to both the user who sent them AND the project the conversation was about
+- Messages are linked to both the user AND the project the conversation is about
+- The **AI model used** is stored per session (so you can switch models and still see history from each)
 - We store **token counts** (the AI's equivalent of word count) so we can track costs per project
+- The AI chat is available to **both Inner G team members and clients** — everyone can use the Growth Assistant on their dashboard
 
-> **Token tracking matters for you as the business owner:** AI APIs charge per token. By storing token counts per project, Inner G can accurately attribute AI usage costs to each client — which is essential for accurate billing and ROI reporting.
+### The AI Knowledge Memory System (RAG)
+
+Beyond just conversation history, the AI also gets a **smart memory** powered by a technology called **RAG (Retrieval Augmented Generation)**. Here's the analogy:
+
+Imagine asking a consultant a question. Without RAG, they'd have to hold everything in their head (limited to what fits in a single conversation). With RAG, they have a filing cabinet — before answering, they quickly search the filing cabinet for the most relevant documents, read them, and then answer your question based on that research.
+
+In the Inner G platform's case:
+1. When you type a message ("Why did our activation rate drop last week?"), the AI first **searches the database** for the most relevant project data — recent metric snapshots, AI signals, activity logs
+2. It reads the top 5 most relevant pieces of data
+3. It sends those, plus your message, to Gemini
+4. Gemini answers based on the actual data, not just its general training
+
+**Why this matters:** As your clients accumulate months of data, the AI stays accurate and specific — it doesn't "forget" older data or make things up. This is the industry standard approach for AI assistants that need to reason about large, ever-growing datasets.
+
+> **Token tracking matters for you as the business owner:** AI APIs charge per token. By storing token counts per project, Inner G can accurately attribute AI usage costs to each client — which is essential for future billing and ROI reporting.
 
 ---
 
@@ -249,7 +286,7 @@ Here are the most important rules the database enforces automatically — rules 
 These are the locked, predetermined options for certain fields. Think of them as the dropdown options in a form — you can only pick from what's listed.
 
 ### User Roles
-`super_admin` · `agency_member` · `client_admin` · `client_viewer`
+`super_admin` · `developer` · `client_admin` · `client_viewer`
 
 ### Client Status
 `active` · `onboarding` · `paused` · `archived`
@@ -264,7 +301,9 @@ These are the locked, predetermined options for certain fields. Think of them as
 `draft` · `active` · `paused` · `completed` · `archived`
 
 ### Signal Type
-`inventory` · `conversion` · `social` · `system` · `ai_insight`
+`inventory` · `conversion` · `social` · `system` · `ai_insight` · `ai_action`
+
+> `system` signals AND `ai_action` signals trigger the notification bell in the dashboard header.
 
 ### Signal Severity
 `info` · `warning` · `critical`
@@ -281,6 +320,12 @@ These are the locked, predetermined options for certain fields. Think of them as
 ### Connection Status (System Health)
 `active` · `degraded` · `offline`
 
+### External Client DB Types
+`supabase` · `vercel_postgres` · `postgres` · `mysql` · `other`
+
+### Embedding Job Status (RAG)
+`pending` · `processing` · `done` · `failed`
+
 ---
 
 ## 12. What's NOT Being Built in This Phase
@@ -289,10 +334,11 @@ To keep scope manageable and delivery fast, the following features are explicitl
 
 | Feature | Excluded Because |
 | --- | --- |
-| **Stripe / Billing to Clients** | Inner G bills clients separately; no in-app payment system is needed yet |
-| **Social Login (Google, Apple, etc.)** | Email + password via Supabase Auth is sufficient for a private portal |
-| **Full Change History / Versioning** | Snapshots and `updated_at` timestamps are sufficient; a full audit table is a Phase 3+ concern |
-| **In-App Notifications / Push Alerts** | AI signal cards serve this function well enough for Phase 2; push notifications are a future feature |
+| **Stripe / Billing to Clients** | Inner G bills clients separately; no in-app payment system needed yet (deferred to Phase 5+) |
+| **Social Login (Google, Apple, etc.)** | Email + password invite flow via Supabase Auth is sufficient for a private portal |
+| **Instagram / TikTok API (initial build)** | Both are demo placeholders for now; real integrations built per-client on demand |
+| **Full Change History / Versioning** | Snapshots and `updated_at` timestamps are sufficient; full audit table is a Phase 3+ concern |
+| **In-App Push Notifications** | Supabase Realtime powers the notification bell; mobile push alerts are a future feature |
 | **Refund or Cancellation flows** | No subscriptions or payments are being processed in-app |
 | **Public-facing client profiles** | This is a private agency portal, not a public marketplace |
 | **Multi-language support (i18n)** | All users are English-speaking for now |
@@ -314,3 +360,5 @@ These are architectural decisions made now that will prevent the platform from b
 | **AI chat token tracking per project** | Every AI conversation is tied to a project. If one client's users are heavy chatters, you know exactly which client is generating AI costs. Makes billing accurate. |
 | **Connection health as a database record** | System health checks happen on a schedule in the background, not instant-on-demand. The dashboard loads your health cards in milliseconds from a saved record, not from a live API call. |
 | **GHL and social data mirrored locally** | We sync external data into our database instead of calling GHL/Instagram every time the dashboard loads. This makes the dashboard fast AND means it still shows data even if GHL has an outage. |
+| **RAG (AI filing cabinet) from day one** | The AI's smart search over project data is built into the architecture immediately. As your client data grows to thousands of rows, the AI doesn't get worse or more expensive — it stays sharp because it only reads what's relevant. |
+| **KPI Aggregation for external client databases** | When connecting a large client database, we only store their daily totals — not their raw data. A client with 10 million rows costs us almost nothing to store. Their dashboard is still fast. |
