@@ -15,7 +15,7 @@ const PROTECTED_ROUTES = ["/select-portal", "/dashboard"]
 /** Routes that authenticated users should NOT reach (redirect to portal) */
 const AUTH_ROUTES = ["/login", "/accept-invite"]
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     let response = NextResponse.next({
         request: {
             headers: request.headers,

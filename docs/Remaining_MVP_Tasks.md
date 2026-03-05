@@ -20,7 +20,7 @@ This document outlines the specific technical steps required to transition from 
     - Validate the token via a new `validate-invite` Edge Function.
     - Call `supabase.auth.updateUser` to set the password.
     - Redirect to `/select-portal`.
-- [ ] **Session Persistence:** Update `middleware.ts` to use `@supabase/ssr` to validate actual cookies instead of the current placeholder check.
+- [x] **Session Persistence:** Updated `proxy.ts` (formerly `middleware.ts`) to use `@supabase/ssr` to validate actual cookies. (Migration to Next.js 16 Proxy completed).
 - [ ] **User Role UI Guarding:** Implement role-based visibility in the Sidebar/Header (e.g., only `super_admin` sees "Request New Portal").
 
 ---
