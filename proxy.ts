@@ -15,80 +15,95 @@ const PROTECTED_ROUTES = ["/select-portal", "/dashboard"]
 /** Routes that authenticated users should NOT reach (redirect to portal) */
 const AUTH_ROUTES = ["/login", "/accept-invite"]
 
-export async function proxy(request: NextRequest) {
-    let response = NextResponse.next({
-        request: {
-            headers: request.headers,
-        },
-    })
+export default async function proxy(request: NextRequest) {
+    console.log('--- Proxy Intercept:', request.nextUrl.pathname)
 
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                get(name: string) {
-                    return request.cookies.get(name)?.value
-                },
-                set(name: string, value: string, options: CookieOptions) {
-                    request.cookies.set({
-                        name,
-                        value,
-                        ...options,
-                    })
-                    response = NextResponse.next({
-                        request: {
-                            headers: request.headers,
-                        },
-                    })
-                    response.cookies.set({
-                        name,
-                        value,
-                        ...options,
-                    })
-                },
-                remove(name: string, options: CookieOptions) {
-                    request.cookies.set({
-                        name,
-                        value: "",
-                        ...options,
-                    })
-                    response = NextResponse.next({
-                        request: {
-                            headers: request.headers,
-                        },
-                    })
-                    response.cookies.set({
-                        name,
-                        value: "",
-                        ...options,
-                    })
-                },
+    try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('Missing Supabase environment variables in Proxy')
+            return NextResponse.next()
+        }
+
+        let response = NextResponse.next({
+            request: {
+                headers: request.headers,
             },
+        })
+
+        const supabase = createServerClient(
+            supabaseUrl,
+            supabaseKey,
+            {
+                cookies: {
+                    get(name: string) {
+                        return request.cookies.get(name)?.value
+                    },
+                    set(name: string, value: string, options: CookieOptions) {
+                        request.cookies.set({
+                            name,
+                            value,
+                            ...options,
+                        })
+                        response = NextResponse.next({
+                            request: {
+                                headers: request.headers,
+                            },
+                        })
+                        response.cookies.set({
+                            name,
+                            value,
+                            ...options,
+                        })
+                    },
+                    remove(name: string, options: CookieOptions) {
+                        request.cookies.set({
+                            name,
+                            value: "",
+                            ...options,
+                        })
+                        response = NextResponse.next({
+                            request: {
+                                headers: request.headers,
+                            },
+                        })
+                        response.cookies.set({
+                            name,
+                            value: "",
+                            ...options,
+                        })
+                    },
+                },
+            }
+        )
+
+        // Refresh session if expired - also handles auth check
+        const { data: { user } } = await supabase.auth.getUser()
+
+        const { pathname } = request.nextUrl
+        const isAuthenticated = !!user
+
+        // 1. Protect private routes
+        if (PROTECTED_ROUTES.some((route) => pathname.startsWith(route))) {
+            if (!isAuthenticated) {
+                const loginUrl = new URL("/login", request.url)
+                loginUrl.searchParams.set("redirect", pathname)
+                return NextResponse.redirect(loginUrl)
+            }
         }
-    )
 
-    // Refresh session if expired - also handles auth check
-    const { data: { user } } = await supabase.auth.getUser()
-
-    const { pathname } = request.nextUrl
-    const isAuthenticated = !!user
-
-    // 1. Protect private routes
-    if (PROTECTED_ROUTES.some((route) => pathname.startsWith(route))) {
-        if (!isAuthenticated) {
-            const loginUrl = new URL("/login", request.url)
-            loginUrl.searchParams.set("redirect", pathname)
-            return NextResponse.redirect(loginUrl)
+        // 2. Redirect authenticated users away from auth pages
+        if (AUTH_ROUTES.includes(pathname) && isAuthenticated) {
+            return NextResponse.redirect(new URL("/select-portal", request.url))
         }
-    }
 
-    // 2. Redirect authenticated users away from auth pages
-    if (AUTH_ROUTES.includes(pathname) && isAuthenticated) {
-        return NextResponse.redirect(new URL("/select-portal", request.url))
+        return response
+    } catch (error) {
+        console.error('Proxy Execution Error:', error)
+        return NextResponse.next()
     }
-
-    return response
 }
 
 export const config = {
