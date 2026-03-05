@@ -6,7 +6,7 @@
 -- ============================================================
 
 -- CHAT SESSIONS (one per conversation — user + project + model)
-CREATE TABLE public.chat_sessions (
+CREATE TABLE IF NOT EXISTS public.chat_sessions (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id            UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   user_id               UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -18,15 +18,16 @@ CREATE TABLE public.chat_sessions (
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+DROP TRIGGER IF EXISTS chat_sessions_updated_at ON public.chat_sessions;
 CREATE TRIGGER chat_sessions_updated_at
   BEFORE UPDATE ON public.chat_sessions
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
-CREATE INDEX idx_chat_sessions_project ON public.chat_sessions(project_id, created_at DESC);
-CREATE INDEX idx_chat_sessions_user ON public.chat_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_project ON public.chat_sessions(project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user ON public.chat_sessions(user_id);
 
 -- CHAT MESSAGES (every turn in the conversation)
-CREATE TABLE public.chat_messages (
+CREATE TABLE IF NOT EXISTS public.chat_messages (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id      UUID NOT NULL REFERENCES public.chat_sessions(id) ON DELETE CASCADE,
   role            chat_role NOT NULL,
@@ -36,7 +37,7 @@ CREATE TABLE public.chat_messages (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_chat_messages_session ON public.chat_messages(session_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON public.chat_messages(session_id, created_at ASC);
 
 COMMENT ON TABLE public.chat_sessions IS
   'One row per Growth Assistant conversation. Tracks model used and cumulative token usage for cost attribution.';

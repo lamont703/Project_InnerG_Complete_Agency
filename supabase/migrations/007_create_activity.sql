@@ -5,7 +5,7 @@
 -- Table: activity_log
 -- ============================================================
 
-CREATE TABLE public.activity_log (
+CREATE TABLE IF NOT EXISTS public.activity_log (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id      UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   action          TEXT NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE public.activity_log (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_activity_log_project_time ON public.activity_log(project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_log_project_time ON public.activity_log(project_id, created_at DESC);
 
 COMMENT ON TABLE public.activity_log IS
   'Chronological audit trail of all meaningful events per project. Shown in the Recent Activity feed.';

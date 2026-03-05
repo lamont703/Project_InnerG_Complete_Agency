@@ -135,7 +135,7 @@ function DashboardContent() {
 
                     <div className={`grid grid-cols-1 ${!isPlentyOfHearts ? "lg:grid-cols-2" : ""} gap-8 mb-12`}>
                         <div className="rounded-2xl border border-white/5 overflow-hidden flex flex-col h-full min-h-0">
-                            <ChatInterface />
+                            <ChatInterface projectSlug={slug} />
                         </div>
 
                         {!isPlentyOfHearts && (

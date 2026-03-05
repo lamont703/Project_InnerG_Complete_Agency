@@ -6,7 +6,7 @@
 -- Uses auth.uid() as the primary key to link to Supabase Auth.
 -- ============================================================
 
-CREATE TABLE public.users (
+CREATE TABLE IF NOT EXISTS public.users (
   id              UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email           TEXT NOT NULL UNIQUE,
   full_name       TEXT,
@@ -26,6 +26,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS users_updated_at ON public.users;
 CREATE TRIGGER users_updated_at
   BEFORE UPDATE ON public.users
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -41,11 +42,13 @@ BEGIN
     NEW.email,
     NEW.raw_user_meta_data->>'full_name',
     COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'client_viewer')
-  );
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();

@@ -8,38 +8,51 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createBrowserClient } from "@/lib/supabase/browser"
 
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { loginSchema, type LoginInput } from "@/lib/validations/auth"
+import { toast } from "sonner"
+
 function LoginContent() {
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
     const router = useRouter()
     const searchParams = useSearchParams()
     const redirectTo = searchParams.get("redirect") || "/select-portal"
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm<LoginInput>({
+        resolver: zodResolver(loginSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+        },
+    })
+
+    const onLoginSubmit = async (values: LoginInput) => {
         setIsLoading(true)
-        setError(null)
 
         try {
             const supabase = createBrowserClient()
             const { error: authError } = await supabase.auth.signInWithPassword({
-                email,
-                password,
+                email: values.email,
+                password: values.password,
             })
 
             if (authError) {
-                setError(authError.message)
+                toast.error(authError.message)
                 setIsLoading(false)
                 return
             }
 
+            toast.success("Welcome back! Redirecting...")
             router.push(redirectTo)
             router.refresh()
         } catch (err) {
             console.error("[Login] Unexpected error:", err)
-            setError("An unexpected error occurred. Please try again.")
+            toast.error("An unexpected error occurred. Please try again.")
             setIsLoading(false)
         }
     }
@@ -70,7 +83,7 @@ function LoginContent() {
                 </div>
 
                 <div className="glass-panel-strong rounded-2xl p-8 shadow-2xl border-white/5">
-                    <form onSubmit={handleLogin} className="space-y-5">
+                    <form onSubmit={handleSubmit(onLoginSubmit)} className="space-y-5">
                         <div className="space-y-2">
                             <label htmlFor="email" className="text-sm font-medium text-foreground ml-1">Work Email</label>
                             <div className="relative">
@@ -78,15 +91,15 @@ function LoginContent() {
                                 <Input
                                     id="email"
                                     type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    {...register("email")}
                                     placeholder="name@company.com"
-                                    className="bg-background/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary"
-                                    required
-                                    autoComplete="email"
+                                    className={`bg-background/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary ${errors.email ? "border-destructive focus:border-destructive" : ""}`}
                                     disabled={isLoading}
                                 />
                             </div>
+                            {errors.email && (
+                                <p className="text-xs text-destructive mt-1 ml-1">{errors.email.message}</p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -104,23 +117,16 @@ function LoginContent() {
                                 <Input
                                     id="password"
                                     type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    {...register("password")}
                                     placeholder="••••••••"
-                                    className="bg-background/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary"
-                                    required
-                                    autoComplete="current-password"
+                                    className={`bg-background/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary ${errors.password ? "border-destructive focus:border-destructive" : ""}`}
                                     disabled={isLoading}
                                 />
                             </div>
+                            {errors.password && (
+                                <p className="text-xs text-destructive mt-1 ml-1">{errors.password.message}</p>
+                            )}
                         </div>
-
-                        {error && (
-                            <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 flex items-start gap-3">
-                                <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                                <p className="text-sm text-destructive">{error}</p>
-                            </div>
-                        )}
 
                         <Button
                             id="btn-sign-in"

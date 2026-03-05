@@ -78,23 +78,58 @@ serve(async (req: Request) => {
         // ── Step 4b: Semantic search for context chunks ───────────────────
         let contextChunks: string[] = []
         if (queryVector.length > 0) {
-            // TODO: Use pgvector match_documents RPC once available
-            // const { data: chunks } = await supabase.rpc("match_documents", {
-            //   query_embedding: queryVector,
-            //   match_project_id: project_id,
-            //   match_count: RAG_TOP_K,
-            // })
-            // contextChunks = chunks?.map((c: any) => c.content_chunk) ?? []
+            const { data: chunks, error: matchError } = await supabase.rpc("match_documents", {
+                query_embedding: queryVector,
+                match_threshold: 0.5,
+                match_count: RAG_TOP_K,
+                p_project_id: project_id
+            })
+
+            if (matchError) {
+                console.error("[send-chat-message] RAG match error:", matchError)
+            } else {
+                contextChunks = chunks?.map((c: any) => c.content_chunk) ?? []
+            }
         }
 
-        // ── Step 5: Build prompt ──────────────────────────────────────────
+        // ── Step 4.5: Get or create session ───────────────────────────
+        const adminSupabase = createClient(
+            Deno.env.get("SUPABASE_URL")!,
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        )
+
+        let currentSessionId = session_id
+        if (!currentSessionId) {
+            const { data: session } = await adminSupabase
+                .from("chat_sessions")
+                .insert({ project_id, user_id: user.id, model_used: model })
+                .select("id")
+                .single()
+            currentSessionId = session?.id
+        }
+
+        // ── Step 5: Build context history ───────────────────────────────
+        let historyPrompt = ""
+        if (currentSessionId) {
+            const { data: history } = await supabase
+                .from("chat_messages")
+                .select("role, content")
+                .eq("session_id", currentSessionId)
+                .order("created_at", { ascending: false })
+                .limit(10)
+
+            if (history && history.length > 0) {
+                historyPrompt = "\n\nPrevious Conversation:\n" +
+                    history.reverse().map((m: any) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join("\n")
+            }
+        }
+
         const systemPrompt = [
             "You are the Inner G Growth Assistant — an expert AI analyst specializing in campaign performance, CRM optimization, and business growth strategy.",
             "You have access to this project's real-time data. Answer concisely and specifically using the context below.",
-            contextChunks.length > 0 ? "\n\nRelevant project data:\n" + contextChunks.join("\n---\n") : "",
+            contextChunks.length > 0 ? "\nRelevant project data context:\n" + contextChunks.join("\n---\n") : "",
+            historyPrompt
         ].filter(Boolean).join("\n")
-
-        // TODO: Include recent chat history from chat_messages table
 
         // ── Step 6: Call Gemini Chat API ──────────────────────────────────
         const chatRes = await fetch(
@@ -115,22 +150,8 @@ serve(async (req: Request) => {
         const inputTokens = chatData.usageMetadata?.promptTokenCount ?? 0
         const outputTokens = chatData.usageMetadata?.candidatesTokenCount ?? 0
 
-        // ── Step 7: Persist session + messages ───────────────────────────
-        const adminSupabase = createClient(
-            Deno.env.get("SUPABASE_URL")!,
-            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        )
-
-        // Get or create session
-        let currentSessionId = session_id
-        if (!currentSessionId) {
-            const { data: session } = await adminSupabase
-                .from("chat_sessions")
-                .insert({ project_id, user_id: user.id, model_used: model })
-                .select("id")
-                .single()
-            currentSessionId = session?.id
-        }
+        // ── Step 7: Persist messages ──────────────────────────────────
+        // (adminSupabase and currentSessionId were initialized in Step 4.5)
 
         // Insert messages
         await adminSupabase.from("chat_messages").insert([

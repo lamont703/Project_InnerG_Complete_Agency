@@ -1,13 +1,62 @@
 "use client"
 
-import { ArrowRight, Mail, Building2, User } from "lucide-react"
+import { useState } from "react"
+import { ArrowRight, Mail, Building2, User, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { leadSchema, type LeadInput } from "@/lib/validations/lead"
+import { toast } from "sonner"
+import { createBrowserClient } from "@/lib/supabase/browser"
+
 
 export function CtaSection() {
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<LeadInput>({
+    resolver: zodResolver(leadSchema),
+    defaultValues: {
+      full_name: "",
+      email: "",
+      company_name: "",
+      challenge: "",
+    },
+  })
+
+  const onLeadSubmit = async (values: LeadInput) => {
+    setIsSubmitting(true)
+
+    try {
+      const { data, error } = await createBrowserClient().functions.invoke("submit-growth-audit-lead", {
+        body: values,
+      })
+
+      console.log("[CtaSection] Submission response:", { data, error })
+
+      if (error) {
+        throw new Error(error.message || "Failed to submit lead.")
+      }
+
+
+
+      setSubmitted(true)
+      toast.success("Audit request received! We'll be in touch soon.")
+      reset()
+    } catch (err) {
+      console.error("[CtaSection] Submission error:", err)
+      toast.error("Something went wrong. Please try again later.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <section id="contact" className="relative py-32">
@@ -60,13 +109,17 @@ export function CtaSection() {
                 <p className="mt-3 text-muted-foreground">
                   Our team will reach out within 24 hours to schedule your strategy session.
                 </p>
+                <Button
+                  variant="link"
+                  onClick={() => setSubmitted(false)}
+                  className="mt-6 text-primary"
+                >
+                  Submit another request
+                </Button>
               </div>
             ) : (
               <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  setSubmitted(true)
-                }}
+                onSubmit={handleSubmit(onLeadSubmit)}
                 className="space-y-5"
               >
                 <div>
@@ -76,44 +129,73 @@ export function CtaSection() {
                   </p>
                 </div>
 
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Full Name"
-                    className="bg-input/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary"
-                    required
+                <div className="space-y-1">
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      {...register("full_name")}
+                      placeholder="Full Name"
+                      className={`bg-input/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary ${errors.full_name ? "border-destructive focus:border-destructive" : ""}`}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {errors.full_name && <p className="text-[10px] text-destructive ml-1">{errors.full_name.message}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      {...register("email")}
+                      placeholder="Work Email"
+                      className={`bg-input/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary ${errors.email ? "border-destructive focus:border-destructive" : ""}`}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {errors.email && <p className="text-[10px] text-destructive ml-1">{errors.email.message}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      {...register("company_name")}
+                      placeholder="Company Name"
+                      className={`bg-input/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary ${errors.company_name ? "border-destructive focus:border-destructive" : ""}`}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {errors.company_name && <p className="text-[10px] text-destructive ml-1">{errors.company_name.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Textarea
+                    {...register("challenge")}
+                    placeholder="What is your biggest scaling challenge right now?"
+                    className="min-h-[120px] bg-input/50 border-border text-foreground placeholder:text-muted-foreground focus:border-primary"
+                    rows={4}
+                    disabled={isSubmitting}
                   />
                 </div>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="email"
-                    placeholder="Work Email"
-                    className="bg-input/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary"
-                    required
-                  />
-                </div>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Company Name"
-                    className="bg-input/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary"
-                    required
-                  />
-                </div>
-                <Textarea
-                  placeholder="What is your biggest scaling challenge right now?"
-                  className="min-h-[120px] bg-input/50 border-border text-foreground placeholder:text-muted-foreground focus:border-primary"
-                  rows={4}
-                />
 
                 <Button
                   type="submit"
                   size="lg"
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2 glow-primary"
+                  disabled={isSubmitting}
                 >
-                  Request Growth Audit
-                  <ArrowRight className="h-4 w-4" />
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Sending Request...
+                    </>
+                  ) : (
+                    <>
+                      Request Growth Audit
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
 
                 <p className="text-center text-xs text-muted-foreground">

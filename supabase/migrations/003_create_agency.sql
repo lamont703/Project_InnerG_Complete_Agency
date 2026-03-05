@@ -6,7 +6,7 @@
 -- ============================================================
 
 -- CLIENTS
-CREATE TABLE public.clients (
+CREATE TABLE IF NOT EXISTS public.clients (
   id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name                    TEXT NOT NULL,
   industry                client_industry NOT NULL DEFAULT 'other',
@@ -19,12 +19,13 @@ CREATE TABLE public.clients (
   updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+DROP TRIGGER IF EXISTS clients_updated_at ON public.clients;
 CREATE TRIGGER clients_updated_at
   BEFORE UPDATE ON public.clients
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- PROJECTS
-CREATE TABLE public.projects (
+CREATE TABLE IF NOT EXISTS public.projects (
   id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id               UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   name                    TEXT NOT NULL,
@@ -37,16 +38,16 @@ CREATE TABLE public.projects (
   CONSTRAINT projects_slug_format CHECK (slug ~ '^[a-z0-9][a-z0-9-]*[a-z0-9]$')
 );
 
+DROP TRIGGER IF EXISTS projects_updated_at ON public.projects;
 CREATE TRIGGER projects_updated_at
   BEFORE UPDATE ON public.projects
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
-CREATE INDEX idx_projects_client_id ON public.projects(client_id);
-CREATE INDEX idx_projects_slug ON public.projects(slug);
+CREATE INDEX IF NOT EXISTS idx_projects_client_id ON public.projects(client_id);
+CREATE INDEX IF NOT EXISTS idx_projects_slug ON public.projects(slug);
 
 -- DEVELOPER → CLIENT ACCESS (many-to-many portfolio)
--- Developers can manage multiple clients. Only super_admin assigns this.
-CREATE TABLE public.developer_client_access (
+CREATE TABLE IF NOT EXISTS public.developer_client_access (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   developer_id    UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   client_id       UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
@@ -55,11 +56,11 @@ CREATE TABLE public.developer_client_access (
   UNIQUE (developer_id, client_id)
 );
 
-CREATE INDEX idx_dev_client_access_developer ON public.developer_client_access(developer_id);
-CREATE INDEX idx_dev_client_access_client ON public.developer_client_access(client_id);
+CREATE INDEX IF NOT EXISTS idx_dev_client_access_developer ON public.developer_client_access(developer_id);
+CREATE INDEX IF NOT EXISTS idx_dev_client_access_client ON public.developer_client_access(client_id);
 
 -- PROJECT → USER ACCESS (client users assigned to specific projects)
-CREATE TABLE public.project_user_access (
+CREATE TABLE IF NOT EXISTS public.project_user_access (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id      UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   user_id         UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -68,8 +69,8 @@ CREATE TABLE public.project_user_access (
   UNIQUE (project_id, user_id)
 );
 
-CREATE INDEX idx_project_user_access_project ON public.project_user_access(project_id);
-CREATE INDEX idx_project_user_access_user ON public.project_user_access(user_id);
+CREATE INDEX IF NOT EXISTS idx_project_user_access_project ON public.project_user_access(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_user_access_user ON public.project_user_access(user_id);
 
 COMMENT ON TABLE public.clients IS 'Master client roster for Inner G Complete Agency.';
 COMMENT ON TABLE public.projects IS 'Active engagement portals — each has a unique slug used in URLs.';

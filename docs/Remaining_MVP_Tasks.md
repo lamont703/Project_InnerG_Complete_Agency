@@ -73,12 +73,14 @@ This document outlines the specific technical steps required to transition from 
 ## 6. Infrastructure & Deployment
 *Required for launch.*
 
-- [ ] **Production Env Config:** Sync all keys in `.env.example` to Vercel (Frontend) and Supabase Secrets (Edge Functions).
-- [ ] **Migrations Push:** Run `supabase db push` to apply migrations `001-012` to the production project.
-- [ ] **Custom Domain:** Configure SSL for `agency.innergcomplete.com` in Vercel.
-- [ ] **GitHub Actions:** Set up a basic CI/CD pipeline to:
-    - Run `npm run build` on PRs.
-    - Auto-deploy Edge Functions on merge to `main`.
+- [x] **Production Env Config:** Public keys synced to Vercel. (Sensitive keys GEMINI_API_KEY, GHL_API_KEY etc. require manual input).
+- [x] **Migrations Push:** Applied migrations 001-013 to production and created auto-deploy pipeline.
+- [x] **Custom Domain:** Project linked to `agency.innergcomplete.com` in Vercel.
+- [x] **GitHub Actions:** Set up CI/CD pipeline for:
+    - `npm run build` on PRs.
+    - `supabase functions deploy` on merge to `main`.
+    - `supabase db push` on migration updates.
+
 
 ---
 

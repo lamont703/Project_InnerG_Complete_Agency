@@ -6,140 +6,204 @@
 -- ============================================================
 
 -- USER ROLES
-CREATE TYPE user_role AS ENUM (
-  'super_admin',
-  'developer',
-  'client_admin',
-  'client_viewer'
-);
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM (
+      'super_admin',
+      'developer',
+      'client_admin',
+      'client_viewer'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CLIENT STATUS
-CREATE TYPE client_status AS ENUM (
-  'active',
-  'onboarding',
-  'paused',
-  'archived'
-);
+DO $$ BEGIN
+    CREATE TYPE client_status AS ENUM (
+      'active',
+      'onboarding',
+      'paused',
+      'archived'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CLIENT INDUSTRY
-CREATE TYPE client_industry AS ENUM (
-  'retail',
-  'ebook_publishing',
-  'social_community',
-  'dating',
-  'hospitality',
-  'ecommerce',
-  'technology',
-  'healthcare',
-  'other'
-);
+DO $$ BEGIN
+    CREATE TYPE client_industry AS ENUM (
+      'retail',
+      'ebook_publishing',
+      'social_community',
+      'dating',
+      'hospitality',
+      'ecommerce',
+      'technology',
+      'healthcare',
+      'other'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- PROJECT STATUS
-CREATE TYPE project_status AS ENUM (
-  'active',
-  'building',
-  'paused',
-  'archived'
-);
+DO $$ BEGIN
+    CREATE TYPE project_status AS ENUM (
+      'active',
+      'building',
+      'paused',
+      'archived'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CAMPAIGN STATUS
-CREATE TYPE campaign_status AS ENUM (
-  'draft',
-  'active',
-  'paused',
-  'completed',
-  'archived'
-);
+DO $$ BEGIN
+    CREATE TYPE campaign_status AS ENUM (
+      'draft',
+      'active',
+      'paused',
+      'completed',
+      'archived'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- SIGNAL TYPE
-CREATE TYPE signal_type AS ENUM (
-  'inventory',
-  'conversion',
-  'social',
-  'system',
-  'ai_insight',
-  'ai_action'
-);
+DO $$ BEGIN
+    CREATE TYPE signal_type AS ENUM (
+      'inventory',
+      'conversion',
+      'social',
+      'system',
+      'ai_insight',
+      'ai_action'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- SIGNAL SEVERITY
-CREATE TYPE signal_severity AS ENUM (
-  'info',
-  'warning',
-  'critical'
-);
+DO $$ BEGIN
+    CREATE TYPE signal_severity AS ENUM (
+      'info',
+      'warning',
+      'critical'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- LEAD STATUS
-CREATE TYPE lead_status AS ENUM (
-  'new',
-  'contacted',
-  'qualified',
-  'proposal_sent',
-  'closed_won',
-  'closed_lost'
-);
+DO $$ BEGIN
+    CREATE TYPE lead_status AS ENUM (
+      'new',
+      'contacted',
+      'qualified',
+      'proposal_sent',
+      'closed_won',
+      'closed_lost'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- ACTIVITY CATEGORY
-CREATE TYPE activity_category AS ENUM (
-  'retail_ops',
-  'growth',
-  'revenue',
-  'crm',
-  'social',
-  'system',
-  'ai'
-);
+DO $$ BEGIN
+    CREATE TYPE activity_category AS ENUM (
+      'retail_ops',
+      'growth',
+      'revenue',
+      'crm',
+      'social',
+      'system',
+      'ai'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- SOCIAL PLATFORM
-CREATE TYPE social_platform AS ENUM (
-  'instagram',
-  'tiktok',
-  'youtube',
-  'twitter_x'
-);
+DO $$ BEGIN
+    CREATE TYPE social_platform AS ENUM (
+      'instagram',
+      'tiktok',
+      'youtube',
+      'twitter_x'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CONNECTION STATUS
-CREATE TYPE connection_status AS ENUM (
-  'active',
-  'degraded',
-  'offline'
-);
+DO $$ BEGIN
+    CREATE TYPE connection_status AS ENUM (
+      'active',
+      'degraded',
+      'offline'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CHAT ROLE
-CREATE TYPE chat_role AS ENUM (
-  'user',
-  'assistant'
-);
+DO $$ BEGIN
+    CREATE TYPE chat_role AS ENUM (
+      'user',
+      'assistant'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- INTEGRATION SOURCE  
-CREATE TYPE integration_source AS ENUM (
-  'ghl',
-  'instagram',
-  'tiktok',
-  'youtube',
-  'twitter_x',
-  'client_db'
-);
+DO $$ BEGIN
+    CREATE TYPE integration_source AS ENUM (
+      'ghl',
+      'instagram',
+      'tiktok',
+      'youtube',
+      'twitter_x',
+      'client_db'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- INTEGRATION SYNC STATUS
-CREATE TYPE sync_status AS ENUM (
-  'success',
-  'partial',
-  'failed'
-);
+DO $$ BEGIN
+    CREATE TYPE sync_status AS ENUM (
+      'success',
+      'partial',
+      'failed'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- EXTERNAL CLIENT DB TYPE
-CREATE TYPE external_db_type AS ENUM (
-  'supabase',
-  'vercel_postgres',
-  'postgres',
-  'mysql',
-  'other'
-);
+DO $$ BEGIN
+    CREATE TYPE external_db_type AS ENUM (
+      'supabase',
+      'vercel_postgres',
+      'postgres',
+      'mysql',
+      'other'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- EMBEDDING JOB STATUS (RAG)
-CREATE TYPE embed_job_status AS ENUM (
-  'pending',
-  'processing',
-  'done',
-  'failed'
-);
+DO $$ BEGIN
+    CREATE TYPE embed_job_status AS ENUM (
+      'pending',
+      'processing',
+      'done',
+      'failed'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;

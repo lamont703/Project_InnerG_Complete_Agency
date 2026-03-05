@@ -5,7 +5,7 @@
 -- Table: ai_signals
 -- ============================================================
 
-CREATE TABLE public.ai_signals (
+CREATE TABLE IF NOT EXISTS public.ai_signals (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id        UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   signal_type       signal_type NOT NULL,
@@ -20,8 +20,8 @@ CREATE TABLE public.ai_signals (
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_ai_signals_project_id ON public.ai_signals(project_id);
-CREATE INDEX idx_ai_signals_unresolved ON public.ai_signals(project_id, is_resolved, created_at DESC)
+CREATE INDEX IF NOT EXISTS idx_ai_signals_project_id ON public.ai_signals(project_id);
+CREATE INDEX IF NOT EXISTS idx_ai_signals_unresolved ON public.ai_signals(project_id, is_resolved, created_at DESC)
   WHERE is_resolved = FALSE;
 
 COMMENT ON TABLE public.ai_signals IS

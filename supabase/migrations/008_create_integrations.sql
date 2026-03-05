@@ -7,7 +7,7 @@
 -- ============================================================
 
 -- GHL CONTACTS (synced from Inner G's GHL CRM)
-CREATE TABLE public.ghl_contacts (
+CREATE TABLE IF NOT EXISTS public.ghl_contacts (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id        UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   ghl_contact_id    TEXT NOT NULL UNIQUE,
@@ -18,12 +18,11 @@ CREATE TABLE public.ghl_contacts (
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_ghl_contacts_project ON public.ghl_contacts(project_id);
-CREATE INDEX idx_ghl_contacts_ghl_id ON public.ghl_contacts(ghl_contact_id);
+CREATE INDEX IF NOT EXISTS idx_ghl_contacts_project ON public.ghl_contacts(project_id);
+CREATE INDEX IF NOT EXISTS idx_ghl_contacts_ghl_id ON public.ghl_contacts(ghl_contact_id);
 
 -- SOCIAL ACCOUNTS (per-client connected social platforms)
--- Deferred: Instagram/TikTok integrations built per-client on-demand
-CREATE TABLE public.social_accounts (
+CREATE TABLE IF NOT EXISTS public.social_accounts (
   id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id              UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   platform                social_platform NOT NULL,
@@ -34,10 +33,10 @@ CREATE TABLE public.social_accounts (
   UNIQUE (project_id, platform)
 );
 
-CREATE INDEX idx_social_accounts_project ON public.social_accounts(project_id);
+CREATE INDEX IF NOT EXISTS idx_social_accounts_project ON public.social_accounts(project_id);
 
 -- INTEGRATION SYNC LOG (audit trail of sync runs)
-CREATE TABLE public.integration_sync_log (
+CREATE TABLE IF NOT EXISTS public.integration_sync_log (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id        UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   integration       integration_source NOT NULL,
@@ -47,10 +46,10 @@ CREATE TABLE public.integration_sync_log (
   synced_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_sync_log_project_time ON public.integration_sync_log(project_id, synced_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sync_log_project_time ON public.integration_sync_log(project_id, synced_at DESC);
 
 -- SYSTEM CONNECTIONS (health status cards on dashboard)
-CREATE TABLE public.system_connections (
+CREATE TABLE IF NOT EXISTS public.system_connections (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id    UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   label         TEXT NOT NULL,       -- e.g. "Database Connection"
@@ -61,12 +60,10 @@ CREATE TABLE public.system_connections (
   UNIQUE (project_id, platform)
 );
 
-CREATE INDEX idx_system_connections_project ON public.system_connections(project_id);
+CREATE INDEX IF NOT EXISTS idx_system_connections_project ON public.system_connections(project_id);
 
 -- CLIENT DB CONNECTIONS (KPI Aggregation — external client databases)
--- Hybrid approach: connect to client's DB, compute KPIs, store ONLY summaries.
--- The raw connection URL is NEVER exposed to the browser — server-side only.
-CREATE TABLE public.client_db_connections (
+CREATE TABLE IF NOT EXISTS public.client_db_connections (
   id                          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id                  UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   label                       TEXT NOT NULL,              -- e.g. "Kane's Production Postgres"
@@ -78,11 +75,12 @@ CREATE TABLE public.client_db_connections (
   updated_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+DROP TRIGGER IF EXISTS client_db_connections_updated_at ON public.client_db_connections;
 CREATE TRIGGER client_db_connections_updated_at
   BEFORE UPDATE ON public.client_db_connections
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
-CREATE INDEX idx_client_db_connections_project ON public.client_db_connections(project_id);
+CREATE INDEX IF NOT EXISTS idx_client_db_connections_project ON public.client_db_connections(project_id);
 
 COMMENT ON TABLE public.client_db_connections IS
   'External client database configuration for KPI Aggregation. Connection URLs are AES-256 encrypted and NEVER returned to the browser.';

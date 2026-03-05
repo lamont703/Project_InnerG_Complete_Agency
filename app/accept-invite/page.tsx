@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createBrowserClient } from "@/lib/supabase/browser"
 
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { acceptInviteSchema, type AcceptInviteInput } from "@/lib/validations/invite"
+import { toast } from "sonner"
+
 function AcceptInviteContent() {
     const searchParams = useSearchParams()
     const token = searchParams.get("token")
@@ -19,11 +24,18 @@ function AcceptInviteContent() {
     const [validationError, setValidationError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
 
-    // Form fields
-    const [fullName, setFullName] = useState("")
-    const [password, setPassword] = useState("")
-    const [confirmPassword, setConfirmPassword] = useState("")
-    const [formError, setFormError] = useState<string | null>(null)
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm<AcceptInviteInput>({
+        resolver: zodResolver(acceptInviteSchema),
+        defaultValues: {
+            full_name: "",
+            password: "",
+            confirmPassword: "",
+        },
+    })
 
     useEffect(() => {
         if (!token) {
@@ -54,20 +66,7 @@ function AcceptInviteContent() {
         validateToken()
     }, [token])
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setFormError(null)
-
-        if (password.length < 8) {
-            setFormError("Password must be at least 8 characters long.")
-            return
-        }
-
-        if (password !== confirmPassword) {
-            setFormError("Passwords do not match.")
-            return
-        }
-
+    const onAcceptSubmit = async (values: AcceptInviteInput) => {
         setIsSubmitting(true)
 
         try {
@@ -75,22 +74,24 @@ function AcceptInviteContent() {
             const { error: inviteError } = await supabase.functions.invoke("complete-invite", {
                 body: {
                     token,
-                    password,
-                    full_name: fullName
+                    password: values.password,
+                    full_name: values.full_name
                 }
             })
 
             if (inviteError) {
-                setFormError(inviteError.message || "Failed to create account.")
+                toast.error(inviteError.message || "Failed to create account.")
                 setIsSubmitting(false)
             } else {
                 setSuccess(true)
+                toast.success("Account activated! Redirecting to login...")
                 setTimeout(() => {
                     router.push("/login")
                 }, 3000)
             }
         } catch (err) {
-            setFormError("An unexpected error occurred.")
+            console.error("[AcceptInvite] Unexpected error:", err)
+            toast.error("An unexpected error occurred. Please try again.")
             setIsSubmitting(false)
         }
     }
@@ -163,60 +164,59 @@ function AcceptInviteContent() {
                 </div>
 
                 <div className="glass-panel-strong rounded-2xl p-8 shadow-2xl border-white/5">
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <form onSubmit={handleSubmit(onAcceptSubmit)} className="space-y-5">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-foreground ml-1">Full Name</label>
+                            <label htmlFor="full_name" className="text-sm font-medium text-foreground ml-1">Full Name</label>
                             <div className="relative">
                                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
-                                    value={fullName}
-                                    onChange={(e) => setFullName(e.target.value)}
+                                    id="full_name"
+                                    {...register("full_name")}
                                     placeholder="Enter your full name"
-                                    className="bg-background/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary"
-                                    required
+                                    className={`bg-background/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary ${errors.full_name ? "border-destructive focus:border-destructive" : ""}`}
                                     disabled={isSubmitting}
                                 />
                             </div>
+                            {errors.full_name && (
+                                <p className="text-xs text-destructive mt-1 ml-1">{errors.full_name.message}</p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-foreground ml-1">Set Password</label>
+                            <label htmlFor="password" className="text-sm font-medium text-foreground ml-1">Set Password</label>
                             <div className="relative">
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
+                                    id="password"
                                     type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    {...register("password")}
                                     placeholder="Min. 8 characters"
-                                    className="bg-background/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary"
-                                    required
+                                    className={`bg-background/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary ${errors.password ? "border-destructive focus:border-destructive" : ""}`}
                                     disabled={isSubmitting}
                                 />
                             </div>
+                            {errors.password && (
+                                <p className="text-xs text-destructive mt-1 ml-1">{errors.password.message}</p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-foreground ml-1">Confirm Password</label>
+                            <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground ml-1">Confirm Password</label>
                             <div className="relative">
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
+                                    id="confirmPassword"
                                     type="password"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    {...register("confirmPassword")}
                                     placeholder="Repeat your password"
-                                    className="bg-background/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary"
-                                    required
+                                    className={`bg-background/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary ${errors.confirmPassword ? "border-destructive focus:border-destructive" : ""}`}
                                     disabled={isSubmitting}
                                 />
                             </div>
+                            {errors.confirmPassword && (
+                                <p className="text-xs text-destructive mt-1 ml-1">{errors.confirmPassword.message}</p>
+                            )}
                         </div>
-
-                        {formError && (
-                            <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 flex items-start gap-3">
-                                <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                                <p className="text-sm text-destructive">{formError}</p>
-                            </div>
-                        )}
 
                         <Button
                             type="submit"

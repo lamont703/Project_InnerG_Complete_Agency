@@ -43,6 +43,8 @@ export const viewport: Viewport = {
   colorScheme: 'dark',
 }
 
+import { Toaster } from "sonner"
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -58,6 +60,7 @@ export default function RootLayout({
           }}
         />
         {children}
+        <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   )
