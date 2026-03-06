@@ -158,7 +158,7 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                             <span className="text-xl font-bold">G</span>
                         </div>
                         <span className="text-xl font-bold tracking-tight text-foreground">
-                            Inner G
+                            Inner G Complete
                         </span>
                     </Link>
                 </div>
@@ -183,7 +183,7 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                             <span className="text-lg font-bold">G</span>
                         </div>
-                        <span className="text-lg font-bold tracking-tight text-foreground">Inner G</span>
+                        <span className="text-lg font-bold tracking-tight text-foreground">Inner G Complete</span>
                     </Link>
                     <button
                         id="btn-close-sidebar"

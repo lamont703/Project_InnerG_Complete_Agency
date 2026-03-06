@@ -101,7 +101,7 @@ export function ChatInterface({ projectSlug }: ChatInterfaceProps) {
                             {
                                 id: "welcome",
                                 role: "assistant",
-                                content: "Hello! I'm your Inner G Growth Assistant. How can I help you scale your operations today?",
+                                content: "Hello! I'm your Inner G Complete Growth Assistant. How can I help you scale your operations today?",
                                 timestamp: new Date(),
                             }
                         ])
@@ -112,7 +112,7 @@ export function ChatInterface({ projectSlug }: ChatInterfaceProps) {
                         {
                             id: "welcome",
                             role: "assistant",
-                            content: "Hello! I'm your Inner G Growth Assistant. How can I help you scale your operations today?",
+                            content: "Hello! I'm your Inner G Complete Growth Assistant. How can I help you scale your operations today?",
                             timestamp: new Date(),
                         }
                     ])
@@ -277,7 +277,7 @@ export function ChatInterface({ projectSlug }: ChatInterfaceProps) {
                     </Button>
                 </form>
                 <p className="text-[10px] text-center text-muted-foreground mt-3 opacity-50">
-                    Inner G Assistant can help with database queries, automation maps, and scaling audits.
+                    Inner G Complete Assistant can help with database queries, automation maps, and scaling audits.
                 </p>
             </div>
         </div>

@@ -115,7 +115,7 @@ function DashboardContent() {
                             <span className="text-xl font-bold">G</span>
                         </div>
                         <span className="text-xl font-bold tracking-tight text-foreground">
-                            Inner G
+                            Inner G Complete
                         </span>
                     </Link>
                 </div>
@@ -167,7 +167,7 @@ function DashboardContent() {
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                             <span className="text-lg font-bold">G</span>
                         </div>
-                        <span className="text-lg font-bold tracking-tight text-foreground">Inner G</span>
+                        <span className="text-lg font-bold tracking-tight text-foreground">Inner G Complete</span>
                     </Link>
                     <button onClick={() => setIsSidebarOpen(false)} className="h-8 w-8 flex items-center justify-center rounded-full glass-panel">
                         <X className="h-4 w-4" />
@@ -223,7 +223,7 @@ function DashboardContent() {
                             </h2>
                         </div>
                         <div className="md:hidden">
-                            <span className="text-lg font-bold tracking-tight text-foreground">Inner G</span>
+                            <span className="text-lg font-bold tracking-tight text-foreground">Inner G Complete</span>
                         </div>
                     </div>
 

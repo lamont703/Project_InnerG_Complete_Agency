@@ -31,7 +31,7 @@ export function Footer() {
                 <span className="text-xl font-bold">G</span>
               </div>
               <span className="text-xl font-bold tracking-tight text-foreground">
-                Inner G<span className="hidden lg:inline text-muted-foreground font-normal"> Complete Agency</span>
+                Inner G Complete<span className="hidden lg:inline text-muted-foreground font-normal"> Agency</span>
               </span>
             </Link>
             <p className="mt-6 text-sm leading-relaxed text-muted-foreground">

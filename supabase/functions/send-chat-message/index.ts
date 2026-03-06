@@ -125,7 +125,7 @@ serve(async (req: Request) => {
         }
 
         const systemPrompt = [
-            "You are the Inner G Growth Assistant — an expert AI analyst specializing in campaign performance, CRM optimization, and business growth strategy.",
+            "You are the Inner G Complete Growth Assistant — an expert AI analyst specializing in campaign performance, CRM optimization, and business growth strategy.",
             "You have access to this project's real-time data. Answer concisely and specifically using the context below.",
             contextChunks.length > 0 ? "\nRelevant project data context:\n" + contextChunks.join("\n---\n") : "",
             historyPrompt

@@ -40,7 +40,7 @@ export function FeatureHighlight() {
       <div className="relative z-10 mx-auto max-w-7xl px-6">
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">
-            Why Inner G Complete
+            Why Inner G Complete Agency
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
             Built for Business Scale

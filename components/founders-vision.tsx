@@ -35,7 +35,7 @@ export function FoundersVision() {
                     <div className="mt-12 flex flex-col items-center">
                         <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-primary to-accent mb-4" />
                         <div className="text-center">
-                            <span className="block text-lg font-bold text-foreground">Inner G Leadership</span>
+                            <span className="block text-lg font-bold text-foreground">Inner G Complete Leadership</span>
                             <span className="text-sm text-primary font-medium uppercase tracking-widest">Bridging Innovation & Reality</span>
                         </div>
                     </div>

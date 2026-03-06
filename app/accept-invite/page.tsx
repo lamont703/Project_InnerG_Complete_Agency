@@ -151,7 +151,7 @@ function AcceptInviteContent() {
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105">
                             <span className="text-xl font-bold">G</span>
                         </div>
-                        <span className="text-xl font-bold tracking-tight text-foreground">Inner G</span>
+                        <span className="text-xl font-bold tracking-tight text-foreground">Inner G Complete</span>
                     </Link>
                     <div className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-1.5 mb-4 border-primary/20">
                         <ArrowRight className="h-4 w-4 text-primary" />
@@ -239,7 +239,7 @@ function AcceptInviteContent() {
                 </div>
 
                 <p className="text-center mt-8 text-[11px] text-muted-foreground leading-relaxed">
-                    By activating your account, you agree to Inner G&apos;s <br />
+                    By activating your account, you agree to Inner G Complete&apos;s <br />
                     <Link href="#" className="underline">Terms of Service</Link> and <Link href="#" className="underline">Security Protocols</Link>.
                 </p>
             </div>

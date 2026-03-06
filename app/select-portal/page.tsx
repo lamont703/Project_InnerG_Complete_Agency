@@ -108,6 +108,17 @@ export default function SelectPortalPage() {
         fetchData()
     }, [])
 
+    const handleSignOut = async () => {
+        try {
+            const supabase = createBrowserClient()
+            await supabase.auth.signOut()
+            router.push("/login")
+            router.refresh()
+        } catch (error) {
+            console.error("Error signing out:", error)
+        }
+    }
+
     const filteredProjects = projects.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.client.toLowerCase().includes(searchQuery.toLowerCase())
@@ -138,7 +149,7 @@ export default function SelectPortalPage() {
                                 <span className="text-xl font-bold">G</span>
                             </div>
                             <span className="text-xl font-bold tracking-tight text-foreground">
-                                Inner G
+                                Inner G Complete
                             </span>
                         </Link>
                         <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight">Enterprise Client Portals</h1>
@@ -180,16 +191,29 @@ export default function SelectPortalPage() {
                             Status: Active
                         </Button>
                         {userData?.role === "SUPER ADMIN" && (
-                            <Button
-                                id="btn-request-portal"
-                                className="flex-1 md:flex-auto h-14 px-8 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl gap-2 glow-primary order-1 md:order-2"
-                                asChild
-                            >
-                                <Link href="/admin/invites">
-                                    <PlusCircle className="h-5 w-5" />
-                                    Generate New Portal Invite
-                                </Link>
-                            </Button>
+                            <div className="flex flex-col md:flex-row gap-4 flex-1 md:flex-auto order-1 md:order-2">
+                                <Button
+                                    id="btn-deploy-portal"
+                                    className="flex-1 h-14 px-8 bg-accent hover:bg-accent/90 text-accent-foreground rounded-2xl gap-2 glow-accent"
+                                    asChild
+                                >
+                                    <Link href="/admin/portals/new">
+                                        <PlusCircle className="h-5 w-5" />
+                                        Deploy New Architecture
+                                    </Link>
+                                </Button>
+                                <Button
+                                    id="btn-request-portal"
+                                    variant="outline"
+                                    className="flex-1 h-14 px-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary rounded-2xl gap-2"
+                                    asChild
+                                >
+                                    <Link href="/admin/invites">
+                                        <Users className="h-5 w-5" />
+                                        Generate New Portal Invite
+                                    </Link>
+                                </Button>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -273,10 +297,15 @@ export default function SelectPortalPage() {
                 {/* Footer */}
                 <div className="mt-20 py-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
                     <p className="text-sm text-muted-foreground font-medium">
-                        Securely managed by <span className="text-foreground">Inner G Infrastructure</span>
+                        Securely managed by <span className="text-foreground">Inner G Complete Infrastructure</span>
                     </p>
                     <div className="flex items-center gap-8">
-                        <Link href="/login" className="text-xs text-muted-foreground hover:text-destructive transition-colors uppercase tracking-widest font-bold tracking-tighter">Sign Out</Link>
+                        <button
+                            onClick={handleSignOut}
+                            className="text-xs text-muted-foreground hover:text-destructive transition-colors uppercase tracking-widest font-bold tracking-tighter"
+                        >
+                            Sign Out
+                        </button>
                     </div>
                 </div>
             </div>

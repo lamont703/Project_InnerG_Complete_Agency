@@ -47,7 +47,7 @@ export function DashboardHeader({
                     </h2>
                 </div>
                 <div className="md:hidden">
-                    <span className="text-lg font-bold tracking-tight text-foreground">Inner G</span>
+                    <span className="text-lg font-bold tracking-tight text-foreground">Inner G Complete</span>
                 </div>
             </div>
 

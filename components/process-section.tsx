@@ -43,7 +43,7 @@ export function ProcessSection() {
             Our Process
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            The Inner G Methodology
+            The Inner G Complete Methodology
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
             A proven four-phase methodology that transforms business ambition into

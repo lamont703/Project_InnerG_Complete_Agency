@@ -69,7 +69,7 @@ function LoginContent() {
                             <span className="text-xl font-bold">G</span>
                         </div>
                         <span className="text-xl font-bold tracking-tight text-foreground">
-                            Inner G
+                            Inner G Complete Agency 
                         </span>
                     </Link>
                     <div className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-1.5 mb-4">
