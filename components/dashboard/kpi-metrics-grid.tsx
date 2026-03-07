@@ -36,22 +36,26 @@ export function KpiMetricsGrid({
             try {
                 const supabase = createBrowserClient()
 
+                const projectRes = await supabase
+                    .from("projects")
+                    .select("id")
+                    .eq("slug", projectSlug)
+                    .maybeSingle() as any
+
+                const projectId = projectRes.data?.id
+
                 // 1. Get the active campaign for this project
                 const { data: campaign, error: campaignError } = await supabase
                     .from("campaigns")
                     .select("id, name")
-                    .eq("project_id", (
-                        await supabase
-                            .from("projects")
-                            .select("id")
-                            .eq("slug", projectSlug)
-                            .single() as any
-                    ).data?.id)
+                    .eq("project_id", projectId)
                     .eq("status", "active")
-                    .single() as any
+                    .limit(1)
+                    .maybeSingle() as any
 
                 if (campaignError || !campaign) {
                     setCampaignName("General Portfolio")
+                    setMetrics(KANES_MOCK_METRICS)
                     setIsLoading(false)
                     return
                 }
@@ -69,6 +73,7 @@ export function KpiMetricsGrid({
                 if (metricsError) throw metricsError
 
                 if (!snapshots || snapshots.length === 0) {
+                    setMetrics(KANES_MOCK_METRICS)
                     setIsLoading(false)
                     return
                 }

@@ -13,7 +13,7 @@ import { NextResponse, type NextRequest } from "next/server"
 const PROTECTED_ROUTES = ["/select-portal", "/dashboard"]
 
 /** Routes that authenticated users should NOT reach (redirect to portal) */
-const AUTH_ROUTES = ["/login", "/accept-invite"]
+const AUTH_ROUTES = ["/login"]
 
 export default async function proxy(request: NextRequest) {
     console.log('--- Proxy Intercept:', request.nextUrl.pathname)

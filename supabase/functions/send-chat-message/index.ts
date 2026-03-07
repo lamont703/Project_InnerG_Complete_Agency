@@ -23,7 +23,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { corsHeaders } from "../_shared/cors.ts"
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
-const DEFAULT_CHAT_MODEL = "gemini-1.5-flash"
+const DEFAULT_CHAT_MODEL = "gemini-2.5-flash-lite"
 const DEFAULT_EMBED_MODEL = "text-embedding-004"
 const RAG_TOP_K = 5
 
@@ -33,6 +33,8 @@ serve(async (req: Request) => {
     }
 
     const authHeader = req.headers.get("Authorization")
+    console.log("[send-chat-message] Request received. Auth header present:", !!authHeader)
+
     if (!authHeader) {
         return new Response(
             JSON.stringify({ data: null, error: { code: "UNAUTHORIZED", message: "Missing Authorization header." } }),
@@ -132,7 +134,8 @@ serve(async (req: Request) => {
         ].filter(Boolean).join("\n")
 
         // ── Step 6: Call Gemini Chat API ──────────────────────────────────
-        const chatRes = await fetch(
+        console.log(`[send-chat-message] Calling Gemini (${model})...`)
+        let chatRes = await fetch(
             `${GEMINI_API_BASE}/models/${model}:generateContent?key=${geminiApiKey}`,
             {
                 method: "POST",
@@ -141,12 +144,54 @@ serve(async (req: Request) => {
                     contents: [
                         { role: "user", parts: [{ text: `${systemPrompt}\n\nUser: ${message}` }] }
                     ],
-                    generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
                 }),
             }
         )
-        const chatData = await chatRes.json()
-        const reply = chatData.candidates?.[0]?.content?.parts?.[0]?.text ?? "I'm unable to answer right now. Please try again."
+
+        let chatData = await chatRes.json()
+
+        // Dynamic Fallback: If newest 2.5 Lite model fails (404), try the stable 1.5 Flash
+        if (chatRes.status === 404 && model !== "gemini-1.5-flash") {
+            const fallbackModel = "gemini-1.5-flash"
+            console.warn(`[send-chat-message] Preferred model ${model} failed with 404. Falling back to stable ${fallbackModel}...`)
+            chatRes = await fetch(
+                `${GEMINI_API_BASE}/models/${fallbackModel}:generateContent?key=${geminiApiKey}`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [
+                            { role: "user", parts: [{ text: `${systemPrompt}\n\nUser: ${message}` }] }
+                        ],
+                        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+                    }),
+                }
+            )
+            chatData = await chatRes.json()
+        }
+
+        if (!chatRes.ok) {
+            console.error("[send-chat-message] Gemini API Error:", chatData)
+            throw new Error(`Gemini API returned ${chatRes.status}: ${chatData.error?.message || "Unknown error"}`)
+        }
+
+        const reply = chatData.candidates?.[0]?.content?.parts?.[0]?.text
+
+        if (!reply) {
+            console.warn("[send-chat-message] No reply in Gemini response:", chatData)
+            if (chatData.promptFeedback?.blockReason) {
+                return new Response(
+                    JSON.stringify({
+                        data: { reply: "I'm sorry, I cannot answer that due to safety restrictions. Please try a different question.", session_id: currentSessionId },
+                        error: null
+                    }),
+                    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                )
+            }
+        }
+
+        const finalReply = reply ?? "I'm unable to answer right now. Please try again."
         const inputTokens = chatData.usageMetadata?.promptTokenCount ?? 0
         const outputTokens = chatData.usageMetadata?.candidatesTokenCount ?? 0
 
@@ -156,14 +201,14 @@ serve(async (req: Request) => {
         // Insert messages
         await adminSupabase.from("chat_messages").insert([
             { session_id: currentSessionId, role: "user", content: message, input_tokens: inputTokens },
-            { session_id: currentSessionId, role: "assistant", content: reply, output_tokens: outputTokens },
+            { session_id: currentSessionId, role: "assistant", content: finalReply, output_tokens: outputTokens },
         ])
 
         return new Response(
             JSON.stringify({
                 data: {
                     session_id: currentSessionId,
-                    reply,
+                    reply: finalReply,
                     model_used: model,
                     input_tokens: inputTokens,
                     output_tokens: outputTokens,

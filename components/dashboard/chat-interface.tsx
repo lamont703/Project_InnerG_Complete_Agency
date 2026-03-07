@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Send, Bot, User, Sparkles, Loader2, Maximize2, Minimize2, Cpu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { createBrowserClient } from "@/lib/supabase/browser"
+import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
 import {
     Select,
     SelectContent,
@@ -30,7 +30,7 @@ export function ChatInterface({ projectSlug }: ChatInterfaceProps) {
     const [isLoading, setIsLoading] = useState(false)
     const [isInitialLoading, setIsInitialLoading] = useState(true)
     const [isExpanded, setIsExpanded] = useState(false)
-    const [selectedModel, setSelectedModel] = useState("gemini-1.5-flash")
+    const [selectedModel] = useState("gemini-2.5-flash-lite")
     const [projectId, setProjectId] = useState<string | null>(null)
     const [sessionId, setSessionId] = useState<string | null>(null)
     const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -48,12 +48,12 @@ export function ChatInterface({ projectSlug }: ChatInterfaceProps) {
         scrollToBottom()
     }, [messages])
 
+    const [supabase] = useState(() => createBrowserClient())
+
     // Load project and existing chat history
     useEffect(() => {
         const loadChat = async () => {
             try {
-                const supabase = createBrowserClient()
-
                 // 1. Get Project ID
                 const { data: project } = await supabase
                     .from("projects")
@@ -68,7 +68,7 @@ export function ChatInterface({ projectSlug }: ChatInterfaceProps) {
                 const { data: { user } } = await supabase.auth.getUser()
                 if (!user) return
 
-                const { data: session } = await supabase
+                const { data: sessionData } = await supabase
                     .from("chat_sessions")
                     .select("id")
                     .eq("project_id", project.id)
@@ -77,14 +77,14 @@ export function ChatInterface({ projectSlug }: ChatInterfaceProps) {
                     .limit(1)
                     .maybeSingle() as any
 
-                if (session) {
-                    setSessionId(session.id)
+                if (sessionData) {
+                    setSessionId(sessionData.id)
 
                     // 3. Load messages for this session
                     const { data: history } = await supabase
                         .from("chat_messages")
                         .select("*")
-                        .eq("session_id", session.id)
+                        .eq("session_id", sessionData.id)
                         .order("created_at", { ascending: true }) as any
 
                     if (history && history.length > 0) {
@@ -125,7 +125,7 @@ export function ChatInterface({ projectSlug }: ChatInterfaceProps) {
         }
 
         loadChat()
-    }, [projectSlug])
+    }, [projectSlug, supabase])
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -145,31 +145,47 @@ export function ChatInterface({ projectSlug }: ChatInterfaceProps) {
         setIsLoading(true)
 
         try {
-            const supabase = createBrowserClient()
+            // Force session refresh/validation
+            const { data: { session }, error: authError } = await supabase.auth.getSession()
+
+            if (authError || !session) {
+                console.error("[Chat] Authentication required:", authError)
+                setMessages((prev) => [...prev, {
+                    id: (Date.now() + 2).toString(),
+                    role: "assistant",
+                    content: "Please log in again to use the Growth Assistant.",
+                    timestamp: new Date()
+                }])
+                return
+            }
+
             const { data, error } = await supabase.functions.invoke("send-chat-message", {
                 body: {
                     project_id: projectId,
                     message: userMsgContent,
                     session_id: sessionId,
                     model: selectedModel
+                },
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                    apikey: supabaseAnonKey
                 }
             })
 
             if (error) throw error
 
-            if (data) {
-                if (!sessionId) setSessionId(data.session_id)
+            if (data?.data) {
+                const functionData = data.data
+                if (!sessionId) setSessionId(functionData.session_id)
 
                 const assistantMessage: Message = {
                     id: (Date.now() + 1).toString(),
                     role: "assistant",
-                    content: data.reply,
+                    content: functionData.reply,
                     timestamp: new Date(),
                 }
                 setMessages((prev) => [...prev, assistantMessage])
             }
-
-
         } catch (err) {
             console.error("[Chat] Send error:", err)
             setMessages((prev) => [...prev, {
@@ -184,7 +200,7 @@ export function ChatInterface({ projectSlug }: ChatInterfaceProps) {
     }
 
     return (
-        <div className={`flex flex-col glass-panel-strong rounded-2xl border border-white/[0.03] transition-all duration-500 overflow-hidden ${isExpanded ? "fixed inset-0 md:inset-8 z-[102] shadow-2xl rounded-none md:rounded-2xl" : "h-[500px] md:h-full min-h-[400px]"}`}>
+        <div className={`flex flex-col glass-panel-strong rounded-2xl border border-white/[0.03] transition-all duration-500 overflow-hidden ${isExpanded ? "fixed inset-0 md:inset-8 z-[102] shadow-2xl rounded-none md:rounded-2xl" : "h-[950px]"}`}>
             {/* Header */}
             <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                 <div className="flex items-center gap-3">
@@ -200,17 +216,11 @@ export function ChatInterface({ projectSlug }: ChatInterfaceProps) {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <Select value={selectedModel} onValueChange={setSelectedModel}>
-                        <SelectTrigger className="h-8 w-[140px] bg-white/5 border-white/10 text-[10px] uppercase font-bold tracking-widest">
-                            <Cpu className="h-3 w-3 text-primary mr-1" />
-                            <SelectValue placeholder="Model" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#0f172a] border-white/10">
-                            <SelectItem value="gemini-1.5-flash" className="text-[10px] uppercase font-bold">Gemini Flash</SelectItem>
-                            <SelectItem value="gemini-1.5-pro" className="text-[10px] uppercase font-bold">Gemini Pro 1.5</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
+                        <Cpu className="h-3 w-3 text-primary" />
+                        <span className="text-[9px] font-bold text-primary uppercase tracking-widest">Gemini 2.5 Lite</span>
+                    </div>
 
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}

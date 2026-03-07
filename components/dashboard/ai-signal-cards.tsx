@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { ArrowUpRight, Database, Zap, Instagram, Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { createBrowserClient } from "@/lib/supabase/browser"
+import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
 import type { SignalCard } from "@/types"
 
 interface AiSignalCardsProps {
@@ -49,20 +49,19 @@ export function AiSignalCards({
     const [resolvingId, setResolvingId] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [projectId, setProjectId] = useState<string | null>(null)
+    const [supabase] = useState(() => createBrowserClient())
 
     useEffect(() => {
         if (initialSignals) return
 
         const fetchSignals = async () => {
             try {
-                const supabase = createBrowserClient()
-
                 // 1. Get Project ID
                 const { data: project } = await supabase
                     .from("projects")
                     .select("id")
                     .eq("slug", projectSlug)
-                    .single() as any
+                    .maybeSingle() as any
 
                 if (!project) throw new Error("Project not found")
                 setProjectId(project.id)
@@ -76,6 +75,12 @@ export function AiSignalCards({
                     .order("created_at", { ascending: false }) as any
 
                 if (signalError) throw signalError
+
+                if (!signalData || signalData.length === 0) {
+                    setSignals(KANES_MOCK_SIGNALS)
+                    setIsLoading(false)
+                    return
+                }
 
                 const mapped = signalData.map((s: any) => ({
                     id: s.id,
@@ -98,18 +103,24 @@ export function AiSignalCards({
         }
 
         fetchSignals()
-    }, [projectSlug, initialSignals])
+    }, [projectSlug, initialSignals, supabase])
 
     const handleResolve = async (signalId: string) => {
         if (!projectId) return
         setResolvingId(signalId)
 
         try {
-            const supabase = createBrowserClient()
+            const { data: { session }, error: authError } = await supabase.auth.getSession()
+            if (authError || !session) throw new Error("Authentication required")
+
             const { error: invokeError } = await supabase.functions.invoke("resolve-signal", {
                 body: {
                     signal_id: signalId,
                     project_id: projectId
+                },
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                    apikey: supabaseAnonKey
                 }
             })
 
@@ -125,6 +136,7 @@ export function AiSignalCards({
             setResolvingId(null)
         }
     }
+
 
     if (isLoading) {
         return (

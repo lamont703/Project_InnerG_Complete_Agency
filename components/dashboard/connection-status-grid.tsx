@@ -74,9 +74,12 @@ export function ConnectionStatusGrid({
                     .from("projects")
                     .select("id")
                     .eq("slug", projectSlug)
-                    .single() as any
+                    .maybeSingle() as any
 
-                if (!project) throw new Error("Project not found")
+                if (!project) {
+                    setIsLoading(false)
+                    return
+                }
 
                 // 2. Fetch all system connections
                 const { data: connections, error: connError } = await supabase
@@ -150,8 +153,8 @@ export function ConnectionStatusGrid({
                             <item.icon className="h-6 w-6" />
                         </div>
                         <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-colors ${item.status === "Active"
-                                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
-                                : "bg-destructive/10 border-destructive/20 text-destructive"
+                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                            : "bg-destructive/10 border-destructive/20 text-destructive"
                             }`}>
                             {item.status === "Active" ? (
                                 <CheckCircle2 className="h-3.5 w-3.5" />

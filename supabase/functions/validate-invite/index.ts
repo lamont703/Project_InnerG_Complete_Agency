@@ -8,11 +8,13 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { corsHeaders } from "../_shared/cors.ts"
+import { getCorsHeaders } from "../_shared/cors.ts"
 
 serve(async (req: Request) => {
+    const cors = getCorsHeaders(req.headers.get("origin"))
+
     if (req.method === "OPTIONS") {
-        return new Response(null, { headers: corsHeaders })
+        return new Response("ok", { status: 200, headers: cors })
     }
 
     try {
@@ -21,7 +23,7 @@ serve(async (req: Request) => {
         if (!token) {
             return new Response(
                 JSON.stringify({ data: null, error: { code: "VALIDATION_ERROR", message: "token is required." } }),
-                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
             )
         }
 
@@ -40,7 +42,7 @@ serve(async (req: Request) => {
         if (fetchError || !invite) {
             return new Response(
                 JSON.stringify({ data: null, error: { code: "NOT_FOUND", message: "Invalid invite link." } }),
-                { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 404, headers: { ...cors, "Content-Type": "application/json" } }
             )
         }
 
@@ -48,7 +50,7 @@ serve(async (req: Request) => {
         if (new Date(invite.expires_at) < new Date()) {
             return new Response(
                 JSON.stringify({ data: null, error: { code: "EXPIRED", message: "Invite link has expired." } }),
-                { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 410, headers: { ...cors, "Content-Type": "application/json" } }
             )
         }
 
@@ -56,7 +58,7 @@ serve(async (req: Request) => {
         if (invite.used_at || !invite.is_active) {
             return new Response(
                 JSON.stringify({ data: null, error: { code: "USED", message: "Invite link has already been used." } }),
-                { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 410, headers: { ...cors, "Content-Type": "application/json" } }
             )
         }
 
@@ -68,13 +70,13 @@ serve(async (req: Request) => {
                 },
                 error: null
             }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
         )
     } catch (err) {
         console.error("[validate-invite] Error:", err)
         return new Response(
             JSON.stringify({ data: null, error: { code: "SERVER_ERROR", message: String(err) } }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
         )
     }
 })

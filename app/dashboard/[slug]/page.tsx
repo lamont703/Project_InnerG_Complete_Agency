@@ -59,7 +59,7 @@ function DashboardContent() {
                     .from("projects")
                     .select("name")
                     .eq("slug", slug)
-                    .single() as any
+                    .maybeSingle() as any
 
                 if (project) {
                     setProjectName(project.name)
@@ -134,7 +134,7 @@ function DashboardContent() {
                     )}
 
                     <div className={`grid grid-cols-1 ${!isPlentyOfHearts ? "lg:grid-cols-2" : ""} gap-8 mb-12`}>
-                        <div className="rounded-2xl border border-white/5 overflow-hidden flex flex-col h-full min-h-0">
+                        <div className="rounded-2xl border border-white/5 overflow-hidden flex flex-col min-h-0">
                             <ChatInterface projectSlug={slug} />
                         </div>
 

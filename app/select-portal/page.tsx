@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import type { PortalCard } from "@/types"
+import { cn } from "@/lib/utils"
 
 // Map project types to icons
 const ICON_MAP: Record<string, any> = {
@@ -49,6 +50,8 @@ export default function SelectPortalPage() {
 
                 // 1. Fetch User Data for Header
                 const { data: { user } } = await supabase.auth.getUser()
+                let currentUserRole = ""
+
                 if (user) {
                     const { data: profile } = await supabase
                         .from("users")
@@ -57,6 +60,7 @@ export default function SelectPortalPage() {
                         .single() as any
 
                     if (profile) {
+                        currentUserRole = profile.role
                         setUserData({
                             name: profile.full_name || "User",
                             role: profile.role.replace("_", " ").toUpperCase()
@@ -65,7 +69,7 @@ export default function SelectPortalPage() {
                 }
 
                 // 2. Fetch Projects (Joined with Clients)
-                const { data: projectData, error: projectError } = await supabase
+                let query = supabase
                     .from("projects")
                     .select(`
                         id,
@@ -78,7 +82,13 @@ export default function SelectPortalPage() {
                             name
                         )
                     `)
-                    .eq("status", "active") as any
+
+                // Super admins and developers see all projects, others see non-archived ones
+                if (currentUserRole !== "super_admin" && currentUserRole !== "developer") {
+                    query = query.neq("status", "archived")
+                }
+
+                const { data: projectData, error: projectError } = await query as any
 
                 if (projectError) throw projectError
 
@@ -248,7 +258,13 @@ export default function SelectPortalPage() {
                                                 <h2 className="text-xl md:text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
                                                     {project.name}
                                                 </h2>
-                                                <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-widest border border-emerald-500/20">
+                                                <span className={cn(
+                                                    "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border",
+                                                    project.status === "Active" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                                                        project.status === "Building" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                                                            project.status === "Paused" ? "bg-rose-500/10 text-rose-500 border-rose-500/20" :
+                                                                "bg-slate-500/10 text-slate-500 border-slate-500/20"
+                                                )}>
                                                     {project.status}
                                                 </span>
                                             </div>

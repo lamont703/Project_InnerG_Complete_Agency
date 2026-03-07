@@ -22,6 +22,7 @@ import Link from "next/link"
 import { createBrowserClient } from "@/lib/supabase/browser"
 
 export default function InviteGenerationPage() {
+    const supabase = createBrowserClient()
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [generatedLink, setGeneratedLink] = useState<string | null>(null)
     const [clients, setClients] = useState<{ id: string, name: string }[]>([])
@@ -47,7 +48,6 @@ export default function InviteGenerationPage() {
     useEffect(() => {
         const fetchClients = async () => {
             try {
-                const supabase = createBrowserClient()
                 const { data, error } = await supabase
                     .from("clients")
                     .select("id, name")
@@ -70,15 +70,24 @@ export default function InviteGenerationPage() {
         setGeneratedLink(null)
 
         try {
-            const supabase = createBrowserClient()
-            const { data, error } = await supabase.functions.invoke("generate-invite", {
-                body: values
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) {
+                toast.error("Session expired. Please log in again.")
+                return
+            }
+
+            const { data, error } = await supabase.functions.invoke("generate-invite-link", {
+                body: {
+                    invited_email: values.email,
+                    intended_role: values.intended_role,
+                    client_id: values.client_id
+                }
             })
 
             if (error) throw error
 
-            if (data?.invite_url) {
-                setGeneratedLink(data.invite_url)
+            if (data?.data?.invite_url) {
+                setGeneratedLink(data.data.invite_url)
                 toast.success("Invite link generated successfully!")
                 reset()
             }
@@ -153,8 +162,8 @@ export default function InviteGenerationPage() {
                                     <label
                                         key={role.value}
                                         className={`relative flex flex-col p-4 rounded-2xl border cursor-pointer transition-all ${selectedRole === role.value
-                                                ? "bg-primary/10 border-primary shadow-lg shadow-primary/5"
-                                                : "bg-white/5 border-white/10 hover:border-white/20"
+                                            ? "bg-primary/10 border-primary shadow-lg shadow-primary/5"
+                                            : "bg-white/5 border-white/10 hover:border-white/20"
                                             }`}
                                     >
                                         <input

@@ -2,7 +2,7 @@ import { createBrowserClient as createSupabaseBrowserClient } from "@supabase/ss
 import type { Database } from "@/types/database"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export function createBrowserClient() {
     return createSupabaseBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
