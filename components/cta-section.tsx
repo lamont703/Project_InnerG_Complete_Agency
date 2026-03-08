@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowRight, Mail, Building2, User, Loader2 } from "lucide-react"
+import { ArrowRight, Mail, Building2, User, Loader2, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -26,6 +26,7 @@ export function CtaSection() {
     defaultValues: {
       full_name: "",
       email: "",
+      phone: "",
       company_name: "",
       challenge: "",
     },
@@ -154,6 +155,20 @@ export function CtaSection() {
                     />
                   </div>
                   {errors.email && <p className="text-[10px] text-destructive ml-1">{errors.email.message}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="tel"
+                      {...register("phone")}
+                      placeholder="Phone Number"
+                      className={`bg-input/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary ${errors.phone ? "border-destructive focus:border-destructive" : ""}`}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {errors.phone && <p className="text-[10px] text-destructive ml-1">{errors.phone.message}</p>}
                 </div>
 
                 <div className="space-y-1">

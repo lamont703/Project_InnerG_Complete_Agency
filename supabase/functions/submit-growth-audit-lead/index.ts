@@ -16,6 +16,7 @@ const GHL_API_V2_URL = "https://services.leadconnectorhq.com/contacts/"
 const leadSchema = z.object({
     full_name: z.string().min(2, "Name is too short"),
     email: z.string().email("Invalid email address"),
+    phone: z.string().min(10, "Phone number must be at least 10 digits"),
     company_name: z.string().min(1, "Company name is required"),
     challenge: z.string().optional(),
 })
@@ -43,7 +44,7 @@ serve(async (req: Request) => {
             )
         }
 
-        const { full_name, email, company_name, challenge } = result.data
+        const { full_name, email, phone, company_name, challenge } = result.data
 
         const supabase = createClient(
             Deno.env.get("SUPABASE_URL")!,
@@ -56,6 +57,7 @@ serve(async (req: Request) => {
             .insert({
                 full_name,
                 email,
+                phone,
                 company_name,
                 challenge,
                 status: "new",
@@ -93,6 +95,7 @@ serve(async (req: Request) => {
                         firstName,
                         lastName,
                         email,
+                        phone,
                         companyName: company_name,
                         locationId,
                         tags: ["website_lead", "growth_audit_requested"]
