@@ -26,27 +26,35 @@ import type { AgencyKnowledge } from "@/types"
 
 // Available tags for the knowledge CMS
 const AVAILABLE_TAGS = [
+    "mission",
+    "philosophy",
     "services",
+    "ai-strategy",
+    "blockchain",
     "methodology",
     "sops",
+    "retail",
+    "finance",
+    "healthcare",
     "best-practices",
-    "strategy-templates",
-    "client-onboarding",
-    "pricing",
     "case-studies",
 ] as const
 
 type KnowledgeTag = typeof AVAILABLE_TAGS[number]
 
 const TAG_COLORS: Record<string, string> = {
+    "mission": "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    "philosophy": "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20",
     "services": "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    "ai-strategy": "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+    "blockchain": "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     "methodology": "bg-violet-500/10 text-violet-400 border-violet-500/20",
     "sops": "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    "best-practices": "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    "strategy-templates": "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-    "client-onboarding": "bg-pink-500/10 text-pink-400 border-pink-500/20",
-    "pricing": "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    "case-studies": "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    "retail": "bg-rose-500/10 text-rose-400 border-rose-500/20",
+    "finance": "bg-emerald-600/10 text-emerald-500 border-emerald-600/20",
+    "healthcare": "bg-sky-500/10 text-sky-400 border-sky-500/20",
+    "best-practices": "bg-teal-500/10 text-teal-400 border-teal-500/20",
+    "case-studies": "bg-orange-500/10 text-orange-400 border-orange-500/20",
 }
 
 // ─────────────────────────────────────────────
@@ -83,6 +91,7 @@ function KnowledgeEditor({ entry, onSave, onCancel, isSaving }: KnowledgeEditorP
     const [body, setBody] = useState(entry?.body || "")
     const [tags, setTags] = useState<string[]>(entry?.tags || [])
     const [isPublished, setIsPublished] = useState(entry?.is_published ?? true)
+    const [customTagInput, setCustomTagInput] = useState("")
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -96,6 +105,17 @@ function KnowledgeEditor({ entry, onSave, onCancel, isSaving }: KnowledgeEditorP
                 ? prev.filter(t => t !== tag)
                 : [...prev, tag]
         )
+    }
+
+    const addCustomTag = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && customTagInput.trim()) {
+            e.preventDefault()
+            const tag = customTagInput.trim().toLowerCase()
+            if (!tags.includes(tag)) {
+                setTags(prev => [...prev, tag])
+            }
+            setCustomTagInput("")
+        }
     }
 
     return (
@@ -125,25 +145,55 @@ function KnowledgeEditor({ entry, onSave, onCancel, isSaving }: KnowledgeEditorP
             </div>
 
             {/* Tags */}
-            <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                    Tags <span className="text-muted-foreground/50 normal-case">(click to toggle)</span>
-                </label>
-                <div className="flex flex-wrap gap-2">
-                    {AVAILABLE_TAGS.map((tag) => (
-                        <button
-                            key={tag}
-                            type="button"
-                            onClick={() => toggleTag(tag)}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition-all ${tags.includes(tag)
-                                ? TAG_COLORS[tag]
-                                : "bg-white/[0.02] text-muted-foreground/50 border-white/5 hover:border-white/10"
-                                }`}
-                        >
-                            {tags.includes(tag) && <Check className="h-3 w-3" />}
-                            {tag}
-                        </button>
-                    ))}
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                        Core Agency Tags <span className="text-muted-foreground/50 normal-case">(click to toggle)</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                        {AVAILABLE_TAGS.map((tag) => (
+                            <button
+                                key={tag}
+                                type="button"
+                                onClick={() => toggleTag(tag)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition-all ${tags.includes(tag)
+                                    ? TAG_COLORS[tag]
+                                    : "bg-white/[0.02] text-muted-foreground/50 border-white/5 hover:border-white/10"
+                                    }`}
+                            >
+                                {tags.includes(tag) && <Check className="h-3 w-3" />}
+                                {tag}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                        Custom Tags & Applied Tags
+                    </label>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                        {tags.filter(t => !AVAILABLE_TAGS.includes(t as any)).length === 0 && (
+                            <p className="text-[10px] text-muted-foreground opacity-50 italic">No custom tags added yet.</p>
+                        )}
+                        {tags.filter(t => !AVAILABLE_TAGS.includes(t as any)).map(tag => (
+                            <TagBadge
+                                key={tag}
+                                tag={tag}
+                                onRemove={() => toggleTag(tag)}
+                            />
+                        ))}
+                    </div>
+                    <div className="relative max-w-xs">
+                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                            value={customTagInput}
+                            onChange={(e) => setCustomTagInput(e.target.value)}
+                            onKeyDown={addCustomTag}
+                            placeholder="Add custom tag (Press Enter)..."
+                            className="bg-background/30 border-white/5 pl-9 h-9 text-xs"
+                        />
+                    </div>
                 </div>
             </div>
 
