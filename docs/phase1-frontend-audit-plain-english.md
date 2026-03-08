@@ -323,3 +323,15 @@ The table below is a factual, honest accounting of what is not yet fully working
 | **Recharts**          | A charting library for React (installed, not yet activated)           | Will power real data visualizations            |
 | **GoHighLevel (GHL)** | A CRM and marketing automation platform (outer system, not installed)  | Campaign tracking, lead management            |
 | **Instagram / TikTok APIs** | Social media APIs (referenced in UI, not yet connected)         | Pulling real social data into the dashboard   |
+
+---
+
+## 📌 Phase 5 Addendum (2026-03-07)
+
+> **What changed:** A comprehensive AI Agent Architecture was finalized (documented in `docs/phase5-ai-agent-architecture-plain-english.md`). Here's what it means for the frontend:
+
+- **New page: Agency Dashboard** — Lamont gets his own dedicated dashboard at a new web address, separate from client dashboards. This is where the Agency Agent (the cross-project AI) lives.
+- **New page: Knowledge CMS** — A simple content editor where Lamont can teach the Agency Agent about Inner G's services, methodology, and SOPs.
+- **Enhanced chat** — The Growth Assistant will now be able to create AI Signal cards during conversation, remember past sessions, and respect per-project data source settings.
+- **Token budget display** — Users will see a message if their monthly AI usage limit is reached.
+- **Many original issues fixed** — Real authentication, live data, password reset, and portal creation are now working. See `docs/Remaining_MVP_Tasks.md` for the current task list.

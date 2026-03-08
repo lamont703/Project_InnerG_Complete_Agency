@@ -573,3 +573,22 @@ UX Features:
 | T-16 | **Mock Data**         | `app/dashboard/page.tsx`, `app/select-portal/page.tsx` | Kane's Bookstore and Plenty of Hearts are **mock/demo clients only** — all metrics, funnel data, signal cards, and activity entries are placeholder values showcasing the platform. No real client data exists yet. | 🟡 Medium (documentation context) |
 | T-16 | **Scroll Restoration** | `app/layout.tsx:57`                          | `history.scrollRestoration = 'manual'` is set globally — may cause UX issues on browser back navigation to non-dashboard pages | 🟢 Low |
 | T-17 | **SEO**               | `app/login/page.tsx`, `app/select-portal/page.tsx`, `app/dashboard/page.tsx` | No per-page `<title>` or `<meta description>` tags — only the root `layout.tsx` metadata is set | 🟢 Low |
+
+---
+
+## 📌 Phase 5 Addendum (2026-03-07)
+
+> **Reference:** `docs/phase5-ai-agent-architecture-technical.md`
+
+The following Phase 1 areas are extended by the Phase 5 AI Agent Architecture:
+
+| Phase 1 Area | Phase 5 Impact |
+|-------------|----------------|
+| **Route Map (Section 3)** | New route: `/dashboard/innergcomplete` — dedicated Agency Dashboard page (NOT the `[slug]` dynamic route). New route: `/admin/knowledge` — Agency Knowledge CMS. |
+| **Component Inventory (Section 4c)** | New components required: `AgencyDashboard`, `KnowledgeCMS`, `AgentConfigSettings`, `TokenUsageDashboard`, `SessionHistoryBrowser`. Enhanced `ChatInterface` with signal creation confirmation and session summary display. |
+| **Data Models (Section 5)** | New TypeScript interfaces needed for: `AgencyKnowledge`, `ProjectAgentConfig`, `TokenUsageMonthly`, `SessionSummary`, `ConnectorType`. |
+| **State Management (Section 6)** | Chat interface gains: signal creation state, session summary browsing state, token budget display state. |
+| **Auth & Authorization (Section 7)** | Agency Dashboard and Knowledge CMS require Super Admin role check. Token budget enforcement needed in chat flow. |
+| **Dashboard Implementation (Section 10)** | Agency Dashboard is a new, distinct page — different layout from client dashboards, with cross-project analytics and Agency Agent chat. |
+| **ChatInterface (Section 10)** | Enhanced to: detect and display signal creation confirmations, show session history references, display token budget warnings, respect `project_agent_config` data source toggles. |
+| **Known Gaps (Section 13)** | Many T-items have been resolved (T-01 through T-06 fixed). Phase 5 introduces new work items tracked in `docs/Remaining_MVP_Tasks.md`. |

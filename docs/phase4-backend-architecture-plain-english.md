@@ -433,3 +433,32 @@ These are the specific decisions made during architecture that ensure the platfo
 | **Service isolation** | GHL going down doesn't break the dashboard (we have local copies). The Gemini API being slow doesn't break the activity feed. Each service failure is isolated and handled independently. |
 | **Upgrading the AI model is one config change** | The model name (`gemini-1.5-flash`) is a configurable variable. Switching models or adding a new one means changing config — no database migrations, no UI rebuilds. |
 | **Connection pooling** | As more dashboard users log in simultaneously, the database connection pool ensures they don't overwhelm the server. Built-in via Supabase's Supavisor layer. |
+
+---
+
+## 📌 Phase 5 Addendum (2026-03-07)
+
+> **What changed:** The AI Agent Architecture (Phase 5) significantly extends the backend. In plain English:
+
+### New Specialists (Edge Functions)
+
+- **Agency Chat Coordinator** — A second, smarter AI chat handler exclusively for Lamont's Agency Dashboard. This one can search across ALL client projects and reference Inner G's knowledge base. Only Lamont can use it.
+- **Nightly Diary Writer** — A background robot that runs at 4:00 AM UTC every night and writes a detailed summary of each day's AI conversations. These summaries help the AI remember past discussions.
+
+### Enhanced Specialists
+
+- **AI Chat Coordinator (existing)** — Now also: checks your monthly AI budget before answering, can create AI Signal cards during conversation, searches past conversation summaries for context, and respects per-project settings for which data sources it can access.
+- **Embedding Worker (existing)** — Now handles more data sources (8+ tables) and uses a smarter approach — critical data gets individual embeddings while high-volume data gets daily summaries.
+
+### New Filing Cabinet Drawers (Database Tables)
+
+5 new tables added (see Phase 2 Addendum for details): Agency Knowledge CMS, Project Agent Config, Token Usage Tracking, Session Summaries, and Connector Templates.
+
+### What's the Same
+
+- The three-layer security system (Gate 1-2-3) is unchanged and applies to all new functions
+- The standardized error format applies to all new functions
+- The file storage buckets are unchanged
+- The escalation principle ("no single failure exposes data") still applies
+
+See `docs/phase5-ai-agent-architecture-plain-english.md` for the full guide.

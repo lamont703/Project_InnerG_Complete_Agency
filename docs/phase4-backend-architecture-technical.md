@@ -976,3 +976,46 @@ This is a **proposed, greenfield** backend. No migrations have been written yet.
 | `013` | `create_views.sql` | `active_projects`, `active_clients` soft-delete views | ⏳ Not yet run |
 | `014` | `seed_system_connections.sql` | Seed `database` + `ai_engine` rows per project; GHL/social only if integration configured | ⏳ Not yet run |
 | `015` | `seed_demo_clients.sql` | Seed Kane's Bookstore + Plenty of Hearts as mock demo clients with placeholder data | ⏳ Not yet run |
+
+---
+
+## 📌 Phase 5 Addendum (2026-03-07)
+
+> **Reference:** `docs/phase5-ai-agent-architecture-technical.md`
+
+The Phase 5 AI Agent Architecture significantly extends this backend architecture:
+
+### Section 3 (Database Schema) Extensions
+
+- **5 new tables:** `agency_knowledge`, `project_agent_config`, `token_usage_monthly`, `session_summaries`, `connector_types`
+- **1 modified table:** `client_db_connections` (+ connector_type_id, client_id, is_shared; project_id now nullable)
+- **1 new migration:** `018_create_agent_architecture.sql`
+
+### Section 5 (RLS Policies) Extensions
+
+- `agency_knowledge` — Super Admin only (SELECT, INSERT, UPDATE, DELETE)
+- `project_agent_config` — Super Admin can UPDATE; project members can SELECT
+- `token_usage_monthly` — Super Admin can SELECT all; users can SELECT own rows
+- `session_summaries` — Users can SELECT own rows (user_id = auth.uid()); Edge Functions with service role for INSERT
+
+### Section 7 (Edge Functions) Extensions
+
+- **Enhanced:** `send-chat-message` — Signal creation, budget check, session summary search, data source filtering
+- **New:** `send-agency-chat-message` — Agency Agent with cross-project search
+- **New:** `generate-session-summaries` — Nightly batch summary generator
+- **Updated:** `process-embedding-jobs` — Hybrid granularity (per-row + daily summaries), 8+ source tables
+
+### Section 11 (Triggers) Extensions
+
+- 5 new embedding triggers on: `activity_log`, `ghl_contacts`, `funnel_events`, `agency_knowledge`, `session_summaries`
+- 1 new auto-config trigger on: `projects` (auto-creates `project_agent_config`)
+
+### Cron Schedule Update
+
+| Job | Schedule | Function | Notes |
+|-----|----------|----------|-------|
+| `generate-session-summaries` | Daily 04:00 UTC | Edge Function | After `generate-daily-snapshot` (03:00 UTC) |
+
+### Architecture Diagram Update
+
+The two-agent system adds a second chat pathway for the Agency Dashboard. See Phase 5 Section 2 for the complete system architecture diagram.

@@ -1,0 +1,525 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import {
+    Loader2,
+    ArrowLeft,
+    Database,
+    Plug,
+    Plus,
+    RefreshCcw,
+    CheckCircle2,
+    XCircle,
+    Clock,
+    ChevronDown,
+    ChevronUp,
+    Eye,
+    EyeOff,
+    Save,
+    Zap,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
+
+// ─────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────
+
+interface ConnectorType {
+    id: string
+    name: string
+    provider: string
+    description: string
+    config_schema: any
+    is_active: boolean
+}
+
+interface Connection {
+    id: string
+    label: string
+    project_id: string | null
+    client_id: string | null
+    connector_type_id: string | null
+    db_type: string
+    is_shared: boolean
+    is_active: boolean
+    sync_status: string
+    sync_schedule: string
+    last_synced_at: string | null
+    sync_config: any
+    connector_types: ConnectorType | null
+    projects: { name: string; slug: string } | null
+}
+
+interface Project {
+    id: string
+    name: string
+    slug: string
+}
+
+// ─────────────────────────────────────────────
+// PROVIDER ICONS + COLORS
+// ─────────────────────────────────────────────
+
+const providerMeta: Record<string, { color: string; bgColor: string; label: string }> = {
+    supabase: { color: "text-emerald-400", bgColor: "bg-emerald-500/10 border-emerald-500/20", label: "Supabase" },
+    ghl: { color: "text-orange-400", bgColor: "bg-orange-500/10 border-orange-500/20", label: "GoHighLevel" },
+    postgres: { color: "text-blue-400", bgColor: "bg-blue-500/10 border-blue-500/20", label: "PostgreSQL" },
+    mysql: { color: "text-cyan-400", bgColor: "bg-cyan-500/10 border-cyan-500/20", label: "MySQL" },
+}
+
+const statusMeta: Record<string, { icon: any; color: string; label: string }> = {
+    success: { icon: CheckCircle2, color: "text-emerald-400", label: "Connected" },
+    error: { icon: XCircle, color: "text-red-400", label: "Error" },
+    syncing: { icon: RefreshCcw, color: "text-amber-400", label: "Syncing..." },
+    pending: { icon: Clock, color: "text-muted-foreground", label: "Pending" },
+}
+
+function formatDate(dateStr: string | null): string {
+    if (!dateStr) return "Never"
+    const d = new Date(dateStr)
+    const now = new Date()
+    const diffMs = now.getTime() - d.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    if (diffMins < 1) return "Just now"
+    if (diffMins < 60) return `${diffMins}m ago`
+    const diffHrs = Math.floor(diffMins / 60)
+    if (diffHrs < 24) return `${diffHrs}h ago`
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+}
+
+// ─────────────────────────────────────────────
+// MAIN PAGE
+// ─────────────────────────────────────────────
+
+export default function ConnectorAdminPage() {
+    const router = useRouter()
+    const [isLoading, setIsLoading] = useState(true)
+    const [connectorTypes, setConnectorTypes] = useState<ConnectorType[]>([])
+    const [connections, setConnections] = useState<Connection[]>([])
+    const [projects, setProjects] = useState<Project[]>([])
+    const [showNewForm, setShowNewForm] = useState(false)
+    const [expandedId, setExpandedId] = useState<string | null>(null)
+    const [syncingId, setSyncingId] = useState<string | null>(null)
+
+    // New connection form state
+    const [newLabel, setNewLabel] = useState("")
+    const [newType, setNewType] = useState("")
+    const [newProject, setNewProject] = useState("")
+    const [newConfig, setNewConfig] = useState<Record<string, any>>({})
+    const [isCreating, setIsCreating] = useState(false)
+    const [showSensitive, setShowSensitive] = useState<Record<string, boolean>>({})
+
+    useEffect(() => {
+        loadData()
+    }, [])
+
+    const loadData = async () => {
+        try {
+            const supabase = createBrowserClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) { router.push("/login"); return }
+
+            const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single() as any
+            if (!profile || profile.role !== "super_admin") { router.push("/select-portal"); return }
+
+            // Fetch all connector types, connections, and projects in parallel
+            const [typesRes, connsRes, projectsRes] = await Promise.all([
+                supabase.from("connector_types").select("*").eq("is_active", true).order("name") as any,
+                supabase.from("client_db_connections").select(`
+                    *,
+                    connector_types(id, name, provider, config_schema),
+                    projects(name, slug)
+                `).order("created_at", { ascending: false }) as any,
+                supabase.from("projects").select("id, name, slug").order("name") as any,
+            ])
+
+            setConnectorTypes(typesRes.data || [])
+            setConnections(connsRes.data || [])
+            setProjects(projectsRes.data || [])
+        } catch (err) {
+            console.error("[Connectors] Load error:", err)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const handleSync = async (connectionId: string) => {
+        setSyncingId(connectionId)
+        try {
+            const supabase = createBrowserClient()
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) return
+
+            const { data, error } = await supabase.functions.invoke("connector-sync", {
+                body: { connection_id: connectionId },
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                    apikey: supabaseAnonKey,
+                },
+            })
+
+            if (error) {
+                console.error("[Connectors] Sync error:", error)
+            } else {
+                console.log("[Connectors] Sync result:", data)
+            }
+
+            // Reload to get updated status
+            await loadData()
+        } catch (err) {
+            console.error("[Connectors] Sync failed:", err)
+        } finally {
+            setSyncingId(null)
+        }
+    }
+
+    const handleCreateConnection = async () => {
+        if (!newLabel || !newType || !newProject) return
+        setIsCreating(true)
+
+        try {
+            const supabase = createBrowserClient()
+            const selectedType = connectorTypes.find(t => t.id === newType)
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { error } = await (supabase as any).from("client_db_connections").insert({
+                label: newLabel,
+                project_id: newProject,
+                connector_type_id: newType,
+                db_type: selectedType?.provider || "supabase",
+                connection_url_encrypted: "configured-via-sync-config",
+                sync_config: newConfig,
+                is_active: true,
+                sync_status: "pending",
+            })
+
+            if (error) {
+                console.error("[Connectors] Create error:", error)
+            } else {
+                setShowNewForm(false)
+                setNewLabel("")
+                setNewType("")
+                setNewProject("")
+                setNewConfig({})
+                await loadData()
+            }
+        } catch (err) {
+            console.error("[Connectors] Create failed:", err)
+        } finally {
+            setIsCreating(false)
+        }
+    }
+
+    const selectedTypeSchema = connectorTypes.find(t => t.id === newType)?.config_schema
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Loading connectors...</p>
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="min-h-screen bg-[#020617] relative">
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/15 rounded-full blur-[120px] opacity-20 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-emerald-500/10 rounded-full blur-[100px] opacity-15 pointer-events-none" />
+
+            <div className="relative z-10 max-w-5xl mx-auto px-4 py-8 md:py-12">
+                <Link
+                    href="/dashboard/innergcomplete"
+                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
+                >
+                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+                    Back to Agency Dashboard
+                </Link>
+
+                {/* Header */}
+                <div className="flex items-start justify-between mb-10">
+                    <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500/30 to-primary/30 flex items-center justify-center border border-emerald-500/20">
+                            <Plug className="h-6 w-6 text-emerald-400" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl md:text-3xl font-bold text-foreground">External Connectors</h1>
+                            <p className="text-sm text-muted-foreground">
+                                {connections.length} connection{connections.length !== 1 ? "s" : ""} configured
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        onClick={() => setShowNewForm(!showNewForm)}
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl"
+                    >
+                        <Plus className="h-4 w-4" />
+                        New Connection
+                    </Button>
+                </div>
+
+                {/* ─── New Connection Form ─── */}
+                {showNewForm && (
+                    <div className="mb-8 p-6 rounded-2xl glass-panel border border-primary/20 animate-in slide-in-from-top-4">
+                        <h3 className="text-sm font-bold text-foreground mb-5 flex items-center gap-2">
+                            <Zap className="h-4 w-4 text-primary" />
+                            New Connection
+                        </h3>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                            <div>
+                                <label className="text-xs text-muted-foreground mb-1.5 block">Connection Label</label>
+                                <Input
+                                    value={newLabel}
+                                    onChange={(e) => setNewLabel(e.target.value)}
+                                    placeholder="e.g. Kane's Supabase DB"
+                                    className="bg-background/50 border-white/10 rounded-xl"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-muted-foreground mb-1.5 block">Connector Type</label>
+                                <select
+                                    value={newType}
+                                    onChange={(e) => { setNewType(e.target.value); setNewConfig({}) }}
+                                    className="w-full h-10 px-3 rounded-xl bg-background/50 border border-white/10 text-sm text-foreground"
+                                >
+                                    <option value="">Select type...</option>
+                                    {connectorTypes.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs text-muted-foreground mb-1.5 block">Assign to Project</label>
+                                <select
+                                    value={newProject}
+                                    onChange={(e) => setNewProject(e.target.value)}
+                                    className="w-full h-10 px-3 rounded-xl bg-background/50 border border-white/10 text-sm text-foreground"
+                                >
+                                    <option value="">Select project...</option>
+                                    {projects.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Dynamic Config Fields */}
+                        {selectedTypeSchema?.properties && (
+                            <div className="space-y-3 mb-5 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Configuration</p>
+                                {Object.entries(selectedTypeSchema.properties).map(([key, schema]: [string, any]) => {
+                                    if (schema.type === "boolean") {
+                                        return (
+                                            <label key={key} className="flex items-center gap-3 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={newConfig[key] ?? schema.default ?? false}
+                                                    onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.checked }))}
+                                                    className="rounded border-white/20"
+                                                />
+                                                <span className="text-xs text-foreground">{schema.label || key}</span>
+                                            </label>
+                                        )
+                                    }
+                                    const isSensitive = schema.sensitive === true
+                                    const isVisible = showSensitive[key] ?? false
+                                    return (
+                                        <div key={key}>
+                                            <label className="text-xs text-muted-foreground mb-1 block">{schema.label || key}</label>
+                                            <div className="relative">
+                                                <Input
+                                                    type={isSensitive && !isVisible ? "password" : "text"}
+                                                    value={newConfig[key] || ""}
+                                                    onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.value }))}
+                                                    placeholder={schema.placeholder || ""}
+                                                    className="bg-background/50 border-white/10 rounded-xl pr-10"
+                                                />
+                                                {isSensitive && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowSensitive(prev => ({ ...prev, [key]: !isVisible }))}
+                                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                                    >
+                                                        {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+
+                        <div className="flex gap-3">
+                            <Button
+                                onClick={handleCreateConnection}
+                                disabled={!newLabel || !newType || !newProject || isCreating}
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl"
+                            >
+                                {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                Create Connection
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={() => setShowNewForm(false)}
+                                className="rounded-xl"
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* ─── Connector Library ─── */}
+                <div className="mb-8">
+                    <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 px-1">Available Connectors</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {connectorTypes.map((ct) => {
+                            const meta = providerMeta[ct.provider] || providerMeta.postgres
+                            const connectionCount = connections.filter(c =>
+                                c.connector_type_id === ct.id || c.db_type === ct.provider
+                            ).length
+                            return (
+                                <div
+                                    key={ct.id}
+                                    className={`p-4 rounded-xl border ${meta.bgColor} hover:scale-[1.02] transition-transform cursor-default`}
+                                >
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Database className={`h-4 w-4 ${meta.color}`} />
+                                        <span className={`text-xs font-bold ${meta.color}`}>{meta.label}</span>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground leading-relaxed">{ct.description}</p>
+                                    <p className="text-[10px] text-muted-foreground/60 mt-2">
+                                        {connectionCount > 0 ? `${connectionCount} active` : "No connections"}
+                                    </p>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+
+                {/* ─── Active Connections ─── */}
+                <div>
+                    <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 px-1">Active Connections</h2>
+
+                    {connections.length === 0 ? (
+                        <div className="text-center py-12 glass-panel rounded-2xl border border-white/5">
+                            <Plug className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                            <p className="text-sm text-muted-foreground">No connections configured</p>
+                            <p className="text-xs text-muted-foreground/60 mt-1">Click &ldquo;New Connection&rdquo; to connect a data source.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {connections.map((conn) => {
+                                const provider = conn.connector_types?.provider || conn.db_type
+                                const meta = providerMeta[provider] || providerMeta.postgres
+                                const status = statusMeta[conn.sync_status] || statusMeta.pending
+                                const StatusIcon = status.icon
+                                const isExpanded = expandedId === conn.id
+                                const isSyncing = syncingId === conn.id
+
+                                return (
+                                    <div
+                                        key={conn.id}
+                                        className={`rounded-2xl border transition-all duration-300 ${isExpanded
+                                            ? "glass-panel border-white/10"
+                                            : "glass-panel border-white/5 hover:border-white/10"
+                                            }`}
+                                    >
+                                        <div className="p-5 flex items-center justify-between">
+                                            <div className="flex items-center gap-4 min-w-0">
+                                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center border shrink-0 ${meta.bgColor}`}>
+                                                    <Database className={`h-5 w-5 ${meta.color}`} />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h3 className="text-sm font-bold text-foreground truncate">{conn.label}</h3>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className={`text-[10px] font-bold ${meta.color}`}>{meta.label}</span>
+                                                        <span className="text-muted-foreground/30">•</span>
+                                                        <span className="text-[10px] text-muted-foreground">
+                                                            {conn.projects?.name || "Unassigned"}
+                                                        </span>
+                                                        <span className="text-muted-foreground/30">•</span>
+                                                        <StatusIcon className={`h-3 w-3 ${status.color} ${isSyncing ? "animate-spin" : ""}`} />
+                                                        <span className={`text-[10px] ${status.color}`}>{isSyncing ? "Syncing..." : status.label}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <span className="text-[10px] text-muted-foreground hidden sm:block">
+                                                    Last sync: {formatDate(conn.last_synced_at)}
+                                                </span>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    disabled={isSyncing}
+                                                    onClick={() => handleSync(conn.id)}
+                                                    className="h-8 px-3 rounded-lg gap-1.5 text-xs"
+                                                >
+                                                    <RefreshCcw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+                                                    Sync
+                                                </Button>
+                                                <button
+                                                    onClick={() => setExpandedId(isExpanded ? null : conn.id)}
+                                                    className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground"
+                                                >
+                                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {isExpanded && (
+                                            <div className="px-5 pb-5 border-t border-white/5 pt-4">
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                                                    <div>
+                                                        <p className="text-muted-foreground/60 mb-1">Schedule</p>
+                                                        <p className="text-foreground font-medium capitalize">{conn.sync_schedule || "manual"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-muted-foreground/60 mb-1">Shared</p>
+                                                        <p className="text-foreground font-medium">{conn.is_shared ? "Yes" : "No"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-muted-foreground/60 mb-1">Active</p>
+                                                        <p className={`font-medium ${conn.is_active ? "text-emerald-400" : "text-red-400"}`}>
+                                                            {conn.is_active ? "Yes" : "Disabled"}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-muted-foreground/60 mb-1">Last Synced</p>
+                                                        <p className="text-foreground font-medium">{formatDate(conn.last_synced_at)}</p>
+                                                    </div>
+                                                </div>
+
+                                                {conn.sync_config && Object.keys(conn.sync_config).length > 0 && (
+                                                    <div className="mt-4 p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                                                        <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-2">Config</p>
+                                                        {Object.entries(conn.sync_config).map(([k, v]) => (
+                                                            <div key={k} className="flex items-center gap-2 text-[10px]">
+                                                                <span className="text-muted-foreground">{k}:</span>
+                                                                <span className="text-foreground font-mono">
+                                                                    {typeof v === "string" && v.length > 20 ? `${v.slice(0, 8)}...${v.slice(-4)}` : String(v)}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}

@@ -10,7 +10,10 @@ import {
     X,
     Settings,
     ShieldCheck,
-    Loader2
+    Loader2,
+    Building2,
+    BookOpen,
+    Bot
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -84,6 +87,24 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
 
     // Admin-only items
     const adminItems = [
+        {
+            href: "/dashboard/innergcomplete",
+            icon: Building2,
+            label: "Agency Command",
+            roleNeeded: "super_admin",
+        },
+        {
+            href: "/admin/knowledge",
+            icon: BookOpen,
+            label: "Knowledge CMS",
+            roleNeeded: "super_admin",
+        },
+        {
+            href: `/admin/projects/${projectSlug}/agent-config`,
+            icon: Bot,
+            label: "Agent Config",
+            roleNeeded: "super_admin",
+        },
         {
             href: "/admin/settings",
             icon: Settings,

@@ -992,3 +992,50 @@ This is a **greenfield** proposal. No migrations exist yet. The recommended migr
 | `015`        | `create_views`                    | `active_projects`, `active_clients` soft-delete views                                                 |
 | `016`        | `seed_system_connections`         | Seed `system_connections`: `database` + `ai_engine` per project; GHL/social only if integration configured |
 | `017`        | `seed_demo_clients`               | Seed Kane's Bookstore and Plenty of Hearts as mock demo clients with placeholder data                  |
+
+---
+
+## 📌 Phase 5 Addendum (2026-03-07)
+
+> **Reference:** `docs/phase5-ai-agent-architecture-technical.md` — Section 4 (New Database Objects)
+
+The Phase 5 AI Agent Architecture adds the following to the data model:
+
+### New Tables
+
+| Table | Domain | Purpose |
+|-------|--------|---------|
+| `agency_knowledge` | AI Knowledge | CMS for agency-level knowledge entries (services, SOPs, methodology). Tagged, embeddable. |
+| `project_agent_config` | AI Configuration | Per-project data source toggles (8 boolean flags). Auto-created on project insert. |
+| `token_usage_monthly` | AI Cost Control | Monthly token budget tracking per project + per user. Supports budget enforcement. |
+| `session_summaries` | AI Memory | Nightly-generated narrative summaries of chat sessions. Embedded for hybrid memory. |
+| `connector_types` | Integrations | Reusable connector template library (Supabase, GHL, Postgres connectors). |
+
+### Modified Tables
+
+| Table | Change |
+|-------|--------|
+| `client_db_connections` | + `connector_type_id` FK, + `client_id` FK, + `is_shared` flag, `project_id` now nullable |
+
+### New RPC Functions
+
+| Function | Purpose |
+|----------|---------|
+| `match_documents_agency()` | Agency-wide vector search — no project_id filter. Used by Agency Agent. |
+
+### New Triggers
+
+| Trigger Table | Action |
+|---------------|--------|
+| `activity_log` | AFTER INSERT → queue embedding job |
+| `ghl_contacts` | AFTER INSERT → queue embedding job |
+| `funnel_events` | AFTER INSERT → queue embedding job |
+| `agency_knowledge` | AFTER INSERT OR UPDATE → queue embedding job |
+| `session_summaries` | AFTER INSERT → queue embedding job |
+| `projects` | AFTER INSERT → auto-create `project_agent_config` row |
+
+### New Migration Required
+
+| Migration | Name | Contents |
+|-----------|------|----------|
+| `018` | `create_agent_architecture` | All Phase 5 tables, triggers, RPC functions, and `client_db_connections` updates |

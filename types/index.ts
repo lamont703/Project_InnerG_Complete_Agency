@@ -53,6 +53,10 @@ export type ChatRole = "user" | "assistant"
 
 export type ExternalDbType = "supabase" | "vercel_postgres" | "postgres" | "mysql" | "other"
 
+export type ConnectorProvider = "supabase" | "ghl" | "postgres" | "mysql"
+
+export type ProjectTier = "starter" | "growth" | "enterprise"
+
 export type EmbedJobStatus = "pending" | "processing" | "done" | "failed"
 
 export type IntegrationSource = "ghl" | "instagram" | "tiktok" | "youtube" | "twitter_x" | "client_db"
@@ -286,6 +290,10 @@ export interface ClientDbConnection {
     is_active: boolean
     created_at: string
     updated_at: string
+    // Phase 5 additions
+    connector_type_id: string | null
+    client_id: string | null
+    is_shared: boolean
 }
 
 // ─────────────────────────────────────────────
@@ -337,6 +345,83 @@ export interface EmbeddingJob {
     error_message: string | null
     created_at: string
     processed_at: string | null
+}
+
+// ─────────────────────────────────────────────
+// AGENCY KNOWLEDGE DOMAIN (Phase 5)
+// ─────────────────────────────────────────────
+
+export interface AgencyKnowledge {
+    id: string
+    title: string
+    body: string
+    tags: string[]
+    is_published: boolean
+    created_by: string
+    created_at: string
+    updated_at: string
+}
+
+// ─────────────────────────────────────────────
+// AI AGENT CONFIG DOMAIN (Phase 5)
+// ─────────────────────────────────────────────
+
+export interface ProjectAgentConfig {
+    id: string
+    project_id: string
+    campaign_metrics_enabled: boolean
+    ai_signals_enabled: boolean
+    activity_log_enabled: boolean
+    ghl_contacts_enabled: boolean
+    funnel_data_enabled: boolean
+    integration_sync_enabled: boolean
+    system_connections_enabled: boolean
+    chat_history_enabled: boolean
+    created_at: string
+    updated_at: string
+}
+
+// ─────────────────────────────────────────────
+// TOKEN USAGE DOMAIN (Phase 5)
+// ─────────────────────────────────────────────
+
+export interface TokenUsageMonthly {
+    id: string
+    project_id: string
+    user_id: string
+    month: string // YYYY-MM-DD (first day of month)
+    input_tokens: number
+    output_tokens: number
+    total_tokens: number // generated column
+    updated_at: string
+}
+
+// ─────────────────────────────────────────────
+// SESSION SUMMARY DOMAIN (Phase 5)
+// ─────────────────────────────────────────────
+
+export interface SessionSummary {
+    id: string
+    session_id: string
+    project_id: string
+    user_id: string
+    summary: string
+    message_count: number
+    generated_at: string
+}
+
+// ─────────────────────────────────────────────
+// CONNECTOR TYPES DOMAIN (Phase 5)
+// ─────────────────────────────────────────────
+
+export interface ConnectorType {
+    id: string
+    name: string
+    provider: ConnectorProvider
+    description: string | null
+    config_schema: Record<string, unknown> | null
+    is_active: boolean
+    created_at: string
 }
 
 // ─────────────────────────────────────────────
@@ -464,4 +549,35 @@ export interface GenerateInviteLinkPayload {
 export interface GenerateInviteLinkResponse {
     invite_url: string
     expires_at: string
+}
+
+// Phase 5: Agency Chat
+export interface SendAgencyChatPayload {
+    message: string
+    session_id?: string
+    model?: string
+}
+
+export interface SendAgencyChatResponse {
+    session_id: string
+    message_id: string
+    reply: string
+    model_used: string
+    input_tokens: number
+    output_tokens: number
+}
+
+// Phase 5: Agency Knowledge CMS
+export interface CreateAgencyKnowledgePayload {
+    title: string
+    body: string
+    tags: string[]
+    is_published?: boolean
+}
+
+export interface UpdateAgencyKnowledgePayload {
+    title?: string
+    body?: string
+    tags?: string[]
+    is_published?: boolean
 }

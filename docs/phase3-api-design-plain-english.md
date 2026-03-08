@@ -387,3 +387,16 @@ Example: You submit the contact form. GHL is temporarily down. What happens?
 - 🔁 The GHL sync is automatically reattempted next time the system runs
 
 This means a GHL outage doesn't mean losing leads — it just means a brief delay in them appearing in the CRM. The user experience is never broken.
+
+---
+
+## 📌 Phase 5 Addendum (2026-03-07)
+
+> **What changed:** The AI Agent Architecture (Phase 5) adds new API capabilities. In plain English:
+
+- **The chat "waiter" gets smarter:** The existing chat function now does more work — it checks your monthly AI budget before processing, searches your past conversation summaries for context, and can automatically create AI Signal cards when it spots something important.
+- **New Agency Agent chat:** A second, separate chat "waiter" dedicated to Lamont's cross-project Agency Dashboard. This one can search data across ALL projects and reference Inner G's knowledge base.
+- **New nightly diary writer:** A background robot runs every night and writes a summary of each day's AI conversations. These summaries are stored so the AI can remember what was discussed in past sessions.
+- **Knowledge CMS uses direct orders:** The Agency Knowledge (Lamont's private wiki for teaching the AI) doesn't need a special "waiter" — it uses the simple, fast direct-to-database approach for creating, reading, updating, and deleting entries.
+
+See `docs/phase5-ai-agent-architecture-plain-english.md` for the full guide.

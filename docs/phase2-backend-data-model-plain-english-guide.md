@@ -362,3 +362,18 @@ These are architectural decisions made now that will prevent the platform from b
 | **GHL and social data mirrored locally** | We sync external data into our database instead of calling GHL/Instagram every time the dashboard loads. This makes the dashboard fast AND means it still shows data even if GHL has an outage. |
 | **RAG (AI filing cabinet) from day one** | The AI's smart search over project data is built into the architecture immediately. As your client data grows to thousands of rows, the AI doesn't get worse or more expensive — it stays sharp because it only reads what's relevant. |
 | **KPI Aggregation for external client databases** | When connecting a large client database, we only store their daily totals — not their raw data. A client with 10 million rows costs us almost nothing to store. Their dashboard is still fast. |
+
+---
+
+## 📌 Phase 5 Addendum (2026-03-07)
+
+> **What changed:** The AI Agent Architecture (Phase 5) adds 5 new "drawers" (tables) to the filing cabinet and modifies 1 existing one. In plain English:
+
+- **Agency Knowledge** — A drawer where Lamont stores Inner G's own knowledge (services, methodology, SOPs) so the Agency AI Agent can reference it when answering questions.
+- **Project Agent Config** — A settings card for each project that controls which data sources the AI assistant can access. Think of it as toggles: "Can the AI see campaign metrics? ✅ Can it see contacts? ✅"
+- **Token Usage Monthly** — A billing ledger tracking how much AI usage each project and user consumes per month. Used to enforce spending limits.
+- **Session Summaries** — A diary of past AI conversations. Every night, a background robot reads the day's chats and writes a summary so the AI can remember what was discussed.
+- **Connector Types** — A catalog of reusable integration templates (like a "Supabase Connector" or "GHL Connector") that can be plugged into any client project.
+- **Client DB Connections (updated)** — Now supports "shared" connections that multiple projects under the same client can use.
+
+See `docs/phase5-ai-agent-architecture-plain-english.md` for the full guide.

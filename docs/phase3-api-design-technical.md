@@ -1270,3 +1270,38 @@ supabase functions logs send-chat-message --tail
 | `docs/phase3-api-design-technical.md`           | This document — authoritative API spec                  |
 | `lib/supabase.ts`                               | Client configuration — update for SSR when middleware is added |
 | `.env.example`                                  | Add any new required env vars here immediately          |
+
+---
+
+## 📌 Phase 5 Addendum (2026-03-07)
+
+> **Reference:** `docs/phase5-ai-agent-architecture-technical.md` — Section 5 (New Edge Functions)
+
+The Phase 5 AI Agent Architecture extends the API layer as follows:
+
+### Enhanced Existing Function
+
+| Function | Enhancement |
+|----------|-------------|
+| `send-chat-message` | + Token budget check (hard stop at limit) · + Structured output parsing for signal creation · + Session summary search (hybrid memory Layer 2) · + `project_agent_config` data source filtering |
+
+### New Edge Functions
+
+| Function | Trigger | Auth | Purpose |
+|----------|---------|------|---------|
+| `send-agency-chat-message` | HTTP POST | Super Admin only | Agency Agent chat — cross-project vector search via `match_documents_agency()`, agency knowledge retrieval |
+| `generate-session-summaries` | Manual (MVP) → pg_cron (future) | Service Role | Nightly batch — generates narrative summaries of day's sessions, embeds them for RAG memory |
+
+### New RPC Function
+
+| Function | Purpose |
+|----------|---------|
+| `match_documents_agency(query_embedding, match_threshold, match_count)` | Agency-wide vector similarity search without project_id filter |
+
+### New CMS Endpoints (Agency Knowledge)
+
+Standard Supabase SDK CRUD (no Edge Function needed):
+- `supabase.from('agency_knowledge').select()` — List/filter knowledge entries
+- `supabase.from('agency_knowledge').insert()` — Create entry (auto-queues embedding)
+- `supabase.from('agency_knowledge').update()` — Update entry (auto-re-queues embedding)
+- `supabase.from('agency_knowledge').delete()` — Remove entry
