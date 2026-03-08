@@ -42,7 +42,8 @@ export function SessionHistoryBrowser({ projectSlug }: SessionHistoryBrowserProp
                 if (!project) return
 
                 // Fetch session summaries (RLS ensures only current user's summaries)
-                const { data, error } = await supabase
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const { data, error } = await (supabase as any)
                     .from("session_summaries")
                     .select(`
                         id,
@@ -142,8 +143,8 @@ export function SessionHistoryBrowser({ projectSlug }: SessionHistoryBrowserProp
                         <div
                             key={s.id}
                             className={`rounded-xl border transition-all duration-300 ${isExpanded
-                                    ? "bg-white/[0.03] border-white/10"
-                                    : "bg-white/[0.01] border-white/5 hover:border-white/10"
+                                ? "bg-white/[0.03] border-white/10"
+                                : "bg-white/[0.01] border-white/5 hover:border-white/10"
                                 }`}
                         >
                             <button

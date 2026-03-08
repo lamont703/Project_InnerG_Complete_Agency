@@ -126,16 +126,16 @@ export default function ConnectorAdminPage() {
             const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single() as any
             if (!profile || profile.role !== "super_admin") { router.push("/select-portal"); return }
 
-            // Fetch all connector types, connections, and projects in parallel
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const [typesRes, connsRes, projectsRes] = await Promise.all([
-                supabase.from("connector_types").select("*").eq("is_active", true).order("name") as any,
-                supabase.from("client_db_connections").select(`
+                (supabase as any).from("connector_types").select("*").eq("is_active", true).order("name"),
+                (supabase as any).from("client_db_connections").select(`
                     *,
                     connector_types(id, name, provider, config_schema),
                     projects(name, slug)
-                `).order("created_at", { ascending: false }) as any,
+                `).order("created_at", { ascending: false }),
                 supabase.from("projects").select("id, name, slug").order("name") as any,
-            ])
+            ]) as any[]
 
             setConnectorTypes(typesRes.data || [])
             setConnections(connsRes.data || [])

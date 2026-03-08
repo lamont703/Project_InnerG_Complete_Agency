@@ -230,7 +230,8 @@ export default function KnowledgeCMSPage() {
     }, [])
 
     const fetchEntries = async () => {
-        const { data } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data } = await (supabase as any)
             .from("agency_knowledge")
             .select("*")
             .order("updated_at", { ascending: false }) as any
@@ -244,7 +245,8 @@ export default function KnowledgeCMSPage() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
-            const { error } = await supabase
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { error } = await (supabase as any)
                 .from("agency_knowledge")
                 .insert({
                     title: entryData.title,
@@ -252,7 +254,7 @@ export default function KnowledgeCMSPage() {
                     tags: entryData.tags || [],
                     is_published: entryData.is_published ?? true,
                     created_by: user.id
-                }) as any
+                })
 
             if (error) throw error
 
@@ -269,7 +271,8 @@ export default function KnowledgeCMSPage() {
         if (!editingEntry) return
         setIsSaving(true)
         try {
-            const { error } = await supabase
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { error } = await (supabase as any)
                 .from("agency_knowledge")
                 .update({
                     title: entryData.title,
@@ -278,7 +281,7 @@ export default function KnowledgeCMSPage() {
                     is_published: entryData.is_published,
                     updated_at: new Date().toISOString()
                 })
-                .eq("id", editingEntry.id) as any
+                .eq("id", editingEntry.id)
 
             if (error) throw error
 
@@ -293,10 +296,11 @@ export default function KnowledgeCMSPage() {
 
     const handleDelete = async (id: string) => {
         try {
-            const { error } = await supabase
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { error } = await (supabase as any)
                 .from("agency_knowledge")
                 .delete()
-                .eq("id", id) as any
+                .eq("id", id)
 
             if (error) throw error
 
