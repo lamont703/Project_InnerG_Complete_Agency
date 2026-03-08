@@ -130,14 +130,23 @@ serve(async (req: Request) => {
     }
 
     const authHeader = req.headers.get("Authorization")
-    console.log("[send-agency-chat-message] Request received. Auth header present:", !!authHeader)
+    const allHeaders = Object.fromEntries(req.headers.entries())
+    console.log("[send-agency-chat-message] Headers received:", JSON.stringify({
+        ...allHeaders,
+        authorization: authHeader ? "Bearer (hidden)" : "missing"
+    }))
 
-    if (!authHeader) {
-        return new Response(
-            JSON.stringify({ data: null, error: { code: "UNAUTHORIZED", message: "Missing Authorization header." } }),
-            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        )
+    // ── Auth: Support both header-based and cookie-based auth ──
+    const supabaseAuthHeaders: Record<string, string> = {}
+    if (authHeader) {
+        supabaseAuthHeaders["Authorization"] = authHeader
     }
+    // Forward all request headers (important for SSR cookie-based auth)
+    req.headers.forEach((value, key) => {
+        if (key.toLowerCase() !== "authorization") {
+            supabaseAuthHeaders[key] = value
+        }
+    })
 
     try {
         const body = await req.json()
@@ -154,11 +163,17 @@ serve(async (req: Request) => {
         const supabase = createClient(
             Deno.env.get("SUPABASE_URL")!,
             Deno.env.get("SUPABASE_ANON_KEY")!,
-            { global: { headers: { Authorization: authHeader } } }
+            { global: { headers: supabaseAuthHeaders } }
         )
 
         const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) throw new Error("Unauthorized")
+        if (authError || !user) {
+            console.error("[send-agency-chat-message] Auth failed:", authError?.message)
+            return new Response(
+                JSON.stringify({ data: null, error: { code: "UNAUTHORIZED", message: "Authentication failed. Please log in again." } }),
+                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            )
+        }
 
         const adminSupabase = createClient(
             Deno.env.get("SUPABASE_URL")!,

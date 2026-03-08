@@ -271,10 +271,6 @@ function AgencyChatInterface() {
                     message: currentInput,
                     model: "gemini-2.5-flash-lite",
                     session_id: sessionId,
-                },
-                headers: {
-                    Authorization: `Bearer ${session.access_token}`,
-                    apikey: supabaseAnonKey
                 }
             })
 
