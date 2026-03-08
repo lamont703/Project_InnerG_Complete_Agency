@@ -40,7 +40,7 @@ export function Navbar() {
           </span>
         </Link>
 
-        <div className="hidden items-center gap-1 md:flex">
+        <div className="hidden items-center gap-1 lg:flex">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -52,7 +52,7 @@ export function Navbar() {
           ))}
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 lg:flex">
           <Button
             variant="ghost"
             size="sm"
@@ -63,7 +63,7 @@ export function Navbar() {
           </Button>
           <Button
             size="sm"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1 lg:gap-2"
             asChild
           >
             <Link href="/login">
@@ -75,7 +75,7 @@ export function Navbar() {
 
         <button
           onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-secondary/50 md:hidden"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-secondary/50 lg:hidden"
           aria-label={isMobileOpen ? "Close menu" : "Open menu"}
         >
           {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -83,7 +83,7 @@ export function Navbar() {
       </nav>
 
       {isMobileOpen && (
-        <div className="glass-panel-strong mx-4 mt-3 rounded-2xl p-4 md:hidden">
+        <div className="glass-panel-strong mx-4 mt-3 rounded-2xl p-4 lg:hidden">
           <div className="flex flex-col gap-1">
             {navLinks.map((link) => (
               <Link

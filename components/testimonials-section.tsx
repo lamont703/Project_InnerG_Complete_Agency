@@ -48,7 +48,7 @@ export function TestimonialsSection() {
           What Our Partners Say
         </h2>
 
-        <div className="mt-16 glass-panel rounded-2xl p-10 lg:p-14">
+        <div className="mt-16 glass-panel rounded-2xl p-6 sm:p-10 lg:p-14">
           <Quote className="mx-auto h-10 w-10 text-primary/30" aria-hidden="true" />
           <blockquote className="mt-6 text-lg leading-relaxed text-foreground sm:text-xl">
             &ldquo;{t.quote}&rdquo;
@@ -76,9 +76,8 @@ export function TestimonialsSection() {
                 <button
                   key={i}
                   onClick={() => setActive(i)}
-                  className={`h-2 rounded-full transition-all ${
-                    i === active ? "w-8 bg-primary" : "w-2 bg-muted-foreground/30"
-                  }`}
+                  className={`h-2 rounded-full transition-all ${i === active ? "w-8 bg-primary" : "w-2 bg-muted-foreground/30"
+                    }`}
                   aria-label={`Go to testimonial ${i + 1}`}
                 />
               ))}

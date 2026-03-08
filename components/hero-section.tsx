@@ -40,7 +40,7 @@ export function HeroSection() {
         </div>
 
         {/* Headline */}
-        <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
+        <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
           <span className="text-balance block text-foreground">
             Architect Your Next
           </span>

@@ -71,7 +71,7 @@ export function SolutionsSection() {
           </p>
         </div>
 
-        <div className="mt-20 grid gap-8 lg:grid-cols-3 items-stretch">
+        <div className="mt-20 grid gap-8 md:grid-cols-2 lg:grid-cols-3 items-stretch">
           {maturityStages.map((stage) => (
             <div
               key={stage.stage}

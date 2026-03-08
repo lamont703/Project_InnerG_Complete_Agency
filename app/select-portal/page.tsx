@@ -162,7 +162,7 @@ export default function SelectPortalPage() {
                                 Inner G Complete
                             </span>
                         </Link>
-                        <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight">Enterprise Client Portals</h1>
+                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">Enterprise Client Portals</h1>
                         <p className="mt-4 text-muted-foreground text-base md:text-lg max-w-2xl leading-relaxed">
                             Select an active growth architecture to access specific project analytics, campaign performance, and AI-driven insights.
                         </p>
@@ -191,7 +191,7 @@ export default function SelectPortalPage() {
                             className="bg-white/5 border-white/10 pl-12 h-14 text-base md:text-lg rounded-2xl focus:border-primary transition-all w-full"
                         />
                     </div>
-                    <div className="flex flex-wrap md:flex-nowrap gap-4">
+                    <div className="flex flex-wrap lg:flex-nowrap gap-4">
                         <Button
                             id="btn-filter-status"
                             variant="outline"

@@ -41,7 +41,7 @@ export function SocialAnalyticsPanel({
                 <Instagram className="h-5 w-5 text-pink-500" />
                 Social Impact (Instagram API)
             </h3>
-            <div className="grid grid-cols-2 gap-4 flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
                 {/* Top Post Engagement */}
                 <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5">
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-2">
