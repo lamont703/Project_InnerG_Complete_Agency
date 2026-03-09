@@ -25,8 +25,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { corsHeaders } from "../_shared/cors.ts"
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
-const DEFAULT_CHAT_MODEL = "gemini-1.5-flash"
-const DEFAULT_EMBED_MODEL = "text-embedding-004"
+const DEFAULT_CHAT_MODEL = "gemini-2.5-pro"
+const DEFAULT_EMBED_MODEL = "gemini-embedding-001"
+const EMBEDDING_DIMENSIONALITY = 768
 const RAG_TOP_K = 8
 
 const AGENCY_PROJECT_SENTINEL = "00000000-0000-0000-0000-000000000001"
@@ -58,10 +59,18 @@ If you identify a significant cross-project insight or actionable finding, inclu
     "signal_type": "inventory|conversion|social|system|ai_insight|ai_action",
     "severity": "info|warning|critical",
     "action_label": "Optional CTA button text (e.g. 'Compare Projects')",
-    "action_url": null,
+    "action_url": "Optional routing hint (e.g. 'draft_followup')",
     "target_project_id": "uuid-of-relevant-project or null for first active project"
   }
 }
+
+**FOLLOW-UP DRAFTING RULE (MANDATORY):**
+1. If you identify a deal that needs a follow-up, first ASK THE USER for permission (e.g., "Nic's deal is getting cold. Should I draft a follow-up email for you?").
+2. DO NOT draft the message in your first response unless they say "Yes" or ask for it explicitly.
+3. If they say "Yes" or ask for it:
+   - Provide the draft in your "message" field.
+   - Set "action_label" in the signal to "📋 Copy Draft".
+   - Set "action_url" in the signal to "copy_draft_click".
 
 CREATE a signal when:
 - Cross-project trends show divergence or alignment worth noting
@@ -87,6 +96,7 @@ interface ParsedResponse {
         action_label?: string | null
         action_url?: string | null
         target_project_id?: string | null
+        is_agency_only?: boolean
     } | null
 }
 
@@ -114,6 +124,7 @@ function parseGeminiResponse(rawText: string): ParsedResponse {
                     action_label: parsed.signal.action_label || null,
                     action_url: parsed.signal.action_url || null,
                     target_project_id: parsed.signal.target_project_id || null,
+                    is_agency_only: true // Agency Agent always creates agency-only signals
                 }
             }
             return { message: parsed.message, signal }
@@ -130,23 +141,39 @@ serve(async (req: Request) => {
     }
 
     const authHeader = req.headers.get("Authorization")
-    const allHeaders = Object.fromEntries(req.headers.entries())
-    console.log("[send-agency-chat-message] Headers received:", JSON.stringify({
-        ...allHeaders,
-        authorization: authHeader ? "Bearer (hidden)" : "missing"
-    }))
+    // ── Check Env Vars ────────────────────────────────────────
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY")
 
-    // ── Auth: Support both header-based and cookie-based auth ──
-    const supabaseAuthHeaders: Record<string, string> = {}
-    if (authHeader) {
-        supabaseAuthHeaders["Authorization"] = authHeader
+    const missing = []
+    if (!supabaseUrl) missing.push("SUPABASE_URL")
+    if (!anonKey) missing.push("SUPABASE_ANON_KEY")
+    if (!serviceRoleKey) missing.push("SUPABASE_SERVICE_ROLE_KEY")
+    if (!geminiApiKey) missing.push("GEMINI_API_KEY")
+
+    // --- DEBUG: LOG ALL ENV VARS PRESENCE ---
+    const debugEnv = {
+        has_supabase_url: !!supabaseUrl,
+        has_anon_key: !!anonKey,
+        has_service_role_key: !!serviceRoleKey,
+        has_gemini_key: !!geminiApiKey,
+        gemini_key_prefix: geminiApiKey ? geminiApiKey.substring(0, 5) : "none"
     }
-    // Forward all request headers (important for SSR cookie-based auth)
-    req.headers.forEach((value, key) => {
-        if (key.toLowerCase() !== "authorization") {
-            supabaseAuthHeaders[key] = value
-        }
-    })
+    console.log("[DEBUG-EARLY] Env Status:", JSON.stringify(debugEnv))
+
+    if (missing.length > 0) {
+        console.error("[send-agency-chat-message] Missing required environment variables:", missing.join(", "))
+        return new Response(
+            JSON.stringify({
+                data: null,
+                debug: debugEnv,
+                error: { code: "SERVER_ERROR", message: `Infrastructure misconfigured. Missing: ${missing.join(", ")}` }
+            }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        )
+    }
 
     try {
         const body = await req.json()
@@ -158,6 +185,17 @@ serve(async (req: Request) => {
                 { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             )
         }
+
+        // ── Auth: Support both header-based and cookie-based auth ──
+        const supabaseAuthHeaders: Record<string, string> = {}
+        if (authHeader) {
+            supabaseAuthHeaders["Authorization"] = authHeader
+        }
+        req.headers.forEach((value, key) => {
+            if (key.toLowerCase() !== "authorization") {
+                supabaseAuthHeaders[key] = value
+            }
+        })
 
         // ── Step 1: Authenticate + confirm Super Admin ────────────
         const supabase = createClient(
@@ -193,9 +231,7 @@ serve(async (req: Request) => {
             )
         }
 
-        const geminiApiKey = Deno.env.get("GEMINI_API_KEY")!
-
-        // ── Step 4: RAG — embed the user message ──────────────────
+        // ── Step 2: Embed message ─────────────────────────────────
         const embedRes = await fetch(
             `${GEMINI_API_BASE}/models/${DEFAULT_EMBED_MODEL}:embedContent?key=${geminiApiKey}`,
             {
@@ -204,9 +240,17 @@ serve(async (req: Request) => {
                 body: JSON.stringify({
                     model: `models/${DEFAULT_EMBED_MODEL}`,
                     content: { parts: [{ text: message }] },
+                    outputDimensionality: 768
                 }),
             }
         )
+
+        if (!embedRes.ok) {
+            const errBody = await embedRes.text()
+            console.error(`[send-agency-chat-message] Gemini Embed Error (${embedRes.status}):`, errBody)
+            throw new Error(`Gemini Embedding failed: ${embedRes.status}`)
+        }
+
         const embedData = await embedRes.json()
         const queryVector = embedData.embedding?.values ?? []
 
@@ -291,7 +335,6 @@ serve(async (req: Request) => {
         }
 
         // ── Step 8.5: Fetch Real-Time Sales Pipeline Intelligence ────────────────
-        // We pull the raw stats directly into the prompt so we don't rely only on RAG.
         let pipelineIntelligence = ""
         try {
             const { data: pipelines } = await adminSupabase
@@ -305,38 +348,14 @@ serve(async (req: Request) => {
                     const opps = p.ghl_opportunities || []
                     const openOpps = opps.filter((o: any) => o.status === "open")
                     const totalValue = openOpps.reduce((sum: number, o: any) => sum + (Number(o.monetary_value) || 0), 0)
-
                     pipelineIntelligence += `• Pipeline: "${p.name}"\n`
                     pipelineIntelligence += `  - Total Open Deals: ${openOpps.length}\n`
                     pipelineIntelligence += `  - Total Pipeline Value: $${totalValue.toLocaleString()}\n`
-                    pipelineIntelligence += `  - Top 10 Opportunities (with Client Names): ${openOpps.slice(0, 10).map((o: any) => `"${o.title}" for client ${o.ghl_contacts?.full_name || 'Unknown'} ($${(Number(o.monetary_value) || 0).toLocaleString()})`).join(", ") || "None"}\n`
+                    pipelineIntelligence += `  - Top 10 Opportunities: ${openOpps.slice(0, 10).map((o: any) => `"${o.title}" for client ${o.ghl_contacts?.full_name || 'Unknown'} ($${(Number(o.monetary_value) || 0).toLocaleString()})`).join(", ") || "None"}\n`
                 })
             }
         } catch (intelErr) {
             console.error("[send-agency-chat-message] Pipeline intel fetch failed:", intelErr)
-        }
-
-        // ── Step 8.6: Dynamic Contact Search ──────────────────────────────
-        // If the user mentions a name, we search the contacts table directly.
-        let contactIntelligence = ""
-        const potentialNames = message.split(" ").filter((word: string) => word.length > 3 && /^[A-Z]/.test(word))
-        if (potentialNames.length > 0) {
-            try {
-                const { data: contacts } = await adminSupabase
-                    .from("ghl_contacts")
-                    .select("full_name, email, phone")
-                    .or(potentialNames.map((n: string) => `full_name.ilike.%${n}%`).join(","))
-                    .limit(5)
-
-                if (contacts && contacts.length > 0) {
-                    contactIntelligence = "\n\nDirect Search Results (Contacts Found):\n"
-                    contacts.forEach((c: any) => {
-                        contactIntelligence += `• ${c.full_name}: Email: ${c.email || "N/A"}, Phone: ${c.phone || "N/A"}\n`
-                    })
-                }
-            } catch (searchErr) {
-                console.error("[send-agency-chat-message] Contact search failed:", searchErr)
-            }
         }
 
         // ── Step 9: Build system prompt ───────────────────────────
@@ -344,44 +363,24 @@ serve(async (req: Request) => {
             AGENCY_SIGNAL_INSTRUCTIONS,
             "",
             "MANDATORY COMMAND PROCESSING:",
-            "• If the user says 'create a signal', 'flag this', or 'remind me', you MUST populate the 'signal' object in your JSON response. DO NOT just say you'll do it—actually include the signal object.",
-            "• Use the Project IDs provided in the 'Active Client Projects' list below for the 'target_project_id'.",
+            "• If the user says 'create a signal', 'flag this', or 'remind me', you MUST populate the 'signal' object in your JSON response.",
+            "• Use the Project IDs provided below for 'target_project_id'.",
             "",
-            "You are the Inner G Complete Agency Agent — your name is Inner G, and you're here to help the agency owner (Lamont) run his empire.",
-            "You have super-powers: you can see data across ALL client projects instantly. You're like a professional wingman and master strategist.",
-            "",
-            "The 'Vibe' (Tone and Voice):",
-            "• Talk like a real person, not a robot. Be friendly, casual, and plain-spoken.",
-            "• Be encouraging. If something looks good, say 'Nice!'. If something's wrong, keep it real and say 'We gotta look at this'.",
-            "",
-            "Conversational Memory (CRITICAL - DO NOT DRIFT):",
-            "• Stay focused on the current person or project until the user switches topics.",
-            "• If the user asks for a specific action (like creating a signal), prioritize that action above all else. Don't drift back to a general summary of the pipeline unless they ask for it.",
-            "• ASSOCIATION RULE: Before suggesting a deal to follow up on, check if it's actually linked to the person you are talking about.",
-            "",
-            "Your Super-Powers (Capabilities):",
-            "• Check sales pipelines and CRM deals (especially the 'Client Software Development Pipeline' synced from GHL).",
-            "• Search for people: If someone asks for contact info, check the 'Direct Search Results' block.",
-            "• Create 'AI Signals': Use this for reminders, follow-ups, and alerts.",
+            "You are the Inner G Complete Agency Agent — Inner G. You are the digital wingman for Lamont.",
             "",
             projectListContext,
             pipelineIntelligence,
-            contactIntelligence,
             contextChunks.length > 0 ? "\nReal-Time Data (The 'Raw Facts'):\n" + contextChunks.join("\n---\n") : "",
             knowledgeContext,
             historyPrompt,
         ].filter(Boolean).join("\n")
 
         // ── Step 10: Call Gemini Chat API ──────────────────────────
-        console.log(`[send-agency-chat-message] Calling Gemini (${model}) with signal creation...`)
+        console.log(`[send-agency-chat-message] Calling Gemini (${model})...`)
 
         const geminiPayload = {
-            system_instruction: {
-                parts: [{ text: systemPrompt }]
-            },
-            contents: [
-                { role: "user", parts: [{ text: message }] },
-            ],
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: "user", parts: [{ text: message }] }],
             generationConfig: {
                 temperature: 0.1,
                 maxOutputTokens: 2048,
@@ -410,7 +409,7 @@ serve(async (req: Request) => {
             },
         }
 
-        let chatRes = await fetch(
+        const chatRes = await fetch(
             `${GEMINI_API_BASE}/models/${model}:generateContent?key=${geminiApiKey}`,
             {
                 method: "POST",
@@ -419,51 +418,40 @@ serve(async (req: Request) => {
             }
         )
 
-        let chatData = await chatRes.json()
-
-        if (chatRes.status === 404 && model !== "gemini-1.5-flash") {
-            const fallbackModel = "gemini-1.5-flash"
-            console.warn(`[send-agency-chat-message] Model ${model} failed (404). Falling back to ${fallbackModel}...`)
-            chatRes = await fetch(
-                `${GEMINI_API_BASE}/models/${fallbackModel}:generateContent?key=${geminiApiKey}`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(geminiPayload),
-                }
-            )
-            chatData = await chatRes.json()
-        }
-
         if (!chatRes.ok) {
-            console.error("[send-agency-chat-message] Gemini API Error:", chatData)
-            throw new Error(`Gemini API returned ${chatRes.status}: ${chatData.error?.message || "Unknown error"}`)
+            const errText = await chatRes.text()
+            console.error(`[send-agency-chat-message] Gemini API Error (${chatRes.status}):`, errText)
+            throw new Error(`Gemini API returned ${chatRes.status}: ${errText}`)
         }
 
+        const chatData = await chatRes.json()
         const rawReply = chatData.candidates?.[0]?.content?.parts?.[0]?.text
 
-        if (!rawReply && chatData.promptFeedback?.blockReason) {
-            return new Response(
-                JSON.stringify({
-                    data: { reply: "I'm sorry, I cannot answer that due to safety restrictions.", session_id: currentSessionId, signal_created: null },
-                    error: null,
-                }),
-                { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            )
+        console.log(`[send-agency-chat-message] Raw Gemini Reply:`, rawReply)
+
+        if (!rawReply) {
+            console.warn("[send-agency-chat-message] No reply in Gemini response:", JSON.stringify(chatData))
+            if (chatData.promptFeedback?.blockReason) {
+                return new Response(
+                    JSON.stringify({
+                        data: { reply: "I'm sorry, I cannot answer that due to safety restrictions.", session_id: currentSessionId, signal_created: null },
+                        error: null,
+                    }),
+                    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                )
+            }
+            throw new Error("No response from Gemini API.")
         }
 
-        // ── Step 11: Parse response for message + signal ──────────
-        console.log(`[send-agency-chat-message] Raw Gemini Reply:`, rawReply)
-        let parsed = parseGeminiResponse(rawReply ?? "")
-        let finalReply = parsed.message || rawReply || "I'm unable to answer right now. Please try again."
+        // ── Step 11: Parse response ───────────────────────────────
+        let parsed = parseGeminiResponse(rawReply)
+        let finalReply = parsed.message || rawReply
         let signalCreated: any = null
 
-        // ── Step 11.5: Fail-Safe Detection ─────────────────────────
         // Detect if the user explicitly asked for an action but Gemini failed to provide the object
         const userAskedForAction = /signal|flag|remind|follow up|reach out/i.test(message)
         if (userAskedForAction && !parsed.signal) {
             console.warn("[send-agency-chat-message] Intent detected but signal missing. Applying fail-safe...")
-            // Use the message itself to build a basic signal if the AI "forgot" the JSON object
             parsed.signal = {
                 title: "Follow-up Task Requested",
                 body: finalReply,
@@ -473,16 +461,24 @@ serve(async (req: Request) => {
                 action_url: null,
                 target_project_id: null
             }
-            finalReply += "\n\n_Note: I've created a general signal for this, but couldn't extract specific details from the AI. Please review._"
+            finalReply += "\n\n_Note: I've created an agency-only signal for this._"
         }
 
         // ── Step 12: If signal detected, create it ────────────────
         if (parsed.signal) {
-            console.log(`[send-agency-chat-message] Signal detected: [${parsed.signal.severity}] ${parsed.signal.title}`)
-
+            console.log(`[send-agency-chat-message] Signal detected! Title: "${parsed.signal.title}"`)
             try {
-                // Determine target project — fallback to first active project if none specified
                 let signalProjectId = parsed.signal.target_project_id || target_project_id
+
+                // UUID Validation & Lookup
+                if (signalProjectId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(signalProjectId)) {
+                    const matchedProject = allProjects?.find((p: any) =>
+                        p.name.toLowerCase().includes(signalProjectId!.toLowerCase()) ||
+                        p.slug.toLowerCase().includes(signalProjectId!.toLowerCase())
+                    )
+                    signalProjectId = matchedProject ? matchedProject.id : null
+                }
+
                 if (!signalProjectId && allProjects && allProjects.length > 0) {
                     signalProjectId = allProjects[0].id
                 }
@@ -498,59 +494,66 @@ serve(async (req: Request) => {
                             severity: parsed.signal.severity,
                             action_label: parsed.signal.action_label,
                             action_url: parsed.signal.action_url,
+                            is_agency_only: true
                         })
-                        .select("id, title, severity, signal_type, project_id")
+                        .select("id, title, severity, signal_type, project_id, is_agency_only")
                         .single()
 
                     if (signalError) {
-                        console.error("[send-agency-chat-message] Signal insert error:", signalError)
+                        console.error("[send-agency-chat-message] Signal insert error:", JSON.stringify(signalError))
                     } else if (newSignal) {
+                        console.log(`[send-agency-chat-message] ✅ Signal Created: ${newSignal.id}`)
                         signalCreated = newSignal
 
-                        // Log to activity_log
-                        await adminSupabase
-                            .from("activity_log")
-                            .insert({
-                                project_id: signalProjectId,
-                                action: `Agency Agent created ${parsed.signal.severity} signal: "${parsed.signal.title}"`,
-                                category: "system",
-                                triggered_by: user.id,
-                            })
+                        await adminSupabase.from("activity_log").insert({
+                            project_id: signalProjectId,
+                            action: `Agency Agent created signal: "${parsed.signal.title}"`,
+                            category: "system",
+                            triggered_by: user.id
+                        })
 
-                        // Find project name for confirmation message
                         const targetProject = allProjects?.find((p: any) => p.id === signalProjectId)
-                        const projectName = targetProject?.name || "target project"
+                        finalReply += `\n\n📊 **Signal Created:** I've flagged this on **${targetProject?.name || 'the project'}** (Agency-Only).`
 
-                        finalReply += `\n\n📊 **Signal Created:** I've flagged a ${parsed.signal.severity} ${parsed.signal.signal_type} signal on **${projectName}**: "${parsed.signal.title}". It will appear on that project's dashboard.`
+                        // 12b. Handle GHL Sync Trigger detection ──────────────────
+                        const syncTriggered = /triggering|syncing|updating/i.test(finalReply)
+                        if (syncTriggered) {
+                            try {
+                                await adminSupabase.rpc("trigger_ghl_sync", {
+                                    p_project_id: signalProjectId,
+                                    p_contact_name: message.split(" ").find((w: string) => w.length > 3 && /^[A-Z]/.test(w))
+                                })
+                            } catch (syncErr) {
+                                console.error("[send-agency-chat-message] Sync trigger failed:", syncErr)
+                            }
+                        }
                     }
-                } else {
-                    console.warn("[send-agency-chat-message] No target project for signal — skipping creation")
                 }
             } catch (signalErr) {
                 console.error("[send-agency-chat-message] Signal creation failed:", signalErr)
             }
         }
 
-        const inputTokens = chatData.usageMetadata?.promptTokenCount ?? 0
-        const outputTokens = chatData.usageMetadata?.candidatesTokenCount ?? 0
+        const usage = chatData.usageMetadata || {}
+        const tokens = { input: usage.promptTokenCount || 0, output: usage.candidatesTokenCount || 0 }
 
         // ── Step 13: Persist messages ─────────────────────────────
         await adminSupabase.from("chat_messages").insert([
-            { session_id: currentSessionId, role: "user", content: message, input_tokens: inputTokens },
-            { session_id: currentSessionId, role: "assistant", content: finalReply, output_tokens: outputTokens },
+            { session_id: currentSessionId, role: "user", content: message, input_tokens: tokens.input },
+            { session_id: currentSessionId, role: "assistant", content: finalReply, output_tokens: tokens.output },
         ])
 
-        // ── Step 14: Track token usage (agency-level) ─────────────
-        if (inputTokens > 0 || outputTokens > 0) {
+        // ── Step 14: Token Usage ──────────────────────────────────
+        if (tokens.input > 0) {
             try {
                 await adminSupabase.rpc("increment_token_usage", {
                     p_project_id: AGENCY_PROJECT_SENTINEL,
                     p_user_id: user.id,
-                    p_input_tokens: inputTokens,
-                    p_output_tokens: outputTokens,
+                    p_input_tokens: tokens.input,
+                    p_output_tokens: tokens.output,
                 })
-            } catch (tokenErr) {
-                console.error("[send-agency-chat-message] Token usage update failed:", tokenErr)
+            } catch (e) {
+                console.error("Usage tracker failed", e)
             }
         }
 
@@ -559,11 +562,6 @@ serve(async (req: Request) => {
                 data: {
                     session_id: currentSessionId,
                     reply: finalReply,
-                    model_used: model,
-                    input_tokens: inputTokens,
-                    output_tokens: outputTokens,
-                    context_chunks_used: contextChunks.length,
-                    knowledge_entries_used: knowledgeEntries?.length ?? 0,
                     signal_created: signalCreated,
                 },
                 error: null,
@@ -572,9 +570,12 @@ serve(async (req: Request) => {
         )
 
     } catch (err) {
-        console.error("[send-agency-chat-message] Error:", err)
+        console.error("[send-agency-chat-message] Server Error:", err)
         return new Response(
-            JSON.stringify({ data: null, error: { code: "SERVER_ERROR", message: String(err) } }),
+            JSON.stringify({
+                data: null,
+                error: { code: "SERVER_ERROR", message: String(err) }
+            }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         )
     }

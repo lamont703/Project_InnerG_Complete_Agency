@@ -26,7 +26,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { corsHeaders } from "../_shared/cors.ts"
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
-const EMBED_MODEL = "text-embedding-004"
+const EMBED_MODEL = "gemini-embedding-001"
 const BATCH_LIMIT = 1 // max jobs per invocation
 
 // ─────────────────────────────────────────────
@@ -166,6 +166,7 @@ async function embedText(text: string, geminiApiKey: string): Promise<number[] |
             body: JSON.stringify({
                 model: `models/${EMBED_MODEL}`,
                 content: { parts: [{ text }] },
+                outputDimensionality: 768
             }),
         }
     )

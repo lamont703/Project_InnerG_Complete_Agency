@@ -270,7 +270,7 @@ function AgencyChatInterface() {
             const { data, error } = await supabase.functions.invoke("send-agency-chat-message", {
                 body: {
                     message: currentInput,
-                    model: "gemini-2.5-flash-lite",
+                    model: "gemini-2.5-pro",
                     session_id: sessionId,
                 },
                 headers: {
@@ -295,12 +295,32 @@ function AgencyChatInterface() {
                     signalCreated: data.data.signal_created || null,
                 }])
             }
-        } catch (err) {
-            console.error("[AgencyChat] Error:", err)
+        } catch (err: any) {
+            console.error("[AgencyChat] Error Detailed:", err)
+
+            // Try to extract a more helpful error message from the response body
+            let helpMessage = "I apologize — the Agency Agent encountered an issue. Please ensure the `send-agency-chat-message` Edge Function is deployed."
+
+            if (err.context && typeof err.context.json === 'function') {
+                try {
+                    const errorData = await err.context.json()
+                    console.log("[AgencyChat] Remote Error Body:", errorData)
+                    if (errorData.error?.message) {
+                        helpMessage = `Agency Agent Error: ${errorData.error.message}`
+                    }
+                } catch (e) {
+                    // Fallback to text if JSON parse fails
+                    try {
+                        const errorText = await err.context.text()
+                        console.log("[AgencyChat] Remote Error Text:", errorText)
+                    } catch (e2) { }
+                }
+            }
+
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),
                 role: "assistant",
-                content: "I apologize — the Agency Agent encountered an issue. Please ensure the `send-agency-chat-message` Edge Function is deployed. You can deploy it with: `supabase functions deploy send-agency-chat-message`.",
+                content: helpMessage,
                 timestamp: new Date()
             }])
         } finally {
@@ -430,7 +450,9 @@ function AgencyDashboardContent() {
     const [unresolvedSignals, setUnresolvedSignals] = useState(0)
     const [recentActivity, setRecentActivity] = useState<any[]>([])
     const [allSignals, setAllSignals] = useState<any[]>([])
+    const [agencySignals, setAgencySignals] = useState<any[]>([])
     const [isSyncing, setIsSyncing] = useState(false)
+    const [newSignalId, setNewSignalId] = useState<string | null>(null)
 
     const fetchData = useCallback(async () => {
         try {
@@ -468,15 +490,19 @@ function AgencyDashboardContent() {
 
             setProjects(projectData || [])
 
-            // 3. Fetch all AI signals across projects
+            // 3. Fetch all AI signals across projects (Internal + Agency Only)
             const { data: signalData } = await supabase
                 .from("ai_signals")
-                .select("id, project_id, signal_type, title, body, severity, is_resolved, created_at, projects(name)")
+                .select("id, project_id, signal_type, title, body, severity, is_resolved, is_agency_only, created_at, projects(name)")
                 .order("created_at", { ascending: false })
-                .limit(20) as any
+                .limit(40) as any
 
             if (signalData) {
-                setAllSignals(signalData)
+                // allSignals = signals visible to project members
+                setAllSignals(signalData.filter((s: any) => !s.is_agency_only))
+                // agencySignals = signals created for Lamont's eyes only
+                setAgencySignals(signalData.filter((s: any) => s.is_agency_only))
+
                 setTotalSignals(signalData.length)
                 setUnresolvedSignals(signalData.filter((s: any) => !s.is_resolved).length)
             }
@@ -486,7 +512,7 @@ function AgencyDashboardContent() {
                 .from("activity_log")
                 .select("id, action, category, created_at, projects(name)")
                 .order("created_at", { ascending: false })
-                .limit(10) as any
+                .limit(20) as any
 
             setRecentActivity(activityData || [])
 
@@ -495,7 +521,7 @@ function AgencyDashboardContent() {
         } finally {
             setIsLoading(false)
         }
-    }, [router, setUserData, setProjects, setAllSignals, setTotalSignals, setUnresolvedSignals, setRecentActivity, setIsLoading])
+    }, [router])
 
     const handleSyncGHL = async () => {
         setIsSyncing(true)
@@ -530,7 +556,44 @@ function AgencyDashboardContent() {
         fetchData()
 
         const timer = setInterval(() => setCurrentTime(new Date()), 1000)
-        return () => clearInterval(timer)
+
+        // ── REALTIME HOT-RELOAD (Phase D) ───────────────────────
+        const supabase = createBrowserClient()
+
+        // Listen for new AI Signals (Agency-wide)
+        const signalChannel = supabase
+            .channel('agency-signals-hotreload')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'ai_signals'
+            }, (payload) => {
+                console.log("[AgencyDashboard] New signal detected:", payload.new)
+                setNewSignalId(payload.new.id)
+                fetchData() // Refresh everything
+
+                // Clear the highlight/pulse after 5s
+                setTimeout(() => setNewSignalId(null), 5000)
+            })
+            .subscribe()
+
+        // Listen for Activity Log updates
+        const activityChannel = supabase
+            .channel('agency-activity-reload')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'activity_log'
+            }, () => {
+                fetchData()
+            })
+            .subscribe()
+
+        return () => {
+            clearInterval(timer)
+            supabase.removeChannel(signalChannel)
+            supabase.removeChannel(activityChannel)
+        }
     }, [fetchData])
 
     if (isLoading) {
@@ -659,8 +722,57 @@ function AgencyDashboardContent() {
                             <AgencyChatInterface />
                         </div>
 
-                        {/* Cross-Project Signals */}
+                        {/* Cross-Project Signals & Insights */}
                         <div className="space-y-6">
+                            {/* Agency Strategic Insights (Agency Only) */}
+                            <div className="glass-panel-strong rounded-2xl p-6 border border-primary/20 bg-primary/5">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                                        <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                                        Agency Strategic Insights
+                                    </h3>
+                                    <span className="text-[10px] font-bold py-0.5 px-2 rounded-full bg-primary/20 text-primary border border-primary/30 uppercase tracking-widest">
+                                        Super Admin Eyes Only
+                                    </span>
+                                </div>
+                                <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                                    {agencySignals.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground text-center py-6 italic">No strategic insights generated yet.</p>
+                                    ) : (
+                                        agencySignals.map((signal: any) => (
+                                            <div
+                                                key={signal.id}
+                                                className={`p-4 rounded-xl border transition-all duration-1000 ${newSignalId === signal.id
+                                                    ? "bg-primary/20 border-primary ring-2 ring-primary animate-pulse"
+                                                    : "bg-white/[0.03] border-white/10 hover:border-primary/40"
+                                                    }`}
+                                            >
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div>
+                                                        <p className="text-sm font-bold text-foreground leading-tight">{signal.title}</p>
+                                                        <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{signal.body}</p>
+                                                        <div className="flex items-center gap-2 mt-3">
+                                                            <span className="text-[9px] font-bold uppercase py-0.5 px-1.5 rounded bg-white/10 text-muted-foreground">
+                                                                {signal.projects?.name || "Global"}
+                                                            </span>
+                                                            <span className="text-[9px] text-muted-foreground/60 font-medium">
+                                                                {new Date(signal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 ${signal.severity === "critical" ? "bg-red-500/20 text-red-400" :
+                                                        signal.severity === "warning" ? "bg-amber-500/20 text-amber-400" :
+                                                            "bg-blue-500/20 text-blue-400"
+                                                        }`}>
+                                                        {signal.severity}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
                             {/* Active Projects */}
                             <div className="glass-panel rounded-2xl p-6 border border-white/5">
                                 <div className="flex items-center justify-between mb-4">
@@ -699,30 +811,30 @@ function AgencyDashboardContent() {
                                 </div>
                             </div>
 
-                            {/* Recent Signals Across All Projects */}
+                            {/* Operational Signals Across Portfolio */}
                             <div className="glass-panel rounded-2xl p-6 border border-white/5">
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                                         <AlertTriangle className="h-4 w-4 text-amber-400" />
-                                        Cross-Project Signals
+                                        Operational Signals
                                     </h3>
-                                    <span className="text-xs text-muted-foreground">{unresolvedSignals} unresolved</span>
+                                    <span className="text-xs text-muted-foreground">{allSignals.filter(s => !s.is_resolved).length} active</span>
                                 </div>
-                                <div className="space-y-3 max-h-[280px] overflow-y-auto custom-scrollbar">
+                                <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar">
                                     {allSignals.length === 0 ? (
                                         <div className="flex flex-col items-center py-6 text-center">
                                             <CheckCircle2 className="h-8 w-8 text-emerald-500 mb-2" />
-                                            <p className="text-sm text-muted-foreground">No active signals — all systems nominal.</p>
+                                            <p className="text-sm text-muted-foreground">No active operational signals.</p>
                                         </div>
                                     ) : (
-                                        allSignals.filter((s: any) => !s.is_resolved).slice(0, 6).map((signal: any) => (
+                                        allSignals.filter((s: any) => !s.is_resolved).slice(0, 10).map((signal: any) => (
                                             <div
                                                 key={signal.id}
-                                                className={`p-3 rounded-xl border transition-all ${signal.severity === "critical"
-                                                    ? "bg-red-500/5 border-red-500/20"
-                                                    : signal.severity === "warning"
-                                                        ? "bg-amber-500/5 border-amber-500/20"
-                                                        : "bg-blue-500/5 border-blue-500/20"
+                                                className={`p-3 rounded-xl border transition-all ${newSignalId === signal.id
+                                                    ? "bg-amber-500/20 border-amber-500 animate-pulse"
+                                                    : signal.severity === "critical" ? "bg-red-500/5 border-red-500/20"
+                                                        : signal.severity === "warning" ? "bg-amber-500/5 border-amber-500/20"
+                                                            : "bg-blue-500/5 border-blue-500/20"
                                                     }`}
                                             >
                                                 <div className="flex items-start justify-between">

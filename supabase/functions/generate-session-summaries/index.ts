@@ -25,7 +25,6 @@ import { corsHeaders } from "../_shared/cors.ts"
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 const SUMMARY_MODEL = "gemini-2.5-flash-lite"
-const FALLBACK_MODEL = "gemini-1.5-flash"
 const MIN_MESSAGES_FOR_SUMMARY = 4  // Don't summarize tiny conversations
 
 serve(async (req: Request) => {
@@ -145,30 +144,14 @@ ${conversationText}`
                     }
                 )
 
-                let summaryData = await summaryRes.json()
-
-                // Fallback model if needed
-                if (summaryRes.status === 404) {
-                    console.warn(`[generate-session-summaries] Model ${SUMMARY_MODEL} failed. Using ${FALLBACK_MODEL}...`)
-                    summaryRes = await fetch(
-                        `${GEMINI_API_BASE}/models/${FALLBACK_MODEL}:generateContent?key=${geminiApiKey}`,
-                        {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                contents: [{ role: "user", parts: [{ text: summaryPrompt }] }],
-                                generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
-                            }),
-                        }
-                    )
-                    summaryData = await summaryRes.json()
-                }
-
                 if (!summaryRes.ok) {
-                    console.error(`[generate-session-summaries] Gemini error for session ${session.id}:`, summaryData)
+                    const errText = await summaryRes.text()
+                    console.error(`[generate-session-summaries] Gemini error for session ${session.id} (${summaryRes.status}):`, errText)
                     errors.push(`Session ${session.id}: Gemini API error ${summaryRes.status}`)
                     continue
                 }
+
+                const summaryData = await summaryRes.json()
 
                 const summaryText = summaryData.candidates?.[0]?.content?.parts?.[0]?.text
                 if (!summaryText) {

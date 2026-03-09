@@ -72,6 +72,7 @@ export function AiSignalCards({
                     .select("*")
                     .eq("project_id", project.id)
                     .eq("is_resolved", false)
+                    .eq("is_agency_only", false)
                     .order("created_at", { ascending: false }) as any
 
                 if (signalError) throw signalError

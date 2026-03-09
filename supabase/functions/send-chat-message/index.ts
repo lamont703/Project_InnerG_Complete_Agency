@@ -34,7 +34,7 @@ import { corsHeaders } from "../_shared/cors.ts"
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 const DEFAULT_CHAT_MODEL = "gemini-2.5-flash-lite"
-const DEFAULT_EMBED_MODEL = "text-embedding-004"
+const DEFAULT_EMBED_MODEL = "gemini-embedding-001"
 const RAG_TOP_K = 8
 
 // Valid signal types and severities (must match DB enums)
@@ -78,30 +78,25 @@ If you identify a significant insight, trend, or actionable finding, include a s
     "signal_type": "inventory|conversion|social|system|ai_insight|ai_action",
     "severity": "info|warning|critical",
     "action_label": "Optional CTA button text (e.g. 'Review Campaign')",
-    "action_url": null
+    "action_url": "Optional routing hint (e.g. 'draft_followup')"
   }
 }
+
+**FOLLOW-UP DRAFTING RULE (MANDATORY):**
+1. If you identify a lead or contact that needs a follow-up, first ASK THE USER for permission (e.g., "Nic's activation is low. Should I draft a follow-up message for you?").
+2. DO NOT draft the message in your first response unless they say "Yes" or ask for it explicitly.
+3. If they say "Yes" or ask for it:
+   - Provide the draft in your "message" field.
+   - Set "action_label" in the signal to "📋 Copy Draft".
+   - Set "action_url" in the signal to "copy_draft_click".
 
 CREATE a signal when:
 - A KPI has changed significantly (>5% decline or >10% growth)
 - A pattern or anomaly is detected across data points
 - The user explicitly asks you to flag or track something
 - You identify an actionable growth opportunity
-- A system or integration issue needs attention
 
-Do NOT create a signal for:
-- Routine questions with stable data
-- General knowledge inquiries
-- When you don't have enough data to justify the signal
-
-Signal type guide:
-- "ai_insight": Data patterns, trends, or analytical findings
-- "ai_action": Specific recommended actions or optimizations
-- "conversion": Signup/activation/funnel-related findings
-- "inventory": Stock or product availability findings
-- "social": Social media or engagement findings
-- "system": Technical or integration health issues
-
+Do NOT create a signal for routine questions or when data is stable.
 Always set "signal" to null if no signal should be created.
 `
 
@@ -263,6 +258,7 @@ serve(async (req: Request) => {
                 body: JSON.stringify({
                     model: `models/${DEFAULT_EMBED_MODEL}`,
                     content: { parts: [{ text: message }] },
+                    outputDimensionality: 768
                 }),
             }
         )
@@ -350,18 +346,17 @@ serve(async (req: Request) => {
             : ""
 
         const systemPrompt = [
-            "You are the Inner G Growth Assistant. You're a smart, super-helpful sidekick for this specific project.",
+            "You are the Inner G Growth Assistant — your name is Inner G. You're a smart, super-helpful sidekick for this specific project.",
             `You have direct access to these real-time data sources: ${activeSourceList}.`,
             "",
             "Tone and Voice (The 'Vibe'):",
             "• Stay simple and approachable. No 'corporate-speak', no jargon, and no fancy business terms.",
-            "• Use plain English that anyone can understand.",
+            "• Use plain English that anyone can understand. Be conversational.",
             "• Be concise but friendly. If you find something interesting, share it like a teammate, not a consultant.",
             "",
             "Being Intuitive (No 'Magic Words' Needed):",
-            "• Don't make the user guess the right keywords. If they ask about sales, leads, or the funnel, check the GHL pipelines and contacts immediately.",
-            "• Don't wait for permission to check data. If someone asks 'What's the status?', check the latest signals, activity logs, and CRM data and just give them a summary.",
-            "• If you have 70% of an answer but need 30% more, give them what you have first, then ask for the rest. Don't block the answer with a question.",
+            "• Don't make the user guess the right keywords. If they ask about sales, leads, or the funnel, check the data immediately.",
+            "• Don't wait for permission to check data. If someone asks 'What's the status?', check the latest signals and metrics and just give them a summary.",
             "• Assume the user wants ACTION. If a metric is down, suggest a simple fix based on the data.",
             "",
             disabledNote,
@@ -394,29 +389,13 @@ serve(async (req: Request) => {
             }
         )
 
-        let chatData = await chatRes.json()
-
-        // Fallback: If model fails (404), try without JSON mode on stable model
-        if (chatRes.status === 404 && model !== "gemini-1.5-flash") {
-            const fallbackModel = "gemini-1.5-flash"
-            console.warn(`[send-chat-message] Model ${model} failed (404). Falling back to ${fallbackModel}...`)
-
-            // Gemini 1.5 Flash supports responseMimeType
-            chatRes = await fetch(
-                `${GEMINI_API_BASE}/models/${fallbackModel}:generateContent?key=${geminiApiKey}`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(geminiPayload),
-                }
-            )
-            chatData = await chatRes.json()
-        }
-
         if (!chatRes.ok) {
-            console.error("[send-chat-message] Gemini API Error:", chatData)
-            throw new Error(`Gemini API returned ${chatRes.status}: ${chatData.error?.message || "Unknown error"}`)
+            const errText = await chatRes.text()
+            console.error(`[send-chat-message] Gemini API Error (${chatRes.status}):`, errText)
+            throw new Error(`Gemini API returned ${chatRes.status}: ${errText}`)
         }
+
+        let chatData = await chatRes.json()
 
         const rawReply = chatData.candidates?.[0]?.content?.parts?.[0]?.text
 
