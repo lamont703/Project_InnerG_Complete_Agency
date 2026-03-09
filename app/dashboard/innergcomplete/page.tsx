@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { useRouter } from "next/navigation"
 import {
     Loader2,
@@ -27,7 +27,8 @@ import {
     LogOut,
     Settings,
     ShieldCheck,
-    Plug
+    Plug,
+    RefreshCw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -429,80 +430,108 @@ function AgencyDashboardContent() {
     const [unresolvedSignals, setUnresolvedSignals] = useState(0)
     const [recentActivity, setRecentActivity] = useState<any[]>([])
     const [allSignals, setAllSignals] = useState<any[]>([])
+    const [isSyncing, setIsSyncing] = useState(false)
+
+    const fetchData = useCallback(async () => {
+        try {
+            const supabase = createBrowserClient()
+
+            // 1. Auth check + role verification
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) {
+                router.push("/login")
+                return
+            }
+
+            const { data: profile } = await supabase
+                .from("users")
+                .select("full_name, role")
+                .eq("id", user.id)
+                .single() as any
+
+            if (!profile || profile.role !== "super_admin") {
+                router.push("/select-portal")
+                return
+            }
+
+            setUserData({
+                name: profile.full_name || "Admin",
+                role: "SUPER ADMIN"
+            })
+
+            // 2. Fetch all projects with client info
+            const { data: projectData } = await supabase
+                .from("projects")
+                .select("id, name, slug, status, type, active_campaign_name, clients(name, industry)")
+                .eq("status", "active")
+                .order("name") as any
+
+            setProjects(projectData || [])
+
+            // 3. Fetch all AI signals across projects
+            const { data: signalData } = await supabase
+                .from("ai_signals")
+                .select("id, project_id, signal_type, title, body, severity, is_resolved, created_at, projects(name)")
+                .order("created_at", { ascending: false })
+                .limit(20) as any
+
+            if (signalData) {
+                setAllSignals(signalData)
+                setTotalSignals(signalData.length)
+                setUnresolvedSignals(signalData.filter((s: any) => !s.is_resolved).length)
+            }
+
+            // 4. Fetch recent activity across all projects
+            const { data: activityData } = await supabase
+                .from("activity_log")
+                .select("id, action, category, created_at, projects(name)")
+                .order("created_at", { ascending: false })
+                .limit(10) as any
+
+            setRecentActivity(activityData || [])
+
+        } catch (err) {
+            console.error("[AgencyDashboard] Error:", err)
+        } finally {
+            setIsLoading(false)
+        }
+    }, [router, setUserData, setProjects, setAllSignals, setTotalSignals, setUnresolvedSignals, setRecentActivity, setIsLoading])
+
+    const handleSyncGHL = async () => {
+        setIsSyncing(true)
+        try {
+            const supabase = createBrowserClient()
+            const { data: { session } } = await supabase.auth.getSession()
+
+            const { data, error } = await supabase.functions.invoke("sync-ghl-pipeline", {
+                headers: {
+                    Authorization: `Bearer ${session?.access_token}`,
+                    apikey: supabaseAnonKey
+                }
+            })
+
+            if (error) {
+                const responseBody = await error.context?.json()
+                throw new Error(responseBody?.error?.message || error.message)
+            }
+
+            alert("GHL Pipeline Sync Successful!")
+            fetchData()
+        } catch (err: any) {
+            console.error("Sync failed:", err)
+            alert("Sync failed: " + (err.message || "Unknown error"))
+        } finally {
+            setIsSyncing(false)
+        }
+    }
 
     useEffect(() => {
         setMounted(true)
-
-        const fetchData = async () => {
-            try {
-                const supabase = createBrowserClient()
-
-                // 1. Auth check + role verification
-                const { data: { user } } = await supabase.auth.getUser()
-                if (!user) {
-                    router.push("/login")
-                    return
-                }
-
-                const { data: profile } = await supabase
-                    .from("users")
-                    .select("full_name, role")
-                    .eq("id", user.id)
-                    .single() as any
-
-                if (!profile || profile.role !== "super_admin") {
-                    router.push("/select-portal")
-                    return
-                }
-
-                setUserData({
-                    name: profile.full_name || "Admin",
-                    role: "SUPER ADMIN"
-                })
-
-                // 2. Fetch all projects with client info
-                const { data: projectData } = await supabase
-                    .from("projects")
-                    .select("id, name, slug, status, type, active_campaign_name, clients(name, industry)")
-                    .eq("status", "active")
-                    .order("name") as any
-
-                setProjects(projectData || [])
-
-                // 3. Fetch all AI signals across projects
-                const { data: signalData } = await supabase
-                    .from("ai_signals")
-                    .select("id, project_id, signal_type, title, body, severity, is_resolved, created_at, projects(name)")
-                    .order("created_at", { ascending: false })
-                    .limit(20) as any
-
-                if (signalData) {
-                    setAllSignals(signalData)
-                    setTotalSignals(signalData.length)
-                    setUnresolvedSignals(signalData.filter((s: any) => !s.is_resolved).length)
-                }
-
-                // 4. Fetch recent activity across all projects
-                const { data: activityData } = await supabase
-                    .from("activity_log")
-                    .select("id, action, category, created_at, projects(name)")
-                    .order("created_at", { ascending: false })
-                    .limit(10) as any
-
-                setRecentActivity(activityData || [])
-
-            } catch (err) {
-                console.error("[AgencyDashboard] Error:", err)
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
         fetchData()
 
         const timer = setInterval(() => setCurrentTime(new Date()), 1000)
         return () => clearInterval(timer)
-    }, [router])
+    }, [fetchData])
 
     if (isLoading) {
         return (
@@ -574,9 +603,21 @@ function AgencyDashboardContent() {
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-                            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-xs font-medium text-primary">Systems Online</span>
+                        <div className="hidden md:flex items-center gap-4">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={isSyncing}
+                                onClick={handleSyncGHL}
+                                className="h-8 gap-2 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 transition-all"
+                            >
+                                <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+                                {isSyncing ? "Syncing GHL..." : "Sync GHL"}
+                            </Button>
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-xs font-medium text-primary">Systems Online</span>
+                            </div>
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-sm">

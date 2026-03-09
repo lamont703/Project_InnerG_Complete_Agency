@@ -27,7 +27,7 @@ import { corsHeaders } from "../_shared/cors.ts"
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 const EMBED_MODEL = "text-embedding-004"
-const BATCH_LIMIT = 25 // max jobs per invocation
+const BATCH_LIMIT = 1 // max jobs per invocation
 
 // ─────────────────────────────────────────────
 // TEXT FORMATTING TEMPLATES
@@ -104,19 +104,48 @@ function formatSessionSummary(row: any): string {
     return `Session Summary [${date}, ${count} messages]: ${row.summary ?? ""}`
 }
 
+function formatGhlPipeline(row: any): string {
+    return `GHL Sales Pipeline: "${row.name || 'Unnamed'}" [GHL ID: ${row.ghl_pipeline_id || 'Unknown'}]`
+}
+
+function formatGhlPipelineStage(row: any): string {
+    return `GHL Pipeline Stage: "${row.name || 'Unnamed'}" at Position ${row.position ?? 0} [GHL ID: ${row.ghl_stage_id || 'Unknown'}]`
+}
+
+function formatGhlOpportunity(row: any): string {
+    const valueStr = row.monetary_value != null ? `$${Number(row.monetary_value).toLocaleString()}` : "$0"
+    const status = row.status || "open"
+    let dateStr = "recently"
+    if (row.ghl_updated_at) {
+        try {
+            dateStr = new Date(row.ghl_updated_at).toISOString().split("T")[0]
+        } catch (_) { }
+    }
+    const tags = Array.isArray(row.tags) ? row.tags.join(", ") : (row.tags ? String(row.tags) : "none")
+    return `GHL Opportunity: "${row.title || 'Untitled'}" — Value: ${valueStr}, Status: ${status}, Last Updated: ${dateStr}. Assigned To: ${row.assigned_to || "Unassigned"}. Tags: ${tags}.`
+}
+
 // Master formatter: pick the right template for each source table
 function formatSourceRow(sourceTable: string, row: any): string {
-    switch (sourceTable) {
-        case "campaign_metrics": return formatCampaignMetrics(row)
-        case "ai_signals": return formatAiSignal(row)
-        case "activity_log": return formatActivityLog(row)
-        case "ghl_contacts": return formatGhlContact(row)
-        case "funnel_events": return formatFunnelEvent(row)
-        case "integration_sync_log": return formatIntegrationSyncLog(row)
-        case "system_connections": return formatSystemConnection(row)
-        case "agency_knowledge": return formatAgencyKnowledge(row)
-        case "session_summaries": return formatSessionSummary(row)
-        default: return JSON.stringify(row)
+    try {
+        switch (sourceTable) {
+            case "campaign_metrics": return formatCampaignMetrics(row)
+            case "ai_signals": return formatAiSignal(row)
+            case "activity_log": return formatActivityLog(row)
+            case "ghl_contacts": return formatGhlContact(row)
+            case "funnel_events": return formatFunnelEvent(row)
+            case "integration_sync_log": return formatIntegrationSyncLog(row)
+            case "system_connections": return formatSystemConnection(row)
+            case "agency_knowledge": return formatAgencyKnowledge(row)
+            case "session_summaries": return formatSessionSummary(row)
+            case "ghl_pipelines": return formatGhlPipeline(row)
+            case "ghl_pipeline_stages": return formatGhlPipelineStage(row)
+            case "ghl_opportunities": return formatGhlOpportunity(row)
+            default: return JSON.stringify(row)
+        }
+    } catch (err) {
+        console.error(`[Embedding Worker] Formatter failed for ${sourceTable}:`, err)
+        return JSON.stringify(row)
     }
 }
 
@@ -128,8 +157,9 @@ const DAILY_SUMMARY_TABLES = new Set(["activity_log", "ghl_contacts", "funnel_ev
 // ─────────────────────────────────────────────
 
 async function embedText(text: string, geminiApiKey: string): Promise<number[] | null> {
+    console.log(`[embedText] Embedding ${text.length} chars...`)
     const res = await fetch(
-        `${GEMINI_API_BASE}/models/${EMBED_MODEL}:embedContent?key=${geminiApiKey}`,
+        `${GEMINI_API_BASE}/models/${EMBED_MODEL}:embedContent?key=${encodeURIComponent(geminiApiKey)}`,
         {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -159,6 +189,7 @@ serve(async (req: Request) => {
     }
 
     try {
+        console.log("[Embedding Worker] Invoked.")
         const supabase = createClient(
             Deno.env.get("SUPABASE_URL")!,
             Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -204,6 +235,7 @@ serve(async (req: Request) => {
 
         for (const job of perRowJobs) {
             try {
+                console.log(`[Worker] Starting job: ${job.source_table} ID: ${job.source_id}`)
                 // Fetch source row
                 const { data: sourceData, error: sourceError } = await supabase
                     .from(job.source_table)

@@ -25,7 +25,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { corsHeaders } from "../_shared/cors.ts"
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
-const DEFAULT_CHAT_MODEL = "gemini-2.5-flash-lite"
+const DEFAULT_CHAT_MODEL = "gemini-1.5-flash"
 const DEFAULT_EMBED_MODEL = "text-embedding-004"
 const RAG_TOP_K = 8
 
@@ -290,30 +290,84 @@ serve(async (req: Request) => {
                 ).join("\n")
         }
 
+        // ── Step 8.5: Fetch Real-Time Sales Pipeline Intelligence ────────────────
+        // We pull the raw stats directly into the prompt so we don't rely only on RAG.
+        let pipelineIntelligence = ""
+        try {
+            const { data: pipelines } = await adminSupabase
+                .from("ghl_pipelines")
+                .select("id, name, ghl_opportunities(status, monetary_value, title, ghl_updated_at, ghl_contacts(full_name, email, phone))")
+                .order("ghl_updated_at", { foreignTable: "ghl_opportunities", ascending: false })
+
+            if (pipelines && pipelines.length > 0) {
+                pipelineIntelligence = "\n\nReal-Time Sales Pipeline Stats (The Full Picture):\n"
+                pipelines.forEach((p: any) => {
+                    const opps = p.ghl_opportunities || []
+                    const openOpps = opps.filter((o: any) => o.status === "open")
+                    const totalValue = openOpps.reduce((sum: number, o: any) => sum + (Number(o.monetary_value) || 0), 0)
+
+                    pipelineIntelligence += `• Pipeline: "${p.name}"\n`
+                    pipelineIntelligence += `  - Total Open Deals: ${openOpps.length}\n`
+                    pipelineIntelligence += `  - Total Pipeline Value: $${totalValue.toLocaleString()}\n`
+                    pipelineIntelligence += `  - Top 10 Opportunities (with Client Names): ${openOpps.slice(0, 10).map((o: any) => `"${o.title}" for client ${o.ghl_contacts?.full_name || 'Unknown'} ($${(Number(o.monetary_value) || 0).toLocaleString()})`).join(", ") || "None"}\n`
+                })
+            }
+        } catch (intelErr) {
+            console.error("[send-agency-chat-message] Pipeline intel fetch failed:", intelErr)
+        }
+
+        // ── Step 8.6: Dynamic Contact Search ──────────────────────────────
+        // If the user mentions a name, we search the contacts table directly.
+        let contactIntelligence = ""
+        const potentialNames = message.split(" ").filter((word: string) => word.length > 3 && /^[A-Z]/.test(word))
+        if (potentialNames.length > 0) {
+            try {
+                const { data: contacts } = await adminSupabase
+                    .from("ghl_contacts")
+                    .select("full_name, email, phone")
+                    .or(potentialNames.map((n: string) => `full_name.ilike.%${n}%`).join(","))
+                    .limit(5)
+
+                if (contacts && contacts.length > 0) {
+                    contactIntelligence = "\n\nDirect Search Results (Contacts Found):\n"
+                    contacts.forEach((c: any) => {
+                        contactIntelligence += `• ${c.full_name}: Email: ${c.email || "N/A"}, Phone: ${c.phone || "N/A"}\n`
+                    })
+                }
+            } catch (searchErr) {
+                console.error("[send-agency-chat-message] Contact search failed:", searchErr)
+            }
+        }
+
         // ── Step 9: Build system prompt ───────────────────────────
         const systemPrompt = [
-            "You are the Inner G Complete Agency Agent — a senior strategic AI analyst for the Inner G Complete digital services agency.",
-            "You have cross-project visibility across ALL client portfolios. You help the agency owner (Lamont) make strategic decisions about services, resource allocation, and client growth.",
-            "",
-            "Your capabilities:",
-            "• Analyse campaign metrics, AI signals, funnel performance, and CRM data across ALL projects.",
-            "• Reference agency methodology, SOPs, and best practices from the knowledge base.",
-            "• Compare project performance, identify trends, and recommend cross-project strategies.",
-            "• Flag risks and opportunities across the entire portfolio.",
-            "• Create AI Signals that appear on specific project dashboards.",
-            "",
-            "Supabase Database Integration:",
-            "• You are deeply integrated with the Inner G Complete Supabase backend.",
-            "• Your memory is powered by an AI RAG pipeline that embeds and retrieves real-time data from our PostgreSQL database.",
-            "• You have direct access to project lists, agency knowledge, and cross-project metrics via Supabase RPC functions.",
-            "",
-            "Response style:",
-            "• Be concise, data-driven, and actionable.",
-            "• When referencing data, cite the source (e.g., 'From project XYZ's campaign metrics').",
-            "• If you don't have data for a specific question, say so — don't fabricate numbers.",
-            projectListContext,
             AGENCY_SIGNAL_INSTRUCTIONS,
-            contextChunks.length > 0 ? "\nCross-Project Data Context:\n" + contextChunks.join("\n---\n") : "",
+            "",
+            "MANDATORY COMMAND PROCESSING:",
+            "• If the user says 'create a signal', 'flag this', or 'remind me', you MUST populate the 'signal' object in your JSON response. DO NOT just say you'll do it—actually include the signal object.",
+            "• Use the Project IDs provided in the 'Active Client Projects' list below for the 'target_project_id'.",
+            "",
+            "You are the Inner G Complete Agency Agent — your name is Inner G, and you're here to help the agency owner (Lamont) run his empire.",
+            "You have super-powers: you can see data across ALL client projects instantly. You're like a professional wingman and master strategist.",
+            "",
+            "The 'Vibe' (Tone and Voice):",
+            "• Talk like a real person, not a robot. Be friendly, casual, and plain-spoken.",
+            "• Be encouraging. If something looks good, say 'Nice!'. If something's wrong, keep it real and say 'We gotta look at this'.",
+            "",
+            "Conversational Memory (CRITICAL - DO NOT DRIFT):",
+            "• Stay focused on the current person or project until the user switches topics.",
+            "• If the user asks for a specific action (like creating a signal), prioritize that action above all else. Don't drift back to a general summary of the pipeline unless they ask for it.",
+            "• ASSOCIATION RULE: Before suggesting a deal to follow up on, check if it's actually linked to the person you are talking about.",
+            "",
+            "Your Super-Powers (Capabilities):",
+            "• Check sales pipelines and CRM deals (especially the 'Client Software Development Pipeline' synced from GHL).",
+            "• Search for people: If someone asks for contact info, check the 'Direct Search Results' block.",
+            "• Create 'AI Signals': Use this for reminders, follow-ups, and alerts.",
+            "",
+            projectListContext,
+            pipelineIntelligence,
+            contactIntelligence,
+            contextChunks.length > 0 ? "\nReal-Time Data (The 'Raw Facts'):\n" + contextChunks.join("\n---\n") : "",
             knowledgeContext,
             historyPrompt,
         ].filter(Boolean).join("\n")
@@ -322,13 +376,37 @@ serve(async (req: Request) => {
         console.log(`[send-agency-chat-message] Calling Gemini (${model}) with signal creation...`)
 
         const geminiPayload = {
+            system_instruction: {
+                parts: [{ text: systemPrompt }]
+            },
             contents: [
-                { role: "user", parts: [{ text: `${systemPrompt}\n\nUser: ${message}` }] },
+                { role: "user", parts: [{ text: message }] },
             ],
             generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 4096,
+                temperature: 0.1,
+                maxOutputTokens: 2048,
                 responseMimeType: "application/json",
+                responseSchema: {
+                    type: "object",
+                    properties: {
+                        message: { type: "string" },
+                        signal: {
+                            type: "object",
+                            nullable: true,
+                            properties: {
+                                title: { type: "string" },
+                                body: { type: "string" },
+                                signal_type: { type: "string" },
+                                severity: { type: "string" },
+                                action_label: { type: "string", nullable: true },
+                                action_url: { type: "string", nullable: true },
+                                target_project_id: { type: "string", nullable: true }
+                            },
+                            required: ["title", "body", "signal_type", "severity"]
+                        }
+                    },
+                    required: ["message"]
+                }
             },
         }
 
@@ -375,9 +453,28 @@ serve(async (req: Request) => {
         }
 
         // ── Step 11: Parse response for message + signal ──────────
-        const parsed = parseGeminiResponse(rawReply ?? "")
+        console.log(`[send-agency-chat-message] Raw Gemini Reply:`, rawReply)
+        let parsed = parseGeminiResponse(rawReply ?? "")
         let finalReply = parsed.message || rawReply || "I'm unable to answer right now. Please try again."
         let signalCreated: any = null
+
+        // ── Step 11.5: Fail-Safe Detection ─────────────────────────
+        // Detect if the user explicitly asked for an action but Gemini failed to provide the object
+        const userAskedForAction = /signal|flag|remind|follow up|reach out/i.test(message)
+        if (userAskedForAction && !parsed.signal) {
+            console.warn("[send-agency-chat-message] Intent detected but signal missing. Applying fail-safe...")
+            // Use the message itself to build a basic signal if the AI "forgot" the JSON object
+            parsed.signal = {
+                title: "Follow-up Task Requested",
+                body: finalReply,
+                signal_type: "ai_action",
+                severity: "info",
+                action_label: "View Contact",
+                action_url: null,
+                target_project_id: null
+            }
+            finalReply += "\n\n_Note: I've created a general signal for this, but couldn't extract specific details from the AI. Please review._"
+        }
 
         // ── Step 12: If signal detected, create it ────────────────
         if (parsed.signal) {

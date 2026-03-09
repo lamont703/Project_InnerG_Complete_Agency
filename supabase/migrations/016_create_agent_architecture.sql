@@ -65,6 +65,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS projects_auto_agent_config ON public.projects;
+DROP TRIGGER IF EXISTS projects_auto_agent_config ON public.projects;
 CREATE TRIGGER projects_auto_agent_config
   AFTER INSERT ON public.projects
   FOR EACH ROW EXECUTE FUNCTION auto_create_agent_config();
@@ -241,11 +242,13 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Activity Log
 DROP TRIGGER IF EXISTS activity_log_queue_embedding ON public.activity_log;
+DROP TRIGGER IF EXISTS activity_log_queue_embedding ON public.activity_log;
 CREATE TRIGGER activity_log_queue_embedding
   AFTER INSERT ON public.activity_log
   FOR EACH ROW EXECUTE FUNCTION queue_embedding_job();
 
 -- GHL Contacts
+DROP TRIGGER IF EXISTS ghl_contacts_queue_embedding ON public.ghl_contacts;
 DROP TRIGGER IF EXISTS ghl_contacts_queue_embedding ON public.ghl_contacts;
 CREATE TRIGGER ghl_contacts_queue_embedding
   AFTER INSERT ON public.ghl_contacts
@@ -253,17 +256,20 @@ CREATE TRIGGER ghl_contacts_queue_embedding
 
 -- Funnel Events
 DROP TRIGGER IF EXISTS funnel_events_queue_embedding ON public.funnel_events;
+DROP TRIGGER IF EXISTS funnel_events_queue_embedding ON public.funnel_events;
 CREATE TRIGGER funnel_events_queue_embedding
   AFTER INSERT ON public.funnel_events
   FOR EACH ROW EXECUTE FUNCTION queue_embedding_job();
 
 -- Agency Knowledge
 DROP TRIGGER IF EXISTS agency_knowledge_queue_embedding ON public.agency_knowledge;
+DROP TRIGGER IF EXISTS agency_knowledge_queue_embedding ON public.agency_knowledge;
 CREATE TRIGGER agency_knowledge_queue_embedding
   AFTER INSERT OR UPDATE ON public.agency_knowledge
   FOR EACH ROW EXECUTE FUNCTION queue_embedding_job();
 
 -- Session Summaries
+DROP TRIGGER IF EXISTS session_summaries_queue_embedding ON public.session_summaries;
 DROP TRIGGER IF EXISTS session_summaries_queue_embedding ON public.session_summaries;
 CREATE TRIGGER session_summaries_queue_embedding
   AFTER INSERT ON public.session_summaries
@@ -276,21 +282,25 @@ CREATE TRIGGER session_summaries_queue_embedding
 -- agency_knowledge: Super Admin only
 ALTER TABLE public.agency_knowledge ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS agency_knowledge_select ON public.agency_knowledge;
 CREATE POLICY agency_knowledge_select ON public.agency_knowledge
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'super_admin')
   );
 
+DROP POLICY IF EXISTS agency_knowledge_insert ON public.agency_knowledge;
 CREATE POLICY agency_knowledge_insert ON public.agency_knowledge
   FOR INSERT WITH CHECK (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'super_admin')
   );
 
+DROP POLICY IF EXISTS agency_knowledge_update ON public.agency_knowledge;
 CREATE POLICY agency_knowledge_update ON public.agency_knowledge
   FOR UPDATE USING (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'super_admin')
   );
 
+DROP POLICY IF EXISTS agency_knowledge_delete ON public.agency_knowledge;
 CREATE POLICY agency_knowledge_delete ON public.agency_knowledge
   FOR DELETE USING (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'super_admin')
@@ -299,6 +309,7 @@ CREATE POLICY agency_knowledge_delete ON public.agency_knowledge
 -- project_agent_config: Super Admin can manage; project members can view
 ALTER TABLE public.project_agent_config ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS project_agent_config_select ON public.project_agent_config;
 CREATE POLICY project_agent_config_select ON public.project_agent_config
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'super_admin')
@@ -308,6 +319,7 @@ CREATE POLICY project_agent_config_select ON public.project_agent_config
     )
   );
 
+DROP POLICY IF EXISTS project_agent_config_update ON public.project_agent_config;
 CREATE POLICY project_agent_config_update ON public.project_agent_config
   FOR UPDATE USING (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'super_admin')
@@ -316,6 +328,7 @@ CREATE POLICY project_agent_config_update ON public.project_agent_config
 -- token_usage_monthly: Super Admin sees all; users see own rows
 ALTER TABLE public.token_usage_monthly ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS token_usage_select ON public.token_usage_monthly;
 CREATE POLICY token_usage_select ON public.token_usage_monthly
   FOR SELECT USING (
     user_id = auth.uid()
@@ -325,6 +338,7 @@ CREATE POLICY token_usage_select ON public.token_usage_monthly
 -- session_summaries: Users see their own; Super Admin sees all
 ALTER TABLE public.session_summaries ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS session_summaries_select ON public.session_summaries;
 CREATE POLICY session_summaries_select ON public.session_summaries
   FOR SELECT USING (
     user_id = auth.uid()
@@ -334,9 +348,11 @@ CREATE POLICY session_summaries_select ON public.session_summaries
 -- connector_types: Any authenticated user can read; Super Admin can manage
 ALTER TABLE public.connector_types ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS connector_types_select ON public.connector_types;
 CREATE POLICY connector_types_select ON public.connector_types
   FOR SELECT USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS connector_types_manage ON public.connector_types;
 CREATE POLICY connector_types_manage ON public.connector_types
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'super_admin')
@@ -354,14 +370,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS set_agency_knowledge_updated_at ON public.agency_knowledge;
 CREATE TRIGGER set_agency_knowledge_updated_at
   BEFORE UPDATE ON public.agency_knowledge
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+DROP TRIGGER IF EXISTS set_project_agent_config_updated_at ON public.project_agent_config;
 CREATE TRIGGER set_project_agent_config_updated_at
   BEFORE UPDATE ON public.project_agent_config
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+DROP TRIGGER IF EXISTS set_token_usage_updated_at ON public.token_usage_monthly;
 CREATE TRIGGER set_token_usage_updated_at
   BEFORE UPDATE ON public.token_usage_monthly
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();

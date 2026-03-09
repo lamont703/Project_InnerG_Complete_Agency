@@ -26,41 +26,26 @@ Before answering the questions below, here is a summary of what is already built
 
 | Function | Purpose | Status |
 |----------|---------|--------|
-| `send-chat-message` | Growth Assistant chat — RAG + Gemini 2.5 pipeline | ✅ Deployed |
+| `send-agency-chat-message` | Agency Agent — **Hybrid Intelligence** (RAG + Direct DB Joins + Dynamic Contact Search) | ✅ Deployed & Updated |
 | `resolve-signal` | Marks AI signal cards as resolved | ✅ Deployed |
-| `process-embedding-jobs` | Background worker for RAG embedding queue | Built, not scheduled |
+| `process-embedding-jobs` | Background worker for RAG embedding queue | ✅ Fully implemented (Batch size 1 for debugging) |
 | `generate-daily-snapshot` | Daily KPI aggregation into campaign_metrics | Built, not scheduled |
 | `process-kpi-aggregation` | Connects to external client DBs for KPI pulls | Built, not scheduled |
 | `submit-growth-audit-lead` | Marketing form → Supabase + GHL | ✅ Deployed |
-| `generate-invite-link` / `validate-invite` / `complete-invite` | User onboarding flow | ✅ Deployed |
+| `generate-invite-link` / `validate-invite` | User onboarding flow | ✅ Deployed |
 
-### Current RAG Pipeline Architecture
+### Current "Hybrid Intelligence" Architecture (The New Standard)
 
-```
-[Data Inserted] → [DB Trigger: queue_embedding_job()] → [embedding_jobs table]
-                                                              ↓
-                                              [process-embedding-jobs cron]
-                                                              ↓
-                                              [Gemini text-embedding-004]
-                                                              ↓
-                                              [document_embeddings table]
-                                                              ↓
-                                    [send-chat-message → match_documents() RPC]
-                                                              ↓
-                                              [Top-5 chunks → System Prompt]
-                                                              ↓
-                                              [Gemini 2.5 Flash-Lite → Reply]
-```
+We have moved beyond simple RAG. The Agent now uses 3 simultaneous intelligence layers:
 
-**Currently Triggered By:**
-- `campaign_metrics` INSERT → auto-queues embedding job
-- `ai_signals` INSERT → auto-queues embedding job
+1.  **Layer 1: Real-Time Sales Intelligence (Direct DB)**: During prompt construction, the system executes direct SQL joins on `ghl_pipelines`, `ghl_opportunities`, and `ghl_contacts`. This ensures the agent sees the *exact* current state of the pipeline (deal counts, dollar values, and client names) regardless of whether the RAG sync has run.
+2.  **Layer 2: Dynamic Contact Search**: The system parses the user's message for proper nouns/names. If found, it executes a `ghl_contacts` lookup for email/phone info and injects the results directly into the "Raw Facts" block. This eliminates the agent saying "I don't have access to contact info."
+3.  **Layer 3: Vector RAG**: Standard semantic search across documents and metrics for "historical" or "contextual" knowledge.
 
-**Currently NOT Triggered By:**
-- `activity_log` (referenced in code but no trigger exists)
-- `ghl_contacts` (no trigger)
-- `growth_audit_leads` (no trigger)
-- Any manually uploaded documents or files
+**Recent Action Enforcement:**
+- **JSON Schema Enforcement**: We've implemented a strict `response_schema` in the Gemini payload to force valid JSON output.
+- **Fail-Safe Mechanism**: If the user asks to "create a signal" but the AI fails to provide the JSON object, the edge function now catches the intent and auto-generates a fallback "AI Action" signal.
+- **Project ID Association**: We've explicitly linked Contact Names to Project IDs in the pipeline view.
 
 ---
 
@@ -777,4 +762,142 @@ Sprint-ready phases:
 - **Phase F:** Token budgets + tiered plans
 - **Phase G:** Kane's Bookstore external connectors (when client details are confirmed)
 
-**Ready to begin architecture? Say the word.**
+## Section 10: Post-Implementation Clarifications (March 2026 - Current)
+
+> *We have successfully built the "Brain" and the "Data Hooks." However, we are encountering a gap between "Action Taken" (The agent says it created a signal) and "Action Visible" (The user sees it on the dashboard).*
+
+### 🏢 FU-25: Signal Visibility & Routing
+When the **Agency Agent** creates a signal from a cross-project conversation (e.g., following up with Lemere), it has to decide *where* that signal belongs.
+
+**Q: Should signals created in the Agency Chat appear on the Agency Dashboard, or the specific Project's dashboard?**
+- [ ] **A) Auto-Route to Project**: If the conversation is about Lemere (who belongs to 'Project Aryaa'), the signal should automatically be sent to the 'Project Aryaa' dashboard.
+- [ ] **B) Agency Feed Only**: All signals created by the Agency Agent stay in the "Agency-Wide Alerts" feed.
+- [ ] **C) Double Entry**: Put it on the Agency Dashboard for Lamont *and* the Project Dashboard for the team.
+
+Answer: Agency Feed Only
+
+### 🏢 FU-26: The "Did it work?" Feedback Loop
+Currently, signal creation is "Silent" (the code works in the background, then you refresh). 
+
+**Q: How should the UI acknowledge that a signal was successfully added?**
+- [ ] **A) Link in Chat**: The agent says "I've created the signal. [View Signal Here]" with a direct link to the dashboard card.
+- [ ] **B) Dashboard Hot-Reload**: Implement a "Push Notification" system so the dashboard card "pops" into existence without a page refresh.
+- [ ] **C) Audit Log**: Ensure every agent-created signal is clearly marked in the "Activity Feed" as "Created by Inner G AI."
+
+Answer: I would like the Dashboard Hot-Reload option. I do not want to refresh the page.
+
+### 🤖 FU-27: Automated Follow-Up (Taking it further)
+Now that the agent can retrieve the contact's email and phone number directly...
+
+**Q: Would you like the agent to be able to *draft* the follow-up message?**
+- [ ] **A) Yes**: "Lamont, I've created a signal for Lemere. Here is a draft email I've prepared based on her deal status. Should I send it / copy to clipboard?"
+- [ ] **B) No**: Keep it focused on signals and alerts for now.
+
+Answer: Yes but i would like the agent to ask the user if they want it first before they draft it. then if the user says yes, they should draft it and ask if they want to copy it to clipboard.
+
+### 🤖 FU-28: Handling "Data Blindness"
+Even with the current fixes, some contacts or deals might be missing if they haven't synced from GHL recently.
+
+**Q: How should the agent behave when it CAN'T find someone?**
+- [ ] **A) Direct Sync Trigger**: The agent says "I don't see them. Would you like me to trigger a fresh GHL sync for 'Project Aryaa' right now?"
+- [ ] **B) Polite Apology**: "I don't have that person in my records yet. Make sure the GHL connection is active."
+
+Answer: Option A
+---
+
+---
+
+## Section 11: Action & UI Refinement (Round 4)
+
+> *Your previous answers have given us a clear roadmap for the "Hybrid Intelligence" model. These final refinements will allow us to build the Hot-Reload and Direct Sync features correctly.*
+
+### 🏢 FU-29: "Agency Feed" Data Storage
+You chose **"Agency Feed Only"** for signals created by the Agency Agent. 
+
+**Q: In the database, how should these "Agency Alerts" be stored?**
+- [ ] **A) Dedicated Agency Project**: Use the special ID `00000000-0000-0000-0000-000000000001` (Inner G Complete) in the `ai_signals` table. This ensures they show up only on your master dashboard.
+- [ ] **B) New Agency Table**: Create a separate `agency_signals` table that is completely independent of the client projects.
+- [ ] **C) Hide from Client**: Store them in the normal `ai_signals` table with the client's `project_id`, but add a flag `is_agency_only = true` so the client admin never sees it in their portal.
+
+Answer: Option C
+
+### 🏢 FU-30: Hot-Reload Implementation
+You want the dashboard to update in real-time without a refresh.
+
+**Q: For the first version, which parts should "Hot-Reload"?**
+- [ ] **A) Signals Only**: Just the signal cards pop in.
+- [ ] **B) Full Intelligence Sync**: Signals, Activity Feed, and KPI counters all update if the agent triggers an action.
+- [ ] **C) Agent Verification**: The agent should say "Updated! Checking the dashboard now..." and the UI should flash to show the new data.
+
+Answer: Option B
+
+### 🤖 FU-31: Follow-Up Draft UI
+You want the agent to ask permission, then draft, then offer a copy-to-clipboard option.
+
+**Q: How should the "Copy to Clipboard" work?**
+- [ ] **A) Button in Chat**: The agent sends the draft with a "📋 Copy Draft" button appearing right under the text.
+- [ ] **B) Text Selection**: You just highlight and copy the text manually.
+- [ ] **C) One-Click Send**: Add a "🚀 Send via GHL" button directly in the chat to actually send the email/SMS without leaving the portal.
+
+Answer: Option A
+
+### 🤖 FU-32: Background Sync Feedback
+You want the agent to trigger a GHL sync if it can't find a person (Option A).
+
+**Q: How should the agent communicate the sync progress?**
+- [ ] **A) Silent + Notif**: "I'm syncing now. I'll let you know when I have the data." (The agent continues the chat while it works in the background).
+- [ ] **B) Real-time Status**: A small progress bar or "Syncing..." spinner appears in the chat bubble itself.
+- [ ] **C) Wait & Reply**: The agent waits for the sync to finish (usually 5-10 seconds) and then replies with the data found.
+
+Answer: Option B
+
+---
+
+---
+
+## Section 12: Edge Case Coverage (Round 5)
+
+> *We are almost at 100% clarity. These last 3 questions handle the "Hand-off" between the AI's action and the database to ensure data doesn't get lost in the shuffle.*
+
+### 🏢 FU-33: Agency Signal Aggregation
+You chose to store Agency-only signals in the client's project table with a hidden flag (Option C).
+
+**Q: Where should you (the Super Admin) see these signals?**
+- [ ] **A) On the Project Dashboard only**: When I navigate to `/dashboard/project-slug`, I see them, but the client doesn't.
+- [ ] **B) In a Master Agency Feed**: They should all be aggregated into one big list on the `/dashboard/innergcomplete` master page, regardless of which project they belong to.
+- [ ] **C) Use both**: Aggregate feed on the master dashboard + project-specific view when I'm looking at a client.
+
+Answer: Option A
+
+### 🏢 FU-30: Hot-Reload "Vibe"
+You want the Signals, Activity Feed, and KPIs to update in real-time (Option B).
+
+**Q: How should the UI reflect the update?**
+- [ ] **A) Immediate Refresh**: The data just changes instantly.
+- [ ] **B) Pulsing / Highlight**: The updated cards or numbers should have a brief "Blue Highlight" or pulse animation so my eyes are drawn to the change.
+- [ ] **C) Notification Toast**: A small toast in the corner says "Dashboard data updated by Inner G."
+
+Answer: Option B
+
+### 🤖 FU-35: Post-Sync Knowledge Loop
+When the agent triggers a GHL sync for a missing contact (Option A)...
+
+**Q: Should the agent automatically trigger a RAG embedding job for that new data?**
+- [ ] **A) Yes, immediately**: I want the agent to "learn" about this person/deal permanently within seconds of the sync finishing.
+- [ ] **B) No, wait for daily batch**: The agent has the "Live Data" now, we don't need to waste tokens embedding it until the nightly run.
+- [ ] **C) On command only**: The agent should ask "I've synced the data. Should I add this to our permanent knowledge base?"
+
+Answer: Option A
+
+---
+
+## ✅ Next Implementation Phase: "Action Integrity & Agency UI"
+
+Based on the latest hurdles, our next technical sprints are:
+
+1.  **Agency Dashboard V1**: Build the `/dashboard/innergcomplete` as a dedicated, custom UI that aggregates the health of all 10 projects.
+2.  **Signal Routing Engine**: Ensure signals created by the AI are tagged correctly so they show up in the intended "Activity" and "Signals" filters.
+3.  **Real-Time UI Push**: Bridge the gap between the Edge Function and the Dashboard UI using Supabase Broadcast to show "Action Success" immediately.
+
+---
+**Ready to proceed with these UI/Routing fixes?**
