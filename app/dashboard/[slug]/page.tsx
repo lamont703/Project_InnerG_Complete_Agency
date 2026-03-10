@@ -10,7 +10,7 @@ import { SessionHistoryBrowser } from "@/components/dashboard/session-history-br
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { ConnectionStatusGrid } from "@/components/dashboard/connection-status-grid"
-import { KpiMetricsGrid } from "@/components/dashboard/kpi-metrics-grid"
+import { MetricsGrid as KpiMetricsGrid } from "@/features/metrics/MetricsGrid"
 import { SocialAnalyticsPanel, AcquisitionFunnel, KANES_MOCK_FUNNEL_ROWS } from "@/components/dashboard/analytics-panels"
 import { SignalGrid as AiSignalCards } from "@/features/signals/SignalGrid"
 import { ActivityFeed } from "@/features/activity/ActivityFeed"
