@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { createBrowserClient } from "@/lib/supabase/browser"
-import { SignalService } from "./signal-service"
+import { SignalService, DEMO_MOCK_SIGNALS } from "./signal-service"
 import { Signal } from "./types"
 
 export function useSignals(projectSlug: string, initialSignals?: Signal[]) {
@@ -19,7 +19,11 @@ export function useSignals(projectSlug: string, initialSignals?: Signal[]) {
         try {
             setIsLoading(true)
             const pId = await signalService.getProjectId(projectSlug)
-            if (!pId) throw new Error("Project not found")
+            if (!pId) {
+                console.warn(`[useSignals] Project with slug "${projectSlug}" not found. Falling back to demo data.`)
+                setSignals(DEMO_MOCK_SIGNALS)
+                return
+            }
             setProjectId(pId)
 
             const activeSignals = await signalService.getActiveSignals(pId)
@@ -27,10 +31,13 @@ export function useSignals(projectSlug: string, initialSignals?: Signal[]) {
         } catch (err: any) {
             console.error("[useSignals] Error:", err)
             setError("Unable to process funnel intelligence.")
+            if (signals.length === 0) {
+                setSignals(DEMO_MOCK_SIGNALS)
+            }
         } finally {
             setIsLoading(false)
         }
-    }, [projectSlug, signalService, initialSignals])
+    }, [projectSlug, signalService, initialSignals, signals.length]) // Added signals.length to dependencies for the catch block check
 
     useEffect(() => {
         fetchSignals()

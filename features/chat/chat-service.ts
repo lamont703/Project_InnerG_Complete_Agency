@@ -15,9 +15,9 @@ export class ChatService {
             .from("projects")
             .select("id")
             .eq("slug", projectSlug)
-            .single()
+            .maybeSingle()
 
-        if (error) throw error
+        if (error) return undefined
         return data?.id
     }
 

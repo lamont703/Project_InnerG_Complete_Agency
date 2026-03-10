@@ -57,7 +57,7 @@ export class SignalService {
             .eq("slug", projectSlug)
             .maybeSingle()
 
-        if (error) throw error
+        if (error) return undefined
         return data?.id
     }
 

@@ -18,7 +18,12 @@ export function useMetrics(projectSlug: string, initialMetrics?: Metric[]) {
         try {
             setIsLoading(true)
             const project = await metricsService.getProjectData(projectSlug)
-            if (!project) throw new Error("Project not found")
+            if (!project) {
+                console.warn(`[useMetrics] Project with slug "${projectSlug}" not found. Falling back to demo data.`)
+                setMetrics(DEMO_MOCK_METRICS)
+                setCampaignName("General Portfolio")
+                return
+            }
 
             const campaign = await metricsService.getActiveCampaign(project.id)
             if (!campaign) {

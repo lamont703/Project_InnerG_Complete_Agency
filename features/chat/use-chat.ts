@@ -17,7 +17,11 @@ export function useChat(projectSlug: string) {
         try {
             setIsInitialLoading(true)
             const pId = await chatService.getProjectId(projectSlug)
-            if (!pId) return
+            if (!pId) {
+                console.warn(`[useChat] Project with slug "${projectSlug}" not found. Falling back to welcome message.`)
+                addWelcomeMessage()
+                return
+            }
             setProjectId(pId)
 
             const { data: { user } } = await supabase.auth.getUser()
@@ -108,6 +112,16 @@ export function useChat(projectSlug: string) {
             setIsLoading(false)
         }
     }
+
+    useEffect(() => {
+        const handleDiscussSignal = (event: any) => {
+            const { signalTitle, signalBody } = event.detail
+            sendMessage(`I'd like to discuss the signal: "${signalTitle}". Context: ${signalBody}$.`)
+        }
+
+        window.addEventListener('innerg-discuss-signal', handleDiscussSignal)
+        return () => window.removeEventListener('innerg-discuss-signal', handleDiscussSignal)
+    }, [sendMessage])
 
     return {
         messages,

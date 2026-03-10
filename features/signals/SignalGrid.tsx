@@ -63,7 +63,7 @@ export function SignalGrid({
                     <p className="text-sm text-destructive font-medium">{error}</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="flex flex-col gap-6">
                     {signals.map((signal) => (
                         <SignalCard
                             key={signal.id}
