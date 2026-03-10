@@ -5,7 +5,7 @@ import { useParams } from "next/navigation"
 import {
     Loader2
 } from "lucide-react"
-import { ChatInterface } from "@/components/dashboard/chat-interface"
+import { ChatInterface } from "@/features/chat/ChatInterface"
 import { SessionHistoryBrowser } from "@/components/dashboard/session-history-browser"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"

@@ -63,7 +63,7 @@ const statusItems = [
     },
 ]
 
-import { ChatInterface } from "@/components/dashboard/chat-interface"
+import { ChatInterface } from "@/features/chat/ChatInterface"
 
 function DashboardContent() {
     const searchParams = useSearchParams()
