@@ -12,7 +12,7 @@ This module handles the top-level "Campaign Architecture Performance" metrics, p
 1. **Calculation Logic**: All growth percentages and mathematical operations must happen in the `MetricsService`, never in the UI components.
 2. **Isolation**: Never fetch from the `projects`, `campaigns`, or `campaign_metrics` tables directly in a component.
 3. **Pure Presentational Layer**: `MetricCard.tsx` should only styling and layout responsibilities.
-4. **Mock Fallback**: If no campaign is found, the system must automatically fallback to `KANES_MOCK_METRICS` to maintain visual integrity.
+4. **Mock Fallback**: If no campaign is found, the system must automatically fallback to `DEMO_MOCK_METRICS` to maintain visual integrity.
 
 ## 📖 File Map
 - `MetricsGrid.tsx`: Main component.

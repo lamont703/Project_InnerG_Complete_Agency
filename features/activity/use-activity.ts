@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { createBrowserClient } from "@/lib/supabase/browser"
-import { ActivityService, KANES_MOCK_ACTIVITY } from "./activity-service"
+import { ActivityService, DEMO_MOCK_ACTIVITY } from "./activity-service"
 import { ActivityEntry } from "./types"
 
 export function useActivity(projectSlug: string, initialEntries?: ActivityEntry[]) {
@@ -22,7 +22,7 @@ export function useActivity(projectSlug: string, initialEntries?: ActivityEntry[
             const logs = await activityService.getRecentActivity(projectId)
 
             if (logs.length === 0) {
-                setEntries(KANES_MOCK_ACTIVITY)
+                setEntries(DEMO_MOCK_ACTIVITY)
             } else {
                 setEntries(logs)
             }
@@ -46,7 +46,7 @@ export function useActivity(projectSlug: string, initialEntries?: ActivityEntry[
             console.error("[useActivity] Error:", err)
             setError("Activity stream unavailable.")
             if (entries.length === 0) {
-                setEntries(KANES_MOCK_ACTIVITY)
+                setEntries(DEMO_MOCK_ACTIVITY)
             }
         } finally {
             setIsLoading(false)

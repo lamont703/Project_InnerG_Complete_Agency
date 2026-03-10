@@ -48,7 +48,7 @@ export class MetricsService {
 
         const snapshots = data as RawMetricRecord[]
         if (!snapshots || snapshots.length === 0) {
-            return KANES_MOCK_METRICS
+            return DEMO_MOCK_METRICS
         }
 
         const latest = snapshots[0]
@@ -87,30 +87,30 @@ export class MetricsService {
     }
 }
 
-export const KANES_MOCK_METRICS: Metric[] = [
+export const DEMO_MOCK_METRICS: Metric[] = [
     {
-        label: "Total Signups (GHL)",
+        label: "Total Registrations",
         value: "4,822",
         growth: "+12%",
         icon: Users,
         color: "text-primary bg-primary/10",
     },
     {
-        label: "Reader App Installs",
+        label: "Active System Users",
         value: "3,140",
         growth: "+24%",
         icon: Bot,
         color: "text-emerald-500 bg-emerald-500/10",
     },
     {
-        label: "Funnel Conv. Rate",
+        label: "Conversion Velocity",
         value: "65.1%",
         growth: "+4.2%",
         icon: Activity,
         color: "text-orange-500 bg-orange-500/10",
     },
     {
-        label: "Total IG Reach",
+        label: "Total Social Reach",
         value: "82.4k",
         growth: "+115%",
         icon: Instagram,

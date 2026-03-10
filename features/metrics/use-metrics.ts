@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { createBrowserClient } from "@/lib/supabase/browser"
-import { MetricsService, KANES_MOCK_METRICS } from "./metrics-service"
+import { MetricsService, DEMO_MOCK_METRICS } from "./metrics-service"
 import { Metric } from "./types"
 
 export function useMetrics(projectSlug: string, initialMetrics?: Metric[]) {
@@ -23,7 +23,7 @@ export function useMetrics(projectSlug: string, initialMetrics?: Metric[]) {
             const campaign = await metricsService.getActiveCampaign(project.id)
             if (!campaign) {
                 setCampaignName("General Portfolio")
-                setMetrics(KANES_MOCK_METRICS)
+                setMetrics(DEMO_MOCK_METRICS)
                 return
             }
 
@@ -34,7 +34,7 @@ export function useMetrics(projectSlug: string, initialMetrics?: Metric[]) {
             console.error("[useMetrics] Error:", err)
             setError("Failed to stream campaign metrics.")
             if (metrics.length === 0) {
-                setMetrics(KANES_MOCK_METRICS)
+                setMetrics(DEMO_MOCK_METRICS)
             }
         } finally {
             setIsLoading(false)

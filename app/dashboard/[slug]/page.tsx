@@ -6,21 +6,16 @@ import {
     Loader2
 } from "lucide-react"
 import { ChatInterface } from "@/features/chat/ChatInterface"
-import { SessionHistoryBrowser } from "@/components/dashboard/session-history-browser"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
-import { ConnectionStatusGrid } from "@/components/dashboard/connection-status-grid"
 import { MetricsGrid as KpiMetricsGrid } from "@/features/metrics/MetricsGrid"
-import { SocialAnalyticsPanel, AcquisitionFunnel, KANES_MOCK_FUNNEL_ROWS } from "@/components/dashboard/analytics-panels"
 import { SignalGrid as AiSignalCards } from "@/features/signals/SignalGrid"
 import { ActivityFeed } from "@/features/activity/ActivityFeed"
-import { PlentyOfHeartsBanner } from "@/components/dashboard/plenty-of-hearts-banner"
 import { createBrowserClient } from "@/lib/supabase/browser"
 
 function DashboardContent() {
     const params = useParams()
-    const slug = (params?.slug as string) ?? "kanes-bookstore"
-    const isPlentyOfHearts = slug === "plenty-of-hearts"
+    const slug = (params?.slug as string) ?? "innergcomplete"
 
     // User & Project State
     const [userData, setUserData] = useState<{ name: string; role: string } | null>(null)
@@ -126,36 +121,18 @@ function DashboardContent() {
                         </p>
                     </div>
 
-                    <ConnectionStatusGrid projectSlug={slug} />
+                    <KpiMetricsGrid projectSlug={slug} />
 
-                    {isPlentyOfHearts ? (
-                        <PlentyOfHeartsBanner />
-                    ) : (
-                        <KpiMetricsGrid projectSlug={slug} />
-                    )}
-
-                    <div className={`grid grid-cols-1 ${!isPlentyOfHearts ? "lg:grid-cols-2" : ""} gap-8 mb-12`}>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
                         <div className="rounded-2xl border border-white/5 overflow-hidden flex flex-col min-h-0">
                             <ChatInterface projectSlug={slug} />
                         </div>
-
-                        {!isPlentyOfHearts && (
-                            <div className="space-y-8 flex flex-col">
-                                <SessionHistoryBrowser projectSlug={slug} />
-                                <SocialAnalyticsPanel />
-                                <AcquisitionFunnel
-                                    rows={KANES_MOCK_FUNNEL_ROWS}
-                                    aiNote="Activation rates are 22% higher for users who engaged with the 'Sneak Peek' carousel on Instagram."
-                                />
-                            </div>
-                        )}
+                        {/* Future column for more modular tools or insights */}
                     </div>
 
-                    {!isPlentyOfHearts && (
-                        <AiSignalCards projectSlug={slug} />
-                    )}
+                    <AiSignalCards projectSlug={slug} />
 
-                    {!isPlentyOfHearts && <ActivityFeed projectSlug={slug} />}
+                    <ActivityFeed projectSlug={slug} />
                 </div>
             </main>
         </div>

@@ -11,7 +11,7 @@ This module provides a realtime audit log of project events, ensuring transparen
 ## 🛡️ Development Rules
 1. **Realtime Protocol**: All realtime subscriptions must be managed via `ActivityService` to ensure channels are properly cleaned up.
 2. **Logic Isolation**: Time formatting and data mapping should happen in the Service or Hook, never in the UI components.
-3. **Mock Consistency**: If live data is missing, the Hook should fallback to `KANES_MOCK_ACTIVITY` defined in the service.
+3. **Mock Consistency**: If live data is missing, the Hook should fallback to `DEMO_MOCK_ACTIVITY` defined in the service.
 4. **Clean UI**: `ActivityItem.tsx` should only worry about layout and animations.
 
 ## 📖 File Map

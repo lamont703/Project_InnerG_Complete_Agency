@@ -81,9 +81,9 @@ export class ActivityService {
     }
 }
 
-export const KANES_MOCK_ACTIVITY: ActivityEntry[] = [
-    { time: "2m ago", action: "Inventory Sync Completed", category: "Retail Ops" },
-    { time: "45m ago", action: "Personalization Engine Updated", category: "Growth" },
-    { time: "2h ago", action: "Komet Card Variant Verified", category: "Revenue" },
-    { time: "5h ago", action: "New GHL Contact Synced", category: "CRM" },
+export const DEMO_MOCK_ACTIVITY: ActivityEntry[] = [
+    { time: "2m ago", action: "System Optimization Completed", category: "Performance" },
+    { time: "45m ago", action: "Campaign Intelligence Updated", category: "Strategy" },
+    { time: "2h ago", action: "Conversion Funnel Verified", category: "Growth" },
+    { time: "5h ago", action: "CRM Contact Sync Active", category: "Infrastructure" },
 ]

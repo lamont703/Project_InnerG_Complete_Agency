@@ -14,13 +14,13 @@ const SEVERITY_BUTTONS: Record<string, string> = {
     critical: "bg-primary text-primary-foreground hover:bg-primary/90",
 }
 
-export const KANES_MOCK_SIGNALS: Signal[] = [
+export const DEMO_MOCK_SIGNALS: Signal[] = [
     {
         id: "sig-inventory-001",
         signalType: "inventory",
-        title: "High Demand Prediction",
-        body: "Database analysis indicates 'The Midnight Library' is trending. Current stock will deplete in 48 hours based on current velocity.",
-        actionLabel: "Automate Restock Order",
+        title: "Growth Opportunity Identified",
+        body: "System analysis indicates a surge in interest for your primary service. Current capacity is optimal, but expansion is recommended.",
+        actionLabel: "Analyze Scaling Plan",
         severity: "warning",
         color: "bg-orange-500",
         buttonColor: "bg-emerald-600 hover:bg-emerald-700 text-white",
@@ -28,9 +28,9 @@ export const KANES_MOCK_SIGNALS: Signal[] = [
     {
         id: "sig-conversion-001",
         signalType: "conversion",
-        title: "342 Stalled Checkouts",
-        body: "GHL Data identifies a high-intent segment stuck at Step 2 of the 'Komet Card' funnel. Potential revenue gap: $12,400.",
-        actionLabel: "Trigger Retargeting Flow",
+        title: "Conversion Optimization Signal",
+        body: "Real-time data identifies a high-intent segment stalling at the final conversion step. Potential impact: Significant revenue lift.",
+        actionLabel: "Optimize Conversion Flow",
         severity: "critical",
         color: "bg-primary",
         buttonColor: "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -38,9 +38,9 @@ export const KANES_MOCK_SIGNALS: Signal[] = [
     {
         id: "sig-social-001",
         signalType: "social",
-        title: "Engagement Spike (+48%)",
-        body: "Your latest Reel on 'Special Edition Hardcovers' is viral. Instagram API reports over 500+ comments asking for purchase links.",
-        actionLabel: "Deploy Bio-Link Update",
+        title: "Social Engagement Peak",
+        body: "Your recent social campaign is experiencing viral levels of interaction. High volume of technical and sales queries detected.",
+        actionLabel: "Execute Social Response",
         severity: "info",
         color: "bg-pink-500",
         buttonColor: "bg-pink-600 hover:bg-pink-700 text-white",
@@ -75,7 +75,7 @@ export class SignalService {
         const records = data as RawSignalRecord[]
 
         if (!records || records.length === 0) {
-            return KANES_MOCK_SIGNALS
+            return DEMO_MOCK_SIGNALS
         }
 
         return records.map(s => ({
