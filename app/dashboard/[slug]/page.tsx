@@ -13,7 +13,7 @@ import { ConnectionStatusGrid } from "@/components/dashboard/connection-status-g
 import { KpiMetricsGrid } from "@/components/dashboard/kpi-metrics-grid"
 import { SocialAnalyticsPanel, AcquisitionFunnel, KANES_MOCK_FUNNEL_ROWS } from "@/components/dashboard/analytics-panels"
 import { SignalGrid as AiSignalCards } from "@/features/signals/SignalGrid"
-import { ActivityFeed } from "@/components/dashboard/activity-feed"
+import { ActivityFeed } from "@/features/activity/ActivityFeed"
 import { PlentyOfHeartsBanner } from "@/components/dashboard/plenty-of-hearts-banner"
 import { createBrowserClient } from "@/lib/supabase/browser"
 
