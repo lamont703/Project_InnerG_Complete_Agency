@@ -31,8 +31,8 @@ export function SignalCard({ signal, isResolving, onResolve, isAgencyMode = fals
 
     return (
         <div className={`glass-panel-strong rounded-3xl p-8 border relative overflow-hidden group transition-all duration-500 hover:shadow-2xl ${isAgencyInsight
-                ? "border-primary/20 hover:border-primary/40 hover:shadow-primary/10 bg-primary/[0.02]"
-                : "border-white/[0.05] hover:border-white/10 hover:shadow-primary/5"
+            ? "border-primary/20 hover:border-primary/40 hover:shadow-primary/10 bg-primary/[0.02]"
+            : "border-white/[0.05] hover:border-white/10 hover:shadow-primary/5"
             }`}>
             {/* Ambient electric gradient */}
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -58,10 +58,10 @@ export function SignalCard({ signal, isResolving, onResolve, isAgencyMode = fals
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
                         <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/5 ${isAgencyInsight
-                                ? "bg-violet-500/10 text-violet-400 border-violet-500/20"
-                                : `${signal.color.replace('bg-', 'bg- opacity-10')} ${signal.color.replace('bg-', 'text-')}`
+                            ? "bg-violet-500/10 text-violet-400 border-violet-500/20"
+                            : `${signal.color.replace('bg-', 'bg- opacity-10')} ${signal.color.replace('bg-', 'text-')}`
                             }`}>
-                            {isAgencyInsight ? "God Mode Strategy" : signal.signalType.replace("_", " ")}
+                            {isAgencyInsight ? "God Mode Strategy" : signal.signalType.toUpperCase().replace("_", " ")}
                         </span>
                         {signal.projectName && (
                             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">
@@ -101,7 +101,7 @@ export function SignalCard({ signal, isResolving, onResolve, isAgencyMode = fals
                             className="h-11 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-white hover:bg-white/5 border border-white/5 group-hover:border-white/10 transition-all"
                             onClick={handleDiscuss}
                         >
-                            {isAgencyInsight ? "Discuss Intelligence" : "Discuss Strategy"}
+                            {isAgencyInsight || signal.signalType === 'marketing' || signal.signalType === 'strategic' ? "Discuss Intelligence" : "Discuss Strategy"}
                         </Button>
                     </div>
                 </div>

@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 import { AgencyProject, StrategicSignal, OperationalSignal, AgencyUserData } from "./types"
+import { DEMO_MOCK_SIGNALS } from "@/features/signals/signal-service"
 
 /**
  * AgencyService - Handles all database and API interactions for the Super Admin dashboard.
@@ -49,6 +50,33 @@ export class AgencyService {
             .limit(50)
 
         const signals = (data as any[]) || []
+
+        if (signals.length === 0) {
+            return {
+                strategic: DEMO_MOCK_SIGNALS.filter(s => s.isAgencyOnly).map(s => ({
+                    id: s.id,
+                    project_id: '',
+                    signal_type: s.signalType,
+                    title: s.title,
+                    body: s.body,
+                    severity: s.severity as any,
+                    is_resolved: false,
+                    is_agency_only: true,
+                    created_at: new Date().toISOString()
+                })),
+                operational: DEMO_MOCK_SIGNALS.filter(s => !s.isAgencyOnly).map(s => ({
+                    id: s.id,
+                    project_id: '',
+                    signal_type: s.signalType,
+                    title: s.title,
+                    body: s.body,
+                    severity: s.severity as any,
+                    is_resolved: false,
+                    is_agency_only: false,
+                    created_at: new Date().toISOString()
+                }))
+            }
+        }
 
         return {
             strategic: signals.filter(s => s.is_agency_only),
