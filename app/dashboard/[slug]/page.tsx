@@ -11,10 +11,22 @@ import { DashboardHeader } from "@/components/dashboard/header"
 import { MetricsGrid as KpiMetricsGrid } from "@/features/metrics/MetricsGrid"
 import { SignalGrid as AiSignalCards } from "@/features/signals/SignalGrid"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { SlotProvider, useSlotContext } from "@/features/metrics/SlotContext"
+import { DashboardCustomizer } from "@/features/metrics/components/DashboardCustomizer"
 
 function DashboardContent() {
+    return (
+        <SlotProvider userRole="client">
+            <DashboardPageContent />
+        </SlotProvider>
+    )
+}
+
+function DashboardPageContent() {
     const params = useParams()
     const slug = (params?.slug as string) ?? "innergcomplete"
+
+    const { activeSlotIds } = useSlotContext()
 
     // User & Project State
     const [userData, setUserData] = useState<{ name: string; role: string } | null>(null)
@@ -121,7 +133,7 @@ function DashboardContent() {
                         </p>
                     </div>
 
-                    <KpiMetricsGrid projectSlug={slug} />
+                    <KpiMetricsGrid projectSlug={slug} activeSlotIds={activeSlotIds} />
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
                         <div className="rounded-2xl border border-white/5 overflow-hidden flex flex-col min-h-0 bg-[#020617]/40 backdrop-blur-xl">
@@ -133,6 +145,7 @@ function DashboardContent() {
                         </div>
                     </div>
                 </div>
+                <DashboardCustomizer />
             </main>
         </div>
     )

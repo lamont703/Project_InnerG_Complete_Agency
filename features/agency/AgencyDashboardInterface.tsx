@@ -9,6 +9,8 @@ import { AgencyHeader } from "./components/AgencyHeader"
 import { AgencyChatInterface } from "./components/AgencyChat"
 import { SignalSlotFeed } from "@/features/signals/components/SignalSlotFeed"
 import { MetricSlotGrid } from "@/features/metrics/components/MetricSlotGrid"
+import { DashboardCustomizer } from "@/features/metrics/components/DashboardCustomizer"
+import { SlotProvider, useSlotContext } from "@/features/metrics/SlotContext"
 
 // Hooks
 import { useAgencyData } from "./use-agency-data"
@@ -21,6 +23,14 @@ import { PortfolioMetric } from "./types"
  * Connects the UI to the logical state.
  */
 export function AgencyDashboardInterface() {
+    return (
+        <SlotProvider userRole="super-admin">
+            <AgencyDashboardContent />
+        </SlotProvider>
+    )
+}
+
+function AgencyDashboardContent() {
     const {
         userData,
         projects,
@@ -31,6 +41,8 @@ export function AgencyDashboardInterface() {
         newSignalId,
         syncGHL
     } = useAgencyData()
+
+    const { activeSlotIds } = useSlotContext()
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [currentTime, setCurrentTime] = useState(new Date())
@@ -78,7 +90,8 @@ export function AgencyDashboardInterface() {
             color: "bg-violet-500/20 text-violet-400",
         },
     ]
-    const agencySlots = ["active_architectures", "system_health", "agency_intelligence"]
+
+    const agencySlots = ["active_architectures", "system_health", "agency_intelligence"] // Deprecated hardcoded slots
 
     // Map agency signals to standard Signal type for unified Card usage
     const allAgencySignalsMapped: any[] = [
@@ -157,7 +170,7 @@ export function AgencyDashboardInterface() {
                     </div>
 
                     <MetricSlotGrid
-                        slotIds={agencySlots}
+                        slotIds={activeSlotIds}
                         metrics={mappedAgencyMetrics}
                         isAgency={true}
                     />
@@ -179,6 +192,7 @@ export function AgencyDashboardInterface() {
                         </div>
                     </div>
                 </div>
+                <DashboardCustomizer />
             </main>
         </div>
     )

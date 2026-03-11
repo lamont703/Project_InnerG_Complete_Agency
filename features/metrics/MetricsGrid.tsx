@@ -11,12 +11,14 @@ interface MetricsGridProps {
     projectSlug: string
     initialMetrics?: Metric[]
     readerCountThisWeek?: string
+    activeSlotIds?: string[]
 }
 
 export function MetricsGrid({
     projectSlug,
     initialMetrics,
-    readerCountThisWeek = "+1,240"
+    readerCountThisWeek = "+1,240",
+    activeSlotIds
 }: MetricsGridProps) {
     const {
         metrics,
@@ -79,7 +81,7 @@ export function MetricsGrid({
                 </div>
             ) : (
                 <MetricSlotGrid
-                    slotIds={["total_signups", "app_installs", "funnel_conversion", "social_reach"]}
+                    slotIds={activeSlotIds || ["total_signups", "app_installs", "funnel_conversion", "social_reach"]}
                     metrics={metrics}
                     className="sm:grid-cols-2 lg:grid-cols-4"
                 />
