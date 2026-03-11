@@ -6,9 +6,9 @@ import { Loader2, Building2, AlertTriangle, Sparkles } from "lucide-react"
 // Modular Components
 import { AgencySidebar } from "./components/AgencySidebar"
 import { AgencyHeader } from "./components/AgencyHeader"
-import { PortfolioGrid } from "./components/PortfolioGrid"
 import { AgencyChatInterface } from "./components/AgencyChat"
-import { AgencySignalGrid } from "./components/AgencySignalGrid"
+import { SignalSlotFeed } from "@/features/signals/components/SignalSlotFeed"
+import { MetricSlotGrid } from "@/features/metrics/components/MetricSlotGrid"
 
 // Hooks
 import { useAgencyData } from "./use-agency-data"
@@ -53,14 +53,16 @@ export function AgencyDashboardInterface() {
         )
     }
 
-    const portfolioMetrics: PortfolioMetric[] = [
+    const mappedAgencyMetrics: any[] = [
         {
+            id: "active_architectures",
             label: "Active Client Projects",
             value: projects.length,
             icon: Building2,
             color: "bg-blue-500/20 text-blue-400",
         },
         {
+            id: "system_health",
             label: "Unresolved Signals",
             value: operationalSignals.filter(s => !s.is_resolved).length,
             change: operationalSignals.filter(s => !s.is_resolved).length > 0 ? "Active monitoring" : "All clear",
@@ -69,12 +71,44 @@ export function AgencyDashboardInterface() {
             color: operationalSignals.filter(s => !s.is_resolved).length > 0 ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400",
         },
         {
+            id: "agency_intelligence",
             label: "Agency Intelligence",
             value: strategicSignals.length,
             icon: Sparkles,
             color: "bg-violet-500/20 text-violet-400",
         },
     ]
+    const agencySlots = ["active_architectures", "system_health", "agency_intelligence"]
+
+    // Map agency signals to standard Signal type for unified Card usage
+    const allAgencySignalsMapped: any[] = [
+        ...strategicSignals.map(s => ({
+            id: s.id,
+            signalType: 'strategic',
+            title: s.title,
+            body: s.body,
+            actionLabel: "STRATEGY ACK",
+            severity: s.severity,
+            color: s.severity === 'critical' ? 'bg-red-500' : s.severity === 'warning' ? 'bg-amber-500' : 'bg-primary',
+            buttonColor: 'bg-primary',
+            isAgencyOnly: true,
+            projectName: s.projects?.name,
+            createdAt: s.created_at
+        })),
+        ...operationalSignals.map(s => ({
+            id: s.id,
+            signalType: s.signal_type,
+            title: s.title,
+            body: s.body,
+            actionLabel: "RESOLVE",
+            severity: s.severity,
+            color: s.severity === 'critical' ? 'bg-red-500' : s.severity === 'warning' ? 'bg-amber-500' : 'bg-primary',
+            buttonColor: 'bg-primary',
+            isAgencyOnly: false,
+            projectName: s.projects?.name,
+            createdAt: s.created_at
+        }))
+    ].sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
 
     return (
         <div className="min-h-screen bg-background flex flex-col lg:flex-row">
@@ -122,7 +156,11 @@ export function AgencyDashboardInterface() {
                         </div>
                     </div>
 
-                    <PortfolioGrid metrics={portfolioMetrics} />
+                    <MetricSlotGrid
+                        slotIds={agencySlots}
+                        metrics={mappedAgencyMetrics}
+                        isAgency={true}
+                    />
 
                     {/* Main Grid: "The Big Three" Alignment */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10 mb-16 items-start h-[calc(100vh-450px)] min-h-[700px]">
@@ -133,10 +171,10 @@ export function AgencyDashboardInterface() {
 
                         {/* 2. Unified Signal Feed - 40% Width approx */}
                         <div className="lg:col-span-5 h-full min-h-0">
-                            <AgencySignalGrid
-                                strategicSignals={strategicSignals}
-                                operationalSignals={operationalSignals}
-                                newSignalId={newSignalId}
+                            <SignalSlotFeed
+                                slotId="global_portfolio_monitoring"
+                                signals={allAgencySignalsMapped}
+                                isAgencyMode={true}
                             />
                         </div>
                     </div>

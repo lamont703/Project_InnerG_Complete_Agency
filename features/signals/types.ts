@@ -28,6 +28,16 @@ export interface RawSignalRecord {
     created_at: string
 }
 
+export interface SignalSlot {
+    id: string
+    label: string
+    description: string
+    category: 'agency' | 'marketing' | 'operations'
+    permissions: ('client' | 'admin' | 'super-admin')[]
+    iconName: string
+    defaultLimit: number
+}
+
 export interface ResolveSignalParams {
     signalId: string
     projectId: string

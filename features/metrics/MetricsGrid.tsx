@@ -4,6 +4,7 @@ import { AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useMetrics } from "./use-metrics"
 import { MetricCard } from "./components/MetricCard"
+import { MetricSlotGrid } from "./components/MetricSlotGrid"
 import { Metric } from "./types"
 
 interface MetricsGridProps {
@@ -77,11 +78,11 @@ export function MetricsGrid({
                     <p className="text-sm text-destructive">{error}</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    {metrics.map((stat, i) => (
-                        <MetricCard key={`${stat.label}-${i}`} stat={stat} />
-                    ))}
-                </div>
+                <MetricSlotGrid
+                    slotIds={["total_signups", "app_installs", "funnel_conversion", "social_reach"]}
+                    metrics={metrics}
+                    className="sm:grid-cols-2 lg:grid-cols-4"
+                />
             )}
         </div>
     )
