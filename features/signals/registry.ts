@@ -54,6 +54,15 @@ export const SIGNAL_REGISTRY: SignalSlot[] = [
         permissions: ['super-admin'],
         iconName: "Target",
         defaultLimit: 20
+    },
+    {
+        id: "software_support",
+        label: "Software Support",
+        description: "Direct stream of bug reports and feature requests from client portals.",
+        category: 'operations',
+        permissions: ['super-admin'],
+        iconName: "Bug",
+        defaultLimit: 10
     }
 ]
 

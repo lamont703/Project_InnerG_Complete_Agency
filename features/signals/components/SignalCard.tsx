@@ -1,4 +1,4 @@
-import { Database, Zap, Instagram, Loader2, ArrowUpRight } from "lucide-react"
+import { Database, Zap, Instagram, Loader2, ArrowUpRight, Bug } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Signal } from "../types"
 
@@ -6,6 +6,7 @@ const TYPE_ICONS: Record<string, any> = {
     inventory: Database,
     conversion: Zap,
     social: Instagram,
+    bug_report: Bug,
 }
 
 interface SignalCardProps {

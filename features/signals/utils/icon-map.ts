@@ -5,7 +5,8 @@ import {
     Activity,
     MessageSquare,
     Cpu,
-    Target
+    Target,
+    Bug
 } from "lucide-react"
 
 export const SIGNAL_ICON_MAP: Record<string, any> = {
@@ -15,7 +16,8 @@ export const SIGNAL_ICON_MAP: Record<string, any> = {
     Activity,
     MessageSquare,
     Cpu,
-    Target
+    Target,
+    Bug
 }
 
 export function getSignalIcon(name: string) {

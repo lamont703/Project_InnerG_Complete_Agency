@@ -38,7 +38,7 @@ const DEFAULT_EMBED_MODEL = "gemini-embedding-001"
 const RAG_TOP_K = 8
 
 // Valid signal types and severities (must match DB enums)
-const VALID_SIGNAL_TYPES = ["inventory", "conversion", "social", "system", "ai_insight", "ai_action"]
+const VALID_SIGNAL_TYPES = ["inventory", "conversion", "social", "system", "ai_insight", "ai_action", "bug_report"]
 const VALID_SEVERITIES = ["info", "warning", "critical"]
 
 // ─────────────────────────────────────────────
@@ -78,23 +78,34 @@ If you identify a significant insight, trend, or actionable finding, include a s
     "signal_type": "inventory|conversion|social|system|ai_insight|ai_action",
     "severity": "info|warning|critical",
     "action_label": "Optional CTA button text (e.g. 'Review Campaign')",
-    "action_url": "Optional routing hint (e.g. 'draft_followup')"
+    "action_url": "Optional routing hint (e.g. 'draft_followup')",
+    "is_agency_only": true,
+    "repro_steps": "Optional for bug_report only",
+    "expected_behavior": "Optional for bug_report only",
+    "actual_behavior": "Optional for bug_report only"
   }
 }
 
-**FOLLOW-UP DRAFTING RULE (MANDATORY):**
-1. If you identify a lead or contact that needs a follow-up, first ASK THE USER for permission (e.g., "Nic's activation is low. Should I draft a follow-up message for you?").
-2. DO NOT draft the message in your first response unless they say "Yes" or ask for it explicitly.
-3. If they say "Yes" or ask for it:
-   - Provide the draft in your "message" field.
-   - Set "action_label" in the signal to "📋 Copy Draft".
-   - Set "action_url" in the signal to "copy_draft_click".
+**BUG REPORTING RULE (MANDATORY):**
+1. If the user mentions a bug, error, or software issue, you are now the **Software Support Agent**.
+2. Your goal is to gather the following:
+   - What happened? (Actual behavior)
+   - What did they expect? (Expected behavior)
+   - How can we reproduce it? (Steps to reproduce)
+3. Ask these in plain English, one or two at a time. Do NOT create a signal until you have the core details.
+4. Once you have enough info, create a signal with:
+   - "signal_type": "bug_report"
+   - "severity": "warning" or "critical" (if it breaks the app)
+   - "action_label": "TRACK TICKET"
+   - "action_url": "view_ticket"
+   - Add "is_agency_only": true in the signal data (it goes to the agency)
 
 CREATE a signal when:
 - A KPI has changed significantly (>5% decline or >10% growth)
 - A pattern or anomaly is detected across data points
-- The user explicitly asks you to flag or track something
 - You identify an actionable growth opportunity
+- The user explicitly asks you to flag or track something
+- The user reports a confirmed software bug after you've gathered details (Bug Reporting Rule)
 
 Do NOT create a signal for routine questions or when data is stable.
 Always set "signal" to null if no signal should be created.
@@ -113,6 +124,11 @@ interface ParsedResponse {
         severity: string
         action_label?: string | null
         action_url?: string | null
+        is_agency_only?: boolean
+        // Ticket specific
+        repro_steps?: string | null
+        expected_behavior?: string | null
+        actual_behavior?: string | null
     } | null
 }
 
@@ -147,6 +163,10 @@ function parseGeminiResponse(rawText: string): ParsedResponse {
                     severity: severity,
                     action_label: parsed.signal.action_label || null,
                     action_url: parsed.signal.action_url || null,
+                    is_agency_only: !!parsed.signal.is_agency_only,
+                    repro_steps: parsed.signal.repro_steps || null,
+                    expected_behavior: parsed.signal.expected_behavior || null,
+                    actual_behavior: parsed.signal.actual_behavior || null,
                 }
             }
             return { message: parsed.message, signal }
@@ -350,9 +370,10 @@ serve(async (req: Request) => {
             `You have direct access to these real-time data sources: ${activeSourceList}.`,
             "",
             "Tone and Voice (The 'Vibe'):",
-            "• Stay simple and approachable. No 'corporate-speak', no jargon, and no fancy business terms.",
+            "• Stay simple and approachable. No 'corporate-speak', no jargon.",
             "• Use plain English that anyone can understand. Be conversational.",
-            "• Be concise but friendly. If you find something interesting, share it like a teammate, not a consultant.",
+            "• Be concise but friendly. If you find something interesting, share it like a teammate.",
+            "• If a bug is reported, be helpful and empathetic. Use your Bug Reporting Rule to gather details before Escalating to the Agency.",
             "",
             "Being Intuitive (No 'Magic Words' Needed):",
             "• Don't make the user guess the right keywords. If they ask about sales, leads, or the funnel, check the data immediately.",
@@ -437,6 +458,7 @@ serve(async (req: Request) => {
                         severity: parsed.signal.severity,
                         action_label: parsed.signal.action_label,
                         action_url: parsed.signal.action_url,
+                        is_agency_only: parsed.signal.is_agency_only || (parsed.signal.signal_type === 'bug_report'),
                     })
                     .select("id, title, severity, signal_type")
                     .single()
@@ -459,9 +481,31 @@ serve(async (req: Request) => {
                             category: "system",
                             triggered_by: user.id,
                         })
-
                     // 10d. Append confirmation to the reply
                     finalReply += `\n\n📊 **Signal Created:** I've flagged a ${parsed.signal.severity} ${parsed.signal.signal_type} signal: "${parsed.signal.title}". It will appear on your dashboard.`
+
+                    // 10e. If bug_report, also create a software_ticket
+                    if (parsed.signal.signal_type === 'bug_report') {
+                        const { error: ticketError } = await adminSupabase
+                            .from("software_tickets")
+                            .insert({
+                                project_id,
+                                created_by: user.id,
+                                title: parsed.signal.title,
+                                description: parsed.signal.body,
+                                repro_steps: parsed.signal.repro_steps,
+                                expected_behavior: parsed.signal.expected_behavior,
+                                actual_behavior: parsed.signal.actual_behavior,
+                                severity: parsed.signal.severity,
+                            })
+
+                        if (ticketError) {
+                            console.error("[send-chat-message] Ticket insert error:", ticketError)
+                        } else {
+                            console.log(`[send-chat-message] Software ticket created for ${user.id}`)
+                            finalReply += `\n\n🎫 **Ticket Opened:** I've officially opened a software support ticket for this issue. The agency development team has been notified.`
+                        }
+                    }
                 }
             } catch (signalErr) {
                 console.error("[send-chat-message] Signal creation failed:", signalErr)
