@@ -12,32 +12,37 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { corsPreflightResponse, serverErrorResponse, unauthorizedResponse, forbiddenResponse } from "./response.ts"
+import { z } from "https://deno.land/x/zod@v3.21.4/mod.ts"
+import { corsPreflightResponse, serverErrorResponse, unauthorizedResponse, forbiddenResponse, validationErrorResponse } from "./response.ts"
 import { getAuthenticatedUser, createAdminClient, AuthUser, verifyRole } from "./auth.ts"
 import { validateEnv, EnvKey } from "./env.ts"
 
-export interface FunctionContext {
+export interface FunctionContext<T = any> {
     req: Request
     adminClient: SupabaseClient
     user: AuthUser | null
+    body: T
 }
 
-export interface HandlerConfig {
+export interface HandlerConfig<T extends z.ZodTypeAny = any> {
     /** Required environment variables to check before running */
     requiredEnv?: readonly EnvKey[]
     /** Roles allowed to call this function. If omitted, no auth check is performed. */
     allowedRoles?: string[]
     /** Whether to require a valid user session. Defaults to false. */
     requireAuth?: boolean
+    /** Optional Zod schema to validate the request body */
+    schema?: T
 }
-
-type FunctionHandler = (context: FunctionContext) => Promise<Response>
 
 /**
  * The standard orchestrator for all Edge Functions.
  * Handles CORS, Auth, Env Validation, and Error Catching.
  */
-export function createHandler(handler: FunctionHandler, config: HandlerConfig = {}) {
+export function createHandler<T extends z.ZodTypeAny = any>(
+    handler: (context: FunctionContext<z.infer<T>>) => Promise<Response>,
+    config: HandlerConfig<T> = {}
+) {
     return serve(async (req: Request) => {
         // 1. Standard CORS Preflight
         if (req.method === "OPTIONS") {
@@ -70,11 +75,30 @@ export function createHandler(handler: FunctionHandler, config: HandlerConfig = 
                 }
             }
 
-            // 5. Execute Core Logic
+            // 5. Body Parsing & Validation
+            let body: any = {}
+            if (req.method !== "GET" && req.method !== "HEAD") {
+                try {
+                    body = await req.json()
+                } catch {
+                    // Fallback to empty object if no body or malformed JSON
+                }
+
+                if (config.schema) {
+                    const validation = config.schema.safeParse(body)
+                    if (!validation.success) {
+                        return validationErrorResponse("Invalid request body.", validation.error.format())
+                    }
+                    body = validation.data
+                }
+            }
+
+            // 6. Execute Core Logic
             return await handler({
                 req,
                 adminClient,
-                user: userResult?.user || null
+                user: userResult?.user || null,
+                body
             })
 
         } catch (err) {
