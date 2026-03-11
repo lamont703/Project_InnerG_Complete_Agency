@@ -9,6 +9,8 @@ The `_shared` directory contains infrastructure code used by two or more Edge Fu
 _shared/
 ├── cors.ts              ← CORS headers (existing)
 └── lib/
+    ├── providers/       ← External Service Providers (GHL, Stripe, etc.)
+    │   └── ghl.ts
     ├── db/              ← Database repositories (Single source of truth for queries)
     │   ├── activity.ts
     │   ├── index.ts
@@ -16,12 +18,27 @@ _shared/
     │   ├── tickets.ts
     │   └── users.ts
     ├── auth.ts          ← Authentication helpers (createUserClient, createAdminClient, getAuthenticatedUser)
+    ├── env.ts           ← Environment variable guard
     ├── gemini.ts        ← Gemini API client (generateContent, embedText)
+    ├── middleware.ts    ← Top-level orchestrator (CORS, Auth, logic wrapping)
     ├── response.ts      ← Standardized HTTP response factory (okResponse, errorResponse, etc.)
     └── types.ts         ← Shared interfaces used by 2+ functions (SignalPayload, TicketStatus, etc.)
 ```
 
 ## Guardrails
+
+### `middleware.ts` (Orchestrator)
+- ✅ Use `createHandler` in EVERY `index.ts`. It handles CORS and errors for you.
+- ❌ NEVER write `serve(async (req) => { ... })` manually in an Edge Function.
+- ❌ NEVER write a manual `try/catch` at the top level of a function.
+
+### `env.ts` (Config)
+- ✅ Use `getEnv("KEY")` to access secrets. It fails fast if the secret is missing.
+- ❌ NEVER use `Deno.env.get()` inside feature logic.
+
+### `providers/` (Services)
+- ✅ Centralize all `fetch()` calls to external APIs (GHL, Stripe) here.
+- ❌ NEVER write a `fetch()` call to a 3rd party API inside an Edge Function.
 
 ### `db/` (Repositories)
 - ✅ Use repository methods (e.g., `SignalRepo.create()`) for ALL database interactions.
