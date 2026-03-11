@@ -6,7 +6,6 @@ import {
     AgencyProject,
     StrategicSignal,
     OperationalSignal,
-    ActivityLogEntry,
     AgencyUserData
 } from "./types"
 
@@ -16,7 +15,6 @@ export function useAgencyData() {
     const [projects, setProjects] = useState<AgencyProject[]>([])
     const [strategicSignals, setStrategicSignals] = useState<StrategicSignal[]>([])
     const [operationalSignals, setOperationalSignals] = useState<OperationalSignal[]>([])
-    const [recentActivity, setRecentActivity] = useState<ActivityLogEntry[]>([])
 
     const [isLoading, setIsLoading] = useState(true)
     const [isSyncing, setIsSyncing] = useState(false)
@@ -41,16 +39,14 @@ export function useAgencyData() {
             setUserData(profile)
 
             // Parallel fetch for performance
-            const [projData, signalData, activityData] = await Promise.all([
+            const [projData, signalData] = await Promise.all([
                 service.getActiveProjects(),
-                service.getAllAgencySignals(),
-                service.getRecentActivity()
+                service.getAllAgencySignals()
             ])
 
             setProjects(projData)
             setStrategicSignals(signalData.strategic)
             setOperationalSignals(signalData.operational)
-            setRecentActivity(activityData)
 
         } catch (err) {
             console.error("[useAgencyData] Error:", err)
@@ -87,9 +83,6 @@ export function useAgencyData() {
                 fetchData()
                 setTimeout(() => setNewSignalId(null), 5000)
             })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_log' }, () => {
-                fetchData()
-            })
             .subscribe()
 
         return () => {
@@ -102,7 +95,6 @@ export function useAgencyData() {
         projects,
         strategicSignals,
         operationalSignals,
-        recentActivity,
         isLoading,
         isSyncing,
         newSignalId,

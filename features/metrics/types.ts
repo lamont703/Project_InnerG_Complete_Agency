@@ -1,8 +1,12 @@
+import { LucideIcon } from "lucide-react"
+
 export interface Metric {
     label: string
-    value: string
-    growth: string
-    icon: any
+    value: string | number
+    growth?: string
+    change?: string
+    trend?: "up" | "down" | "neutral"
+    icon: LucideIcon | any
     color: string
 }
 

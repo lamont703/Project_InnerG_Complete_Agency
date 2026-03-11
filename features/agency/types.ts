@@ -24,19 +24,11 @@ export interface StrategicSignal {
     }
 }
 
-export interface ActivityLogEntry {
-    id: string
-    action: string
-    category: string
-    created_at: string
-    projects?: {
-        name: string
-    }
-}
 
 export interface OperationalSignal {
     id: string
     title: string
+    body: string
     signal_type: string
     severity: "critical" | "warning" | "info"
     created_at: string

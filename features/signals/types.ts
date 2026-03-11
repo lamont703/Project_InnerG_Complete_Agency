@@ -10,6 +10,9 @@ export interface Signal {
     severity: SignalSeverity
     color: string
     buttonColor: string
+    isAgencyOnly?: boolean
+    projectName?: string
+    createdAt?: string
 }
 
 export interface RawSignalRecord {

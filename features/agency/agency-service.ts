@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js"
-import { AgencyProject, StrategicSignal, OperationalSignal, ActivityLogEntry, AgencyUserData } from "../types"
+import { AgencyProject, StrategicSignal, OperationalSignal, AgencyUserData } from "./types"
 
 /**
  * AgencyService - Handles all database and API interactions for the Super Admin dashboard.
@@ -56,18 +56,6 @@ export class AgencyService {
         }
     }
 
-    /**
-     * Fetch recent activity log across all projects
-     */
-    async getRecentActivity(): Promise<ActivityLogEntry[]> {
-        const { data } = await this.supabase
-            .from("activity_log")
-            .select("id, action, category, created_at, projects(name)")
-            .order("created_at", { ascending: false })
-            .limit(20)
-
-        return (data as any[]) || []
-    }
 
     /**
      * Trigger the GHL Sync function via Supabase Edge Function

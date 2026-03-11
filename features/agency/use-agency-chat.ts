@@ -89,6 +89,16 @@ export function useAgencyChat() {
         }
     }
 
+    useEffect(() => {
+        const handleDiscussSignal = (event: any) => {
+            const { signalTitle, signalBody } = event.detail
+            sendMessage(`I'd like to discuss the agency signal: "${signalTitle}". Context: ${signalBody}`)
+        }
+
+        window.addEventListener('innerg-agency-discuss-signal', handleDiscussSignal)
+        return () => window.removeEventListener('innerg-agency-discuss-signal', handleDiscussSignal)
+    }, [sendMessage])
+
     return {
         messages,
         input,

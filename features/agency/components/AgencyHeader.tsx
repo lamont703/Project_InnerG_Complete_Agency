@@ -21,45 +21,65 @@ export function AgencyHeader({
     onMenuOpen
 }: AgencyHeaderProps) {
     return (
-        <header className="sticky top-0 z-50 h-20 flex items-center justify-between px-6 md:px-8 glass-panel border-b border-white/5 bg-[#020617]/50 backdrop-blur-md">
-            <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-50 h-24 flex items-center justify-between px-6 md:px-10 glass-panel-strong border-b border-white/[0.05] bg-[#020617]/40 backdrop-blur-2xl">
+            {/* Left side: Navigation / Breadcrumbs */}
+            <div className="flex items-center gap-6">
                 <button
                     onClick={onMenuOpen}
-                    className="lg:hidden h-10 w-10 rounded-lg glass-panel flex items-center justify-center"
+                    className="lg:hidden h-12 w-12 rounded-xl glass-panel flex items-center justify-center hover:bg-white/5 transition-colors"
                 >
-                    <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
+                    <LayoutDashboard className="h-6 w-6 text-primary" />
                 </button>
                 <div>
-                    <p className="text-sm font-medium text-foreground">Agency Command Center</p>
-                    <p className="text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3">
+                        <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)] animate-pulse" />
+                        <h2 className="text-lg font-black uppercase tracking-[0.2em] text-foreground">Command Center</h2>
+                    </div>
+                    <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 uppercase tracking-widest">
                         {mounted && currentTime.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                     </p>
                 </div>
             </div>
-            <div className="flex items-center gap-4">
-                <div className="hidden md:flex items-center gap-4">
+
+            {/* Right side: Global Actions & Profile */}
+            <div className="flex items-center gap-8">
+                <div className="hidden lg:flex items-center gap-6">
+                    {/* GHL Sync Control */}
                     <Button
                         variant="outline"
                         size="sm"
                         disabled={isSyncing}
                         onClick={onSyncGHL}
-                        className="h-8 gap-2 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 transition-all"
+                        className="h-10 px-5 gap-3 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 hover:border-primary/40 transition-all rounded-xl shadow-lg shadow-primary/5 group"
                     >
-                        <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-                        {isSyncing ? "Syncing GHL..." : "Sync GHL"}
+                        <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`} />
+                        <span className="text-[11px] font-black uppercase tracking-widest">
+                            {isSyncing ? "Force Syncing..." : "Global GHL Sync"}
+                        </span>
                     </Button>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-xs font-medium text-primary">Systems Online</span>
+
+                    <div className="h-10 w-px bg-white/5 mx-2" />
+
+                    {/* Meta Status */}
+                    <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                        <div className="relative">
+                            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-ping absolute" />
+                            <div className="h-2 w-2 rounded-full bg-emerald-500 relative" />
+                        </div>
+                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Aura Systems active</span>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-sm">
-                        {userData?.name?.charAt(0) || "A"}
+
+                {/* Profile Widget */}
+                <div className="flex items-center gap-4 pl-6 border-l border-white/5">
+                    <div className="hidden md:block text-right">
+                        <p className="text-sm font-bold text-foreground leading-none">{userData?.name}</p>
+                        <p className="text-[9px] text-primary font-black uppercase tracking-[0.2em] mt-1.5 opacity-80">{userData?.role}</p>
                     </div>
-                    <div className="hidden md:block">
-                        <p className="text-sm font-medium text-foreground">{userData?.name}</p>
-                        <p className="text-[10px] text-primary font-bold uppercase tracking-widest">{userData?.role}</p>
+                    <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-primary via-primary/80 to-accent p-[1px] shadow-lg shadow-primary/10 transition-transform hover:scale-105 cursor-pointer">
+                        <div className="h-full w-full rounded-[14px] bg-[#020617] flex items-center justify-center overflow-hidden">
+                            <span className="text-sm font-black text-white">{userData?.name?.charAt(0) || "A"}</span>
+                        </div>
                     </div>
                 </div>
             </div>
