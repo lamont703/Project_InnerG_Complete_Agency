@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { ChatService } from "./chat-service"
 import { Message } from "./types"
@@ -12,20 +12,41 @@ export function useChat(projectSlug: string) {
     const [selectedModel] = useState("gemini-2.5-flash-lite")
     const [supabase] = useState(() => createBrowserClient())
     const [chatService] = useState(() => new ChatService(supabase))
+    const loadedSlugRef = useRef<string | null>(null)
+    const [isNotFound, setIsNotFound] = useState(false)
 
     const loadChat = useCallback(async () => {
+        if (loadedSlugRef.current === projectSlug) return
+
         try {
             setIsInitialLoading(true)
-            const pId = await chatService.getProjectId(projectSlug)
-            if (!pId) {
-                console.warn(`[useChat] Project with slug "${projectSlug}" not found. Falling back to welcome message.`)
+
+            // 1. Wait for Auth hydration - RLS depends on this
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) {
                 addWelcomeMessage()
                 return
             }
-            setProjectId(pId)
 
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return
+            // 2. Resolve Project ID
+            const pId = await chatService.getProjectId(projectSlug)
+            if (!pId) {
+                console.warn(`[useChat] Project with slug "${projectSlug}" not found or unauthorized.`)
+                setIsNotFound(true)
+                setMessages([
+                    {
+                        id: "not-found",
+                        role: "assistant",
+                        content: `⚠️ **Secure Bridge Error:** The project architecture for "${projectSlug}" could not be resolved. Please verify the URL or contact Inner G support to sync this architecture.`,
+                        timestamp: new Date()
+                    }
+                ])
+                return
+            }
+
+            setIsNotFound(false)
+            setProjectId(pId)
+            loadedSlugRef.current = projectSlug
 
             const sId = await chatService.getLatestSession(pId, user.id)
             if (sId) {
@@ -44,7 +65,7 @@ export function useChat(projectSlug: string) {
         } finally {
             setIsInitialLoading(false)
         }
-    }, [projectSlug, chatService, supabase.auth])
+    }, [projectSlug, chatService, supabase])
 
     const addWelcomeMessage = () => {
         setMessages([
@@ -61,8 +82,8 @@ export function useChat(projectSlug: string) {
         loadChat()
     }, [loadChat])
 
-    const sendMessage = async (content: string) => {
-        if (!content.trim() || isLoading || !projectId) return
+    const sendMessage = useCallback(async (content: string) => {
+        if (!content.trim() || isLoading) return
 
         const userMessage: Message = {
             id: Date.now().toString(),
@@ -72,6 +93,22 @@ export function useChat(projectSlug: string) {
         }
 
         setMessages((prev) => [...prev, userMessage])
+
+        // If we don't have a projectId yet, we can't send to backend
+        if (!projectId) {
+            const errorMessage = isNotFound
+                ? "This connection is unauthorized or the project does not exist. Please use a valid portal URL."
+                : "I'm still initializing the secure project bridge. Please wait a moment or refresh if this persists."
+
+            setMessages((prev) => [...prev, {
+                id: (Date.now() + 1).toString(),
+                role: "assistant",
+                content: errorMessage,
+                timestamp: new Date()
+            }])
+            return
+        }
+
         setIsLoading(true)
 
         try {
@@ -111,7 +148,7 @@ export function useChat(projectSlug: string) {
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [projectId, sessionId, isLoading, selectedModel, chatService, supabase.auth])
 
     useEffect(() => {
         const handleDiscussSignal = (event: any) => {

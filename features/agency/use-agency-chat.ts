@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
 
 import { AgencyChatMessage } from "./types"
@@ -19,7 +19,7 @@ export function useAgencyChat() {
     const [sessionId, setSessionId] = useState<string | null>(null)
     const [selectedModel] = useState("gemini-2.5-pro")
 
-    const sendMessage = async (content: string) => {
+    const sendMessage = useCallback(async (content: string) => {
         if (!content.trim() || isLoading) return
 
         const userMessage: AgencyChatMessage = {
@@ -87,7 +87,7 @@ export function useAgencyChat() {
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [isLoading, sessionId, selectedModel])
 
     useEffect(() => {
         const handleDiscussSignal = (event: any) => {

@@ -10,7 +10,11 @@ import {
     User,
     AlertTriangle,
     Loader2,
-    Send
+    Send,
+    Bug,
+    Zap,
+    Database,
+    Instagram
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -88,9 +92,15 @@ export function AgencyChatInterface() {
                                         'bg-blue-500/10 border-blue-500/20'
                                     }`}>
                                     <div className="flex items-center gap-2 mb-1">
-                                        <AlertTriangle className={`h-3.5 w-3.5 ${m.signalCreated.severity === 'critical' ? 'text-red-400' :
-                                            m.signalCreated.severity === 'warning' ? 'text-amber-400' : 'text-blue-400'
-                                            }`} />
+                                        {m.signalCreated.signal_type === 'bug_report' ? (
+                                            <Bug className={`h-3.5 w-3.5 ${m.signalCreated.severity === 'critical' ? 'text-red-400' :
+                                                m.signalCreated.severity === 'warning' ? 'text-amber-400' : 'text-blue-400'
+                                                }`} />
+                                        ) : (
+                                            <AlertTriangle className={`h-3.5 w-3.5 ${m.signalCreated.severity === 'critical' ? 'text-red-400' :
+                                                m.signalCreated.severity === 'warning' ? 'text-amber-400' : 'text-blue-400'
+                                                }`} />
+                                        )}
                                         <span className="text-xs font-bold uppercase tracking-wider">
                                             {m.signalCreated.severity} Signal Created
                                         </span>

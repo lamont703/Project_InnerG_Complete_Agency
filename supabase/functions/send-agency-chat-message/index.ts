@@ -33,7 +33,7 @@ const RAG_TOP_K = 8
 const AGENCY_PROJECT_SENTINEL = "00000000-0000-0000-0000-000000000001"
 
 // Valid signal types and severities (must match DB enums)
-const VALID_SIGNAL_TYPES = ["inventory", "conversion", "social", "system", "ai_insight", "ai_action"]
+const VALID_SIGNAL_TYPES = ["inventory", "conversion", "social", "system", "ai_insight", "ai_action", "bug_report"]
 const VALID_SEVERITIES = ["info", "warning", "critical"]
 
 // ─────────────────────────────────────────────
@@ -56,13 +56,30 @@ If you identify a significant cross-project insight or actionable finding, inclu
   "signal": {
     "title": "Short, descriptive signal title (max 80 chars)",
     "body": "Detailed signal description with supporting data",
-    "signal_type": "inventory|conversion|social|system|ai_insight|ai_action",
+    "signal_type": "inventory|conversion|social|system|ai_insight|ai_action|bug_report",
     "severity": "info|warning|critical",
     "action_label": "Optional CTA button text (e.g. 'Compare Projects')",
     "action_url": "Optional routing hint (e.g. 'draft_followup')",
-    "target_project_id": "uuid-of-relevant-project or null for first active project"
+    "target_project_id": "uuid-of-relevant-project",
+    "repro_steps": "Optional for bug_report only",
+    "expected_behavior": "Optional for bug_report only",
+    "actual_behavior": "Optional for bug_report only"
   }
 }
+
+**BUG REPORTING RULE (MANDATORY):**
+1. If the user mentions a bug, error, or software issue, you are now the **Software Support Agent**.
+2. Your goal is to gather the following:
+   - What happened? (Actual behavior)
+   - What did they expect? (Expected behavior)
+   - How can we reproduce it? (Steps to reproduce)
+3. Ask these in plain English, one or two at a time. Do NOT create a signal until you have the core details.
+4. Once you have enough info, create a signal with:
+   - "signal_type": "bug_report"
+   - "severity": "warning" or "critical" (if it breaks the app)
+   - "action_label": "TRACK TICKET"
+   - "action_url": "view_ticket"
+   - "is_agency_only": true
 
 **FOLLOW-UP DRAFTING RULE (MANDATORY):**
 1. If you identify a deal that needs a follow-up, first ASK THE USER for permission (e.g., "Nic's deal is getting cold. Should I draft a follow-up email for you?").
@@ -77,6 +94,7 @@ CREATE a signal when:
 - A portfolio-wide risk or opportunity is identified
 - The user explicitly asks you to flag something
 - An agency-level strategic insight emerges
+- The user reports a confirmed software bug after you've gathered details (Bug Reporting Rule)
 
 Do NOT create a signal for routine questions or when data is stable.
 Always set "signal" to null if no signal should be created.
@@ -97,6 +115,10 @@ interface ParsedResponse {
         action_url?: string | null
         target_project_id?: string | null
         is_agency_only?: boolean
+        // Ticket specific
+        repro_steps?: string | null
+        expected_behavior?: string | null
+        actual_behavior?: string | null
     } | null
 }
 
@@ -124,7 +146,10 @@ function parseGeminiResponse(rawText: string): ParsedResponse {
                     action_label: parsed.signal.action_label || null,
                     action_url: parsed.signal.action_url || null,
                     target_project_id: parsed.signal.target_project_id || null,
-                    is_agency_only: true // Agency Agent always creates agency-only signals
+                    is_agency_only: true, // Agency Agent always creates agency-only signals
+                    repro_steps: parsed.signal.repro_steps || null,
+                    expected_behavior: parsed.signal.expected_behavior || null,
+                    actual_behavior: parsed.signal.actual_behavior || null,
                 }
             }
             return { message: parsed.message, signal }
@@ -399,7 +424,10 @@ serve(async (req: Request) => {
                                 severity: { type: "string" },
                                 action_label: { type: "string", nullable: true },
                                 action_url: { type: "string", nullable: true },
-                                target_project_id: { type: "string", nullable: true }
+                                target_project_id: { type: "string", nullable: true },
+                                repro_steps: { type: "string", nullable: true },
+                                expected_behavior: { type: "string", nullable: true },
+                                actual_behavior: { type: "string", nullable: true }
                             },
                             required: ["title", "body", "signal_type", "severity"]
                         }
@@ -515,7 +543,30 @@ serve(async (req: Request) => {
                         const targetProject = allProjects?.find((p: any) => p.id === signalProjectId)
                         finalReply += `\n\n📊 **Signal Created:** I've flagged this on **${targetProject?.name || 'the project'}** (Agency-Only).`
 
-                        // 12b. Handle GHL Sync Trigger detection ──────────────────
+                        // 12b. If bug_report, also create a software_ticket
+                        if (parsed.signal.signal_type === 'bug_report') {
+                            const { error: ticketError } = await adminSupabase
+                                .from("software_tickets")
+                                .insert({
+                                    project_id: signalProjectId,
+                                    created_by: user.id,
+                                    title: parsed.signal.title,
+                                    description: parsed.signal.body,
+                                    repro_steps: parsed.signal.repro_steps,
+                                    expected_behavior: parsed.signal.expected_behavior,
+                                    actual_behavior: parsed.signal.actual_behavior,
+                                    severity: parsed.signal.severity,
+                                })
+
+                            if (ticketError) {
+                                console.error("[send-agency-chat-message] Ticket insert error:", ticketError)
+                            } else {
+                                console.log(`[send-agency-chat-message] Software ticket created for ${user.id}`)
+                                finalReply += `\n\n🎫 **Ticket Opened:** I've officially opened a software support ticket for this issue. The agency development team has been notified.`
+                            }
+                        }
+
+                        // 12c. Handle GHL Sync Trigger detection ──────────────────
                         const syncTriggered = /triggering|syncing|updating/i.test(finalReply)
                         if (syncTriggered) {
                             try {
