@@ -9,6 +9,12 @@ The `_shared` directory contains infrastructure code used by two or more Edge Fu
 _shared/
 ├── cors.ts              ← CORS headers (existing)
 └── lib/
+    ├── db/              ← Database repositories (Single source of truth for queries)
+    │   ├── activity.ts
+    │   ├── index.ts
+    │   ├── signals.ts
+    │   ├── tickets.ts
+    │   └── users.ts
     ├── auth.ts          ← Authentication helpers (createUserClient, createAdminClient, getAuthenticatedUser)
     ├── gemini.ts        ← Gemini API client (generateContent, embedText)
     ├── response.ts      ← Standardized HTTP response factory (okResponse, errorResponse, etc.)
@@ -16,6 +22,12 @@ _shared/
 ```
 
 ## Guardrails
+
+### `db/` (Repositories)
+- ✅ Use repository methods (e.g., `SignalRepo.create()`) for ALL database interactions.
+- ❌ NEVER write raw `.from('table_name')` queries in any edge function.
+- ❌ NEVER hardcode table or column names outside of the repository files.
+- ❌ REPOSITORIES should only handle DB communication, not business or AI logic.
 
 ### `auth.ts`
 - ✅ Add new role-checking helper functions here
