@@ -9,44 +9,44 @@ The `_shared` directory contains infrastructure code used by two or more Edge Fu
 _shared/
 ├── cors.ts              ← CORS headers (existing)
 └── lib/
+    ├── prompts/         ← Shared AI Personas & Rule Fragments
+    │   └── fragments.ts
+    ├── workflows/       ← Business logic state machines (Illegal move prevention)
+    │   └── tickets.ts
     ├── providers/       ← External Service Providers (GHL, Stripe, etc.)
     │   └── ghl.ts
     ├── tools/           ← AI Capability Registry (The "Toolbox")
     │   └── index.ts
-    ├── db/              ← Database repositories (Single source of truth for queries)
-    │   ├── activity.ts
-    │   ├── index.ts
-    │   ├── signals.ts
-    │   ├── tickets.ts
-    │   └── users.ts
+    ├── db/              ← Database repositories
     ├── auth.ts          ← Authentication helpers
+    ├── billing.ts       ← AI Circuit Breaker (Cost Protection)
+    ├── composer.ts      ← Context Assembler (Briefing the AI)
     ├── env.ts           ← Environment variable guard
     ├── gemini.ts        ← Gemini API client
     ├── logger.ts        ← Structured AI Audit Logger
-    ├── middleware.ts    ← Top-level orchestrator (CORS, Auth, Logic Wrapping, Validation)
-    ├── rag.ts           ← Vector search & Knowledge retrieval engine
+    ├── middleware.ts    ← Top-level orchestrator
+    ├── rag.ts           ← Vector search engine
     ├── response.ts      ← Standardized HTTP response factory
     └── types.ts         ← Shared interfaces
 ```
 
 ## Guardrails
 
-### `middleware.ts` (Orchestrator)
-- ✅ Use `createHandler` in EVERY `index.ts`. It handles CORS, Auth, and Body Validation.
-- ✅ Define a **Zod Schema** in your `index.ts` and pass it to the handler.
-- ❌ NEVER write manual `serve()` or `try/catch` at the top level.
+### `workflows/` (State Machines)
+- ✅ Use `Workflow.validateMove()` BEFORE updating statuses in the database.
+- ❌ NEVER allow an AI to skip a required state (e.g. from "Open" to "Fixed").
 
-### `rag.ts` (Knowledge Engine)
-- ✅ All AI knowledge retrieval MUST go through `RagService.search()`.
-- ❌ NEVER write raw pgvector RPC calls in feature files.
+### `prompts/` (Personas)
+- ✅ Import standard protocols (like `BUG_REPORTING_PROTOCOL`) into function prompts.
+- ❌ NEVER hardcode core persona instructions inside a specific Edge Function.
 
-### `tools/` (Agentic Capabilities)
-- ✅ Every action an AI can take (e.g. "Check Ticket") must be a module in the registry.
-- ❌ NEVER allow an AI to generate its own code to access the database.
+### `billing.ts` (Circuit Breaker)
+- ✅ Use `CircuitBreaker.check()` at the start of every AI-heavy function.
+- ❌ NEVER allow an infinite feedback loop between two AI services.
 
-### `logger.ts` (Audit Trail)
-- ✅ Use `logger.aiTrace()` to capture the AI's internal reasoning and prompts.
-- ❌ NEVER log raw personally identifiable information (PII) in plain text.
+### `composer.ts` (Intelligence Context)
+- ✅ Use `ContextComposer` to build the "Worldview" for an agent.
+- ❌ NEVER perform individual database lookups for core project identity in feature files.
 
 ### `env.ts` (Config)
 - ✅ Use `getEnv("KEY")` to access secrets. It fails fast if the secret is missing.
