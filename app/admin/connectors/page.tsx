@@ -25,6 +25,7 @@ import {
     Youtube,
     Linkedin,
     Play,
+    BookOpen,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -78,6 +79,7 @@ const providerMeta: Record<string, { color: string; bgColor: string; label: stri
     mysql: { color: "text-cyan-400", bgColor: "bg-cyan-500/10 border-cyan-500/20", label: "MySQL" },
     youtube: { color: "text-red-500", bgColor: "bg-red-500/10 border-red-500/20", label: "YouTube" },
     linkedin: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "LinkedIn" },
+    notion: { color: "text-slate-200", bgColor: "bg-slate-500/10 border-slate-500/20", label: "Notion" },
 }
 
 const statusMeta: Record<string, { icon: any; color: string; label: string }> = {
@@ -586,6 +588,8 @@ export default function ConnectorAdminPage() {
                                                         <Youtube className={`h-5 w-5 ${meta.color}`} />
                                                     ) : provider === "linkedin" ? (
                                                         <Linkedin className={`h-5 w-5 ${meta.color}`} />
+                                                    ) : provider === "notion" ? (
+                                                        <BookOpen className={`h-5 w-5 ${meta.color}`} />
                                                     ) : (
                                                         <Database className={`h-5 w-5 ${meta.color}`} />
                                                     )}

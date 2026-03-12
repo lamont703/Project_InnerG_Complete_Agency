@@ -136,6 +136,13 @@ export function formatLinkedinPost(row: any): string {
     return `LinkedIn Post Performance: "${row.content?.slice(0, 100) || "No content"}..." [ID: ${row.linkedin_post_id}]. Published on ${published}. Lifetime Stats: ${views.toLocaleString()} impressions, ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments, ${shares.toLocaleString()} shares.`
 }
 
+export function formatNotionPage(row: any): string {
+    const title = row.title ?? "Untitled Notion Page"
+    const date = row.last_edited_time ? new Date(row.last_edited_time).toISOString().split("T")[0] : "recently"
+    const content = row.content || "No content."
+    return `Notion Page [${date}]: "${title}". Content: ${content}`
+}
+
 /**
  * Master dispatcher — picks the right formatter for each source table.
  * ⚠️ Add new tables HERE. Do not add formatting logic anywhere else.
@@ -159,6 +166,7 @@ export function formatSourceRow(sourceTable: string, row: any): string {
             case "youtube_videos": return formatYoutubeVideo(row)
             case "linkedin_pages": return formatLinkedinPage(row)
             case "linkedin_posts": return formatLinkedinPost(row)
+            case "notion_pages": return formatNotionPage(row)
             default: return JSON.stringify(row)
         }
     } catch (err) {

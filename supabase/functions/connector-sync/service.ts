@@ -23,6 +23,7 @@ import { syncGHL } from "./providers/ghl/index.ts"
 import { syncSupabaseProvider } from "./providers/supabase/index.ts"
 import { syncYouTube } from "./providers/youtube/index.ts"
 import { syncLinkedIn } from "./providers/linkedin/index.ts"
+import { syncNotion } from "./providers/notion/index.ts"
 
 export interface SyncResult {
     success: boolean
@@ -108,6 +109,13 @@ export class SyncService {
                     break
                 case "linkedin":
                     result = await syncLinkedIn(
+                        this.adminClient,
+                        projectId,
+                        syncConfig as any
+                    )
+                    break
+                case "notion":
+                    result = await syncNotion(
                         this.adminClient,
                         projectId,
                         syncConfig as any
