@@ -80,6 +80,7 @@ const providerMeta: Record<string, { color: string; bgColor: string; label: stri
     youtube: { color: "text-red-500", bgColor: "bg-red-500/10 border-red-500/20", label: "YouTube" },
     linkedin: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "LinkedIn" },
     notion: { color: "text-slate-200", bgColor: "bg-slate-500/10 border-slate-500/20", label: "Notion" },
+    tiktok: { color: "text-pink-500", bgColor: "bg-pink-500/10 border-pink-500/20", label: "TikTok" },
 }
 
 const statusMeta: Record<string, { icon: any; color: string; label: string }> = {
@@ -590,6 +591,8 @@ export default function ConnectorAdminPage() {
                                                         <Linkedin className={`h-5 w-5 ${meta.color}`} />
                                                     ) : provider === "notion" ? (
                                                         <BookOpen className={`h-5 w-5 ${meta.color}`} />
+                                                    ) : provider === "tiktok" ? (
+                                                        <Zap className={`h-5 w-5 ${meta.color}`} />
                                                     ) : (
                                                         <Database className={`h-5 w-5 ${meta.color}`} />
                                                     )}

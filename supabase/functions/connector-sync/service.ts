@@ -24,6 +24,7 @@ import { syncSupabaseProvider } from "./providers/supabase/index.ts"
 import { syncYouTube } from "./providers/youtube/index.ts"
 import { syncLinkedIn } from "./providers/linkedin/index.ts"
 import { syncNotion } from "./providers/notion/index.ts"
+import { syncTikTok } from "./providers/tiktok/index.ts"
 
 export interface SyncResult {
     success: boolean
@@ -116,6 +117,13 @@ export class SyncService {
                     break
                 case "notion":
                     result = await syncNotion(
+                        this.adminClient,
+                        projectId,
+                        syncConfig as any
+                    )
+                    break
+                case "tiktok":
+                    result = await syncTikTok(
                         this.adminClient,
                         projectId,
                         syncConfig as any

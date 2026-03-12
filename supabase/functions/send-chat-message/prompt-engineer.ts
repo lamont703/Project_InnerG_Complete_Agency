@@ -102,6 +102,17 @@ You have access to the project's Notion pages and documentation.
 4. Help the user maintain an organized and actionable knowledge base.
 `
 
+// ─── TikTok Intelligence Rules ─────────────────────────────
+ 
+const TIKTOK_INTELLIGENCE_RULES = `
+**TIKTOK & VIRAL GROWTH:**
+You have access to the project's TikTok account and video performance data.
+1. Use 'get_tiktok_account_stats' to track viral reach, heart counts, and follower growth.
+2. Use 'list_recent_tiktok_videos' to analyze engagement on recent short-form content.
+3. Use 'search_tiktok_knowledge' for deep dives into specific topics or trends discussed on TikTok.
+4. Help the user optimize their TikTok presence for maximum reach and engagement.
+`
+
 // ─── Response Format Contract ─────────────────────────────
 
 const RESPONSE_FORMAT_CONTRACT = `
@@ -185,6 +196,9 @@ ${LINKEDIN_INTELLIGENCE_RULES}
 
 ## Notion & Knowledge Management
 ${NOTION_INTELLIGENCE_RULES}
+
+## TikTok & Viral Growth
+${TIKTOK_INTELLIGENCE_RULES}
  
 ## Tone
 - Be direct, professional, and actionable.
