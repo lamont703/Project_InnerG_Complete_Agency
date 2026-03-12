@@ -21,6 +21,7 @@ import { Repo, Logger } from "../_shared/lib/index.ts"
 import { syncGithub } from "./providers/github/index.ts"
 import { syncGHL } from "./providers/ghl/index.ts"
 import { syncSupabaseProvider } from "./providers/supabase/index.ts"
+import { syncYouTube } from "./providers/youtube/index.ts"
 
 export interface SyncResult {
     success: boolean
@@ -91,6 +92,9 @@ export class SyncService {
                     break
                 case "github":
                     result = await syncGithub(this.adminClient, projectId, syncConfig as any)
+                    break
+                case "youtube":
+                    result = await syncYouTube(this.adminClient, projectId, syncConfig as any)
                     break
                 default:
                     result = {

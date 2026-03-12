@@ -45,6 +45,24 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         permissions: ['client', 'admin', 'super-admin'],
         iconName: "Instagram"
     },
+    {
+        id: "youtube_subscribers",
+        label: "YT Subscribers",
+        description: "Total subscriber count across connected YouTube channels.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "Youtube"
+    },
+    {
+        id: "youtube_views",
+        label: "YouTube Views",
+        description: "Total cumulative views from connected YouTube channel analytics.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "Play"
+    },
 
     // --- AGENCY SLOTS (Super Admin Only) ---
     {

@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js"
-import { Users, Bot, Activity, Instagram } from "lucide-react"
+import { Users, Bot, Activity, Instagram, Youtube, Play } from "lucide-react"
 import { Metric, RawMetricRecord, MetricsData } from "./types"
 
 export class MetricsService {
@@ -51,6 +51,22 @@ export class MetricsService {
             return DEMO_MOCK_METRICS
         }
 
+        // Fetch YouTube stats as well - using campaign_id to link back to project if needed
+        // For now, simple fetch for the project's YouTube data
+        const { data: campaignData } = await this.supabase
+            .from("campaigns")
+            .select("project_id")
+            .eq("id", campaignId)
+            .single()
+
+        const { data: ytData } = await this.supabase
+            .from("youtube_channels")
+            .select("subscriber_count, view_count")
+            .eq("project_id", (campaignData as any)?.project_id || "")
+            .limit(1) as any
+            
+        const ytStats = ytData?.[0] || { subscriber_count: 0, view_count: 0 }
+
         const latest = snapshots[0]
         const previous = snapshots[1] || latest
 
@@ -86,6 +102,22 @@ export class MetricsService {
                 growth: this.calcGrowth(latest.social_reach_total, previous.social_reach_total),
                 icon: Instagram,
                 color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "youtube_subscribers",
+                label: "YT Subscribers",
+                value: ytStats.subscriber_count.toLocaleString(),
+                growth: "+0.5%", // Placeholder for now
+                icon: Youtube,
+                color: "text-red-500 bg-red-500/10",
+            },
+            {
+                id: "youtube_views",
+                label: "YouTube Views",
+                value: (ytStats.view_count / 1000).toFixed(1) + "k",
+                growth: "+1.2%", // Placeholder for now
+                icon: Play,
+                color: "text-white bg-white/10",
             },
         ]
     }
@@ -123,5 +155,21 @@ export const DEMO_MOCK_METRICS: Metric[] = [
         growth: "+115%",
         icon: Instagram,
         color: "text-pink-500 bg-pink-500/10",
+    },
+    {
+        id: "youtube_subscribers",
+        label: "YT Subscribers",
+        value: "5",
+        growth: "+20%",
+        icon: Youtube,
+        color: "text-red-500 bg-red-500/10",
+    },
+    {
+        id: "youtube_views",
+        label: "YouTube Views",
+        value: "0.2k",
+        growth: "+15%",
+        icon: Play,
+        color: "text-white bg-white/10",
     },
 ]
