@@ -15,10 +15,7 @@ import { resolveSignal } from "./service.ts"
  * - Environment: Requires Supabase system keys (checked by default in middleware)
  */
 createHandler(async (context: FunctionContext) => {
-    const { req, adminClient, user } = context
-
-    // 1. Parse and Validate Input
-    const body = await req.json()
+    const { adminClient, user, body } = context
     const { signal_id, project_id } = body
 
     if (!signal_id || !project_id || !user) {

@@ -48,13 +48,16 @@ export class TicketRepo {
     /**
      * Updates the status of a ticket.
      */
-    async updateStatus(ticketId: string, status: TicketStatus): Promise<void> {
-        const { error } = await this.client
+    async updateStatus(ticketId: string, status: TicketStatus): Promise<SoftwareTicketRow> {
+        const { data, error } = await this.client
             .from("software_tickets")
             .update({ status, updated_at: new Date().toISOString() })
             .eq("id", ticketId)
+            .select("*")
+            .single()
 
         if (error) throw error
+        return data as SoftwareTicketRow
     }
 
     /**

@@ -61,7 +61,7 @@ export const CONFIG_TO_SOURCE_TABLES: Record<string, string[]> = {
 
 export interface ChatFunctionResponse {
     reply: string
-    session_id: string
+    session_id: string | null
     signal_created: {
         id: string
         title: string

@@ -38,8 +38,10 @@ function AgencyDashboardContent() {
         operationalSignals,
         isLoading,
         isSyncing,
+        resolvingId,
         newSignalId,
-        syncGHL
+        syncGHL,
+        resolveSignal
     } = useAgencyData()
 
     const { activeSlotIds } = useSlotContext()
@@ -188,6 +190,8 @@ function AgencyDashboardContent() {
                                 slotId="global_portfolio_monitoring"
                                 signals={allAgencySignalsMapped}
                                 isAgencyMode={true}
+                                onResolve={resolveSignal}
+                                isResolving={!!resolvingId}
                             />
                         </div>
                     </div>

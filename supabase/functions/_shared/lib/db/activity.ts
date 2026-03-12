@@ -30,7 +30,7 @@ export class ActivityRepo {
                 action: entry.action,
                 category: entry.category,
                 triggered_by: entry.triggered_by || null,
-                actor: entry.actor || "system",
+                actor: entry.actor || null,
             })
             .select("*")
             .single()

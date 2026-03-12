@@ -20,20 +20,32 @@ export function SlotProvider({
     children: React.ReactNode,
     userRole?: 'client' | 'admin' | 'super-admin'
 }) {
+    const storageKey = `dashboard_active_slots_${userRole}`
     const [activeSlotIds, setActiveSlotIds] = useState<string[]>([])
     const [availableSlots, setAvailableSlots] = useState<MetricSlot[]>([])
+    const [isInitialized, setIsInitialized] = useState(false)
 
     useEffect(() => {
         const slots = getAvailableSlots(userRole)
         setAvailableSlots(slots)
 
-        // Default layouts
-        if (userRole === 'super-admin') {
-            setActiveSlotIds(["active_architectures", "system_health", "agency_intelligence"])
-        } else {
-            setActiveSlotIds(["total_signups", "app_installs", "funnel_conversion", "social_reach"])
+        // Load from persistence
+        const saved = localStorage.getItem(storageKey)
+        if (saved) {
+            try {
+                setActiveSlotIds(JSON.parse(saved))
+            } catch (e) {
+                console.error("Failed to parse saved slots", e)
+            }
         }
-    }, [userRole])
+        setIsInitialized(true)
+    }, [userRole, storageKey])
+
+    useEffect(() => {
+        if (isInitialized) {
+            localStorage.setItem(storageKey, JSON.stringify(activeSlotIds))
+        }
+    }, [activeSlotIds, isInitialized, storageKey])
 
     const toggleSlot = (slotId: string) => {
         setActiveSlotIds(prev =>

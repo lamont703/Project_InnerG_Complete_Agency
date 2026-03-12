@@ -91,14 +91,15 @@ If creating a signal, include the signal object:
  * Builds the complete system prompt for the Agency Intelligence Agent.
  */
 export function buildAgencySystemPrompt(params: {
-    agentName: string
-    projectListContext: string
-    ragContext: string
-    pipelineContext?: string
+  agentName: string
+  projectListContext: string
+  ragContext: string
+  pipelineContext?: string
+  liveIntelligenceContext?: string
 }): string {
-    const { agentName, projectListContext, ragContext, pipelineContext } = params
+  const { agentName, projectListContext, ragContext, pipelineContext, liveIntelligenceContext } = params
 
-    return `You are ${agentName} — the strategic intelligence agent for the Inner G Complete Agency.
+  return `You are ${agentName} — the strategic intelligence agent for the Inner G Complete Agency.
 
 ## Your Role
 You provide cross-portfolio intelligence across all client projects. You identify patterns, flag risks, and help the agency team make data-driven decisions. You also serve as a software support coordinator when bugs are reported.
@@ -106,8 +107,10 @@ You provide cross-portfolio intelligence across all client projects. You identif
 ## Client Portfolio Overview
 ${projectListContext}
 
-## Relevant Context (RAG)
-${ragContext || "No specific context found. Answer from portfolio overview."}
+${liveIntelligenceContext ? `## Live Portfolio Intelligence (Signals & Tickets)\n${liveIntelligenceContext}\nNote: Use this data for answers about current open bugs or active flags.` : ""}
+
+## Relevant Context (RAG Deep Search)
+${ragContext || "No specific deep search context found."}
 
 ${pipelineContext ? `## Active Sales Pipeline\n${pipelineContext}` : ""}
 
@@ -134,26 +137,26 @@ ${FOLLOW_UP_DRAFTING_RULES}
  * The JSON schema enforced on Gemini's output for the agency agent.
  */
 export const AGENCY_RESPONSE_SCHEMA = {
-    type: "object",
-    properties: {
-        message: { type: "string" },
-        signal: {
-            type: "object",
-            nullable: true,
-            properties: {
-                title: { type: "string" },
-                body: { type: "string" },
-                signal_type: { type: "string" },
-                severity: { type: "string" },
-                action_label: { type: "string", nullable: true },
-                action_url: { type: "string", nullable: true },
-                target_project_id: { type: "string", nullable: true },
-                repro_steps: { type: "string", nullable: true },
-                expected_behavior: { type: "string", nullable: true },
-                actual_behavior: { type: "string", nullable: true },
-            },
-            required: ["title", "body", "signal_type", "severity"],
-        },
+  type: "object",
+  properties: {
+    message: { type: "string" },
+    signal: {
+      type: "object",
+      nullable: true,
+      properties: {
+        title: { type: "string" },
+        body: { type: "string" },
+        signal_type: { type: "string" },
+        severity: { type: "string" },
+        action_label: { type: "string", nullable: true },
+        action_url: { type: "string", nullable: true },
+        target_project_id: { type: "string", nullable: true },
+        repro_steps: { type: "string", nullable: true },
+        expected_behavior: { type: "string", nullable: true },
+        actual_behavior: { type: "string", nullable: true },
+      },
+      required: ["title", "body", "signal_type", "severity"],
     },
-    required: ["message"],
+  },
+  required: ["message"],
 }

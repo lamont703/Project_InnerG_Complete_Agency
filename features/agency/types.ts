@@ -15,6 +15,7 @@ export interface AgencyProject {
 
 export interface StrategicSignal {
     id: string
+    project_id: string
     title: string
     body: string
     severity: "critical" | "warning" | "info"
@@ -27,6 +28,7 @@ export interface StrategicSignal {
 
 export interface OperationalSignal {
     id: string
+    project_id: string
     title: string
     body: string
     signal_type: string

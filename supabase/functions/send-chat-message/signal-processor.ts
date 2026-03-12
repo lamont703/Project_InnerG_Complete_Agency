@@ -22,8 +22,8 @@ import {
     SignalPayload,
     VALID_SIGNAL_TYPES,
     VALID_SEVERITIES,
+    SoftwareTicketPayload,
 } from "../_shared/lib/types.ts"
-import { SoftwareTicketPayload } from "./types.ts"
 
 // ─── Parser ───────────────────────────────────────────────
 
@@ -100,9 +100,6 @@ export async function persistSignal(
             action_label: signal.action_label || null,
             action_url: signal.action_url || null,
             is_agency_only: signal.is_agency_only || false,
-            repro_steps: signal.repro_steps || null,
-            expected_behavior: signal.expected_behavior || null,
-            actual_behavior: signal.actual_behavior || null,
         })
         .select("id, title, severity, signal_type")
         .single()
@@ -111,14 +108,6 @@ export async function persistSignal(
         console.error("[signal-processor] Signal insert error:", error)
         return null
     }
-
-    // Queue embedding job for RAG indexing
-    await adminClient.from("embedding_jobs").insert({
-        source_table: "ai_signals",
-        source_id: inserted.id,
-        project_id: projectId,
-        status: "pending",
-    })
 
     return inserted
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
 import { AgencyService } from "./agency-service"
+import { SignalService } from "../signals/signal-service"
 import {
     AgencyProject,
     StrategicSignal,
@@ -18,10 +19,12 @@ export function useAgencyData() {
 
     const [isLoading, setIsLoading] = useState(true)
     const [isSyncing, setIsSyncing] = useState(false)
+    const [resolvingId, setResolvingId] = useState<string | null>(null)
     const [newSignalId, setNewSignalId] = useState<string | null>(null)
 
     const [supabase] = useState(() => createBrowserClient())
     const [service] = useState(() => new AgencyService(supabase))
+    const [signalService] = useState(() => new SignalService(supabase))
 
     const fetchData = useCallback(async () => {
         try {
@@ -72,6 +75,39 @@ export function useAgencyData() {
         }
     }
 
+    const handleResolveSignal = async (signalId: string) => {
+        setResolvingId(signalId)
+        try {
+            // Handle mock signals (demo data) locally
+            if (signalId.startsWith('sig-')) {
+                setStrategicSignals(prev => prev.filter(s => s.id !== signalId))
+                setOperationalSignals(prev => prev.filter(s => s.id !== signalId))
+                return
+            }
+
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) throw new Error("No active session")
+
+            // Find the signal to get its project_id
+            const signal = [...strategicSignals, ...operationalSignals].find(s => s.id === signalId)
+            if (!signal) throw new Error("Signal not found")
+
+            await signalService.resolveSignal({
+                signalId,
+                projectId: signal.project_id,
+                accessToken: session.access_token
+            })
+
+            // Remove real signals from local state after successful API call
+            setStrategicSignals(prev => prev.filter(s => s.id !== signalId))
+            setOperationalSignals(prev => prev.filter(s => s.id !== signalId))
+        } catch (err: any) {
+            console.error("[useAgencyData] Resolve failed:", err)
+        } finally {
+            setResolvingId(null)
+        }
+    }
+
     useEffect(() => {
         fetchData()
 
@@ -97,8 +133,10 @@ export function useAgencyData() {
         operationalSignals,
         isLoading,
         isSyncing,
+        resolvingId,
         newSignalId,
         refresh: fetchData,
-        syncGHL: handleSyncGHL
+        syncGHL: handleSyncGHL,
+        resolveSignal: handleResolveSignal
     }
 }
