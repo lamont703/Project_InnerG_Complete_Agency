@@ -57,6 +57,8 @@ export const CONFIG_TO_SOURCE_TABLES: Record<string, string[]> = {
     chat_history_enabled: ["session_summaries"],
     youtube_data_enabled: ["youtube_channels", "youtube_videos"],
     linkedin_data_enabled: ["linkedin_pages", "linkedin_posts"],
+    notion_data_enabled: ["notion_pages"],
+    tiktok_data_enabled: ["tiktok_accounts", "tiktok_videos"],
 }
 
 // ─── Function Response ────────────────────────────────────

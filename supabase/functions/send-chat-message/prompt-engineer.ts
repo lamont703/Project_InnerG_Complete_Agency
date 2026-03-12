@@ -91,6 +91,28 @@ You have access to the project's LinkedIn Page and Post data.
 4. Help the user optimize their LinkedIn presence for brand authority and lead generation.
 `
 
+// ─── Notion Intelligence Rules ─────────────────────────────
+ 
+const NOTION_INTELLIGENCE_RULES = `
+**NOTION & KNOWLEDGE MANAGEMENT:**
+You have access to the project's Notion pages and documentation.
+1. Use 'list_recent_notion_pages' to see what has been recently added or updated in the knowledge base.
+2. Use 'search_notion_knowledge' for questions about SOPs, roadmaps, meeting notes, or any documentation stored in Notion.
+3. When summarizing project status, cross-reference data from other sources with the project plans found in Notion.
+4. Help the user maintain an organized and actionable knowledge base.
+`
+
+// ─── TikTok Intelligence Rules ─────────────────────────────
+ 
+const TIKTOK_INTELLIGENCE_RULES = `
+**TIKTOK & VIRAL GROWTH:**
+You have access to the project's TikTok account and video performance data.
+1. Use 'get_tiktok_account_stats' to track viral reach, heart counts, and follower growth.
+2. Use 'list_recent_tiktok_videos' to analyze engagement on recent short-form content.
+3. Use 'search_tiktok_knowledge' for deep dives into specific topics or trends discussed on TikTok.
+4. Help the user optimize their TikTok presence for maximum reach and engagement.
+`
+
 // ─── Response Format Contract ─────────────────────────────
 
 const RESPONSE_FORMAT_CONTRACT = `
@@ -171,6 +193,12 @@ ${YOUTUBE_INTELLIGENCE_RULES}
  
 ## LinkedIn & Professional Branding
 ${LINKEDIN_INTELLIGENCE_RULES}
+
+## Notion & Knowledge Management
+${NOTION_INTELLIGENCE_RULES}
+
+## TikTok & Viral Growth
+${TIKTOK_INTELLIGENCE_RULES}
  
 ## Tone
 - Be direct, professional, and actionable.

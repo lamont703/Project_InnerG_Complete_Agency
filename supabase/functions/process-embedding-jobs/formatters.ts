@@ -136,6 +136,30 @@ export function formatLinkedinPost(row: any): string {
     return `LinkedIn Post Performance: "${row.content?.slice(0, 100) || "No content"}..." [ID: ${row.linkedin_post_id}]. Published on ${published}. Lifetime Stats: ${views.toLocaleString()} impressions, ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments, ${shares.toLocaleString()} shares.`
 }
 
+export function formatNotionPage(row: any): string {
+    const title = row.title ?? "Untitled Notion Page"
+    const date = row.last_edited_time ? new Date(row.last_edited_time).toISOString().split("T")[0] : "recently"
+    const content = row.content || "No content."
+    return `Notion Page [${date}]: "${title}". Content: ${content}`
+}
+
+export function formatTiktokAccount(row: any): string {
+    const followers = row.follower_count ?? 0
+    const hearts = row.heart_count ?? 0
+    const videos = row.video_count ?? 0
+    const date = row.last_synced_at ? new Date(row.last_synced_at).toISOString().split("T")[0] : "recently"
+    return `TikTok Account Analysis [${row.tiktok_user_id}]: "${row.display_name || row.username}". Stats as of ${date}: ${followers.toLocaleString()} followers, ${hearts.toLocaleString()} hearts, ${videos.toLocaleString()} videos.`
+}
+
+export function formatTiktokVideo(row: any): string {
+    const views = row.view_count ?? 0
+    const likes = row.like_count ?? 0
+    const comments = row.comment_count ?? 0
+    const shares = row.share_count ?? 0
+    const published = row.published_at ? new Date(row.published_at).toISOString().split("T")[0] : "unknown"
+    return `TikTok Video Performance: "${row.title || "Untitled"}" [ID: ${row.tiktok_video_id}]. Published on ${published}. Lifetime Stats: ${views.toLocaleString()} views, ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments, ${shares.toLocaleString()} shares.`
+}
+
 /**
  * Master dispatcher — picks the right formatter for each source table.
  * ⚠️ Add new tables HERE. Do not add formatting logic anywhere else.
@@ -159,6 +183,9 @@ export function formatSourceRow(sourceTable: string, row: any): string {
             case "youtube_videos": return formatYoutubeVideo(row)
             case "linkedin_pages": return formatLinkedinPage(row)
             case "linkedin_posts": return formatLinkedinPost(row)
+            case "notion_pages": return formatNotionPage(row)
+            case "tiktok_accounts": return formatTiktokAccount(row)
+            case "tiktok_videos": return formatTiktokVideo(row)
             default: return JSON.stringify(row)
         }
     } catch (err) {
