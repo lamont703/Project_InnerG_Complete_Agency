@@ -138,7 +138,7 @@ export const searchGithubKnowledgeTool: RegisteredTool = {
 
         // Filter the results to prioritize GitHub content for this specific tool
         const githubResults = results.filter((r: RagResult) => 
-            ["github_commits", "github_insights", "github_repos"].includes(r.source_table)
+            ["github_commits", "github_insights", "github_repos", "github_pull_requests"].includes(r.source_table)
         )
 
         if (githubResults.length === 0) {

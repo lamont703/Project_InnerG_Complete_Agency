@@ -21,6 +21,7 @@ import {
     Zap,
     Github,
     Trash2,
+    Edit2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -116,6 +117,11 @@ export default function ConnectorAdminPage() {
     const [isCreating, setIsCreating] = useState(false)
     const [showSensitive, setShowSensitive] = useState<Record<string, boolean>>({})
 
+    // Edit connection state
+    const [editingConfigId, setEditingConfigId] = useState<string | null>(null)
+    const [editConfig, setEditConfig] = useState<Record<string, any>>({})
+    const [isUpdating, setIsUpdating] = useState(false)
+
     // GitHub Repo Selection
     const [fetchedRepos, setFetchedRepos] = useState<string[]>([])
     const [isFetchingRepos, setIsFetchingRepos] = useState(false)
@@ -161,19 +167,40 @@ export default function ConnectorAdminPage() {
             const { data: { session } } = await supabase.auth.getSession()
             if (!session) return
 
-            const { data, error } = await supabase.functions.invoke("connector-sync", {
-                body: { connection_id: connectionId },
-                headers: {
-                    Authorization: `Bearer ${session.access_token}`,
-                    apikey: supabaseAnonKey,
-                },
-            })
+            const conn = connections.find(c => c.id === connectionId)
+            const provider = conn?.connector_types?.provider || conn?.db_type
 
-            if (error) {
-                console.error("[Connectors] Sync error:", error)
-            } else {
-                console.log("[Connectors] Sync result:", data)
+            const syncPromises = [
+                supabase.functions.invoke("connector-sync", {
+                    body: { connection_id: connectionId },
+                    headers: {
+                        Authorization: `Bearer ${session.access_token}`,
+                        apikey: supabaseAnonKey,
+                    },
+                })
+            ]
+
+            if (provider === "ghl") {
+                syncPromises.push(
+                    supabase.functions.invoke("ghl-social-sync", {
+                        body: { connection_id: connectionId },
+                        headers: {
+                            Authorization: `Bearer ${session.access_token}`,
+                            apikey: supabaseAnonKey,
+                        },
+                    })
+                )
             }
+
+            const results = await Promise.all(syncPromises)
+            
+            results.forEach((res, index) => {
+                if (res.error) {
+                    console.error(`[Connectors] Sync error (Task ${index}):`, res.error)
+                } else {
+                    console.log(`[Connectors] Sync result (Task ${index}):`, res.data)
+                }
+            })
 
             // Reload to get updated status
             await loadData()
@@ -275,6 +302,27 @@ export default function ConnectorAdminPage() {
         } catch (err) {
             console.error("[Connectors] Delete failed:", err)
             alert("Failed to delete connection.")
+        }
+    }
+
+    const handleUpdateConfig = async (connectionId: string) => {
+        setIsUpdating(true)
+        try {
+            const supabase = createBrowserClient()
+            const { error: updateError } = await (supabase as any)
+                .from("client_db_connections")
+                .update({ sync_config: editConfig })
+                .eq("id", connectionId)
+            
+            if (updateError) throw updateError
+            
+            setEditingConfigId(null)
+            await loadData()
+        } catch (err) {
+            console.error("[Connectors] Update failed:", err)
+            alert("Failed to update connection config.")
+        } finally {
+            setIsUpdating(false)
         }
     }
 
@@ -594,8 +642,16 @@ export default function ConnectorAdminPage() {
                                                     </div>
                                                 </div>
 
-                                                {conn.sync_config && Object.keys(conn.sync_config).length > 0 && (
-                                                    <div className="mt-4 p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                                                {conn.sync_config && Object.keys(conn.sync_config).length > 0 && editingConfigId !== conn.id && (
+                                                    <div className="mt-4 p-3 rounded-xl bg-white/[0.02] border border-white/5 relative">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-foreground"
+                                                            onClick={() => { setEditingConfigId(conn.id); setEditConfig({ ...conn.sync_config }) }}
+                                                        >
+                                                            <Edit2 className="h-3 w-3" />
+                                                        </Button>
                                                         <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-2">Config</p>
                                                         {Object.entries(conn.sync_config).map(([k, v]) => (
                                                             <div key={k} className="flex items-center gap-2 text-[10px]">
@@ -605,6 +661,56 @@ export default function ConnectorAdminPage() {
                                                                  </span>
                                                             </div>
                                                         ))}
+                                                    </div>
+                                                )}
+
+                                                {editingConfigId === conn.id && (
+                                                    <div className="mt-4 p-4 rounded-xl bg-white/[0.02] border border-primary/20">
+                                                        <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-3">Edit Configuration</p>
+                                                        
+                                                        {Object.keys(editConfig).map((key) => {
+                                                            const schemaField = conn.connector_types?.config_schema?.properties?.[key]
+                                                            const isSensitive = schemaField?.sensitive === true
+                                                            return (
+                                                            <div key={key} className="mb-3">
+                                                                <label className="text-[10px] text-muted-foreground block mb-1">{key}</label>
+                                                                {typeof editConfig[key] === "boolean" ? (
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={editConfig[key]}
+                                                                        onChange={(e) => setEditConfig(p => ({ ...p, [key]: e.target.checked }))}
+                                                                        className="rounded border-white/20"
+                                                                    />
+                                                                ) : (
+                                                                    <Input
+                                                                        type={isSensitive ? "password" : "text"}
+                                                                        value={editConfig[key] || ""}
+                                                                        onChange={(e) => setEditConfig(p => ({ ...p, [key]: e.target.value }))}
+                                                                        className="h-8 text-xs bg-background/50 border-white/10 rounded-lg"
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        )})}
+
+                                                        <div className="flex justify-end gap-2 mt-4">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => setEditingConfigId(null)}
+                                                                className="h-7 px-2 text-[10px]"
+                                                            >
+                                                                Cancel
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                disabled={isUpdating}
+                                                                onClick={() => handleUpdateConfig(conn.id)}
+                                                                className="h-7 px-2 text-[10px] bg-primary text-primary-foreground hover:bg-primary/90"
+                                                            >
+                                                                {isUpdating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
+                                                                Save
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 )}
 

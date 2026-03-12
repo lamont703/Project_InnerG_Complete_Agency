@@ -58,14 +58,17 @@ ALTER TABLE public.ghl_social_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ghl_social_insights ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
+DROP POLICY IF EXISTS "Users can view social accounts for their projects" ON public.ghl_social_accounts;
 CREATE POLICY "Users can view social accounts for their projects"
     ON public.ghl_social_accounts FOR SELECT
     USING (project_id IN (SELECT project_id FROM public.project_user_access WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can view social posts for their projects" ON public.ghl_social_posts;
 CREATE POLICY "Users can view social posts for their projects"
     ON public.ghl_social_posts FOR SELECT
     USING (project_id IN (SELECT project_id FROM public.project_user_access WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can view social insights for their projects" ON public.ghl_social_insights;
 CREATE POLICY "Users can view social insights for their projects"
     ON public.ghl_social_insights FOR SELECT
     USING (project_id IN (SELECT project_id FROM public.project_user_access WHERE user_id = auth.uid()));

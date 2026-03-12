@@ -64,8 +64,9 @@ export function useAgencyData() {
             const { data: { session } } = await supabase.auth.getSession()
             if (!session) throw new Error("No active session")
 
-            await service.syncGHL(session.access_token, supabaseAnonKey)
-            alert("GHL Pipeline Sync Successful!")
+            const connectionId = await service.getGHLConnection()
+            await service.syncGHL(session.access_token, supabaseAnonKey, connectionId)
+            alert("GHL Pipeline & Social Data Sync Successful!")
             await fetchData()
         } catch (err: any) {
             console.error("Sync failed:", err)

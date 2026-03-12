@@ -27,6 +27,8 @@ BEGIN
       v_project_id := NULL;
     WHEN 'github_commits' THEN
       SELECT project_id INTO v_project_id FROM public.github_repos WHERE id = NEW.repo_id;
+    WHEN 'github_pull_requests' THEN
+      SELECT project_id INTO v_project_id FROM public.github_repos WHERE id = NEW.repo_id;
     ELSE
       -- Most tables (ghl_social_posts, ghl_social_insights, ai_signals, ghl_opportunities, ghl_pipelines, github_repos, etc.)
       -- have project_id directly on the record.
@@ -42,3 +44,14 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Add GitHub triggers if they don't exist
+DROP TRIGGER IF EXISTS github_commits_queue_embedding ON public.github_commits;
+CREATE TRIGGER github_commits_queue_embedding
+  AFTER INSERT OR UPDATE ON public.github_commits
+  FOR EACH ROW EXECUTE FUNCTION queue_embedding_job();
+
+DROP TRIGGER IF EXISTS github_pull_requests_queue_embedding ON public.github_pull_requests;
+CREATE TRIGGER github_pull_requests_queue_embedding
+  AFTER INSERT OR UPDATE ON public.github_pull_requests
+  FOR EACH ROW EXECUTE FUNCTION queue_embedding_job();

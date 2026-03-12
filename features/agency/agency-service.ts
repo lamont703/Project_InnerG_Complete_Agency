@@ -61,18 +61,51 @@ export class AgencyService {
     /**
      * Trigger the GHL Sync function via Supabase Edge Function
      */
-    async syncGHL(accessToken: string, anonKey: string): Promise<void> {
-        const { error } = await this.supabase.functions.invoke("sync-ghl-pipeline", {
+    async syncGHL(accessToken: string, anonKey: string, connectionId?: string | null): Promise<void> {
+        const p1 = this.supabase.functions.invoke("sync-ghl-pipeline", {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
                 apikey: anonKey
             }
-        })
+        });
 
-        if (error) {
-            const responseBody = await error.context?.json()
-            throw new Error(responseBody?.error?.message || error.message)
+        const promises = [p1];
+
+        if (connectionId) {
+            promises.push(
+                this.supabase.functions.invoke("ghl-social-sync", {
+                    body: { connection_id: connectionId },
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        apikey: anonKey
+                    }
+                })
+            );
         }
+
+        const results = await Promise.all(promises);
+
+        for (const res of results) {
+            if (res.error) {
+                const responseBody = await res.error.context?.json().catch(() => null);
+                throw new Error(responseBody?.error?.message || res.error.message);
+            }
+        }
+    }
+
+    /**
+     * Find the primary GHL connection for the portfolio
+     */
+    async getGHLConnection(): Promise<string | null> {
+        const { data } = await this.supabase
+            .from("client_db_connections")
+            .select("id, connector_types!inner(provider)")
+            .eq("connector_types.provider", "ghl")
+            .eq("is_active", true)
+            .limit(1)
+            .maybeSingle()
+
+        return data?.id || null
     }
 
     /**

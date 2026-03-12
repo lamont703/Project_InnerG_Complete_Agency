@@ -87,14 +87,17 @@ ALTER TABLE public.github_commits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.github_pull_requests ENABLE ROW LEVEL SECURITY;
 
 -- Add RLS Policies (Standard Project-Based Access)
+DROP POLICY IF EXISTS "Users can view GitHub data for their projects" ON public.github_repos;
 CREATE POLICY "Users can view GitHub data for their projects"
     ON public.github_repos FOR SELECT
     USING (project_id IN (SELECT project_id FROM public.project_user_access WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can view Github commits for their projects" ON public.github_commits;
 CREATE POLICY "Users can view Github commits for their projects"
     ON public.github_commits FOR SELECT
     USING (repo_id IN (SELECT id FROM public.github_repos WHERE project_id IN (SELECT project_id FROM public.project_user_access WHERE user_id = auth.uid())));
 
+DROP POLICY IF EXISTS "Users can view Github PRs for their projects" ON public.github_pull_requests;
 CREATE POLICY "Users can view Github PRs for their projects"
     ON public.github_pull_requests FOR SELECT
     USING (repo_id IN (SELECT id FROM public.github_repos WHERE project_id IN (SELECT project_id FROM public.project_user_access WHERE user_id = auth.uid())));
