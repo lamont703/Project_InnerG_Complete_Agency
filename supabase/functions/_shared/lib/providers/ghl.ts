@@ -114,6 +114,42 @@ export class GhlProvider {
     }
 
     /**
+     * Lists social accounts for a location.
+     */
+    async listSocialAccounts(locationId: string) {
+        const response = await fetch(`${GHL_API_BASE}/social-media-posting/${locationId}/accounts`, {
+            headers: this.headers
+        })
+        if (!response.ok) throw new Error(`GHL_SOCIAL_ACCOUNTS_ERROR: ${await response.text()}`)
+        const data = await response.json()
+        return data.accounts || []
+    }
+
+    /**
+     * Lists social posts for a location with specific filters.
+     */
+    async listSocialPosts(locationId: string, options: { 
+        limit?: number, 
+        skip?: number, 
+        status?: string,
+        accountIds?: string[]
+    } = {}) {
+        const { limit = 20, skip = 0, status, accountIds } = options
+        const body: any = { limit, skip }
+        if (status) body.status = status
+        if (accountIds) body.accountIds = accountIds
+
+        const response = await fetch(`${GHL_API_BASE}/social-media-posting/${locationId}/posts/list`, {
+            method: "POST",
+            headers: this.headers,
+            body: JSON.stringify(body)
+        })
+        if (!response.ok) throw new Error(`GHL_SOCIAL_POSTS_ERROR: ${await response.text()}`)
+        const data = await response.json()
+        return data.posts || []
+    }
+
+    /**
      * Adds tags to an existing contact.
      */
     async addTags(contactId: string, tags: string[]) {

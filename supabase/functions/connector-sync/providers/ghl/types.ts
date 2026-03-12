@@ -20,3 +20,21 @@ export interface InternalGhlContact {
     full_name: string | null;
     synced_at: string;
 }
+
+export interface GhlSocialAccount {
+    id: string;
+    name: string;
+    type: string;
+    [key: string]: any;
+}
+
+export interface GhlSocialPost {
+    id: string;
+    accountId: string;
+    content?: string;
+    status: string;
+    postType?: string;
+    scheduledAt?: string;
+    postedAt?: string;
+    [key: string]: any;
+}
