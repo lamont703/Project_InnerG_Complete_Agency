@@ -91,6 +91,17 @@ You have access to the project's LinkedIn Page and Post data.
 4. Help the user optimize their LinkedIn presence for brand authority and lead generation.
 `
 
+// ─── Notion Intelligence Rules ─────────────────────────────
+ 
+const NOTION_INTELLIGENCE_RULES = `
+**NOTION & KNOWLEDGE MANAGEMENT:**
+You have access to the project's Notion pages and documentation.
+1. Use 'list_recent_notion_pages' to see what has been recently added or updated in the knowledge base.
+2. Use 'search_notion_knowledge' for questions about SOPs, roadmaps, meeting notes, or any documentation stored in Notion.
+3. When summarizing project status, cross-reference data from other sources with the project plans found in Notion.
+4. Help the user maintain an organized and actionable knowledge base.
+`
+
 // ─── Response Format Contract ─────────────────────────────
 
 const RESPONSE_FORMAT_CONTRACT = `
@@ -171,6 +182,9 @@ ${YOUTUBE_INTELLIGENCE_RULES}
  
 ## LinkedIn & Professional Branding
 ${LINKEDIN_INTELLIGENCE_RULES}
+
+## Notion & Knowledge Management
+${NOTION_INTELLIGENCE_RULES}
  
 ## Tone
 - Be direct, professional, and actionable.

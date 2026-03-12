@@ -37,9 +37,13 @@ export async function syncNotion(
             // but for MVP let's just sync the page and its immediate children if it's a database
             // Search is more efficient for "getting everything"
         } else {
-            // Sync all accessible pages
-            const searchResult = await client.search("", { property: "object", value: "page" });
-            pagesToSync = searchResult.results;
+            // Sync all accessible pages with pagination
+            let cursor: string | undefined;
+            do {
+                const searchResult = await client.search("", { property: "object", value: "page" }, cursor);
+                pagesToSync = [...pagesToSync, ...searchResult.results];
+                cursor = searchResult.next_cursor;
+            } while (cursor);
         }
 
         for (const page of pagesToSync) {

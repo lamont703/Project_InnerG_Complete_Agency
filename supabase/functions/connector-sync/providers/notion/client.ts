@@ -36,7 +36,10 @@ export class NotionClient {
         let cursor: string | undefined;
 
         do {
-            const result = await this.request(`/blocks/${blockId}/children?start_cursor=${cursor || ""}`);
+            const url = cursor 
+                ? `/blocks/${blockId}/children?start_cursor=${encodeURIComponent(cursor)}` 
+                : `/blocks/${blockId}/children`;
+            const result = await this.request(url);
             blocks = [...blocks, ...result.results];
             cursor = result.next_cursor;
         } while (cursor);
@@ -44,12 +47,18 @@ export class NotionClient {
         return blocks;
     }
 
-    async search(query = "", filter?: any) {
-        return this.request("/search", "POST", {
+    async search(query = "", filter?: any, cursor?: string) {
+        const body: any = {
             query,
             filter,
             page_size: 100,
-        });
+        };
+        
+        if (cursor) {
+            body.start_cursor = cursor;
+        }
+
+        return this.request("/search", "POST", body);
     }
 
     /**

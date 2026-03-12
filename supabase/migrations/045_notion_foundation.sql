@@ -54,6 +54,7 @@ CREATE INDEX IF NOT EXISTS idx_notion_pages_project ON public.notion_pages(proje
 ALTER TABLE public.notion_pages ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Users can view their project's notion pages" ON public.notion_pages;
 CREATE POLICY "Users can view their project's notion pages" 
     ON public.notion_pages FOR SELECT 
     USING (project_id IN (SELECT project_id FROM public.project_user_access WHERE user_id = auth.uid()));
