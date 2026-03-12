@@ -21,9 +21,9 @@ export function AgencyHeader({
     onMenuOpen
 }: AgencyHeaderProps) {
     return (
-        <header className="sticky top-0 z-50 h-24 flex items-center justify-between px-6 md:px-10 glass-panel-strong border-b border-white/[0.05] bg-[#020617]/40 backdrop-blur-2xl">
+        <header className="sticky top-0 z-50 h-24 flex items-center justify-between px-4 md:px-10 glass-panel-strong border-b border-white/[0.05] bg-[#020617]/40 backdrop-blur-2xl">
             {/* Left side: Navigation / Breadcrumbs */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 md:gap-6">
                 <button
                     onClick={onMenuOpen}
                     className="lg:hidden h-12 w-12 rounded-xl glass-panel flex items-center justify-center hover:bg-white/5 transition-colors"
@@ -42,7 +42,7 @@ export function AgencyHeader({
             </div>
 
             {/* Right side: Global Actions & Profile */}
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-3 md:gap-8">
                 <div className="hidden lg:flex items-center gap-6">
                     {/* GHL Sync Control */}
                     <Button
@@ -71,7 +71,7 @@ export function AgencyHeader({
                 </div>
 
                 {/* Profile Widget */}
-                <div className="flex items-center gap-4 pl-6 border-l border-white/5">
+                <div className="flex items-center gap-3 md:gap-4 pl-3 md:pl-6 border-l border-white/5">
                     <div className="hidden md:block text-right">
                         <p className="text-sm font-bold text-foreground leading-none">{userData?.name}</p>
                         <p className="text-[9px] text-primary font-black uppercase tracking-[0.2em] mt-1.5 opacity-80">{userData?.role}</p>

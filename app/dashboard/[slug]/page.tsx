@@ -94,14 +94,14 @@ function DashboardPageContent() {
     }
 
     return (
-        <div className="min-h-screen bg-background flex flex-col lg:flex-row">
+        <div className="min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden w-full">
             <DashboardSidebar
                 projectSlug={slug}
                 isSidebarOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
             />
 
-            <main className="flex-1 flex flex-col min-h-screen bg-[#020617] relative w-full">
+            <main className="flex-1 flex flex-col min-h-screen bg-[#020617] relative w-full overflow-x-hidden">
                 {/* Background ambient gradients */}
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] opacity-20 pointer-events-none animate-pulse" />
                 <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-accent/20 rounded-full blur-[100px] opacity-10 pointer-events-none animate-pulse" />
