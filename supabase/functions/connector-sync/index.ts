@@ -16,7 +16,9 @@ export default createHandler(async ({ adminClient, body }) => {
         adminClient,
         logger,
         Deno.env.get("GHL_API_KEY") ?? "",
-        Deno.env.get("GHL_LOCATION_ID") ?? ""
+        Deno.env.get("GHL_LOCATION_ID") ?? "",
+        Deno.env.get("GOOGLE_CLIENT_ID") ?? "",
+        Deno.env.get("GOOGLE_CLIENT_SECRET") ?? ""
     )
 
     logger.info("Received sync request", { connection_id: body.connection_id })
@@ -30,5 +32,13 @@ export default createHandler(async ({ adminClient, body }) => {
     })
 }, {
     schema: SyncRequestSchema,
-    requiredEnv: ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GHL_API_KEY", "GHL_LOCATION_ID"]
+    requiredEnv: [
+        "SUPABASE_URL", 
+        "SUPABASE_SERVICE_ROLE_KEY", 
+        "GHL_API_KEY", 
+        "GHL_LOCATION_ID",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET"
+    ]
 })
+

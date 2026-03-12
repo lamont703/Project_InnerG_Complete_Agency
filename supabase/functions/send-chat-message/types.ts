@@ -55,6 +55,8 @@ export const CONFIG_TO_SOURCE_TABLES: Record<string, string[]> = {
     integration_sync_enabled: ["integration_sync_log"],
     system_connections_enabled: ["system_connections"],
     chat_history_enabled: ["session_summaries"],
+    youtube_data_enabled: ["youtube_channels", "youtube_videos"],
+    linkedin_data_enabled: ["linkedin_pages", "linkedin_posts"],
 }
 
 // ─── Function Response ────────────────────────────────────

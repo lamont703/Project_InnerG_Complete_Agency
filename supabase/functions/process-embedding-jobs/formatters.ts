@@ -102,6 +102,40 @@ export function formatGhlOpportunity(row: any): string {
     return `GHL Opportunity: "${row.title || "Untitled"}" — Value: ${valueStr}, Status: ${status}, Last Updated: ${dateStr}. Assigned To: ${row.assigned_to || "Unassigned"}. Tags: ${tags}.`
 }
 
+export function formatYoutubeChannel(row: any): string {
+    const subs = row.subscriber_count ?? 0
+    const views = row.view_count ?? 0
+    const videos = row.video_count ?? 0
+    const date = row.last_synced_at ? new Date(row.last_synced_at).toISOString().split("T")[0] : "recently"
+    return `YouTube Channel Analysis [${row.channel_id}]: "${row.title || "Untitled"}". Stats as of ${date}: ${subs.toLocaleString()} subscribers, ${views.toLocaleString()} total views, ${videos.toLocaleString()} videos. Description: ${row.description || "No description"}.`
+}
+
+export function formatYoutubeVideo(row: any): string {
+    const views = row.view_count ?? 0
+    const likes = row.like_count ?? 0
+    const comments = row.comment_count ?? 0
+    const published = row.published_at ? new Date(row.published_at).toISOString().split("T")[0] : "unknown"
+    return `YouTube Video Performance: "${row.title || "Untitled"}" [ID: ${row.video_id}]. Published on ${published}. Lifetime Stats: ${views.toLocaleString()} views, ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments. Description: ${row.description || "No description"}.`
+}
+
+export function formatLinkedinPage(row: any): string {
+    const followers = row.follower_count ?? 0
+    const views = row.total_views ?? 0
+    const clicks = row.total_clicks ?? 0
+    const engagement = row.engagement_rate != null ? (row.engagement_rate * 100).toFixed(1) : "N/A"
+    const date = row.last_synced_at ? new Date(row.last_synced_at).toISOString().split("T")[0] : "recently"
+    return `LinkedIn Page Analysis [${row.linkedin_page_id}]: "${row.name || "Untitled"}". Stats as of ${date}: ${followers.toLocaleString()} followers, ${views.toLocaleString()} impressions, ${clicks.toLocaleString()} clicks, ${engagement}% engagement rate.`
+}
+
+export function formatLinkedinPost(row: any): string {
+    const views = row.view_count ?? 0
+    const likes = row.like_count ?? 0
+    const comments = row.comment_count ?? 0
+    const shares = row.share_count ?? 0
+    const published = row.published_at ? new Date(row.published_at).toISOString().split("T")[0] : "unknown"
+    return `LinkedIn Post Performance: "${row.content?.slice(0, 100) || "No content"}..." [ID: ${row.linkedin_post_id}]. Published on ${published}. Lifetime Stats: ${views.toLocaleString()} impressions, ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments, ${shares.toLocaleString()} shares.`
+}
+
 /**
  * Master dispatcher — picks the right formatter for each source table.
  * ⚠️ Add new tables HERE. Do not add formatting logic anywhere else.
@@ -121,6 +155,10 @@ export function formatSourceRow(sourceTable: string, row: any): string {
             case "ghl_pipelines": return formatGhlPipeline(row)
             case "ghl_pipeline_stages": return formatGhlPipelineStage(row)
             case "ghl_opportunities": return formatGhlOpportunity(row)
+            case "youtube_channels": return formatYoutubeChannel(row)
+            case "youtube_videos": return formatYoutubeVideo(row)
+            case "linkedin_pages": return formatLinkedinPage(row)
+            case "linkedin_posts": return formatLinkedinPost(row)
             default: return JSON.stringify(row)
         }
     } catch (err) {

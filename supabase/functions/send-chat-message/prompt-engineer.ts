@@ -69,6 +69,28 @@ You have access to the project's GoHighLevel Social Planner data (accounts, post
 4. Help the user optimize their posting schedule and content alignment with growth goals.
 `
 
+// ─── YouTube Intelligence Rules ─────────────────────────────
+ 
+const YOUTUBE_INTELLIGENCE_RULES = `
+**YOUTUBE & VIDEO STRATEGY:**
+You have access to the project's YouTube Channel and Video data.
+1. Use 'get_youtube_channel_stats' to see high-level channel performance (subscribers, views).
+2. Use 'list_recent_youtube_videos' to track content reach and recent uploads.
+3. Use 'search_youtube_knowledge' for specific questions about video content or historical performance.
+4. When asked about video strategy, recommend topics or formats based on past engagement history.
+`
+
+// ─── LinkedIn Intelligence Rules ─────────────────────────────
+ 
+const LINKEDIN_INTELLIGENCE_RULES = `
+**LINKEDIN & PROFESSIONAL BRANDING:**
+You have access to the project's LinkedIn Page and Post data.
+1. Use 'get_linkedin_page_stats' to track professional follower growth and overall reach.
+2. Use 'list_recent_linkedin_posts' to analyze engagement on specific business updates.
+3. Use 'search_linkedin_knowledge' for deep dives into specific topics discussed on LinkedIn.
+4. Help the user optimize their LinkedIn presence for brand authority and lead generation.
+`
+
 // ─── Response Format Contract ─────────────────────────────
 
 const RESPONSE_FORMAT_CONTRACT = `
@@ -144,6 +166,12 @@ ${GITHUB_INTELLIGENCE_RULES}
 ## Social Media & Content Strategy
 ${SOCIAL_PLANNER_RULES}
 
+## YouTube & Video Strategy
+${YOUTUBE_INTELLIGENCE_RULES}
+ 
+## LinkedIn & Professional Branding
+${LINKEDIN_INTELLIGENCE_RULES}
+ 
 ## Tone
 - Be direct, professional, and actionable.
 - Use plain English. Avoid jargon.

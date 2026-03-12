@@ -21,6 +21,8 @@ import { Repo, Logger } from "../_shared/lib/index.ts"
 import { syncGithub } from "./providers/github/index.ts"
 import { syncGHL } from "./providers/ghl/index.ts"
 import { syncSupabaseProvider } from "./providers/supabase/index.ts"
+import { syncYouTube } from "./providers/youtube/index.ts"
+import { syncLinkedIn } from "./providers/linkedin/index.ts"
 
 export interface SyncResult {
     success: boolean
@@ -37,7 +39,9 @@ export class SyncService {
         private adminClient: SupabaseClient,
         private logger: Logger,
         private ghlApiKey: string = "",
-        private ghlLocationId: string = ""
+        private ghlLocationId: string = "",
+        private googleClientId: string = "",
+        private googleClientSecret: string = ""
     ) {
         this.connectorRepo = new Repo.ConnectorRepo(adminClient)
         this.activityRepo = new Repo.ActivityRepo(adminClient)
@@ -91,6 +95,23 @@ export class SyncService {
                     break
                 case "github":
                     result = await syncGithub(this.adminClient, projectId, syncConfig as any)
+                    break
+                case "youtube":
+                    result = await syncYouTube(
+                        this.adminClient, 
+                        projectId, 
+                        syncConfig as any,
+                        this.googleClientId,
+                        this.googleClientSecret,
+                        connectionId
+                    )
+                    break
+                case "linkedin":
+                    result = await syncLinkedIn(
+                        this.adminClient,
+                        projectId,
+                        syncConfig as any
+                    )
                     break
                 default:
                     result = {
