@@ -22,6 +22,7 @@ import { syncGithub } from "./providers/github/index.ts"
 import { syncGHL } from "./providers/ghl/index.ts"
 import { syncSupabaseProvider } from "./providers/supabase/index.ts"
 import { syncYouTube } from "./providers/youtube/index.ts"
+import { syncLinkedIn } from "./providers/linkedin/index.ts"
 
 export interface SyncResult {
     success: boolean
@@ -103,6 +104,13 @@ export class SyncService {
                         this.googleClientId,
                         this.googleClientSecret,
                         connectionId
+                    )
+                    break
+                case "linkedin":
+                    result = await syncLinkedIn(
+                        this.adminClient,
+                        projectId,
+                        syncConfig as any
                     )
                     break
                 default:

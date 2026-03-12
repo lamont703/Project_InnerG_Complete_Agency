@@ -88,6 +88,17 @@ You have access to the project's YouTube channel metrics and video performance d
 4. When asked about video reach, compare YouTube performance with other social channels if data is available.
 `
 
+// ─── LinkedIn Intelligence Rules ─────────────────────────────
+ 
+const LINKEDIN_INTELLIGENCE_RULES = `
+**LINKEDIN INTELLIGENCE:**
+You have access to the project's LinkedIn Page metrics and post performance data.
+1. Use 'get_linkedin_page_stats' to see follower growth, impressions, and engagement rates.
+2. Use 'list_recent_linkedin_posts' to track professional content reach and recent shares.
+3. Use 'search_linkedin_knowledge' for specific questions about LinkedIn content or campaign history.
+4. When asked about professional brand authority, synthesize LinkedIn data with other metrics.
+`
+
 // ─── Response Format Contract ─────────────────────────────
  
 const RESPONSE_FORMAT_CONTRACT = `
@@ -167,6 +178,9 @@ ${SOCIAL_PLANNER_RULES}
  
 ## YouTube Intelligence
 ${YOUTUBE_INTELLIGENCE_RULES}
+ 
+## LinkedIn Intelligence
+${LINKEDIN_INTELLIGENCE_RULES}
  
 ## Tone
 - Strategic and analytical. You see the big picture.

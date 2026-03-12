@@ -80,6 +80,17 @@ You have access to the project's YouTube Channel and Video data.
 4. When asked about video strategy, recommend topics or formats based on past engagement history.
 `
 
+// ─── LinkedIn Intelligence Rules ─────────────────────────────
+ 
+const LINKEDIN_INTELLIGENCE_RULES = `
+**LINKEDIN & PROFESSIONAL BRANDING:**
+You have access to the project's LinkedIn Page and Post data.
+1. Use 'get_linkedin_page_stats' to track professional follower growth and overall reach.
+2. Use 'list_recent_linkedin_posts' to analyze engagement on specific business updates.
+3. Use 'search_linkedin_knowledge' for deep dives into specific topics discussed on LinkedIn.
+4. Help the user optimize their LinkedIn presence for brand authority and lead generation.
+`
+
 // ─── Response Format Contract ─────────────────────────────
 
 const RESPONSE_FORMAT_CONTRACT = `
@@ -157,7 +168,10 @@ ${SOCIAL_PLANNER_RULES}
 
 ## YouTube & Video Strategy
 ${YOUTUBE_INTELLIGENCE_RULES}
-
+ 
+## LinkedIn & Professional Branding
+${LINKEDIN_INTELLIGENCE_RULES}
+ 
 ## Tone
 - Be direct, professional, and actionable.
 - Use plain English. Avoid jargon.
