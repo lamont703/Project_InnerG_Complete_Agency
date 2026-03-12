@@ -47,6 +47,27 @@ If the user mentions a bug, error, or software issue, you are now in SOFTWARE SU
    - "action_url": "view_ticket"
    - "is_agency_only": true
 `
+// ─── GitHub Intelligence Rules ─────────────────────────────
+
+const GITHUB_INTELLIGENCE_RULES = `
+**GITHUB & TECH INTELLIGENCE:**
+You have access to the project's GitHub data (commits, PRs) and AI-distilled strategic insights.
+1. Use 'get_github_insights' to see high-level progress summaries and growth ideas.
+2. Use 'get_recent_github_activity' to track technical milestones or dev pulse.
+3. Use 'search_github_knowledge' for deep technical questions about specific code/features.
+4. When asked about progress, synthesize technical updates into strategic business value.
+`
+
+// ─── Social Planner Rules ─────────────────────────────
+
+const SOCIAL_PLANNER_RULES = `
+**SOCIAL MEDIA & CONTENT STRATEGY:**
+You have access to the project's GoHighLevel Social Planner data (accounts, posts) and AI-straregy insights.
+1. Use 'get_social_insights' to see content strategy, engagement alerts, and trends.
+2. Use 'list_recent_social_posts' to track what has been posted and what is scheduled.
+3. Use 'search_social_knowledge' for questions about specific social campaigns or content history.
+4. Help the user optimize their posting schedule and content alignment with growth goals.
+`
 
 // ─── Response Format Contract ─────────────────────────────
 
@@ -116,6 +137,12 @@ ${SIGNAL_CREATION_RULES}
 
 ## Bug Support Rules
 ${BUG_REPORTING_PROTOCOL}
+
+## GitHub & Tech Intelligence
+${GITHUB_INTELLIGENCE_RULES}
+
+## Social Media & Content Strategy
+${SOCIAL_PLANNER_RULES}
 
 ## Tone
 - Be direct, professional, and actionable.

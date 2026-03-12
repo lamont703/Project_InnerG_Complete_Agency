@@ -9,6 +9,7 @@ interface AgencyHeaderProps {
     mounted: boolean
     isSyncing: boolean
     onSyncGHL: () => void
+    onSyncGithub: () => void
     onMenuOpen: () => void
 }
 
@@ -18,6 +19,7 @@ export function AgencyHeader({
     mounted,
     isSyncing,
     onSyncGHL,
+    onSyncGithub,
     onMenuOpen
 }: AgencyHeaderProps) {
     return (
@@ -50,11 +52,24 @@ export function AgencyHeader({
                         size="sm"
                         disabled={isSyncing}
                         onClick={onSyncGHL}
-                        className="h-10 px-5 gap-3 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 hover:border-primary/40 transition-all rounded-xl shadow-lg shadow-primary/5 group"
+                        className="h-10 px-5 gap-3 bg-orange-500/5 border-orange-500/20 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500/40 transition-all rounded-xl shadow-lg shadow-orange-500/5 group"
                     >
                         <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`} />
                         <span className="text-[11px] font-black uppercase tracking-widest">
-                            {isSyncing ? "Force Syncing..." : "Global GHL Sync"}
+                            {isSyncing ? "Syncing..." : "GHL Sync"}
+                        </span>
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isSyncing}
+                        onClick={onSyncGithub}
+                        className="h-10 px-5 gap-3 bg-violet-500/5 border-violet-500/20 text-violet-400 hover:bg-violet-500/10 hover:border-violet-500/40 transition-all rounded-xl shadow-lg shadow-violet-500/5 group"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`} />
+                        <span className="text-[11px] font-black uppercase tracking-widest">
+                            {isSyncing ? "Syncing..." : "Github Sync"}
                         </span>
                     </Button>
 

@@ -64,12 +64,36 @@ export function useAgencyData() {
             const { data: { session } } = await supabase.auth.getSession()
             if (!session) throw new Error("No active session")
 
-            await service.syncGHL(session.access_token, supabaseAnonKey)
-            alert("GHL Pipeline Sync Successful!")
+            const connectionId = await service.getGHLConnection()
+            await service.syncGHL(session.access_token, supabaseAnonKey, connectionId)
+            alert("GHL Pipeline & Social Data Sync Successful!")
             await fetchData()
         } catch (err: any) {
             console.error("Sync failed:", err)
             alert("Sync failed: " + (err.message || "Unknown error"))
+        } finally {
+            setIsSyncing(false)
+        }
+    }
+
+    const handleSyncGithub = async () => {
+        setIsSyncing(true)
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) throw new Error("No active session")
+
+            const connectionId = await service.getGitHubConnection()
+            if (!connectionId) {
+                alert("No active GitHub connection found. Please configure one in Admin > Connectors.")
+                return
+            }
+
+            await service.syncGithub(session.access_token, supabaseAnonKey, connectionId)
+            alert("GitHub Repository Sync Successful!")
+            await fetchData()
+        } catch (err: any) {
+            console.error("GitHub Sync failed:", err)
+            alert("GitHub Sync failed: " + (err.message || "Unknown error"))
         } finally {
             setIsSyncing(false)
         }
@@ -137,6 +161,7 @@ export function useAgencyData() {
         newSignalId,
         refresh: fetchData,
         syncGHL: handleSyncGHL,
+        syncGithub: handleSyncGithub,
         resolveSignal: handleResolveSignal
     }
 }

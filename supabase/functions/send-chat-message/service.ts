@@ -12,9 +12,10 @@
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { Logger, generateContent, embedText, GEMINI_MODELS } from "../_shared/lib/index.ts"
-import { buildSystemPrompt } from "./prompt-engineer.ts"
+import { buildSystemPrompt, RESPONSE_SCHEMA } from "./prompt-engineer.ts"
 import { parseAiResponse, persistSignal, persistTicket, logSignalActivity } from "./signal-processor.ts"
 import { CONFIG_TO_SOURCE_TABLES, ChatFunctionResponse } from "./types.ts"
+import { createDefaultRegistry } from "../_shared/lib/tools/registry.ts"
 
 export interface ChatServiceInput {
     project_id: string
@@ -231,19 +232,82 @@ export class ChatService {
             recentSummary: disabledNote
         })
 
-        // ── Step 8: Call Gemini ───────────────────────────────
-        this.logger.info(`Step 8: Calling Gemini stable v1 API (${model})`)
-        const geminiResult = await generateContent({
+        // ── Step 8: Call Gemini (with Tool Loop) ────────────
+        this.logger.info(`Step 8: Calling Gemini v1beta API (${model}) with Tool Capabilities`)
+        const registry = createDefaultRegistry()
+        const tools = [{ functionDeclarations: registry.getDefinitions() }]
+
+        const generateOptions = {
             model: model as any,
             systemPrompt,
             userMessage: message,
-            temperature: 0.7,
+            temperature: 0.1, // Lower temperature for more accurate tool calling
             maxOutputTokens: 2048,
-            responseSchema: undefined // Schema enforced via prompt
-        }, this.geminiApiKey).catch(err => {
+            history: historyPrompt ? [{ role: "user", parts: [{ text: historyPrompt }] }] : [],
+            tools,
+        }
+
+        let geminiResult = await generateContent(generateOptions, this.geminiApiKey).catch(err => {
             this.logger.error("Gemini API call failed", err)
             throw err
         })
+
+        // Tool Loop: If Gemini wants to use its hands, let it.
+        const modelParts = (geminiResult.rawData as any).candidates?.[0]?.content?.parts || []
+        const toolCalls = modelParts.filter((p: any) => p.functionCall)
+
+        if (toolCalls.length > 0) {
+            this.logger.info(`Gemini requested ${toolCalls.length} tool calls`)
+
+            try {
+                // 1. Execute all tools in parallel
+                const functionResponses = await Promise.all(toolCalls.map(async (part: any) => {
+                    const { name, args } = part.functionCall
+                    this.logger.info(`Executing tool: ${name}`, { args })
+
+                    const result = await registry.call(name, {
+                        adminClient: this.adminClient,
+                        projectId: project_id,
+                        userId
+                    }, args)
+
+                    return {
+                        functionResponse: {
+                            name,
+                            response: { result }
+                        }
+                    }
+                }))
+
+                this.logger.info(`All ${toolCalls.length} tools executed successfully`)
+
+                // 2. Feed the results back to Gemini for final summary
+                geminiResult = await generateContent({
+                    ...generateOptions,
+                    tools: undefined,
+                    history: [
+                        { role: "user", parts: [{ text: message }] },
+                        { role: "model", parts: toolCalls },
+                        { role: "function", parts: functionResponses as any }
+                    ],
+                    // Force JSON mode for structural updates
+                    responseSchema: RESPONSE_SCHEMA as any
+                }, this.geminiApiKey)
+            } catch (toolErr) {
+                this.logger.error(`Tool execution failed`, toolErr)
+                geminiResult = await generateContent({
+                    ...generateOptions,
+                    tools: undefined,
+                    responseSchema: RESPONSE_SCHEMA as any
+                }, this.geminiApiKey)
+            }
+        } else {
+            geminiResult = await generateContent({
+                ...generateOptions,
+                tools: undefined,
+                responseSchema: RESPONSE_SCHEMA as any
+            }, this.geminiApiKey)
+        }
 
         const { text: rawReply, usage } = geminiResult
 

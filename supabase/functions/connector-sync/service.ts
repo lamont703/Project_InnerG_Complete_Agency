@@ -16,8 +16,11 @@
  */
 
 
-import { SupabaseClient, createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { Repo, GhlProvider, Logger } from "../_shared/lib/index.ts"
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { Repo, Logger } from "../_shared/lib/index.ts"
+import { syncGithub } from "./providers/github/index.ts"
+import { syncGHL } from "./providers/ghl/index.ts"
+import { syncSupabaseProvider } from "./providers/supabase/index.ts"
 
 export interface SyncResult {
     success: boolean
@@ -51,11 +54,12 @@ export class SyncService {
             throw new Error(`Connection not found: ${connectionId}`)
         }
 
-        const provider = connection.connector_types?.provider || (connection as any).db_type
+        const rawProvider = connection.connector_types?.provider || (connection as any).db_type || ""
+        const provider = rawProvider.trim().toLowerCase()
         const syncConfig = connection.sync_config || {}
         const projectId = connection.project_id
 
-        this.logger.info(`Starting sync for ${connectionId} (${provider})`)
+        this.logger.info(`Starting sync for ${connectionId} (normalized provider: "${provider}")`)
 
         // 1. Mark as syncing
         await this.connectorRepo.updateStatus(connectionId, "syncing")
@@ -73,10 +77,20 @@ export class SyncService {
         try {
             switch (provider) {
                 case "supabase":
-                    result = await this.syncSupabase(connection, syncConfig, projectId)
+                    result = await syncSupabaseProvider(this.adminClient, projectId, syncConfig as any)
                     break
                 case "ghl":
-                    result = await this.syncGHL(connection, syncConfig, projectId)
+                    result = await syncGHL(
+                        this.adminClient,
+                        this.logger,
+                        projectId,
+                        syncConfig as any,
+                        this.ghlApiKey,
+                        this.ghlLocationId
+                    )
+                    break
+                case "github":
+                    result = await syncGithub(this.adminClient, projectId, syncConfig as any)
                     break
                 default:
                     result = {
@@ -126,79 +140,4 @@ export class SyncService {
         return result
     }
 
-    /**
-     * Supabase Rest API Sync.
-     */
-    private async syncSupabase(_connection: any, syncConfig: any, projectId: string): Promise<SyncResult> {
-        const { supabase_url, supabase_service_role_key, tables_to_sync = ["users", "orders"] } = syncConfig
-
-        if (!supabase_url || !supabase_service_role_key) {
-            return { success: false, records_synced: 0, tables_synced: [], error: "Missing config keys" }
-        }
-
-        const externalClient = createClient(supabase_url, supabase_service_role_key)
-        let totalRecords = 0
-        const syncedTables: string[] = []
-
-        for (const table of tables_to_sync) {
-            const { data: rows, error } = await externalClient.from(table).select("*").limit(100)
-            if (error) continue
-
-            if (rows && rows.length > 0) {
-                // Log activity per table (simplified)
-                await this.activityRepo.log({
-                    project_id: projectId,
-                    category: "integration",
-                    action: `Synced ${rows.length} rows from external table: ${table}`,
-                    actor: "system"
-                })
-                totalRecords += rows.length
-                syncedTables.push(table)
-            }
-        }
-
-        return { success: true, records_synced: totalRecords, tables_synced: syncedTables }
-    }
-
-    /**
-     * GHL Sync via GhlProvider.
-     */
-    private async syncGHL(_connection: any, syncConfig: any, projectId: string): Promise<SyncResult> {
-        // Credentials are injected from the constructor (passed from index.ts env read).
-        // Fallback to syncConfig for per-connector overrides.
-        const apiKey = syncConfig.api_key || this.ghlApiKey
-        const locationId = syncConfig.location_id || this.ghlLocationId
-
-        if (!apiKey || !locationId) {
-            return { success: false, records_synced: 0, tables_synced: [], error: "Missing API credentials" }
-        }
-
-        const ghl = new GhlProvider(apiKey)
-        let total = 0
-        const tables = []
-
-        // Sync Contacts
-        try {
-            const contacts = await ghl.listContacts(locationId, 100)
-            if (contacts.length > 0) {
-                // Upsert logic... (moved from index.ts)
-                for (const c of contacts) {
-                    await this.adminClient.from("ghl_contacts").upsert({
-                        project_id: projectId,
-                        ghl_contact_id: c.id,
-                        email: c.email || null,
-                        phone: c.phone || null,
-                        full_name: [c.firstName, c.lastName].filter(Boolean).join(" ") || null,
-                        synced_at: new Date().toISOString()
-                    }, { onConflict: "ghl_contact_id" })
-                }
-                total += contacts.length
-                tables.push("contacts")
-            }
-        } catch (e) {
-            this.logger.warn("GHL Contact sync failed", { error: String(e) })
-        }
-
-        return { success: true, records_synced: total, tables_synced: tables }
-    }
 }

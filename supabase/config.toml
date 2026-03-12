@@ -123,3 +123,6 @@ verify_jwt = false
 [functions.send-agency-chat-message]
 verify_jwt = false
 
+
+[functions.ghl-social-sync]
+verify_jwt = false
