@@ -146,7 +146,7 @@ export default function SelectPortalPage() {
     }
 
     return (
-        <main className="min-h-screen bg-[#020617] text-foreground relative w-full">
+        <main className="min-h-screen bg-[#020617] text-foreground relative w-full overflow-x-hidden">
             <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[160px] opacity-20 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/10 rounded-full blur-[140px] opacity-10 pointer-events-none" />
 
