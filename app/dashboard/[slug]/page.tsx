@@ -5,22 +5,28 @@ import { useParams } from "next/navigation"
 import {
     Loader2
 } from "lucide-react"
-import { ChatInterface } from "@/components/dashboard/chat-interface"
-import { SessionHistoryBrowser } from "@/components/dashboard/session-history-browser"
+import { ChatInterface } from "@/features/chat/ChatInterface"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
-import { ConnectionStatusGrid } from "@/components/dashboard/connection-status-grid"
-import { KpiMetricsGrid } from "@/components/dashboard/kpi-metrics-grid"
-import { SocialAnalyticsPanel, AcquisitionFunnel, KANES_MOCK_FUNNEL_ROWS } from "@/components/dashboard/analytics-panels"
-import { AiSignalCards } from "@/components/dashboard/ai-signal-cards"
-import { ActivityFeed } from "@/components/dashboard/activity-feed"
-import { PlentyOfHeartsBanner } from "@/components/dashboard/plenty-of-hearts-banner"
+import { MetricsGrid as KpiMetricsGrid } from "@/features/metrics/MetricsGrid"
+import { SignalGrid as AiSignalCards } from "@/features/signals/SignalGrid"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { SlotProvider, useSlotContext } from "@/features/metrics/SlotContext"
+import { DashboardCustomizer } from "@/features/metrics/components/DashboardCustomizer"
 
 function DashboardContent() {
+    return (
+        <SlotProvider userRole="client">
+            <DashboardPageContent />
+        </SlotProvider>
+    )
+}
+
+function DashboardPageContent() {
     const params = useParams()
-    const slug = (params?.slug as string) ?? "kanes-bookstore"
-    const isPlentyOfHearts = slug === "plenty-of-hearts"
+    const slug = (params?.slug as string) ?? "innergcomplete"
+
+    const { activeSlotIds } = useSlotContext()
 
     // User & Project State
     const [userData, setUserData] = useState<{ name: string; role: string } | null>(null)
@@ -97,8 +103,9 @@ function DashboardContent() {
 
             <main className="flex-1 flex flex-col min-h-screen bg-[#020617] relative w-full">
                 {/* Background ambient gradients */}
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] opacity-20 pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-accent/20 rounded-full blur-[100px] opacity-10 pointer-events-none" />
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] opacity-20 pointer-events-none animate-pulse" />
+                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-accent/20 rounded-full blur-[100px] opacity-10 pointer-events-none animate-pulse" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[150px] pointer-events-none" />
 
                 <DashboardHeader
                     userName={userData?.name || "User"}
@@ -111,11 +118,11 @@ function DashboardContent() {
                 {/* Content Area */}
                 <div className="flex-1 p-4 md:p-8 relative z-10 max-w-7xl mx-auto w-full overflow-x-hidden">
                     {/* Welcome */}
-                    <div className="mb-8 md:mb-10">
-                        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                    <div className="mb-8 md:mb-10 text-center lg:text-left">
+                        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">
                             Welcome Back, {userData?.name.split(" ")[0] || "User"}
                         </h1>
-                        <p className="text-muted-foreground text-sm md:text-base mt-2 max-w-2xl leading-relaxed text-balance">
+                        <p className="text-muted-foreground text-sm md:text-base mt-3 max-w-2xl leading-relaxed text-balance mx-auto lg:ml-0">
                             The <span className="text-foreground font-medium">{projectName || "Project"}</span> growth systems are
                             performing at optimal levels. All external bridges and retail API handshakes are
                             stable as of{" "}
@@ -126,37 +133,19 @@ function DashboardContent() {
                         </p>
                     </div>
 
-                    <ConnectionStatusGrid projectSlug={slug} />
+                    <KpiMetricsGrid projectSlug={slug} activeSlotIds={activeSlotIds} />
 
-                    {isPlentyOfHearts ? (
-                        <PlentyOfHeartsBanner />
-                    ) : (
-                        <KpiMetricsGrid projectSlug={slug} />
-                    )}
-
-                    <div className={`grid grid-cols-1 ${!isPlentyOfHearts ? "lg:grid-cols-2" : ""} gap-8 mb-12`}>
-                        <div className="rounded-2xl border border-white/5 overflow-hidden flex flex-col min-h-0">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                        <div className="rounded-2xl border border-white/5 overflow-hidden flex flex-col min-h-0 bg-[#020617]/40 backdrop-blur-xl">
                             <ChatInterface projectSlug={slug} />
                         </div>
 
-                        {!isPlentyOfHearts && (
-                            <div className="space-y-8 flex flex-col">
-                                <SessionHistoryBrowser projectSlug={slug} />
-                                <SocialAnalyticsPanel />
-                                <AcquisitionFunnel
-                                    rows={KANES_MOCK_FUNNEL_ROWS}
-                                    aiNote="Activation rates are 22% higher for users who engaged with the 'Sneak Peek' carousel on Instagram."
-                                />
-                            </div>
-                        )}
+                        <div className="flex flex-col gap-8">
+                            <AiSignalCards projectSlug={slug} />
+                        </div>
                     </div>
-
-                    {!isPlentyOfHearts && (
-                        <AiSignalCards projectSlug={slug} />
-                    )}
-
-                    {!isPlentyOfHearts && <ActivityFeed projectSlug={slug} />}
                 </div>
+                <DashboardCustomizer />
             </main>
         </div>
     )

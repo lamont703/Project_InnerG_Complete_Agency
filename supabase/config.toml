@@ -70,3 +70,56 @@ s3_host = "env(S3_HOST)"
 s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+# ─── Edge Function Configuration ─────────────────────────────────────────────
+# verify_jwt = false is required for ALL functions.
+#
+# WHY: Supabase's platform gateway verifies JWTs using HS256.
+# Supabase Auth v2 issues user session tokens signed with ES256.
+# When verify_jwt = true (default), the gateway rejects valid user JWTs
+# before the function code ever runs (execution_id: null in logs).
+#
+# Our middleware (auth.ts) handles all auth correctly via getAuthenticatedUser()
+# which uses supabase.auth.getUser() — the correct way to validate ES256 tokens.
+# Platform-level verification is redundant AND breaks authenticated requests.
+# ─────────────────────────────────────────────────────────────────────────────
+
+[functions.validate-invite]
+verify_jwt = false
+
+[functions.generate-invite-link]
+verify_jwt = false
+
+[functions.complete-invite]
+verify_jwt = false
+
+[functions.resolve-signal]
+verify_jwt = false
+
+[functions.process-kpi-aggregation]
+verify_jwt = false
+
+[functions.submit-growth-audit-lead]
+verify_jwt = false
+
+[functions.generate-daily-snapshot]
+verify_jwt = false
+
+[functions.generate-session-summaries]
+verify_jwt = false
+
+[functions.process-embedding-jobs]
+verify_jwt = false
+
+[functions.sync-ghl-pipeline]
+verify_jwt = false
+
+[functions.connector-sync]
+verify_jwt = false
+
+[functions.send-chat-message]
+verify_jwt = false
+
+[functions.send-agency-chat-message]
+verify_jwt = false
+
