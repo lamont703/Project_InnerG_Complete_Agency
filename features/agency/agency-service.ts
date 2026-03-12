@@ -74,4 +74,37 @@ export class AgencyService {
             throw new Error(responseBody?.error?.message || error.message)
         }
     }
+
+    /**
+     * Trigger GitHub Sync for a specific connection
+     */
+    async syncGithub(accessToken: string, anonKey: string, connectionId: string): Promise<void> {
+        const { error } = await this.supabase.functions.invoke("connector-sync", {
+            body: { connection_id: connectionId },
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                apikey: anonKey
+            }
+        })
+
+        if (error) {
+            const responseBody = await error.context?.json()
+            throw new Error(responseBody?.error?.message || error.message)
+        }
+    }
+
+    /**
+     * Find the primary GitHub connection for the portfolio
+     */
+    async getGitHubConnection(): Promise<string | null> {
+        const { data } = await this.supabase
+            .from("client_db_connections")
+            .select("id, connector_types!inner(provider)")
+            .eq("connector_types.provider", "github")
+            .eq("is_active", true)
+            .limit(1)
+            .maybeSingle()
+
+        return data?.id || null
+    }
 }

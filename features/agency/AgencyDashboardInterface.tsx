@@ -41,6 +41,7 @@ function AgencyDashboardContent() {
         resolvingId,
         newSignalId,
         syncGHL,
+        syncGithub,
         resolveSignal
     } = useAgencyData()
 
@@ -144,6 +145,7 @@ function AgencyDashboardContent() {
                     mounted={mounted}
                     isSyncing={isSyncing}
                     onSyncGHL={syncGHL}
+                    onSyncGithub={syncGithub}
                     onMenuOpen={() => setIsSidebarOpen(true)}
                 />
 

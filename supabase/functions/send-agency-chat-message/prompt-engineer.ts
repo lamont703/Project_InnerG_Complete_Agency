@@ -55,6 +55,17 @@ const FOLLOW_UP_DRAFTING_RULES = `
 4. Set "action_url": "draft_followup" and "action_label": "Open Draft" in the signal.
 `
 
+// ─── GitHub Intelligence Rules ─────────────────────────────
+
+const GITHUB_INTELLIGENCE_RULES = `
+**GITHUB & TECH INTELLIGENCE:**
+You have access to the project's GitHub data (commits, PRs) and AI-distilled strategic insights.
+1. Use 'get_github_insights' to see high-level progress summaries and growth ideas.
+2. Use 'get_recent_github_activity' to track technical milestones or dev pulse.
+3. Use 'search_github_knowledge' for deep technical questions about specific code/features.
+4. When asked about progress, synthesize technical updates into strategic business value.
+`
+
 // ─── Response Format Contract ─────────────────────────────
 
 const RESPONSE_FORMAT_CONTRACT = `
@@ -125,6 +136,9 @@ ${BUG_REPORTING_PROTOCOL}
 
 ## Follow-up Rules
 ${FOLLOW_UP_DRAFTING_RULES}
+
+## GitHub & Tech Intelligence
+${GITHUB_INTELLIGENCE_RULES}
 
 ## Tone
 - Strategic and analytical. You see the big picture.

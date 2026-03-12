@@ -19,6 +19,8 @@ import {
     EyeOff,
     Save,
     Zap,
+    Github,
+    Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -67,6 +69,7 @@ interface Project {
 const providerMeta: Record<string, { color: string; bgColor: string; label: string }> = {
     supabase: { color: "text-emerald-400", bgColor: "bg-emerald-500/10 border-emerald-500/20", label: "Supabase" },
     ghl: { color: "text-orange-400", bgColor: "bg-orange-500/10 border-orange-500/20", label: "GoHighLevel" },
+    github: { color: "text-violet-400", bgColor: "bg-violet-500/10 border-violet-500/20", label: "GitHub" },
     postgres: { color: "text-blue-400", bgColor: "bg-blue-500/10 border-blue-500/20", label: "PostgreSQL" },
     mysql: { color: "text-cyan-400", bgColor: "bg-cyan-500/10 border-cyan-500/20", label: "MySQL" },
 }
@@ -112,6 +115,10 @@ export default function ConnectorAdminPage() {
     const [newConfig, setNewConfig] = useState<Record<string, any>>({})
     const [isCreating, setIsCreating] = useState(false)
     const [showSensitive, setShowSensitive] = useState<Record<string, boolean>>({})
+
+    // GitHub Repo Selection
+    const [fetchedRepos, setFetchedRepos] = useState<string[]>([])
+    const [isFetchingRepos, setIsFetchingRepos] = useState(false)
 
     useEffect(() => {
         loadData()
@@ -205,6 +212,7 @@ export default function ConnectorAdminPage() {
                 setNewType("")
                 setNewProject("")
                 setNewConfig({})
+                setFetchedRepos([])
                 await loadData()
             }
         } catch (err) {
@@ -214,7 +222,64 @@ export default function ConnectorAdminPage() {
         }
     }
 
-    const selectedTypeSchema = connectorTypes.find(t => t.id === newType)?.config_schema
+    const handleFetchRepos = async () => {
+        const token = newConfig.github_token
+        if (!token) return
+        setIsFetchingRepos(true)
+        try {
+            const res = await fetch("https://api.github.com/user/repos?per_page=100&sort=updated", {
+                headers: { "Authorization": `token ${token}` }
+            })
+            if (!res.ok) throw new Error("Failed to fetch repos")
+            const data = await res.json()
+            setFetchedRepos(data.map((r: any) => r.full_name))
+        } catch (err) {
+            console.error("[Connectors] Fetch repos failed:", err)
+            alert("Failed to fetch repositories. Check your token permissions (repo scope required).")
+        } finally {
+            setIsFetchingRepos(false)
+        }
+    }
+
+    const handleDelete = async (connectionId: string) => {
+        if (!confirm("Are you sure you want to delete this connection? All synced data and history will be permanently removed.")) return
+        
+        try {
+            const supabase = createBrowserClient()
+            
+            // 1. Get connection info for specific cleanup if needed
+            const { data: conn } = await (supabase as any)
+                .from("client_db_connections")
+                .select("project_id, db_type")
+                .eq("id", connectionId)
+                .single()
+
+            // 2. Delete the connection (cascades to logs)
+            const { error: deleteError } = await (supabase as any)
+                .from("client_db_connections")
+                .delete()
+                .eq("id", connectionId)
+
+            if (deleteError) throw deleteError
+
+            // 3. GitHub-specific data cleanup if applicable
+            if (conn && "db_type" in conn && conn.db_type === "github" && conn.project_id) {
+                // Delete GitHub repos linked to this project
+                await (supabase as any)
+                    .from("github_repos")
+                    .delete()
+                    .eq("project_id", conn.project_id)
+            }
+
+            await loadData()
+        } catch (err) {
+            console.error("[Connectors] Delete failed:", err)
+            alert("Failed to delete connection.")
+        }
+    }
+
+    const selectedType = connectorTypes.find(t => t.id === newType)
+    const selectedTypeSchema = selectedType?.config_schema
 
     if (isLoading) {
         return (
@@ -285,7 +350,7 @@ export default function ConnectorAdminPage() {
                                 <label className="text-xs text-muted-foreground mb-1.5 block">Connector Type</label>
                                 <select
                                     value={newType}
-                                    onChange={(e) => { setNewType(e.target.value); setNewConfig({}) }}
+                                    onChange={(e) => { setNewType(e.target.value); setNewConfig({}); setFetchedRepos([]) }}
                                     className="w-full h-10 px-3 rounded-xl bg-background/50 border border-white/10 text-sm text-foreground"
                                 >
                                     <option value="">Select type...</option>
@@ -331,23 +396,50 @@ export default function ConnectorAdminPage() {
                                     const isVisible = showSensitive[key] ?? false
                                     return (
                                         <div key={key}>
-                                            <label className="text-xs text-muted-foreground mb-1 block">{schema.label || key}</label>
-                                            <div className="relative">
-                                                <Input
-                                                    type={isSensitive && !isVisible ? "password" : "text"}
-                                                    value={newConfig[key] || ""}
-                                                    onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.value }))}
-                                                    placeholder={schema.placeholder || ""}
-                                                    className="bg-background/50 border-white/10 rounded-xl pr-10"
-                                                />
-                                                {isSensitive && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowSensitive(prev => ({ ...prev, [key]: !isVisible }))}
-                                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                            <div className="flex items-center justify-between mb-1">
+                                                <label className="text-xs text-muted-foreground block">{schema.label || key}</label>
+                                                {key === "repository" && selectedType?.provider === "github" && (
+                                                    <button 
+                                                        onClick={handleFetchRepos}
+                                                        disabled={!newConfig.github_token || isFetchingRepos}
+                                                        className="text-[10px] font-bold text-primary hover:text-primary/80 disabled:opacity-50 flex items-center gap-1"
                                                     >
-                                                        {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                                        {isFetchingRepos && <Loader2 className="h-2 w-2 animate-spin" />}
+                                                        Fetch My Repositories
                                                     </button>
+                                                )}
+                                            </div>
+                                            <div className="relative">
+                                                {key === "repository" && fetchedRepos.length > 0 ? (
+                                                    <select
+                                                        value={newConfig[key] || ""}
+                                                        onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.value }))}
+                                                        className="w-full h-10 px-3 rounded-xl bg-background/50 border border-white/10 text-sm text-foreground"
+                                                    >
+                                                        <option value="">Select a repository...</option>
+                                                        {fetchedRepos.map(repo => (
+                                                            <option key={repo} value={repo}>{repo}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <>
+                                                        <Input
+                                                            type={isSensitive && !isVisible ? "password" : "text"}
+                                                            value={newConfig[key] || ""}
+                                                            onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.value }))}
+                                                            placeholder={schema.placeholder || ""}
+                                                            className="bg-background/50 border-white/10 rounded-xl pr-10"
+                                                        />
+                                                        {isSensitive && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowSensitive(prev => ({ ...prev, [key]: !isVisible }))}
+                                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                                            >
+                                                                {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                                            </button>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         </div>
@@ -367,7 +459,7 @@ export default function ConnectorAdminPage() {
                             </Button>
                             <Button
                                 variant="ghost"
-                                onClick={() => setShowNewForm(false)}
+                                onClick={() => { setShowNewForm(false); setFetchedRepos([]) }}
                                 className="rounded-xl"
                             >
                                 Cancel
@@ -435,7 +527,11 @@ export default function ConnectorAdminPage() {
                                         <div className="p-5 flex items-center justify-between">
                                             <div className="flex items-center gap-4 min-w-0">
                                                 <div className={`h-10 w-10 rounded-xl flex items-center justify-center border shrink-0 ${meta.bgColor}`}>
-                                                    <Database className={`h-5 w-5 ${meta.color}`} />
+                                                    {provider === "github" ? (
+                                                        <Github className={`h-5 w-5 ${meta.color}`} />
+                                                    ) : (
+                                                        <Database className={`h-5 w-5 ${meta.color}`} />
+                                                    )}
                                                 </div>
                                                 <div className="min-w-0">
                                                     <h3 className="text-sm font-bold text-foreground truncate">{conn.label}</h3>
@@ -503,14 +599,26 @@ export default function ConnectorAdminPage() {
                                                         <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-2">Config</p>
                                                         {Object.entries(conn.sync_config).map(([k, v]) => (
                                                             <div key={k} className="flex items-center gap-2 text-[10px]">
-                                                                <span className="text-muted-foreground">{k}:</span>
-                                                                <span className="text-foreground font-mono">
-                                                                    {typeof v === "string" && v.length > 20 ? `${v.slice(0, 8)}...${v.slice(-4)}` : String(v)}
-                                                                </span>
+                                                                 <span className="text-muted-foreground">{k}:</span>
+                                                                 <span className="text-foreground font-mono">
+                                                                     {typeof v === "string" && v.length > 20 ? `${v.slice(0, 8)}...${v.slice(-4)}` : String(v)}
+                                                                 </span>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 )}
+
+                                                <div className="mt-6 flex justify-end">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleDelete(conn.id)}
+                                                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-3 rounded-lg gap-2"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                        Delete Connection
+                                                    </Button>
+                                                </div>
                                             </div>
                                         )}
                                     </div>

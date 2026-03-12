@@ -20,6 +20,7 @@ export default createHandler(async ({ adminClient, body }) => {
     )
 
     logger.info("Received sync request", { connection_id: body.connection_id })
+    console.log(`[DEBUG] Orchestrating sync for connection: ${body.connection_id}`)
 
     const result = await service.sync(body.connection_id)
 

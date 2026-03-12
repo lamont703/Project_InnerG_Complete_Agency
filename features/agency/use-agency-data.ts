@@ -75,6 +75,29 @@ export function useAgencyData() {
         }
     }
 
+    const handleSyncGithub = async () => {
+        setIsSyncing(true)
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) throw new Error("No active session")
+
+            const connectionId = await service.getGitHubConnection()
+            if (!connectionId) {
+                alert("No active GitHub connection found. Please configure one in Admin > Connectors.")
+                return
+            }
+
+            await service.syncGithub(session.access_token, supabaseAnonKey, connectionId)
+            alert("GitHub Repository Sync Successful!")
+            await fetchData()
+        } catch (err: any) {
+            console.error("GitHub Sync failed:", err)
+            alert("GitHub Sync failed: " + (err.message || "Unknown error"))
+        } finally {
+            setIsSyncing(false)
+        }
+    }
+
     const handleResolveSignal = async (signalId: string) => {
         setResolvingId(signalId)
         try {
@@ -137,6 +160,7 @@ export function useAgencyData() {
         newSignalId,
         refresh: fetchData,
         syncGHL: handleSyncGHL,
+        syncGithub: handleSyncGithub,
         resolveSignal: handleResolveSignal
     }
 }
