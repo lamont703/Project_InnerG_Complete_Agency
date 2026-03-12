@@ -10,6 +10,10 @@ export class YouTubeClient {
 
     constructor(private accessToken: string) {}
 
+    public setAccessToken(token: string) {
+        this.accessToken = token;
+    }
+
     private async request<T>(path: string): Promise<T> {
         const response = await fetch(`${this.baseUrl}${path}`, {
             headers: {
@@ -25,6 +29,32 @@ export class YouTubeClient {
 
         return response.json();
     }
+
+    /**
+     * Refresh the access token using a refresh token
+     */
+    async refreshAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<string> {
+        const response = await fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+                client_id: clientId,
+                client_secret: clientSecret,
+                refresh_token: refreshToken,
+                grant_type: "refresh_token",
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to refresh YouTube token: ${error.error_description || JSON.stringify(error)}`);
+        }
+
+        const data = await response.json();
+        this.accessToken = data.access_token;
+        return data.access_token;
+    }
+
 
     /**
      * Get authenticated user's channels

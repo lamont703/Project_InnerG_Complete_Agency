@@ -14,15 +14,42 @@ export async function syncYouTube(
     config: {
         access_token: string;
         refresh_token?: string;
-    }
+    },
+    googleClientId: string,
+    googleClientSecret: string,
+    connectionId?: string
 ): Promise<SyncResult> {
     const client = new YouTubeClient(config.access_token);
     let recordsSynced = 0;
     const tablesSynced: string[] = [];
 
     try {
+        // Step 0: Try to refresh the token immediately if we have a refresh token
+        // This ensures the sync doesn't fail due to a stale access token.
+        if (config.refresh_token && googleClientId && googleClientSecret) {
+            try {
+                const newAccessToken = await client.refreshAccessToken(googleClientId, googleClientSecret, config.refresh_token);
+                
+                // Update the connection config in the background so future syncs start with the fresh token
+                if (connectionId) {
+                    await adminClient
+                        .from("client_db_connections")
+                        .update({ 
+                            sync_config: { 
+                                ...config, 
+                                access_token: newAccessToken 
+                            } 
+                        })
+                        .eq("id", connectionId);
+                }
+            } catch (refreshErr: any) {
+                console.error("[YouTube Sync] Failed to refresh token, attempting with existing token:", refreshErr.message);
+            }
+        }
+
         // 1. Sync Channels
         const channels = await client.getMyChannels();
+
         if (channels.length === 0) {
             return {
                 success: true,

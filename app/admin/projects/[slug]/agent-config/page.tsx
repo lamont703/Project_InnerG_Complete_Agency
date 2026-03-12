@@ -19,6 +19,7 @@ import {
     ArrowLeft,
     Info,
     Shield,
+    Youtube,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -110,6 +111,15 @@ const DATA_SOURCES: DataSourceDef[] = [
         icon: MessageSquare,
         color: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
     },
+    {
+        key: "youtube_data",
+        dbColumn: "youtube_data_enabled",
+        label: "YouTube Analytics",
+        description: "YouTube channel statistics and video performance metrics.",
+        exampleQuestion: "Which video got the most likes last month?",
+        icon: Youtube,
+        color: "text-red-500 bg-red-500/10 border-red-500/20",
+    },
 ]
 
 // ─────────────────────────────────────────────
@@ -166,6 +176,7 @@ export default function AgentConfigPage() {
         integration_sync_enabled: true,
         system_connections_enabled: true,
         chat_history_enabled: true,
+        youtube_data_enabled: true,
     })
 
     // Count enabled/disabled
@@ -220,6 +231,7 @@ export default function AgentConfigPage() {
                         integration_sync_enabled: agentConfig.integration_sync_enabled ?? true,
                         system_connections_enabled: agentConfig.system_connections_enabled ?? true,
                         chat_history_enabled: agentConfig.chat_history_enabled ?? true,
+                        youtube_data_enabled: agentConfig.youtube_data_enabled ?? true,
                     })
                 }
             } catch (err) {

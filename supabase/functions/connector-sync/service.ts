@@ -38,7 +38,9 @@ export class SyncService {
         private adminClient: SupabaseClient,
         private logger: Logger,
         private ghlApiKey: string = "",
-        private ghlLocationId: string = ""
+        private ghlLocationId: string = "",
+        private googleClientId: string = "",
+        private googleClientSecret: string = ""
     ) {
         this.connectorRepo = new Repo.ConnectorRepo(adminClient)
         this.activityRepo = new Repo.ActivityRepo(adminClient)
@@ -94,7 +96,14 @@ export class SyncService {
                     result = await syncGithub(this.adminClient, projectId, syncConfig as any)
                     break
                 case "youtube":
-                    result = await syncYouTube(this.adminClient, projectId, syncConfig as any)
+                    result = await syncYouTube(
+                        this.adminClient, 
+                        projectId, 
+                        syncConfig as any,
+                        this.googleClientId,
+                        this.googleClientSecret,
+                        connectionId
+                    )
                     break
                 default:
                     result = {

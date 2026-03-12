@@ -22,6 +22,8 @@ import {
     Github,
     Trash2,
     Edit2,
+    Youtube,
+    Play,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -73,6 +75,7 @@ const providerMeta: Record<string, { color: string; bgColor: string; label: stri
     github: { color: "text-violet-400", bgColor: "bg-violet-500/10 border-violet-500/20", label: "GitHub" },
     postgres: { color: "text-blue-400", bgColor: "bg-blue-500/10 border-blue-500/20", label: "PostgreSQL" },
     mysql: { color: "text-cyan-400", bgColor: "bg-cyan-500/10 border-cyan-500/20", label: "MySQL" },
+    youtube: { color: "text-red-500", bgColor: "bg-red-500/10 border-red-500/20", label: "YouTube" },
 }
 
 const statusMeta: Record<string, { icon: any; color: string; label: string }> = {
@@ -577,6 +580,8 @@ export default function ConnectorAdminPage() {
                                                 <div className={`h-10 w-10 rounded-xl flex items-center justify-center border shrink-0 ${meta.bgColor}`}>
                                                     {provider === "github" ? (
                                                         <Github className={`h-5 w-5 ${meta.color}`} />
+                                                    ) : provider === "youtube" ? (
+                                                        <Youtube className={`h-5 w-5 ${meta.color}`} />
                                                     ) : (
                                                         <Database className={`h-5 w-5 ${meta.color}`} />
                                                     )}

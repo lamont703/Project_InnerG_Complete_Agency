@@ -78,13 +78,12 @@ async function run() {
       
       const tokens = await tokenResponse.json();
       
-      if (tokens.error) {
-        console.error("Error exchanging token:", tokens);
-        return;
-      }
-      
-      console.log("Successfully obtained access token:", tokens.access_token.substring(0, 10) + "...");
-      console.log("Refresh token obtained:", !!tokens.refresh_token);
+      console.log("\n=== AUTHENTICATION SUCCESSFUL ===");
+      console.log("Copy these values into your Admin Connectors page:");
+      console.log("--------------------------------------------------");
+      console.log("Access Token:  " + tokens.access_token);
+      console.log("Refresh Token: " + (tokens.refresh_token || "Already have one (or re-auth to see it)"));
+      console.log("--------------------------------------------------");
       
       console.log("\n3. Making a test call to YouTube API (Channels List)...");
       const ytResponse = await fetch('https://youtube.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true', {

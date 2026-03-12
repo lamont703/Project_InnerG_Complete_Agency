@@ -8,6 +8,8 @@ import { listOpenTicketsTool, updateTicketStatusTool } from "./ticket-tools.ts"
 import { getGithubInsightsTool, getRecentGithubActivityTool, searchGithubKnowledgeTool } from "./github-tools.ts"
 import { getSocialInsightsTool, listRecentSocialPostsTool, searchSocialKnowledgeTool } from "./social-tools.ts"
 
+import { getYoutubeChannelStatsTool, listRecentYoutubeVideosTool, searchYoutubeKnowledgeTool } from "./youtube-tools.ts"
+
 /**
  * Creates and configures the default tool registry for AI agents.
  */
@@ -27,6 +29,11 @@ export function createDefaultRegistry(): ToolRegistry {
     registry.register(getSocialInsightsTool)
     registry.register(listRecentSocialPostsTool)
     registry.register(searchSocialKnowledgeTool)
+
+    // Register YouTube Intelligence Tools
+    registry.register(getYoutubeChannelStatsTool)
+    registry.register(listRecentYoutubeVideosTool)
+    registry.register(searchYoutubeKnowledgeTool)
 
     return registry
 }
