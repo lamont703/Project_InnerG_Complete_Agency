@@ -240,7 +240,7 @@ function AcceptInviteContent() {
 
                 <p className="text-center mt-8 text-[11px] text-muted-foreground leading-relaxed">
                     By activating your account, you agree to Inner G Complete&apos;s <br />
-                    <Link href="#" className="underline">Terms of Service</Link> and <Link href="#" className="underline">Security Protocols</Link>.
+                    <Link href="/terms-of-service" className="underline">Terms of Service</Link> and <Link href="#" className="underline">Security Protocols</Link>.
                 </p>
             </div>
         </main>

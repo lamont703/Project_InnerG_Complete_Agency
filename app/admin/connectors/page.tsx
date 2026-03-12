@@ -23,6 +23,7 @@ import {
     Trash2,
     Edit2,
     Youtube,
+    Linkedin,
     Play,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -76,6 +77,7 @@ const providerMeta: Record<string, { color: string; bgColor: string; label: stri
     postgres: { color: "text-blue-400", bgColor: "bg-blue-500/10 border-blue-500/20", label: "PostgreSQL" },
     mysql: { color: "text-cyan-400", bgColor: "bg-cyan-500/10 border-cyan-500/20", label: "MySQL" },
     youtube: { color: "text-red-500", bgColor: "bg-red-500/10 border-red-500/20", label: "YouTube" },
+    linkedin: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "LinkedIn" },
 }
 
 const statusMeta: Record<string, { icon: any; color: string; label: string }> = {
@@ -582,6 +584,8 @@ export default function ConnectorAdminPage() {
                                                         <Github className={`h-5 w-5 ${meta.color}`} />
                                                     ) : provider === "youtube" ? (
                                                         <Youtube className={`h-5 w-5 ${meta.color}`} />
+                                                    ) : provider === "linkedin" ? (
+                                                        <Linkedin className={`h-5 w-5 ${meta.color}`} />
                                                     ) : (
                                                         <Database className={`h-5 w-5 ${meta.color}`} />
                                                     )}

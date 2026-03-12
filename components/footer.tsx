@@ -67,7 +67,10 @@ export function Footer() {
           </p>
           <div className="flex gap-6">
             {["Privacy Policy", "Terms of Service", "Cookie Policy"].map((item) => {
-              const href = item === "Privacy Policy" ? "/privacy-policy" : "#"
+              const href = 
+                item === "Privacy Policy" ? "/privacy-policy" : 
+                item === "Terms of Service" ? "/terms-of-service" :
+                item === "Cookie Policy" ? "/cookie-policy" : "#"
               return (
                 <Link
                   key={item}

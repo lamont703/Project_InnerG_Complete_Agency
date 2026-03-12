@@ -13,7 +13,7 @@ export interface LinkedInProfile {
 }
 
 export interface LinkedInPage {
-    id: string; -- e.g., urn:li:organization:123
+    id: string; // e.g., urn:li:organization:123
     vanityName: string;
     localizedName: string;
     logoV2?: any;

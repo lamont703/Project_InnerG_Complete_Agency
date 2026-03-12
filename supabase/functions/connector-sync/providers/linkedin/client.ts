@@ -53,8 +53,20 @@ export class LinkedInClient {
         const pages: LinkedInPage[] = [];
         for (const urn of orgUrns) {
             try {
-                const page = await this.request<LinkedInPage>(`/${urn.split(':').pop()}`);
-                pages.push(page);
+                // Determine resource type/ID from URN (e.g., urn:li:organization:123)
+                const parts = urn.split(':');
+                const id = parts[parts.length - 1];
+                const type = parts.length >= 3 ? parts[2] : 'organization';
+                
+                const endpoint = type === 'organization' ? `/organizations/${id}` : `/${id}`;
+                
+                const pageData = await this.request<any>(endpoint);
+                pages.push({
+                    id: urn, // Always use the full URN as the ID
+                    vanityName: pageData.vanityName || id,
+                    localizedName: pageData.localizedName || pageData.localizedFirstName || "LinkedIn Page",
+                    logoV2: pageData.logoV2 || pageData.profilePicture
+                });
             } catch (err) {
                 console.error(`Failed to fetch details for ${urn}:`, err);
             }
@@ -67,7 +79,22 @@ export class LinkedInClient {
      * Get specific page details by ID
      */
     async getPage(pageUrn: string): Promise<LinkedInPage> {
-        return this.request<LinkedInPage>(`/${pageUrn.split(':').pop()}`);
+        // Ensure we have a proper URN
+        const urn = pageUrn.startsWith('urn:li:') ? pageUrn : `urn:li:organization:${pageUrn}`;
+        
+        const parts = urn.split(':');
+        const id = parts[parts.length - 1];
+        const type = parts.length >= 3 ? parts[2] : 'organization';
+        
+        const endpoint = type === 'organization' ? `/organizations/${id}` : `/${id}`;
+        const pageData = await this.request<any>(endpoint);
+        
+        return {
+            id: urn,
+            vanityName: pageData.vanityName || id,
+            localizedName: pageData.localizedName || pageData.localizedFirstName || "LinkedIn Page",
+            logoV2: pageData.logoV2 || pageData.profilePicture
+        };
     }
 
     /**
@@ -104,9 +131,16 @@ export class LinkedInClient {
      * List recent posts (UGC shares) for a page
      */
     async listRecentPosts(pageUrn: string, count = 10): Promise<LinkedInPost[]> {
+        // Ensure we use a proper URN for authors
+        const urn = pageUrn.startsWith('urn:li:') ? pageUrn : `urn:li:organization:${pageUrn}`;
+        
         // Use the newer UGC Post API for better content capture
+        // For Rest.li 2.0, List parameters need to be properly encoded.
+        // The error "Field Value validation failed in PARAMETER: Data Processing Exception while processing fields [/authors/authors]"
+        // often occurs when the List syntax is incorrect for the protocol version.
+        const encodedUrn = encodeURIComponent(urn);
         const data = await this.request<{ elements: LinkedInPost[] }>(
-            `/ugcPosts?q=authors&authors=List(${encodeURIComponent(pageUrn)})&count=${count}&sortBy=LAST_MODIFIED`
+            `/ugcPosts?q=authors&authors=List(${encodedUrn})&count=${count}`
         );
         return data.elements || [];
     }

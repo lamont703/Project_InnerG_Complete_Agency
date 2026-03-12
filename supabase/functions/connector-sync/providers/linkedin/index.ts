@@ -42,10 +42,15 @@ export async function syncLinkedIn(
 
         for (const pageUrn of pageUrns) {
             // 2. Fetch Page Details & Metrics
-            const [pageData, pageMetrics] = await Promise.all([
-                client.getPage(pageUrn),
-                client.getPageMetrics(pageUrn).catch(() => undefined)
-            ]);
+            // client.getPage will normalize numeric IDs to URNs if needed
+            const pageData = await client.getPage(pageUrn);
+            const canonicalUrn = pageData.id;
+
+            // Now use the canonical URN for metrics and posts
+            const pageMetrics = await client.getPageMetrics(canonicalUrn).catch((err) => {
+                console.error(`Failed to fetch metrics for ${canonicalUrn}:`, err.message);
+                return undefined;
+            });
 
             const internalPage = LinkedInTransformer.toInternalPage(projectId, pageData, pageMetrics);
             
@@ -60,11 +65,9 @@ export async function syncLinkedIn(
             if (!tablesSynced.includes("linkedin_pages")) tablesSynced.push("linkedin_pages");
 
             // 3. Sync Recent Posts
-            const posts = await client.listRecentPosts(pageUrn);
+            const posts = await client.listRecentPosts(canonicalUrn);
             for (const post of posts) {
                 const internalPost = LinkedInTransformer.toInternalPost(projectId, dbPage.id, post);
-                // Note: We might want to fetch more metrics per post in the future,
-                // but for now we sync the base post data.
                 await adminClient
                     .from("linkedin_posts")
                     .upsert(internalPost, { onConflict: "project_id, linkedin_post_id" });
