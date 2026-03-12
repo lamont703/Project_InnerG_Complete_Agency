@@ -38,6 +38,9 @@
   "exclude": [
     "node_modules",
     "supabase/functions",
-    "scripts"
+    "scripts",
+    "test-*.ts",
+    "test-*.js",
+    "parseIds.js"
   ]
 }
