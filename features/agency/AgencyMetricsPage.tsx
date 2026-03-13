@@ -30,6 +30,7 @@ function AgencyMetricsContent() {
         projects,
         strategicSignals,
         operationalSignals,
+        linkedinMetrics,
         isLoading,
     } = useAgencyData()
 
@@ -81,18 +82,46 @@ function AgencyMetricsContent() {
             icon: Sparkles,
             color: "bg-violet-500/20 text-violet-400",
         },
+        {
+            id: "linkedin_followers",
+            label: "LinkedIn Followers",
+            value: linkedinMetrics?.followers?.toLocaleString() || "0",
+            icon: Building2,
+            color: "bg-blue-600/20 text-blue-400",
+        },
+        {
+            id: "linkedin_impressions",
+            label: "LinkedIn Reach",
+            value: linkedinMetrics?.views?.toLocaleString() || "0",
+            icon: Building2,
+            color: "bg-indigo-500/20 text-indigo-400",
+        },
+        {
+            id: "linkedin_engagement",
+            label: "LinkedIn Engagement",
+            value: (linkedinMetrics?.engagement || 0).toFixed(2) + "%",
+            icon: Building2,
+            color: "bg-emerald-500/20 text-emerald-400",
+        },
+        {
+            id: "linkedin_clicks",
+            label: "LinkedIn Clicks",
+            value: linkedinMetrics?.clicks?.toLocaleString() || "0",
+            icon: Building2,
+            color: "bg-orange-500/20 text-orange-400",
+        }
     ]
 
     const slug = (params?.slug as string) ?? "innergcomplete"
     const portalName = projects.find(p => p.slug === slug)?.name
 
     return (
-        <>
+        <div className="flex-1 flex flex-col min-h-0 h-full overflow-hidden relative">
             {/* Background ambient gradients */}
-            <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
-            <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
+            <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none z-0" />
+            <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none z-0" />
 
-            <div className="hidden lg:block">
+            <div className="hidden lg:block relative z-20">
                 <AgencyHeader
                     userData={userData}
                     currentTime={currentTime}
@@ -102,7 +131,8 @@ function AgencyMetricsContent() {
                 />
             </div>
 
-            <div className="flex-1 p-6 md:p-10 relative z-10 max-w-7xl mx-auto w-full">
+            <main className="flex-1 overflow-y-auto custom-scrollbar relative z-10 w-full">
+                <div className="p-6 md:p-10 max-w-7xl mx-auto w-full pb-24">
                     {/* Header Section */}
                     <div className="mb-12">
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border">
@@ -214,7 +244,8 @@ function AgencyMetricsContent() {
                             Apply Changes Systemwide
                         </Button>
                     </div>
-            </div>
-        </>
+                    </div>
+            </main>
+        </div>
     )
 }

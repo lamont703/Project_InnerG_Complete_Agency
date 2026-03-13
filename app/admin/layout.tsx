@@ -11,13 +11,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     const { activeTab, setActiveTab } = useMobileNav()
 
     return (
-        <div className="min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden w-full text-foreground">
+        <div className="h-screen lg:h-[100dvh] bg-background flex flex-col lg:flex-row overflow-hidden w-full text-foreground">
             <AgencySidebar
                 isSidebarOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
             />
-            <main className="flex-1 flex flex-col h-screen bg-background relative w-full selection:bg-primary/30 overflow-hidden">
-                <div className="flex-1 flex flex-col overflow-y-auto lg:pb-0">
+            <main className="flex-1 flex flex-col min-h-0 bg-background relative w-full selection:bg-primary/30 overflow-hidden">
+                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     {children}
                 </div>
                 <DashboardMobileNav 
