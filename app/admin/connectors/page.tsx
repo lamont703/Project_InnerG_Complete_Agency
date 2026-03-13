@@ -26,6 +26,7 @@ import {
     Linkedin,
     Play,
     BookOpen,
+    Newspaper,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -82,6 +83,7 @@ const providerMeta: Record<string, { color: string; bgColor: string; label: stri
     linkedin: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "LinkedIn" },
     notion: { color: "text-slate-200", bgColor: "bg-slate-500/10 border-slate-500/20", label: "Notion" },
     tiktok: { color: "text-pink-500", bgColor: "bg-pink-500/10 border-pink-500/20", label: "TikTok" },
+    newsapi: { color: "text-amber-500", bgColor: "bg-amber-500/10 border-amber-500/20", label: "NewsAPI" },
 }
 
 const statusMeta: Record<string, { icon: any; color: string; label: string }> = {
@@ -350,390 +352,408 @@ export default function ConnectorAdminPage() {
     }
 
     return (
-        <>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden h-full">
             <AdminHeader 
                 title="External Connectors" 
                 subtitle="Data Bridges & Sync Pipelines"
             />
 
-            <div className="flex-1 p-6 md:p-10 relative z-10 max-w-5xl mx-auto w-full">
-                {/* Header Actions */}
-                <div className="flex items-center justify-end mb-10">
-                    <Button
-                        onClick={() => setShowNewForm(!showNewForm)}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl h-11 px-6 shadow-lg shadow-primary/20"
-                    >
-                        <Plus className="h-4 w-4" />
-                        <span className="text-xs font-black uppercase tracking-widest">New Connection</span>
-                    </Button>
-                </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar pb-24 lg:pb-10">
+                <div className="p-6 md:p-10 relative z-10 max-w-5xl mx-auto w-full">
+                    {/* Header Actions */}
+                    <div className="flex items-center justify-end mb-10">
+                        <Button
+                            onClick={() => setShowNewForm(!showNewForm)}
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl h-11 px-6 shadow-lg shadow-primary/20"
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span className="text-xs font-black uppercase tracking-widest">New Connection</span>
+                        </Button>
+                    </div>
 
-                {/* ─── New Connection Form ─── */}
-                {showNewForm && (
-                    <div className="mb-8 p-6 rounded-2xl glass-panel border border-primary/20 animate-in slide-in-from-top-4">
-                        <h3 className="text-sm font-bold text-foreground mb-5 flex items-center gap-2">
-                            <Zap className="h-4 w-4 text-primary" />
-                            New Connection
-                        </h3>
+                    {/* ─── New Connection Form ─── */}
+                    {showNewForm && (
+                        <div className="mb-8 p-6 rounded-2xl glass-panel border border-primary/20 animate-in slide-in-from-top-4">
+                            <h3 className="text-sm font-bold text-foreground mb-5 flex items-center gap-2">
+                                <Zap className="h-4 w-4 text-primary" />
+                                New Connection
+                            </h3>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-                            <div>
-                                <label className="text-xs text-muted-foreground mb-1.5 block">Connection Label</label>
-                                <Input
-                                    value={newLabel}
-                                    onChange={(e) => setNewLabel(e.target.value)}
-                                    placeholder="e.g. Kane's Supabase DB"
-                                    className="bg-background border-border rounded-xl"
-                                />
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                                <div>
+                                    <label className="text-xs text-muted-foreground mb-1.5 block">Connection Label</label>
+                                    <Input
+                                        value={newLabel}
+                                        onChange={(e) => setNewLabel(e.target.value)}
+                                        placeholder="e.g. Kane's Supabase DB"
+                                        className="bg-background border-border rounded-xl"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-muted-foreground mb-1.5 block">Connector Type</label>
+                                    <select
+                                        value={newType}
+                                        onChange={(e) => { setNewType(e.target.value); setNewConfig({}); setFetchedRepos([]) }}
+                                        className="w-full h-10 px-3 rounded-xl bg-background border border-border text-sm text-foreground"
+                                    >
+                                        <option value="">Select type...</option>
+                                        {connectorTypes.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-muted-foreground mb-1.5 block">Assign to Project</label>
+                                    <select
+                                        value={newProject}
+                                        onChange={(e) => setNewProject(e.target.value)}
+                                        className="w-full h-10 px-3 rounded-xl bg-background border border-border text-sm text-foreground"
+                                    >
+                                        <option value="">Select project...</option>
+                                        {projects.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
-                            <div>
-                                <label className="text-xs text-muted-foreground mb-1.5 block">Connector Type</label>
-                                <select
-                                    value={newType}
-                                    onChange={(e) => { setNewType(e.target.value); setNewConfig({}); setFetchedRepos([]) }}
-                                    className="w-full h-10 px-3 rounded-xl bg-background border border-border text-sm text-foreground"
-                                >
-                                    <option value="">Select type...</option>
-                                    {connectorTypes.map(t => (
-                                        <option key={t.id} value={t.id}>{t.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs text-muted-foreground mb-1.5 block">Assign to Project</label>
-                                <select
-                                    value={newProject}
-                                    onChange={(e) => setNewProject(e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl bg-background border border-border text-sm text-foreground"
-                                >
-                                    <option value="">Select project...</option>
-                                    {projects.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
 
-                        {/* Dynamic Config Fields */}
-                        {selectedTypeSchema?.properties && (
-                            <div className="space-y-3 mb-5 p-4 rounded-xl bg-muted/5 border border-border">
-                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Configuration</p>
-                                {Object.entries(selectedTypeSchema.properties).map(([key, schema]: [string, any]) => {
-                                    if (schema.type === "boolean") {
+                            {/* Dynamic Config Fields */}
+                            {selectedTypeSchema?.properties && (
+                                <div className="space-y-3 mb-5 p-4 rounded-xl bg-muted/5 border border-border">
+                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Configuration</p>
+                                    {Object.entries(selectedTypeSchema.properties).map(([key, schema]: [string, any]) => {
+                                        if (schema.type === "boolean") {
+                                            return (
+                                                <label key={key} className="flex items-center gap-3 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={newConfig[key] ?? schema.default ?? false}
+                                                        onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.checked }))}
+                                                        className="rounded border-white/20"
+                                                    />
+                                                    <span className="text-xs text-foreground">{schema.label || key}</span>
+                                                </label>
+                                            )
+                                        }
+                                        const isSensitive = schema.sensitive === true
+                                        const isVisible = showSensitive[key] ?? false
                                         return (
-                                            <label key={key} className="flex items-center gap-3 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={newConfig[key] ?? schema.default ?? false}
-                                                    onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.checked }))}
-                                                    className="rounded border-white/20"
-                                                />
-                                                <span className="text-xs text-foreground">{schema.label || key}</span>
-                                            </label>
-                                        )
-                                    }
-                                    const isSensitive = schema.sensitive === true
-                                    const isVisible = showSensitive[key] ?? false
-                                    return (
-                                        <div key={key}>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <label className="text-xs text-muted-foreground block">{schema.label || key}</label>
-                                                {key === "repository" && selectedType?.provider === "github" && (
-                                                    <button 
-                                                        onClick={handleFetchRepos}
-                                                        disabled={!newConfig.github_token || isFetchingRepos}
-                                                        className="text-[10px] font-bold text-primary hover:text-primary/80 disabled:opacity-50 flex items-center gap-1"
-                                                    >
-                                                        {isFetchingRepos && <Loader2 className="h-2 w-2 animate-spin" />}
-                                                        Fetch My Repositories
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="relative">
-                                                {key === "repository" && fetchedRepos.length > 0 ? (
-                                                    <select
-                                                        value={newConfig[key] || ""}
-                                                        onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.value }))}
-                                                        className="w-full h-10 px-3 rounded-xl bg-background border border-border text-sm text-foreground"
-                                                    >
-                                                        <option value="">Select a repository...</option>
-                                                        {fetchedRepos.map(repo => (
-                                                            <option key={repo} value={repo}>{repo}</option>
-                                                        ))}
-                                                    </select>
-                                                ) : (
-                                                    <>
-                                                        <Input
-                                                            type={isSensitive && !isVisible ? "password" : "text"}
+                                            <div key={key}>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <label className="text-xs text-muted-foreground block">{schema.label || key}</label>
+                                                    {key === "repository" && selectedType?.provider === "github" && (
+                                                        <button 
+                                                            onClick={handleFetchRepos}
+                                                            disabled={!newConfig.github_token || isFetchingRepos}
+                                                            className="text-[10px] font-bold text-primary hover:text-primary/80 disabled:opacity-50 flex items-center gap-1"
+                                                        >
+                                                            {isFetchingRepos && <Loader2 className="h-2 w-2 animate-spin" />}
+                                                            Fetch My Repositories
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="relative">
+                                                    {key === "repository" && fetchedRepos.length > 0 ? (
+                                                        <select
                                                             value={newConfig[key] || ""}
                                                             onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.value }))}
-                                                            placeholder={schema.placeholder || ""}
-                                                            className="bg-background border-border rounded-xl pr-10"
-                                                        />
-                                                        {isSensitive && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setShowSensitive(prev => ({ ...prev, [key]: !isVisible }))}
-                                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                                            >
-                                                                {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                                            </button>
-                                                        )}
-                                                    </>
-                                                )}
+                                                            className="w-full h-10 px-3 rounded-xl bg-background border border-border text-sm text-foreground"
+                                                        >
+                                                            <option value="">Select a repository...</option>
+                                                            {fetchedRepos.map(repo => (
+                                                                <option key={repo} value={repo}>{repo}</option>
+                                                            ))}
+                                                        </select>
+                                                    ) : (
+                                                        <>
+                                                            <Input
+                                                                type={isSensitive && !isVisible ? "password" : "text"}
+                                                                value={newConfig[key] || ""}
+                                                                onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.value }))}
+                                                                placeholder={schema.placeholder || ""}
+                                                                className="bg-background border-border rounded-xl pr-10"
+                                                            />
+                                                            {isSensitive && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setShowSensitive(prev => ({ ...prev, [key]: !isVisible }))}
+                                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                                                >
+                                                                    {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                                                </button>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
+
+                            <div className="flex gap-3">
+                                <Button
+                                    onClick={handleCreateConnection}
+                                    disabled={!newLabel || !newType || !newProject || isCreating}
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl"
+                                >
+                                    {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                    Create Connection
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => { setShowNewForm(false); setFetchedRepos([]) }}
+                                    className="rounded-xl"
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ─── Connector Library ─── */}
+                    <div className="mb-8">
+                        <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 px-1">Available Connectors</h2>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {connectorTypes.map((ct) => {
+                                const meta = providerMeta[ct.provider] || providerMeta.postgres
+                                const connectionCount = connections.filter(c =>
+                                    c.connector_type_id === ct.id || c.db_type === ct.provider
+                                ).length
+                                return (
+                                    <div
+                                        key={ct.id}
+                                        className={`p-4 rounded-xl border ${meta.bgColor} hover:scale-[1.02] transition-transform cursor-default`}
+                                    >
+                                        <div className="flex items-center gap-2 mb-2">
+                                            {ct.provider === "github" ? (
+                                                <Github className={`h-4 w-4 ${meta.color}`} />
+                                            ) : ct.provider === "youtube" ? (
+                                                <Youtube className={`h-4 w-4 ${meta.color}`} />
+                                            ) : ct.provider === "linkedin" ? (
+                                                <Linkedin className={`h-4 w-4 ${meta.color}`} />
+                                            ) : ct.provider === "notion" ? (
+                                                <BookOpen className={`h-4 w-4 ${meta.color}`} />
+                                            ) : ct.provider === "tiktok" ? (
+                                                <Zap className={`h-4 w-4 ${meta.color}`} />
+                                            ) : ct.provider === "newsapi" ? (
+                                                <Newspaper className={`h-4 w-4 ${meta.color}`} />
+                                            ) : (
+                                                <Database className={`h-4 w-4 ${meta.color}`} />
+                                            )}
+                                            <span className={`text-xs font-bold ${meta.color}`}>{meta.label}</span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">{ct.description}</p>
+                                        <p className="text-[10px] text-muted-foreground/60 mt-2">
+                                            {connectionCount > 0 ? `${connectionCount} active` : "No connections"}
+                                        </p>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* ─── Active Connections ─── */}
+                    <div>
+                        <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 px-1">Active Connections</h2>
+
+                        {connections.length === 0 ? (
+                            <div className="text-center py-12 glass-panel rounded-2xl border border-border">
+                                <Plug className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                                <p className="text-sm text-muted-foreground">No connections configured</p>
+                                <p className="text-xs text-muted-foreground/60 mt-1">Click &ldquo;New Connection&rdquo; to connect a data source.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {connections.map((conn) => {
+                                    const provider = conn.connector_types?.provider || conn.db_type
+                                    const meta = providerMeta[provider] || providerMeta.postgres
+                                    const status = statusMeta[conn.sync_status] || statusMeta.pending
+                                    const StatusIcon = status.icon
+                                    const isExpanded = expandedId === conn.id
+                                    const isSyncing = syncingId === conn.id
+
+                                    return (
+                                        <div
+                                            key={conn.id}
+                                            className={`rounded-2xl border transition-all duration-300 ${isExpanded
+                                                ? "glass-panel border-border shadow-sm shadow-primary/5"
+                                                : "glass-panel border-border/50 hover:border-border"
+                                                }`}
+                                        >
+                                            <div className="p-5 flex items-center justify-between">
+                                                <div className="flex items-center gap-4 min-w-0">
+                                                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center border shrink-0 ${meta.bgColor}`}>
+                                                        {provider === "github" ? (
+                                                            <Github className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "youtube" ? (
+                                                            <Youtube className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "linkedin" ? (
+                                                            <Linkedin className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "notion" ? (
+                                                            <BookOpen className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "tiktok" ? (
+                                                            <Zap className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "newsapi" ? (
+                                                            <Newspaper className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : (
+                                                            <Database className={`h-5 w-5 ${meta.color}`} />
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <h3 className="text-sm font-bold text-foreground truncate">{conn.label}</h3>
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <span className={`text-[10px] font-bold ${meta.color}`}>{meta.label}</span>
+                                                            <span className="text-muted-foreground/30">•</span>
+                                                            <span className="text-[10px] text-muted-foreground">
+                                                                {conn.projects?.name || "Unassigned"}
+                                                            </span>
+                                                            <span className="text-muted-foreground/30">•</span>
+                                                            <StatusIcon className={`h-3 w-3 ${status.color} ${isSyncing ? "animate-spin" : ""}`} />
+                                                            <span className={`text-[10px] ${status.color}`}>{isSyncing ? "Syncing..." : status.label}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <span className="text-[10px] text-muted-foreground hidden sm:block">
+                                                        Last sync: {formatDate(conn.last_synced_at)}
+                                                    </span>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        disabled={isSyncing}
+                                                        onClick={() => handleSync(conn.id)}
+                                                        className="h-8 px-3 rounded-lg gap-1.5 text-xs"
+                                                    >
+                                                        <RefreshCcw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+                                                        Sync
+                                                    </Button>
+                                                    <button
+                                                        onClick={() => setExpandedId(isExpanded ? null : conn.id)}
+                                                        className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground"
+                                                    >
+                                                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {isExpanded && (
+                                                <div className="px-5 pb-5 border-t border-border pt-4">
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                                                        <div>
+                                                            <p className="text-muted-foreground/60 mb-1">Schedule</p>
+                                                            <p className="text-foreground font-medium capitalize">{conn.sync_schedule || "manual"}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-muted-foreground/60 mb-1">Shared</p>
+                                                            <p className="text-foreground font-medium">{conn.is_shared ? "Yes" : "No"}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-muted-foreground/60 mb-1">Active</p>
+                                                            <p className={`font-medium ${conn.is_active ? "text-emerald-400" : "text-red-400"}`}>
+                                                                {conn.is_active ? "Yes" : "Disabled"}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-muted-foreground/60 mb-1">Last Synced</p>
+                                                            <p className="text-foreground font-medium">{formatDate(conn.last_synced_at)}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    {conn.sync_config && Object.keys(conn.sync_config).length > 0 && editingConfigId !== conn.id && (
+                                                        <div className="mt-4 p-3 rounded-xl bg-muted/5 border border-border relative">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-foreground"
+                                                                onClick={() => { setEditingConfigId(conn.id); setEditConfig({ ...conn.sync_config }) }}
+                                                            >
+                                                                <Edit2 className="h-3 w-3" />
+                                                            </Button>
+                                                            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-2">Config</p>
+                                                            {Object.entries(conn.sync_config).map(([k, v]) => (
+                                                                <div key={k} className="flex items-center gap-2 text-[10px]">
+                                                                     <span className="text-muted-foreground">{k}:</span>
+                                                                     <span className="text-foreground font-mono">
+                                                                         {typeof v === "string" && v.length > 20 ? `${v.slice(0, 8)}...${v.slice(-4)}` : String(v)}
+                                                                     </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {editingConfigId === conn.id && (
+                                                        <div className="mt-4 p-4 rounded-xl bg-muted/5 border border-primary/20">
+                                                            <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-3">Edit Configuration</p>
+                                                            
+                                                            {Object.keys(editConfig).map((key) => {
+                                                                const schemaField = conn.connector_types?.config_schema?.properties?.[key]
+                                                                const isSensitive = schemaField?.sensitive === true
+                                                                return (
+                                                                <div key={key} className="mb-3">
+                                                                    <label className="text-[10px] text-muted-foreground block mb-1">{key}</label>
+                                                                    {typeof editConfig[key] === "boolean" ? (
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={editConfig[key]}
+                                                                            onChange={(e) => setEditConfig(p => ({ ...p, [key]: e.target.checked }))}
+                                                                            className="rounded border-white/20"
+                                                                        />
+                                                                    ) : (
+                                                                        <Input
+                                                                            type={isSensitive ? "password" : "text"}
+                                                                            value={editConfig[key] || ""}
+                                                                            onChange={(e) => setEditConfig(p => ({ ...p, [key]: e.target.value }))}
+                                                                            className="h-8 text-xs bg-background border-border rounded-lg"
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                            )})}
+
+                                                            <div className="flex justify-end gap-2 mt-4">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => setEditingConfigId(null)}
+                                                                    className="h-7 px-2 text-[10px]"
+                                                                >
+                                                                    Cancel
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    disabled={isUpdating}
+                                                                    onClick={() => handleUpdateConfig(conn.id)}
+                                                                    className="h-7 px-2 text-[10px] bg-primary text-primary-foreground hover:bg-primary/90"
+                                                                >
+                                                                    {isUpdating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
+                                                                    Save
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="mt-6 flex justify-end">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleDelete(conn.id)}
+                                                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-3 rounded-lg gap-2"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                            Delete Connection
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 })}
                             </div>
                         )}
-
-                        <div className="flex gap-3">
-                            <Button
-                                onClick={handleCreateConnection}
-                                disabled={!newLabel || !newType || !newProject || isCreating}
-                                className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl"
-                            >
-                                {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                                Create Connection
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                onClick={() => { setShowNewForm(false); setFetchedRepos([]) }}
-                                className="rounded-xl"
-                            >
-                                Cancel
-                            </Button>
-                        </div>
                     </div>
-                )}
-
-                {/* ─── Connector Library ─── */}
-                <div className="mb-8">
-                    <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 px-1">Available Connectors</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {connectorTypes.map((ct) => {
-                            const meta = providerMeta[ct.provider] || providerMeta.postgres
-                            const connectionCount = connections.filter(c =>
-                                c.connector_type_id === ct.id || c.db_type === ct.provider
-                            ).length
-                            return (
-                                <div
-                                    key={ct.id}
-                                    className={`p-4 rounded-xl border ${meta.bgColor} hover:scale-[1.02] transition-transform cursor-default`}
-                                >
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Database className={`h-4 w-4 ${meta.color}`} />
-                                        <span className={`text-xs font-bold ${meta.color}`}>{meta.label}</span>
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground leading-relaxed">{ct.description}</p>
-                                    <p className="text-[10px] text-muted-foreground/60 mt-2">
-                                        {connectionCount > 0 ? `${connectionCount} active` : "No connections"}
-                                    </p>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-
-                {/* ─── Active Connections ─── */}
-                <div>
-                    <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 px-1">Active Connections</h2>
-
-                    {connections.length === 0 ? (
-                        <div className="text-center py-12 glass-panel rounded-2xl border border-border">
-                            <Plug className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                            <p className="text-sm text-muted-foreground">No connections configured</p>
-                            <p className="text-xs text-muted-foreground/60 mt-1">Click &ldquo;New Connection&rdquo; to connect a data source.</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {connections.map((conn) => {
-                                const provider = conn.connector_types?.provider || conn.db_type
-                                const meta = providerMeta[provider] || providerMeta.postgres
-                                const status = statusMeta[conn.sync_status] || statusMeta.pending
-                                const StatusIcon = status.icon
-                                const isExpanded = expandedId === conn.id
-                                const isSyncing = syncingId === conn.id
-
-                                return (
-                                    <div
-                                        key={conn.id}
-                                        className={`rounded-2xl border transition-all duration-300 ${isExpanded
-                                            ? "glass-panel border-border shadow-sm shadow-primary/5"
-                                            : "glass-panel border-border/50 hover:border-border"
-                                            }`}
-                                    >
-                                        <div className="p-5 flex items-center justify-between">
-                                            <div className="flex items-center gap-4 min-w-0">
-                                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center border shrink-0 ${meta.bgColor}`}>
-                                                    {provider === "github" ? (
-                                                        <Github className={`h-5 w-5 ${meta.color}`} />
-                                                    ) : provider === "youtube" ? (
-                                                        <Youtube className={`h-5 w-5 ${meta.color}`} />
-                                                    ) : provider === "linkedin" ? (
-                                                        <Linkedin className={`h-5 w-5 ${meta.color}`} />
-                                                    ) : provider === "notion" ? (
-                                                        <BookOpen className={`h-5 w-5 ${meta.color}`} />
-                                                    ) : provider === "tiktok" ? (
-                                                        <Zap className={`h-5 w-5 ${meta.color}`} />
-                                                    ) : (
-                                                        <Database className={`h-5 w-5 ${meta.color}`} />
-                                                    )}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <h3 className="text-sm font-bold text-foreground truncate">{conn.label}</h3>
-                                                    <div className="flex items-center gap-2 mt-0.5">
-                                                        <span className={`text-[10px] font-bold ${meta.color}`}>{meta.label}</span>
-                                                        <span className="text-muted-foreground/30">•</span>
-                                                        <span className="text-[10px] text-muted-foreground">
-                                                            {conn.projects?.name || "Unassigned"}
-                                                        </span>
-                                                        <span className="text-muted-foreground/30">•</span>
-                                                        <StatusIcon className={`h-3 w-3 ${status.color} ${isSyncing ? "animate-spin" : ""}`} />
-                                                        <span className={`text-[10px] ${status.color}`}>{isSyncing ? "Syncing..." : status.label}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                <span className="text-[10px] text-muted-foreground hidden sm:block">
-                                                    Last sync: {formatDate(conn.last_synced_at)}
-                                                </span>
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    disabled={isSyncing}
-                                                    onClick={() => handleSync(conn.id)}
-                                                    className="h-8 px-3 rounded-lg gap-1.5 text-xs"
-                                                >
-                                                    <RefreshCcw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-                                                    Sync
-                                                </Button>
-                                                <button
-                                                    onClick={() => setExpandedId(isExpanded ? null : conn.id)}
-                                                    className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground"
-                                                >
-                                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {isExpanded && (
-                                            <div className="px-5 pb-5 border-t border-border pt-4">
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                                                    <div>
-                                                        <p className="text-muted-foreground/60 mb-1">Schedule</p>
-                                                        <p className="text-foreground font-medium capitalize">{conn.sync_schedule || "manual"}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-muted-foreground/60 mb-1">Shared</p>
-                                                        <p className="text-foreground font-medium">{conn.is_shared ? "Yes" : "No"}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-muted-foreground/60 mb-1">Active</p>
-                                                        <p className={`font-medium ${conn.is_active ? "text-emerald-400" : "text-red-400"}`}>
-                                                            {conn.is_active ? "Yes" : "Disabled"}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-muted-foreground/60 mb-1">Last Synced</p>
-                                                        <p className="text-foreground font-medium">{formatDate(conn.last_synced_at)}</p>
-                                                    </div>
-                                                </div>
-
-                                                {conn.sync_config && Object.keys(conn.sync_config).length > 0 && editingConfigId !== conn.id && (
-                                                    <div className="mt-4 p-3 rounded-xl bg-muted/5 border border-border relative">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-foreground"
-                                                            onClick={() => { setEditingConfigId(conn.id); setEditConfig({ ...conn.sync_config }) }}
-                                                        >
-                                                            <Edit2 className="h-3 w-3" />
-                                                        </Button>
-                                                        <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-2">Config</p>
-                                                        {Object.entries(conn.sync_config).map(([k, v]) => (
-                                                            <div key={k} className="flex items-center gap-2 text-[10px]">
-                                                                 <span className="text-muted-foreground">{k}:</span>
-                                                                 <span className="text-foreground font-mono">
-                                                                     {typeof v === "string" && v.length > 20 ? `${v.slice(0, 8)}...${v.slice(-4)}` : String(v)}
-                                                                 </span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-
-                                                {editingConfigId === conn.id && (
-                                                    <div className="mt-4 p-4 rounded-xl bg-muted/5 border border-primary/20">
-                                                        <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-3">Edit Configuration</p>
-                                                        
-                                                        {Object.keys(editConfig).map((key) => {
-                                                            const schemaField = conn.connector_types?.config_schema?.properties?.[key]
-                                                            const isSensitive = schemaField?.sensitive === true
-                                                            return (
-                                                            <div key={key} className="mb-3">
-                                                                <label className="text-[10px] text-muted-foreground block mb-1">{key}</label>
-                                                                {typeof editConfig[key] === "boolean" ? (
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={editConfig[key]}
-                                                                        onChange={(e) => setEditConfig(p => ({ ...p, [key]: e.target.checked }))}
-                                                                        className="rounded border-white/20"
-                                                                    />
-                                                                ) : (
-                                                                    <Input
-                                                                        type={isSensitive ? "password" : "text"}
-                                                                        value={editConfig[key] || ""}
-                                                                        onChange={(e) => setEditConfig(p => ({ ...p, [key]: e.target.value }))}
-                                                                        className="h-8 text-xs bg-background border-border rounded-lg"
-                                                                    />
-                                                                )}
-                                                            </div>
-                                                        )})}
-
-                                                        <div className="flex justify-end gap-2 mt-4">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => setEditingConfigId(null)}
-                                                                className="h-7 px-2 text-[10px]"
-                                                            >
-                                                                Cancel
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                disabled={isUpdating}
-                                                                onClick={() => handleUpdateConfig(conn.id)}
-                                                                className="h-7 px-2 text-[10px] bg-primary text-primary-foreground hover:bg-primary/90"
-                                                            >
-                                                                {isUpdating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
-                                                                Save
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                <div className="mt-6 flex justify-end">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleDelete(conn.id)}
-                                                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-3 rounded-lg gap-2"
-                                                    >
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                        Delete Connection
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    )}
                 </div>
             </div>
-        </>
+        </div>
     )
 }
