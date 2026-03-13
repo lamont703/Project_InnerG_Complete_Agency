@@ -12,6 +12,7 @@ interface SignalSlotFeedProps {
     isAgencyMode?: boolean
     onResolve?: (id: string) => void
     isResolving?: boolean
+    highlightId?: string | null
 }
 
 /**
@@ -25,7 +26,8 @@ export function SignalSlotFeed({
     signals,
     isAgencyMode = false,
     onResolve = () => { },
-    isResolving = false
+    isResolving = false,
+    highlightId = null
 }: SignalSlotFeedProps) {
     const config = getSignalSlotById(slotId)
 
@@ -76,6 +78,7 @@ export function SignalSlotFeed({
                             isResolving={isResolving}
                             onResolve={onResolve}
                             isAgencyMode={isAgencyMode || config.category === 'agency'}
+                            isHighlighted={signal.id === highlightId}
                         />
                     ))
                 )}

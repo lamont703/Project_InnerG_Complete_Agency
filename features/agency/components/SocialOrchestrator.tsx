@@ -16,9 +16,10 @@ interface SocialDraft {
 interface SocialOrchestratorProps {
     drafts: SocialDraft[]
     onPublish: (id: string) => Promise<void>
+    highlightId?: string | null
 }
 
-export function SocialOrchestrator({ drafts, onPublish }: SocialOrchestratorProps) {
+export function SocialOrchestrator({ drafts, onPublish, highlightId = null }: SocialOrchestratorProps) {
     const [isPublishingId, setIsPublishingId] = useState<string | null>(null)
 
     const handlePublish = async (id: string) => {
@@ -66,7 +67,7 @@ export function SocialOrchestrator({ drafts, onPublish }: SocialOrchestratorProp
                     drafts.map((draft) => (
                         <div 
                             key={draft.id} 
-                            className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-violet-500/30 transition-all group"
+                            className={`p-5 rounded-2xl bg-white/[0.02] border transition-all group ${draft.id === highlightId ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-pulse' : 'border-white/[0.05] hover:border-violet-500/30'}`}
                         >
                             <div className="flex items-start justify-between gap-4 mb-4">
                                 <div className="flex items-center gap-3">

@@ -13,9 +13,10 @@ interface SignalCardProps {
     signal: Signal
     isResolving: boolean
     onResolve: (id: string) => void
+    isHighlighted?: boolean
 }
 
-export function SignalCard({ signal, isResolving, onResolve, isAgencyMode = false }: SignalCardProps & { isAgencyMode?: boolean }) {
+export function SignalCard({ signal, isResolving, onResolve, isAgencyMode = false, isHighlighted = false }: SignalCardProps & { isAgencyMode?: boolean }) {
     const Icon = TYPE_ICONS[signal.signalType] || Zap
     const isAgencyInsight = signal.isAgencyOnly || isAgencyMode
 
@@ -31,7 +32,7 @@ export function SignalCard({ signal, isResolving, onResolve, isAgencyMode = fals
     }
 
     return (
-        <div className={`glass-panel-strong rounded-3xl p-8 border relative overflow-hidden group transition-all duration-500 hover:shadow-2xl ${isAgencyInsight
+        <div className={`glass-panel-strong rounded-3xl p-8 border relative overflow-hidden group transition-all duration-700 hover:shadow-2xl ${isHighlighted ? "border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)] animate-pulse" : isAgencyInsight
             ? "border-primary/20 hover:border-primary/40 hover:shadow-primary/10 bg-primary/[0.02]"
             : "border-white/[0.05] hover:border-white/10 hover:shadow-primary/5"
             }`}>

@@ -22,6 +22,7 @@ export function useAgencyData() {
     const [isSyncing, setIsSyncing] = useState(false)
     const [resolvingId, setResolvingId] = useState<string | null>(null)
     const [newSignalId, setNewSignalId] = useState<string | null>(null)
+    const [newDraftId, setNewDraftId] = useState<string | null>(null)
 
     const [supabase] = useState(() => createBrowserClient())
     const [service] = useState(() => new AgencyService(supabase))
@@ -163,8 +164,10 @@ export function useAgencyData() {
                 fetchData()
                 setTimeout(() => setNewSignalId(null), 5000)
             })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_content_plan' }, () => {
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_content_plan' }, (payload) => {
+                setNewDraftId(payload.new.id)
                 fetchData()
+                setTimeout(() => setNewDraftId(null), 5000)
             })
             .subscribe()
 
@@ -183,6 +186,7 @@ export function useAgencyData() {
         isSyncing,
         resolvingId,
         newSignalId,
+        newDraftId,
         refresh: fetchData,
         syncGHL: handleSyncGHL,
         syncGithub: handleSyncGithub,

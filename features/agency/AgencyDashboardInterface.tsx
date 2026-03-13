@@ -42,6 +42,7 @@ function AgencyDashboardContent() {
         isSyncing,
         resolvingId,
         newSignalId,
+        newDraftId,
         syncGHL,
         syncGithub,
         resolveSignal,
@@ -198,12 +199,14 @@ function AgencyDashboardContent() {
                                     isAgencyMode={true}
                                     onResolve={resolveSignal}
                                     isResolving={!!resolvingId}
+                                    highlightId={newSignalId}
                                 />
                             </div>
                             <div className="flex-1 min-h-[350px]">
                                 <SocialOrchestrator 
                                     drafts={socialDrafts}
                                     onPublish={publishPost}
+                                    highlightId={newDraftId}
                                 />
                             </div>
                         </div>
