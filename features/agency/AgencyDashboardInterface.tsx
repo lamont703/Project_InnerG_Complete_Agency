@@ -7,8 +7,7 @@ import { Loader2, Building2, AlertTriangle, Sparkles } from "lucide-react"
 import { AgencySidebar } from "./components/AgencySidebar"
 import { AgencyHeader } from "./components/AgencyHeader"
 import { AgencyChatInterface } from "./components/AgencyChat"
-import { SignalSlotFeed } from "@/features/signals/components/SignalSlotFeed"
-import { SocialOrchestrator } from "./components/SocialOrchestrator"
+import { UnifiedStream } from "./components/UnifiedStream"
 
 // Hooks
 import { useAgencyData } from "./use-agency-data"
@@ -146,58 +145,39 @@ function AgencyDashboardContent() {
                     onMenuOpen={() => setIsSidebarOpen(true)}
                 />
 
-                {/* Content */}
-                <div className="flex-1 p-6 md:p-10 relative z-10 max-w-7xl mx-auto w-full overflow-x-hidden">
-                    {/* Welcome Section - Interconnected & Dynamic */}
-                    <div className="mb-12">
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/[0.05]">
+                {/* Main Content Area */}
+                <div className="flex-1 flex flex-col lg:flex-row p-4 md:p-6 lg:p-8 gap-6 lg:gap-8 relative z-10 w-full overflow-hidden">
+                    
+                    {/* 1. Intelligence Hub (Chat) - Occupies the primary center */}
+                    <div className="flex-1 min-w-0 h-full flex flex-col">
+                        {/* Compact Status Header */}
+                        <div className="mb-6 flex items-center justify-between">
                             <div>
-                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight flex items-center gap-3">
+                                <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-3">
                                     Aura Dashboard
                                     <span className="text-primary font-light italic">God Mode</span>
                                 </h1>
-                                <p className="text-muted-foreground text-sm md:text-base mt-3 max-w-2xl leading-relaxed">
-                                    Synchronizing <span className="text-foreground font-bold">{projects.length} client architectures</span> across the global stream.
-                                    Your agency is currently performing at <span className="text-emerald-400 font-black">98.4% efficiency</span>.
+                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em] mt-1">
+                                    {projects.length} Active Architectures <span className="mx-2 opacity-20">|</span> 98.4% Efficiency
                                 </p>
                             </div>
-                            <div className="flex items-center gap-4 text-right">
-                                <div className="hidden md:block">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-1">Portfolio Pulse</p>
-                                    <p className="text-xs font-bold text-foreground">{mounted && currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
-                                </div>
-                            </div>
+                        </div>
+
+                        <div className="flex-1 min-h-[500px]">
+                            <AgencyChatInterface />
                         </div>
                     </div>
 
-
-                    {/* Main Grid: "The Big Three" Alignment */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10 mb-16 items-start h-[calc(100vh-450px)] min-h-[700px]">
-                        {/* 1. Intelligence Hub (Chat) - 60% Width approx */}
-                        <div className="lg:col-span-7 h-full">
-                            <AgencyChatInterface />
-                        </div>
-
-                        {/* 2. Unified Signal Feed & Social Orchestration - 40% Width approx */}
-                        <div className="lg:col-span-5 h-full min-h-0 flex flex-col gap-8">
-                            <div className="flex-1 min-h-[300px]">
-                                <SignalSlotFeed
-                                    slotId="global_portfolio_monitoring"
-                                    signals={allAgencySignalsMapped}
-                                    isAgencyMode={true}
-                                    onResolve={resolveSignal}
-                                    isResolving={!!resolvingId}
-                                    highlightId={newSignalId}
-                                />
-                            </div>
-                            <div className="flex-1 min-h-[350px]">
-                                <SocialOrchestrator 
-                                    drafts={socialDrafts}
-                                    onPublish={publishPost}
-                                    highlightId={newDraftId}
-                                />
-                            </div>
-                        </div>
+                    {/* 2. Unified Signal Feed & Social Orchestration - Sidecar positioned to the far right */}
+                    <div className="w-full lg:w-[450px] shrink-0 h-full flex flex-col">
+                        <UnifiedStream 
+                            signals={allAgencySignalsMapped}
+                            drafts={socialDrafts}
+                            onResolveSignal={resolveSignal}
+                            onPublishDraft={publishPost}
+                            isResolving={!!resolvingId}
+                            highlightId={newSignalId || newDraftId}
+                        />
                     </div>
                 </div>
             </main>
