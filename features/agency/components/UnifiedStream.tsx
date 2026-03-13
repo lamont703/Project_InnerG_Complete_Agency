@@ -47,6 +47,7 @@ interface UnifiedStreamProps {
     onPublishDraft: (id: string) => Promise<void>
     isResolving?: boolean
     highlightId?: string | null
+    isFlush?: boolean
 }
 
 const TYPE_ICONS: Record<string, any> = {
@@ -63,7 +64,8 @@ export function UnifiedStream({
     onResolveSignal, 
     onPublishDraft, 
     isResolving = false,
-    highlightId = null 
+    highlightId = null,
+    isFlush = false
 }: UnifiedStreamProps) {
     const [isPublishingId, setIsPublishingId] = useState<string | null>(null)
 
@@ -96,23 +98,23 @@ export function UnifiedStream({
     }, [signals, drafts])
 
     return (
-        <div className="glass-panel-strong rounded-3xl border border-white/[0.05] relative overflow-hidden group/main h-full flex flex-col">
+        <div className={`${isFlush ? 'border-none rounded-none' : 'glass-panel-strong rounded-3xl border border-border'} relative overflow-hidden group/main h-full flex flex-col min-h-0`}>
             {/* Background ambient glow */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-500/5 rounded-full blur-[100px] pointer-events-none" />
 
             {/* Header */}
-            <div className="p-8 border-b border-white/[0.05] relative z-10 flex items-center justify-between">
+            <div className="p-8 border-b border-border relative z-10 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
                         <Activity className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-black uppercase tracking-[0.2em] text-white">Global Portfolio Monitoring</h3>
+                        <h3 className="text-lg font-black uppercase tracking-[0.2em] text-foreground">Global Portfolio Monitoring</h3>
                         <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-1">Unified command stream & operational health</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/10 border border-border">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                     <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Live Stream</span>
                 </div>
@@ -121,7 +123,7 @@ export function UnifiedStream({
             {/* Content Feed */}
             <div className="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar relative z-10 min-h-0">
                 {streamItems.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/5 rounded-3xl bg-white/[0.01]">
+                    <div className="h-full flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-3xl bg-muted/5">
                         <div className="h-16 w-16 rounded-full bg-primary/5 flex items-center justify-center mb-4 border border-primary/10">
                             <CheckCircle2 className="h-8 w-8 text-primary/40" />
                         </div>
@@ -145,7 +147,7 @@ export function UnifiedStream({
                                             ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-pulse bg-emerald-500/5' 
                                             : isAgencyInsight 
                                                 ? 'bg-primary/[0.02] border-primary/20 hover:border-primary/40' 
-                                                : 'bg-white/[0.02] border-white/5 hover:border-white/10 shadow-sm'
+                                                : 'bg-muted/10 border-border hover:border-primary/20 shadow-sm'
                                     }`}
                                 >
                                     <div className="flex items-center gap-3 mb-4">
@@ -168,7 +170,7 @@ export function UnifiedStream({
                                         </div>
                                     </div>
                                     
-                                    <h4 className="text-sm font-bold text-white mb-2 leading-tight">{signal.title}</h4>
+                                    <h4 className="text-sm font-bold text-foreground mb-2 leading-tight">{signal.title}</h4>
                                     <p className="text-[11px] text-muted-foreground leading-relaxed mb-4 line-clamp-3 italic">
                                         {signal.body}
                                     </p>
@@ -210,9 +212,9 @@ export function UnifiedStream({
                                         </div>
                                     </div>
 
-                                    <h4 className="text-sm font-bold text-white mb-2 leading-tight italic">"{draft.content_text.substring(0, 100)}..."</h4>
+                                    <h4 className="text-sm font-bold text-foreground mb-2 leading-tight italic">"{draft.content_text.substring(0, 100)}..."</h4>
                                     
-                                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 mb-4">
+                                    <div className="bg-muted/10 border border-border rounded-xl p-3 mb-4">
                                         <div className="flex items-center gap-2 mb-1">
                                             <Sparkles className="h-3 w-3 text-violet-400/50" />
                                             <span className="text-[8px] font-black uppercase tracking-widest text-violet-400/60">AI Logic</span>
@@ -238,7 +240,7 @@ export function UnifiedStream({
             </div>
 
             {/* Footer Status */}
-            <div className="p-4 border-t border-white/[0.05] bg-white/[0.01] flex items-center justify-center">
+            <div className="p-4 border-t border-border bg-muted/5 flex items-center justify-center">
                 <p className="text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/30">Intelligence Pipeline Active</p>
             </div>
         </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, User, Menu } from "lucide-react"
+import { LayoutDashboard } from "lucide-react"
 
 interface DashboardHeaderProps {
     userName: string
@@ -8,6 +8,7 @@ interface DashboardHeaderProps {
     currentTime: Date
     mounted: boolean
     onMenuOpen: () => void
+    projectName?: string
 }
 
 /**
@@ -24,52 +25,42 @@ export function DashboardHeader({
     currentTime,
     mounted,
     onMenuOpen,
+    projectName
 }: DashboardHeaderProps) {
     return (
-        <header className="flex h-20 items-center justify-between px-4 md:px-8 border-b border-white/5 relative z-10 bg-[#020617]/50 backdrop-blur-md sticky top-0 lg:static">
-            <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-50 h-24 flex items-center justify-between px-4 md:px-10 glass-panel-strong border-b border-border backdrop-blur-2xl">
+            {/* Left side: Navigation / Breadcrumbs */}
+            <div className="flex items-center gap-3 md:gap-6">
                 <button
-                    id="btn-open-sidebar"
                     onClick={onMenuOpen}
-                    className="lg:hidden h-10 w-10 flex items-center justify-center rounded-xl glass-panel text-muted-foreground"
-                    aria-label="Open navigation menu"
+                    className="lg:hidden h-12 w-12 rounded-xl glass-panel flex items-center justify-center hover:bg-white/5 transition-colors"
                 >
-                    <Menu className="h-5 w-5" />
+                    <LayoutDashboard className="h-6 w-6 text-primary" />
                 </button>
-                <div className="hidden md:block">
-                    <h2 className="text-sm font-medium text-muted-foreground">
-                        {mounted &&
-                            currentTime.toLocaleDateString("en-US", {
-                                weekday: "long",
-                                month: "long",
-                                day: "numeric",
-                            })}
-                    </h2>
-                </div>
-                <div className="md:hidden">
-                    <span className="text-sm sm:text-lg font-bold tracking-tight text-foreground truncate max-w-[120px] sm:max-w-none">Inner G Complete</span>
+                <div>
+                    <div className="flex items-center gap-3">
+                        <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)] animate-pulse" />
+                        <h2 className="text-lg font-black uppercase tracking-[0.2em] text-foreground">
+                            {projectName || "Command Center"}
+                        </h2>
+                    </div>
+                    <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 uppercase tracking-widest">
+                        {mounted && currentTime.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                    </p>
                 </div>
             </div>
 
-            <div className="flex items-center gap-3 md:gap-6">
-                {/* Notification Bell — TODO Phase 2: wire to unresolved signal count */}
-                <button
-                    id="btn-notifications"
-                    className="relative h-9 w-9 md:h-10 md:w-10 rounded-full glass-panel flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label="Notifications"
-                >
-                    <Bell className="h-4 w-4 md:h-5 md:w-5" />
-                    {/* Red dot — hidden until real notification count exists */}
-                    <span className="absolute top-2 right-2.5 h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-primary border-2 border-background" />
-                </button>
-
-                <div className="flex items-center gap-2 md:gap-3 pl-3 md:pl-6 border-l border-white/10">
-                    <div className="text-right hidden sm:block">
-                        <p className="text-sm font-semibold text-foreground leading-none">{userName}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">{userRole}</p>
+            {/* Right side: Profile Widget */}
+            <div className="flex items-center gap-3 md:gap-8">
+                <div className="flex items-center gap-3 md:gap-4 pl-3 md:pl-6 border-l border-border">
+                    <div className="hidden md:block text-right">
+                        <p className="text-sm font-bold text-foreground leading-none">{userName}</p>
+                        <p className="text-[9px] text-primary font-black uppercase tracking-[0.2em] mt-1.5 opacity-80">{userRole}</p>
                     </div>
-                    <div className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
-                        <User className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                    <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-primary via-primary/80 to-accent p-[1px] shadow-lg shadow-primary/10 transition-transform hover:scale-105 cursor-pointer">
+                        <div className="h-full w-full rounded-[14px] bg-background flex items-center justify-center overflow-hidden">
+                            <span className="text-sm font-black text-foreground">{userName?.charAt(0) || "U"}</span>
+                        </div>
                     </div>
                 </div>
             </div>

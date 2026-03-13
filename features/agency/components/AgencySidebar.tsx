@@ -65,7 +65,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
                     </Link>
                 ))}
 
-                <div className="pt-6 mt-6 border-t border-white/5">
+                <div className="pt-6 mt-6 border-t border-border">
                     <p className="px-4 mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">AGENCY ADMIN</p>
                     {adminItems.map((item) => (
                         <Link
@@ -96,7 +96,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
     return (
         <>
             {/* Desktop Sidebar */}
-            <aside className="hidden lg:flex w-72 flex-col glass-panel border-r border-white/5 h-screen sticky top-0">
+            <aside className="hidden lg:flex w-72 flex-col glass-panel border-r border-border h-screen sticky top-0">
                 <div className="p-8 pb-10">
                     <Link href="/" className="flex items-center gap-2 group">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105">
@@ -125,7 +125,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
 
             {/* Mobile Sidebar Drawer */}
             <aside
-                className={`fixed top-0 left-0 bottom-0 w-[280px] bg-background border-r border-white/5 z-[101] flex flex-col transition-transform duration-300 lg:hidden ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+                className={`fixed top-0 left-0 bottom-0 w-[280px] bg-background border-r border-border z-[101] flex flex-col transition-transform duration-300 lg:hidden ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
             >
                 <div className="p-6 pb-10 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2">

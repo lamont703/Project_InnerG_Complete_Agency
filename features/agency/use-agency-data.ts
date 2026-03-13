@@ -36,7 +36,7 @@ export function useAgencyData() {
                 return
             }
 
-            const profile = await service.getAdminProfile(user.id)
+            const profile = await service.getAdminProfile(user.id, user.user_metadata)
             if (!profile) {
                 router.push("/select-portal")
                 return

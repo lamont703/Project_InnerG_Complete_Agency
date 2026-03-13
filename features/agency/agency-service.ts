@@ -10,17 +10,19 @@ export class AgencyService {
     /**
      * Fetch user profile and verify super_admin status
      */
-    async getAdminProfile(userId: string): Promise<AgencyUserData | null> {
+    async getAdminProfile(userId: string, userMetadata?: any): Promise<AgencyUserData | null> {
         const { data: profile } = await this.supabase
             .from("users")
             .select("full_name, role")
             .eq("id", userId)
-            .single()
+            .maybeSingle()
 
         if (!profile || profile.role !== "super_admin") return null
 
+        const nameFallback = userMetadata?.full_name || userMetadata?.name || userMetadata?.display_name || "Admin"
+
         return {
-            name: profile.full_name || "Admin",
+            name: profile.full_name || nameFallback,
             role: "SUPER ADMIN"
         }
     }

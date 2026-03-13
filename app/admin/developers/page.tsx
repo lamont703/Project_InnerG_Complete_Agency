@@ -14,6 +14,7 @@ import {
     Building2,
 } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { AdminHeader } from "@/features/agency/components/AdminHeader"
 
 interface Developer {
     id: string
@@ -83,7 +84,7 @@ export default function DeveloperPortfoliosPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">Loading developer portfolios...</p>
@@ -93,31 +94,18 @@ export default function DeveloperPortfoliosPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#020617] relative">
-            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/15 rounded-full blur-[120px] opacity-20 pointer-events-none" />
+        <>
+            <AdminHeader 
+                title="Developer Portfolios" 
+                subtitle="Credential Registry & Team Hierarchy"
+            />
 
-            <div className="relative z-10 max-w-5xl mx-auto px-4 py-8 md:py-12">
-                <Link
-                    href="/dashboard/innergcomplete"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
-                >
-                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-                    Back to Agency Dashboard
-                </Link>
-
-                {/* Header */}
+            <div className="flex-1 p-6 md:p-10 relative z-10 max-w-5xl mx-auto w-full">
+                {/* Header Actions */}
                 <div className="mb-10">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/30 to-blue-500/30 flex items-center justify-center border border-primary/20">
-                            <ShieldCheck className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Developer Portfolios</h1>
-                            <p className="text-sm text-muted-foreground">
-                                {developers.length} developer{developers.length !== 1 ? "s" : ""} in your agency
-                            </p>
-                        </div>
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Manage agency access and client assignments for your technical team.
+                    </p>
                 </div>
 
                 {/* Developer Cards */}
@@ -125,7 +113,7 @@ export default function DeveloperPortfoliosPage() {
                     {developers.map((dev) => (
                         <div
                             key={dev.id}
-                            className="glass-panel rounded-2xl border border-white/5 hover:border-white/10 transition-all p-6"
+                            className="glass-panel rounded-2xl border border-border/50 hover:border-border transition-all p-6"
                         >
                             <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-4">
@@ -157,16 +145,16 @@ export default function DeveloperPortfoliosPage() {
 
                             {/* Client Assignments */}
                             {dev.clients.length > 0 && (
-                                <div className="mt-4 pt-4 border-t border-white/5">
+                                <div className="mt-4 pt-4 border-t border-border">
                                     <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                                         <FolderKanban className="h-3 w-3" />
                                         Assigned Clients
                                     </p>
                                     <div className="flex flex-wrap gap-2">
                                         {dev.clients.map((client) => (
-                                            <span
+                                             <span
                                                 key={client.id}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/5 text-xs text-foreground"
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/20 border border-border/50 text-xs text-foreground"
                                             >
                                                 <Building2 className="h-3 w-3 text-muted-foreground" />
                                                 {client.company_name}
@@ -177,7 +165,7 @@ export default function DeveloperPortfoliosPage() {
                             )}
 
                             {dev.clients.length === 0 && (
-                                <div className="mt-4 pt-4 border-t border-white/5">
+                                <div className="mt-4 pt-4 border-t border-border">
                                     <p className="text-[10px] text-muted-foreground/60">No client assignments</p>
                                 </div>
                             )}
@@ -185,7 +173,7 @@ export default function DeveloperPortfoliosPage() {
                     ))}
 
                     {developers.length === 0 && (
-                        <div className="text-center py-12 glass-panel rounded-2xl border border-white/5">
+                        <div className="text-center py-12 glass-panel rounded-2xl border border-border">
                             <ShieldCheck className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
                             <p className="text-sm text-muted-foreground">No developers found</p>
                             <p className="text-xs text-muted-foreground/60 mt-1">Developers will appear here once they are invited to the agency.</p>
@@ -193,6 +181,6 @@ export default function DeveloperPortfoliosPage() {
                     )}
                 </div>
             </div>
-        </div>
+        </>
     )
 }

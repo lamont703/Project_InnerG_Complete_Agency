@@ -2,108 +2,118 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff } from "lucide-react"
+import { Loader2, Activity, Target, Layout, Check, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 // Modular Components
-import { AgencySidebar } from "./components/AgencySidebar"
-import { AgencyHeader } from "./components/AgencyHeader"
-import { MetricSlotGrid } from "@/features/metrics/components/MetricSlotGrid"
+import { DashboardSidebar } from "@/components/dashboard/sidebar"
+import { DashboardHeader } from "@/components/dashboard/header"
+import { MetricsGrid } from "@/features/metrics/MetricsGrid"
 import { SlotProvider, useSlotContext } from "@/features/metrics/SlotContext"
 import { getIcon } from "@/features/metrics/utils/icon-map"
-import { useAdminSidebar } from "./context/AdminSidebarContext"
+import { createBrowserClient } from "@/lib/supabase/browser"
 
-// Hooks
-import { useAgencyData } from "./use-agency-data"
-
-export function AgencyMetricsPage() {
+export function ProjectMetricsPage() {
     return (
-        <SlotProvider userRole="super-admin">
-            <AgencyMetricsContent />
+        <SlotProvider userRole="client">
+            <ProjectMetricsContent />
         </SlotProvider>
     )
 }
 
-function AgencyMetricsContent() {
-    const {
-        userData,
-        projects,
-        strategicSignals,
-        operationalSignals,
-        isLoading,
-    } = useAgencyData()
+function ProjectMetricsContent() {
+    const params = useParams()
+    const slug = (params?.slug as string) ?? "innergcomplete"
 
     const { activeSlotIds, availableSlots, toggleSlot } = useSlotContext()
-    const { setIsSidebarOpen } = useAdminSidebar()
+
+    // User & Project State
+    const [userData, setUserData] = useState<{ name: string; role: string } | null>(null)
+    const [projectName, setProjectName] = useState("")
+    const [isLoading, setIsLoading] = useState(true)
 
     const [currentTime, setCurrentTime] = useState(new Date())
     const [mounted, setMounted] = useState(false)
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
     useEffect(() => {
         setMounted(true)
+
+        const fetchData = async () => {
+            try {
+                const supabase = createBrowserClient()
+
+                // 1. Fetch User data
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from("users")
+                        .select("full_name, role")
+                        .eq("id", user.id)
+                        .maybeSingle() as any
+
+                    const meta = user.user_metadata || {}
+                    const name = profile?.full_name || meta.full_name || meta.name || meta.display_name || "User"
+                    const role = profile?.role?.replace("_", " ").toUpperCase() || "CLIENT"
+
+                    setUserData({
+                        name,
+                        role
+                    })
+                }
+
+                // 2. Fetch Project Name
+                const { data: project } = await supabase
+                    .from("projects")
+                    .select("name")
+                    .eq("slug", slug)
+                    .maybeSingle() as any
+
+                if (project) {
+                    setProjectName(project.name)
+                }
+
+            } catch (err) {
+                console.error("[ProjectMetrics] Error fetching initial data:", err)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchData()
+
         const timer = setInterval(() => setCurrentTime(new Date()), 1000)
         return () => clearInterval(timer)
-    }, [])
+    }, [slug])
 
     if (isLoading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading Metrics Intelligence...</p>
-                </div>
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         )
     }
 
-    const mappedAgencyMetrics: any[] = [
-        {
-            id: "active_architectures",
-            label: "Active Client Projects",
-            value: projects.length,
-            icon: Building2,
-            color: "bg-blue-500/20 text-blue-400",
-        },
-        {
-            id: "system_health",
-            label: "Unresolved Signals",
-            value: operationalSignals.filter(s => !s.is_resolved).length,
-            change: operationalSignals.filter(s => !s.is_resolved).length > 0 ? "Active monitoring" : "All clear",
-            trend: operationalSignals.filter(s => !s.is_resolved).length > 0 ? "neutral" : "up",
-            icon: AlertTriangle,
-            color: operationalSignals.filter(s => !s.is_resolved).length > 0 ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400",
-        },
-        {
-            id: "agency_intelligence",
-            label: "Agency Intelligence",
-            value: strategicSignals.length,
-            icon: Sparkles,
-            color: "bg-violet-500/20 text-violet-400",
-        },
-    ]
-
-    const params = useParams()
-    const slug = (params?.slug as string) ?? "innergcomplete"
-    const portalName = projects.find(p => p.slug === slug)?.name
-
     return (
         <div className="h-screen bg-background flex flex-col lg:flex-row overflow-hidden w-full">
-            <AgencySidebar
+            <DashboardSidebar
+                projectSlug={slug}
                 isSidebarOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
             />
 
-            <main className="flex-1 flex flex-col h-full bg-background relative w-full selection:bg-primary/30 overflow-hidden">
+            <main className="flex-1 flex flex-col h-full bg-background relative w-full overflow-hidden">
                 {/* Background ambient gradients */}
                 <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
                 <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
 
-                <AgencyHeader
-                    userData={userData}
+                <DashboardHeader
+                    userName={userData?.name || "User"}
+                    userRole={userData?.role || "CLIENT"}
                     currentTime={currentTime}
                     mounted={mounted}
                     onMenuOpen={() => setIsSidebarOpen(true)}
-                    portalName={portalName}
+                    projectName={projectName}
                 />
 
                 <div className="flex-1 p-6 md:p-10 relative z-10 max-w-7xl mx-auto w-full overflow-y-auto custom-scrollbar">
@@ -115,7 +125,7 @@ function AgencyMetricsContent() {
                                     Metrics <span className="text-primary font-light italic">& Intelligence</span>
                                 </h1>
                                 <p className="text-muted-foreground text-sm md:text-base mt-3 max-w-2xl leading-relaxed">
-                                    Manage your global telemetry slots and intelligence distribution. Select which "Key Performance Ports" appear on your primary command center.
+                                    Manage your project telemetry slots and intelligence distribution. Select which "Key Performance Ports" appear on your primary dashboard.
                                 </p>
                             </div>
                         </div>
@@ -130,11 +140,9 @@ function AgencyMetricsContent() {
                             <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground">Live Preview (Primary Grid)</h2>
                         </div>
                         
-                        <MetricSlotGrid
-                            slotIds={activeSlotIds}
-                            metrics={mappedAgencyMetrics}
-                            isAgency={true}
-                            className="!mb-0"
+                        <MetricsGrid 
+                            projectSlug={slug} 
+                            activeSlotIds={activeSlotIds} 
                         />
                     </section>
 
@@ -210,12 +218,12 @@ function AgencyMetricsContent() {
                         <div className="flex items-center gap-6">
                             <Activity className="h-10 w-10 text-primary/20" />
                             <div>
-                                <p className="text-xs font-black uppercase tracking-widest text-primary">Intelligence Sync Protocol</p>
-                                <p className="text-sm text-muted-foreground mt-1 max-w-md">Your configuration affects how the AI prioritizes signal generation and real-time alerts. Pinned ports receive high-frequency stream updates.</p>
+                                <p className="text-xs font-black uppercase tracking-widest text-primary">Project Sync Protocol</p>
+                                <p className="text-sm text-muted-foreground mt-1 max-w-md">Your configuration affects how the AI prioritizes signal generation and real-time alerts for this project.</p>
                             </div>
                         </div>
                         <Button className="h-12 px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-primary/20 border-b-2 border-black/20">
-                            Apply Changes Systemwide
+                            Apply Changes
                         </Button>
                     </div>
                 </div>

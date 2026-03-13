@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
 import { Loader2, Building2, AlertTriangle, Sparkles } from "lucide-react"
 
 // Modular Components
@@ -26,6 +27,9 @@ export function AgencyDashboardInterface() {
 }
 
 function AgencyDashboardContent() {
+    const params = useParams()
+    const slug = (params?.slug as string) ?? "innergcomplete"
+
     const {
         userData,
         projects,
@@ -33,12 +37,9 @@ function AgencyDashboardContent() {
         operationalSignals,
         socialDrafts,
         isLoading,
-        isSyncing,
         resolvingId,
         newSignalId,
         newDraftId,
-        syncGHL,
-        syncGithub,
         resolveSignal,
         publishPost
     } = useAgencyData()
@@ -55,10 +56,10 @@ function AgencyDashboardContent() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading Agency Command Center...</p>
+                    <p className="text-sm text-muted-foreground">Initializing Command Intelligence...</p>
                 </div>
             </div>
         )
@@ -122,14 +123,16 @@ function AgencyDashboardContent() {
         }))
     ].sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
 
+    const portalName = projects.find(p => p.slug === slug)?.name
+
     return (
-        <div className="min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden w-full">
+        <div className="h-screen bg-background flex flex-col lg:flex-row overflow-hidden w-full">
             <AgencySidebar
                 isSidebarOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
             />
 
-            <main className="flex-1 flex flex-col min-h-screen bg-[#020617] relative w-full selection:bg-primary/30 overflow-x-hidden">
+            <main className="flex-1 flex flex-col h-full bg-background relative w-full selection:bg-primary/30 overflow-hidden">
                 {/* Background ambient gradients - Strategic placement for depth */}
                 <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
                 <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
@@ -139,25 +142,20 @@ function AgencyDashboardContent() {
                     userData={userData}
                     currentTime={currentTime}
                     mounted={mounted}
-                    isSyncing={isSyncing}
-                    onSyncGHL={syncGHL}
-                    onSyncGithub={syncGithub}
                     onMenuOpen={() => setIsSidebarOpen(true)}
+                    portalName={portalName}
                 />
 
-                {/* Main Content Area */}
-                <div className="flex-1 flex flex-col lg:flex-row p-4 md:p-6 lg:p-8 gap-6 lg:gap-8 relative z-10 w-full overflow-hidden">
+                {/* Main Content Area - Split into Chat and Sidebar Feed */}
+                <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full overflow-hidden">
                     
-                    {/* 1. Intelligence Hub (Chat) - Occupies the primary center */}
-                    <div className="flex-1 min-w-0 h-full flex flex-col">
-
-                        <div className="flex-1 min-h-[500px]">
-                            <AgencyChatInterface />
-                        </div>
+                    {/* 1. Intelligence Hub (Chat) - Primary Center */}
+                    <div className="flex-1 min-w-0 h-full overflow-hidden">
+                        <AgencyChatInterface />
                     </div>
 
-                    {/* 2. Unified Signal Feed & Social Orchestration - Sidecar positioned to the far right */}
-                    <div className="w-full lg:w-[450px] shrink-0 h-full flex flex-col">
+                    {/* 2. Unified Signal Feed & Social Orchestration - Flush to the right edge */}
+                    <div className="w-full lg:w-[450px] shrink-0 h-full bg-card/50 backdrop-blur-xl border-l border-border">
                         <UnifiedStream 
                             signals={allAgencySignalsMapped}
                             drafts={socialDrafts}
@@ -165,6 +163,7 @@ function AgencyDashboardContent() {
                             onPublishDraft={publishPost}
                             isResolving={!!resolvingId}
                             highlightId={newSignalId || newDraftId}
+                            isFlush={true}
                         />
                     </div>
                 </div>

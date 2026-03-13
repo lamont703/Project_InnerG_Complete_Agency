@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { AdminHeader } from "@/features/agency/components/AdminHeader"
 
 export default function InviteGenerationPage() {
     const supabase = createBrowserClient()
@@ -107,33 +108,21 @@ export default function InviteGenerationPage() {
     }
 
     return (
-        <main className="min-h-screen bg-[#020617] text-foreground relative p-6 md:p-12 overflow-hidden">
-            {/* Background Orbs */}
-            <div className="absolute top-0 right-0 h-96 w-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-0 left-0 h-72 w-72 bg-accent/10 rounded-full blur-[100px] pointer-events-none" />
+        <>
+            <AdminHeader 
+                title="Generate Portal Invite" 
+                subtitle="Credential & Access Management"
+            />
 
-            <div className="relative z-10 max-w-2xl mx-auto">
-                <Link
-                    href="/select-portal"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-10 group"
-                >
-                    <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                    Back to Portals
-                </Link>
-
-                <div className="mb-10">
-                    <div className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-1.5 mb-4 border-primary/20">
-                        <ShieldCheck className="h-4 w-4 text-primary" />
-                        <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Agency Administration</span>
-                    </div>
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Generate Portal Invite</h1>
+            <div className="flex-1 p-6 md:p-10 relative z-10 max-w-2xl mx-auto w-full">
+                <div className="mb-10 text-center md:text-left">
                     <p className="mt-3 text-muted-foreground leading-relaxed">
                         Create a unique, single-use authentication link for new team members or clients.
                         Invites expire automatically after 7 days.
                     </p>
                 </div>
 
-                <div className="glass-panel-strong rounded-3xl p-8 border border-white/5 shadow-2xl">
+                <div className="glass-panel-strong rounded-3xl p-8 border border-border shadow-2xl">
                     <form onSubmit={handleSubmit(onInviteSubmit)} className="space-y-6">
                         {/* Email */}
                         <div className="space-y-2">
@@ -143,7 +132,7 @@ export default function InviteGenerationPage() {
                                 <Input
                                     {...register("email")}
                                     placeholder="colleague@client.com"
-                                    className={`bg-white/5 border-white/10 pl-12 h-14 rounded-2xl focus:border-primary ${errors.email ? "border-destructive focus:border-destructive" : ""}`}
+                                    className={`bg-muted/10 border-border pl-12 h-14 rounded-2xl focus:border-primary ${errors.email ? "border-destructive focus:border-destructive" : ""}`}
                                     disabled={isSubmitting}
                                 />
                             </div>
@@ -162,8 +151,8 @@ export default function InviteGenerationPage() {
                                     <label
                                         key={role.value}
                                         className={`relative flex flex-col p-4 rounded-2xl border cursor-pointer transition-all ${selectedRole === role.value
-                                            ? "bg-primary/10 border-primary shadow-lg shadow-primary/5"
-                                            : "bg-white/5 border-white/10 hover:border-white/20"
+                                            ? "bg-primary/5 border-primary shadow-lg shadow-primary/5"
+                                            : "bg-muted/5 border-border hover:border-border/80"
                                             }`}
                                     >
                                         <input
@@ -193,12 +182,12 @@ export default function InviteGenerationPage() {
                                     <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     <select
                                         {...register("client_id")}
-                                        className="w-full bg-white/5 border-white/10 pl-12 h-14 rounded-2xl focus:ring-1 focus:ring-primary focus:border-primary appearance-none text-foreground text-sm"
+                                        className="w-full bg-muted/10 border border-border pl-12 h-14 rounded-2xl focus:ring-1 focus:ring-primary focus:border-primary appearance-none text-foreground text-sm"
                                         disabled={isSubmitting || isLoadingClients}
                                     >
-                                        <option value="" className="bg-[#0f172a]">Select a client (required for client roles)</option>
+                                        <option value="" className="bg-background">Select a client (required for client roles)</option>
                                         {clients.map(c => (
-                                            <option key={c.id} value={c.id} className="bg-[#0f172a]">{c.name}</option>
+                                            <option key={c.id} value={c.id} className="bg-background">{c.name}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -234,7 +223,7 @@ export default function InviteGenerationPage() {
                                 <h4 className="font-bold text-emerald-500">Secure Link Ready</h4>
                             </div>
                             <div className="flex flex-col sm:flex-row gap-3">
-                                <div className="flex-1 bg-black/40 border border-white/5 rounded-2xl px-4 py-3 text-xs font-mono text-muted-foreground break-all flex items-center">
+                                <div className="flex-1 bg-muted/20 border border-border rounded-2xl px-4 py-3 text-xs font-mono text-muted-foreground break-all flex items-center">
                                     {generatedLink}
                                 </div>
                                 <Button
@@ -253,6 +242,6 @@ export default function InviteGenerationPage() {
                     )}
                 </div>
             </div>
-        </main>
+        </>
     )
 }

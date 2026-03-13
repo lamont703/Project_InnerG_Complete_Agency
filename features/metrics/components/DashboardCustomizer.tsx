@@ -4,18 +4,13 @@ import { useState } from "react"
 import {
     Settings2,
     X,
-    Check,
     Layout,
-    Zap,
-    Sparkles,
-    Eye,
+    Check,
     EyeOff,
-    Target,
-    Activity
+    Sparkles
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSlotContext } from "../SlotContext"
-import { getSignalIcon } from "@/features/signals/utils/icon-map"
 import { getIcon } from "../utils/icon-map"
 
 export function DashboardCustomizer() {
@@ -31,23 +26,23 @@ export function DashboardCustomizer() {
             {/* Floating Trigger Button */}
             <Button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-primary shadow-2xl shadow-primary/20 hover:scale-110 active:scale-95 transition-all z-50 border border-white/10"
+                className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-primary shadow-2xl shadow-primary/20 hover:scale-110 active:scale-95 transition-all z-50 border border-border"
                 size="icon"
             >
                 <Settings2 className="h-6 w-6 text-primary-foreground" />
             </Button>
 
             {/* Customizer Sidebar */}
-            <div className={`fixed inset-y-0 right-0 w-full md:w-[450px] bg-[#020617]/95 backdrop-blur-2xl border-l border-white/5 z-[100] transform transition-transform duration-700 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} shadow-[0_0_100px_rgba(0,0,0,0.8)]`}>
+            <div className={`fixed inset-y-0 right-0 w-full md:w-[450px] bg-background/95 backdrop-blur-2xl border-l border-border z-[100] transform transition-transform duration-700 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} shadow-[0_0_100px_rgba(0,0,0,0.8)]`}>
                 <div className="flex flex-col h-full relative">
                     {/* Background glow */}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
 
                     {/* Header */}
-                    <div className="p-8 border-b border-white/5 flex items-center justify-between relative z-10">
+                    <div className="p-8 border-b border-border flex items-center justify-between relative z-10">
                         <div>
-                            <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+                            <h2 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-3">
                                 <Layout className="h-5 w-5 text-primary" />
                                 Aura Layout
                             </h2>
@@ -55,7 +50,7 @@ export function DashboardCustomizer() {
                         </div>
                         <button
                             onClick={() => setIsOpen(false)}
-                            className="h-10 w-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10"
+                            className="h-10 w-10 rounded-xl bg-muted/10 hover:bg-muted/20 flex items-center justify-center transition-all border border-border"
                         >
                             <X className="h-5 w-5 text-muted-foreground" />
                         </button>
@@ -81,17 +76,17 @@ export function DashboardCustomizer() {
                                             onClick={() => toggleSlot(slot.id)}
                                             className={`group p-5 rounded-2xl border transition-all duration-300 cursor-pointer relative overflow-hidden ${isActive
                                                 ? 'bg-primary/10 border-primary/30'
-                                                : 'bg-white/[0.02] border-white/5 hover:border-white/10'
+                                                : 'bg-muted/5 border-border hover:border-primary/20'
                                                 }`}
                                         >
                                             <div className="flex items-start gap-4">
-                                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center border transition-all ${isActive ? 'bg-primary text-primary-foreground border-primary' : 'bg-white/5 text-muted-foreground border-white/10'
+                                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center border transition-all ${isActive ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/20 text-muted-foreground border-border'
                                                     }`}>
                                                     <Icon className="h-5 w-5" />
                                                 </div>
                                                 <div className="flex-1">
                                                     <div className="flex items-center justify-between">
-                                                        <span className={`text-sm font-bold tracking-tight ${isActive ? 'text-white' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                                                        <span className={`text-sm font-bold tracking-tight ${isActive ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}>
                                                             {slot.label}
                                                         </span>
                                                         {isActive ? (
@@ -114,7 +109,7 @@ export function DashboardCustomizer() {
                         </section>
 
                         {/* intelligence configuration hint */}
-                        <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 border-dashed text-center">
+                        <div className="p-6 rounded-2xl bg-muted/5 border border-border border-dashed text-center">
                             <Sparkles className="h-5 w-5 text-primary/40 mx-auto mb-3" />
                             <p className="text-[11px] font-bold text-muted-foreground/40 uppercase tracking-widest">Aura Intelligence Sync</p>
                             <p className="text-[10px] text-muted-foreground/30 mt-2 leading-relaxed">
@@ -124,7 +119,7 @@ export function DashboardCustomizer() {
                     </div>
 
                     {/* Footer */}
-                    <div className="p-8 border-t border-white/5 relative z-10 bg-white/[0.01]">
+                    <div className="p-8 border-t border-border relative z-10 bg-muted/5">
                         <Button
                             className="w-full h-12 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20"
                             onClick={() => setIsOpen(false)}

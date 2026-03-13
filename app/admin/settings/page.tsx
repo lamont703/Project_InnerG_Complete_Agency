@@ -15,10 +15,15 @@ import {
     Shield,
     Save,
     CheckCircle2,
+    Moon,
+    Sun,
+    Monitor
 } from "lucide-react"
+import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { AdminHeader } from "@/features/agency/components/AdminHeader"
 
 // ─────────────────────────────────────────────
 // SETTINGS SECTIONS
@@ -83,6 +88,7 @@ export default function AgencySettingsPage() {
     const [activeSection, setActiveSection] = useState("agency")
     const [isSaving, setIsSaving] = useState(false)
     const [showSaved, setShowSaved] = useState(false)
+    const { theme, setTheme } = useTheme()
 
     // Agency settings state
     const [agencyName, setAgencyName] = useState("Inner G Complete")
@@ -127,7 +133,7 @@ export default function AgencySettingsPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">Loading settings...</p>
@@ -137,31 +143,13 @@ export default function AgencySettingsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#020617] relative">
-            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/15 rounded-full blur-[120px] opacity-20 pointer-events-none" />
+        <>
+            <AdminHeader 
+                title="Agency Settings" 
+                subtitle="Infrastructure & Branding Configuration"
+            />
 
-            <div className="relative z-10 max-w-5xl mx-auto px-4 py-8 md:py-12">
-                <Link
-                    href="/dashboard/innergcomplete"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
-                >
-                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-                    Back to Agency Dashboard
-                </Link>
-
-                {/* Header */}
-                <div className="mb-10">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/30 to-violet-500/30 flex items-center justify-center border border-primary/20">
-                            <Settings className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Agency Settings</h1>
-                            <p className="text-sm text-muted-foreground">Manage your agency configuration</p>
-                        </div>
-                    </div>
-                </div>
-
+            <div className="flex-1 p-6 md:p-10 relative z-10 max-w-6xl mx-auto w-full">
                 <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8">
                     {/* Sidebar Nav */}
                     <nav className="space-y-1">
@@ -171,7 +159,7 @@ export default function AgencySettingsPage() {
                                 onClick={() => setActiveSection(section.id)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm transition-all ${activeSection === section.id
                                         ? "bg-primary/10 text-primary font-medium border border-primary/20"
-                                        : "text-muted-foreground hover:bg-white/5 border border-transparent"
+                                        : "text-muted-foreground hover:bg-muted/10 border border-transparent"
                                     }`}
                             >
                                 <section.icon className={`h-4 w-4 ${activeSection === section.id ? section.color : ""}`} />
@@ -181,7 +169,7 @@ export default function AgencySettingsPage() {
                     </nav>
 
                     {/* Content Area */}
-                    <div className="glass-panel rounded-2xl border border-white/5 p-6 md:p-8">
+                    <div className="glass-panel rounded-2xl border border-border p-6 md:p-8">
                         {activeSection === "agency" && (
                             <div className="space-y-6">
                                 <div>
@@ -195,7 +183,7 @@ export default function AgencySettingsPage() {
                                         <Input
                                             value={agencyName}
                                             onChange={(e) => setAgencyName(e.target.value)}
-                                            className="bg-background/50 border-white/10 rounded-xl max-w-md"
+                                            className="bg-background border-border rounded-xl max-w-md"
                                         />
                                     </div>
                                     <div>
@@ -204,7 +192,7 @@ export default function AgencySettingsPage() {
                                             value={agencyDescription}
                                             onChange={(e) => setAgencyDescription(e.target.value)}
                                             rows={3}
-                                            className="w-full max-w-md px-3 py-2 rounded-xl bg-background/50 border border-white/10 text-sm text-foreground resize-none"
+                                            className="w-full max-w-md px-3 py-2 rounded-xl bg-background border border-border text-sm text-foreground resize-none"
                                         />
                                     </div>
                                     <div>
@@ -212,7 +200,7 @@ export default function AgencySettingsPage() {
                                         <Input
                                             value={supportEmail}
                                             onChange={(e) => setSupportEmail(e.target.value)}
-                                            className="bg-background/50 border-white/10 rounded-xl max-w-md"
+                                            className="bg-background border-border rounded-xl max-w-md"
                                         />
                                     </div>
                                 </div>
@@ -231,7 +219,7 @@ export default function AgencySettingsPage() {
                                         value={primaryDomain}
                                         onChange={(e) => setPrimaryDomain(e.target.value)}
                                         placeholder="agency.innergcomplete.com"
-                                        className="bg-background/50 border-white/10 rounded-xl max-w-md"
+                                        className="bg-background border-border rounded-xl max-w-md"
                                     />
                                     <p className="text-[10px] text-muted-foreground/60 mt-1.5">Custom domain for white-label client portals.</p>
                                 </div>
@@ -241,30 +229,56 @@ export default function AgencySettingsPage() {
                         {activeSection === "appearance" && (
                             <div className="space-y-6">
                                 <div>
-                                    <h2 className="text-lg font-bold text-foreground mb-1">Appearance</h2>
-                                    <p className="text-xs text-muted-foreground">Customize the look and feel of your agency portal.</p>
+                                    <h2 className="text-lg font-bold text-foreground mb-1">Theme Preference</h2>
+                                    <p className="text-xs text-muted-foreground mb-4">Choose how the agency dashboard appears to you.</p>
+                                    
+                                    <div className="flex flex-wrap gap-4">
+                                        {[
+                                            { id: 'light', name: 'Light Mode', icon: Sun },
+                                            { id: 'dark', name: 'Dark Mode', icon: Moon },
+                                            { id: 'system', name: 'System', icon: Monitor }
+                                        ].map((t) => (
+                                            <button
+                                                key={t.id}
+                                                onClick={() => setTheme(t.id)}
+                                                className={`flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all w-32 ${
+                                                    theme === t.id 
+                                                    ? "bg-primary/10 border-primary text-primary shadow-lg shadow-primary/5" 
+                                                    : "bg-muted/5 border-border text-muted-foreground hover:bg-muted/10"
+                                                }`}
+                                            >
+                                                <t.icon className="h-6 w-6" />
+                                                <span className="text-xs font-bold uppercase tracking-wider">{t.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="grid grid-cols-3 gap-4 max-w-sm">
-                                    <div>
-                                        <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Primary</label>
-                                        <div className="h-12 rounded-xl bg-primary border border-primary/30 flex items-center justify-center">
-                                            <span className="text-[10px] font-bold text-primary-foreground">#C8FF00</span>
+
+                                <div className="pt-6 border-t border-border">
+                                    <h2 className="text-lg font-bold text-foreground mb-1">Color Palette</h2>
+                                    <p className="text-xs text-muted-foreground mb-4">Brand color configuration.</p>
+                                    <div className="grid grid-cols-3 gap-4 max-w-sm">
+                                        <div>
+                                            <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Primary</label>
+                                            <div className="h-12 rounded-xl bg-primary border border-primary/30 flex items-center justify-center">
+                                                <span className="text-[10px] font-bold text-primary-foreground">#C8FF00</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Background</label>
-                                        <div className="h-12 rounded-xl bg-[#020617] border border-white/10 flex items-center justify-center">
-                                            <span className="text-[10px] font-bold text-white/60">#020617</span>
+                                        <div>
+                                            <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Background</label>
+                                            <div className="h-12 rounded-xl bg-background border border-border flex items-center justify-center">
+                                                <span className="text-[10px] font-bold text-muted-foreground/60">Dynamic Background</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Accent</label>
-                                        <div className="h-12 rounded-xl bg-violet-500 border border-violet-500/30 flex items-center justify-center">
-                                            <span className="text-[10px] font-bold text-white">#8B5CF6</span>
+                                        <div>
+                                            <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Accent</label>
+                                            <div className="h-12 rounded-xl bg-violet-500 border border-violet-500/30 flex items-center justify-center">
+                                                <span className="text-[10px] font-bold text-white">#8B5CF6</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground/60">Theme customization coming in a future update.</p>
+                                <p className="text-[10px] text-muted-foreground/60">Advanced branding customization coming in a future update.</p>
                             </div>
                         )}
 
@@ -278,7 +292,7 @@ export default function AgencySettingsPage() {
                                         {SECTIONS.find(s => s.id === activeSection)?.description}
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                                <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/5 border border-border">
                                     <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
                                         <Settings className="h-4 w-4 text-primary" />
                                     </div>
@@ -291,7 +305,7 @@ export default function AgencySettingsPage() {
                         )}
 
                         {/* Save Button */}
-                        <div className="mt-8 pt-6 border-t border-white/5 flex items-center gap-3">
+                        <div className="mt-8 pt-6 border-t border-border flex items-center gap-3">
                             <Button
                                 onClick={handleSave}
                                 disabled={isSaving}
@@ -313,6 +327,6 @@ export default function AgencySettingsPage() {
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     )
 }

@@ -45,9 +45,9 @@ export function AgencyChatInterface() {
     }
 
     return (
-        <div className={`flex flex-col glass-panel-strong rounded-2xl border border-white/[0.03] transition-all duration-500 overflow-hidden ${isExpanded ? "fixed inset-0 md:inset-8 z-[102] shadow-2xl rounded-none md:rounded-2xl" : "h-[600px]"}`}>
+        <div className={`flex flex-col glass-panel-strong transition-all duration-500 overflow-hidden min-h-0 ${isExpanded ? "fixed inset-0 md:inset-8 z-[102] shadow-2xl rounded-none md:rounded-2xl" : "h-full rounded-none border-x-0 border-b-0 border-t-0"}`}>
             {/* Header */}
-            <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/10">
                 <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center border border-primary/30">
                         <Building2 className="h-5 w-5 text-primary" />
@@ -84,7 +84,7 @@ export function AgencyChatInterface() {
                         <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 border ${m.role === "assistant" ? "bg-primary/20 border-primary/30" : "bg-secondary/50 border-white/10"}`}>
                             {m.role === "assistant" ? <Building2 className="h-4 w-4 text-primary" /> : <User className="h-4 w-4 text-foreground" />}
                         </div>
-                        <div className={`max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed ${m.role === "assistant" ? "bg-white/[0.03] border border-white/5 rounded-tl-none" : "bg-primary text-primary-foreground rounded-tr-none shadow-lg shadow-primary/10"}`}>
+                        <div className={`max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed ${m.role === "assistant" ? "bg-muted/20 border border-border rounded-tl-none text-foreground" : "bg-primary text-primary-foreground rounded-tr-none shadow-lg shadow-primary/10"}`}>
                             <span dangerouslySetInnerHTML={{ __html: m.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
                             {m.signalCreated && (
                                 <div className={`mt-3 p-3 rounded-xl border ${m.signalCreated.severity === 'critical' ? 'bg-red-500/10 border-red-500/20' :
@@ -120,7 +120,7 @@ export function AgencyChatInterface() {
                         <div className="h-8 w-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
                             <Building2 className="h-4 w-4 text-primary" />
                         </div>
-                        <div className="bg-white/[0.03] border border-white/5 rounded-2xl rounded-tl-none p-4">
+                        <div className="bg-muted/20 border border-border rounded-2xl rounded-tl-none p-4">
                             <Loader2 className="h-4 w-4 text-primary animate-spin" />
                         </div>
                     </div>
@@ -128,14 +128,14 @@ export function AgencyChatInterface() {
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-white/5 bg-white/[0.01]">
+            <div className="p-4 border-t border-border bg-muted/5">
                 <form onSubmit={handleSubmit} className="relative">
                     <Input
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         disabled={isLoading}
                         placeholder="Ask about portfolio performance, methodology, or strategy..."
-                        className="bg-background/50 border-white/10 pr-12 h-12 rounded-xl focus:border-primary transition-all text-sm"
+                        className="bg-background border-border pr-12 h-12 rounded-xl focus:border-primary transition-all text-sm"
                     />
                     <Button
                         type="submit"

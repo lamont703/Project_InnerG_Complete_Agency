@@ -18,7 +18,7 @@ export function MetricCard({ stat, isAgency = false }: MetricCardProps & { isAge
     }
 
     return (
-        <div className="glass-panel-strong rounded-3xl p-6 border border-white/[0.03] relative overflow-hidden group transition-all duration-500 hover:border-white/10 hover:shadow-2xl hover:shadow-primary/5">
+        <div className="glass-panel-strong rounded-3xl p-6 border border-border relative overflow-hidden group transition-all duration-500 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5">
             {/* Electric gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
@@ -33,7 +33,7 @@ export function MetricCard({ stat, isAgency = false }: MetricCardProps & { isAge
                             ? "bg-emerald-500/10 text-emerald-400"
                             : stat.trend === "down" || (stat.growth && stat.growth.startsWith("-"))
                                 ? "bg-red-500/10 text-red-400"
-                                : "bg-white/5 text-muted-foreground"
+                                : "bg-muted text-muted-foreground"
                             }`}>
                             {stat.trend === "up" && <ArrowUpRight className="h-3 w-3" />}
                             {stat.trend === "down" && <ArrowDownRight className="h-3 w-3 rotate-90" />}
@@ -42,7 +42,7 @@ export function MetricCard({ stat, isAgency = false }: MetricCardProps & { isAge
                     )}
                     <button
                         onClick={handleDeepDive}
-                        className="mt-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-white transition-colors flex items-center gap-1 group/btn"
+                        className="mt-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 group/btn"
                     >
                         Deep Dive <ArrowUpRight className="h-2 w-2 group-hover/btn:translate-x-0.5 transition-transform" />
                     </button>

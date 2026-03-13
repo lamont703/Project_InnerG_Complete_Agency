@@ -30,6 +30,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
+import { AdminHeader } from "@/features/agency/components/AdminHeader"
 
 // ─────────────────────────────────────────────
 // TYPES
@@ -339,7 +340,7 @@ export default function ConnectorAdminPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">Loading connectors...</p>
@@ -349,38 +350,21 @@ export default function ConnectorAdminPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#020617] relative">
-            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/15 rounded-full blur-[120px] opacity-20 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-emerald-500/10 rounded-full blur-[100px] opacity-15 pointer-events-none" />
+        <>
+            <AdminHeader 
+                title="External Connectors" 
+                subtitle="Data Bridges & Sync Pipelines"
+            />
 
-            <div className="relative z-10 max-w-5xl mx-auto px-4 py-8 md:py-12">
-                <Link
-                    href="/dashboard/innergcomplete"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
-                >
-                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-                    Back to Agency Dashboard
-                </Link>
-
-                {/* Header */}
-                <div className="flex items-start justify-between mb-10">
-                    <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500/30 to-primary/30 flex items-center justify-center border border-emerald-500/20">
-                            <Plug className="h-6 w-6 text-emerald-400" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-bold text-foreground">External Connectors</h1>
-                            <p className="text-sm text-muted-foreground">
-                                {connections.length} connection{connections.length !== 1 ? "s" : ""} configured
-                            </p>
-                        </div>
-                    </div>
+            <div className="flex-1 p-6 md:p-10 relative z-10 max-w-5xl mx-auto w-full">
+                {/* Header Actions */}
+                <div className="flex items-center justify-end mb-10">
                     <Button
                         onClick={() => setShowNewForm(!showNewForm)}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl h-11 px-6 shadow-lg shadow-primary/20"
                     >
                         <Plus className="h-4 w-4" />
-                        New Connection
+                        <span className="text-xs font-black uppercase tracking-widest">New Connection</span>
                     </Button>
                 </div>
 
@@ -399,7 +383,7 @@ export default function ConnectorAdminPage() {
                                     value={newLabel}
                                     onChange={(e) => setNewLabel(e.target.value)}
                                     placeholder="e.g. Kane's Supabase DB"
-                                    className="bg-background/50 border-white/10 rounded-xl"
+                                    className="bg-background border-border rounded-xl"
                                 />
                             </div>
                             <div>
@@ -407,7 +391,7 @@ export default function ConnectorAdminPage() {
                                 <select
                                     value={newType}
                                     onChange={(e) => { setNewType(e.target.value); setNewConfig({}); setFetchedRepos([]) }}
-                                    className="w-full h-10 px-3 rounded-xl bg-background/50 border border-white/10 text-sm text-foreground"
+                                    className="w-full h-10 px-3 rounded-xl bg-background border border-border text-sm text-foreground"
                                 >
                                     <option value="">Select type...</option>
                                     {connectorTypes.map(t => (
@@ -420,7 +404,7 @@ export default function ConnectorAdminPage() {
                                 <select
                                     value={newProject}
                                     onChange={(e) => setNewProject(e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl bg-background/50 border border-white/10 text-sm text-foreground"
+                                    className="w-full h-10 px-3 rounded-xl bg-background border border-border text-sm text-foreground"
                                 >
                                     <option value="">Select project...</option>
                                     {projects.map(p => (
@@ -432,7 +416,7 @@ export default function ConnectorAdminPage() {
 
                         {/* Dynamic Config Fields */}
                         {selectedTypeSchema?.properties && (
-                            <div className="space-y-3 mb-5 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                            <div className="space-y-3 mb-5 p-4 rounded-xl bg-muted/5 border border-border">
                                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Configuration</p>
                                 {Object.entries(selectedTypeSchema.properties).map(([key, schema]: [string, any]) => {
                                     if (schema.type === "boolean") {
@@ -470,7 +454,7 @@ export default function ConnectorAdminPage() {
                                                     <select
                                                         value={newConfig[key] || ""}
                                                         onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.value }))}
-                                                        className="w-full h-10 px-3 rounded-xl bg-background/50 border border-white/10 text-sm text-foreground"
+                                                        className="w-full h-10 px-3 rounded-xl bg-background border border-border text-sm text-foreground"
                                                     >
                                                         <option value="">Select a repository...</option>
                                                         {fetchedRepos.map(repo => (
@@ -484,7 +468,7 @@ export default function ConnectorAdminPage() {
                                                             value={newConfig[key] || ""}
                                                             onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.value }))}
                                                             placeholder={schema.placeholder || ""}
-                                                            className="bg-background/50 border-white/10 rounded-xl pr-10"
+                                                            className="bg-background border-border rounded-xl pr-10"
                                                         />
                                                         {isSensitive && (
                                                             <button
@@ -557,7 +541,7 @@ export default function ConnectorAdminPage() {
                     <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 px-1">Active Connections</h2>
 
                     {connections.length === 0 ? (
-                        <div className="text-center py-12 glass-panel rounded-2xl border border-white/5">
+                        <div className="text-center py-12 glass-panel rounded-2xl border border-border">
                             <Plug className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
                             <p className="text-sm text-muted-foreground">No connections configured</p>
                             <p className="text-xs text-muted-foreground/60 mt-1">Click &ldquo;New Connection&rdquo; to connect a data source.</p>
@@ -576,8 +560,8 @@ export default function ConnectorAdminPage() {
                                     <div
                                         key={conn.id}
                                         className={`rounded-2xl border transition-all duration-300 ${isExpanded
-                                            ? "glass-panel border-white/10"
-                                            : "glass-panel border-white/5 hover:border-white/10"
+                                            ? "glass-panel border-border shadow-sm shadow-primary/5"
+                                            : "glass-panel border-border/50 hover:border-border"
                                             }`}
                                     >
                                         <div className="p-5 flex items-center justify-between">
@@ -636,7 +620,7 @@ export default function ConnectorAdminPage() {
                                         </div>
 
                                         {isExpanded && (
-                                            <div className="px-5 pb-5 border-t border-white/5 pt-4">
+                                            <div className="px-5 pb-5 border-t border-border pt-4">
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                                                     <div>
                                                         <p className="text-muted-foreground/60 mb-1">Schedule</p>
@@ -659,7 +643,7 @@ export default function ConnectorAdminPage() {
                                                 </div>
 
                                                 {conn.sync_config && Object.keys(conn.sync_config).length > 0 && editingConfigId !== conn.id && (
-                                                    <div className="mt-4 p-3 rounded-xl bg-white/[0.02] border border-white/5 relative">
+                                                    <div className="mt-4 p-3 rounded-xl bg-muted/5 border border-border relative">
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
@@ -681,7 +665,7 @@ export default function ConnectorAdminPage() {
                                                 )}
 
                                                 {editingConfigId === conn.id && (
-                                                    <div className="mt-4 p-4 rounded-xl bg-white/[0.02] border border-primary/20">
+                                                    <div className="mt-4 p-4 rounded-xl bg-muted/5 border border-primary/20">
                                                         <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-3">Edit Configuration</p>
                                                         
                                                         {Object.keys(editConfig).map((key) => {
@@ -702,7 +686,7 @@ export default function ConnectorAdminPage() {
                                                                         type={isSensitive ? "password" : "text"}
                                                                         value={editConfig[key] || ""}
                                                                         onChange={(e) => setEditConfig(p => ({ ...p, [key]: e.target.value }))}
-                                                                        className="h-8 text-xs bg-background/50 border-white/10 rounded-lg"
+                                                                        className="h-8 text-xs bg-background border-border rounded-lg"
                                                                     />
                                                                 )}
                                                             </div>
@@ -750,6 +734,6 @@ export default function ConnectorAdminPage() {
                     )}
                 </div>
             </div>
-        </div>
+        </>
     )
 }

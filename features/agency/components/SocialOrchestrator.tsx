@@ -32,7 +32,7 @@ export function SocialOrchestrator({ drafts, onPublish, highlightId = null }: So
     }
 
     return (
-        <div className="glass-panel-strong rounded-3xl p-8 border border-white/[0.05] relative overflow-hidden group/main h-full flex flex-col">
+        <div className="glass-panel-strong rounded-3xl p-8 border border-border relative overflow-hidden group/main h-full flex flex-col">
             {/* Background ambient glow */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/5 rounded-full blur-[100px] pointer-events-none" />
 
@@ -42,12 +42,12 @@ export function SocialOrchestrator({ drafts, onPublish, highlightId = null }: So
                         <Sparkles className="h-5 w-5 text-violet-400" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-black uppercase tracking-[0.2em] text-white">Content Planning</h3>
+                        <h3 className="text-lg font-black uppercase tracking-[0.2em] text-foreground">Content Planning</h3>
                         <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-1">Autonomous Strategy Queue</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/20 border border-border">
                         <span className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-pulse" />
                         <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">AI Thinking</span>
                     </div>
@@ -56,7 +56,7 @@ export function SocialOrchestrator({ drafts, onPublish, highlightId = null }: So
 
             <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2 relative z-10 min-h-0">
                 {drafts.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/5 rounded-3xl bg-white/[0.01]">
+                    <div className="h-full flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-3xl bg-muted/5">
                         <div className="h-16 w-16 rounded-full bg-violet-500/5 flex items-center justify-center mb-4 border border-violet-500/10">
                             <CheckCircle2 className="h-8 w-8 text-violet-400/40" />
                         </div>
@@ -67,11 +67,11 @@ export function SocialOrchestrator({ drafts, onPublish, highlightId = null }: So
                     drafts.map((draft) => (
                         <div 
                             key={draft.id} 
-                            className={`p-5 rounded-2xl bg-white/[0.02] border transition-all group ${draft.id === highlightId ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-pulse' : 'border-white/[0.05] hover:border-violet-500/30'}`}
+                            className={`p-5 rounded-2xl bg-muted/10 border transition-all group ${draft.id === highlightId ? 'border-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.15)] animate-pulse' : 'border-border/50 hover:border-violet-500/30'}`}
                         >
                             <div className="flex items-start justify-between gap-4 mb-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/10">
+                                    <div className="h-8 w-8 rounded-lg bg-muted/20 flex items-center justify-center border border-border">
                                         {draft.platform === 'linkedin' ? (
                                             <Linkedin className="h-4 w-4 text-blue-400" />
                                         ) : draft.platform === 'tiktok' ? (
@@ -82,8 +82,8 @@ export function SocialOrchestrator({ drafts, onPublish, highlightId = null }: So
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-white">{draft.platform}</span>
-                                            <span className="h-1 w-1 rounded-full bg-white/20" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-foreground">{draft.platform}</span>
+                                            <span className="h-1 w-1 rounded-full bg-border" />
                                             <span className="text-[9px] font-black uppercase tracking-[0.1em] text-violet-400/80">{draft.projects?.name}</span>
                                         </div>
                                         <p className="text-[9px] text-muted-foreground/50 font-medium">Proposed {new Date(draft.created_at).toLocaleDateString()}</p>
