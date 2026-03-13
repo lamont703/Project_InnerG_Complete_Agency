@@ -150,18 +150,6 @@ function AgencyDashboardContent() {
                     
                     {/* 1. Intelligence Hub (Chat) - Occupies the primary center */}
                     <div className="flex-1 min-w-0 h-full flex flex-col">
-                        {/* Compact Status Header */}
-                        <div className="mb-6 flex items-center justify-between">
-                            <div>
-                                <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-3">
-                                    Aura Dashboard
-                                    <span className="text-primary font-light italic">God Mode</span>
-                                </h1>
-                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em] mt-1">
-                                    {projects.length} Active Architectures <span className="mx-2 opacity-20">|</span> 98.4% Efficiency
-                                </p>
-                            </div>
-                        </div>
 
                         <div className="flex-1 min-h-[500px]">
                             <AgencyChatInterface />
