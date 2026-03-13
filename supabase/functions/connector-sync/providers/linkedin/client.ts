@@ -3,7 +3,7 @@
  * LinkedIn API Client Implementation
  */
 
-import { LinkedInProfile, LinkedInPage, LinkedInPost, LinkedInPageMetrics } from "./types.ts";
+import { LinkedInProfile, LinkedInPage, LinkedInPost, LinkedInPageMetrics, LinkedInComment } from "./types.ts";
 
 export class LinkedInClient {
     private baseUrl = "https://api.linkedin.com/v2";
@@ -208,5 +208,16 @@ export class LinkedInClient {
                 }
             })
         });
+    }
+
+    /**
+     * Fetch comments for a specific post
+     */
+    async getPostComments(postUrn: string): Promise<LinkedInComment[]> {
+        const encodedUrn = encodeURIComponent(postUrn);
+        const data = await this.request<{ elements: LinkedInComment[] }>(
+            `/socialActions/${encodedUrn}/comments`
+        );
+        return data.elements || [];
     }
 }

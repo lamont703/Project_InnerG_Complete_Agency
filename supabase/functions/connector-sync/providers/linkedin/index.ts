@@ -75,9 +75,74 @@ export async function syncLinkedIn(
             for (const post of posts) {
                 const stats = postStats[post.id];
                 const internalPost = LinkedInTransformer.toInternalPost(projectId, dbPage.id, post, stats);
-                await adminClient
+                
+                console.log(`[LinkedInSync] Upserting post: ${post.id}`);
+                const { error: postError } = await adminClient
                     .from("linkedin_posts")
                     .upsert(internalPost, { onConflict: "project_id, linkedin_post_id" });
+
+                if (postError) {
+                    console.error(`[LinkedInSync] Error upserting post ${post.id}:`, postError.message);
+                    continue;
+                }
+
+                // Fetch the UUID for the post to use as foreign key for comments
+                const { data: dbPost, error: fetchError } = await adminClient
+                    .from("linkedin_posts")
+                    .select("id")
+                    .eq("project_id", projectId)
+                    .eq("linkedin_post_id", post.id)
+                    .single();
+
+                if (!fetchError && dbPost) {
+                    console.log(`[LinkedInSync] Syncing comments for post UUID: ${dbPost.id}`);
+                    // 4. Sync Comments for this post
+                    const comments = await client.getPostComments(post.id).catch((err: any) => {
+                        console.error(`[LinkedInSync] Failed to fetch comments for post ${post.id}:`, err.message);
+                        return [];
+                    });
+
+                    console.log(`[LinkedInSync] Found ${comments.length} comments for post ${post.id}`);
+
+                    for (const comment of comments) {
+                        const internalComment = LinkedInTransformer.toInternalComment(projectId, dbPost.id, comment);
+                        const { data: dbComment, error: commentErr } = await adminClient
+                            .from("linkedin_comments")
+                            .upsert(internalComment, { onConflict: "project_id, linkedin_comment_id" })
+                            .select()
+                            .single();
+                        
+                        if (commentErr) {
+                            console.error(`[LinkedInSync] Error upserting comment ${comment.id}:`, commentErr.message);
+                        } else {
+                            console.log(`[LinkedInSync] Successfully upserted comment ${comment.id}`);
+                            
+                            // 5. Deep Sync: Fetch replies for this comment
+                            // LinkedIn uses the same socialActions endpoint for comment replies
+                            const replies = await client.getPostComments(comment.$URN || comment.id).catch((err: any) => {
+                                console.error(`[LinkedInSync] Failed to fetch replies for comment ${comment.id}:`, err.message);
+                                return [];
+                            });
+
+                            if (replies.length > 0) {
+                                console.log(`[LinkedInSync] Found ${replies.length} replies for comment ${comment.id}`);
+                                for (const reply of replies) {
+                                    const internalReply = LinkedInTransformer.toInternalComment(projectId, dbPost.id, reply);
+                                    await adminClient
+                                        .from("linkedin_comments")
+                                        .upsert(internalReply, { onConflict: "project_id, linkedin_comment_id" });
+                                }
+                                recordsSynced += replies.length;
+                            }
+                        }
+                    }
+                    recordsSynced += comments.length;
+                    if (comments.length > 0 && !tablesSynced.includes("linkedin_comments")) {
+                        tablesSynced.push("linkedin_comments");
+                    }
+                } else {
+                    console.error(`[LinkedInSync] Could not resolve post UUID for ${post.id}:`, fetchError?.message);
+                }
             }
             
             recordsSynced += posts.length;

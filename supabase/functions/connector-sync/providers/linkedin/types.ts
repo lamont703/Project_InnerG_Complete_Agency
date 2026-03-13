@@ -43,3 +43,16 @@ export interface LinkedInPageMetrics {
     click_count: number;
     engagement_rate: number;
 }
+
+export interface LinkedInComment {
+    id: string;
+    $URN?: string;
+    actor: string;
+    parent?: string; // URN of the parent comment if it's a reply
+    message: {
+        text: string;
+    };
+    created: {
+        time: number;
+    };
+}

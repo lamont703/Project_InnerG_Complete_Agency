@@ -3,7 +3,7 @@
  * Transforms LinkedIn API data to internal database formats.
  */
 
-import { LinkedInPage, LinkedInPost, LinkedInPageMetrics } from "./types.ts";
+import { LinkedInPage, LinkedInPost, LinkedInPageMetrics, LinkedInComment } from "./types.ts";
 
 export class LinkedInTransformer {
     static toInternalPage(projectId: string, page: LinkedInPage, metrics?: LinkedInPageMetrics) {
@@ -46,6 +46,19 @@ export class LinkedInTransformer {
             like_count: stats?.likeCount || 0,
             comment_count: stats?.commentCount || 0,
             share_count: stats?.shareCount || 0,
+            last_synced_at: new Date().toISOString()
+        };
+    }
+
+    static toInternalComment(projectId: string, postId: string, comment: LinkedInComment) {
+        return {
+            project_id: projectId,
+            post_id: postId,
+            linkedin_comment_id: comment.$URN || comment.id,
+            actor_urn: comment.actor,
+            content: comment.message.text,
+            parent_comment_id: comment.parent || null,
+            created_at: new Date(comment.created.time).toISOString(),
             last_synced_at: new Date().toISOString()
         };
     }

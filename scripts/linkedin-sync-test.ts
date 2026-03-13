@@ -50,6 +50,18 @@ async function testLinkedInIntegration() {
             console.log(`Published At: ${internal.published_at}`);
             console.log(`Content: ${internal.content?.substring(0, 100)}...`);
             console.log(`Engagement: ${internal.like_count} Likes, ${internal.comment_count} Comments, ${internal.view_count} Views`);
+
+            // 4. Test Comment Fetching
+            console.log("Fetching comments...");
+            const comments = await client.getPostComments(post.id).catch(err => {
+                console.error(`  Error fetching comments: ${err.message}`);
+                return [];
+            });
+            console.log(`Found ${comments.length} comments.`);
+            for (const comment of comments) {
+                const internalComment = LinkedInTransformer.toInternalComment("test-project", "test-post-uuid", comment);
+                console.log(`  - [${internalComment.actor_urn}] says: "${internalComment.content}" at ${internalComment.created_at}`);
+            }
         }
 
         console.log("\n✅ Test completed successfully!");
