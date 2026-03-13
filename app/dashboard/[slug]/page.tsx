@@ -19,9 +19,7 @@ import { MobileNavProvider, useMobileNav } from "@/features/agency/context/Mobil
 function DashboardContent() {
     return (
         <SlotProvider userRole="client">
-            <MobileNavProvider>
-                <DashboardPageContent />
-            </MobileNavProvider>
+            <DashboardPageContent />
         </SlotProvider>
     )
 }
@@ -127,7 +125,7 @@ function DashboardPageContent() {
                 </div>
 
                 {/* 2. Operational Signals & Stream - Flush to the right edge */}
-                <div className={`w-full lg:w-[450px] shrink-0 flex flex-col bg-card/50 backdrop-blur-xl border-l border-border overflow-y-auto custom-scrollbar ${activeTab === 'signals' ? 'flex' : 'hidden lg:flex'}`}>
+                <div className={`w-full lg:w-[450px] flex-1 lg:flex-none lg:shrink-0 flex flex-col bg-card/50 backdrop-blur-xl border-l border-border ${activeTab === 'signals' ? 'flex' : 'hidden lg:flex'}`}>
                     <AiSignalCards projectSlug={slug} isFlush={true} />
                 </div>
             </div>

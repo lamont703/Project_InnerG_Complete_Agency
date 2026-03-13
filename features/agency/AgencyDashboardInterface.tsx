@@ -26,9 +26,7 @@ import { MobileNavProvider, useMobileNav } from "./context/MobileNavContext"
  */
 export function AgencyDashboardInterface() {
     return (
-        <MobileNavProvider>
-            <AgencyDashboardContent />
-        </MobileNavProvider>
+        <AgencyDashboardContent />
     )
 }
 
@@ -159,7 +157,7 @@ function AgencyDashboardContent() {
                 </div>
 
                 {/* 2. Unified Signal Feed & Social Orchestration - Flush to the right edge */}
-                <div className={`w-full lg:w-[450px] shrink-0 flex flex-col bg-card/50 backdrop-blur-xl border-l border-border overflow-y-auto custom-scrollbar ${activeTab === 'signals' ? 'flex' : 'hidden lg:flex'}`}>
+                <div className={`w-full lg:w-[450px] flex-1 lg:flex-none lg:shrink-0 flex flex-col bg-card/50 backdrop-blur-xl border-l border-border ${activeTab === 'signals' ? 'flex' : 'hidden lg:flex'}`}>
                     <UnifiedStream 
                         signals={allAgencySignalsMapped}
                         drafts={socialDrafts}
