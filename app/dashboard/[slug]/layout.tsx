@@ -1,18 +1,22 @@
 "use client"
 
 import React from "react"
+import { useParams } from "next/navigation"
 import { AdminSidebarProvider, useAdminSidebar } from "@/features/agency/context/AdminSidebarContext"
 import { MobileNavProvider, useMobileNav } from "@/features/agency/context/MobileNavContext"
 import { DashboardMobileNav } from "@/components/dashboard/MobileNav"
-import { AgencySidebar } from "@/features/agency/components/AgencySidebar"
+import { DashboardSidebar } from "@/components/dashboard/sidebar"
 
-function AdminLayoutContent({ children }: { children: React.ReactNode }) {
+function ClientDashboardLayoutContent({ children }: { children: React.ReactNode }) {
+    const params = useParams()
+    const slug = (params?.slug as string) ?? "innergcomplete"
     const { isSidebarOpen, setIsSidebarOpen, toggleSidebar } = useAdminSidebar()
     const { activeTab, setActiveTab } = useMobileNav()
 
     return (
         <div className="min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden w-full text-foreground">
-            <AgencySidebar
+            <DashboardSidebar
+                projectSlug={slug}
                 isSidebarOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
             />
@@ -23,7 +27,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 <DashboardMobileNav 
                     activeTab={activeTab} 
                     onTabChange={setActiveTab} 
-                    onOpenSidebar={toggleSidebar} 
+                    onOpenSidebar={toggleSidebar}
                     className="fixed bottom-0 z-[101]"
                 />
             </main>
@@ -31,13 +35,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     )
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function ClientDashboardLayout({ children }: { children: React.ReactNode }) {
     return (
         <AdminSidebarProvider>
             <MobileNavProvider>
-                <AdminLayoutContent>
+                <ClientDashboardLayoutContent>
                     {children}
-                </AdminLayoutContent>
+                </ClientDashboardLayoutContent>
             </MobileNavProvider>
         </AdminSidebarProvider>
     )

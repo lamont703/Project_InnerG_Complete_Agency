@@ -39,7 +39,7 @@ export function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
                     <Send className="h-4 w-4" />
                 </Button>
             </form>
-            <p className="text-[10px] text-center text-muted-foreground mt-3 opacity-50">
+            <p className="hidden md:block text-[10px] text-center text-muted-foreground mt-3 opacity-50">
                 Inner G Complete Assistant can help with database queries, automation maps, and scaling audits.
             </p>
         </div>

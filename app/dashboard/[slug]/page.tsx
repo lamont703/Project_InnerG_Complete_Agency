@@ -9,13 +9,19 @@ import { ChatInterface } from "@/features/chat/ChatInterface"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { SignalGrid as AiSignalCards } from "@/features/signals/SignalGrid"
+import { MetricsGrid } from "@/features/metrics/MetricsGrid"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { SlotProvider } from "@/features/metrics/SlotContext"
+import { DashboardMobileNav, type MobileTab } from "@/components/dashboard/MobileNav"
+
+import { MobileNavProvider, useMobileNav } from "@/features/agency/context/MobileNavContext"
 
 function DashboardContent() {
     return (
         <SlotProvider userRole="client">
-            <DashboardPageContent />
+            <MobileNavProvider>
+                <DashboardPageContent />
+            </MobileNavProvider>
         </SlotProvider>
     )
 }
@@ -84,6 +90,8 @@ function DashboardPageContent() {
         return () => clearInterval(timer)
     }, [slug])
 
+    const { activeTab, setActiveTab } = useMobileNav()
+
     if (isLoading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
@@ -93,19 +101,13 @@ function DashboardPageContent() {
     }
 
     return (
-        <div className="h-screen bg-background flex flex-col lg:flex-row overflow-hidden w-full">
-            <DashboardSidebar
-                projectSlug={slug}
-                isSidebarOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
+        <>
+            {/* Background ambient gradients - Strategic placement for depth */}
+            <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
+            <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
+            <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[100px] opacity-10 pointer-events-none" />
 
-            <main className="flex-1 flex flex-col h-full bg-background relative w-full overflow-hidden">
-                {/* Background ambient gradients - Strategic placement for depth */}
-                <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
-                <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
-                <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[100px] opacity-10 pointer-events-none" />
-
+            <div className="hidden lg:block">
                 <DashboardHeader
                     userName={userData?.name || "User"}
                     userRole={userData?.role || "CLIENT"}
@@ -114,22 +116,22 @@ function DashboardPageContent() {
                     onMenuOpen={() => setIsSidebarOpen(true)}
                     projectName={projectName}
                 />
+            </div>
 
-                {/* Main Content Area - Split into Chat and Sidebar Feed */}
-                <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full overflow-hidden">
-                    
-                    {/* 1. Intelligence Hub (Chat) - Primary Center */}
-                    <div className="flex-1 min-w-0 h-full overflow-hidden">
-                        <ChatInterface projectSlug={slug} isFlush={true} />
-                    </div>
-
-                    {/* 2. Operational Signals & Stream - Flush to the right edge */}
-                    <div className="w-full lg:w-[450px] shrink-0 h-full bg-card/50 backdrop-blur-xl border-l border-border overflow-y-auto custom-scrollbar">
-                        <AiSignalCards projectSlug={slug} isFlush={true} />
-                    </div>
+            {/* Main Content Area - Tabbed for Mobile, Side-by-Side for Desktop */}
+            <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full overflow-hidden pb-24 lg:pb-0">
+                
+                {/* 1. Intelligence Hub (Chat) - Primary Center */}
+                <div className={`flex-1 min-w-0 h-full overflow-hidden ${activeTab === 'chat' ? 'block' : 'hidden lg:block'}`}>
+                    <ChatInterface projectSlug={slug} isFlush={true} />
                 </div>
-            </main>
-        </div>
+
+                {/* 2. Operational Signals & Stream - Flush to the right edge */}
+                <div className={`w-full lg:w-[450px] shrink-0 h-full bg-card/50 backdrop-blur-xl border-l border-border overflow-y-auto custom-scrollbar ${activeTab === 'signals' ? 'block' : 'hidden lg:block'}`}>
+                    <AiSignalCards projectSlug={slug} isFlush={true} />
+                </div>
+            </div>
+        </>
     )
 }
 

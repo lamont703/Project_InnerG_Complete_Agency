@@ -33,8 +33,9 @@ function AgencyMetricsContent() {
         isLoading,
     } = useAgencyData()
 
+    const params = useParams()
     const { activeSlotIds, availableSlots, toggleSlot } = useSlotContext()
-    const { setIsSidebarOpen } = useAdminSidebar()
+    const { isSidebarOpen, setIsSidebarOpen } = useAdminSidebar()
 
     const [currentTime, setCurrentTime] = useState(new Date())
     const [mounted, setMounted] = useState(false)
@@ -82,22 +83,16 @@ function AgencyMetricsContent() {
         },
     ]
 
-    const params = useParams()
     const slug = (params?.slug as string) ?? "innergcomplete"
     const portalName = projects.find(p => p.slug === slug)?.name
 
     return (
-        <div className="h-screen bg-background flex flex-col lg:flex-row overflow-hidden w-full">
-            <AgencySidebar
-                isSidebarOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
+        <>
+            {/* Background ambient gradients */}
+            <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
+            <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
 
-            <main className="flex-1 flex flex-col h-full bg-background relative w-full selection:bg-primary/30 overflow-hidden">
-                {/* Background ambient gradients */}
-                <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
-                <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
-
+            <div className="hidden lg:block">
                 <AgencyHeader
                     userData={userData}
                     currentTime={currentTime}
@@ -105,8 +100,9 @@ function AgencyMetricsContent() {
                     onMenuOpen={() => setIsSidebarOpen(true)}
                     portalName={portalName}
                 />
+            </div>
 
-                <div className="flex-1 p-6 md:p-10 relative z-10 max-w-7xl mx-auto w-full overflow-y-auto custom-scrollbar">
+            <div className="flex-1 p-6 md:p-10 relative z-10 max-w-7xl mx-auto w-full">
                     {/* Header Section */}
                     <div className="mb-12">
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border">
@@ -218,8 +214,7 @@ function AgencyMetricsContent() {
                             Apply Changes Systemwide
                         </Button>
                     </div>
-                </div>
-            </main>
-        </div>
+            </div>
+        </>
     )
 }

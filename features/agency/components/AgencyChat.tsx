@@ -70,7 +70,7 @@ export function AgencyChatInterface() {
                     </div>
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="p-2 hover:bg-white/5 rounded-lg transition-colors text-muted-foreground"
+                        className="hidden md:block p-2 hover:bg-white/5 rounded-lg transition-colors text-muted-foreground"
                     >
                         {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                     </button>
@@ -146,7 +146,7 @@ export function AgencyChatInterface() {
                         <Send className="h-4 w-4" />
                     </Button>
                 </form>
-                <p className="text-[10px] text-center text-muted-foreground mt-3 opacity-50">
+                <p className="hidden md:block text-[10px] text-center text-muted-foreground mt-3 opacity-50">
                     Agency Agent — Cross-project intelligence with Inner G Complete methodology.
                 </p>
             </div>

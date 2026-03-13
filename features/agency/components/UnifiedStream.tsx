@@ -104,7 +104,7 @@ export function UnifiedStream({
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-500/5 rounded-full blur-[100px] pointer-events-none" />
 
             {/* Header */}
-            <div className="p-8 border-b border-border relative z-10 flex items-center justify-between">
+            <div className="hidden lg:flex p-8 border-b border-border relative z-10 items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
                         <Activity className="h-5 w-5 text-primary" />
@@ -240,7 +240,7 @@ export function UnifiedStream({
             </div>
 
             {/* Footer Status */}
-            <div className="p-4 border-t border-border bg-muted/5 flex items-center justify-center">
+            <div className="hidden lg:flex p-4 border-t border-border bg-muted/5 items-center justify-center">
                 <p className="text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/30">Intelligence Pipeline Active</p>
             </div>
         </div>

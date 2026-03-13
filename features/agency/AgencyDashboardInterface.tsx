@@ -9,6 +9,8 @@ import { AgencySidebar } from "./components/AgencySidebar"
 import { AgencyHeader } from "./components/AgencyHeader"
 import { AgencyChatInterface } from "./components/AgencyChat"
 import { UnifiedStream } from "./components/UnifiedStream"
+import { MetricSlotGrid } from "@/features/metrics/components/MetricSlotGrid"
+import { DashboardMobileNav, type MobileTab } from "@/components/dashboard/MobileNav"
 
 // Hooks
 import { useAgencyData } from "./use-agency-data"
@@ -16,13 +18,17 @@ import { useAgencyData } from "./use-agency-data"
 // Types
 import { PortfolioMetric } from "./types"
 
+import { MobileNavProvider, useMobileNav } from "./context/MobileNavContext"
+
 /**
  * AgencyDashboardInterface - The Orchestrator.
  * Connects the UI to the logical state.
  */
 export function AgencyDashboardInterface() {
     return (
-        <AgencyDashboardContent />
+        <MobileNavProvider>
+            <AgencyDashboardContent />
+        </MobileNavProvider>
     )
 }
 
@@ -53,6 +59,8 @@ function AgencyDashboardContent() {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000)
         return () => clearInterval(timer)
     }, [])
+
+    const { activeTab, setActiveTab } = useMobileNav()
 
     if (isLoading) {
         return (
@@ -126,18 +134,13 @@ function AgencyDashboardContent() {
     const portalName = projects.find(p => p.slug === slug)?.name
 
     return (
-        <div className="h-screen bg-background flex flex-col lg:flex-row overflow-hidden w-full">
-            <AgencySidebar
-                isSidebarOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
+        <>
+            {/* Background ambient gradients - Strategic placement for depth */}
+            <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
+            <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
+            <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[100px] opacity-10 pointer-events-none" />
 
-            <main className="flex-1 flex flex-col h-full bg-background relative w-full selection:bg-primary/30 overflow-hidden">
-                {/* Background ambient gradients - Strategic placement for depth */}
-                <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
-                <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
-                <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[100px] opacity-10 pointer-events-none" />
-
+            <div className="hidden lg:block">
                 <AgencyHeader
                     userData={userData}
                     currentTime={currentTime}
@@ -145,29 +148,29 @@ function AgencyDashboardContent() {
                     onMenuOpen={() => setIsSidebarOpen(true)}
                     portalName={portalName}
                 />
+            </div>
 
-                {/* Main Content Area - Split into Chat and Sidebar Feed */}
-                <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full overflow-hidden">
-                    
-                    {/* 1. Intelligence Hub (Chat) - Primary Center */}
-                    <div className="flex-1 min-w-0 h-full overflow-hidden">
-                        <AgencyChatInterface />
-                    </div>
-
-                    {/* 2. Unified Signal Feed & Social Orchestration - Flush to the right edge */}
-                    <div className="w-full lg:w-[450px] shrink-0 h-full bg-card/50 backdrop-blur-xl border-l border-border">
-                        <UnifiedStream 
-                            signals={allAgencySignalsMapped}
-                            drafts={socialDrafts}
-                            onResolveSignal={resolveSignal}
-                            onPublishDraft={publishPost}
-                            isResolving={!!resolvingId}
-                            highlightId={newSignalId || newDraftId}
-                            isFlush={true}
-                        />
-                    </div>
+            {/* Main Content Area - Tabbed for Mobile, Side-by-Side for Desktop */}
+            <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full overflow-hidden pb-24 lg:pb-0">
+                
+                {/* 1. Intelligence Hub (Chat) - Primary Center */}
+                <div className={`flex-1 min-w-0 h-full overflow-hidden ${activeTab === 'chat' ? 'block' : 'hidden lg:block'}`}>
+                    <AgencyChatInterface />
                 </div>
-            </main>
-        </div>
+
+                {/* 2. Unified Signal Feed & Social Orchestration - Flush to the right edge */}
+                <div className={`w-full lg:w-[450px] shrink-0 h-full bg-card/50 backdrop-blur-xl border-l border-border overflow-y-auto custom-scrollbar ${activeTab === 'signals' ? 'block' : 'hidden lg:block'}`}>
+                    <UnifiedStream 
+                        signals={allAgencySignalsMapped}
+                        drafts={socialDrafts}
+                        onResolveSignal={resolveSignal}
+                        onPublishDraft={publishPost}
+                        isResolving={!!resolvingId}
+                        highlightId={newSignalId || newDraftId}
+                        isFlush={true}
+                    />
+                </div>
+            </div>
+        </>
     )
 }
