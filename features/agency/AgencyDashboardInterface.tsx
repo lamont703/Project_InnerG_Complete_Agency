@@ -8,9 +8,6 @@ import { AgencySidebar } from "./components/AgencySidebar"
 import { AgencyHeader } from "./components/AgencyHeader"
 import { AgencyChatInterface } from "./components/AgencyChat"
 import { SignalSlotFeed } from "@/features/signals/components/SignalSlotFeed"
-import { MetricSlotGrid } from "@/features/metrics/components/MetricSlotGrid"
-import { DashboardCustomizer } from "@/features/metrics/components/DashboardCustomizer"
-import { SlotProvider, useSlotContext } from "@/features/metrics/SlotContext"
 import { SocialOrchestrator } from "./components/SocialOrchestrator"
 
 // Hooks
@@ -25,9 +22,7 @@ import { PortfolioMetric } from "./types"
  */
 export function AgencyDashboardInterface() {
     return (
-        <SlotProvider userRole="super-admin">
-            <AgencyDashboardContent />
-        </SlotProvider>
+        <AgencyDashboardContent />
     )
 }
 
@@ -48,8 +43,6 @@ function AgencyDashboardContent() {
         resolveSignal,
         publishPost
     } = useAgencyData()
-
-    const { activeSlotIds } = useSlotContext()
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [currentTime, setCurrentTime] = useState(new Date())
@@ -131,78 +124,83 @@ function AgencyDashboardContent() {
     ].sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
 
     return (
-        <div className="h-screen bg-[#020617] flex flex-col overflow-hidden selection:bg-primary/30">
-            {/* Slim Header - NotebookLM Style */}
-            <AgencyHeader
-                userData={userData}
-                currentTime={currentTime}
-                mounted={mounted}
-                isSyncing={isSyncing}
-                onSyncGHL={syncGHL}
-                onSyncGithub={syncGithub}
-                onMenuOpen={() => setIsSidebarOpen(true)}
-            />
-
-            <div className="flex-1 flex overflow-hidden w-full relative">
-                {/* Background ambient gradients */}
-                <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/10 rounded-full blur-[140px] opacity-10 animate-pulse pointer-events-none" />
-                <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/10 rounded-full blur-[120px] opacity-5 pointer-events-none" />
-
-                {/* Left Column: Navigation (Sources) - 20% Width */}
-                <div className="w-72 hidden lg:flex flex-col border-r border-white/5 bg-black/20 backdrop-blur-sm z-20">
-                    <AgencySidebar
-                        isSidebarOpen={isSidebarOpen}
-                        onClose={() => setIsSidebarOpen(false)}
-                    />
-                </div>
-
-                {/* Middle Column: Intelligence Hub (Chat) - 55% Width */}
-                <div className="flex-1 flex flex-col min-w-0 bg-white/[0.01] border-r border-white/5 z-10 relative">
-                    <div className="flex-1 min-h-0 flex flex-col p-4 md:p-6">
-                        <AgencyChatInterface />
-                    </div>
-                </div>
-
-                {/* Right Column: Studio (Signals & Social) - 25% Width */}
-                <div className="w-[420px] hidden xl:flex flex-col gap-6 p-6 overflow-y-auto custom-scrollbar bg-black/40 z-10">
-                    {/* Integrated Metrics - Compact vertically */}
-                    <div className="mb-2">
-                        <MetricSlotGrid
-                            slotIds={activeSlotIds}
-                            metrics={mappedAgencyMetrics}
-                            isAgency={true}
-                        />
-                    </div>
-
-                    <div className="flex flex-col gap-6">
-                        <div className="min-h-[400px] flex-1">
-                            <SignalSlotFeed
-                                slotId="global_portfolio_monitoring"
-                                signals={allAgencySignalsMapped}
-                                isAgencyMode={true}
-                                onResolve={resolveSignal}
-                                isResolving={!!resolvingId}
-                                highlightId={newSignalId}
-                            />
-                        </div>
-                        <div className="min-h-[400px] flex-1">
-                            <SocialOrchestrator 
-                                drafts={socialDrafts}
-                                onPublish={publishPost}
-                                highlightId={newDraftId}
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Mobile Drawer Wrapper */}
+        <div className="min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden w-full">
             <AgencySidebar
                 isSidebarOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
             />
 
-            <DashboardCustomizer />
+            <main className="flex-1 flex flex-col min-h-screen bg-[#020617] relative w-full selection:bg-primary/30 overflow-x-hidden">
+                {/* Background ambient gradients - Strategic placement for depth */}
+                <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
+                <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
+                <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[100px] opacity-10 pointer-events-none" />
+
+                <AgencyHeader
+                    userData={userData}
+                    currentTime={currentTime}
+                    mounted={mounted}
+                    isSyncing={isSyncing}
+                    onSyncGHL={syncGHL}
+                    onSyncGithub={syncGithub}
+                    onMenuOpen={() => setIsSidebarOpen(true)}
+                />
+
+                {/* Content */}
+                <div className="flex-1 p-6 md:p-10 relative z-10 max-w-7xl mx-auto w-full overflow-x-hidden">
+                    {/* Welcome Section - Interconnected & Dynamic */}
+                    <div className="mb-12">
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/[0.05]">
+                            <div>
+                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight flex items-center gap-3">
+                                    Aura Dashboard
+                                    <span className="text-primary font-light italic">God Mode</span>
+                                </h1>
+                                <p className="text-muted-foreground text-sm md:text-base mt-3 max-w-2xl leading-relaxed">
+                                    Synchronizing <span className="text-foreground font-bold">{projects.length} client architectures</span> across the global stream.
+                                    Your agency is currently performing at <span className="text-emerald-400 font-black">98.4% efficiency</span>.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-4 text-right">
+                                <div className="hidden md:block">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-1">Portfolio Pulse</p>
+                                    <p className="text-xs font-bold text-foreground">{mounted && currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    {/* Main Grid: "The Big Three" Alignment */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10 mb-16 items-start h-[calc(100vh-450px)] min-h-[700px]">
+                        {/* 1. Intelligence Hub (Chat) - 60% Width approx */}
+                        <div className="lg:col-span-7 h-full">
+                            <AgencyChatInterface />
+                        </div>
+
+                        {/* 2. Unified Signal Feed & Social Orchestration - 40% Width approx */}
+                        <div className="lg:col-span-5 h-full min-h-0 flex flex-col gap-8">
+                            <div className="flex-1 min-h-[300px]">
+                                <SignalSlotFeed
+                                    slotId="global_portfolio_monitoring"
+                                    signals={allAgencySignalsMapped}
+                                    isAgencyMode={true}
+                                    onResolve={resolveSignal}
+                                    isResolving={!!resolvingId}
+                                    highlightId={newSignalId}
+                                />
+                            </div>
+                            <div className="flex-1 min-h-[350px]">
+                                <SocialOrchestrator 
+                                    drafts={socialDrafts}
+                                    onPublish={publishPost}
+                                    highlightId={newDraftId}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
     )
 }
