@@ -160,6 +160,28 @@ export function formatTiktokVideo(row: any): string {
     return `TikTok Video Performance: "${row.title || "Untitled"}" [ID: ${row.tiktok_video_id}]. Published on ${published}. Lifetime Stats: ${views.toLocaleString()} views, ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments, ${shares.toLocaleString()} shares.`
 }
 
+export function formatNewsIntelligence(row: any): string {
+    const bucket = row.bucket ? row.bucket.replace(/_/g, " ") : "general"
+    const published = row.published_at ? new Date(row.published_at).toISOString().split("T")[0] : "unknown"
+    return `Trending News [${bucket.toUpperCase()}] (${published}): "${row.title || "Untitled"}" via ${row.source_name || "Unknown Source"}. Summary: ${row.description || "No description available."} Link: ${row.url}`
+}
+
+export function formatLinkedinComment(row: any): string {
+    const date = row.created_at ? new Date(row.created_at).toISOString().split("T")[0] : "recently"
+    return `LinkedIn Comment [${date}]: "${row.content || "No content"}" (Actor: ${row.actor_urn || "Unknown"})${row.parent_comment_id ? ` [Reply to: ${row.parent_comment_id}]` : ""}`
+}
+
+export function formatGithubCommit(row: any): string {
+    const date = row.committed_at ? new Date(row.committed_at).toISOString().split("T")[0] : "recently"
+    return `GitHub Commit [${date}]: "${row.message || "No message"}" by ${row.author_name || "Unknown"} [SHA: ${row.sha?.slice(0, 7) || "N/A"}]`
+}
+
+export function formatGithubPullRequest(row: any): string {
+    const state = row.state?.toUpperCase() || "OPEN"
+    const date = row.created_at ? new Date(row.created_at).toISOString().split("T")[0] : "recently"
+    return `GitHub PR #${row.number || "0"} [${state}] (${date}): "${row.title || "Untitled"}". ${row.body ? `Description: ${row.body.slice(0, 200)}...` : ""}`
+}
+
 /**
  * Master dispatcher — picks the right formatter for each source table.
  * ⚠️ Add new tables HERE. Do not add formatting logic anywhere else.
@@ -186,6 +208,10 @@ export function formatSourceRow(sourceTable: string, row: any): string {
             case "notion_pages": return formatNotionPage(row)
             case "tiktok_accounts": return formatTiktokAccount(row)
             case "tiktok_videos": return formatTiktokVideo(row)
+            case "news_intelligence": return formatNewsIntelligence(row)
+            case "linkedin_comments": return formatLinkedinComment(row)
+            case "github_commits": return formatGithubCommit(row)
+            case "github_pull_requests": return formatGithubPullRequest(row)
             default: return JSON.stringify(row)
         }
     } catch (err) {

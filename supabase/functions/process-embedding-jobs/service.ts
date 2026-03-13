@@ -62,11 +62,12 @@ export class EmbeddingService {
                 await this.repo.updateJob(job.id, { status: "done" })
                 processed++
 
-            } catch (err) {
+            } catch (err: any) {
+                const errorMessage = err?.message || JSON.stringify(err)
                 this.logger.error(`Embedding failed for job ${job.id}`, err)
                 await this.repo.updateJob(job.id, {
                     status: "failed",
-                    error_message: String(err)
+                    error_message: errorMessage
                 })
                 failed++
             }

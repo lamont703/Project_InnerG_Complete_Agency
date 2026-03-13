@@ -28,11 +28,15 @@ export const createSocialDraftTool: RegisteredTool = {
                 source_type: {
                     type: "string",
                     description: "The source of the shared knowledge.",
-                    enum: ["github", "notion", "ghl", "manual"]
+                    enum: ["github", "notion", "ghl", "manual", "news"]
                 },
                 source_metadata: {
                     type: "object",
                     description: "Optional metadata linking to the source (e.g. { 'page_id': '...' })."
+                },
+                source_id: {
+                    type: "string",
+                    description: "The UUID of the specific intelligence record being used (e.g. news article ID)."
                 },
                 ai_reasoning: {
                     type: "string",
@@ -43,7 +47,7 @@ export const createSocialDraftTool: RegisteredTool = {
         }
     },
     execute: async (context: ToolContext, args: any) => {
-        const { platform, content_text, source_type, source_metadata, ai_reasoning } = args
+        const { platform, content_text, source_type, source_metadata, source_id, ai_reasoning } = args
 
         const { data, error } = await context.adminClient
             .from("social_content_plan")
@@ -53,13 +57,30 @@ export const createSocialDraftTool: RegisteredTool = {
                 content_text,
                 status: "draft",
                 source_type: source_type || "manual",
-                source_metadata: source_metadata || {},
+                source_metadata: {
+                    ...(source_metadata || {}),
+                    ...(source_id ? { source_record_id: source_id } : {})
+                },
                 ai_reasoning: ai_reasoning || ""
             })
             .select()
             .single()
 
         if (error) throw error
+
+        // If this was based on news intelligence, mark the article as processed
+        if (source_type === "news" && source_id) {
+            console.log(`[create_social_draft] Marking news_intelligence ${source_id} as processed`)
+            await context.adminClient
+                .from("news_intelligence")
+                .update({ 
+                    is_processed: true,
+                    processed_at: new Date().toISOString(),
+                    social_plan_id: data.id
+                })
+                .eq("id", source_id)
+        }
+
         return {
             message: `Successfully created a ${platform} draft. It is now awaiting review in the dashboard.`,
             draft_id: data.id

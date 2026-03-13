@@ -120,6 +120,7 @@ export async function generateContent(
  * Used for RAG (Retrieval-Augmented Generation) searches.
  */
 export async function embedText(text: string, apiKey: string): Promise<number[] | null> {
+    console.log(`[GeminiEmbed] URL: ${GEMINI_API_BASE}/models/${GEMINI_MODELS.EMBED}:embedContent`)
     const res = await fetch(
         `${GEMINI_API_BASE}/models/${GEMINI_MODELS.EMBED}:embedContent?key=${encodeURIComponent(apiKey)}`,
         {

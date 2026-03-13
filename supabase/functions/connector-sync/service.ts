@@ -25,6 +25,7 @@ import { syncYouTube } from "./providers/youtube/index.ts"
 import { syncLinkedIn } from "./providers/linkedin/index.ts"
 import { syncNotion } from "./providers/notion/index.ts"
 import { syncTikTok } from "./providers/tiktok/index.ts"
+import { syncNews } from "./providers/newsapi/index.ts"
 
 export interface SyncResult {
     success: boolean
@@ -124,6 +125,13 @@ export class SyncService {
                     break
                 case "tiktok":
                     result = await syncTikTok(
+                        this.adminClient,
+                        projectId,
+                        syncConfig as any
+                    )
+                    break
+                case "newsapi":
+                    result = await syncNews(
                         this.adminClient,
                         projectId,
                         syncConfig as any

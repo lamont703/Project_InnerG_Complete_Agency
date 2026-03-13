@@ -76,7 +76,8 @@ export class AgencyChatService {
                 this.logger.info(`RAG search found ${chunks.length} chunks`)
                 contextChunks.push(...chunks.map((c: any) => {
                     const projectLabel = c.project_id ? `[Project ${c.project_id}]` : "[Agency-Wide]"
-                    return `${projectLabel} (${c.source_table}): ${c.content_chunk}`
+                    const status = c.is_processed ? "[PROCESSED] " : ""
+                    return `${projectLabel} (${c.source_table}) ${status}(ID: ${c.source_id}): ${c.content_chunk}`
                 }))
             }
         }
