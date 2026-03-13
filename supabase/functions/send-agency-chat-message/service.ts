@@ -279,6 +279,7 @@ export class AgencyChatService {
                         projectId: target_project_id || AGENCY_PROJECT_SENTINEL,
                         userId
                     }, args)
+                    this.logger.info(`Tool ${name} executed successfully`, { result })
 
                     return {
                         functionResponse: {
@@ -372,9 +373,9 @@ export class AgencyChatService {
                     signalProjectId = matched?.id ?? null
                 }
 
-                if (!signalProjectId && allProjects?.length) {
-                    this.logger.info("No target project resolved, defaulting to first project")
-                    signalProjectId = allProjects[0].id
+                if (!signalProjectId) {
+                    this.logger.info("No target project resolved, defaulting to Agency Sentinel")
+                    signalProjectId = AGENCY_PROJECT_SENTINEL
                 }
 
                 if (signalProjectId) {

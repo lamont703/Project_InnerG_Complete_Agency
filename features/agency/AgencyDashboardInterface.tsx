@@ -11,6 +11,7 @@ import { SignalSlotFeed } from "@/features/signals/components/SignalSlotFeed"
 import { MetricSlotGrid } from "@/features/metrics/components/MetricSlotGrid"
 import { DashboardCustomizer } from "@/features/metrics/components/DashboardCustomizer"
 import { SlotProvider, useSlotContext } from "@/features/metrics/SlotContext"
+import { SocialOrchestrator } from "./components/SocialOrchestrator"
 
 // Hooks
 import { useAgencyData } from "./use-agency-data"
@@ -36,13 +37,15 @@ function AgencyDashboardContent() {
         projects,
         strategicSignals,
         operationalSignals,
+        socialDrafts,
         isLoading,
         isSyncing,
         resolvingId,
         newSignalId,
         syncGHL,
         syncGithub,
-        resolveSignal
+        resolveSignal,
+        publishPost
     } = useAgencyData()
 
     const { activeSlotIds } = useSlotContext()
@@ -186,15 +189,23 @@ function AgencyDashboardContent() {
                             <AgencyChatInterface />
                         </div>
 
-                        {/* 2. Unified Signal Feed - 40% Width approx */}
-                        <div className="lg:col-span-5 h-full min-h-0">
-                            <SignalSlotFeed
-                                slotId="global_portfolio_monitoring"
-                                signals={allAgencySignalsMapped}
-                                isAgencyMode={true}
-                                onResolve={resolveSignal}
-                                isResolving={!!resolvingId}
-                            />
+                        {/* 2. Unified Signal Feed & Social Orchestration - 40% Width approx */}
+                        <div className="lg:col-span-5 h-full min-h-0 flex flex-col gap-8">
+                            <div className="flex-1 min-h-[300px]">
+                                <SignalSlotFeed
+                                    slotId="global_portfolio_monitoring"
+                                    signals={allAgencySignalsMapped}
+                                    isAgencyMode={true}
+                                    onResolve={resolveSignal}
+                                    isResolving={!!resolvingId}
+                                />
+                            </div>
+                            <div className="flex-1 min-h-[350px]">
+                                <SocialOrchestrator 
+                                    drafts={socialDrafts}
+                                    onPublish={publishPost}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

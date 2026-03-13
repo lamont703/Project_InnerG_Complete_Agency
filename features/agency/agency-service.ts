@@ -140,4 +140,35 @@ export class AgencyService {
 
         return data?.id || null
     }
+
+    /**
+     * Fetch pending social content drafts
+     */
+    async getSocialDrafts(): Promise<any[]> {
+        const { data } = await this.supabase
+            .from("social_content_plan")
+            .select("*, projects(name)")
+            .eq("status", "draft")
+            .order("created_at", { ascending: false })
+
+        return (data as any[]) || []
+    }
+
+    /**
+     * Invoke the publishing Edge Function for a draft
+     */
+    async publishSocialPost(accessToken: string, anonKey: string, draftId: string): Promise<void> {
+        const { error } = await this.supabase.functions.invoke("publish-social-post", {
+            body: { draft_id: draftId },
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                apikey: anonKey
+            }
+        })
+
+        if (error) {
+            const responseBody = await error.context?.json().catch(() => null)
+            throw new Error(responseBody?.error || error.message)
+        }
+    }
 }

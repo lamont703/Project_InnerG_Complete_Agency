@@ -26,7 +26,15 @@ export class LinkedInClient {
             throw new Error(`LinkedIn API Error (${response.status}): ${error.message || JSON.stringify(error)}`);
         }
 
-        return response.json();
+        // LinkedIn's POST /posts returns 201 Created with an empty body
+        // and the URN in the 'x-linkedin-id' or 'x-restli-id' header
+        if (response.status === 201) {
+            const id = response.headers.get("x-restli-id") || response.headers.get("x-linkedin-id");
+            return { id } as unknown as T;
+        }
+
+        const text = await response.text();
+        return text ? JSON.parse(text) : {} as T;
     }
 
     /**
@@ -143,5 +151,34 @@ export class LinkedInClient {
             `/ugcPosts?q=authors&authors=List(${encodedUrn})&count=${count}`
         );
         return data.elements || [];
+    }
+
+    /**
+     * Create a text-based post on LinkedIn
+     * @param authorUrn The URN of the author (urn:li:person:id or urn:li:organization:id)
+     * @param text The content of the post
+     */
+    async createPost(authorUrn: string, text: string): Promise<{ id: string }> {
+        // Ensure we have a proper URN (defaults to organization if not specified)
+        const urn = authorUrn.startsWith('urn:li:') ? authorUrn : `urn:li:organization:${authorUrn}`;
+
+        return this.request<{ id: string }>("/posts", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                author: urn,
+                commentary: text,
+                visibility: "PUBLIC",
+                distribution: {
+                    feedDistribution: "MAIN_FEED",
+                    targetEntities: [],
+                    thirdPartyDistributionChannels: []
+                },
+                lifecycleState: "PUBLISHED",
+                isReshareDisabledByAuthor: false
+            })
+        });
     }
 }

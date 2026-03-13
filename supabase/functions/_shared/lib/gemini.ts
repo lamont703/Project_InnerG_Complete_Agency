@@ -60,10 +60,13 @@ export async function generateContent(
         tools,
     } = options
 
-    const contents = [
-        ...history,
-        { role: "user", parts: [{ text: userMessage }] }
-    ]
+    const contents = [...history]
+    const lastMessage = history[history.length - 1]
+    
+    // Only append userMessage if the history doesn't already end with it
+    if (!lastMessage || lastMessage.role !== "user" || lastMessage.parts[0]?.text !== userMessage) {
+        contents.push({ role: "user", parts: [{ text: userMessage }] })
+    }
 
     const payload: Record<string, unknown> = {
         contents,

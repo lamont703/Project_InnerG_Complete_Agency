@@ -12,6 +12,7 @@ import { getYoutubeChannelStatsTool, listRecentYoutubeVideosTool, searchYoutubeK
 import { getLinkedinPageStatsTool, listRecentLinkedinPostsTool, searchLinkedinKnowledgeTool } from "./linkedin-tools.ts"
 import { listRecentNotionPagesTool, searchNotionKnowledgeTool } from "./notion-tools.ts"
 import { getTiktokAccountStatsTool, listRecentTiktokVideosTool, searchTiktokKnowledgeTool } from "./tiktok-tools.ts"
+import { createSocialDraftTool, listSocialDraftsTool } from "./social-orchestration-tools.ts"
 
 /**
  * Creates and configures the default tool registry for AI agents.
@@ -32,6 +33,10 @@ export function createDefaultRegistry(): ToolRegistry {
     registry.register(getSocialInsightsTool)
     registry.register(listRecentSocialPostsTool)
     registry.register(searchSocialKnowledgeTool)
+
+    // Register Social Orchestration Tools
+    registry.register(createSocialDraftTool)
+    registry.register(listSocialDraftsTool)
 
     // Register YouTube Intelligence Tools
     registry.register(getYoutubeChannelStatsTool)
