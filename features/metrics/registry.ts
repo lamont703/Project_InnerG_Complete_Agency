@@ -127,6 +127,42 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         type: 'kpi',
         permissions: ['admin', 'super-admin'],
         iconName: "Target"
+    },
+    {
+        id: "linkedin_likes",
+        label: "LinkedIn Likes",
+        description: "Total likes aggregated across all posts in the LinkedIn content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "ThumbsUp"
+    },
+    {
+        id: "linkedin_comments",
+        label: "LinkedIn Comments",
+        description: "Total comments aggregated across all posts in the LinkedIn content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "MessageSquare"
+    },
+    {
+        id: "linkedin_shares",
+        label: "LinkedIn Shares",
+        description: "Total shares aggregated across all posts in the LinkedIn content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Share2"
+    },
+    {
+        id: "linkedin_post_views",
+        label: "LinkedIn Post Views",
+        description: "Cumulative view count aggregated across all individual LinkedIn posts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Eye"
     }
 ]
 

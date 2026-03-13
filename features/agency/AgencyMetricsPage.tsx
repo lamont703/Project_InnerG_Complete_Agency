@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff } from "lucide-react"
+import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff, ThumbsUp, MessageSquare, Share2, Eye, Linkedin, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 // Modular Components
@@ -86,29 +86,57 @@ function AgencyMetricsContent() {
             id: "linkedin_followers",
             label: "LinkedIn Followers",
             value: linkedinMetrics?.followers?.toLocaleString() || "0",
-            icon: Building2,
+            icon: Linkedin,
             color: "bg-blue-600/20 text-blue-400",
         },
         {
             id: "linkedin_impressions",
             label: "LinkedIn Reach",
             value: linkedinMetrics?.views?.toLocaleString() || "0",
-            icon: Building2,
+            icon: BarChart3,
             color: "bg-indigo-500/20 text-indigo-400",
         },
         {
             id: "linkedin_engagement",
             label: "LinkedIn Engagement",
             value: (linkedinMetrics?.engagement || 0).toFixed(2) + "%",
-            icon: Building2,
+            icon: Zap,
             color: "bg-emerald-500/20 text-emerald-400",
         },
         {
             id: "linkedin_clicks",
             label: "LinkedIn Clicks",
             value: linkedinMetrics?.clicks?.toLocaleString() || "0",
-            icon: Building2,
+            icon: Target,
             color: "bg-orange-500/20 text-orange-400",
+        },
+        {
+            id: "linkedin_likes",
+            label: "LinkedIn Likes",
+            value: linkedinMetrics?.likes?.toLocaleString() || "0",
+            icon: ThumbsUp,
+            color: "bg-blue-400/20 text-blue-300",
+        },
+        {
+            id: "linkedin_comments",
+            label: "LinkedIn Comments",
+            value: linkedinMetrics?.comments?.toLocaleString() || "0",
+            icon: MessageSquare,
+            color: "bg-cyan-500/20 text-cyan-400",
+        },
+        {
+            id: "linkedin_shares",
+            label: "LinkedIn Shares",
+            value: linkedinMetrics?.shares?.toLocaleString() || "0",
+            icon: Share2,
+            color: "bg-indigo-600/20 text-indigo-400",
+        },
+        {
+            id: "linkedin_post_views",
+            label: "LinkedIn Post Views",
+            value: linkedinMetrics?.postViews?.toLocaleString() || "0",
+            icon: Eye,
+            color: "bg-teal-500/20 text-teal-400",
         }
     ]
 

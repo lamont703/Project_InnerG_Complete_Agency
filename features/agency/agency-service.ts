@@ -206,14 +206,32 @@ export class AgencyService {
 
         if (!pages || pages.length === 0) return null
 
-        // Return the metrics of the primary page
+        // Return the metrics of the primary page + aggregated post metrics
         const primary = pages[0]
+        
+        // Fetch Post Aggregations for this specific project
+        const { data: posts } = await this.supabase
+            .from("linkedin_posts")
+            .select("like_count, comment_count, share_count, view_count")
+            .eq("project_id", primary.project_id)
+
+        const postStats = (posts || []).reduce((acc: any, p: any) => ({
+            likes: acc.likes + (p.like_count || 0),
+            comments: acc.comments + (p.comment_count || 0),
+            shares: acc.shares + (p.share_count || 0),
+            postViews: acc.postViews + (p.view_count || 0)
+        }), { likes: 0, comments: 0, shares: 0, postViews: 0 })
+
         return {
             followers: primary.follower_count,
             views: primary.total_views,
             clicks: primary.total_clicks,
             engagement: primary.engagement_rate,
-            pageName: primary.name
+            pageName: primary.name,
+            likes: postStats.likes,
+            comments: postStats.comments,
+            shares: postStats.shares,
+            postViews: postStats.postViews
         }
     }
 
