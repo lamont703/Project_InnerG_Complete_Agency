@@ -187,22 +187,25 @@ export class LinkedInClient {
         // Ensure we have a proper URN (defaults to organization if not specified)
         const urn = authorUrn.startsWith('urn:li:') ? authorUrn : `urn:li:organization:${authorUrn}`;
 
-        return this.request<{ id: string }>("/posts", {
+        return this.request<{ id: string }>("/ugcPosts", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
                 author: urn,
-                commentary: text,
-                visibility: "PUBLIC",
-                distribution: {
-                    feedDistribution: "MAIN_FEED",
-                    targetEntities: [],
-                    thirdPartyDistributionChannels: []
-                },
                 lifecycleState: "PUBLISHED",
-                isReshareDisabledByAuthor: false
+                specificContent: {
+                    "com.linkedin.ugc.ShareContent": {
+                        shareCommentary: {
+                            text: text.slice(0, 3000)
+                        },
+                        shareMediaCategory: "NONE"
+                    }
+                },
+                visibility: {
+                    "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+                }
             })
         });
     }

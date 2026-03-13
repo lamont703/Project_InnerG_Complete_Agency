@@ -173,4 +173,80 @@ export class AgencyService {
             throw new Error(responseBody?.error || error.message)
         }
     }
+
+    /**
+     * Fetch LinkedIn metrics for the agency project
+     */
+    async getLinkedInMetrics(projectSlug: string = "innergcomplete"): Promise<any> {
+        // 1. Try to find the specific project's metrics
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("id")
+            .eq("slug", projectSlug)
+            .single()
+
+        let pages = null
+        if (project) {
+            const { data } = await this.supabase
+                .from("linkedin_pages")
+                .select("*")
+                .eq("project_id", project.id)
+            pages = data
+        }
+
+        // 2. Fallback: If no pages for specific project, try to find any synced page (for Agency overview)
+        if (!pages || pages.length === 0) {
+            const { data: anyPages } = await this.supabase
+                .from("linkedin_pages")
+                .select("*")
+                .order("last_synced_at", { ascending: false })
+                .limit(1)
+            pages = anyPages
+        }
+
+        if (!pages || pages.length === 0) return null
+
+        // Return the metrics of the primary page
+        const primary = pages[0]
+        return {
+            followers: primary.follower_count,
+            views: primary.total_views,
+            clicks: primary.total_clicks,
+            engagement: primary.engagement_rate,
+            pageName: primary.name
+        }
+    }
+
+    /**
+     * Trigger LinkedIn Sync for a specific connection
+     */
+    async syncLinkedIn(accessToken: string, anonKey: string, connectionId: string): Promise<void> {
+        const { error } = await this.supabase.functions.invoke("connector-sync", {
+            body: { connection_id: connectionId },
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                apikey: anonKey
+            }
+        })
+
+        if (error) {
+            const responseBody = await error.context?.json().catch(() => null)
+            throw new Error(responseBody?.error?.message || error.message)
+        }
+    }
+
+    /**
+     * Find the primary LinkedIn connection for the portfolio
+     */
+    async getLinkedInConnection(): Promise<string | null> {
+        const { data } = await this.supabase
+            .from("client_db_connections")
+            .select("id, connector_types!inner(provider)")
+            .eq("connector_types.provider", "linkedin")
+            .eq("is_active", true)
+            .limit(1)
+            .maybeSingle()
+
+        return data?.id || null
+    }
 }

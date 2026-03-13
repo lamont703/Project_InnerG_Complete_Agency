@@ -250,7 +250,7 @@ export class AgencyChatService {
             systemPrompt,
             userMessage: message,
             temperature: 0.1,
-            maxOutputTokens: 2048,
+            maxOutputTokens: 4096,
             history: historyPrompt ? [{ role: "user", parts: [{ text: historyPrompt }] }] : [],
             tools,
             // DO NOT use responseSchema here if tools are present

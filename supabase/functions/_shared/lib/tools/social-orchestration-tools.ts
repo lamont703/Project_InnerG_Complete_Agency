@@ -23,7 +23,7 @@ export const createSocialDraftTool: RegisteredTool = {
                 },
                 content_text: {
                     type: "string",
-                    description: "The body text of the post."
+                    description: "The body text of the post. LinkedIn strictly limits this to 3000 characters."
                 },
                 source_type: {
                     type: "string",

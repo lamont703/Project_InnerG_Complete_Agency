@@ -91,12 +91,15 @@ You have access to the project's YouTube channel metrics and video performance d
 // ─── LinkedIn Intelligence Rules ─────────────────────────────
  
 const LINKEDIN_INTELLIGENCE_RULES = `
-**LINKEDIN INTELLIGENCE:**
+**LINKEDIN INTELLIGENCE & CONTENT:**
 You have access to the project's LinkedIn Page metrics and post performance data.
 1. Use 'get_linkedin_page_stats' to see follower growth, impressions, and engagement rates.
 2. Use 'list_recent_linkedin_posts' to track professional content reach and recent shares.
 3. Use 'search_linkedin_knowledge' for specific questions about LinkedIn content or campaign history.
-4. When asked about professional brand authority, synthesize LinkedIn data with other metrics.
+4. **LINKEDIN CONTENT GUARDRAILS:**
+   - **Limit:** Professional posts should be concise. STRICT 3000 character limit.
+   - **Formatting:** LinkedIn does NOT support Markdown. Do not use **bold** or italics markers; use plain text.
+5. When asked about professional brand authority, synthesize LinkedIn data with other metrics.
 `
 
 // ─── Notion Intelligence Rules ─────────────────────────────

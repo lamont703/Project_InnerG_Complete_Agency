@@ -2,35 +2,23 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import { Loader2, Building2, AlertTriangle, Sparkles } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 // Modular Components
-import { AgencySidebar } from "./components/AgencySidebar"
 import { AgencyHeader } from "./components/AgencyHeader"
 import { AgencyChatInterface } from "./components/AgencyChat"
 import { UnifiedStream } from "./components/UnifiedStream"
-import { MetricSlotGrid } from "@/features/metrics/components/MetricSlotGrid"
-import { DashboardMobileNav, type MobileTab } from "@/components/dashboard/MobileNav"
 
 // Hooks
 import { useAgencyData } from "./use-agency-data"
-
-// Types
-import { PortfolioMetric } from "./types"
-
-import { MobileNavProvider, useMobileNav } from "./context/MobileNavContext"
+import { useAdminSidebar } from "./context/AdminSidebarContext"
+import { useMobileNav } from "./context/MobileNavContext"
 
 /**
  * AgencyDashboardInterface - The Orchestrator.
- * Connects the UI to the logical state.
+ * Handles the display logic for Chat and Signals within the Agency Admin shell.
  */
 export function AgencyDashboardInterface() {
-    return (
-        <AgencyDashboardContent />
-    )
-}
-
-function AgencyDashboardContent() {
     const params = useParams()
     const slug = (params?.slug as string) ?? "innergcomplete"
 
@@ -48,7 +36,9 @@ function AgencyDashboardContent() {
         publishPost
     } = useAgencyData()
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+    const { setIsSidebarOpen } = useAdminSidebar()
+    const { activeTab } = useMobileNav()
+
     const [currentTime, setCurrentTime] = useState(new Date())
     const [mounted, setMounted] = useState(false)
 
@@ -58,11 +48,9 @@ function AgencyDashboardContent() {
         return () => clearInterval(timer)
     }, [])
 
-    const { activeTab, setActiveTab } = useMobileNav()
-
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="h-full flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">Initializing Command Intelligence...</p>
@@ -70,34 +58,6 @@ function AgencyDashboardContent() {
             </div>
         )
     }
-
-    const mappedAgencyMetrics: any[] = [
-        {
-            id: "active_architectures",
-            label: "Active Client Projects",
-            value: projects.length,
-            icon: Building2,
-            color: "bg-blue-500/20 text-blue-400",
-        },
-        {
-            id: "system_health",
-            label: "Unresolved Signals",
-            value: operationalSignals.filter(s => !s.is_resolved).length,
-            change: operationalSignals.filter(s => !s.is_resolved).length > 0 ? "Active monitoring" : "All clear",
-            trend: operationalSignals.filter(s => !s.is_resolved).length > 0 ? "neutral" : "up",
-            icon: AlertTriangle,
-            color: operationalSignals.filter(s => !s.is_resolved).length > 0 ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400",
-        },
-        {
-            id: "agency_intelligence",
-            label: "Agency Intelligence",
-            value: strategicSignals.length,
-            icon: Sparkles,
-            color: "bg-violet-500/20 text-violet-400",
-        },
-    ]
-
-    const agencySlots = ["active_architectures", "system_health", "agency_intelligence"] // Deprecated hardcoded slots
 
     // Map agency signals to standard Signal type for unified Card usage
     const allAgencySignalsMapped: any[] = [
@@ -132,8 +92,8 @@ function AgencyDashboardContent() {
     const portalName = projects.find(p => p.slug === slug)?.name
 
     return (
-        <>
-            {/* Background ambient gradients - Strategic placement for depth */}
+        <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+            {/* Background ambient gradients */}
             <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
             <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
             <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[100px] opacity-10 pointer-events-none" />
@@ -149,15 +109,15 @@ function AgencyDashboardContent() {
             </div>
 
             {/* Main Content Area - Tabbed for Mobile, Side-by-Side for Desktop */}
-            <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full overflow-hidden h-full">
+            <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full overflow-hidden min-h-0">
                 
                 {/* 1. Intelligence Hub (Chat) - Primary Center */}
-                <div className={`flex-1 min-w-0 flex flex-col overflow-hidden ${activeTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
+                <div className={`flex-1 min-w-0 flex flex-col overflow-hidden min-h-0 ${activeTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
                     <AgencyChatInterface />
                 </div>
 
                 {/* 2. Unified Signal Feed & Social Orchestration - Flush to the right edge */}
-                <div className={`w-full lg:w-[450px] flex-1 lg:flex-none lg:shrink-0 flex flex-col bg-card/50 backdrop-blur-xl border-l border-border ${activeTab === 'signals' ? 'flex' : 'hidden lg:flex'}`}>
+                <div className={`w-full lg:w-[450px] flex-1 lg:flex-none lg:shrink-0 flex flex-col bg-card/50 backdrop-blur-xl border-l border-border min-h-0 ${activeTab === 'signals' ? 'flex' : 'hidden lg:flex'}`}>
                     <UnifiedStream 
                         signals={allAgencySignalsMapped}
                         drafts={socialDrafts}
@@ -169,6 +129,6 @@ function AgencyDashboardContent() {
                     />
                 </div>
             </div>
-        </>
+        </div>
     )
 }
