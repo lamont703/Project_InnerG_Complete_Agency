@@ -21,7 +21,7 @@ export function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
     }
 
     return (
-        <div className="p-4 border-t border-white/5 bg-white/[0.01]">
+        <div className="p-4 pb-24 md:pb-4 border-t border-white/5 bg-white/[0.01]">
             <form onSubmit={handleSubmit} className="relative">
                 <Input
                     value={input}

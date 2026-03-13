@@ -45,7 +45,7 @@ export function AgencyChatInterface() {
     }
 
     return (
-        <div className={`flex flex-col glass-panel-strong transition-all duration-500 overflow-hidden min-h-0 ${isExpanded ? "fixed inset-0 md:inset-8 z-[102] shadow-2xl rounded-none md:rounded-2xl" : "h-full rounded-none border-x-0 border-b-0 border-t-0"}`}>
+        <div className={`flex flex-col glass-panel-strong transition-all duration-500 overflow-hidden min-h-0 ${isExpanded ? "fixed inset-0 md:inset-8 z-[102] shadow-2xl rounded-none md:rounded-2xl" : "flex-1 rounded-none border-x-0 border-b-0 border-t-0"}`}>
             {/* Header */}
             <div className="p-4 border-b border-border flex items-center justify-between bg-muted/10">
                 <div className="flex items-center gap-3">
@@ -128,7 +128,7 @@ export function AgencyChatInterface() {
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-border bg-muted/5">
+            <div className="p-4 pb-24 md:pb-4 border-t border-border bg-muted/5">
                 <form onSubmit={handleSubmit} className="relative">
                     <Input
                         value={input}

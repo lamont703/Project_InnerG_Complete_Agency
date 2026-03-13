@@ -119,15 +119,15 @@ function DashboardPageContent() {
             </div>
 
             {/* Main Content Area - Tabbed for Mobile, Side-by-Side for Desktop */}
-            <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full overflow-hidden pb-24 lg:pb-0">
+            <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full overflow-hidden h-full">
                 
                 {/* 1. Intelligence Hub (Chat) - Primary Center */}
-                <div className={`flex-1 min-w-0 h-full overflow-hidden ${activeTab === 'chat' ? 'block' : 'hidden lg:block'}`}>
+                <div className={`flex-1 min-w-0 flex flex-col overflow-hidden ${activeTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
                     <ChatInterface projectSlug={slug} isFlush={true} />
                 </div>
 
                 {/* 2. Operational Signals & Stream - Flush to the right edge */}
-                <div className={`w-full lg:w-[450px] shrink-0 h-full bg-card/50 backdrop-blur-xl border-l border-border overflow-y-auto custom-scrollbar ${activeTab === 'signals' ? 'block' : 'hidden lg:block'}`}>
+                <div className={`w-full lg:w-[450px] shrink-0 flex flex-col bg-card/50 backdrop-blur-xl border-l border-border overflow-y-auto custom-scrollbar ${activeTab === 'signals' ? 'flex' : 'hidden lg:flex'}`}>
                     <AiSignalCards projectSlug={slug} isFlush={true} />
                 </div>
             </div>

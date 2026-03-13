@@ -121,7 +121,7 @@ export function UnifiedStream({
             </div>
 
             {/* Content Feed */}
-            <div className="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar relative z-10 min-h-0">
+            <div className="flex-1 p-6 pb-24 space-y-6 overflow-y-auto custom-scrollbar relative z-10 min-h-0">
                 {streamItems.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-3xl bg-muted/5">
                         <div className="h-16 w-16 rounded-full bg-primary/5 flex items-center justify-center mb-4 border border-primary/10">

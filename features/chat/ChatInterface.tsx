@@ -25,7 +25,7 @@ export function ChatInterface({ projectSlug, isFlush = false }: ChatInterfacePro
         <div className={`flex flex-col glass-panel-strong transition-all duration-500 overflow-hidden min-h-0 ${isExpanded 
             ? "fixed inset-0 md:inset-8 z-[102] shadow-2xl rounded-none md:rounded-2xl bg-background" 
             : isFlush 
-                ? "h-full rounded-none border-none shadow-none" 
+                ? "flex-1 rounded-none border-none shadow-none" 
                 : "h-full rounded-3xl border border-white/[0.05] shadow-xl shadow-black/40"
             }`}>
             {/* Ambient glow inside chat */}

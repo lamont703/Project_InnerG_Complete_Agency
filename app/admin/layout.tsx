@@ -17,7 +17,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 onClose={() => setIsSidebarOpen(false)}
             />
             <main className="flex-1 flex flex-col h-screen bg-background relative w-full selection:bg-primary/30 overflow-hidden">
-                <div className="flex-1 overflow-y-auto pb-24 lg:pb-0">
+                <div className="flex-1 flex flex-col overflow-y-auto lg:pb-0">
                     {children}
                 </div>
                 <DashboardMobileNav 
