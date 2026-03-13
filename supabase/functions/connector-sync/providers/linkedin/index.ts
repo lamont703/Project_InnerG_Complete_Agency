@@ -64,10 +64,17 @@ export async function syncLinkedIn(
             recordsSynced++;
             if (!tablesSynced.includes("linkedin_pages")) tablesSynced.push("linkedin_pages");
 
-            // 3. Sync Recent Posts
+            // 3. Sync Recent Posts with Statistics
             const posts = await client.listRecentPosts(canonicalUrn);
+            const postUrns = posts.map(p => p.id);
+            const postStats: Record<string, any> = await client.getPostStatistics(canonicalUrn, postUrns).catch((err: any) => {
+                console.error(`Failed to fetch post statistics for ${canonicalUrn}:`, err.message);
+                return {};
+            });
+
             for (const post of posts) {
-                const internalPost = LinkedInTransformer.toInternalPost(projectId, dbPage.id, post);
+                const stats = postStats[post.id];
+                const internalPost = LinkedInTransformer.toInternalPost(projectId, dbPage.id, post, stats);
                 await adminClient
                     .from("linkedin_posts")
                     .upsert(internalPost, { onConflict: "project_id, linkedin_post_id" });

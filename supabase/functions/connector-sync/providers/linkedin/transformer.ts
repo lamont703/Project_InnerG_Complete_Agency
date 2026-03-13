@@ -21,16 +21,31 @@ export class LinkedInTransformer {
         };
     }
 
-    static toInternalPost(projectId: string, pageId: string, post: LinkedInPost) {
+    static toInternalPost(projectId: string, pageId: string, post: LinkedInPost, stats?: any) {
         // LinkedIn posts have different commentary locations depending on the API version/post type
         const content = post.specificContent?.["com.linkedin.ugc.ShareContent"]?.shareCommentary?.text || post.commentary || "";
         
+        let publishedAt: string | null = null;
+        if (post.firstPublishedAt) {
+            // Handle numeric epoch or string epoch
+            const epoch = typeof post.firstPublishedAt === 'number' 
+                ? post.firstPublishedAt 
+                : parseInt(post.firstPublishedAt as string);
+            publishedAt = new Date(epoch).toISOString();
+        } else if (post.publishedAt) {
+            publishedAt = new Date(post.publishedAt).toISOString();
+        }
+
         return {
             project_id: projectId,
             page_id: pageId,
             linkedin_post_id: post.id,
             content: content,
-            published_at: post.publishedAt ? new Date(post.publishedAt).toISOString() : null,
+            published_at: publishedAt,
+            view_count: stats?.impressionCount || 0,
+            like_count: stats?.likeCount || 0,
+            comment_count: stats?.commentCount || 0,
+            share_count: stats?.shareCount || 0,
             last_synced_at: new Date().toISOString()
         };
     }

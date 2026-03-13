@@ -91,6 +91,42 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         type: 'kpi',
         permissions: ['super-admin'],
         iconName: "Sparkles"
+    },
+    {
+        id: "linkedin_followers",
+        label: "LinkedIn Followers",
+        description: "Total follower count for the connected LinkedIn organization page.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Linkedin"
+    },
+    {
+        id: "linkedin_impressions",
+        label: "LinkedIn Reach",
+        description: "Total impressions across all posts on the LinkedIn page.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "BarChart3"
+    },
+    {
+        id: "linkedin_engagement",
+        label: "LinkedIn Engagement",
+        description: "Aggregated engagement rate across LinkedIn content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Zap"
+    },
+    {
+        id: "linkedin_clicks",
+        label: "LinkedIn Clicks",
+        description: "Total clicks on links and content within LinkedIn posts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Target"
     }
 ]
 

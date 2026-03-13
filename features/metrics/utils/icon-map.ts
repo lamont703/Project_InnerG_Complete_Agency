@@ -8,7 +8,10 @@ import {
     Sparkles,
     Layout,
     Target,
-    BarChart3
+    BarChart3,
+    Linkedin,
+    Youtube,
+    Play
 } from "lucide-react"
 
 export const SLOT_ICON_MAP: Record<string, any> = {
@@ -21,7 +24,10 @@ export const SLOT_ICON_MAP: Record<string, any> = {
     Sparkles,
     Layout,
     Target,
-    BarChart3
+    BarChart3,
+    Linkedin,
+    Youtube,
+    Play
 }
 
 export function getIcon(name: string) {

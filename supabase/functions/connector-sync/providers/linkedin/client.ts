@@ -109,8 +109,9 @@ export class LinkedInClient {
      * Fetch follower statistics for a page
      */
     async getPageFollowers(pageUrn: string): Promise<number> {
+        const encodedUrn = encodeURIComponent(pageUrn);
         const data = await this.request<{ elements: any[] }>(
-            `/organizationalEntityFollowerStatistics?path=organizationalEntity&organizationalEntity=${pageUrn}`
+            `/organizationalEntityFollowerStatistics?q=organizationalEntity&organizationalEntity=${encodedUrn}`
         );
         return data.elements?.[0]?.followerCounts?.[0]?.followerCount || 0;
     }
@@ -119,8 +120,9 @@ export class LinkedInClient {
      * Fetch page metrics (impressions, clicks, etc.)
      */
     async getPageMetrics(pageUrn: string): Promise<LinkedInPageMetrics> {
+        const encodedUrn = encodeURIComponent(pageUrn);
         const data = await this.request<{ elements: any[] }>(
-            `/organizationalEntityShareStatistics?q=organizationalEntity&organizationalEntity=${pageUrn}`
+            `/organizationalEntityShareStatistics?q=organizationalEntity&organizationalEntity=${encodedUrn}`
         );
         
         const stats = data.elements?.[0]?.totalShareStatistics || {};
@@ -142,15 +144,38 @@ export class LinkedInClient {
         // Ensure we use a proper URN for authors
         const urn = pageUrn.startsWith('urn:li:') ? pageUrn : `urn:li:organization:${pageUrn}`;
         
-        // Use the newer UGC Post API for better content capture
-        // For Rest.li 2.0, List parameters need to be properly encoded.
-        // The error "Field Value validation failed in PARAMETER: Data Processing Exception while processing fields [/authors/authors]"
-        // often occurs when the List syntax is incorrect for the protocol version.
         const encodedUrn = encodeURIComponent(urn);
         const data = await this.request<{ elements: LinkedInPost[] }>(
             `/ugcPosts?q=authors&authors=List(${encodedUrn})&count=${count}`
         );
         return data.elements || [];
+    }
+
+    /**
+     * Fetch statistics for specific posts (shares)
+     */
+    async getPostStatistics(pageUrn: string, shareUrns: string[]): Promise<Record<string, any>> {
+        if (shareUrns.length === 0) return {};
+
+        const encodedOrg = encodeURIComponent(pageUrn);
+        const encodedShares = shareUrns.map(s => encodeURIComponent(s)).join(',');
+        
+        // This endpoint requires both the organization and the list of shares
+        const data = await this.request<{ elements: any[] }>(
+            `/organizationalEntityShareStatistics?q=organizationalEntity&organizationalEntity=${encodedOrg}&shares=List(${encodedShares})`
+        ).catch((err) => {
+            console.error("LinkedIn Post Stats Error:", err.message);
+            return { elements: [] };
+        });
+
+        const stats: Record<string, any> = {};
+        for (const item of data.elements || []) {
+            const urn = item.share || item.ugcPost;
+            if (urn) {
+                stats[urn] = item.totalShareStatistics || {};
+            }
+        }
+        return stats;
     }
 
     /**

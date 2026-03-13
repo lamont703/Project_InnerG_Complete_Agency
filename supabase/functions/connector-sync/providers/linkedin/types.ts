@@ -23,7 +23,8 @@ export interface LinkedInPost {
     id: string;
     author: string;
     commentary: string;
-    publishedAt: string;
+    publishedAt?: string;
+    firstPublishedAt?: number | string;
     lifecycleState: string;
     specificContent: {
         "com.linkedin.ugc.ShareContent": {

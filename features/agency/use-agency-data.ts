@@ -17,6 +17,7 @@ export function useAgencyData() {
     const [strategicSignals, setStrategicSignals] = useState<StrategicSignal[]>([])
     const [operationalSignals, setOperationalSignals] = useState<OperationalSignal[]>([])
     const [socialDrafts, setSocialDrafts] = useState<any[]>([])
+    const [linkedinMetrics, setLinkedinMetrics] = useState<any>(null)
 
     const [isLoading, setIsLoading] = useState(true)
     const [isSyncing, setIsSyncing] = useState(false)
@@ -44,14 +45,16 @@ export function useAgencyData() {
             setUserData(profile)
 
             // Parallel fetch for performance
-            const [projData, signalData] = await Promise.all([
+            const [projData, signalData, liMetrics] = await Promise.all([
                 service.getActiveProjects(),
-                service.getAllAgencySignals()
+                service.getAllAgencySignals(),
+                service.getLinkedInMetrics()
             ])
 
             setProjects(projData)
             setStrategicSignals(signalData.strategic)
             setOperationalSignals(signalData.operational)
+            setLinkedinMetrics(liMetrics)
 
             const draftData = await service.getSocialDrafts()
             setSocialDrafts(draftData)
@@ -99,6 +102,29 @@ export function useAgencyData() {
         } catch (err: any) {
             console.error("GitHub Sync failed:", err)
             alert("GitHub Sync failed: " + (err.message || "Unknown error"))
+        } finally {
+            setIsSyncing(false)
+        }
+    }
+
+    const handleSyncLinkedIn = async () => {
+        setIsSyncing(true)
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) throw new Error("No active session")
+
+            const connectionId = await service.getLinkedInConnection()
+            if (!connectionId) {
+                alert("No active LinkedIn connection found. Please configure one in Admin > Connectors.")
+                return
+            }
+
+            await service.syncLinkedIn(session.access_token, supabaseAnonKey, connectionId)
+            alert("LinkedIn Data Sync Successful!")
+            await fetchData()
+        } catch (err: any) {
+            console.error("LinkedIn Sync failed:", err)
+            alert("LinkedIn Sync failed: " + (err.message || "Unknown error"))
         } finally {
             setIsSyncing(false)
         }
@@ -182,6 +208,7 @@ export function useAgencyData() {
         strategicSignals,
         operationalSignals,
         socialDrafts,
+        linkedinMetrics,
         isLoading,
         isSyncing,
         resolvingId,
@@ -190,6 +217,7 @@ export function useAgencyData() {
         refresh: fetchData,
         syncGHL: handleSyncGHL,
         syncGithub: handleSyncGithub,
+        syncLinkedIn: handleSyncLinkedIn,
         resolveSignal: handleResolveSignal,
         publishPost: handlePublishPost
     }
