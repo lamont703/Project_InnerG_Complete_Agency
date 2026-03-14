@@ -63,6 +63,15 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         permissions: ['client', 'admin', 'super-admin'],
         iconName: "Play"
     },
+    {
+        id: "freelancer_registrations",
+        label: "Freelancer Freedom",
+        description: "Live tracking of registrations specifically for the School of Freelancer Freedom Pipeline.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "UserCheck"
+    },
 
     // --- AGENCY SLOTS (Super Admin Only) ---
     {

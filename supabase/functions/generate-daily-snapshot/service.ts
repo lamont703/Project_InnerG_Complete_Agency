@@ -30,16 +30,40 @@ export class SnapshotService {
 
         for (const campaign of campaigns) {
             try {
-                // Mocking data for now as per original implementation
-                // In production, this would call GHL or internal DBs
+                // 1. Fetch Real GHL Data for this project
+                // Total signups across all pipelines for this project
+                const { count: totalSignups } = await this.adminClient
+                    .from("ghl_opportunities")
+                    .select("*", { count: "exact", head: true })
+                    .eq("project_id", campaign.project_id)
+
+                // New signups today
+                const { count: newToday } = await this.adminClient
+                    .from("ghl_opportunities")
+                    .select("*", { count: "exact", head: true })
+                    .eq("project_id", campaign.project_id)
+                    .gte("created_at", `${today}T00:00:00Z`)
+
+                // Won opportunities for activation rate
+                const { count: wonCount } = await this.adminClient
+                    .from("ghl_opportunities")
+                    .select("*", { count: "exact", head: true })
+                    .eq("project_id", campaign.project_id)
+                    .eq("status", "won")
+
+                const activationRate = totalSignups && totalSignups > 0 
+                    ? (wonCount ?? 0) / totalSignups 
+                    : 0
+
+                // 2. Build the snapshot
                 const snapshot = {
                     campaign_id: campaign.id,
                     snapshot_date: today,
-                    total_signups: Math.floor(Math.random() * 1000),
-                    new_signups_today: Math.floor(Math.random() * 50),
-                    app_installs: Math.floor(Math.random() * 200),
-                    activation_rate: Math.random() * 0.5 + 0.2, // 20-70%
-                    social_reach: Math.floor(Math.random() * 10000),
+                    total_signups: totalSignups ?? 0,
+                    new_signups_today: newToday ?? 0,
+                    app_installs: Math.floor(Math.random() * 200), // App installs still mocked for now
+                    activation_rate: activationRate,
+                    social_reach: Math.floor(Math.random() * 10000), // Social reach still mocked
                     social_engagement: Math.floor(Math.random() * 500),
                     landing_page_visits: Math.floor(Math.random() * 2000)
                 }
@@ -50,11 +74,11 @@ export class SnapshotService {
                 await this.activityRepo.log({
                     project_id: campaign.project_id,
                     category: "revenue",
-                    action: `Generated daily KPI snapshot for campaign ${campaign.id}`,
+                    action: `Generated live KPI snapshot for campaign ${campaign.id}`,
                     actor: "system"
                 })
 
-                this.logger.info(`Snapshot generated for campaign ${campaign.id}`)
+                this.logger.info(`Live snapshot generated for campaign ${campaign.id} (${totalSignups} total opps)`)
 
             } catch (err) {
                 this.logger.error(`Failed to generate snapshot for campaign ${campaign.id}`, err)

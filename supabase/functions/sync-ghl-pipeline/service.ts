@@ -11,15 +11,18 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { GhlProvider, Logger } from "../_shared/lib/index.ts"
 
-const TARGET_PIPELINE_NAME = "Client Software Development Pipeline"
+const TARGET_PIPELINE_NAMES = [
+    "Client Software Development Pipeline",
+    "School of Freelancer Freedom Pipeline"
+]
 const AGENCY_PROJECT_SLUG = "innergcomplete"
 
 export interface GhlPipelineSyncResult {
-    pipeline: string
+    pipelines_synced: number
     stages_synced: number
     opportunities_synced: number
     contacts_synced: number
-    [key: string]: unknown
+    details: string[]
 }
 
 export class GhlPipelineSyncService {
@@ -64,88 +67,107 @@ export class GhlPipelineSyncService {
 
         const ghl = new GhlProvider(activeApiKey)
 
-        // 3. Fetch Pipelines from GHL
-        const pipelines = await ghl.listPipelines(activeLocationId)
-        const targetPipe = pipelines.find((p: any) => p.name === TARGET_PIPELINE_NAME)
+        // 3. Fetch All Pipelines from GHL once
+        const allPipelines = await ghl.listPipelines(activeLocationId)
+        
+        let totalStages = 0
+        let totalOpps = 0
+        let totalContacts = 0
+        const details: string[] = []
 
-        if (!targetPipe) {
-            const names = pipelines.map((p: any) => p.name).join(", ")
-            throw new Error(`Pipeline "${TARGET_PIPELINE_NAME}" not found. Available: ${names}`)
+        for (const targetName of TARGET_PIPELINE_NAMES) {
+            try {
+                const targetPipe = allPipelines.find((p: any) => p.name === targetName)
+                if (!targetPipe) {
+                    this.logger.warn(`Pipeline "${targetName}" not found in GHL. skipping.`)
+                    details.push(`Pipeline "${targetName}" not found`)
+                    continue
+                }
+
+                this.logger.info(`Syncing pipeline: ${targetPipe.name}`)
+
+                // 3a. Upsert Pipeline to DB
+                const { data: dbPipe, error: pipeErr } = await this.adminClient
+                    .from("ghl_pipelines")
+                    .upsert({
+                        project_id: projectId,
+                        ghl_pipeline_id: targetPipe.id,
+                        name: targetPipe.name
+                    }, { onConflict: "ghl_pipeline_id" })
+                    .select("id")
+                    .single()
+
+                if (pipeErr) throw pipeErr
+
+                // 3b. Upsert Stages
+                const stagesToUpsert = (targetPipe.stages || []).map((s: any, index: number) => ({
+                    pipeline_id: dbPipe.id,
+                    ghl_stage_id: s.id,
+                    name: s.name,
+                    position: index
+                }))
+
+                const { error: stageErr } = await this.adminClient
+                    .from("ghl_pipeline_stages")
+                    .upsert(stagesToUpsert, { onConflict: "ghl_stage_id" })
+
+                if (stageErr) throw stageErr
+                totalStages += stagesToUpsert.length
+
+                // 3c. Fetch Opportunities
+                const opportunities = await ghl.searchOpportunities(activeLocationId, targetPipe.id, 100)
+                this.logger.info(`Found ${opportunities.length} opportunities for ${targetName}`)
+
+                // 3d. Sync Contacts
+                const contactIds = [...new Set(opportunities.map((o: any) => o.contactId).filter(Boolean))] as string[]
+                const contactMap = await this.syncContacts(ghl, contactIds, projectId)
+                totalContacts += Object.keys(contactMap).length
+
+                // 3e. Upsert Opportunities
+                const { data: dbStages } = await this.adminClient
+                    .from("ghl_pipeline_stages")
+                    .select("id, ghl_stage_id")
+                    .eq("pipeline_id", dbPipe.id)
+
+                const stageMap = Object.fromEntries((dbStages || []).map((s: any) => [s.ghl_stage_id, s.id]))
+
+                const oppsToUpsert = opportunities.map((o: any) => ({
+                    project_id: projectId,
+                    ghl_opportunity_id: o.id,
+                    pipeline_id: dbPipe.id,
+                    stage_id: stageMap[o.pipelineStageId] ?? null,
+                    contact_id: contactMap[o.contactId] ?? null,
+                    title: o.name,
+                    status: o.status === "won" ? "won" : o.status === "lost" ? "lost" : "open",
+                    monetary_value: o.monetaryValue ?? 0,
+                    assigned_to: o.assignedTo ?? null,
+                    tags: o.tags ?? [],
+                    custom_fields: o.customFields ?? {},
+                    ghl_updated_at: o.updatedAt,
+                    synced_at: new Date().toISOString()
+                }))
+
+                const { error: oppsErr } = await this.adminClient
+                    .from("ghl_opportunities")
+                    .upsert(oppsToUpsert, { onConflict: "ghl_opportunity_id" })
+
+                if (oppsErr) throw oppsErr
+                totalOpps += oppsToUpsert.length
+                
+                details.push(`Synced "${targetName}": ${oppsToUpsert.length} opps`)
+
+            } catch (err) {
+                this.logger.error(`Failed to sync pipeline "${targetName}"`, err)
+                details.push(`Error syncing "${targetName}": ${String(err)}`)
+            }
         }
 
-        this.logger.info(`Found target pipeline: ${targetPipe.name}`)
-
-        // 3. Upsert Pipeline to DB
-        const { data: dbPipe, error: pipeErr } = await this.adminClient
-            .from("ghl_pipelines")
-            .upsert({
-                project_id: projectId,
-                ghl_pipeline_id: targetPipe.id,
-                name: targetPipe.name
-            }, { onConflict: "ghl_pipeline_id" })
-            .select("id")
-            .single()
-
-        if (pipeErr) throw pipeErr
-
-        // 4. Upsert Stages
-        const stagesToUpsert = (targetPipe.stages || []).map((s: any, index: number) => ({
-            pipeline_id: dbPipe.id,
-            ghl_stage_id: s.id,
-            name: s.name,
-            position: index
-        }))
-
-        const { error: stageErr } = await this.adminClient
-            .from("ghl_pipeline_stages")
-            .upsert(stagesToUpsert, { onConflict: "ghl_stage_id" })
-
-        if (stageErr) throw stageErr
-        this.logger.info(`Synced ${stagesToUpsert.length} pipeline stages`)
-
-        // 5. Fetch Opportunities
-        const opportunities = await ghl.searchOpportunities(this.locationId, targetPipe.id, 100)
-        this.logger.info(`Found ${opportunities.length} opportunities`)
-
-        // 6. Sync Contacts (unique contact IDs only)
-        const contactIds = [...new Set(opportunities.map((o: any) => o.contactId).filter(Boolean))] as string[]
-        const contactMap = await this.syncContacts(ghl, contactIds, projectId)
-
-        // 7. Upsert Opportunities with stage + contact mappings
-        const { data: dbStages } = await this.adminClient
-            .from("ghl_pipeline_stages")
-            .select("id, ghl_stage_id")
-            .eq("pipeline_id", dbPipe.id)
-
-        const stageMap = Object.fromEntries((dbStages ?? []).map((s: { id: string; ghl_stage_id: string }) => [s.ghl_stage_id, s.id]))
-
-        const oppsToUpsert = opportunities.map((o: any) => ({
-            project_id: projectId,
-            ghl_opportunity_id: o.id,
-            pipeline_id: dbPipe.id,
-            stage_id: stageMap[o.pipelineStageId] ?? null,
-            contact_id: contactMap[o.contactId] ?? null,
-            title: o.name,
-            status: o.status === "won" ? "won" : o.status === "lost" ? "lost" : "open",
-            monetary_value: o.monetaryValue ?? 0,
-            assigned_to: o.assignedTo ?? null,
-            tags: o.tags ?? [],
-            custom_fields: o.customFields ?? {},
-            ghl_updated_at: o.updatedAt,
-            synced_at: new Date().toISOString()
-        }))
-
-        const { error: oppsErr } = await this.adminClient
-            .from("ghl_opportunities")
-            .upsert(oppsToUpsert, { onConflict: "ghl_opportunity_id" })
-
-        if (oppsErr) throw oppsErr
-
         return {
-            pipeline: targetPipe.name,
-            stages_synced: stagesToUpsert.length,
-            opportunities_synced: oppsToUpsert.length,
-            contacts_synced: Object.keys(contactMap).length
+            pipelines_synced: TARGET_PIPELINE_NAMES.length,
+            stages_synced: totalStages,
+            opportunities_synced: totalOpps,
+            contacts_synced: totalContacts,
+            details
         }
     }
 

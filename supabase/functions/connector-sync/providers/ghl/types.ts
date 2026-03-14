@@ -44,3 +44,25 @@ export interface GhlSocialPost {
   postedAt?: string;
   [key: string]: any;
 }
+
+export interface GhlPipeline {
+    id: string;
+    name: string;
+    stages: Array<{
+        id: string;
+        name: string;
+    }>;
+}
+
+export interface GhlOpportunity {
+    id: string;
+    name: string;
+    status: string;
+    monetaryValue?: number;
+    pipelineStageId: string;
+    contactId: string;
+    assignedTo?: string;
+    tags?: string[];
+    customFields?: Record<string, any>;
+    updatedAt: string;
+}

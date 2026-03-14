@@ -102,39 +102,44 @@ Deno.test("extractUniqueContactIds — returns empty array for empty input", () 
 })
 
 // ─── Unit: Pipeline Name Matching ────────────────────────────────────────────
-const TARGET_PIPELINE_NAME = "Client Software Development Pipeline"
+const TARGET_PIPELINE_NAMES = [
+    "Client Software Development Pipeline",
+    "School of Freelancer Freedom Pipeline"
+]
 
-function findTargetPipeline(pipelines: { id: string; name: string }[]): { id: string; name: string } | undefined {
-    return pipelines.find((p) => p.name === TARGET_PIPELINE_NAME)
+function findTargetPipelines(pipelines: { id: string; name: string }[]): { id: string; name: string }[] {
+    return pipelines.filter((p) => TARGET_PIPELINE_NAMES.includes(p.name))
 }
 
-Deno.test("findTargetPipeline — finds the correct pipeline by exact name", () => {
+Deno.test("findTargetPipelines — finds multiple pipelines by name", () => {
     const pipelines = [
         { id: "pipe-1", name: "Some Other Pipeline" },
         { id: "pipe-2", name: "Client Software Development Pipeline" },
-        { id: "pipe-3", name: "Sales Pipeline" },
+        { id: "pipe-3", name: "School of Freelancer Freedom" },
+        { id: "pipe-4", name: "Sales Pipeline" },
     ]
 
-    const result = findTargetPipeline(pipelines)
-    assertEquals(result?.id, "pipe-2")
-    assertEquals(result?.name, TARGET_PIPELINE_NAME)
+    const results = findTargetPipelines(pipelines)
+    assertEquals(results.length, 2)
+    assertEquals(results.some(r => r.name === "Client Software Development Pipeline"), true)
+    assertEquals(results.some(r => r.name === "School of Freelancer Freedom"), true)
 })
 
-Deno.test("findTargetPipeline — returns undefined when target not found", () => {
+Deno.test("findTargetPipelines — returns empty array when no targets found", () => {
     const pipelines = [
         { id: "pipe-1", name: "Different Pipeline" },
         { id: "pipe-2", name: "Another Pipeline" },
     ]
 
-    const result = findTargetPipeline(pipelines)
-    assertEquals(result, undefined)
+    const results = findTargetPipelines(pipelines)
+    assertEquals(results.length, 0)
 })
 
-Deno.test("findTargetPipeline — is case-sensitive (no fuzzy match)", () => {
+Deno.test("findTargetPipelines — is case-sensitive (no fuzzy match)", () => {
     const pipelines = [
         { id: "pipe-1", name: "client software development pipeline" }, // lowercase
     ]
 
-    const result = findTargetPipeline(pipelines)
-    assertEquals(result, undefined) // Should NOT match — exact match only
+    const results = findTargetPipelines(pipelines)
+    assertEquals(results.length, 0)
 })

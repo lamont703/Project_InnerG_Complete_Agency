@@ -108,7 +108,7 @@ export class MetricsService {
         const latest = snapshots[0]
         const previous = snapshots[1] || latest
 
-        return [
+        const metrics: Metric[] = [
             {
                 id: "total_signups",
                 label: "Total Signups (GHL)",
@@ -221,7 +221,36 @@ export class MetricsService {
                 icon: Eye,
                 color: "text-[#0077b5] bg-[#0077b5]/10",
             },
+            {
+                id: "freelancer_registrations",
+                label: "Freelancer Freedom",
+                value: "...", // Will be updated by live query below
+                growth: "+4.5%",
+                icon: Users,
+                color: "text-amber-500 bg-amber-500/10",
+            }
         ]
+
+        // Fetch Pipeline Specific Stats
+        const { data: freelancerPipe } = await this.supabase
+            .from("ghl_pipelines")
+            .select("id")
+            .eq("name", "School of Freelancer Freedom Pipeline")
+            .maybeSingle()
+        
+        if (freelancerPipe) {
+            const { count } = await this.supabase
+                .from("ghl_opportunities")
+                .select("*", { count: "exact", head: true })
+                .eq("pipeline_id", (freelancerPipe as any).id)
+            
+            const freelancerMetric = metrics.find(m => m.id === "freelancer_registrations")
+            if (freelancerMetric) {
+                freelancerMetric.value = (count ?? 0).toLocaleString()
+            }
+        }
+
+        return metrics
     }
 }
 
