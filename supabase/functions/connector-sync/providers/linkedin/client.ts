@@ -106,14 +106,32 @@ export class LinkedInClient {
     }
 
     /**
-     * Fetch follower statistics for a page
+     * Fetch total follower count for an organization
+     * Using the recommended networkSizes API for totals.
      */
     async getPageFollowers(pageUrn: string): Promise<number> {
         const encodedUrn = encodeURIComponent(pageUrn);
-        const data = await this.request<{ elements: any[] }>(
-            `/organizationalEntityFollowerStatistics?q=organizationalEntity&organizationalEntity=${encodedUrn}`
-        );
-        return data.elements?.[0]?.followerCounts?.[0]?.followerCount || 0;
+        try {
+            // This is the recommended way to get total followers for 2024/2025
+            const data = await this.request<{ firstDegreeSize: number; size?: number }>(
+                `/networkSizes/${encodedUrn}?edgeType=CompanyFollowedByMember`
+            );
+            // v2 usually returns firstDegreeSize, but some endpoints return size.
+            return data.firstDegreeSize ?? data.size ?? 0;
+        } catch (err: any) {
+            console.warn(`[LinkedInClient] networkSizes failed for followers (${err.message}). Trying legacy stats...`);
+            try {
+                // Fallback to organizational statistics if networkSizes is restricted
+                const data = await this.request<{ elements: any[] }>(
+                    `/organizationalEntityFollowerStatistics?q=organizationalEntity&organizationalEntity=${encodedUrn}`
+                );
+                // Summing the first element's followerCounts if present
+                const stats = data.elements?.[0];
+                return stats?.followerCounts?.[0]?.followerCount || 0;
+            } catch {
+                return 0;
+            }
+        }
     }
 
     /**
