@@ -6,6 +6,7 @@ const TYPE_COLORS: Record<string, string> = {
     inventory: "bg-emerald-500",
     conversion: "bg-primary",
     social: "bg-pink-500",
+    ai_insight: "bg-violet-500",
 }
 
 const SEVERITY_BUTTONS: Record<string, string> = {
@@ -30,14 +31,19 @@ export class SignalService {
         return data?.id
     }
 
-    async getActiveSignals(projectId: string): Promise<Signal[]> {
-        const { data, error } = await this.supabase
+    async getActiveSignals(projectId: string, includeAgencyOnly = false): Promise<Signal[]> {
+        let query = this.supabase
             .from("ai_signals")
             .select("*")
             .eq("project_id", projectId)
             .eq("is_resolved", false)
-            .eq("is_agency_only", false)
             .order("created_at", { ascending: false })
+
+        if (!includeAgencyOnly) {
+            query = query.eq("is_agency_only", false)
+        }
+
+        const { data, error } = await query
 
         if (error) throw error
 

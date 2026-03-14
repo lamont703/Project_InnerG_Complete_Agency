@@ -10,6 +10,7 @@ const TYPE_ICONS: Record<string, any> = {
     social: Instagram,
     bug_report: Bug,
     strategic: Zap,
+    ai_insight: Zap,
 }
 
 interface SignalCardProps {

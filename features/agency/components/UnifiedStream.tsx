@@ -63,6 +63,7 @@ const TYPE_ICONS: Record<string, any> = {
     social: Instagram,
     bug_report: Bug,
     strategic: Sparkles,
+    ai_insight: Sparkles,
 }
 
 export function UnifiedStream({ 
