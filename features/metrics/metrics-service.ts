@@ -13,7 +13,8 @@ import {
     ThumbsUp,
     MessageSquare,
     Share2,
-    Eye
+    Eye,
+    Video
 } from "lucide-react"
 import { Metric, RawMetricRecord } from "./types"
 
@@ -78,11 +79,11 @@ export class MetricsService {
         // 1. YouTube Stats
         const { data: ytData } = await this.supabase
             .from("youtube_channels")
-            .select("subscriber_count, view_count")
+            .select("subscriber_count, view_count, video_count")
             .eq("project_id", projectId)
             .limit(1) as any
         
-        const ytStats = ytData?.[0] || { subscriber_count: 0, view_count: 0 }
+        const ytStats = ytData?.[0] || { subscriber_count: 0, view_count: 0, video_count: 0 }
 
         // 2. LinkedIn Page Stats
         const { data: liPageData } = await this.supabase
@@ -156,6 +157,14 @@ export class MetricsService {
                 growth: "+1.2%",
                 icon: Play,
                 color: "text-white bg-white/10",
+            },
+            {
+                id: "youtube_video_count",
+                label: "YouTube Videos",
+                value: ytStats.video_count.toLocaleString(),
+                growth: "+0%",
+                icon: Video,
+                color: "text-red-400 bg-red-400/10",
             },
             {
                 id: "linkedin_followers",
@@ -249,6 +258,116 @@ export class MetricsService {
                 freelancerMetric.value = (count ?? 0).toLocaleString()
             }
         }
+        return metrics
+    }
+
+    async getProjectLevelMetrics(projectId: string): Promise<Metric[]> {
+        // Fetch Platform Stats
+        const [ytData, liPageData, liPostAgg] = await Promise.all([
+            this.supabase.from("youtube_channels").select("subscriber_count, view_count, video_count").eq("project_id", projectId).limit(1),
+            this.supabase.from("linkedin_pages").select("follower_count, total_views, engagement_rate, total_clicks").eq("project_id", projectId).limit(1),
+            this.supabase.from("linkedin_posts").select("like_count, comment_count, share_count, view_count").eq("project_id", projectId)
+        ]) as any
+
+        const ytStats = ytData?.data?.[0] || { subscriber_count: 0, view_count: 0, video_count: 0 }
+        const liPage = liPageData?.data?.[0] || { follower_count: 0, total_views: 0, engagement_rate: 0, total_clicks: 0 }
+        const liPosts = liPostAgg?.data || []
+        
+        const liLikes = liPosts.reduce((sum: number, p: any) => sum + (p.like_count || 0), 0)
+        const liComments = liPosts.reduce((sum: number, p: any) => sum + (p.comment_count || 0), 0)
+        const liShares = liPosts.reduce((sum: number, p: any) => sum + (p.share_count || 0), 0)
+        const liPostViews = liPosts.reduce((sum: number, p: any) => sum + (p.view_count || 0), 0)
+
+        const metrics: Metric[] = [
+            {
+                id: "youtube_subscribers",
+                label: "YT Subscribers",
+                value: ytStats.subscriber_count.toLocaleString(),
+                growth: "+0%",
+                icon: Youtube,
+                color: "text-red-500 bg-red-500/10",
+            },
+            {
+                id: "youtube_views",
+                label: "YouTube Views",
+                value: (ytStats.view_count / 1000).toFixed(1) + "k",
+                growth: "+0%",
+                icon: Play,
+                color: "text-white bg-white/10",
+            },
+            {
+                id: "youtube_video_count",
+                label: "YouTube Videos",
+                value: ytStats.video_count.toLocaleString(),
+                growth: "+0%",
+                icon: Video,
+                color: "text-red-400 bg-red-400/10",
+            },
+            {
+                id: "linkedin_followers",
+                label: "LinkedIn Followers",
+                value: liPage.follower_count.toLocaleString(),
+                growth: "+0%",
+                icon: Linkedin,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_impressions",
+                label: "LinkedIn Reach",
+                value: (liPage.total_views / 1000).toFixed(1) + "k",
+                growth: "+0%",
+                icon: BarChart3,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_engagement",
+                label: "LinkedIn Engagement",
+                value: `${liPage.engagement_rate}%`,
+                growth: "+0%",
+                icon: Zap,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_clicks",
+                label: "LinkedIn Clicks",
+                value: liPage.total_clicks.toLocaleString(),
+                growth: "+0%",
+                icon: Target,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_likes",
+                label: "LinkedIn Likes",
+                value: liLikes.toLocaleString(),
+                growth: "+0%",
+                icon: ThumbsUp,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_comments",
+                label: "LinkedIn Comments",
+                value: liComments.toLocaleString(),
+                growth: "+0%",
+                icon: MessageSquare,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_shares",
+                label: "LinkedIn Shares",
+                value: liShares.toLocaleString(),
+                growth: "+0%",
+                icon: Share2,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_post_views",
+                label: "LinkedIn Post Views",
+                value: liPostViews.toLocaleString(),
+                growth: "+0%",
+                icon: Eye,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            }
+        ]
 
         return metrics
     }
@@ -302,6 +421,14 @@ export const DEMO_MOCK_METRICS: Metric[] = [
         growth: "+15%",
         icon: Play,
         color: "text-white bg-white/10",
+    },
+    {
+        id: "youtube_video_count",
+        label: "YouTube Videos",
+        value: "5",
+        growth: "+0%",
+        icon: Video,
+        color: "text-red-400 bg-red-400/10",
     },
     {
         id: "linkedin_followers",

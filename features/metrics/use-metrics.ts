@@ -28,7 +28,8 @@ export function useMetrics(projectSlug: string, initialMetrics?: Metric[]) {
             const campaign = await metricsService.getActiveCampaign(project.id)
             if (!campaign) {
                 setCampaignName("General Portfolio")
-                setMetrics(DEMO_MOCK_METRICS)
+                const projectMetrics = await metricsService.getProjectLevelMetrics(project.id)
+                setMetrics(projectMetrics)
                 return
             }
 

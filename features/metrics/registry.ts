@@ -64,6 +64,15 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         iconName: "Play"
     },
     {
+        id: "youtube_video_count",
+        label: "YouTube Videos",
+        description: "Total number of videos published on the connected YouTube channels.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "Video"
+    },
+    {
         id: "freelancer_registrations",
         label: "Freelancer Freedom",
         description: "Live tracking of registrations specifically for the School of Freelancer Freedom Pipeline.",

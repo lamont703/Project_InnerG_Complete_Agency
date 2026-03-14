@@ -15,7 +15,9 @@ import {
     ThumbsUp,
     MessageSquare,
     Share2,
-    Eye
+    Eye,
+    Video,
+    UserCheck,
 } from "lucide-react"
 
 export const SLOT_ICON_MAP: Record<string, any> = {
@@ -35,7 +37,9 @@ export const SLOT_ICON_MAP: Record<string, any> = {
     ThumbsUp,
     MessageSquare,
     Share2,
-    Eye
+    Eye,
+    Video,
+    UserCheck
 }
 
 export function getIcon(name: string) {
