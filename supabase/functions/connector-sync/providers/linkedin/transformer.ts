@@ -50,14 +50,33 @@ export class LinkedInTransformer {
         };
     }
 
-    static toInternalComment(projectId: string, postId: string, comment: LinkedInComment) {
+    static toInternalComment(projectId: string, postId: string, postUrn: string, comment: LinkedInComment) {
+        const rawId = comment.$URN || comment.id;
+        
+        // ID extraction that respects alphanumeric characters (e.g. -f_Ut43FoQ)
+        // We find the last segment after the last comma (tuple) or last colon (simple URN)
+        const lastSegment = rawId.includes(',') 
+            ? rawId.substring(rawId.lastIndexOf(',') + 1)
+            : rawId.substring(rawId.lastIndexOf(':') + 1);
+        
+        const atomicId = lastSegment.replace(/\)$/, "").trim();
+        
+        // Handle parent comment ID with the same alphanumeric-safe logic
+        let atomicParentId = null;
+        if (comment.parent) {
+            const pSegment = comment.parent.includes(',')
+                ? comment.parent.substring(comment.parent.lastIndexOf(',') + 1)
+                : comment.parent.substring(comment.parent.lastIndexOf(':') + 1);
+            atomicParentId = pSegment.replace(/\)$/, "").trim();
+        }
+
         return {
             project_id: projectId,
             post_id: postId,
-            linkedin_comment_id: comment.$URN || comment.id,
+            linkedin_comment_id: atomicId, // STORE ATOMIC ID FOR DEDUPLICATION
             actor_urn: comment.actor,
             content: comment.message.text,
-            parent_comment_id: comment.parent || null,
+            parent_comment_id: atomicParentId, // STORE ATOMIC ID
             created_at: new Date(comment.created.time).toISOString(),
             last_synced_at: new Date().toISOString()
         };

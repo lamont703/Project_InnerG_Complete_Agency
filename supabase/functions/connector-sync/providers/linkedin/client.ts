@@ -211,13 +211,116 @@ export class LinkedInClient {
     }
 
     /**
-     * Fetch comments for a specific post
+     * Fetch comments or replies for a specific post
+     * To fetch replies, provide the parentCommentUrn.
      */
-    async getPostComments(postUrn: string): Promise<LinkedInComment[]> {
-        const encodedUrn = encodeURIComponent(postUrn);
-        const data = await this.request<{ elements: LinkedInComment[] }>(
-            `/socialActions/${encodedUrn}/comments`
-        );
-        return data.elements || [];
+    async getPostComments(postUrn: string, parentCommentUrn?: string): Promise<LinkedInComment[]> {
+        const fetchSocial = async (target: string, parent?: string) => {
+            const encodedTarget = encodeURIComponent(target);
+            let path = `/socialActions/${encodedTarget}/comments`;
+            if (parent) {
+                path += `?q=parentComment&parentComment=${encodeURIComponent(parent)}`;
+            }
+            return this.request<{ elements: LinkedInComment[] }>(path);
+        };
+
+        const fetchLegacy = async (parent: string) => {
+            const path = `/comments?q=parentFeed&target=${encodeURIComponent(parent)}`;
+            return this.request<{ elements: LinkedInComment[] }>(path);
+        };
+
+        // Candidates: 1. Root from Parent URN, 2. Full Post URN, 3. Atomic Post ID
+        const targets: string[] = [];
+        
+        if (parentCommentUrn) {
+            const match = parentCommentUrn.match(/urn:li:comment:\(([^,]+),/);
+            if (match) targets.push(match[1]);
+        }
+        
+        if (postUrn && !targets.includes(postUrn)) targets.push(postUrn);
+        
+        const atomicId = postUrn.split(':').pop();
+        if (atomicId && !targets.includes(atomicId)) targets.push(atomicId);
+
+        let lastError: any = null;
+        for (const target of targets) {
+            try {
+                const data = await fetchSocial(target, parentCommentUrn);
+                return data.elements || [];
+            } catch (err: any) {
+                lastError = err;
+                if (!err.message.includes("404")) throw err;
+            }
+        }
+
+        // Final Strategy: Legacy Feed query (often works for non-projected shares)
+        if (parentCommentUrn) {
+            try {
+                const data = await fetchLegacy(parentCommentUrn);
+                return data.elements || [];
+            } catch (err: any) {
+                if (lastError) throw lastError;
+                throw err;
+            }
+        }
+
+        if (lastError) throw lastError;
+        return [];
+    }
+
+    /**
+     * Create a comment or reply
+     * @param targetUrn The URN of the post or root object to comment on
+     * @param actorUrn The URN of the actor (urn:li:person:id or urn:li:organization:id)
+     * @param text The content of the comment
+     * @param parentCommentUrn The URN of the comment to reply to (if it's a reply)
+     */
+    async createComment(targetUrn: string, actorUrn: string, text: string, parentCommentUrn?: string): Promise<{ id: string }> {
+        // Resolve Target: Use Parent's root if available, otherwise Post URN, otherwise Post ID
+        let finalTarget = targetUrn;
+        if (parentCommentUrn) {
+            const match = parentCommentUrn.match(/urn:li:comment:\(([^,]+),/);
+            if (match) finalTarget = match[1];
+        }
+
+        const body: any = {
+            actor: actorUrn,
+            message: {
+                text: text
+            }
+        };
+
+        if (parentCommentUrn) {
+            body.parentComment = parentCommentUrn;
+        }
+
+        // Multi-Path Attempt for the POST as well
+        const attemptPost = async (target: string) => {
+            const encodedTarget = encodeURIComponent(target);
+            return this.request<{ id: string }>(`/socialActions/${encodedTarget}/comments`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(body)
+            });
+        };
+
+        try {
+            return await attemptPost(finalTarget);
+        } catch (err: any) {
+            if (err.message.includes("404")) {
+                // Fallback to postUrn or Atomic ID
+                const atomicId = targetUrn.split(':').pop();
+                if (atomicId && atomicId !== finalTarget) {
+                    try {
+                        return await attemptPost(atomicId);
+                    } catch {
+                        throw err; // original
+                    }
+                }
+            }
+            throw err;
+        }
     }
 }

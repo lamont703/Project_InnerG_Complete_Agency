@@ -6,7 +6,9 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { LinkedInClient } from "./client.ts";
 import { LinkedInTransformer } from "./transformer.ts";
+import { LinkedInEngagementService } from "./engagement.ts";
 import { SyncResult } from "../../service.ts";
+import { getEnv } from "../../../_shared/lib/env.ts";
 
 export async function syncLinkedIn(
     adminClient: SupabaseClient,
@@ -96,48 +98,51 @@ export async function syncLinkedIn(
 
                 if (!fetchError && dbPost) {
                     console.log(`[LinkedInSync] Syncing comments for post UUID: ${dbPost.id}`);
-                    // 4. Sync Comments for this post
-                    const comments = await client.getPostComments(post.id).catch((err: any) => {
-                        console.error(`[LinkedInSync] Failed to fetch comments for post ${post.id}:`, err.message);
-                        return [];
-                    });
+                    
+                    // Recursive function to fetch and store comments and their nested replies
+                    const syncCommentBranch = async (parentUrn?: string, depth = 0): Promise<number> => {
+                        if (depth > 5) return 0; // Max depth to avoid runaway recursion
 
-                    console.log(`[LinkedInSync] Found ${comments.length} comments for post ${post.id}`);
+                        const targetUrn = parentUrn || post.id;
+                        const comments = await client.getPostComments(post.id, parentUrn).catch((err: any) => {
+                            console.error(`[LinkedInSync] Failed to fetch comments for ${targetUrn}:`, err.message);
+                            return [];
+                        });
 
-                    for (const comment of comments) {
-                        const internalComment = LinkedInTransformer.toInternalComment(projectId, dbPost.id, comment);
-                        const { data: dbComment, error: commentErr } = await adminClient
-                            .from("linkedin_comments")
-                            .upsert(internalComment, { onConflict: "project_id, linkedin_comment_id" })
-                            .select()
-                            .single();
-                        
-                        if (commentErr) {
-                            console.error(`[LinkedInSync] Error upserting comment ${comment.id}:`, commentErr.message);
-                        } else {
-                            console.log(`[LinkedInSync] Successfully upserted comment ${comment.id}`);
-                            
-                            // 5. Deep Sync: Fetch replies for this comment
-                            // LinkedIn uses the same socialActions endpoint for comment replies
-                            const replies = await client.getPostComments(comment.$URN || comment.id).catch((err: any) => {
-                                console.error(`[LinkedInSync] Failed to fetch replies for comment ${comment.id}:`, err.message);
-                                return [];
-                            });
+                        let branchCount = 0;
+                        for (const comment of comments) {
+                            const internalComment = LinkedInTransformer.toInternalComment(projectId, dbPost.id, post.id, comment);
+                            const { data: dbComment, error: commentErr } = await adminClient
+                                .from("linkedin_comments")
+                                .upsert(internalComment, { onConflict: "project_id, linkedin_comment_id" })
+                                .select()
+                                .single();
 
-                            if (replies.length > 0) {
-                                console.log(`[LinkedInSync] Found ${replies.length} replies for comment ${comment.id}`);
-                                for (const reply of replies) {
-                                    const internalReply = LinkedInTransformer.toInternalComment(projectId, dbPost.id, reply);
-                                    await adminClient
-                                        .from("linkedin_comments")
-                                        .upsert(internalReply, { onConflict: "project_id, linkedin_comment_id" });
-                                }
-                                recordsSynced += replies.length;
+                            if (commentErr) {
+                                console.error(`[LinkedInSync] Error upserting comment ${comment.id}:`, commentErr.message);
+                            } else if (dbComment) {
+                                branchCount++;
+                                
+                                // Construct the URN for the current comment to fetch its replies
+                                const atomicId = dbComment.linkedin_comment_id;
+                                const currentUrn = atomicId.startsWith("urn:li:") 
+                                    ? atomicId 
+                                    : `urn:li:comment:(${post.id},${atomicId})`;
+
+                                // RECURSIVELY fetch nested replies
+                                branchCount += await syncCommentBranch(currentUrn, depth + 1);
                             }
                         }
-                    }
-                    recordsSynced += comments.length;
-                    if (comments.length > 0 && !tablesSynced.includes("linkedin_comments")) {
+                        return branchCount;
+                    };
+
+                    // Execute recursive sync starting from top-level comments
+                    const totalComments = await syncCommentBranch();
+                    recordsSynced += totalComments;
+
+                    console.log(`[LinkedInSync] Synced ${totalComments} comments/replies for post ${post.id}`);
+
+                    if (totalComments > 0 && !tablesSynced.includes("linkedin_comments")) {
                         tablesSynced.push("linkedin_comments");
                     }
                 } else {
@@ -145,9 +150,25 @@ export async function syncLinkedIn(
                 }
             }
             
-            recordsSynced += posts.length;
             if (posts.length > 0 && !tablesSynced.includes("linkedin_posts")) {
                 tablesSynced.push("linkedin_posts");
+            }
+
+            // 6. Engagement Intelligence: AI-driven comment replies
+            const engagementAgent = new LinkedInEngagementService(
+                adminClient,
+                projectId,
+                getEnv("GEMINI_API_KEY")
+            );
+
+            const commentsReplied = await engagementAgent.processNewComments(client, canonicalUrn).catch(err => {
+                console.error(`[LinkedInEngagement] Process failed:`, err.message);
+                return 0;
+            });
+
+            if (commentsReplied > 0) {
+                console.log(`[LinkedInEngagement] Sent ${commentsReplied} AI engagement responses.`);
+                recordsSynced += commentsReplied;
             }
         }
 
