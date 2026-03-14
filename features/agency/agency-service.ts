@@ -46,7 +46,7 @@ export class AgencyService {
     async getAllAgencySignals(): Promise<{ strategic: StrategicSignal[], operational: OperationalSignal[] }> {
         const { data } = await this.supabase
             .from("ai_signals")
-            .select("id, project_id, signal_type, title, body, severity, is_resolved, is_agency_only, created_at, projects(name)")
+            .select("id, project_id, signal_type, title, body, severity, is_resolved, is_agency_only, created_at, action_url, metadata, projects(name)")
             .eq("is_resolved", false)
             .order("created_at", { ascending: false })
             .limit(50)
@@ -57,6 +57,17 @@ export class AgencyService {
             strategic: signals.filter(s => s.is_agency_only),
             operational: signals.filter(s => !s.is_agency_only)
         }
+    }
+
+    /**
+     * Delete a social draft and its associated signal
+     */
+    async deleteSocialDraft(draftId: string, projectId: string): Promise<void> {
+        const { error } = await this.supabase.rpc("delete_social_draft_signal", {
+            p_draft_id: draftId,
+            p_project_id: projectId
+        })
+        if (error) throw error
     }
 
 

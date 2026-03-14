@@ -56,6 +56,8 @@ export class SignalService {
             severity: s.severity,
             color: TYPE_COLORS[s.signal_type] || "bg-muted",
             buttonColor: SEVERITY_BUTTONS[s.severity] || "bg-secondary",
+            actionUrl: s.action_url || undefined,
+            metadata: s.metadata || {}
         }))
     }
 

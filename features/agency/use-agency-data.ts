@@ -179,6 +179,20 @@ export function useAgencyData() {
         }
     }
 
+    const handleDeleteSocialDraft = async (draftId: string, projectId: string) => {
+        try {
+            await service.deleteSocialDraft(draftId, projectId)
+            
+            // Optimistic update
+            setSocialDrafts(prev => prev.filter(d => d.id !== draftId))
+            // Also need to refresh signals if this was called from somewhere else, 
+            // but usually signals will refresh via realtime
+        } catch (err: any) {
+            console.error("[useAgencyData] Delete failed:", err)
+            alert("Delete failed: " + (err.message || "Unknown error"))
+        }
+    }
+
     useEffect(() => {
         fetchData()
 
@@ -219,6 +233,7 @@ export function useAgencyData() {
         syncGithub: handleSyncGithub,
         syncLinkedIn: handleSyncLinkedIn,
         resolveSignal: handleResolveSignal,
-        publishPost: handlePublishPost
+        publishPost: handlePublishPost,
+        deleteDraft: handleDeleteSocialDraft
     }
 }

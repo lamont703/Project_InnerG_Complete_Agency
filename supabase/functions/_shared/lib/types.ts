@@ -36,6 +36,7 @@ export interface SignalPayload {
     actual_behavior?: string | null
     // Agency agent specific
     target_project_id?: string | null
+    metadata?: Record<string, any> | null
 }
 
 export const VALID_SIGNAL_TYPES: SignalType[] = [

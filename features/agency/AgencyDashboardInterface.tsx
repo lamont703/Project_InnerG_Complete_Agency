@@ -33,7 +33,8 @@ export function AgencyDashboardInterface() {
         newSignalId,
         newDraftId,
         resolveSignal,
-        publishPost
+        publishPost,
+        deleteDraft
     } = useAgencyData()
 
     const { setIsSidebarOpen } = useAdminSidebar()
@@ -72,7 +73,10 @@ export function AgencyDashboardInterface() {
             buttonColor: 'bg-primary',
             isAgencyOnly: true,
             projectName: s.projects?.name,
-            createdAt: s.created_at
+            createdAt: s.created_at,
+            actionUrl: s.action_url,
+            metadata: s.metadata,
+            project_id: s.project_id
         })),
         ...operationalSignals.map(s => ({
             id: s.id,
@@ -85,7 +89,10 @@ export function AgencyDashboardInterface() {
             buttonColor: 'bg-primary',
             isAgencyOnly: false,
             projectName: s.projects?.name,
-            createdAt: s.created_at
+            createdAt: s.created_at,
+            actionUrl: s.action_url,
+            metadata: s.metadata,
+            project_id: s.project_id
         }))
     ].sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
 
@@ -123,6 +130,7 @@ export function AgencyDashboardInterface() {
                         drafts={socialDrafts}
                         onResolveSignal={resolveSignal}
                         onPublishDraft={publishPost}
+                        onDeleteDraft={deleteDraft}
                         isResolving={!!resolvingId}
                         highlightId={newSignalId || newDraftId}
                         isFlush={true}

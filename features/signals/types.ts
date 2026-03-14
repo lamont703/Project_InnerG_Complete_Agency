@@ -13,6 +13,8 @@ export interface Signal {
     isAgencyOnly?: boolean
     projectName?: string
     createdAt?: string
+    actionUrl?: string
+    metadata?: Record<string, any>
 }
 
 export interface RawSignalRecord {
@@ -26,6 +28,8 @@ export interface RawSignalRecord {
     is_resolved: boolean
     is_agency_only: boolean
     created_at: string
+    action_url: string | null
+    metadata: Record<string, any>
 }
 
 export interface SignalSlot {

@@ -12,9 +12,13 @@ import {
     Activity,
     Database,
     Bug,
-    ArrowUpRight
+    ArrowUpRight,
+    ChevronDown,
+    ChevronUp,
+    Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { SignalCard } from "../../signals/components/SignalCard"
 
 interface SocialDraft {
     id: string
@@ -23,6 +27,7 @@ interface SocialDraft {
     ai_reasoning: string
     source_type: string
     projects: { name: string }
+    project_id: string
     created_at: string
 }
 
@@ -38,6 +43,7 @@ interface Signal {
     isAgencyOnly?: boolean
     projectName?: string
     createdAt?: string
+    metadata?: any
 }
 
 interface UnifiedStreamProps {
@@ -45,6 +51,7 @@ interface UnifiedStreamProps {
     drafts: SocialDraft[]
     onResolveSignal: (id: string) => void
     onPublishDraft: (id: string) => Promise<void>
+    onDeleteDraft?: (draftId: string, projectId: string) => Promise<void>
     isResolving?: boolean
     highlightId?: string | null
     isFlush?: boolean
@@ -63,11 +70,14 @@ export function UnifiedStream({
     drafts, 
     onResolveSignal, 
     onPublishDraft, 
+    onDeleteDraft,
     isResolving = false,
     highlightId = null,
     isFlush = false
 }: UnifiedStreamProps) {
     const [isPublishingId, setIsPublishingId] = useState<string | null>(null)
+    const [expandedDraftIds, setExpandedDraftIds] = useState<string[]>([])
+    const [isDeletingDraftId, setIsDeletingDraftId] = useState<string | null>(null)
 
     const handlePublish = async (id: string) => {
         setIsPublishingId(id)
@@ -75,6 +85,16 @@ export function UnifiedStream({
             await onPublishDraft(id)
         } finally {
             setIsPublishingId(null)
+        }
+    }
+
+    const handleDeleteDraft = async (draftId: string, projectId: string) => {
+        if (!onDeleteDraft) return
+        setIsDeletingDraftId(draftId)
+        try {
+            await onDeleteDraft(draftId, projectId)
+        } finally {
+            setIsDeletingDraftId(null)
         }
     }
 
@@ -134,77 +154,40 @@ export function UnifiedStream({
                     streamItems.map((item) => {
                         const isHighlighted = item.id === highlightId
                         
-                        if (item.type === 'signal') {
-                            const signal = item.data
-                            const Icon = TYPE_ICONS[signal.signalType] || Zap
-                            const isAgencyInsight = signal.isAgencyOnly
+                if (item.type === 'signal') {
+                            const signal = item.data as any
+                            return (
+                                <SignalCard 
+                                    key={signal.id}
+                                    signal={signal}
+                                    isResolving={isResolving}
+                                    onResolve={onResolveSignal}
+                                    onDeleteAction={onDeleteDraft}
+                                    isAgencyMode={true}
+                                    isHighlighted={isHighlighted}
+                                />
+                            )
+                        } else {
+                            const draft = item.data as any
+                            const isExpanded = expandedDraftIds.includes(draft.id)
+                            const isDeleting = isDeletingDraftId === draft.id
                             
                             return (
                                 <div 
-                                    key={signal.id}
-                                    className={`p-6 rounded-2xl border transition-all duration-700 relative overflow-hidden group ${
-                                        isHighlighted 
-                                            ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-pulse bg-emerald-500/5' 
-                                            : isAgencyInsight 
-                                                ? 'bg-primary/[0.02] border-primary/20 hover:border-primary/40' 
-                                                : 'bg-muted/10 border-border hover:border-primary/20 shadow-sm'
-                                    }`}
-                                >
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center border ${
-                                            isAgencyInsight ? 'bg-violet-500/10 border-violet-500/20' : 'bg-white/5 border-white/10'
-                                        }`}>
-                                            <Icon className={`h-4 w-4 ${isAgencyInsight ? 'text-violet-400' : 'text-primary'}`} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center justify-between">
-                                                <span className={`text-[9px] font-black uppercase tracking-widest ${
-                                                    isAgencyInsight ? 'text-violet-400' : 'text-primary/80'
-                                                }`}>
-                                                    {isAgencyInsight ? 'Aura Intelligence' : signal.signalType.toUpperCase()}
-                                                </span>
-                                                <span className="text-[8px] font-bold text-muted-foreground/30 uppercase tracking-tighter">
-                                                    {signal.projectName}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <h4 className="text-sm font-bold text-foreground mb-2 leading-tight">{signal.title}</h4>
-                                    <p className="text-[11px] text-muted-foreground leading-relaxed mb-4 line-clamp-3 italic">
-                                        {signal.body}
-                                    </p>
-
-                                    <Button
-                                        size="sm"
-                                        className={`w-full h-8 rounded-lg text-[9px] font-black uppercase tracking-widest ${
-                                            isAgencyInsight ? 'bg-violet-600 hover:bg-violet-500' : 'bg-primary hover:bg-primary/80'
-                                        }`}
-                                        onClick={() => onResolveSignal(signal.id)}
-                                        disabled={isResolving}
-                                    >
-                                        {isResolving ? <Loader2 className="h-3 w-3 animate-spin" /> : <>ACKNOWLEDGE <ArrowUpRight className="ml-1.5 h-3 w-3" /></>}
-                                    </Button>
-                                </div>
-                            )
-                        } else {
-                            const draft = item.data
-                            return (
-                                <div 
                                     key={draft.id}
-                                    className={`p-6 rounded-2xl border transition-all duration-700 relative overflow-hidden group ${
+                                    className={`p-6 rounded-2xl border transition-all duration-700 relative overflow-hidden group/draft ${
                                         isHighlighted 
                                             ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-pulse bg-emerald-500/5' 
-                                            : 'bg-violet-500/[0.02] border-violet-500/20 hover:border-violet-500/40 shadow-sm'
+                                            : 'bg-violet-500/[0.02] border-violet-500/10 hover:border-violet-500/30 shadow-sm'
                                     }`}
                                 >
                                     <div className="flex items-center gap-3 mb-4">
-                                        <div className="h-8 w-8 rounded-lg bg-violet-500/10 flex items-center justify-center border border-violet-500/20">
-                                            {draft.platform === 'linkedin' ? <Linkedin className="h-4 w-4 text-blue-400" /> : <Send className="h-4 w-4 text-violet-400" />}
+                                        <div className="h-8 w-8 rounded-lg bg-violet-500/10 flex items-center justify-center border border-violet-500/20 shadow-inner">
+                                            {draft.platform === 'linkedin' ? <Linkedin className="h-4 w-4 text-blue-400" /> : <Instagram className="h-4 w-4 text-pink-400" />}
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-violet-400">Content Planning</span>
+                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-violet-400">Campaign Content</span>
                                                 <span className="text-[8px] font-bold text-muted-foreground/30 uppercase tracking-tighter">
                                                     {draft.projects?.name}
                                                 </span>
@@ -212,26 +195,67 @@ export function UnifiedStream({
                                         </div>
                                     </div>
 
-                                    <h4 className="text-sm font-bold text-foreground mb-2 leading-tight italic">"{draft.content_text.substring(0, 100)}..."</h4>
-                                    
-                                    <div className="bg-muted/10 border border-border rounded-xl p-3 mb-4">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Sparkles className="h-3 w-3 text-violet-400/50" />
-                                            <span className="text-[8px] font-black uppercase tracking-widest text-violet-400/60">AI Logic</span>
-                                        </div>
-                                        <p className="text-[10px] text-muted-foreground/60 leading-relaxed truncate">
-                                            {draft.ai_reasoning}
+                                    <div className="mb-4">
+                                        <p className={`text-sm text-foreground/90 leading-relaxed italic ${isExpanded ? "" : "line-clamp-2"}`}>
+                                            "{draft.content_text}"
                                         </p>
                                     </div>
+                                    
+                                    {isExpanded && (
+                                        <div className="p-4 rounded-xl bg-violet-500/5 border border-violet-500/10 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Sparkles className="h-3 w-3 text-violet-400/50" />
+                                                <span className="text-[8px] font-black uppercase tracking-widest text-violet-400/60">Algorithm Strategy</span>
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground leading-relaxed">
+                                                {draft.ai_reasoning}
+                                            </p>
+                                        </div>
+                                    )}
 
-                                    <Button
-                                        size="sm"
-                                        className="w-full h-8 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-[9px] font-black uppercase tracking-widest"
-                                        onClick={() => handlePublish(draft.id)}
-                                        disabled={isPublishingId === draft.id}
-                                    >
-                                        {isPublishingId === draft.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <>APPROVE & POST <Send className="ml-1.5 h-3 w-3" /></>}
-                                    </Button>
+                                    <div className="flex flex-col gap-2 relative z-10">
+                                        <Button
+                                            size="sm"
+                                            className="w-full h-9 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-black uppercase tracking-widest shadow-md transition-all active:scale-95"
+                                            onClick={() => handlePublish(draft.id)}
+                                            disabled={isPublishingId === draft.id}
+                                        >
+                                            {isPublishingId === draft.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>APPROVE & PUBLISH <Send className="ml-2 h-3.5 w-3.5" /></>}
+                                        </Button>
+                                        
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="flex-1 h-8 rounded-lg text-[9px] font-black uppercase tracking-widest border border-white/5 hover:bg-white/5 text-muted-foreground/70 hover:text-white transition-colors"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    setExpandedDraftIds(prev => 
+                                                        prev.includes(draft.id) 
+                                                            ? prev.filter(id => id !== draft.id) 
+                                                            : [...prev, draft.id]
+                                                    )
+                                                }}
+                                            >
+                                                {isExpanded ? <>COLLAPSE <ChevronUp className="ml-1.5 h-3.5 w-3.5" /></> : <>VIEW FULL POST <ChevronDown className="ml-1.5 h-3.5 w-3.5" /></>}
+                                            </Button>
+                                            
+                                            {isExpanded && onDeleteDraft && (
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    className="flex-1 h-8 rounded-lg text-[9px] font-black uppercase tracking-widest bg-red-500/5 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 transition-all font-black"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleDeleteDraft(draft.id, draft.project_id)
+                                                    }}
+                                                    disabled={isDeleting}
+                                                >
+                                                    {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>DISCARD <Trash2 className="ml-1.5 h-3.5 w-3.5" /></>}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             )
                         }

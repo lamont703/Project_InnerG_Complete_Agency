@@ -11,6 +11,7 @@ interface SignalSlotFeedProps {
     signals: Signal[]
     isAgencyMode?: boolean
     onResolve?: (id: string) => void
+    onDeleteAction?: (draftId: string, projectId: string) => Promise<void>
     isResolving?: boolean
     highlightId?: string | null
 }
@@ -26,6 +27,7 @@ export function SignalSlotFeed({
     signals,
     isAgencyMode = false,
     onResolve = () => { },
+    onDeleteAction,
     isResolving = false,
     highlightId = null
 }: SignalSlotFeedProps) {
@@ -77,6 +79,7 @@ export function SignalSlotFeed({
                             signal={signal}
                             isResolving={isResolving}
                             onResolve={onResolve}
+                            onDeleteAction={onDeleteAction}
                             isAgencyMode={isAgencyMode || config.category === 'agency'}
                             isHighlighted={signal.id === highlightId}
                         />
