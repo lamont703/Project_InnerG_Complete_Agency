@@ -8,9 +8,10 @@ import { ChatInput } from "./components/ChatInput"
 
 interface ChatInterfaceProps {
     projectSlug: string
+    isFlush?: boolean
 }
 
-export function ChatInterface({ projectSlug }: ChatInterfaceProps) {
+export function ChatInterface({ projectSlug, isFlush = false }: ChatInterfaceProps) {
     const [isExpanded, setIsExpanded] = useState(false)
     const {
         messages,
@@ -21,7 +22,11 @@ export function ChatInterface({ projectSlug }: ChatInterfaceProps) {
     } = useChat(projectSlug)
 
     return (
-        <div className={`flex flex-col glass-panel-strong rounded-3xl border border-white/[0.05] transition-all duration-700 overflow-hidden relative ${isExpanded ? "fixed inset-0 md:inset-8 z-[102] shadow-2xl rounded-none md:rounded-3xl" : "h-[950px] shadow-xl shadow-black/40"
+        <div className={`flex flex-col glass-panel-strong transition-all duration-500 overflow-hidden min-h-0 ${isExpanded 
+            ? "fixed inset-0 md:inset-8 z-[102] shadow-2xl rounded-none md:rounded-2xl bg-background" 
+            : isFlush 
+                ? "flex-1 rounded-none border-none shadow-none" 
+                : "h-full rounded-3xl border border-white/[0.05] shadow-xl shadow-black/40"
             }`}>
             {/* Ambient glow inside chat */}
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none" />

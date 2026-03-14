@@ -1,53 +1,45 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Loader2, Building2, AlertTriangle, Sparkles } from "lucide-react"
+import { useParams } from "next/navigation"
+import { Loader2 } from "lucide-react"
 
 // Modular Components
-import { AgencySidebar } from "./components/AgencySidebar"
 import { AgencyHeader } from "./components/AgencyHeader"
 import { AgencyChatInterface } from "./components/AgencyChat"
-import { SignalSlotFeed } from "@/features/signals/components/SignalSlotFeed"
-import { MetricSlotGrid } from "@/features/metrics/components/MetricSlotGrid"
-import { DashboardCustomizer } from "@/features/metrics/components/DashboardCustomizer"
-import { SlotProvider, useSlotContext } from "@/features/metrics/SlotContext"
+import { UnifiedStream } from "./components/UnifiedStream"
 
 // Hooks
 import { useAgencyData } from "./use-agency-data"
-
-// Types
-import { PortfolioMetric } from "./types"
+import { useAdminSidebar } from "./context/AdminSidebarContext"
+import { useMobileNav } from "./context/MobileNavContext"
 
 /**
  * AgencyDashboardInterface - The Orchestrator.
- * Connects the UI to the logical state.
+ * Handles the display logic for Chat and Signals within the Agency Admin shell.
  */
 export function AgencyDashboardInterface() {
-    return (
-        <SlotProvider userRole="super-admin">
-            <AgencyDashboardContent />
-        </SlotProvider>
-    )
-}
+    const params = useParams()
+    const slug = (params?.slug as string) ?? "innergcomplete"
 
-function AgencyDashboardContent() {
     const {
         userData,
         projects,
         strategicSignals,
         operationalSignals,
+        socialDrafts,
         isLoading,
-        isSyncing,
         resolvingId,
         newSignalId,
-        syncGHL,
-        syncGithub,
-        resolveSignal
+        newDraftId,
+        resolveSignal,
+        publishPost,
+        deleteDraft
     } = useAgencyData()
 
-    const { activeSlotIds } = useSlotContext()
+    const { setIsSidebarOpen } = useAdminSidebar()
+    const { activeTab } = useMobileNav()
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [currentTime, setCurrentTime] = useState(new Date())
     const [mounted, setMounted] = useState(false)
 
@@ -59,42 +51,14 @@ function AgencyDashboardContent() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <div className="h-full flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading Agency Command Center...</p>
+                    <p className="text-sm text-muted-foreground">Initializing Command Intelligence...</p>
                 </div>
             </div>
         )
     }
-
-    const mappedAgencyMetrics: any[] = [
-        {
-            id: "active_architectures",
-            label: "Active Client Projects",
-            value: projects.length,
-            icon: Building2,
-            color: "bg-blue-500/20 text-blue-400",
-        },
-        {
-            id: "system_health",
-            label: "Unresolved Signals",
-            value: operationalSignals.filter(s => !s.is_resolved).length,
-            change: operationalSignals.filter(s => !s.is_resolved).length > 0 ? "Active monitoring" : "All clear",
-            trend: operationalSignals.filter(s => !s.is_resolved).length > 0 ? "neutral" : "up",
-            icon: AlertTriangle,
-            color: operationalSignals.filter(s => !s.is_resolved).length > 0 ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400",
-        },
-        {
-            id: "agency_intelligence",
-            label: "Agency Intelligence",
-            value: strategicSignals.length,
-            icon: Sparkles,
-            color: "bg-violet-500/20 text-violet-400",
-        },
-    ]
-
-    const agencySlots = ["active_architectures", "system_health", "agency_intelligence"] // Deprecated hardcoded slots
 
     // Map agency signals to standard Signal type for unified Card usage
     const allAgencySignalsMapped: any[] = [
@@ -109,7 +73,10 @@ function AgencyDashboardContent() {
             buttonColor: 'bg-primary',
             isAgencyOnly: true,
             projectName: s.projects?.name,
-            createdAt: s.created_at
+            createdAt: s.created_at,
+            actionUrl: s.action_url,
+            metadata: s.metadata,
+            project_id: s.project_id
         })),
         ...operationalSignals.map(s => ({
             id: s.id,
@@ -122,84 +89,54 @@ function AgencyDashboardContent() {
             buttonColor: 'bg-primary',
             isAgencyOnly: false,
             projectName: s.projects?.name,
-            createdAt: s.created_at
+            createdAt: s.created_at,
+            actionUrl: s.action_url,
+            metadata: s.metadata,
+            project_id: s.project_id
         }))
     ].sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
 
+    const portalName = projects.find(p => p.slug === slug)?.name
+
     return (
-        <div className="min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden w-full">
-            <AgencySidebar
-                isSidebarOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
+        <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+            {/* Background ambient gradients */}
+            <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
+            <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
+            <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[100px] opacity-10 pointer-events-none" />
 
-            <main className="flex-1 flex flex-col min-h-screen bg-[#020617] relative w-full selection:bg-primary/30 overflow-x-hidden">
-                {/* Background ambient gradients - Strategic placement for depth */}
-                <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
-                <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
-                <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[100px] opacity-10 pointer-events-none" />
-
+            <div className="hidden lg:block">
                 <AgencyHeader
                     userData={userData}
                     currentTime={currentTime}
                     mounted={mounted}
-                    isSyncing={isSyncing}
-                    onSyncGHL={syncGHL}
-                    onSyncGithub={syncGithub}
                     onMenuOpen={() => setIsSidebarOpen(true)}
+                    portalName={portalName}
                 />
+            </div>
 
-                {/* Content */}
-                <div className="flex-1 p-6 md:p-10 relative z-10 max-w-7xl mx-auto w-full overflow-x-hidden">
-                    {/* Welcome Section - Interconnected & Dynamic */}
-                    <div className="mb-12">
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/[0.05]">
-                            <div>
-                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight flex items-center gap-3">
-                                    Aura Dashboard
-                                    <span className="text-primary font-light italic">God Mode</span>
-                                </h1>
-                                <p className="text-muted-foreground text-sm md:text-base mt-3 max-w-2xl leading-relaxed">
-                                    Synchronizing <span className="text-foreground font-bold">{projects.length} client architectures</span> across the global stream.
-                                    Your agency is currently performing at <span className="text-emerald-400 font-black">98.4% efficiency</span>.
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-4 text-right">
-                                <div className="hidden md:block">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-1">Portfolio Pulse</p>
-                                    <p className="text-xs font-bold text-foreground">{mounted && currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <MetricSlotGrid
-                        slotIds={activeSlotIds}
-                        metrics={mappedAgencyMetrics}
-                        isAgency={true}
-                    />
-
-                    {/* Main Grid: "The Big Three" Alignment */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10 mb-16 items-start h-[calc(100vh-450px)] min-h-[700px]">
-                        {/* 1. Intelligence Hub (Chat) - 60% Width approx */}
-                        <div className="lg:col-span-7 h-full">
-                            <AgencyChatInterface />
-                        </div>
-
-                        {/* 2. Unified Signal Feed - 40% Width approx */}
-                        <div className="lg:col-span-5 h-full min-h-0">
-                            <SignalSlotFeed
-                                slotId="global_portfolio_monitoring"
-                                signals={allAgencySignalsMapped}
-                                isAgencyMode={true}
-                                onResolve={resolveSignal}
-                                isResolving={!!resolvingId}
-                            />
-                        </div>
-                    </div>
+            {/* Main Content Area - Tabbed for Mobile, Side-by-Side for Desktop */}
+            <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full overflow-hidden min-h-0">
+                
+                {/* 1. Intelligence Hub (Chat) - Primary Center */}
+                <div className={`flex-1 min-w-0 flex flex-col overflow-hidden min-h-0 ${activeTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
+                    <AgencyChatInterface />
                 </div>
-                <DashboardCustomizer />
-            </main>
+
+                {/* 2. Unified Signal Feed & Social Orchestration - Flush to the right edge */}
+                <div className={`w-full lg:w-[450px] flex-1 lg:flex-none lg:shrink-0 flex flex-col bg-card/50 backdrop-blur-xl border-l border-border min-h-0 ${activeTab === 'signals' ? 'flex' : 'hidden lg:flex'}`}>
+                    <UnifiedStream 
+                        signals={allAgencySignalsMapped}
+                        drafts={socialDrafts}
+                        onResolveSignal={resolveSignal}
+                        onPublishDraft={publishPost}
+                        onDeleteDraft={deleteDraft}
+                        isResolving={!!resolvingId}
+                        highlightId={newSignalId || newDraftId}
+                        isFlush={true}
+                    />
+                </div>
+            </div>
         </div>
     )
 }

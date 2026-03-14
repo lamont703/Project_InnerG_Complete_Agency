@@ -16,11 +16,14 @@ export function useAgencyData() {
     const [projects, setProjects] = useState<AgencyProject[]>([])
     const [strategicSignals, setStrategicSignals] = useState<StrategicSignal[]>([])
     const [operationalSignals, setOperationalSignals] = useState<OperationalSignal[]>([])
+    const [socialDrafts, setSocialDrafts] = useState<any[]>([])
+    const [linkedinMetrics, setLinkedinMetrics] = useState<any>(null)
 
     const [isLoading, setIsLoading] = useState(true)
     const [isSyncing, setIsSyncing] = useState(false)
     const [resolvingId, setResolvingId] = useState<string | null>(null)
     const [newSignalId, setNewSignalId] = useState<string | null>(null)
+    const [newDraftId, setNewDraftId] = useState<string | null>(null)
 
     const [supabase] = useState(() => createBrowserClient())
     const [service] = useState(() => new AgencyService(supabase))
@@ -34,7 +37,7 @@ export function useAgencyData() {
                 return
             }
 
-            const profile = await service.getAdminProfile(user.id)
+            const profile = await service.getAdminProfile(user.id, user.user_metadata)
             if (!profile) {
                 router.push("/select-portal")
                 return
@@ -42,14 +45,19 @@ export function useAgencyData() {
             setUserData(profile)
 
             // Parallel fetch for performance
-            const [projData, signalData] = await Promise.all([
+            const [projData, signalData, liMetrics] = await Promise.all([
                 service.getActiveProjects(),
-                service.getAllAgencySignals()
+                service.getAllAgencySignals(),
+                service.getLinkedInMetrics()
             ])
 
             setProjects(projData)
             setStrategicSignals(signalData.strategic)
             setOperationalSignals(signalData.operational)
+            setLinkedinMetrics(liMetrics)
+
+            const draftData = await service.getSocialDrafts()
+            setSocialDrafts(draftData)
 
         } catch (err) {
             console.error("[useAgencyData] Error:", err)
@@ -99,6 +107,29 @@ export function useAgencyData() {
         }
     }
 
+    const handleSyncLinkedIn = async () => {
+        setIsSyncing(true)
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) throw new Error("No active session")
+
+            const connectionId = await service.getLinkedInConnection()
+            if (!connectionId) {
+                alert("No active LinkedIn connection found. Please configure one in Admin > Connectors.")
+                return
+            }
+
+            await service.syncLinkedIn(session.access_token, supabaseAnonKey, connectionId)
+            alert("LinkedIn Data Sync Successful!")
+            await fetchData()
+        } catch (err: any) {
+            console.error("LinkedIn Sync failed:", err)
+            alert("LinkedIn Sync failed: " + (err.message || "Unknown error"))
+        } finally {
+            setIsSyncing(false)
+        }
+    }
+
     const handleResolveSignal = async (signalId: string) => {
         setResolvingId(signalId)
         try {
@@ -132,21 +163,56 @@ export function useAgencyData() {
         }
     }
 
+    const handlePublishPost = async (draftId: string) => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) throw new Error("No active session")
+
+            await service.publishSocialPost(session.access_token, supabaseAnonKey, draftId)
+            
+            // Optimistic update
+            setSocialDrafts(prev => prev.filter(d => d.id !== draftId))
+            alert("Social post successfully published!")
+        } catch (err: any) {
+            console.error("[useAgencyData] Publish failed:", err)
+            alert("Publishing failed: " + (err.message || "Unknown error"))
+        }
+    }
+
+    const handleDeleteSocialDraft = async (draftId: string, projectId: string) => {
+        try {
+            await service.deleteSocialDraft(draftId, projectId)
+            
+            // Optimistic update
+            setSocialDrafts(prev => prev.filter(d => d.id !== draftId))
+            // Also need to refresh signals if this was called from somewhere else, 
+            // but usually signals will refresh via realtime
+        } catch (err: any) {
+            console.error("[useAgencyData] Delete failed:", err)
+            alert("Delete failed: " + (err.message || "Unknown error"))
+        }
+    }
+
     useEffect(() => {
         fetchData()
 
-        // Realtime Hot-Reload
-        const signalChannel = supabase
+        // Realtime Hot-Reload for Signals and Social Drafts
+        const hotReloadChannel = supabase
             .channel('agency-data-hotreload')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ai_signals' }, (payload) => {
                 setNewSignalId(payload.new.id)
                 fetchData()
                 setTimeout(() => setNewSignalId(null), 5000)
             })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_content_plan' }, (payload) => {
+                setNewDraftId(payload.new.id)
+                fetchData()
+                setTimeout(() => setNewDraftId(null), 5000)
+            })
             .subscribe()
 
         return () => {
-            supabase.removeChannel(signalChannel)
+            supabase.removeChannel(hotReloadChannel)
         }
     }, [fetchData, supabase])
 
@@ -155,13 +221,19 @@ export function useAgencyData() {
         projects,
         strategicSignals,
         operationalSignals,
+        socialDrafts,
+        linkedinMetrics,
         isLoading,
         isSyncing,
         resolvingId,
         newSignalId,
+        newDraftId,
         refresh: fetchData,
         syncGHL: handleSyncGHL,
         syncGithub: handleSyncGithub,
-        resolveSignal: handleResolveSignal
+        syncLinkedIn: handleSyncLinkedIn,
+        resolveSignal: handleResolveSignal,
+        publishPost: handlePublishPost,
+        deleteDraft: handleDeleteSocialDraft
     }
 }

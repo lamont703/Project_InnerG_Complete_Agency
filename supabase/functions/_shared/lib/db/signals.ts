@@ -45,6 +45,7 @@ export class SignalRepo {
                 repro_steps: payload.repro_steps || null,
                 expected_behavior: payload.expected_behavior || null,
                 actual_behavior: payload.actual_behavior || null,
+                metadata: payload.metadata || {},
             })
             .select("*")
             .single()

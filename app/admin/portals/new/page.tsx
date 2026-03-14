@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { AdminHeader } from "@/features/agency/components/AdminHeader"
 
 export default function CreatePortalPage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -135,33 +136,21 @@ export default function CreatePortalPage() {
 
     if (isCheckingAdmin) {
         return (
-            <main className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <main className="min-h-screen bg-background flex items-center justify-center">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </main>
         )
     }
 
     return (
-        <main className="min-h-screen bg-[#020617] text-foreground relative p-6 md:p-12 overflow-x-hidden">
-            {/* Background Effects */}
-            <div className="absolute top-0 right-0 h-[600px] w-[600px] bg-primary/5 rounded-full blur-[140px] pointer-events-none" />
-            <div className="absolute bottom-0 left-0 h-[400px] w-[400px] bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
+        <>
+            <AdminHeader 
+                title="Initialize Growth Architecture" 
+                subtitle="Instance Provisioning & Neural Mapping"
+            />
 
-            <div className="relative z-10 max-w-4xl mx-auto">
-                <Link
-                    href="/select-portal"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-10 group"
-                >
-                    <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                    Back to Portals
-                </Link>
-
+            <div className="flex-1 p-6 md:p-10 relative z-10 max-w-4xl mx-auto w-full">
                 <div className="mb-12">
-                    <div className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-1.5 mb-4 border-primary/20">
-                        <ShieldCheck className="h-4 w-4 text-primary" />
-                        <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Growth Engineering</span>
-                    </div>
-                    <h1 className="text-3xl md:text-5xl font-bold tracking-tight">Deploy New Architecture</h1>
                     <p className="mt-4 text-muted-foreground text-lg max-w-2xl leading-relaxed">
                         Initialize a fresh client ecosystem and dedicated growth dashboard. This will reserve the instance slug and prepare AI models.
                     </p>
@@ -169,7 +158,7 @@ export default function CreatePortalPage() {
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
                     {/* Section 1: Client Metadata */}
-                    <div className="glass-panel-strong rounded-3xl p-8 border border-white/5 shadow-2xl">
+                    <div className="glass-panel-strong rounded-3xl p-8 border border-border shadow-2xl">
                         <div className="flex items-center gap-3 mb-8">
                             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                                 <Building2 className="h-5 w-5 text-primary" />
@@ -186,7 +175,7 @@ export default function CreatePortalPage() {
                                 <Input
                                     {...register("clientName")}
                                     placeholder="Enter client name"
-                                    className="bg-white/5 border-white/10 h-12 rounded-xl focus:border-primary"
+                                    className="bg-muted/10 border-border h-12 rounded-xl focus:border-primary"
                                 />
                                 {errors.clientName && <p className="text-[10px] text-destructive ml-2">{errors.clientName.message}</p>}
                             </div>
@@ -195,7 +184,7 @@ export default function CreatePortalPage() {
                                 <label className="text-sm font-medium ml-1">Industry Vertical</label>
                                 <select
                                     {...register("industry")}
-                                    className="w-full bg-[#0f172a] border border-white/10 h-12 rounded-xl px-4 text-sm focus:ring-1 focus:ring-primary focus:border-primary appearance-none"
+                                    className="w-full bg-background border border-border h-12 rounded-xl px-4 text-sm focus:ring-1 focus:ring-primary focus:border-primary appearance-none"
                                 >
                                     <option value="ecommerce">E-Commerce</option>
                                     <option value="retail">Retail</option>
@@ -214,7 +203,7 @@ export default function CreatePortalPage() {
                                 <Input
                                     {...register("primaryContactName")}
                                     placeholder="Executive Point of Contact"
-                                    className="bg-white/5 border-white/10 h-12 rounded-xl focus:border-primary"
+                                    className="bg-muted/10 border-border h-12 rounded-xl focus:border-primary"
                                 />
                                 {errors.primaryContactName && <p className="text-[10px] text-destructive ml-2">{errors.primaryContactName.message}</p>}
                             </div>
@@ -224,7 +213,7 @@ export default function CreatePortalPage() {
                                 <Input
                                     {...register("primaryContactEmail")}
                                     placeholder="email@client.com"
-                                    className="bg-white/5 border-white/10 h-12 rounded-xl focus:border-primary"
+                                    className="bg-muted/10 border-border h-12 rounded-xl focus:border-primary"
                                 />
                                 {errors.primaryContactEmail && <p className="text-[10px] text-destructive ml-2">{errors.primaryContactEmail.message}</p>}
                             </div>
@@ -232,7 +221,7 @@ export default function CreatePortalPage() {
                     </div>
 
                     {/* Section 2: Dashboard/Portal Config */}
-                    <div className="glass-panel-strong rounded-3xl p-8 border border-white/5 shadow-2xl">
+                    <div className="glass-panel-strong rounded-3xl p-8 border border-border shadow-2xl">
                         <div className="flex items-center gap-3 mb-8">
                             <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20">
                                 <Layout className="h-5 w-5 text-accent" />
@@ -249,7 +238,7 @@ export default function CreatePortalPage() {
                                 <Input
                                     {...register("projectName")}
                                     placeholder="e.g. Acme Worldwide Growth Portal"
-                                    className="bg-white/5 border-white/10 h-12 rounded-xl focus:border-primary"
+                                    className="bg-muted/10 border-border h-12 rounded-xl focus:border-primary"
                                 />
                                 {errors.projectName && <p className="text-[10px] text-destructive ml-2">{errors.projectName.message}</p>}
                             </div>
@@ -266,7 +255,7 @@ export default function CreatePortalPage() {
                                     <Input
                                         {...register("slug")}
                                         placeholder="acme-corp"
-                                        className="bg-white/5 border-white/10 h-12 rounded-xl focus:border-primary font-mono text-sm"
+                                        className="bg-muted/10 border-border h-12 rounded-xl focus:border-primary font-mono text-sm"
                                     />
                                     {errors.slug && <p className="text-[10px] text-destructive ml-2">{errors.slug.message}</p>}
                                 </div>
@@ -275,7 +264,7 @@ export default function CreatePortalPage() {
                                     <label className="text-sm font-medium ml-1">Architecture Type</label>
                                     <select
                                         {...register("projectType")}
-                                        className="w-full bg-[#0f172a] border border-white/10 h-12 rounded-xl px-4 text-sm focus:ring-1 focus:ring-primary focus:border-primary appearance-none"
+                                        className="w-full bg-background border border-border h-12 rounded-xl px-4 text-sm focus:ring-1 focus:ring-primary focus:border-primary appearance-none"
                                     >
                                         <option value="ecommerce">Ecommerce Hub</option>
                                         <option value="retail">Retail Infrastructure</option>
@@ -332,6 +321,6 @@ export default function CreatePortalPage() {
                     </p>
                 </div>
             </div>
-        </main>
+        </>
     )
 }

@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { AdminHeader } from "@/features/agency/components/AdminHeader"
 
 // ─────────────────────────────────────────────
 // TIER DEFINITIONS
@@ -80,7 +81,7 @@ function UsageBar({ percent, tier }: { percent: number; tier: string }) {
                 : "bg-primary"
 
     return (
-        <div className="w-full h-2.5 rounded-full bg-white/5 overflow-hidden">
+        <div className="w-full h-2.5 rounded-full bg-muted/20 overflow-hidden">
             <div
                 className={`h-full rounded-full transition-all duration-700 ${barColor}`}
                 style={{ width: `${Math.min(percent, 100)}%` }}
@@ -189,7 +190,7 @@ export default function TokenUsageDashboard() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">Loading token usage...</p>
@@ -199,54 +200,26 @@ export default function TokenUsageDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-[#020617] relative">
-            {/* Background effects */}
-            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/15 rounded-full blur-[120px] opacity-20 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-violet-500/10 rounded-full blur-[100px] opacity-15 pointer-events-none" />
+        <>
+            <AdminHeader 
+                title="Token Usage Dashboard" 
+                subtitle={`${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })} • Resource Audit`}
+            />
 
-            <div className="relative z-10 max-w-5xl mx-auto px-4 py-8 md:py-12">
-                {/* Back Navigation */}
-                <Link
-                    href="/dashboard/innergcomplete"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
-                >
-                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-                    Back to Agency Dashboard
-                </Link>
-
-                {/* Header */}
-                <div className="mb-10">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/30 to-amber-500/30 flex items-center justify-center border border-primary/20">
-                            <BarChart3 className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                                Token Usage Dashboard
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                            </p>
-                        </div>
-                    </div>
-                    <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl mt-4">
-                        Monitor AI token consumption across all projects. Assign tiers to control monthly budgets.
-                    </p>
-                </div>
-
+            <div className="flex-1 p-6 md:p-10 relative z-10 max-w-6xl mx-auto w-full">
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-                    <div className="glass-panel rounded-2xl border border-white/5 p-5">
+                    <div className="glass-panel rounded-2xl border border-border p-5">
                         <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-medium">Total Tokens Used</p>
                         <p className="text-3xl font-bold text-foreground">{formatTokens(totalTokens)}</p>
                         <p className="text-[10px] text-muted-foreground mt-1">This month across all projects</p>
                     </div>
-                    <div className="glass-panel rounded-2xl border border-white/5 p-5">
+                    <div className="glass-panel rounded-2xl border border-border p-5">
                         <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-medium">Active Projects</p>
                         <p className="text-3xl font-bold text-foreground">{projects.length}</p>
                         <p className="text-[10px] text-muted-foreground mt-1">With AI tier assigned</p>
                     </div>
-                    <div className="glass-panel rounded-2xl border border-white/5 p-5">
+                    <div className="glass-panel rounded-2xl border border-border p-5">
                         <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-medium">Over Budget</p>
                         <p className={`text-3xl font-bold ${projects.some(p => p.is_over_budget) ? "text-red-400" : "text-emerald-400"}`}>
                             {projects.filter(p => p.is_over_budget).length}
@@ -274,7 +247,7 @@ export default function TokenUsageDashboard() {
                                 key={project.project_id}
                                 className={`p-5 rounded-2xl border transition-all duration-300 ${project.is_over_budget
                                         ? "glass-panel border-red-500/20 bg-red-500/[0.02]"
-                                        : "glass-panel border-white/5 hover:border-white/10"
+                                        : "glass-panel border-border/50 hover:border-border"
                                     }`}
                             >
                                 <div className="flex items-start justify-between gap-4 mb-4">
@@ -306,12 +279,12 @@ export default function TokenUsageDashboard() {
                                         </button>
 
                                         {isEditing && (
-                                            <div className="absolute right-0 top-full mt-1.5 z-20 bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-[200px]">
+                                            <div className="absolute right-0 top-full mt-1.5 z-20 bg-background border border-border rounded-xl shadow-2xl overflow-hidden min-w-[200px]">
                                                 {TIERS.map((t) => (
                                                     <button
                                                         key={t.key}
                                                         onClick={() => handleTierChange(project.project_id, t.key)}
-                                                        className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors ${t.key === project.tier ? "bg-white/[0.03]" : ""
+                                                        className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/10 transition-colors ${t.key === project.tier ? "bg-muted/20" : ""
                                                             }`}
                                                     >
                                                         <t.icon className={`h-4 w-4 ${t.color}`} />
@@ -367,7 +340,7 @@ export default function TokenUsageDashboard() {
                 </div>
 
                 {/* Tier Legend */}
-                <div className="mt-10 p-5 rounded-2xl glass-panel border border-white/5">
+                <div className="mt-10 p-5 rounded-2xl glass-panel border border-border">
                     <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4">Tier Reference</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {TIERS.map((t) => (
@@ -383,6 +356,6 @@ export default function TokenUsageDashboard() {
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     )
 }

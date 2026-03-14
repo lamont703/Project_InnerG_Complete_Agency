@@ -3,7 +3,7 @@
  * Transforms LinkedIn API data to internal database formats.
  */
 
-import { LinkedInPage, LinkedInPost, LinkedInPageMetrics } from "./types.ts";
+import { LinkedInPage, LinkedInPost, LinkedInPageMetrics, LinkedInComment } from "./types.ts";
 
 export class LinkedInTransformer {
     static toInternalPage(projectId: string, page: LinkedInPage, metrics?: LinkedInPageMetrics) {
@@ -21,16 +21,63 @@ export class LinkedInTransformer {
         };
     }
 
-    static toInternalPost(projectId: string, pageId: string, post: LinkedInPost) {
+    static toInternalPost(projectId: string, pageId: string, post: LinkedInPost, stats?: any) {
         // LinkedIn posts have different commentary locations depending on the API version/post type
         const content = post.specificContent?.["com.linkedin.ugc.ShareContent"]?.shareCommentary?.text || post.commentary || "";
         
+        let publishedAt: string | null = null;
+        if (post.firstPublishedAt) {
+            // Handle numeric epoch or string epoch
+            const epoch = typeof post.firstPublishedAt === 'number' 
+                ? post.firstPublishedAt 
+                : parseInt(post.firstPublishedAt as string);
+            publishedAt = new Date(epoch).toISOString();
+        } else if (post.publishedAt) {
+            publishedAt = new Date(post.publishedAt).toISOString();
+        }
+
         return {
             project_id: projectId,
             page_id: pageId,
             linkedin_post_id: post.id,
             content: content,
-            published_at: post.publishedAt ? new Date(post.publishedAt).toISOString() : null,
+            published_at: publishedAt,
+            view_count: stats?.impressionCount || 0,
+            like_count: stats?.likeCount || 0,
+            comment_count: stats?.commentCount || 0,
+            share_count: stats?.shareCount || 0,
+            last_synced_at: new Date().toISOString()
+        };
+    }
+
+    static toInternalComment(projectId: string, postId: string, postUrn: string, comment: LinkedInComment) {
+        const rawId = comment.$URN || comment.id;
+        
+        // ID extraction that respects alphanumeric characters (e.g. -f_Ut43FoQ)
+        // We find the last segment after the last comma (tuple) or last colon (simple URN)
+        const lastSegment = rawId.includes(',') 
+            ? rawId.substring(rawId.lastIndexOf(',') + 1)
+            : rawId.substring(rawId.lastIndexOf(':') + 1);
+        
+        const atomicId = lastSegment.replace(/\)$/, "").trim();
+        
+        // Handle parent comment ID with the same alphanumeric-safe logic
+        let atomicParentId = null;
+        if (comment.parent) {
+            const pSegment = comment.parent.includes(',')
+                ? comment.parent.substring(comment.parent.lastIndexOf(',') + 1)
+                : comment.parent.substring(comment.parent.lastIndexOf(':') + 1);
+            atomicParentId = pSegment.replace(/\)$/, "").trim();
+        }
+
+        return {
+            project_id: projectId,
+            post_id: postId,
+            linkedin_comment_id: atomicId, // STORE ATOMIC ID FOR DEDUPLICATION
+            actor_urn: comment.actor,
+            content: comment.message.text,
+            parent_comment_id: atomicParentId, // STORE ATOMIC ID
+            created_at: new Date(comment.created.time).toISOString(),
             last_synced_at: new Date().toISOString()
         };
     }

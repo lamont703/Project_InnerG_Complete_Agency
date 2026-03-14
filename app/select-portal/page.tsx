@@ -136,7 +136,7 @@ export default function SelectPortalPage() {
 
     if (isLoading) {
         return (
-            <main className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <main className="min-h-screen bg-background flex items-center justify-center">
                 <div className="text-center">
                     <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
                     <p className="text-muted-foreground">Initializing growth architectures...</p>
@@ -146,11 +146,11 @@ export default function SelectPortalPage() {
     }
 
     return (
-        <main className="min-h-screen bg-[#020617] text-foreground relative w-full overflow-x-hidden">
+        <div className="h-full bg-background text-foreground relative">
             <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[160px] opacity-20 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/10 rounded-full blur-[140px] opacity-10 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/5 rounded-full blur-[140px] opacity-10 pointer-events-none" />
 
-            <div className="relative z-10 max-w-6xl mx-auto px-6 py-12 md:py-20 flex flex-col min-h-screen">
+            <div className="relative z-10 max-w-6xl mx-auto px-6 py-12 md:py-20 flex flex-col min-h-screen pb-24 md:pb-20">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-16 gap-8">
                     <div className="flex flex-col">
@@ -188,14 +188,14 @@ export default function SelectPortalPage() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search active portals..."
-                            className="bg-white/5 border-white/10 pl-12 h-14 text-base md:text-lg rounded-2xl focus:border-primary transition-all w-full"
+                            className="bg-muted/10 border-border pl-12 h-14 text-base md:text-lg rounded-2xl focus:border-primary transition-all w-full"
                         />
                     </div>
                     <div className="flex flex-wrap lg:flex-nowrap gap-4">
                         <Button
                             id="btn-filter-status"
                             variant="outline"
-                            className="flex-1 md:flex-none h-14 px-6 border-white/10 rounded-2xl gap-2 hover:bg-white/5 order-2 md:order-1"
+                            className="flex-1 md:flex-none h-14 px-6 border-border rounded-2xl gap-2 hover:bg-muted/10 order-2 md:order-1"
                         >
                             <Filter className="h-5 w-5" />
                             Status: Active
@@ -311,7 +311,7 @@ export default function SelectPortalPage() {
                 </div>
 
                 {/* Footer */}
-                <div className="mt-20 py-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="mt-20 py-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-6">
                     <p className="text-sm text-muted-foreground font-medium">
                         Securely managed by <span className="text-foreground">Inner G Complete Infrastructure</span>
                     </p>
@@ -325,6 +325,6 @@ export default function SelectPortalPage() {
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
     )
 }

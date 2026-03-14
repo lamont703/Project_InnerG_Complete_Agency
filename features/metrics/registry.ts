@@ -63,6 +63,15 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         permissions: ['client', 'admin', 'super-admin'],
         iconName: "Play"
     },
+    {
+        id: "freelancer_registrations",
+        label: "Freelancer Freedom",
+        description: "Live tracking of registrations specifically for the School of Freelancer Freedom Pipeline.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "UserCheck"
+    },
 
     // --- AGENCY SLOTS (Super Admin Only) ---
     {
@@ -91,6 +100,78 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         type: 'kpi',
         permissions: ['super-admin'],
         iconName: "Sparkles"
+    },
+    {
+        id: "linkedin_followers",
+        label: "LinkedIn Followers",
+        description: "Total follower count for the connected LinkedIn organization page.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Linkedin"
+    },
+    {
+        id: "linkedin_impressions",
+        label: "LinkedIn Reach",
+        description: "Total impressions across all posts on the LinkedIn page.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "BarChart3"
+    },
+    {
+        id: "linkedin_engagement",
+        label: "LinkedIn Engagement",
+        description: "Aggregated engagement rate across LinkedIn content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Zap"
+    },
+    {
+        id: "linkedin_clicks",
+        label: "LinkedIn Clicks",
+        description: "Total clicks on links and content within LinkedIn posts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Target"
+    },
+    {
+        id: "linkedin_likes",
+        label: "LinkedIn Likes",
+        description: "Total likes aggregated across all posts in the LinkedIn content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "ThumbsUp"
+    },
+    {
+        id: "linkedin_comments",
+        label: "LinkedIn Comments",
+        description: "Total comments aggregated across all posts in the LinkedIn content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "MessageSquare"
+    },
+    {
+        id: "linkedin_shares",
+        label: "LinkedIn Shares",
+        description: "Total shares aggregated across all posts in the LinkedIn content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Share2"
+    },
+    {
+        id: "linkedin_post_views",
+        label: "LinkedIn Post Views",
+        description: "Cumulative view count aggregated across all individual LinkedIn posts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Eye"
     }
 ]
 

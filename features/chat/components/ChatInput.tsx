@@ -21,7 +21,7 @@ export function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
     }
 
     return (
-        <div className="p-4 border-t border-white/5 bg-white/[0.01]">
+        <div className="p-4 pb-24 md:pb-4 border-t border-white/5 bg-white/[0.01]">
             <form onSubmit={handleSubmit} className="relative">
                 <Input
                     value={input}
@@ -39,7 +39,7 @@ export function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
                     <Send className="h-4 w-4" />
                 </Button>
             </form>
-            <p className="text-[10px] text-center text-muted-foreground mt-3 opacity-50">
+            <p className="hidden md:block text-[10px] text-center text-muted-foreground mt-3 opacity-50">
                 Inner G Complete Assistant can help with database queries, automation maps, and scaling audits.
             </p>
         </div>

@@ -41,14 +41,13 @@ export class RagService {
         const embedding = await embedText(query, apiKey)
         if (!embedding) return []
 
-        // 2. Execute RPC call to match_embeddings (Postgres pgvector)
-        // This RPC must exist in your database (Migration 006)
-        const { data, error } = await this.client.rpc("match_embeddings", {
+        // 2. Execute RPC call to match_documents (Postgres pgvector)
+        // This RPC exists in Migration 025
+        const { data, error } = await this.client.rpc("match_documents", {
             query_embedding: embedding,
             match_threshold: minSimilarity,
             match_count: limit,
-            p_project_id: projectId,
-            include_agency: includeAgencyKnowledge
+            p_project_id: projectId
         })
 
         if (error) {

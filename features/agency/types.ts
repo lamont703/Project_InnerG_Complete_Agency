@@ -20,6 +20,8 @@ export interface StrategicSignal {
     body: string
     severity: "critical" | "warning" | "info"
     created_at: string
+    action_url?: string | null
+    metadata?: Record<string, any> | null
     projects?: {
         name: string
     }
@@ -35,6 +37,8 @@ export interface OperationalSignal {
     severity: "critical" | "warning" | "info"
     created_at: string
     is_resolved: boolean
+    action_url?: string | null
+    metadata?: Record<string, any> | null
     projects?: {
         name: string
     }

@@ -23,7 +23,8 @@ export interface LinkedInPost {
     id: string;
     author: string;
     commentary: string;
-    publishedAt: string;
+    publishedAt?: string;
+    firstPublishedAt?: number | string;
     lifecycleState: string;
     specificContent: {
         "com.linkedin.ugc.ShareContent": {
@@ -41,4 +42,17 @@ export interface LinkedInPageMetrics {
     view_count: number;
     click_count: number;
     engagement_rate: number;
+}
+
+export interface LinkedInComment {
+    id: string;
+    $URN?: string;
+    actor: string;
+    parent?: string; // URN of the parent comment if it's a reply
+    message: {
+        text: string;
+    };
+    created: {
+        time: number;
+    };
 }

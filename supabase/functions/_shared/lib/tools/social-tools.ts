@@ -125,7 +125,7 @@ export const searchSocialKnowledgeTool: RegisteredTool = {
 
         // Filter for social planner related tables
         const socialResults = results.filter((r: RagResult) => 
-            ["ghl_social_posts", "ghl_social_insights", "ghl_social_accounts"].includes(r.source_table)
+            ["ghl_social_posts", "ghl_social_insights", "ghl_social_accounts", "news_intelligence"].includes(r.source_table)
         )
 
         if (socialResults.length === 0) {

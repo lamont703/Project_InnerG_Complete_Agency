@@ -12,7 +12,7 @@ import { AgencyDashboardInterface } from "@/features/agency/AgencyDashboardInter
 export default function AgencyDashboardPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         }>

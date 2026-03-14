@@ -14,6 +14,7 @@ const _jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://innergcomplete.com'),
   title: 'Inner G Complete Agency | AI Consulting for Retail & Blockchain for SMBs',
   description:
     'Expert AI and blockchain consulting for small to medium-sized businesses. Total customized solutions for retail, payment processing, and operational efficiency.',
@@ -68,6 +69,7 @@ export const viewport: Viewport = {
 }
 
 import { Toaster } from "sonner"
+import { ThemeProvider } from "@/components/theme-provider"
 
 export default function RootLayout({
   children,
@@ -75,16 +77,23 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${_inter.variable} ${_jetbrainsMono.variable}`}>
+    <html lang="en" className={`${_inter.variable} ${_jetbrainsMono.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased">
-        <Analytics />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }`,
-          }}
-        />
-        {children}
-        <Toaster position="top-right" richColors closeButton />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Analytics />
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }`,
+            }}
+          />
+          {children}
+          <Toaster position="top-right" richColors closeButton />
+        </ThemeProvider>
       </body>
     </html>
   )

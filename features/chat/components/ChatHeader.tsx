@@ -30,7 +30,7 @@ export function ChatHeader({ isExpanded, onToggleExpand, modelName }: ChatHeader
 
                 <button
                     onClick={onToggleExpand}
-                    className="p-2 hover:bg-white/5 rounded-lg transition-colors text-muted-foreground"
+                    className="hidden md:block p-2 hover:bg-white/5 rounded-lg transition-colors text-muted-foreground"
                 >
                     {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </button>

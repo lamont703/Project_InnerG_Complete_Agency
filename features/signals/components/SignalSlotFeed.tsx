@@ -11,7 +11,9 @@ interface SignalSlotFeedProps {
     signals: Signal[]
     isAgencyMode?: boolean
     onResolve?: (id: string) => void
+    onDeleteAction?: (draftId: string, projectId: string) => Promise<void>
     isResolving?: boolean
+    highlightId?: string | null
 }
 
 /**
@@ -25,7 +27,9 @@ export function SignalSlotFeed({
     signals,
     isAgencyMode = false,
     onResolve = () => { },
-    isResolving = false
+    onDeleteAction,
+    isResolving = false,
+    highlightId = null
 }: SignalSlotFeedProps) {
     const config = getSignalSlotById(slotId)
 
@@ -41,7 +45,7 @@ export function SignalSlotFeed({
             {/* Background ambient glow */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
 
-            <div className="flex items-center justify-between mb-8 relative z-10">
+            <div className="hidden lg:flex items-center justify-between mb-8 relative z-10">
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                         <Icon className="h-5 w-5 text-primary" />
@@ -59,7 +63,7 @@ export function SignalSlotFeed({
                 </div>
             </div>
 
-            <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2 relative z-10 min-h-0">
+            <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2 relative z-10 min-h-0 pb-24 lg:pb-0">
                 {signals.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/5 rounded-3xl bg-white/[0.01]">
                         <div className="h-16 w-16 rounded-full bg-primary/5 flex items-center justify-center mb-4 border border-primary/10">
@@ -75,7 +79,9 @@ export function SignalSlotFeed({
                             signal={signal}
                             isResolving={isResolving}
                             onResolve={onResolve}
+                            onDeleteAction={onDeleteAction}
                             isAgencyMode={isAgencyMode || config.category === 'agency'}
+                            isHighlighted={signal.id === highlightId}
                         />
                     ))
                 )}

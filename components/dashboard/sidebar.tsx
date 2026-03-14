@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import {
     LayoutDashboard,
@@ -13,7 +13,9 @@ import {
     Loader2,
     Building2,
     BookOpen,
-    Bot
+    Bot,
+    BarChart3,
+    Plug
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -32,6 +34,7 @@ interface DashboardSidebarProps {
  */
 export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: DashboardSidebarProps) {
     const router = useRouter()
+    const pathname = usePathname()
     const [userRole, setUserRole] = useState<UserRole | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
@@ -72,51 +75,35 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
 
     const navItems = [
         {
+            href: `/dashboard/${projectSlug}`,
+            icon: LayoutDashboard,
+            label: "Intelligence Hub",
+            active: pathname === `/dashboard/${projectSlug}`,
+        },
+        {
+            href: `/dashboard/${projectSlug}/metrics`,
+            icon: BarChart3,
+            label: "Metrics & Intelligence",
+            active: pathname === `/dashboard/${projectSlug}/metrics`,
+        },
+        {
+            href: `/dashboard/${projectSlug}/connectors`,
+            icon: Plug,
+            label: "Connectors",
+            active: pathname === `/dashboard/${projectSlug}/connectors`,
+        },
+        {
+            href: `/dashboard/${projectSlug}/knowledge`,
+            icon: BookOpen,
+            label: "Knowledge Base",
+            active: pathname === `/dashboard/${projectSlug}/knowledge`,
+        },
+        {
             href: "/select-portal",
             icon: Layout,
             label: "Switch Portal",
-            active: false,
+            active: pathname === "/select-portal",
         },
-        {
-            href: `/dashboard/${projectSlug}`,
-            icon: LayoutDashboard,
-            label: "Dashboard",
-            active: true,
-        },
-    ]
-
-    // Admin-only items
-    const adminItems = [
-        {
-            href: "/dashboard/innergcomplete",
-            icon: Building2,
-            label: "Agency Command",
-            roleNeeded: "super_admin",
-        },
-        {
-            href: "/admin/knowledge",
-            icon: BookOpen,
-            label: "Knowledge CMS",
-            roleNeeded: "super_admin",
-        },
-        {
-            href: `/admin/projects/${projectSlug}/agent-config`,
-            icon: Bot,
-            label: "Agent Config",
-            roleNeeded: "super_admin",
-        },
-        {
-            href: "/admin/settings",
-            icon: Settings,
-            label: "Agency Settings",
-            roleNeeded: "super_admin",
-        },
-        {
-            href: "/admin/developers",
-            icon: ShieldCheck,
-            label: "Developer Portfolios",
-            roleNeeded: "super_admin",
-        }
     ]
 
     const SidebarContent = () => (
@@ -136,23 +123,6 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                         {item.label}
                     </Link>
                 ))}
-
-                {/* Role-Guarded Admin Items */}
-                {!isLoading && userRole === "super_admin" && (
-                    <div className="pt-6 mt-6 border-t border-white/5">
-                        <p className="px-4 mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">AGENCY ADMIN</p>
-                        {adminItems.map((item) => (
-                            <Link
-                                key={item.label}
-                                href={item.href}
-                                className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-secondary/50 transition-colors"
-                            >
-                                <item.icon className="h-5 w-5" />
-                                {item.label}
-                            </Link>
-                        ))}
-                    </div>
-                )}
             </nav>
 
             <div className="p-6 border-t border-border mt-auto">
@@ -172,15 +142,20 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
     return (
         <>
             {/* Desktop Sidebar */}
-            <aside className="hidden lg:flex w-72 flex-col glass-panel border-r border-white/5 h-screen sticky top-0">
+            <aside className="hidden lg:flex w-72 flex-col glass-panel border-r border-border h-screen sticky top-0">
                 <div className="p-8 pb-10">
                     <Link href="/" className="flex items-center gap-2 group">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105">
                             <span className="text-xl font-bold">G</span>
                         </div>
-                        <span className="text-xl font-bold tracking-tight text-foreground">
-                            Inner G Complete
-                        </span>
+                        <div>
+                            <span className="text-xl font-bold tracking-tight text-foreground block leading-tight">
+                                Inner G Complete
+                            </span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
+                                Intelligence Hub
+                            </span>
+                        </div>
                     </Link>
                 </div>
                 <SidebarContent />
@@ -196,8 +171,7 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
 
             {/* Mobile Sidebar Drawer */}
             <aside
-                className={`fixed top-0 left-0 bottom-0 w-[280px] bg-background border-r border-white/5 z-[101] flex flex-col transition-transform duration-300 lg:hidden ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-                    }`}
+                className={`fixed top-0 left-0 bottom-0 w-[280px] bg-background border-r border-border z-[101] flex flex-col transition-transform duration-300 lg:hidden ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
             >
                 <div className="p-6 pb-10 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2">
@@ -206,11 +180,7 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                         </div>
                         <span className="text-lg font-bold tracking-tight text-foreground">Inner G Complete</span>
                     </Link>
-                    <button
-                        id="btn-close-sidebar"
-                        onClick={onClose}
-                        className="h-8 w-8 flex items-center justify-center rounded-full glass-panel"
-                    >
+                    <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-full glass-panel">
                         <X className="h-4 w-4" />
                     </button>
                 </div>

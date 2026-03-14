@@ -10,17 +10,19 @@ export class AgencyService {
     /**
      * Fetch user profile and verify super_admin status
      */
-    async getAdminProfile(userId: string): Promise<AgencyUserData | null> {
+    async getAdminProfile(userId: string, userMetadata?: any): Promise<AgencyUserData | null> {
         const { data: profile } = await this.supabase
             .from("users")
             .select("full_name, role")
             .eq("id", userId)
-            .single()
+            .maybeSingle()
 
         if (!profile || profile.role !== "super_admin") return null
 
+        const nameFallback = userMetadata?.full_name || userMetadata?.name || userMetadata?.display_name || "Admin"
+
         return {
-            name: profile.full_name || "Admin",
+            name: profile.full_name || nameFallback,
             role: "SUPER ADMIN"
         }
     }
@@ -44,7 +46,7 @@ export class AgencyService {
     async getAllAgencySignals(): Promise<{ strategic: StrategicSignal[], operational: OperationalSignal[] }> {
         const { data } = await this.supabase
             .from("ai_signals")
-            .select("id, project_id, signal_type, title, body, severity, is_resolved, is_agency_only, created_at, projects(name)")
+            .select("id, project_id, signal_type, title, body, severity, is_resolved, is_agency_only, created_at, action_url, metadata, projects(name)")
             .eq("is_resolved", false)
             .order("created_at", { ascending: false })
             .limit(50)
@@ -55,6 +57,17 @@ export class AgencyService {
             strategic: signals.filter(s => s.is_agency_only),
             operational: signals.filter(s => !s.is_agency_only)
         }
+    }
+
+    /**
+     * Delete a social draft and its associated signal
+     */
+    async deleteSocialDraft(draftId: string, projectId: string): Promise<void> {
+        const { error } = await this.supabase.rpc("delete_social_draft_signal", {
+            p_draft_id: draftId,
+            p_project_id: projectId
+        })
+        if (error) throw error
     }
 
 
@@ -134,6 +147,131 @@ export class AgencyService {
             .from("client_db_connections")
             .select("id, connector_types!inner(provider)")
             .eq("connector_types.provider", "github")
+            .eq("is_active", true)
+            .limit(1)
+            .maybeSingle()
+
+        return data?.id || null
+    }
+
+    /**
+     * Fetch pending social content drafts
+     */
+    async getSocialDrafts(): Promise<any[]> {
+        const { data } = await this.supabase
+            .from("social_content_plan")
+            .select("*, projects(name)")
+            .eq("status", "draft")
+            .order("created_at", { ascending: false })
+
+        return (data as any[]) || []
+    }
+
+    /**
+     * Invoke the publishing Edge Function for a draft
+     */
+    async publishSocialPost(accessToken: string, anonKey: string, draftId: string): Promise<void> {
+        const { error } = await this.supabase.functions.invoke("publish-social-post", {
+            body: { draft_id: draftId },
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                apikey: anonKey
+            }
+        })
+
+        if (error) {
+            const responseBody = await error.context?.json().catch(() => null)
+            throw new Error(responseBody?.error || error.message)
+        }
+    }
+
+    /**
+     * Fetch LinkedIn metrics for the agency project
+     */
+    async getLinkedInMetrics(projectSlug: string = "innergcomplete"): Promise<any> {
+        // 1. Try to find the specific project's metrics
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("id")
+            .eq("slug", projectSlug)
+            .single()
+
+        let pages = null
+        if (project) {
+            const { data } = await this.supabase
+                .from("linkedin_pages")
+                .select("*")
+                .eq("project_id", project.id)
+            pages = data
+        }
+
+        // 2. Fallback: If no pages for specific project, try to find any synced page (for Agency overview)
+        if (!pages || pages.length === 0) {
+            const { data: anyPages } = await this.supabase
+                .from("linkedin_pages")
+                .select("*")
+                .order("last_synced_at", { ascending: false })
+                .limit(1)
+            pages = anyPages
+        }
+
+        if (!pages || pages.length === 0) return null
+
+        // Return the metrics of the primary page + aggregated post metrics
+        const primary = pages[0]
+        
+        // Fetch Post Aggregations for this specific project
+        const { data: posts } = await this.supabase
+            .from("linkedin_posts")
+            .select("like_count, comment_count, share_count, view_count")
+            .eq("project_id", primary.project_id)
+
+        const postStats = (posts || []).reduce((acc: any, p: any) => ({
+            likes: acc.likes + (p.like_count || 0),
+            comments: acc.comments + (p.comment_count || 0),
+            shares: acc.shares + (p.share_count || 0),
+            postViews: acc.postViews + (p.view_count || 0)
+        }), { likes: 0, comments: 0, shares: 0, postViews: 0 })
+
+        return {
+            followers: primary.follower_count,
+            views: primary.total_views,
+            clicks: primary.total_clicks,
+            engagement: primary.engagement_rate,
+            pageName: primary.name,
+            likes: postStats.likes,
+            comments: postStats.comments,
+            shares: postStats.shares,
+            postViews: postStats.postViews
+        }
+    }
+
+    /**
+     * Trigger LinkedIn Sync for a specific connection
+     */
+    async syncLinkedIn(accessToken: string, anonKey: string, connectionId: string): Promise<void> {
+        const { error } = await this.supabase.functions.invoke("connector-sync", {
+            body: { connection_id: connectionId },
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                apikey: anonKey
+            }
+        })
+
+        if (error) {
+            const responseBody = await error.context?.json().catch(() => null)
+            throw new Error(responseBody?.error?.message || error.message)
+        }
+    }
+
+    /**
+     * Find the primary LinkedIn connection for the portfolio
+     */
+    async getLinkedInConnection(): Promise<string | null> {
+        const { data } = await this.supabase
+            .from("client_db_connections")
+            .select("id, connector_types!inner(provider)")
+            .eq("connector_types.provider", "linkedin")
             .eq("is_active", true)
             .limit(1)
             .maybeSingle()

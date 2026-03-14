@@ -60,10 +60,13 @@ export async function generateContent(
         tools,
     } = options
 
-    const contents = [
-        ...history,
-        { role: "user", parts: [{ text: userMessage }] }
-    ]
+    const contents = [...history]
+    const lastMessage = history[history.length - 1]
+    
+    // Only append userMessage if the history doesn't already end with it
+    if (!lastMessage || lastMessage.role !== "user" || lastMessage.parts[0]?.text !== userMessage) {
+        contents.push({ role: "user", parts: [{ text: userMessage }] })
+    }
 
     const payload: Record<string, unknown> = {
         contents,
@@ -117,6 +120,7 @@ export async function generateContent(
  * Used for RAG (Retrieval-Augmented Generation) searches.
  */
 export async function embedText(text: string, apiKey: string): Promise<number[] | null> {
+    console.log(`[GeminiEmbed] URL: ${GEMINI_API_BASE}/models/${GEMINI_MODELS.EMBED}:embedContent`)
     const res = await fetch(
         `${GEMINI_API_BASE}/models/${GEMINI_MODELS.EMBED}:embedContent?key=${encodeURIComponent(apiKey)}`,
         {

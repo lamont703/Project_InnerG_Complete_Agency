@@ -76,7 +76,8 @@ export class AgencyChatService {
                 this.logger.info(`RAG search found ${chunks.length} chunks`)
                 contextChunks.push(...chunks.map((c: any) => {
                     const projectLabel = c.project_id ? `[Project ${c.project_id}]` : "[Agency-Wide]"
-                    return `${projectLabel} (${c.source_table}): ${c.content_chunk}`
+                    const status = c.is_processed ? "[PROCESSED] " : ""
+                    return `${projectLabel} (${c.source_table}) ${status}(ID: ${c.source_id}): ${c.content_chunk}`
                 }))
             }
         }
@@ -250,7 +251,7 @@ export class AgencyChatService {
             systemPrompt,
             userMessage: message,
             temperature: 0.1,
-            maxOutputTokens: 2048,
+            maxOutputTokens: 4096,
             history: historyPrompt ? [{ role: "user", parts: [{ text: historyPrompt }] }] : [],
             tools,
             // DO NOT use responseSchema here if tools are present
@@ -279,6 +280,7 @@ export class AgencyChatService {
                         projectId: target_project_id || AGENCY_PROJECT_SENTINEL,
                         userId
                     }, args)
+                    this.logger.info(`Tool ${name} executed successfully`, { result })
 
                     return {
                         functionResponse: {
@@ -372,9 +374,9 @@ export class AgencyChatService {
                     signalProjectId = matched?.id ?? null
                 }
 
-                if (!signalProjectId && allProjects?.length) {
-                    this.logger.info("No target project resolved, defaulting to first project")
-                    signalProjectId = allProjects[0].id
+                if (!signalProjectId) {
+                    this.logger.info("No target project resolved, defaulting to Agency Sentinel")
+                    signalProjectId = AGENCY_PROJECT_SENTINEL
                 }
 
                 if (signalProjectId) {

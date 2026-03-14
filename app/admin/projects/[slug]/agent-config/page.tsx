@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { AdminHeader } from "@/features/agency/components/AdminHeader"
 
 // ─────────────────────────────────────────────
 // DATA SOURCE DEFINITIONS
@@ -140,7 +141,7 @@ function ToggleSwitch({
             type="button"
             disabled={disabled}
             onClick={() => onChange(!enabled)}
-            className={`relative h-7 w-12 rounded-full transition-all duration-300 ${enabled ? "bg-primary shadow-lg shadow-primary/30" : "bg-white/10"
+            className={`relative h-7 w-12 rounded-full transition-all duration-300 ${enabled ? "bg-primary shadow-lg shadow-primary/30" : "bg-muted"
                 } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
         >
             <span
@@ -288,7 +289,7 @@ export default function AgentConfigPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">Loading Agent Configuration...</p>
@@ -298,44 +299,33 @@ export default function AgentConfigPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#020617] relative">
-            {/* Background ambient effects */}
-            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/15 rounded-full blur-[120px] opacity-20 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-violet-500/10 rounded-full blur-[100px] opacity-15 pointer-events-none" />
+        <>
+            <AdminHeader 
+                title="AI Agent Intelligence" 
+                subtitle={`${projectName} • Neural Configuration`}
+            />
 
-            <div className="relative z-10 max-w-4xl mx-auto px-4 py-8 md:py-12">
-                {/* Back Navigation */}
-                <Link
-                    href={`/dashboard/${slug}`}
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
-                >
-                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-                    Back to {projectName} Dashboard
-                </Link>
+            <div className="flex-1 p-6 md:p-10 relative z-10 max-w-4xl mx-auto w-full">
+                {/* Back Link */}
+                <div className="mb-8">
+                    <Link
+                        href={`/dashboard/${slug}`}
+                        className="flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-primary transition-all uppercase tracking-widest group"
+                    >
+                        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                        Back to Portal
+                    </Link>
+                </div>
 
-                {/* Header */}
-                <div className="mb-10">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/30 to-violet-500/30 flex items-center justify-center border border-primary/20">
-                            <Settings className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                                AI Agent Configuration
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                {projectName}
-                            </p>
-                        </div>
-                    </div>
-                    <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl mt-4">
+                <div className="mb-10 text-center md:text-left">
+                    <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl">
                         Control which data sources feed the Growth Assistant for this project.
                         Disabled sources will not be searched during RAG queries — the agent won't reference them.
                     </p>
                 </div>
 
                 {/* Summary Bar */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 p-4 rounded-2xl glass-panel border border-white/5">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 p-4 rounded-2xl glass-panel border border-border">
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-2">
                             <div className="h-3 w-3 rounded-full bg-primary" />
@@ -343,7 +333,7 @@ export default function AgentConfigPage() {
                         </div>
                         {disabledCount > 0 && (
                             <div className="flex items-center gap-2">
-                                <div className="h-3 w-3 rounded-full bg-white/20" />
+                                <div className="h-3 w-3 rounded-full bg-muted" />
                                 <span className="text-sm text-muted-foreground">{disabledCount} disabled</span>
                             </div>
                         )}
@@ -357,7 +347,7 @@ export default function AgentConfigPage() {
                         >
                             Enable All
                         </Button>
-                        <span className="text-white/10">|</span>
+                        <span className="text-border">|</span>
                         <Button
                             variant="ghost"
                             size="sm"
@@ -377,13 +367,13 @@ export default function AgentConfigPage() {
                             <div
                                 key={ds.key}
                                 className={`p-5 rounded-2xl border transition-all duration-300 ${isEnabled
-                                    ? "glass-panel border-white/10 hover:border-white/15"
-                                    : "bg-white/[0.01] border-white/5 opacity-60 hover:opacity-80"
+                                    ? "glass-panel border-border hover:border-border/80"
+                                    : "bg-muted/5 border-border/50 opacity-60 hover:opacity-80"
                                     }`}
                             >
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex items-start gap-4 flex-1 min-w-0">
-                                        <div className={`h-10 w-10 rounded-xl flex items-center justify-center border shrink-0 transition-all ${isEnabled ? ds.color : "bg-white/5 text-muted-foreground border-white/10"
+                                        <div className={`h-10 w-10 rounded-xl flex items-center justify-center border shrink-0 transition-all ${isEnabled ? ds.color : "bg-muted text-muted-foreground border-border"
                                             }`}>
                                             <ds.icon className="h-5 w-5" />
                                         </div>
@@ -462,6 +452,6 @@ export default function AgentConfigPage() {
                     )}
                 </div>
             </div>
-        </div>
+        </>
     )
 }

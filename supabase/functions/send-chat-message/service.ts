@@ -130,7 +130,10 @@ export class ChatService {
             } else if (chunks) {
                 const filtered = chunks.filter((c: any) => allowedSourceTables.includes(c.source_table))
                 this.logger.info(`Vector search found ${filtered.length} relevant chunks (after filtering)`)
-                contextChunks.push(...filtered.slice(0, 8).map((c: any) => `[${c.source_table}] ${c.content_chunk}`))
+                contextChunks.push(...filtered.slice(0, 8).map((c: any) => {
+                    const status = c.is_processed ? "[PROCESSED] " : ""
+                    return `[${c.source_table}] ${status}(ID: ${c.source_id}) ${c.content}`
+                }))
             }
 
             // Layer 2: Past session summaries
