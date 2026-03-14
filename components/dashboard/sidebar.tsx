@@ -14,7 +14,8 @@ import {
     Building2,
     BookOpen,
     Bot,
-    BarChart3
+    BarChart3,
+    Plug
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -84,6 +85,12 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
             icon: BarChart3,
             label: "Metrics & Intelligence",
             active: pathname === `/dashboard/${projectSlug}/metrics`,
+        },
+        {
+            href: `/dashboard/${projectSlug}/connectors`,
+            icon: Plug,
+            label: "Connectors",
+            active: pathname === `/dashboard/${projectSlug}/connectors`,
         },
         {
             href: "/select-portal",
