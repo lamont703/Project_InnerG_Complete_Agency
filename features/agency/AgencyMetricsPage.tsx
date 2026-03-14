@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff, ThumbsUp, MessageSquare, Share2, Eye, Linkedin, BarChart3 } from "lucide-react"
+import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff, ThumbsUp, MessageSquare, Share2, Eye, Linkedin, BarChart3, Youtube, Video } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 // Modular Components
@@ -31,6 +31,7 @@ function AgencyMetricsContent() {
         strategicSignals,
         operationalSignals,
         linkedinMetrics,
+        youtubeMetrics,
         isLoading,
     } = useAgencyData()
 
@@ -137,6 +138,27 @@ function AgencyMetricsContent() {
             value: linkedinMetrics?.postViews?.toLocaleString() || "0",
             icon: Eye,
             color: "bg-teal-500/20 text-teal-400",
+        },
+        {
+            id: "youtube_subscribers",
+            label: "YT Subscribers",
+            value: youtubeMetrics?.subscribers?.toLocaleString() || "0",
+            icon: Youtube,
+            color: "bg-red-500/20 text-red-400",
+        },
+        {
+            id: "youtube_views",
+            label: "YouTube Views",
+            value: (youtubeMetrics?.views || 0) > 1000 ? (youtubeMetrics.views / 1000).toFixed(1) + "k" : youtubeMetrics?.views?.toLocaleString() || "0",
+            icon: Play,
+            color: "bg-red-600/20 text-red-400",
+        },
+        {
+            id: "youtube_video_count",
+            label: "YouTube Videos",
+            value: youtubeMetrics?.videos?.toLocaleString() || "0",
+            icon: Video,
+            color: "bg-rose-500/20 text-rose-400",
         }
     ]
 

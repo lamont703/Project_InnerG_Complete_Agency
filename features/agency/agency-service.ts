@@ -267,15 +267,54 @@ export class AgencyService {
     /**
      * Find the primary LinkedIn connection for the portfolio
      */
-    async getLinkedInConnection(): Promise<string | null> {
+    async getYouTubeConnection(): Promise<string | null> {
         const { data } = await this.supabase
             .from("client_db_connections")
             .select("id, connector_types!inner(provider)")
-            .eq("connector_types.provider", "linkedin")
+            .eq("connector_types.provider", "youtube")
             .eq("is_active", true)
             .limit(1)
             .maybeSingle()
 
         return data?.id || null
+    }
+
+    /**
+     * Fetch YouTube metrics for the agency project
+     */
+    async getYouTubeMetrics(projectSlug: string = "innergcomplete"): Promise<any> {
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("id")
+            .eq("slug", projectSlug)
+            .single()
+
+        let channels = null
+        if (project) {
+            const { data } = await this.supabase
+                .from("youtube_channels")
+                .select("*")
+                .eq("project_id", project.id)
+            channels = data
+        }
+
+        if (!channels || channels.length === 0) {
+            const { data: anyChannels } = await this.supabase
+                .from("youtube_channels")
+                .select("*")
+                .order("last_synced_at", { ascending: false })
+                .limit(1)
+            channels = anyChannels
+        }
+
+        if (!channels || channels.length === 0) return null
+
+        const primary = channels[0]
+        return {
+            subscribers: primary.subscriber_count,
+            views: primary.view_count,
+            videos: primary.video_count,
+            channelTitle: primary.title
+        }
     }
 }

@@ -49,7 +49,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         id: "youtube_subscribers",
         label: "YT Subscribers",
         description: "Total subscriber count across connected YouTube channels.",
-        category: 'marketing',
+        category: 'agency',
         type: 'kpi',
         permissions: ['client', 'admin', 'super-admin'],
         iconName: "Youtube"
@@ -58,7 +58,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         id: "youtube_views",
         label: "YouTube Views",
         description: "Total cumulative views from connected YouTube channel analytics.",
-        category: 'marketing',
+        category: 'agency',
         type: 'kpi',
         permissions: ['client', 'admin', 'super-admin'],
         iconName: "Play"
@@ -67,7 +67,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         id: "youtube_video_count",
         label: "YouTube Videos",
         description: "Total number of videos published on the connected YouTube channels.",
-        category: 'marketing',
+        category: 'agency',
         type: 'kpi',
         permissions: ['client', 'admin', 'super-admin'],
         iconName: "Video"

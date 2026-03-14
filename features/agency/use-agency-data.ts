@@ -18,6 +18,7 @@ export function useAgencyData() {
     const [operationalSignals, setOperationalSignals] = useState<OperationalSignal[]>([])
     const [socialDrafts, setSocialDrafts] = useState<any[]>([])
     const [linkedinMetrics, setLinkedinMetrics] = useState<any>(null)
+    const [youtubeMetrics, setYoutubeMetrics] = useState<any>(null)
 
     const [isLoading, setIsLoading] = useState(true)
     const [isSyncing, setIsSyncing] = useState(false)
@@ -45,16 +46,18 @@ export function useAgencyData() {
             setUserData(profile)
 
             // Parallel fetch for performance
-            const [projData, signalData, liMetrics] = await Promise.all([
+            const [projData, signalData, liMetrics, ytMetrics] = await Promise.all([
                 service.getActiveProjects(),
                 service.getAllAgencySignals(),
-                service.getLinkedInMetrics()
+                service.getLinkedInMetrics(),
+                service.getYouTubeMetrics()
             ])
 
             setProjects(projData)
             setStrategicSignals(signalData.strategic)
             setOperationalSignals(signalData.operational)
             setLinkedinMetrics(liMetrics)
+            setYoutubeMetrics(ytMetrics)
 
             const draftData = await service.getSocialDrafts()
             setSocialDrafts(draftData)
@@ -223,6 +226,7 @@ export function useAgencyData() {
         operationalSignals,
         socialDrafts,
         linkedinMetrics,
+        youtubeMetrics,
         isLoading,
         isSyncing,
         resolvingId,
