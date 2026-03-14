@@ -34,7 +34,7 @@ export class RagService {
         minSimilarity?: number
         includeAgencyKnowledge?: boolean
     }): Promise<RagResult[]> {
-        const { projectId, query, limit = 8, minSimilarity = 0.5, includeAgencyKnowledge = false } = params
+        const { projectId, query, limit = 10, minSimilarity = 0.35, includeAgencyKnowledge = false } = params
 
         // 1. Generate search vector
         const apiKey = getEnv("GEMINI_API_KEY")

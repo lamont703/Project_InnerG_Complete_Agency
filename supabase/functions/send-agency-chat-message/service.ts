@@ -66,8 +66,8 @@ export class AgencyChatService {
             this.logger.info("Performing agency-wide RAG search")
             const { data: chunks, error: rpcErr } = await this.adminClient.rpc("match_documents_agency", {
                 query_embedding: queryVector,
-                match_threshold: 0.45,
-                match_count: 8,
+                match_threshold: 0.3,
+                match_count: 20,
             })
 
             if (rpcErr) {
@@ -76,8 +76,7 @@ export class AgencyChatService {
                 this.logger.info(`RAG search found ${chunks.length} chunks`)
                 contextChunks.push(...chunks.map((c: any) => {
                     const projectLabel = c.project_id ? `[Project ${c.project_id}]` : "[Agency-Wide]"
-                    const status = c.is_processed ? "[PROCESSED] " : ""
-                    return `${projectLabel} (${c.source_table}) ${status}(ID: ${c.source_id}): ${c.content_chunk}`
+                    return `${projectLabel} (${c.source_table}) (ID: ${c.source_id}): ${c.content}`
                 }))
             }
         }

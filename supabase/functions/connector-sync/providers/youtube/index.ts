@@ -75,7 +75,10 @@ export async function syncYouTube(
             // 2. Sync Recent Videos for each channel
             const videos = await client.listRecentVideos(channel.id);
             for (const video of videos) {
-                const internalVideo = YouTubeTransformer.toInternalVideo(projectId, dbChannel.id, video);
+                // Try to fetch transcript
+                const transcript = await client.getVideoTranscript(video.id.videoId);
+                
+                const internalVideo = YouTubeTransformer.toInternalVideo(projectId, dbChannel.id, video, transcript || undefined);
                 await adminClient
                     .from("youtube_videos")
                     .upsert(internalVideo, { onConflict: "project_id, video_id" });

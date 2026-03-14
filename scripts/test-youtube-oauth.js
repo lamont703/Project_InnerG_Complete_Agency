@@ -25,7 +25,8 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
 
 const SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
-  'https://www.googleapis.com/auth/yt-analytics.readonly'
+  'https://www.googleapis.com/auth/yt-analytics.readonly',
+  'https://www.googleapis.com/auth/youtube.force-ssl'
 ];
 
 async function run() {

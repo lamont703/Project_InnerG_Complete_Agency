@@ -25,11 +25,12 @@ export class YouTubeTransformer {
         };
     }
 
-    static toInternalVideo(projectId: string, channelDbId: string, video: YouTubeVideoResponse): YouTubeInternalVideo {
+    static toInternalVideo(projectId: string, channelDbId: string, video: YouTubeVideoResponse, transcript?: string): YouTubeInternalVideo {
         return {
             project_id: projectId,
             channel_id: channelDbId,
             video_id: video.id.videoId,
+            video_url: `https://www.youtube.com/watch?v=${video.id.videoId}`,
             title: video.snippet.title,
             description: video.snippet.description,
             published_at: video.snippet.publishedAt,
@@ -37,6 +38,7 @@ export class YouTubeTransformer {
             view_count: parseInt(video.statistics?.viewCount || "0"),
             like_count: parseInt(video.statistics?.likeCount || "0"),
             comment_count: parseInt(video.statistics?.commentCount || "0"),
+            transcript,
             last_synced_at: new Date().toISOString()
         };
     }

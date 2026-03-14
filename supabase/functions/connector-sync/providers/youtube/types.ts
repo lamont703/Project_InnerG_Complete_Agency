@@ -58,6 +58,7 @@ export interface YouTubeInternalVideo {
     project_id: string;
     channel_id: string;
     video_id: string;
+    video_url: string;
     title: string;
     description: string;
     published_at: string;
@@ -65,5 +66,6 @@ export interface YouTubeInternalVideo {
     view_count: number;
     like_count: number;
     comment_count: number;
+    transcript?: string;
     last_synced_at: string;
 }

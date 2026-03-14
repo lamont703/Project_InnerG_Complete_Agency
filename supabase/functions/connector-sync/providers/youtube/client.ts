@@ -67,6 +67,48 @@ export class YouTubeClient {
     }
 
     /**
+     * Get video transcript (captions)
+     * Note: This requires the 'https://www.googleapis.com/auth/youtube.force-ssl' or 
+     * 'https://www.googleapis.com/auth/youtube.readonly' scope.
+     */
+    async getVideoTranscript(videoId: string): Promise<string | null> {
+        try {
+            // 1. List available captions
+            const captionData = await this.request<{ items: any[] }>(
+                `/captions?part=snippet&videoId=${videoId}`
+            );
+
+            if (!captionData.items || captionData.items.length === 0) return null;
+
+            // 2. Find the first track (preferably English or 'standard')
+            const track = captionData.items.find(i => i.snippet.language === "en") || captionData.items[0];
+            
+            // 3. Download the track
+            // Note: The download endpoint is different and returns binary/text content
+            const downloadUrl = `${this.baseUrl}/captions/${track.id}?tfmt=srt`;
+            const response = await fetch(downloadUrl, {
+                headers: {
+                    "Authorization": `Bearer ${this.accessToken}`,
+                    "Accept": "*/*"
+                }
+            });
+
+            if (!response.ok) return null;
+            
+            const text = await response.text();
+            // Clean up SRT tags if needed, or just return as is for Gemini to parse
+            return text.replace(/<[^>]*>/g, "").replace(/\d+\s+\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}/g, "").trim();
+        } catch (err: any) {
+            if (err.message.includes("(403)")) {
+                console.warn(`[YouTube Client] Skipping transcript for ${videoId}: Insufficient scopes (403). Ensure 'https://www.googleapis.com/auth/youtube.force-ssl' is included in your OAuth connection.`);
+            } else {
+                console.warn(`[YouTube Client] Could not fetch transcript for ${videoId}:`, err.message);
+            }
+            return null;
+        }
+    }
+
+    /**
      * List recent videos for a channel
      */
     async listRecentVideos(channelId: string, maxResults = 50): Promise<YouTubeVideoResponse[]> {

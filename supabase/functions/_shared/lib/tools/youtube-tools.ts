@@ -102,7 +102,8 @@ export const searchYoutubeKnowledgeTool: RegisteredTool = {
         const results = await rag.search({
             projectId: context.projectId,
             query: args.query,
-            limit: 10
+            limit: 50,
+            minSimilarity: 0.3
         })
 
         // Filter for youtube related tables

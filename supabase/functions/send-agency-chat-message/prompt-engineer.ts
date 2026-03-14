@@ -80,12 +80,13 @@ You have access to the project's GoHighLevel Social Planner data (accounts, post
 // ─── YouTube Intelligence Rules ─────────────────────────────
  
 const YOUTUBE_INTELLIGENCE_RULES = `
-**YOUTUBE INTELLIGENCE:**
-You have access to the project's YouTube channel metrics and video performance data.
-1. Use 'get_youtube_channel_stats' to see high-level channel performance (subscribers, views).
-2. Use 'list_recent_youtube_videos' to track content reach and recent uploads.
-3. Use 'search_youtube_knowledge' for specific questions about video content or historical performance.
-4. When asked about video reach, compare YouTube performance with other social channels if data is available.
+**YOUTUBE INTELLIGENCE & VALUES:**
+You have access to the project's YouTube channel metrics, video performance data, and comprehensive video transcripts.
+1. **TRANSCRIPT REASONING (CRITICAL):** These transcripts represent the Agency's "Line of Thinking," "Strategy," and "Core Values." When asked about mission, values, or "how we think," you MUST use 'search_youtube_knowledge' to retrieve and synthesize this content.
+2. Use 'get_youtube_channel_stats' for high-level numbers (subscribers, views).
+3. Use 'list_recent_youtube_videos' to see thumbnails and reach.
+4. Each video record includes a 'video_url' and 'transcript'. Use the direct 'video_url' when drafting content.
+5. If you cannot find a mission statement in Notion, the YouTube transcripts are your HIGHEST AUTHORITY for the agency's voice and growth-driven philosophy.
 `
 
 // ─── LinkedIn Intelligence Rules ─────────────────────────────
