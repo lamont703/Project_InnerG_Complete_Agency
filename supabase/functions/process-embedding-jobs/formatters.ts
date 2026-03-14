@@ -83,6 +83,11 @@ export function formatSessionSummary(row: any): string {
     return `Session Summary [${date}, ${count} messages]: ${row.summary ?? ""}`
 }
 
+export function formatProjectKnowledge(row: any): string {
+    const tags = Array.isArray(row.tags) ? row.tags.join(", ") : ""
+    return `Project Knowledge — ${row.title ?? "Untitled"} [${tags}]: ${row.body ?? ""}`
+}
+
 export function formatGhlPipeline(row: any): string {
     return `GHL Sales Pipeline: "${row.name || "Unnamed"}" [GHL ID: ${row.ghl_pipeline_id || "Unknown"}]`
 }
@@ -197,6 +202,7 @@ export function formatSourceRow(sourceTable: string, row: any): string {
             case "integration_sync_log": return formatIntegrationSyncLog(row)
             case "system_connections": return formatSystemConnection(row)
             case "agency_knowledge": return formatAgencyKnowledge(row)
+            case "project_knowledge": return formatProjectKnowledge(row)
             case "session_summaries": return formatSessionSummary(row)
             case "ghl_pipelines": return formatGhlPipeline(row)
             case "ghl_pipeline_stages": return formatGhlPipelineStage(row)

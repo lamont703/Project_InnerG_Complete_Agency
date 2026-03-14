@@ -93,45 +93,17 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
             active: pathname === `/dashboard/${projectSlug}/connectors`,
         },
         {
+            href: `/dashboard/${projectSlug}/knowledge`,
+            icon: BookOpen,
+            label: "Knowledge Base",
+            active: pathname === `/dashboard/${projectSlug}/knowledge`,
+        },
+        {
             href: "/select-portal",
             icon: Layout,
             label: "Switch Portal",
             active: pathname === "/select-portal",
         },
-    ]
-
-    // Admin-only items
-    const adminItems = [
-        {
-            href: "/dashboard/innergcomplete",
-            icon: Building2,
-            label: "Agency Command",
-            roleNeeded: "super_admin",
-        },
-        {
-            href: "/admin/knowledge",
-            icon: BookOpen,
-            label: "Knowledge CMS",
-            roleNeeded: "super_admin",
-        },
-        {
-            href: `/admin/projects/${projectSlug}/agent-config`,
-            icon: Bot,
-            label: "Agent Config",
-            roleNeeded: "super_admin",
-        },
-        {
-            href: "/admin/settings",
-            icon: Settings,
-            label: "Agency Settings",
-            roleNeeded: "super_admin",
-        },
-        {
-            href: "/admin/developers",
-            icon: ShieldCheck,
-            label: "Developer Portfolios",
-            roleNeeded: "super_admin",
-        }
     ]
 
     const SidebarContent = () => (
@@ -151,23 +123,6 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                         {item.label}
                     </Link>
                 ))}
-
-                {/* Role-Guarded Admin Items */}
-                {!isLoading && userRole === "super_admin" && (
-                    <div className="pt-6 mt-6 border-t border-border">
-                        <p className="px-4 mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">AGENCY ADMIN</p>
-                        {adminItems.map((item) => (
-                            <Link
-                                key={item.label}
-                                href={item.href}
-                                className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-secondary/50 transition-colors"
-                            >
-                                <item.icon className="h-5 w-5" />
-                                {item.label}
-                            </Link>
-                        ))}
-                    </div>
-                )}
             </nav>
 
             <div className="p-6 border-t border-border mt-auto">

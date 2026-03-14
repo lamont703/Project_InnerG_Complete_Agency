@@ -60,6 +60,7 @@ export const CONFIG_TO_SOURCE_TABLES: Record<string, string[]> = {
     notion_data_enabled: ["notion_pages"],
     tiktok_data_enabled: ["tiktok_accounts", "tiktok_videos"],
     news_intelligence_enabled: ["news_intelligence"],
+    project_knowledge_enabled: ["project_knowledge"],
 }
 
 // ─── Function Response ────────────────────────────────────
