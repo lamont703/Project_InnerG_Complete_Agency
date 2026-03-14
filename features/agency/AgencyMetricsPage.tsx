@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff, ThumbsUp, MessageSquare, Share2, Eye, Linkedin, BarChart3, Youtube, Video, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Facebook, Twitter, Music, AtSign } from "lucide-react"
 
 // Modular Components
 import { AgencySidebar } from "./components/AgencySidebar"
@@ -159,6 +160,102 @@ function AgencyMetricsContent() {
             value: youtubeMetrics?.videos?.toLocaleString() || "0",
             icon: Video,
             color: "bg-rose-500/20 text-rose-400",
+        },
+        // --- TIKTOK STUBS ---
+        {
+            id: "tiktok_followers",
+            label: "TikTok Followers",
+            value: "---",
+            icon: Music,
+            color: "bg-pink-500/20 text-pink-400",
+        },
+        {
+            id: "tiktok_views",
+            label: "TikTok Views",
+            value: "---",
+            icon: Play,
+            color: "bg-pink-600/20 text-pink-500",
+        },
+        {
+            id: "tiktok_likes",
+            label: "TikTok Likes",
+            value: "---",
+            icon: ThumbsUp,
+            color: "bg-rose-600/20 text-rose-500",
+        },
+        // --- FACEBOOK STUBS ---
+        {
+            id: "facebook_page_likes",
+            label: "Facebook Page Likes",
+            value: "---",
+            icon: Facebook,
+            color: "bg-blue-700/20 text-blue-500",
+        },
+        {
+            id: "facebook_reach",
+            label: "Facebook Reach",
+            value: "---",
+            icon: BarChart3,
+            color: "bg-blue-600/20 text-blue-400",
+        },
+        {
+            id: "facebook_engagement",
+            label: "Facebook Engagement",
+            value: "---",
+            icon: Zap,
+            color: "bg-blue-500/20 text-blue-300",
+        },
+        // --- INSTAGRAM AGENCY STUBS ---
+        {
+            id: "instagram_followers",
+            label: "Instagram Followers",
+            value: "---",
+            icon: Instagram,
+            color: "bg-gradient-to-tr from-yellow-500/10 via-red-500/10 to-purple-500/10 text-pink-500",
+        },
+        {
+            id: "instagram_reach",
+            label: "Instagram Reach",
+            value: "---",
+            icon: BarChart3,
+            color: "bg-purple-500/20 text-purple-400",
+        },
+        // --- THREADS STUBS ---
+        {
+            id: "threads_followers",
+            label: "Threads Followers",
+            value: "---",
+            icon: AtSign,
+            color: "bg-neutral-500/20 text-neutral-400",
+        },
+        {
+            id: "threads_likes",
+            label: "Threads Likes",
+            value: "---",
+            icon: ThumbsUp,
+            color: "bg-neutral-600/20 text-neutral-300",
+        },
+        // --- X (TWITTER) STUBS ---
+        {
+            id: "twitter_followers",
+            label: "X Followers",
+            value: "---",
+            icon: Twitter,
+            color: "bg-sky-500/20 text-sky-400",
+        },
+        {
+            id: "twitter_impressions",
+            label: "X Impressions",
+            value: "---",
+            icon: BarChart3,
+            color: "bg-sky-600/20 text-sky-500",
+        },
+        {
+            id: "twitter_engagement",
+            label: "X Engagement",
+            value: "---",
+            icon: Zap,
+            color: "bg-sky-400/20 text-sky-300",
         }
     ]
 

@@ -181,6 +181,133 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         type: 'kpi',
         permissions: ['admin', 'super-admin'],
         iconName: "Eye"
+    },
+
+    // --- TIKTOK ARCHITECTURE STUBS ---
+    {
+        id: "tiktok_followers",
+        label: "TikTok Followers",
+        description: "Total follower count across connected TikTok profiles.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Music"
+    },
+    {
+        id: "tiktok_views",
+        label: "TikTok Views",
+        description: "Total video views across TikTok content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Play"
+    },
+    {
+        id: "tiktok_likes",
+        label: "TikTok Likes",
+        description: "Aggregated heart count across all TikTok publications.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "ThumbsUp"
+    },
+
+    // --- FACEBOOK ARCHITECTURE STUBS ---
+    {
+        id: "facebook_page_likes",
+        label: "Facebook Page Likes",
+        description: "Total community size for connected Facebook Organization Pages.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Facebook"
+    },
+    {
+        id: "facebook_reach",
+        label: "Facebook Reach",
+        description: "Total unique users who saw Facebook content in their feed.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "BarChart3"
+    },
+    {
+        id: "facebook_engagement",
+        label: "Facebook Engagement",
+        description: "Total interactions (likes, shares, comments) on Facebook posts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Zap"
+    },
+
+    // --- INSTAGRAM ARCHITECTURE (AGENCY LEVEL) ---
+    {
+        id: "instagram_followers",
+        label: "Instagram Followers",
+        description: "Total follower count for Agency-managed Instagram profiles.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Instagram"
+    },
+    {
+        id: "instagram_reach",
+        label: "Instagram Reach",
+        description: "Total unique accounts reached across Instagram feed and stories.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "BarChart3"
+    },
+
+    // --- THREADS ARCHITECTURE STUBS ---
+    {
+        id: "threads_followers",
+        label: "Threads Followers",
+        description: "Total follower count across connected Threads accounts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "AtSign"
+    },
+    {
+        id: "threads_likes",
+        label: "Threads Likes",
+        description: "Total likes aggregated across all Threads posts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "ThumbsUp"
+    },
+
+    // --- X (TWITTER) ARCHITECTURE STUBS ---
+    {
+        id: "twitter_followers",
+        label: "X (Twitter) Followers",
+        description: "Total follower count across connected X/Twitter accounts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Twitter"
+    },
+    {
+        id: "twitter_impressions",
+        label: "X (Twitter) Impressions",
+        description: "Total number of times X/Twitter posts were seen.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "BarChart3"
+    },
+    {
+        id: "twitter_engagement",
+        label: "X (Twitter) Engagement",
+        description: "Total interactions recorded across the X content archive.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Zap"
     }
 ]
 

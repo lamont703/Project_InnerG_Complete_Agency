@@ -18,6 +18,10 @@ import {
     Eye,
     Video,
     UserCheck,
+    Music,
+    Facebook,
+    AtSign,
+    Twitter
 } from "lucide-react"
 
 export const SLOT_ICON_MAP: Record<string, any> = {
@@ -39,7 +43,11 @@ export const SLOT_ICON_MAP: Record<string, any> = {
     Share2,
     Eye,
     Video,
-    UserCheck
+    UserCheck,
+    Music,
+    Facebook,
+    AtSign,
+    Twitter
 }
 
 export function getIcon(name: string) {
