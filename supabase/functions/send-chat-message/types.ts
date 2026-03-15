@@ -47,7 +47,7 @@ export interface ChatMessage {
 
 /** Maps agent_config boolean flags to RAG source_table values */
 export const CONFIG_TO_SOURCE_TABLES: Record<string, string[]> = {
-    campaign_metrics_enabled: ["campaign_metrics"],
+    campaign_metrics_enabled: ["campaign_metrics", "ghl_social_posts", "ghl_social_insights", "ghl_social_accounts", "social_content_plan"],
     ai_signals_enabled: ["ai_signals"],
     activity_log_enabled: ["activity_log", "activity_log_daily"],
     ghl_contacts_enabled: ["ghl_contacts", "ghl_contacts_daily", "ghl_pipelines", "ghl_pipeline_stages", "ghl_opportunities"],

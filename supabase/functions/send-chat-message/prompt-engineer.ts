@@ -121,8 +121,9 @@ You have access to the project's internal knowledge base, containing company-spe
 1. The **Relevant Context (RAG)** section below contains snippets from this knowledge base labeled as [KNOWLEDGE BASE].
 2. This is your **PRIMARY** source for facts about the business (e.g., what books are for sale, company policies, project history).
 3. If a user asks about something specific to their business (like "what books do we have?"), always look into the [KNOWLEDGE BASE] snippets first before telling the user you don't know.
-4. **Business Metrics:** Use 'get_project_metrics' to fetch high-level sales totals, order counts, and inventory values. This provides the most accurate business performance data.
-5. If you see [PROCESSED] news, it means a social post has already been created for that content.
+4. **Business Metrics:** ALWAYS use 'get_project_metrics' to fetch high-level sales totals, order counts, and inventory values. Do NOT rely on RAG context or conversation history for these figures, as the tool provides the live, aggregated truth.
+5. **Product Performance & Catalog:** Use 'get_project_metrics' to see which specific books or products are selling, and to get the full list of books currently in the store catalog. This provides the most accurate count of your inventory.
+6. If you see [PROCESSED] news, it means a social post has already been created for that content.
 `
 
 // ─── Content Orchestration Rules ─────────────────────────────
@@ -193,6 +194,14 @@ export function buildSystemPrompt(params: {
 }): string {
     const { projectName, enabledSources, ragContext, recentSummary } = params
 
+    const hasGithub = enabledSources.some(s => s.includes("campaign") || s.includes("github"))
+    const hasSocial = enabledSources.some(s => s.includes("campaign") || s.includes("social"))
+    const hasYoutube = enabledSources.some(s => s.includes("youtube"))
+    const hasLinkedin = enabledSources.some(s => s.includes("linkedin"))
+    const hasNotion = enabledSources.some(s => s.includes("notion"))
+    const hasTiktok = enabledSources.some(s => s.includes("tiktok"))
+    const hasNews = enabledSources.some(s => s.includes("news"))
+
     const sourceList = enabledSources.length > 0
         ? enabledSources.join(", ")
         : "general knowledge only"
@@ -210,7 +219,7 @@ You have access to the following data: ${sourceList}.
 ## Relevant Context (RAG)
 ${ragContext || "No specific context available. Answer from general knowledge."}
 
-${recentSummary ? `## Recent Conversation Memory\n${recentSummary}` : ""}
+${recentSummary ? `## System Constraints\n${recentSummary}` : ""}
 
 ## Response Rules
 ${RESPONSE_FORMAT_CONTRACT}
@@ -221,26 +230,19 @@ ${SIGNAL_CREATION_RULES}
 ## Bug Support Rules
 ${BUG_REPORTING_PROTOCOL}
 
-## GitHub & Tech Intelligence
-${GITHUB_INTELLIGENCE_RULES}
+${hasGithub ? `## GitHub & Tech Intelligence\n${GITHUB_INTELLIGENCE_RULES}` : ""}
 
-## Social Media & Content Strategy
-${SOCIAL_PLANNER_RULES}
+${hasSocial ? `## Social Media & Content Strategy\n${SOCIAL_PLANNER_RULES}` : ""}
 
-## YouTube & Video Strategy
-${YOUTUBE_INTELLIGENCE_RULES}
+${hasYoutube ? `## YouTube & Video Strategy\n${YOUTUBE_INTELLIGENCE_RULES}` : ""}
  
-## LinkedIn & Professional Branding
-${LINKEDIN_INTELLIGENCE_RULES}
+${hasLinkedin ? `## LinkedIn & Professional Branding\n${LINKEDIN_INTELLIGENCE_RULES}` : ""}
 
-## Notion & Knowledge Management
-${NOTION_INTELLIGENCE_RULES}
+${hasNotion ? `## Notion & Knowledge Management\n${NOTION_INTELLIGENCE_RULES}` : ""}
 
-## TikTok & Viral Growth
-${TIKTOK_INTELLIGENCE_RULES}
+${hasTiktok ? `## TikTok & Viral Growth\n${TIKTOK_INTELLIGENCE_RULES}` : ""}
 
-## Industry & Trending News
-${NEWS_INTELLIGENCE_RULES}
+${hasNews ? `## Industry & Trending News\n${NEWS_INTELLIGENCE_RULES}` : ""}
 
 ## Project Knowledge & Internal Data
 ${PROJECT_KNOWLEDGE_RULES}
