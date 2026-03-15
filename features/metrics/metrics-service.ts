@@ -17,9 +17,50 @@ import {
     Video
 } from "lucide-react"
 import { Metric, RawMetricRecord } from "./types"
+import { getIcon } from "./utils/icon-map"
 
 export class MetricsService {
     constructor(private supabase: SupabaseClient) { }
+
+    private async getKnowledgeAggregates(projectId: string) {
+        const { data: knowledge, error } = await this.supabase
+            .from("project_knowledge")
+            .select("tags, body")
+            .eq("project_id", projectId);
+
+        if (error || !knowledge) return null;
+
+        let activeReaders = 0;
+        let totalSales = 0;
+        let orderCount = 0;
+        let inventoryValue = 0;
+
+        for (const item of knowledge) {
+            const tags = item.tags || [];
+            const body = item.body || "";
+            
+            const jsonStart = body.indexOf('{');
+            const jsonEnd = body.lastIndexOf('}');
+            if (jsonStart === -1 || jsonEnd === -1) continue;
+            
+            try {
+                const data = JSON.parse(body.substring(jsonStart, jsonEnd + 1));
+                
+                if (tags.includes("users")) {
+                    activeReaders++;
+                } else if (tags.includes("orders")) {
+                    orderCount++;
+                    totalSales += (Number(data.total) || 0);
+                } else if (tags.includes("book_variants")) {
+                    inventoryValue += (Number(data.price) || 0);
+                }
+            } catch (e) { /* ignore parse errors */ }
+        }
+
+        const avgOrderValue = orderCount > 0 ? totalSales / orderCount : 0;
+
+        return { activeReaders, totalSales, orderCount, inventoryValue, avgOrderValue };
+    }
 
     // Helper to calc growth
     private calcGrowth(curr: number, prev: number): string {
@@ -240,6 +281,69 @@ export class MetricsService {
             }
         ]
 
+        // --- KANE'S BOOKSTORE SPECIFIC DATA (MOCK/LIVE HYBRID) ---
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("slug, name")
+            .eq("id", projectId)
+            .single()
+
+        if (project?.slug === 'kanes-bookstore' || project?.name?.toLowerCase().includes('kane')) {
+            const aggregates = await this.getKnowledgeAggregates(projectId);
+            if (aggregates) {
+                metrics.push(
+                    {
+                        id: "bookstore_inventory_value",
+                        label: "Inventory Asset Value",
+                        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(aggregates.inventoryValue),
+                        growth: "+2.4%",
+                        icon: getIcon("HardDrive"),
+                        color: "text-blue-500 bg-blue-500/10",
+                    },
+                    {
+                        id: "active_readers",
+                        label: "Active Reader Base",
+                        value: aggregates.activeReaders.toLocaleString(),
+                        growth: "+12.5%",
+                        icon: getIcon("BookOpen"),
+                        color: "text-emerald-500 bg-emerald-500/10",
+                    },
+                    {
+                        id: "monthly_book_sales",
+                        label: "Monthly Sales Velocity",
+                        value: aggregates.totalSales.toLocaleString(),
+                        growth: "+5.2%",
+                        icon: getIcon("TrendingUp"),
+                        color: "text-orange-500 bg-orange-500/10",
+                    },
+                    {
+                        id: "bookstore_total_orders",
+                        label: "Total Orders",
+                        value: aggregates.orderCount.toLocaleString(),
+                        growth: "+8.1%",
+                        icon: getIcon("ShoppingBag"),
+                        color: "text-purple-500 bg-purple-500/10",
+                    },
+                    {
+                        id: "bookstore_total_sales_value",
+                        label: "Total Order Value",
+                        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(aggregates.totalSales),
+                        growth: "+4.2%",
+                        icon: getIcon("DollarSign"),
+                        color: "text-emerald-500 bg-emerald-500/10",
+                    },
+                    {
+                        id: "bookstore_avg_order_value",
+                        label: "Average Order Value",
+                        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(aggregates.avgOrderValue),
+                        growth: "+1.5%",
+                        icon: getIcon("Calculator"),
+                        color: "text-indigo-500 bg-indigo-500/10",
+                    }
+                )
+            }
+        }
+
         // Fetch Pipeline Specific Stats
         const { data: freelancerPipe } = await this.supabase
             .from("ghl_pipelines")
@@ -368,6 +472,69 @@ export class MetricsService {
                 color: "text-[#0077b5] bg-[#0077b5]/10",
             }
         ]
+
+        // --- KANE'S BOOKSTORE SPECIFIC DATA ---
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("slug, name")
+            .eq("id", projectId)
+            .single()
+
+        if (project?.slug === 'kanes-bookstore' || project?.name?.toLowerCase().includes('kane')) {
+            const aggregates = await this.getKnowledgeAggregates(projectId);
+            if (aggregates) {
+                metrics.push(
+                    {
+                        id: "bookstore_inventory_value",
+                        label: "Inventory Asset Value",
+                        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(aggregates.inventoryValue),
+                        growth: "+0%",
+                        icon: getIcon("HardDrive"),
+                        color: "text-blue-500 bg-blue-500/10",
+                    },
+                    {
+                        id: "active_readers",
+                        label: "Active Reader Base",
+                        value: aggregates.activeReaders.toLocaleString(),
+                        growth: "+0%",
+                        icon: getIcon("BookOpen"),
+                        color: "text-emerald-500 bg-emerald-500/10",
+                    },
+                    {
+                        id: "monthly_book_sales",
+                        label: "Monthly Sales Velocity",
+                        value: aggregates.totalSales.toLocaleString(),
+                        growth: "+0%",
+                        icon: getIcon("TrendingUp"),
+                        color: "text-orange-500 bg-orange-500/10",
+                    },
+                    {
+                        id: "bookstore_total_orders",
+                        label: "Total Orders",
+                        value: aggregates.orderCount.toLocaleString(),
+                        growth: "+0%",
+                        icon: getIcon("ShoppingBag"),
+                        color: "text-purple-500 bg-purple-500/10",
+                    },
+                    {
+                        id: "bookstore_total_sales_value",
+                        label: "Total Order Value",
+                        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(aggregates.totalSales),
+                        growth: "+0%",
+                        icon: getIcon("DollarSign"),
+                        color: "text-emerald-500 bg-emerald-500/10",
+                    },
+                    {
+                        id: "bookstore_avg_order_value",
+                        label: "Average Order Value",
+                        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(aggregates.avgOrderValue),
+                        growth: "+0%",
+                        icon: getIcon("Calculator"),
+                        color: "text-indigo-500 bg-indigo-500/10",
+                    }
+                )
+            }
+        }
 
         return metrics
     }

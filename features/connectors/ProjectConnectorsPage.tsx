@@ -218,6 +218,18 @@ export function ProjectConnectorsPage() {
                                                 <span className="text-muted-foreground uppercase tracking-widest font-bold">Last Pulse</span>
                                                 <span className="text-foreground font-bold">{formatDate(conn.last_synced_at)}</span>
                                             </div>
+                                            {(conn.sync_config?.tables_to_sync || []).length > 0 && (
+                                                <div className="pt-2">
+                                                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold block mb-2">Syncing Tables</span>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {(conn.sync_config.tables_to_sync as string[]).map(t => (
+                                                            <span key={t} className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-bold text-emerald-400 capitalize">
+                                                                {t}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="mt-8 flex items-center gap-2 text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500">

@@ -14,6 +14,7 @@ import { getIcon } from "@/features/metrics/utils/icon-map"
 import { createBrowserClient } from "@/lib/supabase/browser"
 
 export function ProjectMetricsPage() {
+    const params = useParams()
     const [role, setRole] = useState<'client' | 'admin' | 'super-admin'>('client')
     const [userData, setUserData] = useState<{ name: string; role: string } | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -55,7 +56,7 @@ export function ProjectMetricsPage() {
     }
 
     return (
-        <SlotProvider userRole={role}>
+        <SlotProvider userRole={role} projectSlug={params?.slug as string}>
             <ProjectMetricsContent initialUserData={userData} />
         </SlotProvider>
     )

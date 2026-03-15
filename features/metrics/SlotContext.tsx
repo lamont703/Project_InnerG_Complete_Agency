@@ -15,18 +15,20 @@ const SlotContext = createContext<SlotContextType | undefined>(undefined)
 
 export function SlotProvider({
     children,
-    userRole = 'client'
+    userRole = 'client',
+    projectSlug
 }: {
     children: React.ReactNode,
     userRole?: 'client' | 'admin' | 'super-admin'
+    projectSlug?: string
 }) {
-    const storageKey = `dashboard_active_slots_${userRole}`
+    const storageKey = `dashboard_active_slots_${userRole}_${projectSlug || 'default'}`
     const [activeSlotIds, setActiveSlotIds] = useState<string[]>([])
     const [availableSlots, setAvailableSlots] = useState<MetricSlot[]>([])
     const [isInitialized, setIsInitialized] = useState(false)
 
     useEffect(() => {
-        const slots = getAvailableSlots(userRole)
+        const slots = getAvailableSlots(userRole, projectSlug)
         setAvailableSlots(slots)
 
         // Load from persistence
@@ -39,7 +41,7 @@ export function SlotProvider({
             }
         }
         setIsInitialized(true)
-    }, [userRole, storageKey])
+    }, [userRole, projectSlug, storageKey])
 
     useEffect(() => {
         if (isInitialized) {

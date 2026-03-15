@@ -137,6 +137,10 @@ export default function ConnectorAdminPage() {
     const [fetchedRepos, setFetchedRepos] = useState<string[]>([])
     const [isFetchingRepos, setIsFetchingRepos] = useState(false)
 
+    // Supabase Table Discovery
+    const [availableTables, setAvailableTables] = useState<string[]>([])
+    const [isDiscoveringTables, setIsDiscoveringTables] = useState(false)
+
     useEffect(() => {
         loadData()
     }, [])
@@ -276,6 +280,57 @@ export default function ConnectorAdminPage() {
             alert("Failed to fetch repositories. Check your token permissions (repo scope required).")
         } finally {
             setIsFetchingRepos(false)
+        }
+    }
+
+    const handleDiscoverSupabaseTables = async (isEdit = false, connectionId?: string) => {
+        const config = isEdit ? editConfig : newConfig
+        const url = config.supabase_url
+        const key = config.supabase_service_role_key
+
+        if (!url || !key) {
+            alert("Please provide both Supabase URL and Service Role Key first.")
+            return
+        }
+
+        setIsDiscoveringTables(true)
+        try {
+            const supabase = createBrowserClient()
+            const { data, error } = await supabase.functions.invoke("discover-external-tables", {
+                body: {
+                    provider: "supabase",
+                    config: { supabase_url: url, supabase_service_role_key: key }
+                }
+            })
+
+            if (error) throw error
+            const result = data?.data
+            if (result && result.success) {
+                setAvailableTables(result.tables)
+            } else {
+                throw new Error(result?.error || "Discovery failed")
+            }
+        } catch (err: any) {
+            console.error("[Connectors] Discovery failed:", err)
+            alert(`Failed to discover tables: ${err.message}`)
+        } finally {
+            setIsDiscoveringTables(false)
+        }
+    }
+
+    const toggleTableSelection = (table: string, isEdit = false) => {
+        if (isEdit) {
+            const current = editConfig.tables_to_sync || []
+            const next = current.includes(table)
+                ? current.filter((t: string) => t !== table)
+                : [...current, table]
+            setEditConfig(prev => ({ ...prev, tables_to_sync: next }))
+        } else {
+            const current = newConfig.tables_to_sync || []
+            const next = current.includes(table)
+                ? current.filter((t: string) => t !== table)
+                : [...current, table]
+            setNewConfig(prev => ({ ...prev, tables_to_sync: next }))
         }
     }
 
@@ -464,6 +519,63 @@ export default function ConnectorAdminPage() {
                                                                 <option key={repo} value={repo}>{repo}</option>
                                                             ))}
                                                         </select>
+                                                    ) : key === "tables_to_sync" && selectedType?.provider === "supabase" ? (
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-center justify-between gap-4">
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    disabled={isDiscoveringTables || !newConfig.supabase_url || !newConfig.supabase_service_role_key}
+                                                                    onClick={() => handleDiscoverSupabaseTables(false)}
+                                                                    className="h-8 text-[10px] font-black uppercase tracking-widest gap-2 bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                                                                >
+                                                                    {isDiscoveringTables ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCcw className="h-3 w-3" />}
+                                                                    {availableTables.length > 0 ? "Refresh Tables" : "Discover Tables"}
+                                                                </Button>
+                                                                {availableTables.length > 0 && (
+                                                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                                                                        {availableTables.length} Found
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            {availableTables.length > 0 && (
+                                                                <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 max-h-40 overflow-y-auto custom-scrollbar">
+                                                                    {availableTables.map(table => {
+                                                                        const isSelected = (newConfig.tables_to_sync || []).includes(table)
+                                                                        return (
+                                                                            <label 
+                                                                                key={table} 
+                                                                                className={`flex items-center gap-2 group cursor-pointer p-2 rounded-lg transition-colors ${isSelected ? 'bg-emerald-500/20' : 'hover:bg-white/5'}`}
+                                                                            >
+                                                                                <input 
+                                                                                    type="checkbox" 
+                                                                                    className="hidden" 
+                                                                                    checked={isSelected}
+                                                                                    onChange={() => toggleTableSelection(table, false)}
+                                                                                />
+                                                                                <div className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-white/20'}`}>
+                                                                                    {isSelected && <CheckCircle2 className="h-3 w-3" />}
+                                                                                </div>
+                                                                                <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-emerald-400' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                                                                                    {table}
+                                                                                </span>
+                                                                            </label>
+                                                                        )
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                            {(newConfig.tables_to_sync || []).length > 0 && (
+                                                                <div className="flex flex-wrap gap-1.5">
+                                                                    {(newConfig.tables_to_sync || []).map((t: string) => (
+                                                                        <span key={t} className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-bold text-emerald-400">
+                                                                            {t}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     ) : (
                                                         <>
                                                             <Input
@@ -700,6 +812,63 @@ export default function ConnectorAdminPage() {
                                                                             onChange={(e) => setEditConfig(p => ({ ...p, [key]: e.target.checked }))}
                                                                             className="rounded border-white/20"
                                                                         />
+                                                                    ) : key === "tables_to_sync" && conn.db_type === "supabase" ? (
+                                                                        <div className="space-y-3">
+                                                                            <div className="flex items-center justify-between gap-4">
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    size="sm"
+                                                                                    variant="outline"
+                                                                                    disabled={isDiscoveringTables || !editConfig.supabase_url || !editConfig.supabase_service_role_key}
+                                                                                    onClick={() => handleDiscoverSupabaseTables(true)}
+                                                                                    className="h-7 text-[10px] font-black uppercase tracking-widest gap-2 bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                                                                                >
+                                                                                    {isDiscoveringTables ? <Loader2 className="h-2 w-2 animate-spin" /> : <RefreshCcw className="h-2 w-2" />}
+                                                                                    {availableTables.length > 0 ? "Refresh Tables" : "Discover Tables"}
+                                                                                </Button>
+                                                                                {availableTables.length > 0 && (
+                                                                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                                                                                        {availableTables.length} Found
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+
+                                                                            {availableTables.length > 0 && (
+                                                                                <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 max-h-40 overflow-y-auto custom-scrollbar">
+                                                                                    {availableTables.map(table => {
+                                                                                        const isSelected = (editConfig.tables_to_sync || []).includes(table)
+                                                                                        return (
+                                                                                            <label 
+                                                                                                key={table} 
+                                                                                                className={`flex items-center gap-2 group cursor-pointer p-2 rounded-lg transition-colors ${isSelected ? 'bg-emerald-500/20' : 'hover:bg-white/5'}`}
+                                                                                            >
+                                                                                                <input 
+                                                                                                    type="checkbox" 
+                                                                                                    className="hidden" 
+                                                                                                    checked={isSelected}
+                                                                                                    onChange={() => toggleTableSelection(table, true)}
+                                                                                                />
+                                                                                                <div className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-white/20'}`}>
+                                                                                                    {isSelected && <CheckCircle2 className="h-3 w-3" />}
+                                                                                                </div>
+                                                                                                <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-emerald-400' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                                                                                                    {table}
+                                                                                                </span>
+                                                                                            </label>
+                                                                                        )
+                                                                                    })}
+                                                                                </div>
+                                                                            )}
+                                                                            {(editConfig.tables_to_sync || []).length > 0 && (
+                                                                                <div className="flex flex-wrap gap-1.5">
+                                                                                    {(editConfig.tables_to_sync || []).map((t: string) => (
+                                                                                        <span key={t} className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-bold text-emerald-400">
+                                                                                            {t}
+                                                                                        </span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
                                                                     ) : (
                                                                         <Input
                                                                             type={isSensitive ? "password" : "text"}

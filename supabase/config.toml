@@ -126,3 +126,6 @@ verify_jwt = false
 
 [functions.ghl-social-sync]
 verify_jwt = false
+
+[functions.discover-external-tables]
+verify_jwt = false
