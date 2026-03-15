@@ -13,9 +13,13 @@ import { MetricSlotGrid } from "@/features/metrics/components/MetricSlotGrid"
 import { SlotProvider, useSlotContext } from "@/features/metrics/SlotContext"
 import { getIcon } from "@/features/metrics/utils/icon-map"
 import { useAdminSidebar } from "./context/AdminSidebarContext"
+import { SignalSlotFeed } from "@/features/signals/components/SignalSlotFeed"
+
 
 // Hooks
 import { useAgencyData } from "./use-agency-data"
+import { SignalService } from "@/features/signals/signal-service"
+
 
 export function AgencyMetricsPage() {
     return (
@@ -39,6 +43,15 @@ function AgencyMetricsContent() {
     const params = useParams()
     const { activeSlotIds, availableSlots, toggleSlot } = useSlotContext()
     const { isSidebarOpen, setIsSidebarOpen } = useAdminSidebar()
+    const { resolveSignal, deleteDraft } = useAgencyData()
+
+    // Combine and map signals for the feed
+    const allSignals = [...strategicSignals, ...operationalSignals]
+        .map(s => SignalService.mapRecordToSignal(s as any))
+        .sort((a, b) => {
+            return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        })
+
 
     const [currentTime, setCurrentTime] = useState(new Date())
     const [mounted, setMounted] = useState(false)
@@ -310,6 +323,27 @@ function AgencyMetricsContent() {
                             className="!mb-0"
                         />
                     </section>
+                    
+                    {/* Intelligence Feed Section */}
+                    <section className="mb-16">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="h-8 w-8 rounded-lg bg-violet-500/10 flex items-center justify-center border border-violet-500/20">
+                                <Sparkles className="h-4 w-4 text-violet-400" />
+                            </div>
+                            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground">Agency Intelligence Feed</h2>
+                        </div>
+                        
+                        <div className="h-[500px]">
+                            <SignalSlotFeed
+                                slotId="global_portfolio_monitoring"
+                                signals={allSignals as any}
+                                isAgencyMode={true}
+                                onResolve={resolveSignal}
+                                onDeleteAction={deleteDraft}
+                            />
+                        </div>
+                    </section>
+
 
                     {/* Slot Registry Management */}
                     <section>

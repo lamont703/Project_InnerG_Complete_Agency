@@ -241,7 +241,7 @@ export class AgencyChatService {
         })
 
         // ── Step 9: Call Gemini (with Tool Loop) ────────────
-        this.logger.info(`Step 9: Calling Gemini v1beta API (${model}) with Tool Capabilities`)
+        this.logger.info(`Step 9: Calling Gemini v1beta API (${model}) with Multi-Step Tool Capabilities`)
         const registry = createDefaultRegistry()
         const tools = [{ functionDeclarations: registry.getDefinitions() }]
 
@@ -253,7 +253,6 @@ export class AgencyChatService {
             maxOutputTokens: 4096,
             history: historyPrompt ? [{ role: "user", parts: [{ text: historyPrompt }] }] : [],
             tools,
-            // DO NOT use responseSchema here if tools are present
         }
 
         let geminiResult = await generateContent(generateOptions, this.geminiApiKey).catch(err => {
@@ -261,15 +260,20 @@ export class AgencyChatService {
             throw err
         })
 
-        // Tool Loop: If Gemini wants to use its hands, let it.
-        const modelParts = (geminiResult.rawData as any).candidates?.[0]?.content?.parts || []
-        const toolCalls = modelParts.filter((p: any) => p.functionCall)
+        const toolHistory: any[] = [{ role: "user", parts: [{ text: message }] }]
+        let loopCount = 0
+        const MAX_LOOPS = 4 // Allow up to 4 tool-use steps (e.g. Search -> Think -> Create -> Finish)
 
-        if (toolCalls.length > 0) {
-            this.logger.info(`Gemini requested ${toolCalls.length} tool calls`)
+        while (loopCount < MAX_LOOPS) {
+            const modelParts = (geminiResult.rawData as any).candidates?.[0]?.content?.parts || []
+            const toolCalls = modelParts.filter((p: any) => p.functionCall)
+
+            if (toolCalls.length === 0) break // No more tools needed
+
+            this.logger.info(`Loop ${loopCount + 1}: Gemini requested ${toolCalls.length} tool calls`)
+            toolHistory.push({ role: "model", parts: toolCalls })
 
             try {
-                // 1. Execute all tools in parallel
                 const functionResponses = await Promise.all(toolCalls.map(async (part: any) => {
                     const { name, args } = part.functionCall
                     this.logger.info(`Executing tool: ${name}`, { args })
@@ -279,7 +283,7 @@ export class AgencyChatService {
                         projectId: target_project_id || AGENCY_PROJECT_SENTINEL,
                         userId
                     }, args)
-                    this.logger.info(`Tool ${name} executed successfully`, { result })
+                    this.logger.info(`Tool ${name} executed successfully`)
 
                     return {
                         functionResponse: {
@@ -289,37 +293,32 @@ export class AgencyChatService {
                     }
                 }))
 
-                this.logger.info(`All ${toolCalls.length} tools executed successfully`)
+                toolHistory.push({ role: "function", parts: functionResponses as any })
 
-                // 2. Feed the results back to Gemini for final summary
+                // Call Gemini again with the tool results
                 geminiResult = await generateContent({
                     ...generateOptions,
-                    tools: undefined, // CRITICAL: Cannot use tools and responseSchema together
-                    history: [
-                        { role: "user", parts: [{ text: message }] },
-                        { role: "model", parts: toolCalls },
-                        { role: "function", parts: functionResponses as any }
-                    ],
-                    // NOW we force JSON mode for the final structural dashboard update
-                    responseSchema: AGENCY_RESPONSE_SCHEMA as any
+                    history: toolHistory
                 }, this.geminiApiKey)
+
+                loopCount++
             } catch (toolErr) {
-                this.logger.error(`Parallel tool execution failed`, toolErr)
-                // Fallback to second call without tools but with schema if execution failed
-                geminiResult = await generateContent({
-                    ...generateOptions,
-                    tools: undefined,
-                    responseSchema: AGENCY_RESPONSE_SCHEMA as any
-                }, this.geminiApiKey)
+                this.logger.error(`Tool loop execution failed at loop ${loopCount}`, toolErr)
+                break 
             }
-        } else {
-            // No tool called, but we still need the structural JSON for the dashboard
-            geminiResult = await generateContent({
-                ...generateOptions,
-                tools: undefined,
-                responseSchema: AGENCY_RESPONSE_SCHEMA as any
-            }, this.geminiApiKey)
         }
+
+        // ── Step 10: Final JSON Pass ─────────────────────────
+        // Now that all tools are executed, we force the response into our structured schema.
+        this.logger.info("Step 10: Final pass to structure response into JSON schema")
+        geminiResult = await generateContent({
+            ...generateOptions,
+            tools: undefined, // CRITICAL: Cannot use tools and responseSchema together
+            history: toolHistory.length > 1 ? toolHistory : undefined,
+            userMessage: toolHistory.length > 1 ? "Provide your final response in the required JSON format based on the results above." : message,
+            responseSchema: AGENCY_RESPONSE_SCHEMA as any
+        }, this.geminiApiKey)
+
 
         const { text: rawReply, usage } = geminiResult
 
@@ -356,6 +355,16 @@ export class AgencyChatService {
             finalReply += "\n\n_Note: I've created an agency-only signal for this._"
         }
 
+        // Anti-hallucination: Ensure social signals have a real UUID from a successful tool call
+        if (parsed.signal?.signal_type === 'social') {
+            const draftId = parsed.signal.metadata?.social_plan_id
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(draftId || "")
+            if (!isUuid) {
+                this.logger.warn("Social signal blocked: missed tool call or placeholder ID detected", { draftId })
+                parsed.signal = null
+            }
+        }
+
         // ── Step 10: Persist Signal (if detected) ─────────────
         if (parsed.signal) {
             this.logger.info("Step 10: Persisting agency signal", { title: parsed.signal.title })
@@ -389,7 +398,9 @@ export class AgencyChatService {
                         await logSignalActivity(this.adminClient, signalProjectId, persistedSignal.title, userId)
 
                         const targetProject = allProjects?.find((p: any) => p.id === signalProjectId)
-                        finalReply += `\n\n📊 **Signal Created:** I've flagged this on **${targetProject?.name ?? "the project"}** (Agency-Only).`
+                        const signalLabel = parsed.signal.signal_type === 'social' ? 'Content Draft Prepared' : 'Signal Created'
+                        const icon = parsed.signal.signal_type === 'social' ? '📝' : '📊'
+                        finalReply += `\n\n${icon} **${signalLabel}:** I've flagged this on **${targetProject?.name ?? "the project"}** (Agency-Only).`
 
                         // Create software ticket for bug reports
                         if (parsed.signal.signal_type === "bug_report") {

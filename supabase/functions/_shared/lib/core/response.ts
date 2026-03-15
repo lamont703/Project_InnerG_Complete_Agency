@@ -13,7 +13,7 @@
  *   Error:   { data: null, error: { code: string, message: string } }
  */
 
-import { corsHeaders } from "../cors.ts"
+import { corsHeaders } from "../../cors.ts"
 
 export interface ApiError {
     code: string

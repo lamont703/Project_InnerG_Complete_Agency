@@ -236,7 +236,7 @@ export class ChatService {
         })
 
         // ── Step 8: Call Gemini (with Tool Loop) ────────────
-        this.logger.info(`Step 8: Calling Gemini v1beta API (${model}) with Tool Capabilities`)
+        this.logger.info(`Step 8: Calling Gemini v1beta API (${model}) with Multi-Step Tool Capabilities`)
         const registry = createDefaultRegistry()
         const tools = [{ functionDeclarations: registry.getDefinitions() }]
 
@@ -255,15 +255,20 @@ export class ChatService {
             throw err
         })
 
-        // Tool Loop: If Gemini wants to use its hands, let it.
-        const modelParts = (geminiResult.rawData as any).candidates?.[0]?.content?.parts || []
-        const toolCalls = modelParts.filter((p: any) => p.functionCall)
+        const toolHistory: any[] = [{ role: "user", parts: [{ text: message }] }]
+        let loopCount = 0
+        const MAX_LOOPS = 4
 
-        if (toolCalls.length > 0) {
-            this.logger.info(`Gemini requested ${toolCalls.length} tool calls`)
+        while (loopCount < MAX_LOOPS) {
+            const modelParts = (geminiResult.rawData as any).candidates?.[0]?.content?.parts || []
+            const toolCalls = modelParts.filter((p: any) => p.functionCall)
+
+            if (toolCalls.length === 0) break
+
+            this.logger.info(`Loop ${loopCount + 1}: Gemini requested ${toolCalls.length} tool calls`)
+            toolHistory.push({ role: "model", parts: toolCalls })
 
             try {
-                // 1. Execute all tools in parallel
                 const functionResponses = await Promise.all(toolCalls.map(async (part: any) => {
                     const { name, args } = part.functionCall
                     this.logger.info(`Executing tool: ${name}`, { args })
@@ -282,35 +287,31 @@ export class ChatService {
                     }
                 }))
 
-                this.logger.info(`All ${toolCalls.length} tools executed successfully`)
+                toolHistory.push({ role: "function", parts: functionResponses as any })
 
-                // 2. Feed the results back to Gemini for final summary
+                // Call Gemini again with the tool results
                 geminiResult = await generateContent({
                     ...generateOptions,
-                    tools: undefined,
-                    history: [
-                        { role: "user", parts: [{ text: message }] },
-                        { role: "model", parts: toolCalls },
-                        { role: "function", parts: functionResponses as any }
-                    ],
-                    // Force JSON mode for structural updates
-                    responseSchema: RESPONSE_SCHEMA as any
+                    history: toolHistory
                 }, this.geminiApiKey)
+
+                loopCount++
             } catch (toolErr) {
-                this.logger.error(`Tool execution failed`, toolErr)
-                geminiResult = await generateContent({
-                    ...generateOptions,
-                    tools: undefined,
-                    responseSchema: RESPONSE_SCHEMA as any
-                }, this.geminiApiKey)
+                this.logger.error(`Tool loop execution failed at loop ${loopCount}`, toolErr)
+                break
             }
-        } else {
-            geminiResult = await generateContent({
-                ...generateOptions,
-                tools: undefined,
-                responseSchema: RESPONSE_SCHEMA as any
-            }, this.geminiApiKey)
         }
+
+        // ── Step 9: Final JSON Pass ─────────────────────────
+        this.logger.info("Step 9: Final pass to structure response into JSON schema")
+        geminiResult = await generateContent({
+            ...generateOptions,
+            tools: undefined,
+            history: toolHistory.length > 1 ? toolHistory : undefined,
+            userMessage: toolHistory.length > 1 ? "Provide your final response in the required JSON format based on the results above." : message,
+            responseSchema: RESPONSE_SCHEMA as any
+        }, this.geminiApiKey)
+
 
         const { text: rawReply, usage } = geminiResult
 

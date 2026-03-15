@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Database, Zap, Instagram, Loader2, ArrowUpRight, Bug, ChevronDown, ChevronUp, Trash2, Send } from "lucide-react"
+import { Database, Zap, Instagram, Loader2, ArrowUpRight, Bug, ChevronDown, ChevronUp, Trash2, Send, Linkedin, Youtube } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Signal } from "../types"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -8,6 +8,8 @@ const TYPE_ICONS: Record<string, any> = {
     inventory: Database,
     conversion: Zap,
     social: Instagram,
+    linkedin: Linkedin,
+    youtube: Youtube,
     bug_report: Bug,
     strategic: Zap,
     ai_insight: Zap,
@@ -35,7 +37,10 @@ export function SignalCard({
     const [isFetchingDraft, setIsFetchingDraft] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
 
-    const Icon = TYPE_ICONS[signal.signalType] || Zap
+    const isSocial = signal.signalType === 'social'
+    const platform = signal.metadata?.platform?.toLowerCase()
+    const Icon = (isSocial && platform === 'linkedin') ? Linkedin : (isSocial && platform === 'youtube') ? Youtube : (TYPE_ICONS[signal.signalType] || Zap)
+
     const isAgencyInsight = signal.isAgencyOnly || isAgencyMode
     const socialPlanId = signal.metadata?.social_plan_id
     const isLongBody = signal.body.length > 120
@@ -112,18 +117,18 @@ export function SignalCard({
 
             <div className="flex flex-col md:flex-row md:items-start gap-6 relative z-10">
                 {/* Visual Icon Pillar */}
-                <div className={`shrink-0 h-14 w-14 rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-transform duration-500 group-hover:scale-110 ${isAgencyInsight ? "bg-violet-500/10 border-violet-500/20" : "bg-white/5"
+                <div className={`shrink-0 h-14 w-14 rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-transform duration-500 group-hover:scale-110 ${(isAgencyInsight && signal.signalType !== 'social') ? "bg-violet-500/10 border-violet-500/20" : "bg-white/5"
                     }`}>
-                    <Icon className={`h-7 w-7 ${isAgencyInsight ? "text-violet-400" : signal.color.replace('bg-', 'text-')}`} />
+                    <Icon className={`h-7 w-7 ${(isAgencyInsight && signal.signalType !== 'social') ? "text-violet-400" : signal.color.replace('bg-', 'text-')}`} />
                 </div>
 
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
-                        <span className={`px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-[0.2em] border border-white/5 ${isAgencyInsight
+                        <span className={`px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-[0.2em] border border-white/5 ${isAgencyInsight && signal.signalType !== 'social'
                             ? "bg-violet-500/10 text-violet-400 border-violet-500/20"
                             : `${signal.color.replace('bg-', 'bg- opacity-10')} ${signal.color.replace('bg-', 'text-')}`
                             }`}>
-                            {isAgencyInsight ? (signal.signalType === 'strategic' ? "Strategic Insight" : "Algorithm Logic") : signal.signalType.toUpperCase().replace("_", " ")}
+                            {isAgencyInsight ? (signal.signalType === 'strategic' ? "Strategic Insight" : (signal.signalType === 'social' ? "SOCIAL" : "Algorithm Logic")) : signal.signalType.toUpperCase().replace("_", " ")}
                         </span>
                         {signal.projectName && (
                             <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground/30">

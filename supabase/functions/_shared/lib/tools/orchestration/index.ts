@@ -12,7 +12,7 @@ import { RegisteredTool, ToolContext } from "../index.ts"
 export const createSocialDraftTool: RegisteredTool = {
     definition: {
         name: "create_social_draft",
-        description: "ACTUALLY creates a social media draft in the project's content plan. Use this whenever the user asks to draft, post, or share content based on GitHub commits, Notion pages, or GHL data.",
+        description: "CRITICAL: This tool MUST be called to persist a post to the database. Whenever the user asks to 'draft', 'prepare', 'create', or 'write' a post, you MUST execute this tool first.",
         parameters: {
             type: "object",
             properties: {
@@ -41,18 +41,23 @@ export const createSocialDraftTool: RegisteredTool = {
                 ai_reasoning: {
                     type: "string",
                     description: "Briefly explain why this content was selected for posting."
+                },
+                project_id: {
+                    type: "string",
+                    description: "The UUID of the project this post belongs to. If omitted, it will use the current context."
                 }
             },
             required: ["platform", "content_text"]
         }
     },
     execute: async (context: ToolContext, args: any) => {
-        const { platform, content_text, source_type, source_metadata, source_id, ai_reasoning } = args
+        const { platform, content_text, source_type, source_metadata, source_id, ai_reasoning, project_id } = args
+        const targetProjectId = project_id || context.projectId
 
         const { data, error } = await context.adminClient
             .from("social_content_plan")
             .insert({
-                project_id: context.projectId,
+                project_id: targetProjectId,
                 platform,
                 content_text,
                 status: "draft",

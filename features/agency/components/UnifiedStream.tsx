@@ -15,7 +15,8 @@ import {
     ArrowUpRight,
     ChevronDown,
     ChevronUp,
-    Trash2
+    Trash2,
+    Youtube
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SignalCard } from "../../signals/components/SignalCard"
@@ -61,6 +62,8 @@ const TYPE_ICONS: Record<string, any> = {
     inventory: Database,
     conversion: Zap,
     social: Instagram,
+    linkedin: Linkedin,
+    youtube: Youtube,
     bug_report: Bug,
     strategic: Sparkles,
     ai_insight: Sparkles,
@@ -184,7 +187,7 @@ export function UnifiedStream({
                                 >
                                     <div className="flex items-center gap-3 mb-4">
                                         <div className="h-8 w-8 rounded-lg bg-violet-500/10 flex items-center justify-center border border-violet-500/20 shadow-inner">
-                                            {draft.platform === 'linkedin' ? <Linkedin className="h-4 w-4 text-blue-400" /> : <Instagram className="h-4 w-4 text-pink-400" />}
+                                            {draft.platform === 'linkedin' ? <Linkedin className="h-4 w-4 text-blue-400" /> : draft.platform === 'youtube' ? <Youtube className="h-4 w-4 text-red-500" /> : <Instagram className="h-4 w-4 text-pink-400" />}
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between">
