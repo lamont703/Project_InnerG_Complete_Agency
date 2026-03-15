@@ -106,7 +106,11 @@ export class ChatService {
             }
         }
 
-        this.logger.info("Data sources configured", { enabled: allowedSourceTables.length, disabled: disabledSources.length })
+        this.logger.info("Data sources configured", { 
+            enabledCount: allowedSourceTables.length, 
+            allowed: allowedSourceTables,
+            disabled: disabledSources 
+        })
 
         // ── Step 3: RAG — Embed & Search ─────────────────────
         this.logger.info("Step 3: Embedding user message for RAG")
@@ -135,7 +139,8 @@ export class ChatService {
                 } else if (chunks) {
                     this.logger.info(`Global search found ${chunks.length} relevant chunks`)
                     contextChunks.push(...chunks.slice(0, 10).map((c: any) => {
-                        return `[Project: ${c.project_id}] [${c.source_table}] (ID: ${c.source_id}) ${c.content}`
+                        const content = c.content_chunk || c.content
+                        return `[Project: ${c.project_id}] [${c.source_table}] (ID: ${c.source_id}) ${content}`
                     }))
                 }
 
@@ -170,11 +175,13 @@ export class ChatService {
                 if (matchErr) {
                     this.logger.warn("Isolated vector search RPC failed", { error: matchErr })
                 } else if (chunks) {
+                    this.logger.info(`Isolated search found ${chunks.length} chunks before filtering`)
                     const filtered = chunks.filter((c: any) => allowedSourceTables.includes(c.source_table))
-                    this.logger.info(`Isolated search found ${filtered.length} relevant chunks`)
+                    this.logger.info(`Isolated search found ${filtered.length} relevant chunks after filtering`)
                     contextChunks.push(...filtered.slice(0, 8).map((c: any) => {
                         const status = c.is_processed ? "[PROCESSED] " : ""
-                        return `[${c.source_table}] ${status}(ID: ${c.source_id}) ${c.content}`
+                        const label = c.source_table === "project_knowledge" ? "KNOWLEDGE BASE" : c.source_table.toUpperCase()
+                        return `[${label}] ${status}(ID: ${c.source_id}) ${c.content}`
                     }))
                 }
 

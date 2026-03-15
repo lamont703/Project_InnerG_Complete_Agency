@@ -113,6 +113,17 @@ You have access to the project's TikTok account and video performance data.
 4. Help the user optimize their TikTok presence for maximum reach and engagement.
 `
 
+// ─── Project Knowledge Rules ─────────────────────────────
+
+const PROJECT_KNOWLEDGE_RULES = `
+**INTERNAL KNOWLEDGE & COMPANY CONTEXT:**
+You have access to the project's internal knowledge base, containing company-specific data, products, books, and SOPs.
+1. The **Relevant Context (RAG)** section below contains snippets from this knowledge base labeled as [KNOWLEDGE BASE].
+2. This is your **PRIMARY** source for facts about the business (e.g., what books are for sale, company policies, project history).
+3. If a user asks about something specific to their business (like "what books do we have?"), always look into the [KNOWLEDGE BASE] snippets first before telling the user you don't know.
+4. If you see [PROCESSED] news, it means a social post has already been created for that content.
+`
+
 // ─── Content Orchestration Rules ─────────────────────────────
 
 const CONTENT_ORCHESTRATION_RULES = `
@@ -229,6 +240,9 @@ ${TIKTOK_INTELLIGENCE_RULES}
 
 ## Industry & Trending News
 ${NEWS_INTELLIGENCE_RULES}
+
+## Project Knowledge & Internal Data
+${PROJECT_KNOWLEDGE_RULES}
 
 ## Content Orchestration
 ${CONTENT_ORCHESTRATION_RULES}
