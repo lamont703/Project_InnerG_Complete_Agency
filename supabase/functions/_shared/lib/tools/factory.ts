@@ -53,7 +53,8 @@ export function createInsightsTool(options: {
             const { data, error } = await query
             if (error) throw error
             return data
-        }
+        },
+        sourceTables: [options.tableName]
     }
 }
 
@@ -102,7 +103,8 @@ export function createSearchTool(options: {
             }
 
             return filteredResults.map((r: RagResult) => `[${r.source_table}] ${r.content}`).join("\n\n")
-        }
+        },
+        sourceTables: options.tableNames
     }
 }
 
@@ -158,6 +160,7 @@ export function createRecentActivityTool(options: {
             const { data, error } = await query
             if (error) throw error
             return data
-        }
+        },
+        sourceTables: [options.tableName]
     }
 }

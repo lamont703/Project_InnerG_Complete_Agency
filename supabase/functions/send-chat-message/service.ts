@@ -82,8 +82,19 @@ export class ChatService {
             }
         }
 
-        // ── Step 2: Fetch Agent Config (Data Source Filtering) ──
-        this.logger.info("Step 2: Fetching agent configuration")
+        // ── Step 2: Fetch Connections & Agent Config ─────────
+        this.logger.info("Step 2: Fetching active project connections & agent configuration")
+        
+        // Fetch active connections for this project
+        const { data: connections } = await this.adminClient
+            .from("system_connections")
+            .select("platform")
+            .eq("project_id", project_id)
+            .eq("status", "active")
+
+        const connectedPlatforms = new Set((connections || []).map((c: any) => c.platform.toLowerCase()))
+        const isAgencyPortal = project_id === AGENCY_PROJECT_ID
+
         const { data: agentConfig, error: configErr } = await this.adminClient
             .from("project_agent_config")
             .select("*")
@@ -97,8 +108,29 @@ export class ChatService {
         const allowedSourceTables: string[] = []
         const disabledSources: string[] = []
 
+        // Map config keys to their required platform identifier in system_connections
+        const PLATFORM_MAP: Record<string, string> = {
+            ghl_contacts_enabled: "ghl",
+            campaign_metrics_enabled: "ghl",
+            youtube_data_enabled: "youtube",
+            linkedin_data_enabled: "linkedin",
+            notion_data_enabled: "notion",
+            tiktok_data_enabled: "tiktok",
+            github_data_enabled: "github"
+        }
+
         for (const [configKey, sourceTables] of Object.entries(CONFIG_TO_SOURCE_TABLES)) {
-            const isEnabled = agentConfig ? (agentConfig as any)[configKey] !== false : true
+            let isEnabled = agentConfig ? (agentConfig as any)[configKey] !== false : true
+            
+            // For client portals, additional check: is the platform actually connected?
+            const requiredPlatform = PLATFORM_MAP[configKey]
+            if (!isAgencyPortal && requiredPlatform && isEnabled) {
+                if (!connectedPlatforms.has(requiredPlatform)) {
+                    this.logger.info(`Auto-disabling ${configKey} - No active ${requiredPlatform} connection found`)
+                    isEnabled = false
+                }
+            }
+
             if (isEnabled) {
                 allowedSourceTables.push(...sourceTables)
             } else {
@@ -106,7 +138,7 @@ export class ChatService {
             }
         }
 
-        this.logger.info("Data sources configured", { 
+        this.logger.info("Data sources configured after connection filtering", { 
             enabledCount: allowedSourceTables.length, 
             allowed: allowedSourceTables,
             disabled: disabledSources 
@@ -295,7 +327,12 @@ export class ChatService {
         // ── Step 8: Call Gemini (with Tool Loop) ────────────
         this.logger.info(`Step 8: Calling Gemini v1beta API (${model}) with Multi-Step Tool Capabilities`)
         const registry = createDefaultRegistry()
-        const tools = [{ functionDeclarations: registry.getDefinitions() }]
+        
+        // Strictly filter tools so the AI only sees capabilities for active sources
+        const filteredToolDefinitions = registry.getFilteredDefinitions(allowedSourceTables)
+        const tools = [{ functionDeclarations: filteredToolDefinitions }]
+
+        this.logger.info(`Tool registry filtered: ${filteredToolDefinitions.length} of ${registry.getDefinitions().length} tools enabled`)
 
         const generateOptions = {
             model: model as any,

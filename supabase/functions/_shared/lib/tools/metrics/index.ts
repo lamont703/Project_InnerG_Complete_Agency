@@ -15,6 +15,7 @@ export const getProjectMetricsTool: RegisteredTool = {
             }
         }
     },
+    sourceTables: ["project_knowledge"],
     execute: async (context, args: { project_id?: string }) => {
         const { adminClient, projectId } = context
         const targetProjectId = args.project_id || projectId

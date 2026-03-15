@@ -30,6 +30,7 @@ export type ToolExecutor = (context: ToolContext, args: any) => Promise<any>
 export interface RegisteredTool {
     definition: ToolDefinition
     execute: ToolExecutor
+    sourceTables?: string[]
 }
 
 /**
@@ -51,6 +52,18 @@ export class ToolRegistry {
      */
     getDefinitions(): ToolDefinition[] {
         return Array.from(this.tools.values()).map(t => t.definition)
+    }
+
+    /**
+     * Returns definitions filtered by allowed tables.
+     */
+    getFilteredDefinitions(allowedTables: string[]): ToolDefinition[] {
+        return Array.from(this.tools.values())
+            .filter(t => {
+                if (!t.sourceTables || t.sourceTables.length === 0) return true
+                return t.sourceTables.some(table => allowedTables.includes(table))
+            })
+            .map(t => t.definition)
     }
 
     /**
