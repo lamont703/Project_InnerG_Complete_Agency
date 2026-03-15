@@ -6,8 +6,8 @@ import { Loader2, Activity, Target, Layout, Check, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 // Modular Components
-import { DashboardSidebar } from "@/components/dashboard/sidebar"
-import { DashboardHeader } from "@/components/dashboard/header"
+import { DashboardSidebar } from "@/components/layout/dashboard/sidebar"
+import { DashboardHeader } from "@/components/layout/dashboard/header"
 import { MetricsGrid } from "@/features/metrics/MetricsGrid"
 import { SlotProvider, useSlotContext } from "@/features/metrics/SlotContext"
 import { getIcon } from "@/features/metrics/utils/icon-map"

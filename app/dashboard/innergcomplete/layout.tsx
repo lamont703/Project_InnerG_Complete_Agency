@@ -3,7 +3,7 @@
 import React from "react"
 import { AdminSidebarProvider, useAdminSidebar } from "@/features/agency/context/AdminSidebarContext"
 import { MobileNavProvider, useMobileNav } from "@/features/agency/context/MobileNavContext"
-import { DashboardMobileNav } from "@/components/dashboard/MobileNav"
+import { DashboardMobileNav } from "@/components/layout/dashboard/MobileNav"
 import { AgencySidebar } from "@/features/agency/components/AgencySidebar"
 
 function AgencyDashboardLayoutContent({ children }: { children: React.ReactNode }) {

@@ -1,10 +1,10 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { LinkedInClient } from "./client.ts";
 import { LinkedInComment } from "./types.ts";
-import { RagService } from "../../../_shared/lib/rag.ts";
-import { generateContent, GEMINI_MODELS } from "../../../_shared/lib/gemini.ts";
-import { Logger } from "../../../_shared/lib/logger.ts";
-import { SignalRepo } from "../../../_shared/lib/db/signals.ts";
+import { RagService } from "../../../_shared/lib/ai/rag.ts";
+import { generateContent, GEMINI_MODELS } from "../../../_shared/lib/ai/gemini.ts";
+import { Logger } from "../../../_shared/lib/core/logger.ts";
+import { SignalRepo } from "../../../_shared/lib/db/intelligence/signals.ts";
 
 export class LinkedInEngagementService {
     private logger: Logger;

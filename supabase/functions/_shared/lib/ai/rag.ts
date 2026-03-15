@@ -12,7 +12,7 @@
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { embedText } from "./gemini.ts"
-import { getEnv } from "./env.ts"
+import { getEnv } from "../core/env.ts"
 
 export interface RagResult {
     content: string

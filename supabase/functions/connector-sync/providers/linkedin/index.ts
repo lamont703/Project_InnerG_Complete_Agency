@@ -8,7 +8,7 @@ import { LinkedInClient } from "./client.ts";
 import { LinkedInTransformer } from "./transformer.ts";
 import { LinkedInEngagementService } from "./engagement.ts";
 import { SyncResult } from "../../service.ts";
-import { getEnv } from "../../../_shared/lib/env.ts";
+import { getEnv } from "../../../_shared/lib/core/env.ts";
 
 export async function syncLinkedIn(
     adminClient: SupabaseClient,

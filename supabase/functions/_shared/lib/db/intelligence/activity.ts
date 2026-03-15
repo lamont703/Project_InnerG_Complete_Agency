@@ -9,7 +9,7 @@
  */
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { ActivityLogEntry } from "../types.ts"
+import { ActivityLogEntry } from "../../types/index.ts"
 
 export interface ActivityLogRow extends ActivityLogEntry {
     id: string

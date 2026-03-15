@@ -4,7 +4,7 @@
  */
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { UserRole } from "../types.ts"
+import { UserRole } from "../../types/index.ts"
 
 export interface InviteLinkRow {
     id: string

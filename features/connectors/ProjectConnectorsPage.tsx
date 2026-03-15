@@ -20,7 +20,7 @@ import {
     Lock
 } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/browser"
-import { DashboardHeader } from "@/components/dashboard/header"
+import { DashboardHeader } from "@/components/layout/dashboard/header"
 
 // PROVIDER ICONS + COLORS (Synced with Admin)
 const providerMeta: Record<string, { color: string; bgColor: string; label: string }> = {

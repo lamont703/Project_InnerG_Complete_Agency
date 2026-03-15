@@ -9,7 +9,7 @@
  */
 
 import { assertEquals } from "https://deno.land/std@0.177.0/testing/asserts.ts"
-import { InviteRepo } from "../_shared/lib/db/invites.ts"
+import { InviteRepo } from "../_shared/lib/db/iam/invites.ts"
 
 // ─── Mock Factory ────────────────────────────────────────────────────────────
 // Creates a fake SupabaseClient that returns whatever data we want

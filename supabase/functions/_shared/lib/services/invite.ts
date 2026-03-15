@@ -16,7 +16,7 @@
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { Repo } from "../index.ts"
-import { UserRole } from "../types.ts"
+import { UserRole } from "../types/index.ts"
 
 // ── Token Generation ──────────────────────────────────────
 

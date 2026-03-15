@@ -9,7 +9,7 @@
  */
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { SoftwareTicketPayload, TicketStatus } from "../types.ts"
+import { SoftwareTicketPayload, TicketStatus } from "../../types/index.ts"
 
 export interface SoftwareTicketRow extends SoftwareTicketPayload {
     id: string

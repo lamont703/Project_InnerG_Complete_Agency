@@ -23,7 +23,7 @@ import {
     VALID_SIGNAL_TYPES,
     VALID_SEVERITIES,
     SoftwareTicketPayload,
-} from "../_shared/lib/types.ts"
+} from "../_shared/lib/types/index.ts"
 
 // ─── Parser ───────────────────────────────────────────────
 

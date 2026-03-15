@@ -13,7 +13,7 @@
  */
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { SignalPayload, SignalSeverity, SignalType } from "../types.ts"
+import { SignalPayload, SignalSeverity, SignalType } from "../../types/index.ts"
 
 export interface SignalRow extends SignalPayload {
     id: string

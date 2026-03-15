@@ -1,16 +1,14 @@
 /**
- * _shared/lib/tools/ticket-tools.ts
- * Inner G Complete Agency — Software Ticket Tools for AI Agent
+ * _shared/lib/tools/tickets/index.ts
+ * Inner G Complete Agency — Software Ticket Tools
  */
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { RegisteredTool, ToolContext } from "./index.ts"
-import { TicketRepo } from "../db/tickets.ts"
-import { TicketStatus } from "../types.ts"
+import { RegisteredTool, ToolContext } from "../index.ts"
+import { TicketRepo } from "../../db/operations/tickets.ts"
+import { TicketStatus } from "../../types/index.ts"
 
 /**
  * Tool: list_open_tickets
- * Fetches all software tickets that are not closed.
  */
 export const listOpenTicketsTool: RegisteredTool = {
     definition: {
@@ -57,7 +55,6 @@ export const listOpenTicketsTool: RegisteredTool = {
 
 /**
  * Tool: update_ticket_status
- * Updates the status of a specific ticket.
  */
 export const updateTicketStatusTool: RegisteredTool = {
     definition: {

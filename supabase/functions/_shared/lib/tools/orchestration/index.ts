@@ -1,9 +1,9 @@
 /**
- * _shared/lib/tools/social-orchestration-tools.ts
+ * _shared/lib/tools/orchestration/index.ts
  * Inner G Complete Agency — Social Content Orchestration Tools
  */
 
-import { RegisteredTool, ToolContext } from "./index.ts"
+import { RegisteredTool, ToolContext } from "../index.ts"
 
 /**
  * Tool: create_social_draft
