@@ -72,12 +72,31 @@ export class AgencyChatService {
 
             if (rpcErr) {
                 this.logger.warn("RAG RPC search failed", { error: rpcErr })
-            } else if (chunks) {
-                this.logger.info(`RAG search found ${chunks.length} chunks`)
                 contextChunks.push(...chunks.map((c: any) => {
-                    const projectLabel = c.project_id ? `[Project ${c.project_id}]` : "[Agency-Wide]"
+                    const projectLabel = c.project_id ? `[Project: ${c.project_id}]` : "[Agency-Wide]"
                     return `${projectLabel} (${c.source_table}) (ID: ${c.source_id}): ${c.content}`
                 }))
+
+                // Layer 2: Agency-wide memory
+                try {
+                    const { data: pastSummaries, error: summaryErr } = await this.adminClient.rpc("match_session_summaries_agency", {
+                        query_embedding: queryVector,
+                        p_user_id: userId,
+                        match_threshold: 0.45,
+                        match_count: 5,
+                    })
+
+                    if (summaryErr) {
+                        this.logger.warn("Agency session summary search failed", { error: summaryErr })
+                    } else if (pastSummaries?.length > 0) {
+                        this.logger.info(`Found ${pastSummaries.length} relevant past agency summaries`)
+                        contextChunks.push(...pastSummaries.map((s: any) => 
+                            `[PAST MEMORY] [Project: ${s.project_id}] ${s.content_chunk}`
+                        ))
+                    }
+                } catch (err) {
+                    this.logger.warn("Agency session summary exception", { error: err })
+                }
             }
         }
 

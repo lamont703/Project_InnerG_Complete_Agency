@@ -26,6 +26,8 @@ export interface ChatServiceInput {
     authHeader: string
 }
 
+const AGENCY_PROJECT_ID = "00000000-0000-0000-0000-000000000001"
+
 export class ChatService {
     constructor(
         private adminClient: SupabaseClient,
@@ -117,45 +119,84 @@ export class ChatService {
         const pastSessionContext: string[] = []
 
         if (queryVector.length > 0) {
-            this.logger.info("Performing vector search across enabled sources")
-            const { data: chunks, error: matchErr } = await this.adminClient.rpc("match_documents", {
-                query_embedding: queryVector,
-                match_threshold: 0.45,
-                match_count: 16,
-                p_project_id: project_id,
-            })
+            const isAgencyPortal = project_id === AGENCY_PROJECT_ID
+            this.logger.info(`Performing vector search (${isAgencyPortal ? "Agency Global" : "Project Local"})`, { project_id })
 
-            if (matchErr) {
-                this.logger.warn("Vector search RPC failed", { error: matchErr })
-            } else if (chunks) {
-                const filtered = chunks.filter((c: any) => allowedSourceTables.includes(c.source_table))
-                this.logger.info(`Vector search found ${filtered.length} relevant chunks (after filtering)`)
-                contextChunks.push(...filtered.slice(0, 8).map((c: any) => {
-                    const status = c.is_processed ? "[PROCESSED] " : ""
-                    return `[${c.source_table}] ${status}(ID: ${c.source_id}) ${c.content}`
-                }))
-            }
+            if (isAgencyPortal) {
+                // Global Agency Search
+                const { data: chunks, error: matchErr } = await this.adminClient.rpc("match_documents_agency", {
+                    query_embedding: queryVector,
+                    match_threshold: 0.4, // Slightly lower threshold for global discovery
+                    match_count: 20
+                })
 
-            // Layer 2: Past session summaries
-            if (allowedSourceTables.includes("session_summaries")) {
-                this.logger.info("Searching past session summaries for context")
-                try {
-                    const { data: pastSummaries, error: summaryErr } = await this.adminClient.rpc("match_session_summaries", {
-                        query_embedding: queryVector,
-                        p_user_id: userId,
-                        p_project_id: project_id,
-                        match_threshold: 0.45,
-                        match_count: 3,
-                    })
+                if (matchErr) {
+                    this.logger.warn("Global vector search RPC failed", { error: matchErr })
+                } else if (chunks) {
+                    this.logger.info(`Global search found ${chunks.length} relevant chunks`)
+                    contextChunks.push(...chunks.slice(0, 10).map((c: any) => {
+                        return `[Project: ${c.project_id}] [${c.source_table}] (ID: ${c.source_id}) ${c.content}`
+                    }))
+                }
 
-                    if (summaryErr) {
-                        this.logger.warn("Session summary search failed", { error: summaryErr })
-                    } else if (pastSummaries?.length > 0) {
-                        this.logger.info(`Found ${pastSummaries.length} relevant past summaries`)
-                        pastSessionContext.push(...pastSummaries.map((s: any) => s.content_chunk))
+                // Global Memory Search
+                if (allowedSourceTables.includes("session_summaries")) {
+                    try {
+                        const { data: pastSummaries, error: summaryErr } = await this.adminClient.rpc("match_session_summaries_agency", {
+                            query_embedding: queryVector,
+                            p_user_id: userId,
+                            match_threshold: 0.45,
+                            match_count: 5,
+                        })
+
+                        if (summaryErr) {
+                            this.logger.warn("Global session summary search failed", { error: summaryErr })
+                        } else if (pastSummaries?.length > 0) {
+                            pastSessionContext.push(...pastSummaries.map((s: any) => `[Project: ${s.project_id}] ${s.content_chunk}`))
+                        }
+                    } catch (err) {
+                        this.logger.warn("Global session summary exception", { error: err })
                     }
-                } catch (err) {
-                    this.logger.warn("Session summary search exception", { error: err })
+                }
+            } else {
+                // Isolated Project Search
+                const { data: chunks, error: matchErr } = await this.adminClient.rpc("match_documents", {
+                    query_embedding: queryVector,
+                    match_threshold: 0.45,
+                    match_count: 16,
+                    p_project_id: project_id,
+                })
+
+                if (matchErr) {
+                    this.logger.warn("Isolated vector search RPC failed", { error: matchErr })
+                } else if (chunks) {
+                    const filtered = chunks.filter((c: any) => allowedSourceTables.includes(c.source_table))
+                    this.logger.info(`Isolated search found ${filtered.length} relevant chunks`)
+                    contextChunks.push(...filtered.slice(0, 8).map((c: any) => {
+                        const status = c.is_processed ? "[PROCESSED] " : ""
+                        return `[${c.source_table}] ${status}(ID: ${c.source_id}) ${c.content}`
+                    }))
+                }
+
+                // Isolated Memory Search
+                if (allowedSourceTables.includes("session_summaries")) {
+                    try {
+                        const { data: pastSummaries, error: summaryErr } = await this.adminClient.rpc("match_session_summaries", {
+                            query_embedding: queryVector,
+                            p_user_id: userId,
+                            p_project_id: project_id,
+                            match_threshold: 0.45,
+                            match_count: 3,
+                        })
+
+                        if (summaryErr) {
+                            this.logger.warn("Isolated session summary search failed", { error: summaryErr })
+                        } else if (pastSummaries?.length > 0) {
+                            pastSessionContext.push(...pastSummaries.map((s: any) => s.content_chunk))
+                        }
+                    } catch (err) {
+                        this.logger.warn("Isolated session summary exception", { error: err })
+                    }
                 }
             }
         }
