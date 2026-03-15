@@ -167,7 +167,7 @@ export class ChatService {
                 // Isolated Project Search
                 const { data: chunks, error: matchErr } = await this.adminClient.rpc("match_documents", {
                     query_embedding: queryVector,
-                    match_threshold: 0.45,
+                    match_threshold: 0.35, // Lowered threshold for better recall
                     match_count: 16,
                     p_project_id: project_id,
                 })
@@ -175,9 +175,12 @@ export class ChatService {
                 if (matchErr) {
                     this.logger.warn("Isolated vector search RPC failed", { error: matchErr })
                 } else if (chunks) {
-                    this.logger.info(`Isolated search found ${chunks.length} chunks before filtering`)
+                    this.logger.info(`RAG Search: Found ${chunks.length} raw chunks before filtering`)
                     const filtered = chunks.filter((c: any) => allowedSourceTables.includes(c.source_table))
-                    this.logger.info(`Isolated search found ${filtered.length} relevant chunks after filtering`)
+                    this.logger.info(`RAG Search: Found ${filtered.length} relevant chunks after filtering`, {
+                        allowedTables: allowedSourceTables,
+                        returnedTables: [...new Set(chunks.map((c: any) => c.source_table))]
+                    })
                     contextChunks.push(...filtered.slice(0, 8).map((c: any) => {
                         const status = c.is_processed ? "[PROCESSED] " : ""
                         const label = c.source_table === "project_knowledge" ? "KNOWLEDGE BASE" : c.source_table.toUpperCase()
@@ -281,6 +284,12 @@ export class ChatService {
             enabledSources: activeSourceList,
             ragContext,
             recentSummary: disabledNote
+        })
+
+        this.logger.info("System prompt constructed", { 
+            ragContextLength: ragContext.length,
+            contextChunksCount: contextChunks.length,
+            historyPromptLength: historyPrompt.length
         })
 
         // ── Step 8: Call Gemini (with Tool Loop) ────────────

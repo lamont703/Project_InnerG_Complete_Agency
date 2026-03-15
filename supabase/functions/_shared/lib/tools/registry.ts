@@ -13,6 +13,7 @@ import { getLinkedinPageStatsTool, listRecentLinkedinPostsTool, searchLinkedinKn
 import { listRecentNotionPagesTool, searchNotionKnowledgeTool } from "./notion/index.ts"
 import { getTiktokAccountStatsTool, listRecentTiktokVideosTool, searchTiktokKnowledgeTool } from "./tiktok/index.ts"
 import { createSocialDraftTool, listSocialDraftsTool } from "./orchestration/index.ts"
+import { getProjectMetricsTool } from "./metrics/index.ts"
 
 /**
  * Creates and configures the default tool registry for AI agents.
@@ -56,6 +57,9 @@ export function createDefaultRegistry(): ToolRegistry {
     registry.register(getTiktokAccountStatsTool)
     registry.register(listRecentTiktokVideosTool)
     registry.register(searchTiktokKnowledgeTool)
+
+    // Register Business Metrics Tools
+    registry.register(getProjectMetricsTool)
 
     return registry
 }

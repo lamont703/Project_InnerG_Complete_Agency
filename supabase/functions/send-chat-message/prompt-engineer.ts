@@ -121,7 +121,8 @@ You have access to the project's internal knowledge base, containing company-spe
 1. The **Relevant Context (RAG)** section below contains snippets from this knowledge base labeled as [KNOWLEDGE BASE].
 2. This is your **PRIMARY** source for facts about the business (e.g., what books are for sale, company policies, project history).
 3. If a user asks about something specific to their business (like "what books do we have?"), always look into the [KNOWLEDGE BASE] snippets first before telling the user you don't know.
-4. If you see [PROCESSED] news, it means a social post has already been created for that content.
+4. **Business Metrics:** Use 'get_project_metrics' to fetch high-level sales totals, order counts, and inventory values. This provides the most accurate business performance data.
+5. If you see [PROCESSED] news, it means a social post has already been created for that content.
 `
 
 // ─── Content Orchestration Rules ─────────────────────────────
