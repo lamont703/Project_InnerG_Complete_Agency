@@ -82,17 +82,17 @@ export class ChatService {
             }
         }
 
-        // ── Step 2: Fetch Connections & Agent Config ─────────
-        this.logger.info("Step 2: Fetching active project connections & agent configuration")
+        // ── Step 2: Fetch Active Integrations & Agent Config ──
+        this.logger.info("Step 2: Fetching active project integrations & agent configuration")
         
-        // Fetch active connections for this project
-        const { data: connections } = await this.adminClient
-            .from("system_connections")
-            .select("platform")
+        // Fetch active integrations from client_db_connections
+        const { data: integrations } = await this.adminClient
+            .from("client_db_connections")
+            .select("db_type")
             .eq("project_id", project_id)
-            .eq("status", "active")
+            .eq("is_active", true)
 
-        const connectedPlatforms = new Set((connections || []).map((c: any) => c.platform.toLowerCase()))
+        const connectedPlatforms = new Set((integrations || []).map((i: any) => i.db_type.toLowerCase()))
         const isAgencyPortal = project_id === AGENCY_PROJECT_ID
 
         const { data: agentConfig, error: configErr } = await this.adminClient
@@ -108,7 +108,7 @@ export class ChatService {
         const allowedSourceTables: string[] = []
         const disabledSources: string[] = []
 
-        // Map config keys to their required platform identifier in system_connections
+        // Map config keys to their required platform identifier in client_db_connections
         const PLATFORM_MAP: Record<string, string> = {
             ghl_contacts_enabled: "ghl",
             campaign_metrics_enabled: "ghl",
@@ -116,7 +116,8 @@ export class ChatService {
             linkedin_data_enabled: "linkedin",
             notion_data_enabled: "notion",
             tiktok_data_enabled: "tiktok",
-            github_data_enabled: "github"
+            github_data_enabled: "github",
+            news_intelligence_enabled: "newsapi"
         }
 
         for (const [configKey, sourceTables] of Object.entries(CONFIG_TO_SOURCE_TABLES)) {
