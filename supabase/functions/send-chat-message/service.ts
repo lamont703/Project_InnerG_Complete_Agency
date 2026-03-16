@@ -11,7 +11,7 @@
  */
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { Logger, generateContent, embedText, GEMINI_MODELS } from "../_shared/lib/index.ts"
+import { Logger, generateContent, embedText, GEMINI_MODELS, RagService } from "../_shared/lib/index.ts"
 import { buildSystemPrompt, RESPONSE_SCHEMA } from "./prompt-engineer.ts"
 import { parseAiResponse, persistSignal, persistTicket, logSignalActivity } from "./signal-processor.ts"
 import { CONFIG_TO_SOURCE_TABLES, ChatFunctionResponse } from "./types.ts"
@@ -92,17 +92,7 @@ export class ChatService {
             .eq("project_id", project_id)
             .eq("is_active", true)
 
-        // Fetch active integrations from Agency project (Shared/Master tools)
-        const { data: agencyIntegrations } = await this.adminClient
-            .from("client_db_connections")
-            .select("db_type")
-            .eq("project_id", AGENCY_PROJECT_ID)
-            .eq("is_active", true)
-
-        const connectedPlatforms = new Set([
-            ...(projectIntegrations || []).map((i: any) => i.db_type.toLowerCase()),
-            ...(agencyIntegrations || []).map((i: any) => i.db_type.toLowerCase())
-        ])
+        const connectedPlatforms = new Set((projectIntegrations || []).map((i: any) => i.db_type.toLowerCase()))
 
         const isAgencyPortal = project_id === AGENCY_PROJECT_ID
 
@@ -169,23 +159,22 @@ export class ChatService {
 
         if (queryVector.length > 0) {
             const isAgencyPortal = project_id === AGENCY_PROJECT_ID
-            this.logger.info(`Performing vector search (${isAgencyPortal ? "Agency Global" : "Project Local"})`, { project_id })
+            const rag = new RagService(this.adminClient)
 
             if (isAgencyPortal) {
                 // Global Agency Search
-                const { data: chunks, error: matchErr } = await this.adminClient.rpc("match_documents_agency", {
-                    query_embedding: queryVector,
-                    match_threshold: 0.4, // Slightly lower threshold for global discovery
-                    match_count: 20
+                this.logger.info("Performing Global Agency Search")
+                const chunks = await rag.search({
+                    projectId: project_id,
+                    query: message,
+                    limit: 20,
+                    minSimilarity: 0.4
                 })
 
-                if (matchErr) {
-                    this.logger.warn("Global vector search RPC failed", { error: matchErr })
-                } else if (chunks) {
+                if (chunks.length > 0) {
                     this.logger.info(`Global search found ${chunks.length} relevant chunks`)
                     contextChunks.push(...chunks.slice(0, 10).map((c: any) => {
-                        const content = c.content_chunk || c.content
-                        return `[Project: ${c.project_id}] [${c.source_table}] (ID: ${c.source_id}) ${content}`
+                        return `[Project: ${c.project_id || project_id}] [${c.source_table}] (ID: ${c.source_id}) ${c.content}`
                     }))
                 }
 
@@ -209,37 +198,27 @@ export class ChatService {
                     }
                 }
             } else {
-                // Hybrid Search: Local Project + Agency (for shared integrations)
-                const searchTasks = [
-                    this.adminClient.rpc("match_documents", {
-                        query_embedding: queryVector,
-                        match_threshold: 0.35,
-                        match_count: 12,
-                        p_project_id: project_id,
-                    }),
-                    this.adminClient.rpc("match_documents", {
-                        query_embedding: queryVector,
-                        match_threshold: 0.4,
-                        match_count: 8,
-                        p_project_id: AGENCY_PROJECT_ID,
-                    })
-                ]
+                // Hybrid Search: Local Project + Agency Master
+                this.logger.info(`Performing Hybrid Search (Local + Agency Shared)`, { project_id })
+                const rawChunks = await rag.search({
+                    projectId: project_id,
+                    query: message,
+                    limit: 16,
+                    includeAgencyKnowledge: true,
+                    agencyProjectId: AGENCY_PROJECT_ID
+                })
 
-                const results = await Promise.all(searchTasks)
-                const combinedChunks = results.flatMap((r: any) => r.data || [])
-
-                if (combinedChunks.length > 0) {
-                    this.logger.info(`RAG Search: Found ${combinedChunks.length} raw combined chunks`)
-                    const filtered = combinedChunks.filter((c: any) => allowedSourceTables.includes(c.source_table))
+                if (rawChunks.length > 0) {
+                    this.logger.info(`RAG Search: Found ${rawChunks.length} raw combined chunks`)
+                    const filtered = rawChunks.filter((c: any) => allowedSourceTables.includes(c.source_table))
                     this.logger.info(`RAG Search: Found ${filtered.length} relevant chunks after filtering`, {
                         allowedTables: allowedSourceTables,
-                        returnedTables: [...new Set(combinedChunks.map((c: any) => c.source_table))]
+                        returnedTables: [...new Set(rawChunks.map((c: any) => c.source_table))]
                     })
                     contextChunks.push(...filtered.slice(0, 10).map((c: any) => {
                         const status = c.is_processed ? "[PROCESSED] " : ""
                         const label = c.source_table === "project_knowledge" ? "KNOWLEDGE BASE" : c.source_table.toUpperCase()
-                        const projectStub = c.project_id === AGENCY_PROJECT_ID ? "[AGENCY] " : ""
-                        return `${projectStub}[${label}] ${status}(ID: ${c.source_id}) ${c.content}`
+                        return `[${label}] ${status}(ID: ${c.source_id}) ${c.content}`
                     }))
                 }
 

@@ -90,7 +90,8 @@ export function createSearchTool(options: {
             const results = await rag.search({
                 projectId: context.projectId,
                 query: args.query,
-                limit: 10
+                limit: 10,
+                includeAgencyKnowledge: true
             })
 
             // Filter the results to prioritize the specific tables for this tool

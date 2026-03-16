@@ -33,29 +33,50 @@ export class RagService {
         limit?: number
         minSimilarity?: number
         includeAgencyKnowledge?: boolean
+        agencyProjectId?: string
     }): Promise<RagResult[]> {
-        const { projectId, query, limit = 10, minSimilarity = 0.35, includeAgencyKnowledge = false } = params
+        const { 
+            projectId, 
+            query, 
+            limit = 10, 
+            minSimilarity = 0.35, 
+            includeAgencyKnowledge = false,
+            agencyProjectId = "00000000-0000-0000-0000-000000000001"
+        } = params
 
         // 1. Generate search vector
         const apiKey = getEnv("GEMINI_API_KEY")
         const embedding = await embedText(query, apiKey)
         if (!embedding) return []
 
-        // 2. Execute RPC call to match_documents (Postgres pgvector)
-        // This RPC exists in Migration 025
-        const { data, error } = await this.client.rpc("match_documents", {
-            query_embedding: embedding,
-            match_threshold: minSimilarity,
-            match_count: limit,
-            p_project_id: projectId
-        })
+        // 2. Perform Parallel Search (Project Local + Agency Master)
+        const searchTasks = [
+            this.client.rpc("match_documents", {
+                query_embedding: embedding,
+                match_threshold: minSimilarity,
+                match_count: limit,
+                p_project_id: projectId
+            })
+        ]
 
-        if (error) {
-            console.error("[RagService] Vector search error:", error)
-            return []
+        if (includeAgencyKnowledge && projectId !== agencyProjectId) {
+            searchTasks.push(
+                this.client.rpc("match_documents", {
+                    query_embedding: embedding,
+                    match_threshold: minSimilarity + 0.05, // Slightly stricter for agency peering
+                    match_count: Math.floor(limit / 2),
+                    p_project_id: agencyProjectId
+                })
+            )
         }
 
-        return (data || []) as RagResult[]
+        const results = await Promise.all(searchTasks)
+        const combined = results.flatMap((r: any) => r.data || []) as (RagResult & { project_id?: string })[]
+
+        return combined.map(r => ({
+            ...r,
+            content: r.project_id === agencyProjectId ? `[SHARED] ${r.content}` : r.content
+        }))
     }
 
     /**
