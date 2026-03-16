@@ -85,14 +85,25 @@ export class ChatService {
         // ── Step 2: Fetch Active Integrations & Agent Config ──
         this.logger.info("Step 2: Fetching active project integrations & agent configuration")
         
-        // Fetch active integrations from client_db_connections
-        const { data: integrations } = await this.adminClient
+        // Fetch active integrations from current project
+        const { data: projectIntegrations } = await this.adminClient
             .from("client_db_connections")
             .select("db_type")
             .eq("project_id", project_id)
             .eq("is_active", true)
 
-        const connectedPlatforms = new Set((integrations || []).map((i: any) => i.db_type.toLowerCase()))
+        // Fetch active integrations from Agency project (Shared/Master tools)
+        const { data: agencyIntegrations } = await this.adminClient
+            .from("client_db_connections")
+            .select("db_type")
+            .eq("project_id", AGENCY_PROJECT_ID)
+            .eq("is_active", true)
+
+        const connectedPlatforms = new Set([
+            ...(projectIntegrations || []).map((i: any) => i.db_type.toLowerCase()),
+            ...(agencyIntegrations || []).map((i: any) => i.db_type.toLowerCase())
+        ])
+
         const isAgencyPortal = project_id === AGENCY_PROJECT_ID
 
         const { data: agentConfig, error: configErr } = await this.adminClient
@@ -123,11 +134,11 @@ export class ChatService {
         for (const [configKey, sourceTables] of Object.entries(CONFIG_TO_SOURCE_TABLES)) {
             let isEnabled = agentConfig ? (agentConfig as any)[configKey] !== false : true
             
-            // For client portals, additional check: is the platform actually connected?
+            // For client portals, additional check: is the platform connected LOCALLY or via AGENCY?
             const requiredPlatform = PLATFORM_MAP[configKey]
             if (!isAgencyPortal && requiredPlatform && isEnabled) {
                 if (!connectedPlatforms.has(requiredPlatform)) {
-                    this.logger.info(`Auto-disabling ${configKey} - No active ${requiredPlatform} connection found`)
+                    this.logger.info(`Auto-disabling ${configKey} - No active connection found for ${requiredPlatform} (Checked Local & Agency)`)
                     isEnabled = false
                 }
             }
@@ -142,7 +153,8 @@ export class ChatService {
         this.logger.info("Data sources configured after connection filtering", { 
             enabledCount: allowedSourceTables.length, 
             allowed: allowedSourceTables,
-            disabled: disabledSources 
+            disabled: disabledSources,
+            platformsDetected: Array.from(connectedPlatforms)
         })
 
         // ── Step 3: RAG — Embed & Search ─────────────────────
@@ -196,28 +208,37 @@ export class ChatService {
                         this.logger.warn("Global session summary exception", { error: err })
                     }
                 }
-            } else {
-                // Isolated Project Search
-                const { data: chunks, error: matchErr } = await this.adminClient.rpc("match_documents", {
-                    query_embedding: queryVector,
-                    match_threshold: 0.35, // Lowered threshold for better recall
-                    match_count: 16,
-                    p_project_id: project_id,
-                })
+                // Hybrid Search: Local Project + Agency (for shared integrations)
+                const searchTasks = [
+                    this.adminClient.rpc("match_documents", {
+                        query_embedding: queryVector,
+                        match_threshold: 0.35,
+                        match_count: 12,
+                        p_project_id: project_id,
+                    }),
+                    this.adminClient.rpc("match_documents", {
+                        query_embedding: queryVector,
+                        match_threshold: 0.4,
+                        match_count: 8,
+                        p_project_id: AGENCY_PROJECT_ID,
+                    })
+                ]
 
-                if (matchErr) {
-                    this.logger.warn("Isolated vector search RPC failed", { error: matchErr })
-                } else if (chunks) {
-                    this.logger.info(`RAG Search: Found ${chunks.length} raw chunks before filtering`)
-                    const filtered = chunks.filter((c: any) => allowedSourceTables.includes(c.source_table))
+                const results = await Promise.all(searchTasks)
+                const combinedChunks = results.flatMap((r: any) => r.data || [])
+
+                if (combinedChunks.length > 0) {
+                    this.logger.info(`RAG Search: Found ${combinedChunks.length} raw combined chunks`)
+                    const filtered = combinedChunks.filter((c: any) => allowedSourceTables.includes(c.source_table))
                     this.logger.info(`RAG Search: Found ${filtered.length} relevant chunks after filtering`, {
                         allowedTables: allowedSourceTables,
-                        returnedTables: [...new Set(chunks.map((c: any) => c.source_table))]
+                        returnedTables: [...new Set(combinedChunks.map((c: any) => c.source_table))]
                     })
-                    contextChunks.push(...filtered.slice(0, 8).map((c: any) => {
+                    contextChunks.push(...filtered.slice(0, 10).map((c: any) => {
                         const status = c.is_processed ? "[PROCESSED] " : ""
                         const label = c.source_table === "project_knowledge" ? "KNOWLEDGE BASE" : c.source_table.toUpperCase()
-                        return `[${label}] ${status}(ID: ${c.source_id}) ${c.content}`
+                        const projectStub = c.project_id === AGENCY_PROJECT_ID ? "[AGENCY] " : ""
+                        return `${projectStub}[${label}] ${status}(ID: ${c.source_id}) ${c.content}`
                     }))
                 }
 
