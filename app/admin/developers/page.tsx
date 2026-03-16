@@ -22,7 +22,7 @@ interface Developer {
     email: string
     role: string
     created_at: string
-    clients: { id: string; company_name: string }[]
+    clients: { id: string; name: string }[]
 }
 
 export default function DeveloperPortfoliosPage() {
@@ -58,7 +58,7 @@ export default function DeveloperPortfoliosPage() {
                         role,
                         created_at,
                         developer_client_access(
-                            clients(id, company_name)
+                            clients(id, name)
                         )
                     `)
                     .in("role", ["developer", "super_admin"])
@@ -157,7 +157,7 @@ export default function DeveloperPortfoliosPage() {
                                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/20 border border-border/50 text-xs text-foreground"
                                             >
                                                 <Building2 className="h-3 w-3 text-muted-foreground" />
-                                                {client.company_name}
+                                                {client.name}
                                             </span>
                                         ))}
                                     </div>

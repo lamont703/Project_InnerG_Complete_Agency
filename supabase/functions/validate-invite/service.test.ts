@@ -45,7 +45,7 @@ Deno.test("validateToken — valid token returns { valid: true, invite }", async
         id: "abc-123",
         token: "valid-token-abc",
         invited_email: "test@innergcomplete.com",
-        intended_role: "client_user",
+        intended_role: "client_viewer",
         invited_by: "admin-id",
         client_id: "client-id-1",
         expires_at: makeFutureDate(7),
@@ -59,7 +59,7 @@ Deno.test("validateToken — valid token returns { valid: true, invite }", async
 
     assertEquals(result.valid, true)
     assertEquals(result.invite?.invited_email, "test@innergcomplete.com")
-    assertEquals(result.invite?.intended_role, "client_user")
+    assertEquals(result.invite?.intended_role, "client_viewer")
     assertEquals(result.error, undefined)
 })
 
@@ -76,7 +76,7 @@ Deno.test("validateToken — returns error when invite already used (used_at set
         id: "used-123",
         token: "already-used-token",
         invited_email: "used@innergcomplete.com",
-        intended_role: "client_user",
+        intended_role: "client_viewer",
         invited_by: "admin-id",
         expires_at: makeFutureDate(3),
         used_at: makePastDate(1), // Already used!
@@ -96,7 +96,7 @@ Deno.test("validateToken — returns error when invite is inactive (is_active = 
         id: "inactive-123",
         token: "inactive-token",
         invited_email: "inactive@innergcomplete.com",
-        intended_role: "client_user",
+        intended_role: "client_viewer",
         invited_by: "admin-id",
         expires_at: makeFutureDate(3),
         used_at: null,
@@ -116,7 +116,7 @@ Deno.test("validateToken — returns error when invite has expired", async () =>
         id: "expired-123",
         token: "expired-token",
         invited_email: "expired@innergcomplete.com",
-        intended_role: "client_user",
+        intended_role: "client_viewer",
         invited_by: "admin-id",
         expires_at: makePastDate(2), // Expired 2 days ago!
         used_at: null,

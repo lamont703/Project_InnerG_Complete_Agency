@@ -80,7 +80,7 @@ run_test "validate-invite (missing token field → 400)" 400 "$RESPONSE" "$BODY"
 RESPONSE=$(curl -s -o /tmp/smoke_response.txt -w "%{http_code}" \
     -X POST "${FUNCTIONS_URL}/generate-invite-link" \
     -H "Content-Type: application/json" \
-    -d '{"invited_email": "tester@test.com", "intended_role": "client_user"}')
+    -d '{"invited_email": "tester@test.com", "intended_role": "client_viewer"}')
 BODY=$(cat /tmp/smoke_response.txt)
 run_test "generate-invite-link (no auth → 401)" 401 "$RESPONSE" "$BODY"
 

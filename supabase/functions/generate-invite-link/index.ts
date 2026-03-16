@@ -11,7 +11,7 @@ import { createInvite } from "../_shared/lib/services/invite.ts"
 
 const InviteRequestSchema = z.object({
     invited_email: z.string().email(),
-    intended_role: z.enum(["super_admin", "developer", "client_admin", "client_user"]),
+    intended_role: z.enum(["super_admin", "developer", "client_admin", "client_viewer"]),
     client_id: z.string().uuid().optional()
 })
 
