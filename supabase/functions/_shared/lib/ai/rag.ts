@@ -84,17 +84,17 @@ export class RagService {
         return combined.filter(r => {
             // If the chunk belongs to the local project, it's always allowed (siloed)
             if (r.project_id === projectId) return true
-            
+
             // If the chunk belongs to the Agency and we are a client portal,
             // ONLY allow "Master Knowledge" or "Shared" tables.
             // This prevents CRM data leakage (e.g. GHL contacts from another client).
             const GLOBAL_TABLES = ["project_knowledge", "ai_signals", "session_summaries", "news_intelligence"]
             const isGlobalTable = GLOBAL_TABLES.includes(r.source_table)
-            
+
             return isGlobalTable
         }).map(r => ({
             ...r,
-            content: r.project_id === agencyProjectId ? `[SHARED] ${r.content}` : r.content
+            content: r.project_id === agencyProjectId ? `[AGENCY_SHARED] ${r.content}` : r.content
         }))
     }
 
