@@ -63,7 +63,7 @@ export class RagService {
             searchTasks.push(
                 this.client.rpc("match_documents", {
                     query_embedding: embedding,
-                    match_threshold: minSimilarity + 0.05, // Slightly stricter for agency peering
+                    match_threshold: minSimilarity + 0.1, // Stricter for agency peering (0.45)
                     match_count: Math.floor(limit / 2),
                     p_project_id: agencyProjectId
                 })
@@ -71,9 +71,28 @@ export class RagService {
         }
 
         const results = await Promise.all(searchTasks)
-        const combined = results.flatMap((r: any) => r.data || []) as (RagResult & { project_id?: string })[]
+        
+        // 3. Process & Filter Results
+        const combined = results.flatMap((r: any, index: number) => {
+            const taskProjectId = index === 0 ? projectId : agencyProjectId
+            return (r.data || []).map((item: any) => ({
+                ...item,
+                project_id: item.project_id || taskProjectId
+            }))
+        }) as (RagResult & { project_id: string })[]
 
-        return combined.map(r => ({
+        return combined.filter(r => {
+            // If the chunk belongs to the local project, it's always allowed (siloed)
+            if (r.project_id === projectId) return true
+            
+            // If the chunk belongs to the Agency and we are a client portal,
+            // ONLY allow "Master Knowledge" or "Shared" tables.
+            // This prevents CRM data leakage (e.g. GHL contacts from another client).
+            const GLOBAL_TABLES = ["project_knowledge", "ai_signals", "session_summaries", "news_intelligence"]
+            const isGlobalTable = GLOBAL_TABLES.includes(r.source_table)
+            
+            return isGlobalTable
+        }).map(r => ({
             ...r,
             content: r.project_id === agencyProjectId ? `[SHARED] ${r.content}` : r.content
         }))
