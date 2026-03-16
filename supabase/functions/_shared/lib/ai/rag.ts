@@ -86,9 +86,9 @@ export class RagService {
             if (r.project_id === projectId) return true
 
             // If the chunk belongs to the Agency and we are a client portal,
-            // ONLY allow "Master Knowledge" or "Shared" tables.
-            // This prevents CRM data leakage (e.g. GHL contacts from another client).
-            const GLOBAL_TABLES = ["project_knowledge", "ai_signals", "session_summaries", "news_intelligence"]
+            // ONLY allow limited shared tables.
+            // Note: 'project_knowledge' is EXCLUDED here because it contains Agency internal SOPs.
+            const GLOBAL_TABLES = ["ai_signals", "session_summaries", "news_intelligence"]
             const isGlobalTable = GLOBAL_TABLES.includes(r.source_table)
 
             return isGlobalTable
