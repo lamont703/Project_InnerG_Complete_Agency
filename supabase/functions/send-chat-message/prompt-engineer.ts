@@ -62,11 +62,20 @@ You have access to the project's GitHub data (commits, PRs) and AI-distilled str
 
 const SOCIAL_PLANNER_RULES = `
 **SOCIAL MEDIA & CONTENT STRATEGY:**
-You have access to the project's GoHighLevel Social Planner data (accounts, posts) and AI-straregy insights.
+You have access to the project's GoHighLevel Social Planner data (accounts, posts).
 1. Use 'get_social_insights' to see content strategy, engagement alerts, and trends.
 2. Use 'list_recent_social_posts' to track what has been posted and what is scheduled.
 3. Use 'search_social_knowledge' for questions about specific social campaigns or content history.
 4. Help the user optimize their posting schedule and content alignment with growth goals.
+`
+
+const GHL_CRM_RULES = `
+**CRM & PIPELINE INTELLIGENCE (GOHIGHLEVEL):**
+You have access to the project's GoHighLevel CRM data (contacts, leads, pipelines, opportunities).
+1. Use 'list_recent_contacts' to see the newest leads and customer interactions.
+2. Use 'list_recent_opportunities' to track the sales pipeline and high-value deals.
+3. Use 'search_crm_knowledge' for deep dives into specific customer history or pipeline status.
+4. When asked about CRM or "GoHighLevel," prioritize these tools and the [GHL_CONTACTS] or [GHL_OPPORTUNITIES] knowledge base context.
 `
 
 // ─── YouTube Intelligence Rules ─────────────────────────────
@@ -196,6 +205,7 @@ export function buildSystemPrompt(params: {
 
     const hasGithub = enabledSources.some(s => s.includes("campaign") || s.includes("github"))
     const hasSocial = enabledSources.some(s => s.includes("campaign") || s.includes("social"))
+    const hasCrm = enabledSources.some(s => s.includes("ghl_contacts") || s.includes("ghl_opportunities"))
     const hasYoutube = enabledSources.some(s => s.includes("youtube"))
     const hasLinkedin = enabledSources.some(s => s.includes("linkedin"))
     const hasNotion = enabledSources.some(s => s.includes("notion"))
@@ -233,6 +243,8 @@ ${BUG_REPORTING_PROTOCOL}
 ${hasGithub ? `## GitHub & Tech Intelligence\n${GITHUB_INTELLIGENCE_RULES}` : ""}
 
 ${hasSocial ? `## Social Media & Content Strategy\n${SOCIAL_PLANNER_RULES}` : ""}
+
+${hasCrm ? `## CRM & Pipeline Intelligence\n${GHL_CRM_RULES}` : ""}
 
 ${hasYoutube ? `## YouTube & Video Strategy\n${YOUTUBE_INTELLIGENCE_RULES}` : ""}
  

@@ -12,6 +12,7 @@ import { getYoutubeChannelStatsTool, listRecentYoutubeVideosTool, searchYoutubeK
 import { getLinkedinPageStatsTool, listRecentLinkedinPostsTool, searchLinkedinKnowledgeTool } from "./linkedin/index.ts"
 import { listRecentNotionPagesTool, searchNotionKnowledgeTool } from "./notion/index.ts"
 import { getTiktokAccountStatsTool, listRecentTiktokVideosTool, searchTiktokKnowledgeTool } from "./tiktok/index.ts"
+import { searchCrmKnowledgeTool, listRecentContactsTool, listRecentOpportunitiesTool } from "./ghl/index.ts"
 import { createSocialDraftTool, listSocialDraftsTool } from "./orchestration/index.ts"
 import { getProjectMetricsTool } from "./metrics/index.ts"
 
@@ -57,6 +58,11 @@ export function createDefaultRegistry(): ToolRegistry {
     registry.register(getTiktokAccountStatsTool)
     registry.register(listRecentTiktokVideosTool)
     registry.register(searchTiktokKnowledgeTool)
+
+    // Register GHL CRM Tools
+    registry.register(searchCrmKnowledgeTool)
+    registry.register(listRecentContactsTool)
+    registry.register(listRecentOpportunitiesTool)
 
     // Register Business Metrics Tools
     registry.register(getProjectMetricsTool)

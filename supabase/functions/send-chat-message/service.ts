@@ -203,7 +203,7 @@ export class ChatService {
                 const rawChunks = await rag.search({
                     projectId: project_id,
                     query: message,
-                    limit: 16,
+                    limit: 32,
                     includeAgencyKnowledge: true,
                     agencyProjectId: AGENCY_PROJECT_ID
                 })
@@ -215,7 +215,7 @@ export class ChatService {
                         allowedTables: allowedSourceTables,
                         returnedTables: [...new Set(rawChunks.map((c: any) => c.source_table))]
                     })
-                    contextChunks.push(...filtered.slice(0, 10).map((c: any) => {
+                    contextChunks.push(...filtered.slice(0, 20).map((c: any) => {
                         const status = c.is_processed ? "[PROCESSED] " : ""
                         const label = c.source_table === "project_knowledge" ? "KNOWLEDGE BASE" : c.source_table.toUpperCase()
                         return `[${label}] ${status}(ID: ${c.source_id}) ${c.content}`
