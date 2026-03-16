@@ -208,6 +208,7 @@ export class ChatService {
                         this.logger.warn("Global session summary exception", { error: err })
                     }
                 }
+            } else {
                 // Hybrid Search: Local Project + Agency (for shared integrations)
                 const searchTasks = [
                     this.adminClient.rpc("match_documents", {
