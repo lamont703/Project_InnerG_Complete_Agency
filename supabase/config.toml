@@ -132,3 +132,6 @@ verify_jwt = false
 
 [functions.publish-social-post]
 verify_jwt = false
+
+[functions.generate-social-image]
+verify_jwt = false

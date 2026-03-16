@@ -182,6 +182,32 @@ export function useAgencyData() {
         }
     }
 
+    const handleGenerateImage = async (draftId: string, style?: string) => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) throw new Error("No active session")
+
+            const imageUrl = await service.generateSocialImage(session.access_token, supabaseAnonKey, draftId, style)
+            
+            // Refresh data to show new image
+            await fetchData()
+            return imageUrl
+        } catch (err: any) {
+            console.error("[useAgencyData] Image generation failed:", err)
+            alert("Image generation failed: " + (err.message || "Unknown error"))
+            throw err
+        }
+    }
+
+    const handleClearMedia = async (draftId: string) => {
+        try {
+            await service.clearDraftMedia(draftId)
+            await fetchData()
+        } catch (err: any) {
+            console.error("[useAgencyData] Clear media failed:", err)
+        }
+    }
+
     const handleDeleteSocialDraft = async (draftId: string, projectId: string) => {
         try {
             await service.deleteSocialDraft(draftId, projectId)
@@ -238,6 +264,8 @@ export function useAgencyData() {
         syncLinkedIn: handleSyncLinkedIn,
         resolveSignal: handleResolveSignal,
         publishPost: handlePublishPost,
-        deleteDraft: handleDeleteSocialDraft
+        deleteDraft: handleDeleteSocialDraft,
+        generateImage: handleGenerateImage,
+        clearMedia: handleClearMedia
     }
 }

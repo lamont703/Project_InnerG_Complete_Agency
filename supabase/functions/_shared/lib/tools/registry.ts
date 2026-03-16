@@ -15,6 +15,7 @@ import { getTiktokAccountStatsTool, listRecentTiktokVideosTool, searchTiktokKnow
 import { searchCrmKnowledgeTool, listRecentContactsTool, listRecentOpportunitiesTool } from "./ghl/index.ts"
 import { createSocialDraftTool, listSocialDraftsTool } from "./orchestration/index.ts"
 import { getProjectMetricsTool } from "./metrics/index.ts"
+import { generateSocialVisualTool } from "./creative/index.ts"
 
 /**
  * Creates and configures the default tool registry for AI agents.
@@ -66,6 +67,9 @@ export function createDefaultRegistry(): ToolRegistry {
 
     // Register Business Metrics Tools
     registry.register(getProjectMetricsTool)
+
+    // Register Creative AI Tools
+    registry.register(generateSocialVisualTool)
 
     return registry
 }

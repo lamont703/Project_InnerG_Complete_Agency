@@ -73,8 +73,28 @@ export default createHandler(async ({ adminClient, body, user }) => {
         }
         
         if (!authorUrn) throw new Error("LinkedIn connection is missing author ID (page_id or person_id)")
+
+        let mediaAsset = undefined
+
+        // If draft has an image, upload it to LinkedIn first
+        if (draft.media_url) {
+            logger.info("Draft has media_url, uploading to LinkedIn...", { media_url: draft.media_url })
+            try {
+                const imgRes = await fetch(draft.media_url)
+                if (!imgRes.ok) throw new Error(`Failed to fetch media from Supabase: ${imgRes.statusText}`)
+                
+                const blob = await imgRes.blob()
+                const buffer = new Uint8Array(await blob.arrayBuffer())
+                
+                mediaAsset = await client.uploadImage(authorUrn, buffer, blob.type)
+                logger.info("Media uploaded to LinkedIn", { assetUrn: mediaAsset })
+            } catch (error: any) {
+                logger.error("Failed to upload image to LinkedIn", { error: error.message })
+                throw new Error(`Media upload failed: ${error.message}`)
+            }
+        }
         
-        const result = await client.createPost(authorUrn, draft.content_text)
+        const result = await client.createPost(authorUrn, draft.content_text, mediaAsset)
         externalPostId = result.id
     } else if (draft.platform === "tiktok") {
         throw new Error("TikTok text-based posting not yet implemented in client.")

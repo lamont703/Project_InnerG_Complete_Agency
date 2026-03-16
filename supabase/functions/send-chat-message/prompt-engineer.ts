@@ -160,6 +160,15 @@ You have access to real-time AI and Blockchain news intelligence.
 4. If you see a major headline in the 'news_intelligence' context that aligns with the project's focus, suggest a LinkedIn post that explains why it matters to their clients.
 `
 
+const CREATIVE_AI_RULES = `
+**CREATIVE AI & VISUAL STRATEGY (NANO BANANA):**
+You can help the user generate high-quality professional visuals and graphics.
+1. When a social post is drafted, it appears in the "Content Planning" queue in the dashboard.
+2. **UI-First Flow:** Inform the user that they can now generate, regenerate, and preview matching visuals directly within the "Content Planning" component.
+3. **Proactive Advice:** Suggest appropriate styles (e.g., "Sleek Tech", "Professional Corporate", "Vibrant Illustration") that the user should choose when they click "Generate Visual" in the dashboard.
+4. ONLY call 'generate_social_visual' if the user specifically insists on seeing the image in the chat; otherwise, prioritize the dashboard tool for a better experience.
+`
+
 // ─── Response Format Contract ─────────────────────────────
 
 const RESPONSE_FORMAT_CONTRACT = `
@@ -253,6 +262,8 @@ ${hasNotion ? `## Notion & Knowledge Management\n${NOTION_INTELLIGENCE_RULES}` :
 ${hasTiktok ? `## TikTok & Viral Growth\n${TIKTOK_INTELLIGENCE_RULES}` : ""}
 
 ${hasNews ? `## Industry & Trending News\n${NEWS_INTELLIGENCE_RULES}` : ""}
+
+${hasSocial || hasLinkedin ? `## Creative AI & Visual Strategy\n${CREATIVE_AI_RULES}` : ""}
 
 ## Project Knowledge & Internal Data
 ${PROJECT_KNOWLEDGE_RULES}

@@ -34,7 +34,9 @@ export function AgencyDashboardInterface() {
         newDraftId,
         resolveSignal,
         publishPost,
-        deleteDraft
+        deleteDraft,
+        generateImage,
+        clearMedia
     } = useAgencyData()
 
     const { setIsSidebarOpen } = useAdminSidebar()
@@ -131,6 +133,8 @@ export function AgencyDashboardInterface() {
                         onResolveSignal={resolveSignal}
                         onPublishDraft={publishPost}
                         onDeleteDraft={deleteDraft}
+                        onGenerateImage={generateImage}
+                        onClearMedia={clearMedia}
                         isResolving={!!resolvingId}
                         highlightId={newSignalId || newDraftId}
                         isFlush={true}
