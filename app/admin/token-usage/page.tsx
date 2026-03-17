@@ -13,6 +13,7 @@ import {
     ChevronDown,
     Check,
     AlertTriangle,
+    Power,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -33,6 +34,15 @@ interface TierDef {
 }
 
 const TIERS: TierDef[] = [
+    {
+        key: "off",
+        label: "Off",
+        tokens: 0,
+        description: "AI access disabled — no token credits allocated.",
+        icon: Power,
+        color: "text-slate-400",
+        bgColor: "bg-slate-500/10 border-slate-500/20",
+    },
     {
         key: "starter",
         label: "Starter",

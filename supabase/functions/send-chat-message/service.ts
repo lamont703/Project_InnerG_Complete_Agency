@@ -68,7 +68,9 @@ export class ChatService {
             this.logger.warn("Budget exceeded", { project_id, usage_percent: budget.usage_percent })
             return {
                 data: {
-                    reply: `⚠️ Your AI usage quota for this month has been reached (${budget.usage_percent}% of your ${budget.tier} plan limit). Please contact your administrator to upgrade your plan or wait until next month.`,
+                    reply: budget.tier === 'off' 
+                        ? "⚠️ AI access is currently disabled for this project. Please contact your administrator to activate the Growth Assistant."
+                        : `⚠️ Your AI usage quota for this month has been reached (${budget.usage_percent}% of your ${budget.tier} plan limit). Please contact your administrator to upgrade your plan or wait until next month.`,
                     session_id: session_id ?? null,
                     signal_created: null,
                     model_used: model,

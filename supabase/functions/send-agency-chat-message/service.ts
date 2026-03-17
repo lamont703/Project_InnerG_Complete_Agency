@@ -39,6 +39,12 @@ export interface AgencyChatResult {
     } | null
     input_tokens: number
     output_tokens: number
+    budget_exceeded?: boolean
+    budget?: {
+        tier: string
+        tokens_used: number
+        monthly_limit: number
+    }
 }
 
 export class AgencyChatService {
@@ -53,8 +59,37 @@ export class AgencyChatService {
         const model = input.model ?? GEMINI_MODELS.PRO
         this.logger.info("Starting agency chat execution", { userId, model, hasSessionId: !!session_id })
 
-        // ── Step 1: Embed the user message for RAG ────────────
-        this.logger.info("Step 1: Embedding user message for RAG")
+        // ── Step 1: Token Budget Check ────────────────────────
+        this.logger.info("Step 1: Checking token budget")
+        let budgetRows = null
+        try {
+            const { data } = await this.adminClient.rpc("check_token_budget", {
+                p_project_id: AGENCY_PROJECT_SENTINEL,
+            })
+            budgetRows = data
+        } catch (err) {
+            this.logger.warn("Token budget check failed", { error: err })
+        }
+
+        const budget = budgetRows?.[0]
+
+        if (budget?.is_over_budget) {
+            this.logger.warn("Agency budget exceeded", { project_id: AGENCY_PROJECT_SENTINEL, usage_percent: budget.usage_percent })
+            return {
+                reply: budget.tier === 'off' 
+                    ? "⚠️ AI access is currently disabled for this project. Please contact your administrator to activate the Growth Assistant."
+                    : `⚠️ Your AI usage quota for this month has been reached (${budget.usage_percent}% of your ${budget.tier} plan limit). Please contact your administrator to upgrade your plan or wait until next month.`,
+                session_id: session_id ?? null,
+                signal_created: null,
+                input_tokens: 0,
+                output_tokens: 0,
+                budget_exceeded: true,
+                budget: { tier: budget.tier, tokens_used: budget.tokens_used, monthly_limit: budget.monthly_limit }
+            }
+        }
+
+        // ── Step 2: Embed the user message for RAG ────────────
+        this.logger.info("Step 2: Embedding user message for RAG")
         const queryVector = await embedText(message, this.geminiApiKey).catch(err => {
             this.logger.error("Embedding generation failed", err)
             return null
@@ -100,8 +135,8 @@ export class AgencyChatService {
             }
         }
 
-        // ── Step 2: Fetch Agency Knowledge Base ───────────────
-        this.logger.info("Step 2: Fetching agency knowledge base")
+        // ── Step 3: Fetch Agency Knowledge Base ───────────────
+        this.logger.info("Step 3: Fetching agency knowledge base")
         const { data: knowledgeEntries, error: knowledgeErr } = await this.adminClient
             .from("agency_knowledge")
             .select("title, body, tags")
@@ -119,8 +154,8 @@ export class AgencyChatService {
             ).join("\n---\n")
             : ""
 
-        // ── Step 3: Get or Create Agency Session ──────────────
-        this.logger.info("Step 3: Managing agency chat session")
+        // ── Step 4: Get or Create Agency Session ──────────────
+        this.logger.info("Step 4: Managing agency chat session")
         let currentSessionId = session_id ?? null
         if (!currentSessionId) {
             this.logger.info("Creating new agency chat session")
@@ -143,10 +178,10 @@ export class AgencyChatService {
             }
         }
 
-        // ── Step 4: Fetch Chat History ────────────────────────
+        // ── Step 5: Fetch Chat History ────────────────────────
         let historyPrompt = ""
         if (currentSessionId) {
-            this.logger.info("Step 4: Fetching chat history")
+            this.logger.info("Step 5: Fetching chat history")
             const { data: history, error: historyErr } = await this.adminClient
                 .from("chat_messages")
                 .select("role, content")
@@ -165,8 +200,8 @@ export class AgencyChatService {
             }
         }
 
-        // ── Step 5: Build Portfolio Context ───────────────────
-        this.logger.info("Step 5: Fetching portfolio context")
+        // ── Step 6: Build Portfolio Context ───────────────────
+        this.logger.info("Step 6: Fetching portfolio context")
         const { data: allProjects, error: projectsErr } = await this.adminClient
             .from("projects")
             .select("id, name, slug, clients(name)")
@@ -182,8 +217,8 @@ export class AgencyChatService {
             ).join("\n")
             : "No client projects configured."
 
-        // ── Step 6: Fetch Sales Pipeline Intelligence ─────────
-        this.logger.info("Step 6: Fetching sales pipeline intel")
+        // ── Step 7: Fetch Sales Pipeline Intelligence & Recent Signals/Tickets ─────────
+        this.logger.info("Step 7: Fetching sales pipeline intel and live intelligence")
         let pipelineContext = ""
         try {
             const { data: pipelines, error: pipelineErr } = await this.adminClient
@@ -209,8 +244,6 @@ export class AgencyChatService {
             this.logger.warn("Pipeline intel fetch failed (non-fatal)", { error: String(err) })
         }
 
-        // ── Step 7: Fetch Recent Signals & Tickets ─────────────
-        this.logger.info("Step 7: Fetching active signals and tickets for context")
         let liveIntelligenceContext = ""
         try {
             const [{ data: signals }, { data: tickets }] = await Promise.all([
@@ -323,7 +356,7 @@ export class AgencyChatService {
                 loopCount++
             } catch (toolErr) {
                 this.logger.error(`Tool loop execution failed at loop ${loopCount}`, toolErr)
-                break 
+                break
             }
         }
 
@@ -348,8 +381,8 @@ export class AgencyChatService {
 
         this.logger.info("Gemini response received", { usage })
 
-        // ── Step 9: Parse AI Response ─────────────────────────
-        this.logger.info("Step 9: Parsing AI response")
+        // ── Step 11: Parse AI Response ─────────────────────────
+        this.logger.info("Step 11: Parsing AI response")
         let parsed = parseAiResponse(rawReply)
         let finalReply = parsed.message || rawReply
         let signalCreated: AgencyChatResult["signal_created"] = null
@@ -384,9 +417,9 @@ export class AgencyChatService {
             }
         }
 
-        // ── Step 10: Persist Signal (if detected) ─────────────
+        // ── Step 12: Persist Signal (if detected) ─────────────
         if (parsed.signal) {
-            this.logger.info("Step 10: Persisting agency signal", { title: parsed.signal.title })
+            this.logger.info("Step 12: Persisting agency signal", { title: parsed.signal.title })
 
             try {
                 // Resolve the target project ID — try UUID, name/slug match, then first project
@@ -451,8 +484,8 @@ export class AgencyChatService {
             }
         }
 
-        // ── Step 11: Persist Messages ─────────────────────────
-        this.logger.info("Step 11: Persisting chat messages to history")
+        // ── Step 13: Persist Messages ─────────────────────────
+        this.logger.info("Step 13: Persisting chat messages to history")
         const { error: msgErr } = await this.adminClient.from("chat_messages").insert([
             { session_id: currentSessionId, role: "user", content: message, input_tokens: usage.inputTokens },
             { session_id: currentSessionId, role: "assistant", content: finalReply, output_tokens: usage.outputTokens },
@@ -462,8 +495,8 @@ export class AgencyChatService {
             this.logger.error("Failed to persist chat messages", msgErr)
         }
 
-        // ── Step 12: Increment Token Usage ───────────────────
-        this.logger.info("Step 12: Incrementing token usage")
+        // ── Step 14: Increment Token Usage ───────────────────
+        this.logger.info("Step 14: Incrementing token usage")
         try {
             await this.adminClient.rpc("increment_token_usage", {
                 p_project_id: AGENCY_PROJECT_SENTINEL,
@@ -483,6 +516,11 @@ export class AgencyChatService {
             signal_created: signalCreated,
             input_tokens: usage.inputTokens,
             output_tokens: usage.outputTokens,
+            budget: budget ? {
+                tier: budget.tier,
+                tokens_used: (budget.tokens_used ?? 0) + usage.inputTokens + usage.outputTokens,
+                monthly_limit: budget.monthly_limit,
+            } : undefined
         }
     }
 }

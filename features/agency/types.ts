@@ -70,4 +70,5 @@ export interface AgencyChatMessage {
         signal_type: string
         project_id?: string
     } | null
+    budgetExceeded?: boolean
 }
