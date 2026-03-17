@@ -36,8 +36,10 @@ export class ImageService {
     async generate(options: ImageGenerationOptions): Promise<GeneratedImage> {
         const { prompt, aspectRatio = "1:1", style } = options;
         
-        // Enhance prompt with style if provided
-        const finalPrompt = style ? `${prompt} In the style of ${style}.` : prompt;
+        // Enhance prompt with style and aspect ratio since parameters in config were rejected
+        let finalPrompt = prompt;
+        if (style) finalPrompt += ` Style: ${style}.`;
+        if (aspectRatio) finalPrompt += ` Aspect Ratio: ${aspectRatio}.`;
 
         const url = `${this.baseUrl}/models/nano-banana-pro-preview:generateContent?key=${this.apiKey}`;
         
@@ -47,8 +49,7 @@ export class ImageService {
             body: JSON.stringify({
                 contents: [{ parts: [{ text: finalPrompt }] }],
                 generationConfig: {
-                    aspectRatio: aspectRatio,
-                    sampleCount: 1,
+                    // Supported fields for this preview model might differ from standard Gemini
                 }
             })
         });
