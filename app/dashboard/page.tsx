@@ -3,20 +3,59 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
+import { createBrowserClient } from "@/lib/supabase/browser"
 
 /**
  * Root Dashboard Page
- * Redirects to the default project dashboard.
- * Since we are moving away from multiple mock projects, 
- * this ensures users land on the primary operational dashboard.
+ * Smart-redirects to the appropriate project dashboard based on user role and permissions.
  */
 export default function RootDashboard() {
     const router = useRouter()
 
     useEffect(() => {
-        // Redirect to the default project slug
-        // In the future, this could fetch the user's last active project
-        router.replace("/dashboard/agency-global")
+        const handleRedirect = async () => {
+            const supabase = createBrowserClient()
+            const { data: { user } } = await supabase.auth.getUser()
+
+            if (!user) {
+                router.replace("/login")
+                return
+            }
+
+            // 1. Resolve User Role
+            const { data: profile } = await (supabase
+                .from("users")
+                .select("role")
+                .eq("id", user.id)
+                .maybeSingle() as any)
+
+            const role = profile?.role || "client_viewer"
+
+            // 2. Routing Decision
+            if (role === "super_admin" || role === "developer") {
+                // Team always lands on the global intelligence portal
+                router.replace("/dashboard/innergcomplete")
+            } else {
+                // Client users: land on their first assigned project
+                const { data: access } = await (supabase
+                    .from("project_user_access")
+                    .select("projects(slug)")
+                    .eq("user_id", user.id)
+                    .limit(1)
+                    .maybeSingle() as any)
+
+                const slug = access?.projects?.slug
+                
+                if (slug) {
+                    router.replace(`/dashboard/${slug}`)
+                } else {
+                    // No portal? Take them to the selection overview
+                    router.replace("/select-portal")
+                }
+            }
+        }
+
+        handleRedirect()
     }, [router])
 
     return (
