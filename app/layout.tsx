@@ -70,18 +70,37 @@ export const viewport: Viewport = {
 
 import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/providers/theme-provider"
+import { createServerClient } from "@/lib/supabase/server"
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  let agencyTheme = 'dark'
+  
+  try {
+    const supabase = await createServerClient()
+    const { data: profile } = await (supabase
+      .from('agency_profile')
+      .select('theme_preference')
+      .eq('id', '00000000-0000-0000-0000-000000000000')
+      .maybeSingle() as any)
+    
+    if (profile?.theme_preference) {
+      agencyTheme = profile.theme_preference
+    }
+  } catch (err) {
+    // Fallback to dark if any database issues or unauthenticated access
+    agencyTheme = 'dark'
+  }
+
   return (
     <html lang="en" className={`${_inter.variable} ${_jetbrainsMono.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased">
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme={agencyTheme}
           enableSystem
           disableTransitionOnChange
         >
