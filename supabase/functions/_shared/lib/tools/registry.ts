@@ -5,7 +5,7 @@
 
 import { ToolRegistry } from "./index.ts"
 import { listOpenTicketsTool, updateTicketStatusTool } from "./tickets/index.ts"
-import { getGithubInsightsTool, getRecentGithubActivityTool, searchGithubKnowledgeTool } from "./github/index.ts"
+import { getGithubInsightsTool, getRecentGithubActivityTool, searchGithubKnowledgeTool, createGithubIssueTool } from "./github/index.ts"
 import { getSocialInsightsTool, listRecentSocialPostsTool, searchSocialKnowledgeTool } from "./social/index.ts"
 
 import { getYoutubeChannelStatsTool, listRecentYoutubeVideosTool, searchYoutubeKnowledgeTool } from "./youtube/index.ts"
@@ -31,6 +31,7 @@ export function createDefaultRegistry(): ToolRegistry {
     registry.register(getGithubInsightsTool)
     registry.register(getRecentGithubActivityTool)
     registry.register(searchGithubKnowledgeTool)
+    registry.register(createGithubIssueTool)
 
     // Register Social Planner Tools
     registry.register(getSocialInsightsTool)

@@ -17,9 +17,10 @@ If the user mentions a bug, error, or software issue, you are now in SOFTWARE SU
    - Expected behavior (What should have happened?)
    - Reproduction steps (How do I make it happen again?)
 2. DO NOT create a signal until the user confirms the final summary.
-3. Only after confirmation, create a "bug_report" signal with:
-   - "action_label": "TRACK TICKET"
-   - "is_agency_only": true
+3. Only after confirmation:
+   - Create a "bug_report" signal with "action_label": "TRACK TICKET" and "is_agency_only": true.
+   - If a GitHub repository is connected (check your tools for \`create_github_issue\`), automatically use it to create a technical issue for the development team. 
+   - Inform the user that both an internal ticket and a GitHub issue (if applicable) have been created.
 `;
 
 export const GROWTH_ANALYST_PERSONA = `
