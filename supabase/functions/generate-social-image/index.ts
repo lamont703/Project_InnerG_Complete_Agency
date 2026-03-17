@@ -44,8 +44,8 @@ export default createHandler(async ({ adminClient, body, user }) => {
             }
         }
 
-        // 2. Determine Prompt
-        const prompt = body.prompt_override || draft.content_text;
+        // 2. Determine Prompt (Truncate to 1000 chars for image model stability)
+        const prompt = (body.prompt_override || draft.content_text || "").slice(0, 1000);
         const style = body.style || "professional, engaging, high-quality, matched to content tone";
         const aspectRatio = body.aspect_ratio || "4:5";
 
@@ -90,7 +90,7 @@ export default createHandler(async ({ adminClient, body, user }) => {
             message: "Visual generated and saved to draft."
         });
     } catch (error: any) {
-        logger.error(`Error generating image: ${error.message}`);
+        logger.error(`Error generating image: ${error.message}`, error);
         throw error;
     }
 }, {
