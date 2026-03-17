@@ -18,17 +18,6 @@ export class AccessRepo {
     constructor(private client: SupabaseClient) { }
 
     /**
-     * Grants a developer access to a specific client's data.
-     */
-    async grantDeveloperAccess(developerId: string, clientId: string, assignedBy: string): Promise<void> {
-        const { error } = await this.client
-            .from("developer_client_access")
-            .insert({ developer_id: developerId, client_id: clientId, assigned_by: assignedBy })
-
-        if (error) throw error
-    }
-
-    /**
      * Fetches all project IDs belonging to a client.
      */
     async getProjectsByClient(clientId: string): Promise<{ id: string }[]> {

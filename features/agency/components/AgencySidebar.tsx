@@ -45,7 +45,6 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
         { href: "/admin/connectors", icon: Plug, label: "Connectors" },
         { href: "/admin/knowledge", icon: BookOpen, label: "Knowledge CMS" },
         { href: "/admin/settings", icon: Settings, label: "Agency Settings" },
-        { href: "/admin/developers", icon: ShieldCheck, label: "Developer Portfolios" },
     ]
 
     const SidebarContent = () => (
