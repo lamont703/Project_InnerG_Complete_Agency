@@ -91,10 +91,12 @@ export default function AgencySettingsPage() {
     const { theme, setTheme } = useTheme()
 
     // Agency settings state
-    const [agencyName, setAgencyName] = useState("Inner G Complete")
-    const [agencyDescription, setAgencyDescription] = useState("Full-service growth agency specializing in digital transformation and brand acceleration.")
-    const [supportEmail, setSupportEmail] = useState("support@innergcomplete.com")
+    const [agencyName, setAgencyName] = useState("")
+    const [agencyDescription, setAgencyDescription] = useState("")
+    const [supportEmail, setSupportEmail] = useState("")
     const [primaryDomain, setPrimaryDomain] = useState("")
+
+    const AGENCY_SENTINEL_ID = '00000000-0000-0000-0000-000000000000'
 
     useEffect(() => {
         const load = async () => {
@@ -113,6 +115,22 @@ export default function AgencySettingsPage() {
                     router.push("/select-portal")
                     return
                 }
+
+                // Fetch real data from agency_profile
+                const { data: settingsData, error: settingsError } = await supabase
+                    .from("agency_profile")
+                    .select("*")
+                    .eq("id", AGENCY_SENTINEL_ID)
+                    .maybeSingle()
+
+                if (settingsError) {
+                    console.error("[Settings] Fetch error:", settingsError)
+                } else if (settingsData) {
+                    setAgencyName(settingsData.name || "Inner G Complete")
+                    setAgencyDescription(settingsData.description || "")
+                    setSupportEmail(settingsData.support_email || "")
+                    setPrimaryDomain(settingsData.primary_domain || "")
+                }
             } catch (err) {
                 console.error("[Settings] Load error:", err)
             } finally {
@@ -124,11 +142,29 @@ export default function AgencySettingsPage() {
 
     const handleSave = async () => {
         setIsSaving(true)
-        // Simulate save — in production, persist to a settings table
-        await new Promise((r) => setTimeout(r, 800))
-        setIsSaving(false)
-        setShowSaved(true)
-        setTimeout(() => setShowSaved(false), 2500)
+        try {
+            const supabase = createBrowserClient()
+            const { error } = await supabase
+                .from("agency_profile")
+                .upsert({
+                    id: AGENCY_SENTINEL_ID,
+                    name: agencyName,
+                    description: agencyDescription,
+                    support_email: supportEmail,
+                    primary_domain: primaryDomain,
+                    updated_at: new Date().toISOString()
+                })
+
+            if (error) throw error
+
+            setShowSaved(true)
+            setTimeout(() => setShowSaved(false), 2500)
+        } catch (err) {
+            console.error("[Settings] Save error:", err)
+            alert("Failed to save settings. Please try again.")
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     if (isLoading) {
