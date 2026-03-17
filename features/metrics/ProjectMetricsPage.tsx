@@ -68,9 +68,16 @@ interface ProjectMetricsContentProps {
 
 function ProjectMetricsContent({ initialUserData }: ProjectMetricsContentProps) {
     const params = useParams()
-    const slug = (params?.slug as string) ?? "innergcomplete"
+    const slug = (params?.slug as string) ?? "agency-global"
 
-    const { activeSlotIds, availableSlots, toggleSlot } = useSlotContext()
+    const { 
+        activeSlotIds, 
+        availableSlots, 
+        toggleSlot, 
+        saveChanges, 
+        isSaving, 
+        isInitialLoading: isConfigLoading 
+    } = useSlotContext()
 
     // User & Project State
     const [userData, setUserData] = useState<{ name: string; role: string } | null>(initialUserData)
@@ -130,10 +137,13 @@ function ProjectMetricsContent({ initialUserData }: ProjectMetricsContentProps) 
         return () => clearInterval(timer)
     }, [slug])
 
-    if (isLoading) {
+    if (isLoading || isConfigLoading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground font-medium tracking-widest uppercase">Initializing Port Registry...</p>
+                </div>
             </div>
         )
     }
@@ -260,8 +270,19 @@ function ProjectMetricsContent({ initialUserData }: ProjectMetricsContentProps) 
                                 <p className="text-sm text-muted-foreground mt-1 max-w-md">Your configuration affects how the AI prioritizes signal generation and real-time alerts for this project.</p>
                             </div>
                         </div>
-                        <Button className="h-12 px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-primary/20 border-b-2 border-black/20">
-                            Apply Changes
+                        <Button 
+                            onClick={saveChanges}
+                            disabled={isSaving}
+                            className="h-12 px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-primary/20 border-b-2 border-black/20 min-w-[200px]"
+                        >
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                                    Syncing...
+                                </>
+                            ) : (
+                                "Apply Changes"
+                            )}
                         </Button>
                     </div>
                     </div>

@@ -16,7 +16,7 @@ export default function RootDashboard() {
     useEffect(() => {
         // Redirect to the default project slug
         // In the future, this could fetch the user's last active project
-        router.replace("/dashboard/innergcomplete")
+        router.replace("/dashboard/agency-global")
     }, [router])
 
     return (

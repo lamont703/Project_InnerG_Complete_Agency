@@ -23,7 +23,7 @@ import { SignalService } from "@/features/signals/signal-service"
 
 export function AgencyMetricsPage() {
     return (
-        <SlotProvider userRole="super-admin">
+        <SlotProvider userRole="super-admin" projectSlug="innergcomplete">
             <AgencyMetricsContent />
         </SlotProvider>
     )
@@ -41,7 +41,14 @@ function AgencyMetricsContent() {
     } = useAgencyData()
 
     const params = useParams()
-    const { activeSlotIds, availableSlots, toggleSlot } = useSlotContext()
+    const { 
+        activeSlotIds, 
+        availableSlots, 
+        toggleSlot, 
+        saveChanges, 
+        isSaving, 
+        isInitialLoading: isConfigLoading 
+    } = useSlotContext()
     const { isSidebarOpen, setIsSidebarOpen } = useAdminSidebar()
     const { resolveSignal, deleteDraft } = useAgencyData()
 
@@ -62,12 +69,12 @@ function AgencyMetricsContent() {
         return () => clearInterval(timer)
     }, [])
 
-    if (isLoading) {
+    if (isLoading || isConfigLoading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading Metrics Intelligence...</p>
+                    <p className="text-sm text-muted-foreground font-medium tracking-widest uppercase italic">Initializing Systemwide Ports...</p>
                 </div>
             </div>
         )
@@ -421,8 +428,19 @@ function AgencyMetricsContent() {
                                 <p className="text-sm text-muted-foreground mt-1 max-w-md">Your configuration affects how the AI prioritizes signal generation and real-time alerts. Pinned ports receive high-frequency stream updates.</p>
                             </div>
                         </div>
-                        <Button className="h-12 px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-primary/20 border-b-2 border-black/20">
-                            Apply Changes Systemwide
+                        <Button 
+                            onClick={saveChanges}
+                            disabled={isSaving}
+                            className="h-12 px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-primary/20 border-b-2 border-black/20 min-w-[240px]"
+                        >
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                                    Synchronizing...
+                                </>
+                            ) : (
+                                "Apply Changes Systemwide"
+                            )}
                         </Button>
                     </div>
                     </div>
