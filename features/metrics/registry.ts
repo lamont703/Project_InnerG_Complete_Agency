@@ -49,7 +49,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         id: "youtube_subscribers",
         label: "YT Subscribers",
         description: "Total subscriber count across connected YouTube channels.",
-        category: 'marketing',
+        category: 'agency',
         type: 'kpi',
         permissions: ['client', 'admin', 'super-admin'],
         iconName: "Youtube"
@@ -58,10 +58,19 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         id: "youtube_views",
         label: "YouTube Views",
         description: "Total cumulative views from connected YouTube channel analytics.",
-        category: 'marketing',
+        category: 'agency',
         type: 'kpi',
         permissions: ['client', 'admin', 'super-admin'],
         iconName: "Play"
+    },
+    {
+        id: "youtube_video_count",
+        label: "YouTube Videos",
+        description: "Total number of videos published on the connected YouTube channels.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "Video"
     },
     {
         id: "freelancer_registrations",
@@ -172,14 +181,221 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         type: 'kpi',
         permissions: ['admin', 'super-admin'],
         iconName: "Eye"
+    },
+
+    // --- TIKTOK ARCHITECTURE STUBS ---
+    {
+        id: "tiktok_followers",
+        label: "TikTok Followers",
+        description: "Total follower count across connected TikTok profiles.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Music"
+    },
+    {
+        id: "tiktok_views",
+        label: "TikTok Views",
+        description: "Total video views across TikTok content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Play"
+    },
+    {
+        id: "tiktok_likes",
+        label: "TikTok Likes",
+        description: "Aggregated heart count across all TikTok publications.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "ThumbsUp"
+    },
+
+    // --- FACEBOOK ARCHITECTURE STUBS ---
+    {
+        id: "facebook_page_likes",
+        label: "Facebook Page Likes",
+        description: "Total community size for connected Facebook Organization Pages.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Facebook"
+    },
+    {
+        id: "facebook_reach",
+        label: "Facebook Reach",
+        description: "Total unique users who saw Facebook content in their feed.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "BarChart3"
+    },
+    {
+        id: "facebook_engagement",
+        label: "Facebook Engagement",
+        description: "Total interactions (likes, shares, comments) on Facebook posts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Zap"
+    },
+
+    // --- INSTAGRAM ARCHITECTURE (AGENCY LEVEL) ---
+    {
+        id: "instagram_followers",
+        label: "Instagram Followers",
+        description: "Total follower count for Agency-managed Instagram profiles.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Instagram"
+    },
+    {
+        id: "instagram_reach",
+        label: "Instagram Reach",
+        description: "Total unique accounts reached across Instagram feed and stories.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "BarChart3"
+    },
+
+    // --- THREADS ARCHITECTURE STUBS ---
+    {
+        id: "threads_followers",
+        label: "Threads Followers",
+        description: "Total follower count across connected Threads accounts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "AtSign"
+    },
+    {
+        id: "threads_likes",
+        label: "Threads Likes",
+        description: "Total likes aggregated across all Threads posts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "ThumbsUp"
+    },
+
+    // --- X (TWITTER) ARCHITECTURE STUBS ---
+    {
+        id: "twitter_followers",
+        label: "X (Twitter) Followers",
+        description: "Total follower count across connected X/Twitter accounts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Twitter"
+    },
+    {
+        id: "twitter_impressions",
+        label: "X (Twitter) Impressions",
+        description: "Total number of times X/Twitter posts were seen.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "BarChart3"
+    },
+    {
+        id: "twitter_engagement",
+        label: "X (Twitter) Engagement",
+        description: "Total interactions recorded across the X content archive.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Zap"
+    },
+
+    // --- KANE'S BOOKSTORE EXCLUSIVE SLOTS ---
+    {
+        id: "bookstore_inventory_value",
+        label: "Inventory Asset Value",
+        description: "Total real-time value of all physical and digital assets in the bookstore inventory.",
+        category: 'finance',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "HardDrive",
+        allowedProjectSlugs: ['kanes-bookstore']
+    },
+    {
+        id: "active_readers",
+        label: "Active Reader Base",
+        description: "Total number of users currently engaged with the Reader App ecosystem.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "BookOpen",
+        allowedProjectSlugs: ['kanes-bookstore']
+    },
+    {
+        id: "monthly_book_sales",
+        label: "Monthly Sales Velocity",
+        description: "Total book sales volume recorded in the current billing cycle.",
+        category: 'finance',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "TrendingUp",
+        allowedProjectSlugs: ['kanes-bookstore']
+    },
+    {
+        id: "bookstore_total_orders",
+        label: "Total Orders",
+        description: "Cumulative order count synced from external store database.",
+        category: 'finance',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "ShoppingBag",
+        allowedProjectSlugs: ['kanes-bookstore']
+    },
+    {
+        id: "bookstore_total_sales_value",
+        label: "Total Order Value",
+        description: "Gross revenue generated from all synced order records.",
+        category: 'finance',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "DollarSign",
+        allowedProjectSlugs: ['kanes-bookstore']
+    },
+    {
+        id: "bookstore_avg_order_value",
+        label: "Average Order Value",
+        description: "Calculated average transaction value across all synced sales.",
+        category: 'finance',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "Calculator",
+        allowedProjectSlugs: ['kanes-bookstore']
     }
 ]
 
 /**
- * Returns available slots based on the user's highest permission level.
+ * Returns available slots based on the user's highest permission level and project context.
  */
-export function getAvailableSlots(userRole: 'client' | 'admin' | 'super-admin'): MetricSlot[] {
-    return METRIC_REGISTRY.filter(slot => slot.permissions.includes(userRole))
+export function getAvailableSlots(
+    userRole: 'client' | 'admin' | 'super-admin',
+    projectSlug?: string
+): MetricSlot[] {
+    return METRIC_REGISTRY.filter(slot => {
+        // 1. Check Permissions
+        const hasPermission = slot.permissions.includes(userRole)
+        if (!hasPermission) return false
+
+        // 2. Check Project Restrictions
+        if (slot.allowedProjectSlugs && slot.allowedProjectSlugs.length > 0) {
+            // Super-admins see everything in the registry to manage it
+            if (userRole === 'super-admin') return true
+
+            if (!projectSlug) return false
+            return slot.allowedProjectSlugs.includes(projectSlug)
+        }
+
+        return true
+    })
 }
 
 /**

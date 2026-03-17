@@ -191,6 +191,7 @@ export default function InviteGenerationPage() {
                                         ))}
                                     </select>
                                 </div>
+                                {errors.client_id && <p className="text-[10px] text-destructive ml-2 font-medium animate-in fade-in duration-300">{errors.client_id.message}</p>}
                             </div>
                         )}
 

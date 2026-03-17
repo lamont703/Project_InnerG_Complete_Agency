@@ -6,29 +6,74 @@ import { Loader2, Activity, Target, Layout, Check, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 // Modular Components
-import { DashboardSidebar } from "@/components/dashboard/sidebar"
-import { DashboardHeader } from "@/components/dashboard/header"
+import { DashboardSidebar } from "@/components/layout/dashboard/sidebar"
+import { DashboardHeader } from "@/components/layout/dashboard/header"
 import { MetricsGrid } from "@/features/metrics/MetricsGrid"
 import { SlotProvider, useSlotContext } from "@/features/metrics/SlotContext"
 import { getIcon } from "@/features/metrics/utils/icon-map"
 import { createBrowserClient } from "@/lib/supabase/browser"
 
 export function ProjectMetricsPage() {
+    const params = useParams()
+    const [role, setRole] = useState<'client' | 'admin' | 'super-admin'>('client')
+    const [userData, setUserData] = useState<{ name: string; role: string } | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchRole = async () => {
+            try {
+                const supabase = createBrowserClient()
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from("users")
+                        .select("full_name, role")
+                        .eq("id", user.id)
+                        .maybeSingle() as any
+                    
+                    if (profile) {
+                        const name = profile.full_name || "User"
+                        const fetchedRole = profile.role?.replace('_', '-') || "client"
+                        setRole(fetchedRole as any)
+                        setUserData({ name, role: fetchedRole.toUpperCase() })
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch role", err)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+        fetchRole()
+    }, [])
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        )
+    }
+
     return (
-        <SlotProvider userRole="client">
-            <ProjectMetricsContent />
+        <SlotProvider userRole={role} projectSlug={params?.slug as string}>
+            <ProjectMetricsContent initialUserData={userData} />
         </SlotProvider>
     )
 }
 
-function ProjectMetricsContent() {
+interface ProjectMetricsContentProps {
+    initialUserData: { name: string; role: string } | null
+}
+
+function ProjectMetricsContent({ initialUserData }: ProjectMetricsContentProps) {
     const params = useParams()
     const slug = (params?.slug as string) ?? "innergcomplete"
 
     const { activeSlotIds, availableSlots, toggleSlot } = useSlotContext()
 
     // User & Project State
-    const [userData, setUserData] = useState<{ name: string; role: string } | null>(null)
+    const [userData, setUserData] = useState<{ name: string; role: string } | null>(initialUserData)
     const [projectName, setProjectName] = useState("")
     const [isLoading, setIsLoading] = useState(true)
 
@@ -43,23 +88,22 @@ function ProjectMetricsContent() {
             try {
                 const supabase = createBrowserClient()
 
-                // 1. Fetch User data
-                const { data: { user } } = await supabase.auth.getUser()
-                if (user) {
-                    const { data: profile } = await supabase
-                        .from("users")
-                        .select("full_name, role")
-                        .eq("id", user.id)
-                        .maybeSingle() as any
+                // 1. If no initial user data, fetch it
+                if (!userData) {
+                    const { data: { user } } = await supabase.auth.getUser()
+                    if (user) {
+                        const { data: profile } = await supabase
+                            .from("users")
+                            .select("full_name, role")
+                            .eq("id", user.id)
+                            .maybeSingle() as any
 
-                    const meta = user.user_metadata || {}
-                    const name = profile?.full_name || meta.full_name || meta.name || meta.display_name || "User"
-                    const role = profile?.role?.replace("_", " ").toUpperCase() || "CLIENT"
+                        const meta = user.user_metadata || {}
+                        const name = profile?.full_name || meta.full_name || meta.name || meta.display_name || "User"
+                        const role = profile?.role?.replace("_", " ").toUpperCase() || "CLIENT"
 
-                    setUserData({
-                        name,
-                        role
-                    })
+                        setUserData({ name, role })
+                    }
                 }
 
                 // 2. Fetch Project Name

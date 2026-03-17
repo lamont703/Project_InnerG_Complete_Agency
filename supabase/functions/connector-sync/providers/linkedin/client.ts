@@ -201,31 +201,89 @@ export class LinkedInClient {
      * @param authorUrn The URN of the author (urn:li:person:id or urn:li:organization:id)
      * @param text The content of the post
      */
-    async createPost(authorUrn: string, text: string): Promise<{ id: string }> {
+    async createPost(authorUrn: string, text: string, mediaAsset?: string): Promise<{ id: string }> {
         // Ensure we have a proper URN (defaults to organization if not specified)
         const urn = authorUrn.startsWith('urn:li:') ? authorUrn : `urn:li:organization:${authorUrn}`;
+
+        const payload: any = {
+            author: urn,
+            lifecycleState: "PUBLISHED",
+            specificContent: {
+                "com.linkedin.ugc.ShareContent": {
+                    shareCommentary: {
+                        text: text.slice(0, 3000)
+                    },
+                    shareMediaCategory: mediaAsset ? "IMAGE" : "NONE"
+                }
+            },
+            visibility: {
+                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+            }
+        };
+
+        if (mediaAsset) {
+            payload.specificContent["com.linkedin.ugc.ShareContent"].media = [
+                {
+                    status: "READY",
+                    description: { text: "Uploaded Media" },
+                    media: mediaAsset,
+                    title: { text: "Media Content" }
+                }
+            ];
+        }
 
         return this.request<{ id: string }>("/ugcPosts", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
+            body: JSON.stringify(payload)
+        });
+    }
+
+    /**
+     * Upload an image to LinkedIn and return the asset URN
+     */
+    async uploadImage(authorUrn: string, imageBuffer: Uint8Array, mimeType: string): Promise<string> {
+        const urn = authorUrn.startsWith('urn:li:') ? authorUrn : `urn:li:organization:${authorUrn}`;
+
+        // 1. Register Upload
+        const registerData = await this.request<any>("/assets?action=registerUpload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                author: urn,
-                lifecycleState: "PUBLISHED",
-                specificContent: {
-                    "com.linkedin.ugc.ShareContent": {
-                        shareCommentary: {
-                            text: text.slice(0, 3000)
-                        },
-                        shareMediaCategory: "NONE"
-                    }
-                },
-                visibility: {
-                    "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+                registerUploadRequest: {
+                    recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
+                    owner: urn,
+                    serviceRelationships: [
+                        {
+                            relationshipType: "OWNER",
+                            identifier: "urn:li:userGeneratedContent"
+                        }
+                    ]
                 }
             })
         });
+
+        const uploadUrl = registerData.value.uploadMechanism["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"].uploadUrl;
+        const assetUrn = registerData.value.asset;
+
+        // 2. Binary Upload
+        const uploadRes = await fetch(uploadUrl, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${this.accessToken}`,
+                "Content-Type": mimeType
+            },
+            body: new Blob([imageBuffer], { type: mimeType })
+        });
+
+        if (!uploadRes.ok) {
+            const error = await uploadRes.text();
+            throw new Error(`LinkedIn Binary Upload Failed: ${error}`);
+        }
+
+        return assetUrn;
     }
 
     /**

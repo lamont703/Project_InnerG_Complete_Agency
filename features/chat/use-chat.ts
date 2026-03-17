@@ -134,6 +134,7 @@ export function useChat(projectSlug: string) {
                     content: functionData.reply,
                     timestamp: new Date(),
                     signalCreated: functionData.signal_created || null,
+                    budgetExceeded: functionData.budget_exceeded || false,
                 }
                 setMessages((prev) => [...prev, assistantMessage])
             }

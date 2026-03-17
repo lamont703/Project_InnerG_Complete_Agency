@@ -10,9 +10,13 @@ const SyncRequestSchema = z.object({
  * ghl-social-sync
  * Optimized for syncing social media data directly from GHL Planner API.
  */
-export default createHandler(async ({ adminClient, body }) => {
+export default createHandler(async ({ adminClient, body, user }) => {
     const logger = new Logger("ghl-social-sync")
-    logger.info("Received sync request", { connection_id: body.connection_id })
+    
+    // 1. Data Isolation Check
+    if (!user) {
+        throw new Error("UNAUTHORIZED: Authentication required to trigger sync.")
+    }
 
     const connectorRepo = new Repo.ConnectorRepo(adminClient)
     const connection = await connectorRepo.getConnection(body.connection_id)
@@ -21,6 +25,26 @@ export default createHandler(async ({ adminClient, body }) => {
     }
 
     const projectId = connection.project_id
+
+    if (user.role === 'client') {
+        const { data: access, error: accessErr } = await adminClient
+            .from('project_user_access')
+            .select('project_id')
+            .eq('project_id', projectId)
+            .eq('user_id', user.id)
+            .maybeSingle()
+
+        if (accessErr || !access) {
+            logger.warn("Unauthorized social sync attempt", { userId: user.id, connectionId: body.connection_id, projectId })
+            throw new Error("UNAUTHORIZED: You do not have permission to sync this connection.")
+        }
+    } else if (user.role !== 'super_admin' && user.role !== 'developer') {
+        throw new Error(`FORBIDDEN: Role ${user.role} is not permitted to trigger sync.`)
+    }
+
+    // 2. Orchestrate Sync
+    logger.info("Received sync request", { connection_id: body.connection_id })
+
     const syncConfig = connection.sync_config || {}
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -142,5 +166,6 @@ export default createHandler(async ({ adminClient, body }) => {
 
 }, {
     schema: SyncRequestSchema,
+    requireAuth: true,
     requiredEnv: ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GHL_API_KEY", "GHL_LOCATION_ID"]
 })

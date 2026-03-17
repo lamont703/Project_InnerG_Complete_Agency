@@ -29,6 +29,7 @@ export interface MetricSlot {
     type: 'kpi' | 'chart' | 'list'
     permissions: ('client' | 'admin' | 'super-admin')[]
     iconName: string // Lucide icon name as string for serializable registry
+    allowedProjectSlugs?: string[] // Optional: restrict this slot to specific projects
 }
 
 export interface MetricsData {

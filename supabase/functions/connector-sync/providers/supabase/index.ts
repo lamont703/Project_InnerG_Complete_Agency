@@ -21,6 +21,16 @@ export async function syncSupabaseProvider(
     }
 
     const activityRepo = new Repo.ActivityRepo(adminClient);
+    const knowledgeRepo = new Repo.KnowledgeRepo(adminClient);
+    const userRepo = new Repo.UserRepo(adminClient);
+
+    // Fallback user for RAG attribution if it's a system sync
+    let fallbackUserId = "";
+    try {
+        const { data: adminUser } = await adminClient.from("users").select("id").eq("role", "super_admin").limit(1).maybeSingle();
+        fallbackUserId = adminUser?.id || "";
+    } catch { /* ignore */ }
+
     const externalClient = createClient(supabase_url, supabase_service_role_key);
     let totalRecords = 0;
     const syncedTables: string[] = [];
@@ -32,10 +42,26 @@ export async function syncSupabaseProvider(
         if (rawRows && rawRows.length > 0) {
             const rows = SupabaseTransformer.transformRows(table, rawRows);
             
+            // Inject Knowledge for RAG
+            for (const row of rows) {
+                // Heuristic for title: Look for 'name', 'title', 'id', or just table name
+                const rowId = row.id || row.uuid || Math.random().toString(36).substring(7);
+                const rowLabel = row.name || row.title || row.label || rowId;
+                
+                await knowledgeRepo.upsertKnowledge({
+                    project_id: projectId,
+                    title: `[Sync] ${table}: ${rowLabel}`,
+                    body: `Source Table: ${table}\n\nData Details:\n${JSON.stringify(row, null, 2)}`,
+                    tags: ["sync", "supabase", table],
+                    is_published: true,
+                    created_by: fallbackUserId
+                });
+            }
+
             await activityRepo.log({
                 project_id: projectId,
                 category: "integration",
-                action: `Synced ${rows.length} rows from external table: ${table}`,
+                action: `Synced ${rows.length} rows from external table: ${table} and injected into Intelligence Layer`,
                 actor: "system"
             });
             totalRecords += rows.length;

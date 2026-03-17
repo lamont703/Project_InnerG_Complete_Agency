@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff, ThumbsUp, MessageSquare, Share2, Eye, Linkedin, BarChart3 } from "lucide-react"
+import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff, ThumbsUp, MessageSquare, Share2, Eye, Linkedin, BarChart3, Youtube, Video, Play, Instagram } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Facebook, Twitter, Music, AtSign } from "lucide-react"
 
 // Modular Components
 import { AgencySidebar } from "./components/AgencySidebar"
@@ -12,9 +13,13 @@ import { MetricSlotGrid } from "@/features/metrics/components/MetricSlotGrid"
 import { SlotProvider, useSlotContext } from "@/features/metrics/SlotContext"
 import { getIcon } from "@/features/metrics/utils/icon-map"
 import { useAdminSidebar } from "./context/AdminSidebarContext"
+import { SignalSlotFeed } from "@/features/signals/components/SignalSlotFeed"
+
 
 // Hooks
 import { useAgencyData } from "./use-agency-data"
+import { SignalService } from "@/features/signals/signal-service"
+
 
 export function AgencyMetricsPage() {
     return (
@@ -31,12 +36,22 @@ function AgencyMetricsContent() {
         strategicSignals,
         operationalSignals,
         linkedinMetrics,
+        youtubeMetrics,
         isLoading,
     } = useAgencyData()
 
     const params = useParams()
     const { activeSlotIds, availableSlots, toggleSlot } = useSlotContext()
     const { isSidebarOpen, setIsSidebarOpen } = useAdminSidebar()
+    const { resolveSignal, deleteDraft } = useAgencyData()
+
+    // Combine and map signals for the feed
+    const allSignals = [...strategicSignals, ...operationalSignals]
+        .map(s => SignalService.mapRecordToSignal(s as any))
+        .sort((a, b) => {
+            return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        })
+
 
     const [currentTime, setCurrentTime] = useState(new Date())
     const [mounted, setMounted] = useState(false)
@@ -137,6 +152,123 @@ function AgencyMetricsContent() {
             value: linkedinMetrics?.postViews?.toLocaleString() || "0",
             icon: Eye,
             color: "bg-teal-500/20 text-teal-400",
+        },
+        {
+            id: "youtube_subscribers",
+            label: "YT Subscribers",
+            value: youtubeMetrics?.subscribers?.toLocaleString() || "0",
+            icon: Youtube,
+            color: "bg-red-500/20 text-red-400",
+        },
+        {
+            id: "youtube_views",
+            label: "YouTube Views",
+            value: (youtubeMetrics?.views || 0) > 1000 ? (youtubeMetrics.views / 1000).toFixed(1) + "k" : youtubeMetrics?.views?.toLocaleString() || "0",
+            icon: Play,
+            color: "bg-red-600/20 text-red-400",
+        },
+        {
+            id: "youtube_video_count",
+            label: "YouTube Videos",
+            value: youtubeMetrics?.videos?.toLocaleString() || "0",
+            icon: Video,
+            color: "bg-rose-500/20 text-rose-400",
+        },
+        // --- TIKTOK STUBS ---
+        {
+            id: "tiktok_followers",
+            label: "TikTok Followers",
+            value: "---",
+            icon: Music,
+            color: "bg-pink-500/20 text-pink-400",
+        },
+        {
+            id: "tiktok_views",
+            label: "TikTok Views",
+            value: "---",
+            icon: Play,
+            color: "bg-pink-600/20 text-pink-500",
+        },
+        {
+            id: "tiktok_likes",
+            label: "TikTok Likes",
+            value: "---",
+            icon: ThumbsUp,
+            color: "bg-rose-600/20 text-rose-500",
+        },
+        // --- FACEBOOK STUBS ---
+        {
+            id: "facebook_page_likes",
+            label: "Facebook Page Likes",
+            value: "---",
+            icon: Facebook,
+            color: "bg-blue-700/20 text-blue-500",
+        },
+        {
+            id: "facebook_reach",
+            label: "Facebook Reach",
+            value: "---",
+            icon: BarChart3,
+            color: "bg-blue-600/20 text-blue-400",
+        },
+        {
+            id: "facebook_engagement",
+            label: "Facebook Engagement",
+            value: "---",
+            icon: Zap,
+            color: "bg-blue-500/20 text-blue-300",
+        },
+        // --- INSTAGRAM AGENCY STUBS ---
+        {
+            id: "instagram_followers",
+            label: "Instagram Followers",
+            value: "---",
+            icon: Instagram,
+            color: "bg-gradient-to-tr from-yellow-500/10 via-red-500/10 to-purple-500/10 text-pink-500",
+        },
+        {
+            id: "instagram_reach",
+            label: "Instagram Reach",
+            value: "---",
+            icon: BarChart3,
+            color: "bg-purple-500/20 text-purple-400",
+        },
+        // --- THREADS STUBS ---
+        {
+            id: "threads_followers",
+            label: "Threads Followers",
+            value: "---",
+            icon: AtSign,
+            color: "bg-neutral-500/20 text-neutral-400",
+        },
+        {
+            id: "threads_likes",
+            label: "Threads Likes",
+            value: "---",
+            icon: ThumbsUp,
+            color: "bg-neutral-600/20 text-neutral-300",
+        },
+        // --- X (TWITTER) STUBS ---
+        {
+            id: "twitter_followers",
+            label: "X Followers",
+            value: "---",
+            icon: Twitter,
+            color: "bg-sky-500/20 text-sky-400",
+        },
+        {
+            id: "twitter_impressions",
+            label: "X Impressions",
+            value: "---",
+            icon: BarChart3,
+            color: "bg-sky-600/20 text-sky-500",
+        },
+        {
+            id: "twitter_engagement",
+            label: "X Engagement",
+            value: "---",
+            icon: Zap,
+            color: "bg-sky-400/20 text-sky-300",
         }
     ]
 
@@ -191,6 +323,27 @@ function AgencyMetricsContent() {
                             className="!mb-0"
                         />
                     </section>
+                    
+                    {/* Intelligence Feed Section */}
+                    <section className="mb-16">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="h-8 w-8 rounded-lg bg-violet-500/10 flex items-center justify-center border border-violet-500/20">
+                                <Sparkles className="h-4 w-4 text-violet-400" />
+                            </div>
+                            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground">Agency Intelligence Feed</h2>
+                        </div>
+                        
+                        <div className="h-[500px]">
+                            <SignalSlotFeed
+                                slotId="global_portfolio_monitoring"
+                                signals={allSignals as any}
+                                isAgencyMode={true}
+                                onResolve={resolveSignal}
+                                onDeleteAction={deleteDraft}
+                            />
+                        </div>
+                    </section>
+
 
                     {/* Slot Registry Management */}
                     <section>

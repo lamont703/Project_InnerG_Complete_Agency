@@ -8,7 +8,7 @@
  * ─────────────────────────────────────────────────────────
  */
 
-import { getEnv, REQUIRED_GHL_CONFIG } from "../env.ts";
+import { getEnv, REQUIRED_GHL_CONFIG } from "../core/env.ts";
 
 const GHL_API_BASE = "https://services.leadconnectorhq.com";
 

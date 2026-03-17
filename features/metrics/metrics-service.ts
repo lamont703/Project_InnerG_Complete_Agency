@@ -13,12 +13,54 @@ import {
     ThumbsUp,
     MessageSquare,
     Share2,
-    Eye
+    Eye,
+    Video
 } from "lucide-react"
 import { Metric, RawMetricRecord } from "./types"
+import { getIcon } from "./utils/icon-map"
 
 export class MetricsService {
     constructor(private supabase: SupabaseClient) { }
+
+    private async getKnowledgeAggregates(projectId: string) {
+        const { data: knowledge, error } = await this.supabase
+            .from("project_knowledge")
+            .select("tags, body")
+            .eq("project_id", projectId);
+
+        if (error || !knowledge) return null;
+
+        let activeReaders = 0;
+        let totalSales = 0;
+        let orderCount = 0;
+        let inventoryValue = 0;
+
+        for (const item of knowledge) {
+            const tags = item.tags || [];
+            const body = item.body || "";
+            
+            const jsonStart = body.indexOf('{');
+            const jsonEnd = body.lastIndexOf('}');
+            if (jsonStart === -1 || jsonEnd === -1) continue;
+            
+            try {
+                const data = JSON.parse(body.substring(jsonStart, jsonEnd + 1));
+                
+                if (tags.includes("users")) {
+                    activeReaders++;
+                } else if (tags.includes("orders")) {
+                    orderCount++;
+                    totalSales += (Number(data.total) || 0);
+                } else if (tags.includes("book_variants")) {
+                    inventoryValue += (Number(data.price) || 0);
+                }
+            } catch (e) { /* ignore parse errors */ }
+        }
+
+        const avgOrderValue = orderCount > 0 ? totalSales / orderCount : 0;
+
+        return { activeReaders, totalSales, orderCount, inventoryValue, avgOrderValue };
+    }
 
     // Helper to calc growth
     private calcGrowth(curr: number, prev: number): string {
@@ -78,11 +120,11 @@ export class MetricsService {
         // 1. YouTube Stats
         const { data: ytData } = await this.supabase
             .from("youtube_channels")
-            .select("subscriber_count, view_count")
+            .select("subscriber_count, view_count, video_count")
             .eq("project_id", projectId)
             .limit(1) as any
         
-        const ytStats = ytData?.[0] || { subscriber_count: 0, view_count: 0 }
+        const ytStats = ytData?.[0] || { subscriber_count: 0, view_count: 0, video_count: 0 }
 
         // 2. LinkedIn Page Stats
         const { data: liPageData } = await this.supabase
@@ -158,6 +200,14 @@ export class MetricsService {
                 color: "text-white bg-white/10",
             },
             {
+                id: "youtube_video_count",
+                label: "YouTube Videos",
+                value: ytStats.video_count.toLocaleString(),
+                growth: "+0%",
+                icon: Video,
+                color: "text-red-400 bg-red-400/10",
+            },
+            {
                 id: "linkedin_followers",
                 label: "LinkedIn Followers",
                 value: liPage.follower_count.toLocaleString(),
@@ -231,6 +281,69 @@ export class MetricsService {
             }
         ]
 
+        // --- KANE'S BOOKSTORE SPECIFIC DATA (MOCK/LIVE HYBRID) ---
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("slug, name")
+            .eq("id", projectId)
+            .single()
+
+        if (project?.slug === 'kanes-bookstore' || project?.name?.toLowerCase().includes('kane')) {
+            const aggregates = await this.getKnowledgeAggregates(projectId);
+            if (aggregates) {
+                metrics.push(
+                    {
+                        id: "bookstore_inventory_value",
+                        label: "Inventory Asset Value",
+                        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(aggregates.inventoryValue),
+                        growth: "+2.4%",
+                        icon: getIcon("HardDrive"),
+                        color: "text-blue-500 bg-blue-500/10",
+                    },
+                    {
+                        id: "active_readers",
+                        label: "Active Reader Base",
+                        value: aggregates.activeReaders.toLocaleString(),
+                        growth: "+12.5%",
+                        icon: getIcon("BookOpen"),
+                        color: "text-emerald-500 bg-emerald-500/10",
+                    },
+                    {
+                        id: "monthly_book_sales",
+                        label: "Monthly Sales Velocity",
+                        value: aggregates.totalSales.toLocaleString(),
+                        growth: "+5.2%",
+                        icon: getIcon("TrendingUp"),
+                        color: "text-orange-500 bg-orange-500/10",
+                    },
+                    {
+                        id: "bookstore_total_orders",
+                        label: "Total Orders",
+                        value: aggregates.orderCount.toLocaleString(),
+                        growth: "+8.1%",
+                        icon: getIcon("ShoppingBag"),
+                        color: "text-purple-500 bg-purple-500/10",
+                    },
+                    {
+                        id: "bookstore_total_sales_value",
+                        label: "Total Order Value",
+                        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(aggregates.totalSales),
+                        growth: "+4.2%",
+                        icon: getIcon("DollarSign"),
+                        color: "text-emerald-500 bg-emerald-500/10",
+                    },
+                    {
+                        id: "bookstore_avg_order_value",
+                        label: "Average Order Value",
+                        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(aggregates.avgOrderValue),
+                        growth: "+1.5%",
+                        icon: getIcon("Calculator"),
+                        color: "text-indigo-500 bg-indigo-500/10",
+                    }
+                )
+            }
+        }
+
         // Fetch Pipeline Specific Stats
         const { data: freelancerPipe } = await this.supabase
             .from("ghl_pipelines")
@@ -247,6 +360,179 @@ export class MetricsService {
             const freelancerMetric = metrics.find(m => m.id === "freelancer_registrations")
             if (freelancerMetric) {
                 freelancerMetric.value = (count ?? 0).toLocaleString()
+            }
+        }
+        return metrics
+    }
+
+    async getProjectLevelMetrics(projectId: string): Promise<Metric[]> {
+        // Fetch Platform Stats
+        const [ytData, liPageData, liPostAgg] = await Promise.all([
+            this.supabase.from("youtube_channels").select("subscriber_count, view_count, video_count").eq("project_id", projectId).limit(1),
+            this.supabase.from("linkedin_pages").select("follower_count, total_views, engagement_rate, total_clicks").eq("project_id", projectId).limit(1),
+            this.supabase.from("linkedin_posts").select("like_count, comment_count, share_count, view_count").eq("project_id", projectId)
+        ]) as any
+
+        const ytStats = ytData?.data?.[0] || { subscriber_count: 0, view_count: 0, video_count: 0 }
+        const liPage = liPageData?.data?.[0] || { follower_count: 0, total_views: 0, engagement_rate: 0, total_clicks: 0 }
+        const liPosts = liPostAgg?.data || []
+        
+        const liLikes = liPosts.reduce((sum: number, p: any) => sum + (p.like_count || 0), 0)
+        const liComments = liPosts.reduce((sum: number, p: any) => sum + (p.comment_count || 0), 0)
+        const liShares = liPosts.reduce((sum: number, p: any) => sum + (p.share_count || 0), 0)
+        const liPostViews = liPosts.reduce((sum: number, p: any) => sum + (p.view_count || 0), 0)
+
+        const metrics: Metric[] = [
+            {
+                id: "youtube_subscribers",
+                label: "YT Subscribers",
+                value: ytStats.subscriber_count.toLocaleString(),
+                growth: "+0%",
+                icon: Youtube,
+                color: "text-red-500 bg-red-500/10",
+            },
+            {
+                id: "youtube_views",
+                label: "YouTube Views",
+                value: (ytStats.view_count / 1000).toFixed(1) + "k",
+                growth: "+0%",
+                icon: Play,
+                color: "text-white bg-white/10",
+            },
+            {
+                id: "youtube_video_count",
+                label: "YouTube Videos",
+                value: ytStats.video_count.toLocaleString(),
+                growth: "+0%",
+                icon: Video,
+                color: "text-red-400 bg-red-400/10",
+            },
+            {
+                id: "linkedin_followers",
+                label: "LinkedIn Followers",
+                value: liPage.follower_count.toLocaleString(),
+                growth: "+0%",
+                icon: Linkedin,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_impressions",
+                label: "LinkedIn Reach",
+                value: (liPage.total_views / 1000).toFixed(1) + "k",
+                growth: "+0%",
+                icon: BarChart3,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_engagement",
+                label: "LinkedIn Engagement",
+                value: `${liPage.engagement_rate}%`,
+                growth: "+0%",
+                icon: Zap,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_clicks",
+                label: "LinkedIn Clicks",
+                value: liPage.total_clicks.toLocaleString(),
+                growth: "+0%",
+                icon: Target,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_likes",
+                label: "LinkedIn Likes",
+                value: liLikes.toLocaleString(),
+                growth: "+0%",
+                icon: ThumbsUp,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_comments",
+                label: "LinkedIn Comments",
+                value: liComments.toLocaleString(),
+                growth: "+0%",
+                icon: MessageSquare,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_shares",
+                label: "LinkedIn Shares",
+                value: liShares.toLocaleString(),
+                growth: "+0%",
+                icon: Share2,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "linkedin_post_views",
+                label: "LinkedIn Post Views",
+                value: liPostViews.toLocaleString(),
+                growth: "+0%",
+                icon: Eye,
+                color: "text-[#0077b5] bg-[#0077b5]/10",
+            }
+        ]
+
+        // --- KANE'S BOOKSTORE SPECIFIC DATA ---
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("slug, name")
+            .eq("id", projectId)
+            .single()
+
+        if (project?.slug === 'kanes-bookstore' || project?.name?.toLowerCase().includes('kane')) {
+            const aggregates = await this.getKnowledgeAggregates(projectId);
+            if (aggregates) {
+                metrics.push(
+                    {
+                        id: "bookstore_inventory_value",
+                        label: "Inventory Asset Value",
+                        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(aggregates.inventoryValue),
+                        growth: "+0%",
+                        icon: getIcon("HardDrive"),
+                        color: "text-blue-500 bg-blue-500/10",
+                    },
+                    {
+                        id: "active_readers",
+                        label: "Active Reader Base",
+                        value: aggregates.activeReaders.toLocaleString(),
+                        growth: "+0%",
+                        icon: getIcon("BookOpen"),
+                        color: "text-emerald-500 bg-emerald-500/10",
+                    },
+                    {
+                        id: "monthly_book_sales",
+                        label: "Monthly Sales Velocity",
+                        value: aggregates.totalSales.toLocaleString(),
+                        growth: "+0%",
+                        icon: getIcon("TrendingUp"),
+                        color: "text-orange-500 bg-orange-500/10",
+                    },
+                    {
+                        id: "bookstore_total_orders",
+                        label: "Total Orders",
+                        value: aggregates.orderCount.toLocaleString(),
+                        growth: "+0%",
+                        icon: getIcon("ShoppingBag"),
+                        color: "text-purple-500 bg-purple-500/10",
+                    },
+                    {
+                        id: "bookstore_total_sales_value",
+                        label: "Total Order Value",
+                        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(aggregates.totalSales),
+                        growth: "+0%",
+                        icon: getIcon("DollarSign"),
+                        color: "text-emerald-500 bg-emerald-500/10",
+                    },
+                    {
+                        id: "bookstore_avg_order_value",
+                        label: "Average Order Value",
+                        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(aggregates.avgOrderValue),
+                        growth: "+0%",
+                        icon: getIcon("Calculator"),
+                        color: "text-indigo-500 bg-indigo-500/10",
+                    }
+                )
             }
         }
 
@@ -302,6 +588,14 @@ export const DEMO_MOCK_METRICS: Metric[] = [
         growth: "+15%",
         icon: Play,
         color: "text-white bg-white/10",
+    },
+    {
+        id: "youtube_video_count",
+        label: "YouTube Videos",
+        value: "5",
+        growth: "+0%",
+        icon: Video,
+        color: "text-red-400 bg-red-400/10",
     },
     {
         id: "linkedin_followers",

@@ -26,7 +26,8 @@ export function useSignals(projectSlug: string, initialSignals?: Signal[]) {
             }
             setProjectId(pId)
 
-            const activeSignals = await signalService.getActiveSignals(pId)
+            const isAgencySentinel = pId === "00000000-0000-0000-0000-000000000001"
+            const activeSignals = await signalService.getActiveSignals(pId, isAgencySentinel)
             setSignals(activeSignals)
         } catch (err: any) {
             console.error("[useSignals] Error:", err)

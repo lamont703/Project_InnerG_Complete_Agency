@@ -4,8 +4,8 @@ import React from "react"
 import { useParams } from "next/navigation"
 import { AdminSidebarProvider, useAdminSidebar } from "@/features/agency/context/AdminSidebarContext"
 import { MobileNavProvider, useMobileNav } from "@/features/agency/context/MobileNavContext"
-import { DashboardMobileNav } from "@/components/dashboard/MobileNav"
-import { DashboardSidebar } from "@/components/dashboard/sidebar"
+import { DashboardMobileNav } from "@/components/layout/dashboard/MobileNav"
+import { DashboardSidebar } from "@/components/layout/dashboard/sidebar"
 
 function ClientDashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const params = useParams()

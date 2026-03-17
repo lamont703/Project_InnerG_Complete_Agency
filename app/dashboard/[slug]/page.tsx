@@ -6,13 +6,13 @@ import {
     Loader2
 } from "lucide-react"
 import { ChatInterface } from "@/features/chat/ChatInterface"
-import { DashboardSidebar } from "@/components/dashboard/sidebar"
-import { DashboardHeader } from "@/components/dashboard/header"
+import { DashboardSidebar } from "@/components/layout/dashboard/sidebar"
+import { DashboardHeader } from "@/components/layout/dashboard/header"
 import { SignalGrid as AiSignalCards } from "@/features/signals/SignalGrid"
 import { MetricsGrid } from "@/features/metrics/MetricsGrid"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { SlotProvider } from "@/features/metrics/SlotContext"
-import { DashboardMobileNav, type MobileTab } from "@/components/dashboard/MobileNav"
+import { DashboardMobileNav, type MobileTab } from "@/components/layout/dashboard/MobileNav"
 
 import { MobileNavProvider, useMobileNav } from "@/features/agency/context/MobileNavContext"
 

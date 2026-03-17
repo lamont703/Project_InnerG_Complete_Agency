@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createBrowserClient } from "@/lib/supabase/browser"
-import { DashboardHeader } from "@/components/dashboard/header"
+import { DashboardHeader } from "@/components/layout/dashboard/header"
 
 // Project Knowledge Tag Colors
 const TAG_COLORS: Record<string, string> = {

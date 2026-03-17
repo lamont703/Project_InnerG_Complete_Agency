@@ -39,6 +39,12 @@ export interface AgencyChatResult {
     } | null
     input_tokens: number
     output_tokens: number
+    budget_exceeded?: boolean
+    budget?: {
+        tier: string
+        tokens_used: number
+        monthly_limit: number
+    }
 }
 
 export class AgencyChatService {
@@ -53,8 +59,37 @@ export class AgencyChatService {
         const model = input.model ?? GEMINI_MODELS.PRO
         this.logger.info("Starting agency chat execution", { userId, model, hasSessionId: !!session_id })
 
-        // ── Step 1: Embed the user message for RAG ────────────
-        this.logger.info("Step 1: Embedding user message for RAG")
+        // ── Step 1: Token Budget Check ────────────────────────
+        this.logger.info("Step 1: Checking token budget")
+        let budgetRows = null
+        try {
+            const { data } = await this.adminClient.rpc("check_token_budget", {
+                p_project_id: AGENCY_PROJECT_SENTINEL,
+            })
+            budgetRows = data
+        } catch (err) {
+            this.logger.warn("Token budget check failed", { error: err })
+        }
+
+        const budget = budgetRows?.[0]
+
+        if (budget?.is_over_budget) {
+            this.logger.warn("Agency budget exceeded", { project_id: AGENCY_PROJECT_SENTINEL, usage_percent: budget.usage_percent })
+            return {
+                reply: budget.tier === 'off' 
+                    ? "⚠️ AI access is currently disabled for this project. Please contact your administrator to activate the Growth Assistant."
+                    : `⚠️ Your AI usage quota for this month has been reached (${budget.usage_percent}% of your ${budget.tier} plan limit). Please contact your administrator to upgrade your plan or wait until next month.`,
+                session_id: session_id ?? null,
+                signal_created: null,
+                input_tokens: 0,
+                output_tokens: 0,
+                budget_exceeded: true,
+                budget: { tier: budget.tier, tokens_used: budget.tokens_used, monthly_limit: budget.monthly_limit }
+            }
+        }
+
+        // ── Step 2: Embed the user message for RAG ────────────
+        this.logger.info("Step 2: Embedding user message for RAG")
         const queryVector = await embedText(message, this.geminiApiKey).catch(err => {
             this.logger.error("Embedding generation failed", err)
             return null
@@ -66,24 +101,42 @@ export class AgencyChatService {
             this.logger.info("Performing agency-wide RAG search")
             const { data: chunks, error: rpcErr } = await this.adminClient.rpc("match_documents_agency", {
                 query_embedding: queryVector,
-                match_threshold: 0.45,
-                match_count: 8,
+                match_threshold: 0.3,
+                match_count: 20,
             })
 
             if (rpcErr) {
                 this.logger.warn("RAG RPC search failed", { error: rpcErr })
-            } else if (chunks) {
-                this.logger.info(`RAG search found ${chunks.length} chunks`)
                 contextChunks.push(...chunks.map((c: any) => {
-                    const projectLabel = c.project_id ? `[Project ${c.project_id}]` : "[Agency-Wide]"
-                    const status = c.is_processed ? "[PROCESSED] " : ""
-                    return `${projectLabel} (${c.source_table}) ${status}(ID: ${c.source_id}): ${c.content_chunk}`
+                    const projectLabel = c.project_id ? `[Project: ${c.project_id}]` : "[Agency-Wide]"
+                    return `${projectLabel} (${c.source_table}) (ID: ${c.source_id}): ${c.content}`
                 }))
+
+                // Layer 2: Agency-wide memory
+                try {
+                    const { data: pastSummaries, error: summaryErr } = await this.adminClient.rpc("match_session_summaries_agency", {
+                        query_embedding: queryVector,
+                        p_user_id: userId,
+                        match_threshold: 0.45,
+                        match_count: 5,
+                    })
+
+                    if (summaryErr) {
+                        this.logger.warn("Agency session summary search failed", { error: summaryErr })
+                    } else if (pastSummaries?.length > 0) {
+                        this.logger.info(`Found ${pastSummaries.length} relevant past agency summaries`)
+                        contextChunks.push(...pastSummaries.map((s: any) => 
+                            `[PAST MEMORY] [Project: ${s.project_id}] ${s.content_chunk}`
+                        ))
+                    }
+                } catch (err) {
+                    this.logger.warn("Agency session summary exception", { error: err })
+                }
             }
         }
 
-        // ── Step 2: Fetch Agency Knowledge Base ───────────────
-        this.logger.info("Step 2: Fetching agency knowledge base")
+        // ── Step 3: Fetch Agency Knowledge Base ───────────────
+        this.logger.info("Step 3: Fetching agency knowledge base")
         const { data: knowledgeEntries, error: knowledgeErr } = await this.adminClient
             .from("agency_knowledge")
             .select("title, body, tags")
@@ -101,8 +154,8 @@ export class AgencyChatService {
             ).join("\n---\n")
             : ""
 
-        // ── Step 3: Get or Create Agency Session ──────────────
-        this.logger.info("Step 3: Managing agency chat session")
+        // ── Step 4: Get or Create Agency Session ──────────────
+        this.logger.info("Step 4: Managing agency chat session")
         let currentSessionId = session_id ?? null
         if (!currentSessionId) {
             this.logger.info("Creating new agency chat session")
@@ -125,10 +178,10 @@ export class AgencyChatService {
             }
         }
 
-        // ── Step 4: Fetch Chat History ────────────────────────
+        // ── Step 5: Fetch Chat History ────────────────────────
         let historyPrompt = ""
         if (currentSessionId) {
-            this.logger.info("Step 4: Fetching chat history")
+            this.logger.info("Step 5: Fetching chat history")
             const { data: history, error: historyErr } = await this.adminClient
                 .from("chat_messages")
                 .select("role, content")
@@ -147,8 +200,8 @@ export class AgencyChatService {
             }
         }
 
-        // ── Step 5: Build Portfolio Context ───────────────────
-        this.logger.info("Step 5: Fetching portfolio context")
+        // ── Step 6: Build Portfolio Context ───────────────────
+        this.logger.info("Step 6: Fetching portfolio context")
         const { data: allProjects, error: projectsErr } = await this.adminClient
             .from("projects")
             .select("id, name, slug, clients(name)")
@@ -164,8 +217,8 @@ export class AgencyChatService {
             ).join("\n")
             : "No client projects configured."
 
-        // ── Step 6: Fetch Sales Pipeline Intelligence ─────────
-        this.logger.info("Step 6: Fetching sales pipeline intel")
+        // ── Step 7: Fetch Sales Pipeline Intelligence & Recent Signals/Tickets ─────────
+        this.logger.info("Step 7: Fetching sales pipeline intel and live intelligence")
         let pipelineContext = ""
         try {
             const { data: pipelines, error: pipelineErr } = await this.adminClient
@@ -191,8 +244,6 @@ export class AgencyChatService {
             this.logger.warn("Pipeline intel fetch failed (non-fatal)", { error: String(err) })
         }
 
-        // ── Step 7: Fetch Recent Signals & Tickets ─────────────
-        this.logger.info("Step 7: Fetching active signals and tickets for context")
         let liveIntelligenceContext = ""
         try {
             const [{ data: signals }, { data: tickets }] = await Promise.all([
@@ -242,7 +293,7 @@ export class AgencyChatService {
         })
 
         // ── Step 9: Call Gemini (with Tool Loop) ────────────
-        this.logger.info(`Step 9: Calling Gemini v1beta API (${model}) with Tool Capabilities`)
+        this.logger.info(`Step 9: Calling Gemini v1beta API (${model}) with Multi-Step Tool Capabilities`)
         const registry = createDefaultRegistry()
         const tools = [{ functionDeclarations: registry.getDefinitions() }]
 
@@ -254,7 +305,6 @@ export class AgencyChatService {
             maxOutputTokens: 4096,
             history: historyPrompt ? [{ role: "user", parts: [{ text: historyPrompt }] }] : [],
             tools,
-            // DO NOT use responseSchema here if tools are present
         }
 
         let geminiResult = await generateContent(generateOptions, this.geminiApiKey).catch(err => {
@@ -262,15 +312,20 @@ export class AgencyChatService {
             throw err
         })
 
-        // Tool Loop: If Gemini wants to use its hands, let it.
-        const modelParts = (geminiResult.rawData as any).candidates?.[0]?.content?.parts || []
-        const toolCalls = modelParts.filter((p: any) => p.functionCall)
+        const toolHistory: any[] = [{ role: "user", parts: [{ text: message }] }]
+        let loopCount = 0
+        const MAX_LOOPS = 4 // Allow up to 4 tool-use steps (e.g. Search -> Think -> Create -> Finish)
 
-        if (toolCalls.length > 0) {
-            this.logger.info(`Gemini requested ${toolCalls.length} tool calls`)
+        while (loopCount < MAX_LOOPS) {
+            const modelParts = (geminiResult.rawData as any).candidates?.[0]?.content?.parts || []
+            const toolCalls = modelParts.filter((p: any) => p.functionCall)
+
+            if (toolCalls.length === 0) break // No more tools needed
+
+            this.logger.info(`Loop ${loopCount + 1}: Gemini requested ${toolCalls.length} tool calls`)
+            toolHistory.push({ role: "model", parts: toolCalls })
 
             try {
-                // 1. Execute all tools in parallel
                 const functionResponses = await Promise.all(toolCalls.map(async (part: any) => {
                     const { name, args } = part.functionCall
                     this.logger.info(`Executing tool: ${name}`, { args })
@@ -280,7 +335,7 @@ export class AgencyChatService {
                         projectId: target_project_id || AGENCY_PROJECT_SENTINEL,
                         userId
                     }, args)
-                    this.logger.info(`Tool ${name} executed successfully`, { result })
+                    this.logger.info(`Tool ${name} executed successfully`)
 
                     return {
                         functionResponse: {
@@ -290,37 +345,32 @@ export class AgencyChatService {
                     }
                 }))
 
-                this.logger.info(`All ${toolCalls.length} tools executed successfully`)
+                toolHistory.push({ role: "function", parts: functionResponses as any })
 
-                // 2. Feed the results back to Gemini for final summary
+                // Call Gemini again with the tool results
                 geminiResult = await generateContent({
                     ...generateOptions,
-                    tools: undefined, // CRITICAL: Cannot use tools and responseSchema together
-                    history: [
-                        { role: "user", parts: [{ text: message }] },
-                        { role: "model", parts: toolCalls },
-                        { role: "function", parts: functionResponses as any }
-                    ],
-                    // NOW we force JSON mode for the final structural dashboard update
-                    responseSchema: AGENCY_RESPONSE_SCHEMA as any
+                    history: toolHistory
                 }, this.geminiApiKey)
+
+                loopCount++
             } catch (toolErr) {
-                this.logger.error(`Parallel tool execution failed`, toolErr)
-                // Fallback to second call without tools but with schema if execution failed
-                geminiResult = await generateContent({
-                    ...generateOptions,
-                    tools: undefined,
-                    responseSchema: AGENCY_RESPONSE_SCHEMA as any
-                }, this.geminiApiKey)
+                this.logger.error(`Tool loop execution failed at loop ${loopCount}`, toolErr)
+                break
             }
-        } else {
-            // No tool called, but we still need the structural JSON for the dashboard
-            geminiResult = await generateContent({
-                ...generateOptions,
-                tools: undefined,
-                responseSchema: AGENCY_RESPONSE_SCHEMA as any
-            }, this.geminiApiKey)
         }
+
+        // ── Step 10: Final JSON Pass ─────────────────────────
+        // Now that all tools are executed, we force the response into our structured schema.
+        this.logger.info("Step 10: Final pass to structure response into JSON schema")
+        geminiResult = await generateContent({
+            ...generateOptions,
+            tools: undefined, // CRITICAL: Cannot use tools and responseSchema together
+            history: toolHistory.length > 1 ? toolHistory : undefined,
+            userMessage: toolHistory.length > 1 ? "Provide your final response in the required JSON format based on the results above." : message,
+            responseSchema: AGENCY_RESPONSE_SCHEMA as any
+        }, this.geminiApiKey)
+
 
         const { text: rawReply, usage } = geminiResult
 
@@ -331,8 +381,8 @@ export class AgencyChatService {
 
         this.logger.info("Gemini response received", { usage })
 
-        // ── Step 9: Parse AI Response ─────────────────────────
-        this.logger.info("Step 9: Parsing AI response")
+        // ── Step 11: Parse AI Response ─────────────────────────
+        this.logger.info("Step 11: Parsing AI response")
         let parsed = parseAiResponse(rawReply)
         let finalReply = parsed.message || rawReply
         let signalCreated: AgencyChatResult["signal_created"] = null
@@ -357,9 +407,19 @@ export class AgencyChatService {
             finalReply += "\n\n_Note: I've created an agency-only signal for this._"
         }
 
-        // ── Step 10: Persist Signal (if detected) ─────────────
+        // Anti-hallucination: Ensure social signals have a real UUID from a successful tool call
+        if (parsed.signal?.signal_type === 'social') {
+            const draftId = parsed.signal.metadata?.social_plan_id
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(draftId || "")
+            if (!isUuid) {
+                this.logger.warn("Social signal blocked: missed tool call or placeholder ID detected", { draftId })
+                parsed.signal = null
+            }
+        }
+
+        // ── Step 12: Persist Signal (if detected) ─────────────
         if (parsed.signal) {
-            this.logger.info("Step 10: Persisting agency signal", { title: parsed.signal.title })
+            this.logger.info("Step 12: Persisting agency signal", { title: parsed.signal.title })
 
             try {
                 // Resolve the target project ID — try UUID, name/slug match, then first project
@@ -390,7 +450,9 @@ export class AgencyChatService {
                         await logSignalActivity(this.adminClient, signalProjectId, persistedSignal.title, userId)
 
                         const targetProject = allProjects?.find((p: any) => p.id === signalProjectId)
-                        finalReply += `\n\n📊 **Signal Created:** I've flagged this on **${targetProject?.name ?? "the project"}** (Agency-Only).`
+                        const signalLabel = parsed.signal.signal_type === 'social' ? 'Content Draft Prepared' : 'Signal Created'
+                        const icon = parsed.signal.signal_type === 'social' ? '📝' : '📊'
+                        finalReply += `\n\n${icon} **${signalLabel}:** I've flagged this on **${targetProject?.name ?? "the project"}** (Agency-Only).`
 
                         // Create software ticket for bug reports
                         if (parsed.signal.signal_type === "bug_report") {
@@ -422,8 +484,8 @@ export class AgencyChatService {
             }
         }
 
-        // ── Step 11: Persist Messages ─────────────────────────
-        this.logger.info("Step 11: Persisting chat messages to history")
+        // ── Step 13: Persist Messages ─────────────────────────
+        this.logger.info("Step 13: Persisting chat messages to history")
         const { error: msgErr } = await this.adminClient.from("chat_messages").insert([
             { session_id: currentSessionId, role: "user", content: message, input_tokens: usage.inputTokens },
             { session_id: currentSessionId, role: "assistant", content: finalReply, output_tokens: usage.outputTokens },
@@ -433,8 +495,8 @@ export class AgencyChatService {
             this.logger.error("Failed to persist chat messages", msgErr)
         }
 
-        // ── Step 12: Increment Token Usage ───────────────────
-        this.logger.info("Step 12: Incrementing token usage")
+        // ── Step 14: Increment Token Usage ───────────────────
+        this.logger.info("Step 14: Incrementing token usage")
         try {
             await this.adminClient.rpc("increment_token_usage", {
                 p_project_id: AGENCY_PROJECT_SENTINEL,
@@ -454,6 +516,11 @@ export class AgencyChatService {
             signal_created: signalCreated,
             input_tokens: usage.inputTokens,
             output_tokens: usage.outputTokens,
+            budget: budget ? {
+                tier: budget.tier,
+                tokens_used: (budget.tokens_used ?? 0) + usage.inputTokens + usage.outputTokens,
+                monthly_limit: budget.monthly_limit,
+            } : undefined
         }
     }
 }

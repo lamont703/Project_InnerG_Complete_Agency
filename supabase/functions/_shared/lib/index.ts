@@ -1,17 +1,17 @@
 // Core Infrastructure
-export * from "./auth.ts"
+export * from "./core/auth.ts"
 export { z } from "https://deno.land/x/zod@v3.21.4/mod.ts"
-export * from "./env.ts"
-export * from "./gemini.ts"
-export * from "./middleware.ts"
-export * from "./response.ts"
-export * from "./types.ts"
-export * from "./logger.ts"
+export * from "./core/env.ts"
+export * from "./ai/gemini.ts"
+export * from "./core/middleware.ts"
+export * from "./core/response.ts"
+export * from "./types/index.ts"
+export * from "./core/logger.ts"
 
 // Agentic Intelligence
-export * from "./rag.ts"
-export * from "./composer.ts"
-export * from "./billing.ts"
+export * from "./ai/rag.ts"
+export * from "./ai/composer.ts"
+export * from "./billing/billing.ts"
 export * from "./prompts/fragments.ts"
 
 // Database & Workflows

@@ -120,7 +120,7 @@ export function formatYoutubeVideo(row: any): string {
     const likes = row.like_count ?? 0
     const comments = row.comment_count ?? 0
     const published = row.published_at ? new Date(row.published_at).toISOString().split("T")[0] : "unknown"
-    return `YouTube Video Performance: "${row.title || "Untitled"}" [ID: ${row.video_id}]. Published on ${published}. Lifetime Stats: ${views.toLocaleString()} views, ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments. Description: ${row.description || "No description"}.`
+    return `YouTube Video Performance & Agency Philosophy: "${row.title || "Untitled"}" [ID: ${row.video_id}]. Published on ${published}. URL: ${row.video_url || "N/A"}. Stats: ${views.toLocaleString()} views, ${likes.toLocaleString()} likes. Description: ${row.description || "No description"}. [AGENCY LINE OF THINKING & VALUES TRANSCRIPT]: ${row.transcript?.slice(0, 6000) || "No transcript available."}`
 }
 
 export function formatLinkedinPage(row: any): string {

@@ -155,6 +155,21 @@ export class AgencyService {
     }
 
     /**
+     * Find the primary LinkedIn connection for the portfolio
+     */
+    async getLinkedInConnection(): Promise<string | null> {
+        const { data } = await this.supabase
+            .from("client_db_connections")
+            .select("id, connector_types!inner(provider)")
+            .eq("connector_types.provider", "linkedin")
+            .eq("is_active", true)
+            .limit(1)
+            .maybeSingle()
+
+        return data?.id || null
+    }
+
+    /**
      * Fetch pending social content drafts
      */
     async getSocialDrafts(): Promise<any[]> {
@@ -183,6 +198,38 @@ export class AgencyService {
             const responseBody = await error.context?.json().catch(() => null)
             throw new Error(responseBody?.error || error.message)
         }
+    }
+
+    /**
+     * Generate an AI image for a social draft
+     */
+    async generateSocialImage(accessToken: string, anonKey: string, draftId: string, style?: string): Promise<string> {
+        const { data, error } = await this.supabase.functions.invoke("generate-social-image", {
+            body: { draft_id: draftId, style },
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                apikey: anonKey
+            }
+        })
+
+        if (error) {
+            const responseBody = await error.context?.json().catch(() => null)
+            throw new Error(responseBody?.error || error.message)
+        }
+
+        return data.imageUrl
+    }
+
+    /**
+     * Clear the media URL from a draft (Decline flow)
+     */
+    async clearDraftMedia(draftId: string): Promise<void> {
+        const { error } = await this.supabase
+            .from("social_content_plan")
+            .update({ media_url: null })
+            .eq("id", draftId)
+
+        if (error) throw error
     }
 
     /**
@@ -267,15 +314,54 @@ export class AgencyService {
     /**
      * Find the primary LinkedIn connection for the portfolio
      */
-    async getLinkedInConnection(): Promise<string | null> {
+    async getYouTubeConnection(): Promise<string | null> {
         const { data } = await this.supabase
             .from("client_db_connections")
             .select("id, connector_types!inner(provider)")
-            .eq("connector_types.provider", "linkedin")
+            .eq("connector_types.provider", "youtube")
             .eq("is_active", true)
             .limit(1)
             .maybeSingle()
 
         return data?.id || null
+    }
+
+    /**
+     * Fetch YouTube metrics for the agency project
+     */
+    async getYouTubeMetrics(projectSlug: string = "innergcomplete"): Promise<any> {
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("id")
+            .eq("slug", projectSlug)
+            .single()
+
+        let channels = null
+        if (project) {
+            const { data } = await this.supabase
+                .from("youtube_channels")
+                .select("*")
+                .eq("project_id", project.id)
+            channels = data
+        }
+
+        if (!channels || channels.length === 0) {
+            const { data: anyChannels } = await this.supabase
+                .from("youtube_channels")
+                .select("*")
+                .order("last_synced_at", { ascending: false })
+                .limit(1)
+            channels = anyChannels
+        }
+
+        if (!channels || channels.length === 0) return null
+
+        const primary = channels[0]
+        return {
+            subscribers: primary.subscriber_count,
+            views: primary.view_count,
+            videos: primary.video_count,
+            channelTitle: primary.title
+        }
     }
 }

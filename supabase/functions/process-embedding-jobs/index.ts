@@ -2,7 +2,7 @@ import { createHandler, z, Logger, okResponse } from "../_shared/lib/index.ts"
 import { EmbeddingService } from "./service.ts"
 
 const EmbeddingJobSchema = z.object({
-    limit: z.number().int().min(1).max(50).optional().default(10),
+    limit: z.number().int().min(1).max(200).optional().default(10),
     force: z.boolean().optional().default(false)
 })
 

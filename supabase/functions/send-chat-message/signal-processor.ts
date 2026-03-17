@@ -23,7 +23,7 @@ import {
     VALID_SIGNAL_TYPES,
     VALID_SEVERITIES,
     SoftwareTicketPayload,
-} from "../_shared/lib/types.ts"
+} from "../_shared/lib/types/index.ts"
 
 // ─── Parser ───────────────────────────────────────────────
 
@@ -61,6 +61,7 @@ export function parseAiResponse(rawText: string): ParsedAiResponse {
                     repro_steps: s.repro_steps || null,
                     expected_behavior: s.expected_behavior || null,
                     actual_behavior: s.actual_behavior || null,
+                    metadata: s.metadata || null,
                 }
             }
         }
@@ -100,6 +101,7 @@ export async function persistSignal(
             action_label: signal.action_label || null,
             action_url: signal.action_url || null,
             is_agency_only: signal.is_agency_only || false,
+            metadata: signal.metadata || null,
         })
         .select("id, title, severity, signal_type")
         .single()

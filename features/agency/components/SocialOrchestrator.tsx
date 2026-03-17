@@ -11,18 +11,29 @@ interface SocialDraft {
     projects: { name: string }
     project_id: string
     created_at: string
+    media_url?: string | null
 }
 
 interface SocialOrchestratorProps {
     drafts: SocialDraft[]
     onPublish: (id: string) => Promise<void>
     onDelete?: (draftId: string, projectId: string) => Promise<void>
+    onGenerateImage?: (draftId: string) => Promise<string>
+    onClearMedia?: (draftId: string) => Promise<void>
     highlightId?: string | null
 }
 
-export function SocialOrchestrator({ drafts, onPublish, onDelete, highlightId = null }: SocialOrchestratorProps) {
+export function SocialOrchestrator({ 
+    drafts, 
+    onPublish, 
+    onDelete, 
+    onGenerateImage,
+    onClearMedia,
+    highlightId = null 
+}: SocialOrchestratorProps) {
     const [isPublishingId, setIsPublishingId] = useState<string | null>(null)
     const [isDeletingId, setIsDeletingId] = useState<string | null>(null)
+    const [isGeneratingId, setIsGeneratingId] = useState<string | null>(null)
     const [expandedIds, setExpandedIds] = useState<string[]>([])
 
     const handlePublish = async (id: string) => {
@@ -41,6 +52,25 @@ export function SocialOrchestrator({ drafts, onPublish, onDelete, highlightId = 
             await onDelete(draftId, projectId)
         } finally {
             setIsDeletingId(null)
+        }
+    }
+
+    const handleGenerateImage = async (id: string) => {
+        if (!onGenerateImage) return
+        setIsGeneratingId(id)
+        try {
+            await onGenerateImage(id)
+        } finally {
+            setIsGeneratingId(null)
+        }
+    }
+
+    const handleClearMedia = async (id: string) => {
+        if (!onClearMedia) return
+        try {
+            await onClearMedia(id)
+        } catch (e) {
+            console.error("Failed to clear media", e)
         }
     }
 
@@ -133,6 +163,19 @@ export function SocialOrchestrator({ drafts, onPublish, onDelete, highlightId = 
                                     </div>
                                 )}
 
+                                {isExpanded && draft.media_url && (
+                                    <div className="mb-5 rounded-2xl overflow-hidden border border-border/50 shadow-lg relative group/media">
+                                        <img 
+                                            src={draft.media_url} 
+                                            alt="AI Generated Visual" 
+                                            className="w-full h-auto object-cover max-h-[300px] hover:scale-[1.02] transition-transform duration-500"
+                                        />
+                                        <div className="absolute top-2 right-2 px-2 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 opacity-0 group-hover/media:opacity-100 transition-opacity">
+                                            <span className="text-[8px] font-black text-white uppercase tracking-widest">Nano Banana Pro</span>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="flex items-center gap-3">
                                         <Button
@@ -143,6 +186,44 @@ export function SocialOrchestrator({ drafts, onPublish, onDelete, highlightId = 
                                         >
                                             {isExpanded ? <>Collapse <ChevronUp className="ml-1 h-3 w-3" /></> : <>Expansion <ChevronDown className="ml-1 h-3 w-3" /></>}
                                         </Button>
+
+                                        {isExpanded && (
+                                            <div className="flex items-center gap-2">
+                                                {draft.media_url ? (
+                                                    <>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest text-violet-400 bg-violet-500/5 hover:bg-violet-500/10 border border-violet-500/20"
+                                                            onClick={() => handleGenerateImage(draft.id)}
+                                                            disabled={isGeneratingId === draft.id}
+                                                        >
+                                                            {isGeneratingId === draft.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Edit3 className="ml-1 h-3 w-3 mr-1" />}
+                                                            Regenerate
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-red-400 hover:bg-red-400/5 border border-border/50"
+                                                            onClick={() => handleClearMedia(draft.id)}
+                                                        >
+                                                            Decline Asset
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest text-violet-400 bg-violet-500/5 hover:bg-violet-500/10 border border-violet-500/20"
+                                                        onClick={() => handleGenerateImage(draft.id)}
+                                                        disabled={isGeneratingId === draft.id}
+                                                    >
+                                                        {isGeneratingId === draft.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Sparkles className="ml-1 h-3 w-3 mr-1" />}
+                                                        Generate Visual
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        )}
                                         {isExpanded && onDelete && (
                                             <Button
                                                 variant="destructive"

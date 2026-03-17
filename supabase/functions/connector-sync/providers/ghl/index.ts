@@ -36,19 +36,42 @@ export async function syncGHL(
     const tables = [];
 
     try {
-        // 1. Sync Targeted Pipelines
+        // 1. Sync All Available Pipelines for this Location
         const allPipelines = await ghl.listPipelines(locationId);
-        logger.info(`Found ${allPipelines.length} total pipelines in GHL: ${allPipelines.map((p: any) => p.name).join(", ")}`);
+        logger.info(`Found ${allPipelines.length} total pipelines in GHL for location ${locationId}`);
 
-        const targetPipelines = allPipelines.filter((p: any) => TARGET_PIPELINE_NAMES.includes(p.name));
-        logger.info(`Matched ${targetPipelines.length} target pipelines: ${targetPipelines.map((p: any) => p.name).join(", ")}`);
+        const targetPipelines = allPipelines; // Sync everything in the location
 
         if (targetPipelines.length > 0) {
             tables.push("pipelines", "opportunities", "contacts");
         }
 
+        // 2. Sync Contacts (General Location Contacts)
+        const allContacts = await ghl.listContacts(locationId, 100);
+        logger.info(`Fetched ${allContacts.length} contacts from GHL for location ${locationId}`);
+        
+        const contactMap: Record<string, string> = {};
+        for (const contactData of allContacts) {
+            try {
+                const internal = GhlTransformer.toInternalContact(projectId, contactData);
+                const { data: dbContact } = await adminClient
+                    .from("ghl_contacts")
+                    .upsert(internal, { onConflict: "ghl_contact_id" })
+                    .select("id")
+                    .single();
+                
+                if (dbContact) {
+                    contactMap[contactData.id] = dbContact.id;
+                    total++;
+                }
+            } catch (contactErr) {
+                logger.warn(`Failed to sync contact ${contactData.id}, skipping.`, { error: String(contactErr) });
+            }
+        }
+
+        // 3. Sync Pipelines & Opportunities
         for (const pipe of targetPipelines) {
-            // 2a. Upsert Pipeline
+            // 3a. Upsert Pipeline
             const { data: dbPipe, error: pipeErr } = await adminClient
                 .from("ghl_pipelines")
                 .upsert(GhlTransformer.toInternalPipeline(projectId, pipe), { onConflict: "ghl_pipeline_id" })
@@ -57,7 +80,7 @@ export async function syncGHL(
             
             if (pipeErr) throw pipeErr;
 
-            // 2b. Upsert Stages
+            // 3b. Upsert Stages
             const stagesToUpsert = (pipe.stages || []).map((s: any, index: number) => ({
                 pipeline_id: dbPipe.id,
                 ghl_stage_id: s.id,
@@ -69,35 +92,10 @@ export async function syncGHL(
                 await adminClient.from("ghl_pipeline_stages").upsert(stagesToUpsert, { onConflict: "ghl_stage_id" });
             }
 
-            // 2c. Fetch Opportunities for this pipeline
+            // 3c. Fetch Opportunities for this pipeline
             const opportunities = await ghl.searchOpportunities(locationId, pipe.id, 100);
-            
-            // 2d. Sync ONLY contacts associated with these opportunities
-            const ghlContactIds = [...new Set(opportunities.map((o: any) => o.contactId).filter(Boolean))] as string[];
-            const contactMap: Record<string, string> = {};
 
-            for (const ghlContactId of ghlContactIds) {
-                try {
-                    const contactData = await ghl.getContactById(ghlContactId);
-                    if (contactData) {
-                        const internal = GhlTransformer.toInternalContact(projectId, contactData);
-                        const { data: dbContact } = await adminClient
-                            .from("ghl_contacts")
-                            .upsert(internal, { onConflict: "ghl_contact_id" })
-                            .select("id")
-                            .single();
-                        
-                        if (dbContact) {
-                            contactMap[ghlContactId] = dbContact.id;
-                            total++;
-                        }
-                    }
-                } catch (contactErr) {
-                    logger.warn(`Failed to sync contact ${ghlContactId}, skipping.`, { error: String(contactErr) });
-                }
-            }
-
-            // 2e. Map stages for this pipeline
+            // 3d. Map stages for this pipeline
             const { data: dbStages } = await adminClient
                 .from("ghl_pipeline_stages")
                 .select("id, ghl_stage_id")

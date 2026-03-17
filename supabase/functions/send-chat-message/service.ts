@@ -11,7 +11,7 @@
  */
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { Logger, generateContent, embedText, GEMINI_MODELS } from "../_shared/lib/index.ts"
+import { Logger, generateContent, embedText, GEMINI_MODELS, RagService } from "../_shared/lib/index.ts"
 import { buildSystemPrompt, RESPONSE_SCHEMA } from "./prompt-engineer.ts"
 import { parseAiResponse, persistSignal, persistTicket, logSignalActivity } from "./signal-processor.ts"
 import { CONFIG_TO_SOURCE_TABLES, ChatFunctionResponse } from "./types.ts"
@@ -25,6 +25,8 @@ export interface ChatServiceInput {
     userId: string
     authHeader: string
 }
+
+const AGENCY_PROJECT_ID = "00000000-0000-0000-0000-000000000001"
 
 export class ChatService {
     constructor(
@@ -66,7 +68,9 @@ export class ChatService {
             this.logger.warn("Budget exceeded", { project_id, usage_percent: budget.usage_percent })
             return {
                 data: {
-                    reply: `⚠️ Your AI usage quota for this month has been reached (${budget.usage_percent}% of your ${budget.tier} plan limit). Please contact your administrator to upgrade your plan or wait until next month.`,
+                    reply: budget.tier === 'off' 
+                        ? "⚠️ AI access is currently disabled for this project. Please contact your administrator to activate the Growth Assistant."
+                        : `⚠️ Your AI usage quota for this month has been reached (${budget.usage_percent}% of your ${budget.tier} plan limit). Please contact your administrator to upgrade your plan or wait until next month.`,
                     session_id: session_id ?? null,
                     signal_created: null,
                     model_used: model,
@@ -80,8 +84,20 @@ export class ChatService {
             }
         }
 
-        // ── Step 2: Fetch Agent Config (Data Source Filtering) ──
-        this.logger.info("Step 2: Fetching agent configuration")
+        // ── Step 2: Fetch Active Integrations & Agent Config ──
+        this.logger.info("Step 2: Fetching active project integrations & agent configuration")
+        
+        // Fetch active integrations from current project
+        const { data: projectIntegrations } = await this.adminClient
+            .from("client_db_connections")
+            .select("db_type")
+            .eq("project_id", project_id)
+            .eq("is_active", true)
+
+        const connectedPlatforms = new Set((projectIntegrations || []).map((i: any) => i.db_type.toLowerCase()))
+
+        const isAgencyPortal = project_id === AGENCY_PROJECT_ID
+
         const { data: agentConfig, error: configErr } = await this.adminClient
             .from("project_agent_config")
             .select("*")
@@ -95,8 +111,30 @@ export class ChatService {
         const allowedSourceTables: string[] = []
         const disabledSources: string[] = []
 
+        // Map config keys to their required platform identifier in client_db_connections
+        const PLATFORM_MAP: Record<string, string> = {
+            ghl_contacts_enabled: "ghl",
+            campaign_metrics_enabled: "ghl",
+            youtube_data_enabled: "youtube",
+            linkedin_data_enabled: "linkedin",
+            notion_data_enabled: "notion",
+            tiktok_data_enabled: "tiktok",
+            github_data_enabled: "github",
+            news_intelligence_enabled: "newsapi"
+        }
+
         for (const [configKey, sourceTables] of Object.entries(CONFIG_TO_SOURCE_TABLES)) {
-            const isEnabled = agentConfig ? (agentConfig as any)[configKey] !== false : true
+            let isEnabled = agentConfig ? (agentConfig as any)[configKey] !== false : true
+            
+            // For client portals, additional check: is the platform connected LOCALLY or via AGENCY?
+            const requiredPlatform = PLATFORM_MAP[configKey]
+            if (!isAgencyPortal && requiredPlatform && isEnabled) {
+                if (!connectedPlatforms.has(requiredPlatform)) {
+                    this.logger.info(`Auto-disabling ${configKey} - No active connection found for ${requiredPlatform} (Checked Local & Agency)`)
+                    isEnabled = false
+                }
+            }
+
             if (isEnabled) {
                 allowedSourceTables.push(...sourceTables)
             } else {
@@ -104,7 +142,12 @@ export class ChatService {
             }
         }
 
-        this.logger.info("Data sources configured", { enabled: allowedSourceTables.length, disabled: disabledSources.length })
+        this.logger.info("Data sources configured after connection filtering", { 
+            enabledCount: allowedSourceTables.length, 
+            allowed: allowedSourceTables,
+            disabled: disabledSources,
+            platformsDetected: Array.from(connectedPlatforms)
+        })
 
         // ── Step 3: RAG — Embed & Search ─────────────────────
         this.logger.info("Step 3: Embedding user message for RAG")
@@ -117,45 +160,89 @@ export class ChatService {
         const pastSessionContext: string[] = []
 
         if (queryVector.length > 0) {
-            this.logger.info("Performing vector search across enabled sources")
-            const { data: chunks, error: matchErr } = await this.adminClient.rpc("match_documents", {
-                query_embedding: queryVector,
-                match_threshold: 0.45,
-                match_count: 16,
-                p_project_id: project_id,
-            })
+            const isAgencyPortal = project_id === AGENCY_PROJECT_ID
+            const rag = new RagService(this.adminClient)
 
-            if (matchErr) {
-                this.logger.warn("Vector search RPC failed", { error: matchErr })
-            } else if (chunks) {
-                const filtered = chunks.filter((c: any) => allowedSourceTables.includes(c.source_table))
-                this.logger.info(`Vector search found ${filtered.length} relevant chunks (after filtering)`)
-                contextChunks.push(...filtered.slice(0, 8).map((c: any) => {
-                    const status = c.is_processed ? "[PROCESSED] " : ""
-                    return `[${c.source_table}] ${status}(ID: ${c.source_id}) ${c.content}`
-                }))
-            }
+            if (isAgencyPortal) {
+                // Global Agency Search
+                this.logger.info("Performing Global Agency Search")
+                const chunks = await rag.search({
+                    projectId: project_id,
+                    query: message,
+                    limit: 20,
+                    minSimilarity: 0.4
+                })
 
-            // Layer 2: Past session summaries
-            if (allowedSourceTables.includes("session_summaries")) {
-                this.logger.info("Searching past session summaries for context")
-                try {
-                    const { data: pastSummaries, error: summaryErr } = await this.adminClient.rpc("match_session_summaries", {
-                        query_embedding: queryVector,
-                        p_user_id: userId,
-                        p_project_id: project_id,
-                        match_threshold: 0.45,
-                        match_count: 3,
-                    })
+                if (chunks.length > 0) {
+                    this.logger.info(`Global search found ${chunks.length} relevant chunks`)
+                    contextChunks.push(...chunks.slice(0, 10).map((c: any) => {
+                        return `[Project: ${c.project_id || project_id}] [${c.source_table}] (ID: ${c.source_id}) ${c.content}`
+                    }))
+                }
 
-                    if (summaryErr) {
-                        this.logger.warn("Session summary search failed", { error: summaryErr })
-                    } else if (pastSummaries?.length > 0) {
-                        this.logger.info(`Found ${pastSummaries.length} relevant past summaries`)
-                        pastSessionContext.push(...pastSummaries.map((s: any) => s.content_chunk))
+                // Global Memory Search
+                if (allowedSourceTables.includes("session_summaries")) {
+                    try {
+                        const { data: pastSummaries, error: summaryErr } = await this.adminClient.rpc("match_session_summaries_agency", {
+                            query_embedding: queryVector,
+                            p_user_id: userId,
+                            match_threshold: 0.45,
+                            match_count: 5,
+                        })
+
+                        if (summaryErr) {
+                            this.logger.warn("Global session summary search failed", { error: summaryErr })
+                        } else if (pastSummaries?.length > 0) {
+                            pastSessionContext.push(...pastSummaries.map((s: any) => `[Project: ${s.project_id}] ${s.content_chunk}`))
+                        }
+                    } catch (err) {
+                        this.logger.warn("Global session summary exception", { error: err })
                     }
-                } catch (err) {
-                    this.logger.warn("Session summary search exception", { error: err })
+                }
+            } else {
+                // Hybrid Search: Local Project + Agency Master
+                this.logger.info(`Performing Hybrid Search (Local + Agency Shared)`, { project_id })
+                const rawChunks = await rag.search({
+                    projectId: project_id,
+                    query: message,
+                    limit: 32,
+                    includeAgencyKnowledge: true,
+                    agencyProjectId: AGENCY_PROJECT_ID
+                })
+
+                if (rawChunks.length > 0) {
+                    this.logger.info(`RAG Search: Found ${rawChunks.length} raw combined chunks`)
+                    const filtered = rawChunks.filter((c: any) => allowedSourceTables.includes(c.source_table))
+                    this.logger.info(`RAG Search: Found ${filtered.length} relevant chunks after filtering`, {
+                        allowedTables: allowedSourceTables,
+                        returnedTables: [...new Set(rawChunks.map((c: any) => c.source_table))]
+                    })
+                    contextChunks.push(...filtered.slice(0, 20).map((c: any) => {
+                        const status = c.is_processed ? "[PROCESSED] " : ""
+                        const label = c.source_table === "project_knowledge" ? "KNOWLEDGE BASE" : c.source_table.toUpperCase()
+                        return `[${label}] ${status}(ID: ${c.source_id}) ${c.content}`
+                    }))
+                }
+
+                // Isolated Memory Search
+                if (allowedSourceTables.includes("session_summaries")) {
+                    try {
+                        const { data: pastSummaries, error: summaryErr } = await this.adminClient.rpc("match_session_summaries", {
+                            query_embedding: queryVector,
+                            p_user_id: userId,
+                            p_project_id: project_id,
+                            match_threshold: 0.45,
+                            match_count: 3,
+                        })
+
+                        if (summaryErr) {
+                            this.logger.warn("Isolated session summary search failed", { error: summaryErr })
+                        } else if (pastSummaries?.length > 0) {
+                            pastSessionContext.push(...pastSummaries.map((s: any) => s.content_chunk))
+                        }
+                    } catch (err) {
+                        this.logger.warn("Isolated session summary exception", { error: err })
+                    }
                 }
             }
         }
@@ -235,10 +322,21 @@ export class ChatService {
             recentSummary: disabledNote
         })
 
+        this.logger.info("System prompt constructed", { 
+            ragContextLength: ragContext.length,
+            contextChunksCount: contextChunks.length,
+            historyPromptLength: historyPrompt.length
+        })
+
         // ── Step 8: Call Gemini (with Tool Loop) ────────────
-        this.logger.info(`Step 8: Calling Gemini v1beta API (${model}) with Tool Capabilities`)
+        this.logger.info(`Step 8: Calling Gemini v1beta API (${model}) with Multi-Step Tool Capabilities`)
         const registry = createDefaultRegistry()
-        const tools = [{ functionDeclarations: registry.getDefinitions() }]
+        
+        // Strictly filter tools so the AI only sees capabilities for active sources
+        const filteredToolDefinitions = registry.getFilteredDefinitions(allowedSourceTables)
+        const tools = [{ functionDeclarations: filteredToolDefinitions }]
+
+        this.logger.info(`Tool registry filtered: ${filteredToolDefinitions.length} of ${registry.getDefinitions().length} tools enabled`)
 
         const generateOptions = {
             model: model as any,
@@ -255,15 +353,20 @@ export class ChatService {
             throw err
         })
 
-        // Tool Loop: If Gemini wants to use its hands, let it.
-        const modelParts = (geminiResult.rawData as any).candidates?.[0]?.content?.parts || []
-        const toolCalls = modelParts.filter((p: any) => p.functionCall)
+        const toolHistory: any[] = [{ role: "user", parts: [{ text: message }] }]
+        let loopCount = 0
+        const MAX_LOOPS = 4
 
-        if (toolCalls.length > 0) {
-            this.logger.info(`Gemini requested ${toolCalls.length} tool calls`)
+        while (loopCount < MAX_LOOPS) {
+            const modelParts = (geminiResult.rawData as any).candidates?.[0]?.content?.parts || []
+            const toolCalls = modelParts.filter((p: any) => p.functionCall)
+
+            if (toolCalls.length === 0) break
+
+            this.logger.info(`Loop ${loopCount + 1}: Gemini requested ${toolCalls.length} tool calls`)
+            toolHistory.push({ role: "model", parts: toolCalls })
 
             try {
-                // 1. Execute all tools in parallel
                 const functionResponses = await Promise.all(toolCalls.map(async (part: any) => {
                     const { name, args } = part.functionCall
                     this.logger.info(`Executing tool: ${name}`, { args })
@@ -282,35 +385,31 @@ export class ChatService {
                     }
                 }))
 
-                this.logger.info(`All ${toolCalls.length} tools executed successfully`)
+                toolHistory.push({ role: "function", parts: functionResponses as any })
 
-                // 2. Feed the results back to Gemini for final summary
+                // Call Gemini again with the tool results
                 geminiResult = await generateContent({
                     ...generateOptions,
-                    tools: undefined,
-                    history: [
-                        { role: "user", parts: [{ text: message }] },
-                        { role: "model", parts: toolCalls },
-                        { role: "function", parts: functionResponses as any }
-                    ],
-                    // Force JSON mode for structural updates
-                    responseSchema: RESPONSE_SCHEMA as any
+                    history: toolHistory
                 }, this.geminiApiKey)
+
+                loopCount++
             } catch (toolErr) {
-                this.logger.error(`Tool execution failed`, toolErr)
-                geminiResult = await generateContent({
-                    ...generateOptions,
-                    tools: undefined,
-                    responseSchema: RESPONSE_SCHEMA as any
-                }, this.geminiApiKey)
+                this.logger.error(`Tool loop execution failed at loop ${loopCount}`, toolErr)
+                break
             }
-        } else {
-            geminiResult = await generateContent({
-                ...generateOptions,
-                tools: undefined,
-                responseSchema: RESPONSE_SCHEMA as any
-            }, this.geminiApiKey)
         }
+
+        // ── Step 9: Final JSON Pass ─────────────────────────
+        this.logger.info("Step 9: Final pass to structure response into JSON schema")
+        geminiResult = await generateContent({
+            ...generateOptions,
+            tools: undefined,
+            history: toolHistory.length > 1 ? toolHistory : undefined,
+            userMessage: toolHistory.length > 1 ? "Provide your final response in the required JSON format based on the results above." : message,
+            responseSchema: RESPONSE_SCHEMA as any
+        }, this.geminiApiKey)
+
 
         const { text: rawReply, usage } = geminiResult
 

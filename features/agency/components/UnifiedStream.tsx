@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react"
 import { 
-    Sparkles, 
     Send, 
     Linkedin, 
     Instagram, 
@@ -15,7 +14,10 @@ import {
     ArrowUpRight,
     ChevronDown,
     ChevronUp,
-    Trash2
+    Trash2,
+    Youtube,
+    Edit3,
+    Sparkles
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SignalCard } from "../../signals/components/SignalCard"
@@ -29,6 +31,7 @@ interface SocialDraft {
     projects: { name: string }
     project_id: string
     created_at: string
+    media_url?: string | null
 }
 
 interface Signal {
@@ -52,6 +55,8 @@ interface UnifiedStreamProps {
     onResolveSignal: (id: string) => void
     onPublishDraft: (id: string) => Promise<void>
     onDeleteDraft?: (draftId: string, projectId: string) => Promise<void>
+    onGenerateImage?: (draftId: string) => Promise<string>
+    onClearMedia?: (draftId: string) => Promise<void>
     isResolving?: boolean
     highlightId?: string | null
     isFlush?: boolean
@@ -61,8 +66,11 @@ const TYPE_ICONS: Record<string, any> = {
     inventory: Database,
     conversion: Zap,
     social: Instagram,
+    linkedin: Linkedin,
+    youtube: Youtube,
     bug_report: Bug,
     strategic: Sparkles,
+    ai_insight: Sparkles,
 }
 
 export function UnifiedStream({ 
@@ -71,6 +79,8 @@ export function UnifiedStream({
     onResolveSignal, 
     onPublishDraft, 
     onDeleteDraft,
+    onGenerateImage,
+    onClearMedia,
     isResolving = false,
     highlightId = null,
     isFlush = false
@@ -78,6 +88,26 @@ export function UnifiedStream({
     const [isPublishingId, setIsPublishingId] = useState<string | null>(null)
     const [expandedDraftIds, setExpandedDraftIds] = useState<string[]>([])
     const [isDeletingDraftId, setIsDeletingDraftId] = useState<string | null>(null)
+    const [isGeneratingImageId, setIsGeneratingImageId] = useState<string | null>(null)
+
+    const handleGenerateImage = async (id: string) => {
+        if (!onGenerateImage) return
+        setIsGeneratingImageId(id)
+        try {
+            await onGenerateImage(id)
+        } finally {
+            setIsGeneratingImageId(null)
+        }
+    }
+
+    const handleClearMedia = async (id: string) => {
+        if (!onClearMedia) return
+        try {
+            await onClearMedia(id)
+        } catch (e) {
+            console.error("Failed to clear media", e)
+        }
+    }
 
     const handlePublish = async (id: string) => {
         setIsPublishingId(id)
@@ -183,7 +213,7 @@ export function UnifiedStream({
                                 >
                                     <div className="flex items-center gap-3 mb-4">
                                         <div className="h-8 w-8 rounded-lg bg-violet-500/10 flex items-center justify-center border border-violet-500/20 shadow-inner">
-                                            {draft.platform === 'linkedin' ? <Linkedin className="h-4 w-4 text-blue-400" /> : <Instagram className="h-4 w-4 text-pink-400" />}
+                                            {draft.platform === 'linkedin' ? <Linkedin className="h-4 w-4 text-blue-400" /> : draft.platform === 'youtube' ? <Youtube className="h-4 w-4 text-red-500" /> : <Instagram className="h-4 w-4 text-pink-400" />}
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between">
@@ -213,6 +243,19 @@ export function UnifiedStream({
                                         </div>
                                     )}
 
+                                    {isExpanded && draft.media_url && (
+                                        <div className="mb-4 rounded-2xl overflow-hidden border border-violet-500/20 shadow-lg relative group/media">
+                                            <img 
+                                                src={draft.media_url} 
+                                                alt="AI Generated Visual" 
+                                                className="w-full h-auto object-cover max-h-[300px] hover:scale-[1.02] transition-transform duration-500"
+                                            />
+                                            <div className="absolute top-2 right-2 px-2 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 opacity-0 group-hover/media:opacity-100 transition-opacity">
+                                                <span className="text-[8px] font-black text-white uppercase tracking-widest">Nano Banana Pro</span>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="flex flex-col gap-2 relative z-10">
                                         <Button
                                             size="sm"
@@ -239,6 +282,53 @@ export function UnifiedStream({
                                             >
                                                 {isExpanded ? <>COLLAPSE <ChevronUp className="ml-1.5 h-3.5 w-3.5" /></> : <>VIEW FULL POST <ChevronDown className="ml-1.5 h-3.5 w-3.5" /></>}
                                             </Button>
+
+                                            {isExpanded && (
+                                                <div className="flex gap-2 flex-grow">
+                                                    {draft.media_url ? (
+                                                        <>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="flex-1 h-8 rounded-lg text-[9px] font-black uppercase tracking-widest text-violet-400 bg-violet-500/5 hover:bg-violet-500/10 border border-violet-500/20"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    handleGenerateImage(draft.id)
+                                                                }}
+                                                                disabled={isGeneratingImageId === draft.id}
+                                                            >
+                                                                {isGeneratingImageId === draft.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Edit3 className="h-3 w-3 mr-1" />}
+                                                                REGENERATE
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="flex-1 h-8 rounded-lg text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-red-400 hover:bg-red-400/5 border border-border/50"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    handleClearMedia(draft.id)
+                                                                }}
+                                                            >
+                                                                DECLINE ASSET
+                                                            </Button>
+                                                        </>
+                                                    ) : (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="flex-1 h-8 rounded-lg text-[9px] font-black uppercase tracking-widest text-violet-400 bg-violet-500/5 hover:bg-violet-500/10 border border-violet-500/20"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                handleGenerateImage(draft.id)
+                                                            }}
+                                                            disabled={isGeneratingImageId === draft.id}
+                                                        >
+                                                            {isGeneratingImageId === draft.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                                                            GENERATE IMAGE
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            )}
                                             
                                             {isExpanded && onDeleteDraft && (
                                                 <Button

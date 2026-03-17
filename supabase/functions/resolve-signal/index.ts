@@ -3,8 +3,8 @@
  * Inner G Complete Agency — Resolve Signal Orchestrator
  */
 
-import { createHandler, FunctionContext } from "../_shared/lib/middleware.ts"
-import { okResponse, validationErrorResponse } from "../_shared/lib/response.ts"
+import { createHandler, FunctionContext } from "../_shared/lib/core/middleware.ts"
+import { okResponse, validationErrorResponse } from "../_shared/lib/core/response.ts"
 import { resolveSignal } from "./service.ts"
 
 /**

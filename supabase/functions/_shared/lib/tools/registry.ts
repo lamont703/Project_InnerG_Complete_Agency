@@ -4,15 +4,18 @@
  */
 
 import { ToolRegistry } from "./index.ts"
-import { listOpenTicketsTool, updateTicketStatusTool } from "./ticket-tools.ts"
-import { getGithubInsightsTool, getRecentGithubActivityTool, searchGithubKnowledgeTool } from "./github-tools.ts"
-import { getSocialInsightsTool, listRecentSocialPostsTool, searchSocialKnowledgeTool } from "./social-tools.ts"
+import { listOpenTicketsTool, updateTicketStatusTool } from "./tickets/index.ts"
+import { getGithubInsightsTool, getRecentGithubActivityTool, searchGithubKnowledgeTool } from "./github/index.ts"
+import { getSocialInsightsTool, listRecentSocialPostsTool, searchSocialKnowledgeTool } from "./social/index.ts"
 
-import { getYoutubeChannelStatsTool, listRecentYoutubeVideosTool, searchYoutubeKnowledgeTool } from "./youtube-tools.ts"
-import { getLinkedinPageStatsTool, listRecentLinkedinPostsTool, searchLinkedinKnowledgeTool } from "./linkedin-tools.ts"
-import { listRecentNotionPagesTool, searchNotionKnowledgeTool } from "./notion-tools.ts"
-import { getTiktokAccountStatsTool, listRecentTiktokVideosTool, searchTiktokKnowledgeTool } from "./tiktok-tools.ts"
-import { createSocialDraftTool, listSocialDraftsTool } from "./social-orchestration-tools.ts"
+import { getYoutubeChannelStatsTool, listRecentYoutubeVideosTool, searchYoutubeKnowledgeTool } from "./youtube/index.ts"
+import { getLinkedinPageStatsTool, listRecentLinkedinPostsTool, searchLinkedinKnowledgeTool } from "./linkedin/index.ts"
+import { listRecentNotionPagesTool, searchNotionKnowledgeTool } from "./notion/index.ts"
+import { getTiktokAccountStatsTool, listRecentTiktokVideosTool, searchTiktokKnowledgeTool } from "./tiktok/index.ts"
+import { searchCrmKnowledgeTool, listRecentContactsTool, listRecentOpportunitiesTool } from "./ghl/index.ts"
+import { createSocialDraftTool, listSocialDraftsTool } from "./orchestration/index.ts"
+import { getProjectMetricsTool } from "./metrics/index.ts"
+import { generateSocialVisualTool } from "./creative/index.ts"
 
 /**
  * Creates and configures the default tool registry for AI agents.
@@ -56,6 +59,17 @@ export function createDefaultRegistry(): ToolRegistry {
     registry.register(getTiktokAccountStatsTool)
     registry.register(listRecentTiktokVideosTool)
     registry.register(searchTiktokKnowledgeTool)
+
+    // Register GHL CRM Tools
+    registry.register(searchCrmKnowledgeTool)
+    registry.register(listRecentContactsTool)
+    registry.register(listRecentOpportunitiesTool)
+
+    // Register Business Metrics Tools
+    registry.register(getProjectMetricsTool)
+
+    // Register Creative AI Tools
+    registry.register(generateSocialVisualTool)
 
     return registry
 }

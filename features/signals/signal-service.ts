@@ -2,13 +2,14 @@ import { SupabaseClient } from "@supabase/supabase-js"
 import { supabaseAnonKey } from "@/lib/supabase/browser"
 import { Signal, RawSignalRecord, ResolveSignalParams } from "./types"
 
-const TYPE_COLORS: Record<string, string> = {
+export const TYPE_COLORS: Record<string, string> = {
     inventory: "bg-emerald-500",
     conversion: "bg-primary",
     social: "bg-pink-500",
+    ai_insight: "bg-violet-500",
 }
 
-const SEVERITY_BUTTONS: Record<string, string> = {
+export const SEVERITY_BUTTONS: Record<string, string> = {
     info: "bg-pink-600 hover:bg-pink-700 text-white",
     warning: "bg-emerald-600 hover:bg-emerald-700 text-white",
     critical: "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -30,14 +31,19 @@ export class SignalService {
         return data?.id
     }
 
-    async getActiveSignals(projectId: string): Promise<Signal[]> {
-        const { data, error } = await this.supabase
+    async getActiveSignals(projectId: string, includeAgencyOnly = false): Promise<Signal[]> {
+        let query = this.supabase
             .from("ai_signals")
             .select("*")
             .eq("project_id", projectId)
             .eq("is_resolved", false)
-            .eq("is_agency_only", false)
             .order("created_at", { ascending: false })
+
+        if (!includeAgencyOnly) {
+            query = query.eq("is_agency_only", false)
+        }
+
+        const { data, error } = await query
 
         if (error) throw error
 
@@ -47,7 +53,11 @@ export class SignalService {
             return []
         }
 
-        return records.map(s => ({
+        return records.map(s => SignalService.mapRecordToSignal(s))
+    }
+
+    static mapRecordToSignal(s: RawSignalRecord): Signal {
+        return {
             id: s.id,
             signalType: s.signal_type,
             title: s.title,
@@ -57,9 +67,13 @@ export class SignalService {
             color: TYPE_COLORS[s.signal_type] || "bg-muted",
             buttonColor: SEVERITY_BUTTONS[s.severity] || "bg-secondary",
             actionUrl: s.action_url || undefined,
-            metadata: s.metadata || {}
-        }))
+            metadata: s.metadata || {},
+            isAgencyOnly: s.is_agency_only,
+            projectName: (s as any).projects?.name,
+            createdAt: s.created_at
+        }
     }
+
 
     async resolveSignal(params: ResolveSignalParams): Promise<void> {
         const { error } = await this.supabase.functions.invoke("resolve-signal", {

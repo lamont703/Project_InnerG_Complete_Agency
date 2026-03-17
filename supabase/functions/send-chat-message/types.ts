@@ -10,7 +10,7 @@
  * ─────────────────────────────────────────────────────────
  */
 
-import { SignalPayload } from "../_shared/lib/types.ts"
+import { SignalPayload } from "../_shared/lib/types/index.ts"
 
 // ─── Request ──────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ export interface ChatMessage {
 
 /** Maps agent_config boolean flags to RAG source_table values */
 export const CONFIG_TO_SOURCE_TABLES: Record<string, string[]> = {
-    campaign_metrics_enabled: ["campaign_metrics"],
+    campaign_metrics_enabled: ["campaign_metrics", "ghl_social_posts", "ghl_social_insights", "ghl_social_accounts", "social_content_plan"],
     ai_signals_enabled: ["ai_signals"],
     activity_log_enabled: ["activity_log", "activity_log_daily"],
     ghl_contacts_enabled: ["ghl_contacts", "ghl_contacts_daily", "ghl_pipelines", "ghl_pipeline_stages", "ghl_opportunities"],
@@ -59,6 +59,7 @@ export const CONFIG_TO_SOURCE_TABLES: Record<string, string[]> = {
     linkedin_data_enabled: ["linkedin_pages", "linkedin_posts"],
     notion_data_enabled: ["notion_pages"],
     tiktok_data_enabled: ["tiktok_accounts", "tiktok_videos"],
+    github_data_enabled: ["github_repos", "github_commits", "github_pull_requests"],
     news_intelligence_enabled: ["news_intelligence"],
     project_knowledge_enabled: ["project_knowledge"],
 }

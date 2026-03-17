@@ -8,7 +8,7 @@
  * ─────────────────────────────────────────────────────────
  */
 
-import { TicketStatus } from "../types.ts";
+import { TicketStatus } from "../types/index.ts";
 
 export const TICKET_TRANSITIONS: Record<TicketStatus, TicketStatus[]> = {
     "open": ["in_progress", "closed"],

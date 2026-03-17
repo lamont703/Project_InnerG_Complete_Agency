@@ -16,7 +16,7 @@
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { Repo } from "../index.ts"
-import { UserRole } from "../types.ts"
+import { UserRole } from "../types/index.ts"
 
 // ── Token Generation ──────────────────────────────────────
 
@@ -115,6 +115,7 @@ export async function completeInvite(
     const invite = validation.invite!
 
     // 2. Create user in Supabase Auth
+    let userId: string
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
         email: invite.invited_email,
         password,
@@ -126,13 +127,24 @@ export async function completeInvite(
     })
 
     if (authError) {
-        if (authError.message.includes("already has been registered")) {
-            throw new Error("ALREADY_REGISTERED:This email is already registered. Please log in.")
-        }
-        throw authError
-    }
+        // If user already exists, we find their ID and proceed to grant access
+        const isAlreadyRegistered = authError.message.includes("already has been registered") || 
+                                   (authError as any).status === 422 || 
+                                   (authError as any).code === "email_exists"
 
-    const userId = authData.user.id
+        if (isAlreadyRegistered) {
+            const { data: existing, error: getError } = await adminClient.auth.admin.listUsers()
+            if (getError) throw getError
+            
+            const user = existing.users.find((u: any) => u.email === invite.invited_email)
+            if (!user) throw new Error("USER_NOT_FOUND: User reported as existing but not found in list.")
+            userId = user.id
+        } else {
+            throw authError
+        }
+    } else {
+        userId = authData.user.id
+    }
 
     // 3. Mark invite as used
     await inviteRepo.markUsed(token)

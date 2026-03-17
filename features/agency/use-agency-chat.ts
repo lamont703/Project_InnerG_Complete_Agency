@@ -145,6 +145,7 @@ export function useAgencyChat() {
                     content: data.data.reply,
                     timestamp: new Date(),
                     signalCreated: data.data.signal_created || null,
+                    budgetExceeded: data.data.budget_exceeded || false,
                 }])
             }
         } catch (err: any) {

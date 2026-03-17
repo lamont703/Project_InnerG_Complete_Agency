@@ -6,7 +6,7 @@
  * ⚠️  GUARDRAIL: Business logic for this function lives in
  * the SHARED repository:
  *
- *   _shared/lib/db/invites.ts → InviteRepo.validateToken()
+ *   _shared/lib/db/iam/invites.ts → InviteRepo.validateToken()
  *
  * Token validation is a pure data-layer operation and
  * belongs exclusively in the repository. Do NOT add logic
@@ -15,4 +15,4 @@
  */
 
 // Re-export for discoverability
-export { InviteRepo } from "../_shared/lib/db/invites.ts"
+export { InviteRepo } from "../_shared/lib/db/iam/invites.ts"

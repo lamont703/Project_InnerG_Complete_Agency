@@ -42,7 +42,17 @@ export function MessageList({ messages, isLoading, isInitialLoading }: MessageLi
                     <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 border ${m.role === "assistant" ? "bg-primary/20 border-primary/30" : "bg-secondary/50 border-white/10"}`}>
                         {m.role === "assistant" ? <Bot className="h-4 w-4 text-primary" /> : <User className="h-4 w-4 text-foreground" />}
                     </div>
-                    <div className={`max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed ${m.role === "assistant" ? "bg-white/[0.03] border border-white/5 rounded-tl-none" : "bg-primary text-primary-foreground rounded-tr-none shadow-lg shadow-primary/10"}`}>
+                    <div className={`max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed ${m.role === "assistant"
+                            ? (m.budgetExceeded 
+                                ? "bg-red-500/10 border border-red-500/20 rounded-tl-none text-foreground" 
+                                : "bg-white/[0.03] border border-white/5 rounded-tl-none")
+                            : "bg-primary text-primary-foreground rounded-tr-none shadow-lg shadow-primary/10"}`}>
+                        {m.budgetExceeded && (
+                            <div className="flex items-center gap-2 mb-2 text-red-400 font-bold uppercase tracking-widest text-[10px]">
+                                <AlertTriangle className="h-3.5 w-3.5" />
+                                Quota Exceeded
+                            </div>
+                        )}
                         <span dangerouslySetInnerHTML={{ __html: m.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
                         {m.signalCreated && (
                             <div className={`mt-3 p-3 rounded-xl border ${m.signalCreated.severity === 'critical' ? 'bg-red-500/10 border-red-500/20' :

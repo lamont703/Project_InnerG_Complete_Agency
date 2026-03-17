@@ -14,6 +14,7 @@ export interface Message {
     content: string
     timestamp: Date
     signalCreated?: MessageSignal | null
+    budgetExceeded?: boolean
 }
 
 export interface ChatSessionResponse {
@@ -43,4 +44,5 @@ export interface ChatFunctionReply {
     reply: string
     session_id: string
     signal_created?: MessageSignal | null
+    budget_exceeded?: boolean
 }
