@@ -36,8 +36,10 @@ export class ImageService {
     async generate(options: ImageGenerationOptions): Promise<GeneratedImage> {
         const { prompt, aspectRatio = "1:1", style } = options;
         
-        // Enhance prompt with style if provided
-        const finalPrompt = style ? `${prompt} In the style of ${style}.` : prompt;
+        // Enhance prompt with style and aspect ratio since parameters in config were rejected
+        let finalPrompt = prompt;
+        if (style) finalPrompt += ` Style: ${style}.`;
+        if (aspectRatio) finalPrompt += ` Aspect Ratio: ${aspectRatio}.`;
 
         const url = `${this.baseUrl}/models/nano-banana-pro-preview:generateContent?key=${this.apiKey}`;
         
@@ -47,8 +49,7 @@ export class ImageService {
             body: JSON.stringify({
                 contents: [{ parts: [{ text: finalPrompt }] }],
                 generationConfig: {
-                    // Note: Exact config for aspect ratio might vary by model version, 
-                    // for now we stick to the default high-quality output.
+                    // Supported fields for this preview model might differ from standard Gemini
                 }
             })
         });
@@ -59,15 +60,33 @@ export class ImageService {
         }
 
         const data = await res.json();
-        const imagePart = data.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData);
+        const candidate = data.candidates?.[0];
         
-        if (!imagePart || !imagePart.inlineData) {
-            throw new Error("No image data returned from Nano Banana");
+        if (!candidate) {
+            throw new Error("No candidate returned from Nano Banana. Check API quota or prompt safety.");
+        }
+
+        if (candidate.finishReason === "SAFETY") {
+            throw new Error("Image generation blocked by safety filters. Try a different prompt.");
+        }
+
+        const imagePart = candidate.content?.parts?.find((p: any) => p.inlineData || p.image);
+        
+        if (!imagePart) {
+            throw new Error(`No image data returned. Finish Reason: ${candidate.finishReason || "UNKNOWN"}.`);
+        }
+
+        // Handle both inlineData (Gemini) and image (Imagen-direct) formats
+        const imageData = imagePart.inlineData?.data || imagePart.image?.imageBytes;
+        const mimeType = imagePart.inlineData?.mimeType || imagePart.image?.mimeType || "image/png";
+
+        if (!imageData) {
+             throw new Error("Image part found but no data payload present.");
         }
 
         return {
-            base64: imagePart.inlineData.data,
-            mimeType: imagePart.inlineData.mimeType || "image/png"
+            base64: imageData,
+            mimeType: mimeType
         };
     }
 

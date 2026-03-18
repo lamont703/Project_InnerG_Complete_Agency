@@ -17,8 +17,11 @@ import { DashboardMobileNav, type MobileTab } from "@/components/layout/dashboar
 import { MobileNavProvider, useMobileNav } from "@/features/agency/context/MobileNavContext"
 
 function DashboardContent() {
+    const params = useParams()
+    const slug = (params?.slug as string) ?? "agency-global"
+
     return (
-        <SlotProvider userRole="client">
+        <SlotProvider userRole="client" projectSlug={slug}>
             <DashboardPageContent />
         </SlotProvider>
     )
@@ -26,7 +29,7 @@ function DashboardContent() {
 
 function DashboardPageContent() {
     const params = useParams()
-    const slug = (params?.slug as string) ?? "innergcomplete"
+    const slug = (params?.slug as string) ?? "agency-global"
 
 
     // User & Project State

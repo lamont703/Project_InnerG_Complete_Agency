@@ -152,14 +152,8 @@ export async function completeInvite(
     // 4. Grant role-based access
     if (invite.client_id) {
         const accessRepo = new Repo.AccessRepo(adminClient)
-
-        if (invite.intended_role === "developer") {
-            // Developers get direct client access
-            await accessRepo.grantDeveloperAccess(userId, invite.client_id, invite.invited_by)
-        } else {
-            // Client users get access to all of the client's projects
-            await accessRepo.grantProjectAccess(userId, invite.client_id, invite.invited_by)
-        }
+        // All non-admin invited users get access to all of the client's projects
+        await accessRepo.grantProjectAccess(userId, invite.client_id, invite.invited_by)
     }
 
     return { user_id: userId }

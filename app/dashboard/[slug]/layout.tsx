@@ -9,7 +9,7 @@ import { DashboardSidebar } from "@/components/layout/dashboard/sidebar"
 
 function ClientDashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const params = useParams()
-    const slug = (params?.slug as string) ?? "innergcomplete"
+    const slug = (params?.slug as string) ?? "agency-global"
     const { isSidebarOpen, setIsSidebarOpen, toggleSidebar } = useAdminSidebar()
     const { activeTab, setActiveTab } = useMobileNav()
 

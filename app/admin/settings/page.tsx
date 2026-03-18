@@ -90,11 +90,17 @@ export default function AgencySettingsPage() {
     const [showSaved, setShowSaved] = useState(false)
     const { theme, setTheme } = useTheme()
 
-    // Agency settings state
-    const [agencyName, setAgencyName] = useState("Inner G Complete")
-    const [agencyDescription, setAgencyDescription] = useState("Full-service growth agency specializing in digital transformation and brand acceleration.")
-    const [supportEmail, setSupportEmail] = useState("support@innergcomplete.com")
+    const [agencyName, setAgencyName] = useState("")
+    const [agencyDescription, setAgencyDescription] = useState("")
+    const [supportEmail, setSupportEmail] = useState("")
     const [primaryDomain, setPrimaryDomain] = useState("")
+    
+    // Appearance state
+    const [primaryColor, setPrimaryColor] = useState("#C8FF00")
+    const [accentColor, setAccentColor] = useState("#8B5CF6")
+    const [backgroundColor, setBackgroundColor] = useState("dynamic")
+
+    const AGENCY_SENTINEL_ID = '00000000-0000-0000-0000-000000000000'
 
     useEffect(() => {
         const load = async () => {
@@ -113,6 +119,30 @@ export default function AgencySettingsPage() {
                     router.push("/select-portal")
                     return
                 }
+
+                // Fetch real data from agency_profile
+                const { data: settingsData, error: settingsError } = await (supabase
+                    .from("agency_profile")
+                    .select("*")
+                    .eq("id", AGENCY_SENTINEL_ID)
+                    .maybeSingle() as any)
+
+                if (settingsError) {
+                    console.error("[Settings] Fetch error:", settingsError)
+                } else if (settingsData) {
+                    setAgencyName(settingsData.name || "Inner G Complete")
+                    setAgencyDescription(settingsData.description || "")
+                    setSupportEmail(settingsData.support_email || "")
+                    setPrimaryDomain(settingsData.primary_domain || "")
+                    
+                    // Set appearance from DB
+                    if (settingsData.theme_preference) setTheme(settingsData.theme_preference)
+                    if (settingsData.brand_colors) {
+                        setPrimaryColor(settingsData.brand_colors.primary || "#C8FF00")
+                        setAccentColor(settingsData.brand_colors.accent || "#8B5CF6")
+                        setBackgroundColor(settingsData.brand_colors.background || "dynamic")
+                    }
+                }
             } catch (err) {
                 console.error("[Settings] Load error:", err)
             } finally {
@@ -120,15 +150,39 @@ export default function AgencySettingsPage() {
             }
         }
         load()
-    }, [router])
+    }, [router, setTheme])
 
     const handleSave = async () => {
         setIsSaving(true)
-        // Simulate save — in production, persist to a settings table
-        await new Promise((r) => setTimeout(r, 800))
-        setIsSaving(false)
-        setShowSaved(true)
-        setTimeout(() => setShowSaved(false), 2500)
+        try {
+            const supabase = createBrowserClient()
+            const { error } = await (supabase
+                .from("agency_profile")
+                .upsert({
+                    id: AGENCY_SENTINEL_ID,
+                    name: agencyName,
+                    description: agencyDescription,
+                    support_email: supportEmail,
+                    primary_domain: primaryDomain,
+                    theme_preference: theme,
+                    brand_colors: {
+                        primary: primaryColor,
+                        accent: accentColor,
+                        background: backgroundColor
+                    },
+                    updated_at: new Date().toISOString()
+                }) as any)
+
+            if (error) throw error
+
+            setShowSaved(true)
+            setTimeout(() => setShowSaved(false), 2500)
+        } catch (err) {
+            console.error("[Settings] Save error:", err)
+            alert("Failed to save settings. Please try again.")
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     if (isLoading) {
@@ -257,24 +311,50 @@ export default function AgencySettingsPage() {
                                 <div className="pt-6 border-t border-border">
                                     <h2 className="text-lg font-bold text-foreground mb-1">Color Palette</h2>
                                     <p className="text-xs text-muted-foreground mb-4">Brand color configuration.</p>
-                                    <div className="grid grid-cols-3 gap-4 max-w-sm">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-xl">
                                         <div>
                                             <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Primary</label>
-                                            <div className="h-12 rounded-xl bg-primary border border-primary/30 flex items-center justify-center">
-                                                <span className="text-[10px] font-bold text-primary-foreground">#C8FF00</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Background</label>
-                                            <div className="h-12 rounded-xl bg-background border border-border flex items-center justify-center">
-                                                <span className="text-[10px] font-bold text-muted-foreground/60">Dynamic Background</span>
+                                            <div className="flex items-center gap-2">
+                                                <input 
+                                                    type="color" 
+                                                    value={primaryColor}
+                                                    onChange={(e) => setPrimaryColor(e.target.value)}
+                                                    className="h-10 w-10 rounded-lg bg-transparent border-none cursor-pointer"
+                                                />
+                                                <Input 
+                                                    value={primaryColor}
+                                                    onChange={(e) => setPrimaryColor(e.target.value)}
+                                                    className="bg-background border-border rounded-xl text-[10px] h-10"
+                                                />
                                             </div>
                                         </div>
                                         <div>
                                             <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Accent</label>
-                                            <div className="h-12 rounded-xl bg-violet-500 border border-violet-500/30 flex items-center justify-center">
-                                                <span className="text-[10px] font-bold text-white">#8B5CF6</span>
+                                            <div className="flex items-center gap-2">
+                                                <input 
+                                                    type="color" 
+                                                    value={accentColor}
+                                                    onChange={(e) => setAccentColor(e.target.value)}
+                                                    className="h-10 w-10 rounded-lg bg-transparent border-none cursor-pointer"
+                                                />
+                                                <Input 
+                                                    value={accentColor}
+                                                    onChange={(e) => setAccentColor(e.target.value)}
+                                                    className="bg-background border-border rounded-xl text-[10px] h-10"
+                                                />
                                             </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Background Style</label>
+                                            <select
+                                                value={backgroundColor}
+                                                onChange={(e) => setBackgroundColor(e.target.value)}
+                                                className="w-full h-10 px-3 rounded-xl bg-background border border-border text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                                            >
+                                                <option value="dynamic">Dynamic Noise</option>
+                                                <option value="solid">Solid Glass</option>
+                                                <option value="gradient">Deep Gradient</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>

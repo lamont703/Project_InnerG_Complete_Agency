@@ -66,11 +66,12 @@ export function Footer() {
             &copy; {new Date().getFullYear()} Inner G Complete Agency. All rights reserved.
           </p>
           <div className="flex gap-6">
-            {["Privacy Policy", "Terms of Service", "Cookie Policy"].map((item) => {
+            {["Privacy Policy", "Terms of Service", "Cookie Policy", "Data Deletion"].map((item) => {
               const href = 
                 item === "Privacy Policy" ? "/privacy-policy" : 
                 item === "Terms of Service" ? "/terms-of-service" :
-                item === "Cookie Policy" ? "/cookie-policy" : "#"
+                item === "Cookie Policy" ? "/cookie-policy" :
+                item === "Data Deletion" ? "/data-deletion" : "#"
               return (
                 <Link
                   key={item}
