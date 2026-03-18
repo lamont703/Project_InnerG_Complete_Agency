@@ -27,11 +27,14 @@ import {
     Play,
     BookOpen,
     Newspaper,
+    Instagram,
+    Facebook,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
 import { AdminHeader } from "@/features/agency/components/AdminHeader"
+import { MetaLoginButton } from "@/components/social/meta-login-button"
 
 // ─────────────────────────────────────────────
 // TYPES
@@ -84,6 +87,8 @@ const providerMeta: Record<string, { color: string; bgColor: string; label: stri
     notion: { color: "text-slate-200", bgColor: "bg-slate-500/10 border-slate-500/20", label: "Notion" },
     tiktok: { color: "text-pink-500", bgColor: "bg-pink-500/10 border-pink-500/20", label: "TikTok" },
     newsapi: { color: "text-amber-500", bgColor: "bg-amber-500/10 border-amber-500/20", label: "NewsAPI" },
+    instagram: { color: "text-pink-600", bgColor: "bg-pink-600/10 border-pink-600/20", label: "Instagram" },
+    facebook: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "Facebook Meta" },
 }
 
 const statusMeta: Record<string, { icon: any; color: string; label: string }> = {
@@ -476,7 +481,24 @@ export default function ConnectorAdminPage() {
                             {selectedTypeSchema?.properties && (
                                 <div className="space-y-3 mb-5 p-4 rounded-xl bg-muted/5 border border-border">
                                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Configuration</p>
-                                    {Object.entries(selectedTypeSchema.properties).map(([key, schema]: [string, any]) => {
+                                    {selectedType?.provider === "instagram" || selectedType?.provider === "facebook" ? (
+                                        <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center px-6">
+                                                Meta uses Business Login for secure access to Pages and accounts.
+                                            </p>
+                                            <MetaLoginButton 
+                                                size="large"
+                                                projectId={newProject}
+                                                configId={selectedType?.provider === "facebook" 
+                                                    ? process.env.NEXT_PUBLIC_META_CONFIG_ID_FB 
+                                                    : process.env.NEXT_PUBLIC_META_CONFIG_ID_IG
+                                                }
+                                            />
+                                            <p className="text-[8px] text-muted-foreground italic">
+                                                You will be redirected back here after authorizing.
+                                            </p>
+                                        </div>
+                                    ) : Object.entries(selectedTypeSchema.properties).map(([key, schema]: [string, any]) => {
                                         if (schema.type === "boolean") {
                                             return (
                                                 <label key={key} className="flex items-center gap-3 cursor-pointer">
@@ -708,6 +730,10 @@ export default function ConnectorAdminPage() {
                                                             <Zap className={`h-5 w-5 ${meta.color}`} />
                                                         ) : provider === "newsapi" ? (
                                                             <Newspaper className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "instagram" ? (
+                                                            <Instagram className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "facebook" ? (
+                                                            <Facebook className={`h-5 w-5 ${meta.color}`} />
                                                         ) : (
                                                             <Database className={`h-5 w-5 ${meta.color}`} />
                                                         )}

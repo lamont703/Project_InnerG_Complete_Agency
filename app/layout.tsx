@@ -71,6 +71,7 @@ export const viewport: Viewport = {
 import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { createServerClient } from "@/lib/supabase/server"
+import { FacebookSDK } from "@/components/providers/facebook-sdk"
 
 export default async function RootLayout({
   children,
@@ -105,12 +106,14 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Analytics />
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }`,
-            }}
-          />
-          {children}
+          <FacebookSDK>
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }`,
+              }}
+            />
+            {children}
+          </FacebookSDK>
           <Toaster position="top-right" richColors closeButton />
         </ThemeProvider>
       </body>

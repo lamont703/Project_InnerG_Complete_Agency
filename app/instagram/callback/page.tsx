@@ -1,0 +1,123 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Loader2, CheckCircle2, XCircle, Instagram } from "lucide-react"
+import { createBrowserClient } from "@/lib/supabase/browser"
+
+/**
+ * Instagram OAuth Callback Page
+ * Handles the redirect from Meta/Instagram (Facebook Login for Business).
+ */
+export default function InstagramCallbackPage() {
+    const router = useRouter()
+    const searchParams = useSearchParams()
+    const [status, setStatus] = useState<"processing" | "success" | "error">("processing")
+    const [message, setMessage] = useState("Connecting your Meta/Facebook login...")
+
+    useEffect(() => {
+        const handleCallback = async () => {
+            const code = searchParams.get("code")
+            const state = searchParams.get("state") // State should contain the redirect context (project slug/id)
+            const error = searchParams.get("error")
+
+            if (error) {
+                setStatus("error")
+                setMessage(`Authorization failed: ${searchParams.get("error_description") || error}`)
+                return
+            }
+
+            if (!code) {
+                setStatus("error")
+                setMessage("Missing authorization code from Instagram.")
+                return
+            }
+
+            try {
+                const supabase = createBrowserClient()
+                const { data: { session } } = await supabase.auth.getSession()
+
+                if (!session) {
+                    setStatus("error")
+                    setMessage("Authentication session lost. Please log in again.")
+                    return
+                }
+
+                // 1. Call our Edge Function to exchange the code for a long-lived access token
+                // We pass the code and the state (to know which project we're connecting)
+                const { data, error: functionError } = await supabase.functions.invoke("complete-meta-auth", {
+                    body: { code, state },
+                    headers: {
+                        Authorization: `Bearer ${session.access_token}`
+                    }
+                })
+
+                if (functionError || !data?.success) {
+                    throw new Error(data?.error || functionError?.message || "Failed to exchange token.")
+                }
+
+                setStatus("success")
+                setMessage(data?.message || "Meta/Facebook account successfully connected!")
+                
+                // 2. Redirect back to connectors after a short delay
+                setTimeout(() => {
+                    const redirectSlug = data.projectSlug || "innergcomplete"
+                    router.push(`/dashboard/${redirectSlug}/settings`)
+                }, 2000)
+
+            } catch (err: any) {
+                console.error("[Instagram Callback] Error:", err)
+                setStatus("error")
+                setMessage(err.message || "An unexpected error occurred while connecting Instagram.")
+            }
+        }
+
+        handleCallback()
+    }, [router, searchParams])
+
+    return (
+        <div className="min-h-screen bg-background flex items-center justify-center p-6">
+            <div className="max-w-md w-full glass-panel border border-border rounded-3xl p-8 text-center animate-in fade-in zoom-in duration-300">
+                <div className="flex justify-center mb-6">
+                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 flex items-center justify-center shadow-lg">
+                        <Instagram className="h-10 w-10 text-white" />
+                    </div>
+                </div>
+
+                <h1 className="text-xl font-bold text-foreground mb-4">
+                    {status === "processing" ? "Completing Connection" : status === "success" ? "All Set!" : "Connection Failed"}
+                </h1>
+
+                <div className="flex flex-col items-center gap-4">
+                    {status === "processing" && (
+                        <>
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="text-sm text-muted-foreground">{message}</p>
+                        </>
+                    )}
+
+                    {status === "success" && (
+                        <>
+                            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                            <p className="text-sm text-emerald-400 font-medium">{message}</p>
+                            <p className="text-xs text-muted-foreground mt-2">Redirecting you back to your dashboard...</p>
+                        </>
+                    )}
+
+                    {status === "error" && (
+                        <>
+                            <XCircle className="h-8 w-8 text-red-500" />
+                            <p className="text-sm text-red-400 font-medium">{message}</p>
+                            <button 
+                                onClick={() => router.push("/admin/connectors")}
+                                className="mt-4 px-6 py-2 bg-secondary/50 hover:bg-secondary rounded-xl text-xs font-bold text-foreground"
+                            >
+                                Back to Connectors
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}

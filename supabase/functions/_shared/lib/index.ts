@@ -21,6 +21,7 @@ export { TicketWorkflow } from "./workflows/tickets.ts"
 // Provider Services
 export { GhlProvider } from "./providers/ghl.ts"
 export { GithubProvider } from "./providers/github.ts"
+export { MetaProvider } from "./providers/meta.ts"
 
 // Shared Business Logic Services
 export * from "./services/invite.ts"
