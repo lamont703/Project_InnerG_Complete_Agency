@@ -122,10 +122,10 @@ export default function AgencySettingsPage() {
 
                 // Fetch real data from agency_profile
                 const { data: settingsData, error: settingsError } = await (supabase
-                    .from("agency_profile")
+                    .from("agency_profile") as any)
                     .select("*")
                     .eq("id", AGENCY_SENTINEL_ID)
-                    .maybeSingle() as any)
+                    .maybeSingle()
 
                 if (settingsError) {
                     console.error("[Settings] Fetch error:", settingsError)
@@ -157,7 +157,7 @@ export default function AgencySettingsPage() {
         try {
             const supabase = createBrowserClient()
             const { error } = await (supabase
-                .from("agency_profile")
+                .from("agency_profile") as any)
                 .upsert({
                     id: AGENCY_SENTINEL_ID,
                     name: agencyName,
@@ -171,7 +171,7 @@ export default function AgencySettingsPage() {
                         background: backgroundColor
                     },
                     updated_at: new Date().toISOString()
-                }) as any)
+                })
 
             if (error) throw error
 

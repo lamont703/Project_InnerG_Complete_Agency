@@ -82,10 +82,10 @@ export default async function RootLayout({
   try {
     const supabase = await createServerClient()
     const { data: profile } = await (supabase
-      .from('agency_profile')
+      .from('agency_profile') as any)
       .select('theme_preference')
       .eq('id', '00000000-0000-0000-0000-000000000000')
-      .maybeSingle() as any)
+      .maybeSingle()
     
     if (profile?.theme_preference) {
       agencyTheme = profile.theme_preference
