@@ -31,10 +31,10 @@ function ThemeSyncGuard({ children, isGated }: { children: React.ReactNode, isGa
         if (!session) return
 
         const { data: profile } = await (supabase
-          .from('agency_profile')
+          .from('agency_profile') as any)
           .select('theme_preference')
           .eq('id', AGENCY_SENTINEL_ID)
-          .maybeSingle() as any)
+          .maybeSingle()
 
         if (profile?.theme_preference && profile.theme_preference !== theme) {
           setTheme(profile.theme_preference)
