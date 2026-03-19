@@ -53,7 +53,7 @@ interface UnifiedStreamProps {
     signals: Signal[]
     drafts: SocialDraft[]
     onResolveSignal: (id: string) => void
-    onPublishDraft: (id: string) => Promise<void>
+    onPublishDraft: (id: string, platforms?: string[]) => Promise<void>
     onDeleteDraft?: (draftId: string, projectId: string) => Promise<void>
     onGenerateImage?: (draftId: string) => Promise<string>
     onClearMedia?: (draftId: string) => Promise<void>
@@ -109,10 +109,30 @@ export function UnifiedStream({
         }
     }
 
-    const handlePublish = async (id: string) => {
+    const [selectedDraftPlatforms, setSelectedDraftPlatforms] = useState<Record<string, string[]>>({})
+
+    const getSelectedDraftPlatforms = (draftId: string, defaultPlatform: string) => {
+        return selectedDraftPlatforms[draftId] || [defaultPlatform.toLowerCase()]
+    }
+
+    const toggleDraftPlatform = (draftId: string, platform: string, defaultPlatform: string) => {
+        const current = getSelectedDraftPlatforms(draftId, defaultPlatform)
+        const pLower = platform.toLowerCase()
+        let next: string[]
+        if (current.includes(pLower)) {
+            if (current.length === 1) return
+            next = current.filter(p => p !== pLower)
+        } else {
+            next = [...current, pLower]
+        }
+        setSelectedDraftPlatforms(prev => ({ ...prev, [draftId]: next }))
+    }
+
+    const handlePublish = async (id: string, defaultPlatform: string) => {
+        const platforms = getSelectedDraftPlatforms(id, defaultPlatform)
         setIsPublishingId(id)
         try {
-            await onPublishDraft(id)
+            await onPublishDraft(id, platforms)
         } finally {
             setIsPublishingId(null)
         }
@@ -230,6 +250,26 @@ export function UnifiedStream({
                                             "{draft.content_text}"
                                         </p>
                                     </div>
+
+                                    {isExpanded && (
+                                        <div className="mb-4 flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 animate-in fade-in slide-in-from-top-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mr-1">Target Ports:</span>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); toggleDraftPlatform(draft.id, 'linkedin', draft.platform); }}
+                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all ${getSelectedDraftPlatforms(draft.id, draft.platform).includes('linkedin') ? 'bg-blue-500/20 border-blue-500/40 text-blue-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                            >
+                                                <Linkedin className="h-3 w-3" />
+                                                <span className="text-[8px] font-black uppercase tracking-tighter">LinkedIn</span>
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); toggleDraftPlatform(draft.id, 'instagram', draft.platform); }}
+                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all ${getSelectedDraftPlatforms(draft.id, draft.platform).includes('instagram') ? 'bg-pink-500/20 border-pink-500/40 text-pink-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                            >
+                                                <Instagram className="h-3 w-3" />
+                                                <span className="text-[8px] font-black uppercase tracking-tighter">Instagram</span>
+                                            </button>
+                                        </div>
+                                    )}
                                     
                                     {isExpanded && (
                                         <div className="p-4 rounded-xl bg-violet-500/5 border border-violet-500/10 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -260,7 +300,7 @@ export function UnifiedStream({
                                         <Button
                                             size="sm"
                                             className="w-full h-9 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-black uppercase tracking-widest shadow-md transition-all active:scale-95"
-                                            onClick={() => handlePublish(draft.id)}
+                                            onClick={() => handlePublish(draft.id, draft.platform)}
                                             disabled={isPublishingId === draft.id}
                                         >
                                             {isPublishingId === draft.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>APPROVE & PUBLISH <Send className="ml-2 h-3.5 w-3.5" /></>}

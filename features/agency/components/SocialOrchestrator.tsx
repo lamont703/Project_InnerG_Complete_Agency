@@ -16,7 +16,7 @@ interface SocialDraft {
 
 interface SocialOrchestratorProps {
     drafts: SocialDraft[]
-    onPublish: (id: string) => Promise<void>
+    onPublish: (id: string, platforms?: string[]) => Promise<void>
     onDelete?: (draftId: string, projectId: string) => Promise<void>
     onGenerateImage?: (draftId: string) => Promise<string>
     onClearMedia?: (draftId: string) => Promise<void>
@@ -35,11 +35,30 @@ export function SocialOrchestrator({
     const [isDeletingId, setIsDeletingId] = useState<string | null>(null)
     const [isGeneratingId, setIsGeneratingId] = useState<string | null>(null)
     const [expandedIds, setExpandedIds] = useState<string[]>([])
+    const [selectedPlatforms, setSelectedPlatforms] = useState<Record<string, string[]>>({})
 
-    const handlePublish = async (id: string) => {
-        setIsPublishingId(id)
+    const getSelectedPlatforms = (draftId: string, defaultPlatform: string) => {
+        return selectedPlatforms[draftId] || [defaultPlatform.toLowerCase()]
+    }
+
+    const togglePlatform = (draftId: string, platform: string, defaultPlatform: string) => {
+        const current = getSelectedPlatforms(draftId, defaultPlatform)
+        const pLower = platform.toLowerCase()
+        let next: string[]
+        if (current.includes(pLower)) {
+            if (current.length === 1) return // Keep at least one
+            next = current.filter(p => p !== pLower)
+        } else {
+            next = [...current, pLower]
+        }
+        setSelectedPlatforms(prev => ({ ...prev, [draftId]: next }))
+    }
+
+    const handlePublish = async (draft: SocialDraft) => {
+        const platforms = getSelectedPlatforms(draft.id, draft.platform)
+        setIsPublishingId(draft.id)
         try {
-            await onPublish(id)
+            await onPublish(draft.id, platforms)
         } finally {
             setIsPublishingId(null)
         }
@@ -151,6 +170,26 @@ export function SocialOrchestrator({
                                     </p>
                                 </div>
 
+                                {isExpanded && (
+                                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 mb-5 animate-in fade-in slide-in-from-top-1">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mr-1">Target Ports:</span>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); togglePlatform(draft.id, 'linkedin', draft.platform); }}
+                                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all ${getSelectedPlatforms(draft.id, draft.platform).includes('linkedin') ? 'bg-blue-500/20 border-blue-500/40 text-blue-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                        >
+                                            <Linkedin className="h-3 w-3" />
+                                            <span className="text-[8px] font-black uppercase tracking-tighter">LinkedIn</span>
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); togglePlatform(draft.id, 'instagram', draft.platform); }}
+                                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all ${getSelectedPlatforms(draft.id, draft.platform).includes('instagram') ? 'bg-pink-500/20 border-pink-500/40 text-pink-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                        >
+                                            <Instagram className="h-3 w-3" />
+                                            <span className="text-[8px] font-black uppercase tracking-tighter">Instagram</span>
+                                        </button>
+                                    </div>
+                                )}
+
                                 {isExpanded && draft.ai_reasoning && (
                                     <div className="p-3 rounded-xl bg-violet-500/5 border border-violet-500/10 mb-5 animate-in fade-in slide-in-from-top-2">
                                         <div className="flex items-center gap-2 mb-1">
@@ -238,7 +277,7 @@ export function SocialOrchestrator({
                                     </div>
                                     <div className="flex gap-2">
                                         <button 
-                                            onClick={() => handlePublish(draft.id)}
+                                            onClick={() => handlePublish(draft)}
                                             disabled={isPublishingId === draft.id}
                                             className="h-8 px-4 rounded-lg bg-violet-500 hover:bg-violet-600 text-white text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group-hover:shadow-[0_0_15px_rgba(139,92,246,0.3)]"
                                         >

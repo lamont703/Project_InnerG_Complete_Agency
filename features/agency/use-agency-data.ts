@@ -139,7 +139,7 @@ export function useAgencyData() {
         }
     }
 
-    const handleResolveSignal = async (signalId: string) => {
+    const handleResolveSignal = async (signalId: string, platforms?: string[]) => {
         setResolvingId(signalId)
         try {
             // Handle mock signals (demo data) locally
@@ -155,6 +155,12 @@ export function useAgencyData() {
             // Find the signal to get its project_id
             const signal = [...strategicSignals, ...operationalSignals].find(s => s.id === signalId)
             if (!signal) throw new Error("Signal not found")
+
+            // If this is a social signal with a draft, and platforms are selected, publish instead of just resolving
+            if (signal.signal_type === 'social' && signal.metadata?.social_plan_id && platforms && platforms.length > 0) {
+                await handlePublishPost(signal.metadata.social_plan_id, platforms)
+                return
+            }
 
             await signalService.resolveSignal({
                 signalId,
@@ -172,12 +178,12 @@ export function useAgencyData() {
         }
     }
 
-    const handlePublishPost = async (draftId: string) => {
+    const handlePublishPost = async (draftId: string, platforms?: string[]) => {
         try {
             const { data: { session } } = await supabase.auth.getSession()
             if (!session) throw new Error("No active session")
 
-            await service.publishSocialPost(session.access_token, supabaseAnonKey, draftId)
+            await service.publishSocialPost(session.access_token, supabaseAnonKey, draftId, platforms)
             
             // Optimistic update
             setSocialDrafts(prev => prev.filter(d => d.id !== draftId))

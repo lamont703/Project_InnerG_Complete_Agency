@@ -1,15 +1,13 @@
-/**
- * connector-sync/providers/meta/index.ts
- * Inner G Complete Agency — Meta (FB/IG) Data Connector Provider
- */
-
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { Logger } from "../../../_shared/lib/index.ts"
 import { SyncResult } from "../../service.ts"
 import { MetaTransformer } from "./transformer.ts"
-import { MetaSyncConfig, MetaInsight } from "./types.ts"
+import { MetaSyncConfig, InstagramComment } from "./types.ts"
+import { MetaClient } from "./client.ts"
+import { MetaEngagementService } from "./engagement.ts"
+import { getEnv } from "../../../_shared/lib/core/env.ts"
 
-const API_VERSION = "v22.0";
+const API_VERSION = "v25.0";
 const BASE_URL = `https://graph.facebook.com/${API_VERSION}`;
 
 export async function syncMeta(
@@ -24,6 +22,7 @@ export async function syncMeta(
     try {
         const token = config.access_token;
         const pageToken = config.page_access_token;
+        const metaClient = new MetaClient(token);
 
         if (providerType === "facebook") {
             // FB sync logic
@@ -59,7 +58,8 @@ export async function syncMeta(
             };
         } else {
             // Instagram sync logic
-            const igId = (config as any).instagram_business_account_id || config.page_id;
+            const igId = config.instagram_business_account_id || config.page_id;
+            if (!igId) throw new Error("Missing IG Business Account ID");
             
             // Profile Info
             const profileRes = await fetch(`${BASE_URL}/${igId}?fields=username,followers_count,media_count&access_token=${token}`);
@@ -70,7 +70,7 @@ export async function syncMeta(
             const insData = await insRes.json();
             
             // Media for engagement and recent performance
-            const mediaRes = await fetch(`${BASE_URL}/${igId}/media?fields=id,like_count,comments_count,timestamp,media_type,media_url,caption&limit=10&access_token=${token}`);
+            const mediaRes = await fetch(`${BASE_URL}/${igId}/media?fields=id,like_count,comments_count,timestamp,media_type,media_url,caption,permalink&limit=10&access_token=${token}`);
             const mediaData = await mediaRes.json();
             
             const metrics = MetaTransformer.transformInstagramMetrics(
@@ -83,7 +83,7 @@ export async function syncMeta(
             await upsertProjectMetrics(adminClient, projectId, metrics);
 
             // 2. Update Account Record
-            await adminClient
+            const { data: igAccount, error: igAccError } = await adminClient
                 .from("instagram_accounts")
                 .upsert({
                     project_id: projectId,
@@ -92,9 +92,14 @@ export async function syncMeta(
                     follower_count: profileData.followers_count || 0,
                     media_count: profileData.media_count || 0,
                     last_synced_at: new Date().toISOString()
-                }, { onConflict: "project_id, instagram_business_id" });
+                }, { onConflict: "project_id, instagram_business_id" })
+                .select()
+                .single();
 
-            // 3. Update Recent Media Records
+            if (igAccError) throw igAccError;
+
+            // 3. Update Recent Media and Comments
+            let totalCommentsSynced = 0;
             if (mediaData.data && mediaData.data.length > 0) {
                 const mediaUpserts = mediaData.data.map((m: any) => ({
                     project_id: projectId,
@@ -102,20 +107,67 @@ export async function syncMeta(
                     media_type: m.media_type,
                     media_url: m.media_url,
                     caption: m.caption,
+                    permalink: m.permalink,
                     like_count: m.like_count || 0,
                     comments_count: m.comments_count || 0,
                     timestamp: m.timestamp
                 }));
 
-                await adminClient.from("instagram_media").upsert(mediaUpserts, {
-                    onConflict: "project_id, instagram_media_id"
-                });
+                const { data: syncedMedia, error: mediaUpsertError } = await adminClient
+                    .from("instagram_media")
+                    .upsert(mediaUpserts, {
+                        onConflict: "project_id, instagram_media_id"
+                    })
+                    .select();
+                
+                if (mediaUpsertError) throw mediaUpsertError;
+
+                // 4. Fetch Comments for recently active media
+                for (const media of syncedMedia) {
+                    try {
+                        const commentsRes = await fetch(`${BASE_URL}/${media.instagram_media_id}/comments?fields=id,text,timestamp,from,parent_id&access_token=${token}`);
+                        const commentsData = await commentsRes.json();
+                        
+                        if (commentsData.data && commentsData.data.length > 0) {
+                            const commentUpserts = commentsData.data.map((c: InstagramComment) => ({
+                                project_id: projectId,
+                                media_id: media.id,
+                                instagram_comment_id: c.id,
+                                from_id: c.from?.id || "unknown",
+                                from_username: c.from?.username || "unknown",
+                                content: c.text,
+                                created_at: c.timestamp,
+                                parent_comment_id: c.parent_id || null,
+                                last_synced_at: new Date().toISOString()
+                            }));
+
+                            await adminClient.from("instagram_comments").upsert(commentUpserts, {
+                                onConflict: "project_id, instagram_comment_id"
+                            });
+                            totalCommentsSynced += commentUpserts.length;
+                        }
+                    } catch (err: any) {
+                        logger.error(`Failed to fetch comments for media ${media.instagram_media_id}: ${err.message}`);
+                    }
+                }
+            }
+
+            // 5. Trigger AI Engagement (Scan for turns and meeting interest)
+            try {
+                const geminiApiKey = getEnv("GEMINI_API_KEY");
+                if (geminiApiKey) {
+                    const engagementService = new MetaEngagementService(adminClient, projectId, geminiApiKey);
+                    const responsesSent = await engagementService.processNewComments(metaClient, igId);
+                    logger.info(`Instagram AI Engagement: Processed sync, sent ${responsesSent} automatic replies.`);
+                }
+            } catch (engErr: any) {
+                logger.error(`Instagram AI Engagement failed: ${engErr.message}`);
             }
             
             return {
                 success: true,
-                records_synced: Object.keys(metrics).length,
-                tables_synced: ["instagram_metrics", "instagram_accounts", "instagram_media"]
+                records_synced: Object.keys(metrics).length + totalCommentsSynced,
+                tables_synced: ["instagram_metrics", "instagram_accounts", "instagram_media", "instagram_comments"]
             };
         }
     } catch (err: any) {

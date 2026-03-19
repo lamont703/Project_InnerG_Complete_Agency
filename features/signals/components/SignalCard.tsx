@@ -18,7 +18,7 @@ const TYPE_ICONS: Record<string, any> = {
 interface SignalCardProps {
     signal: Signal
     isResolving: boolean
-    onResolve: (id: string) => void
+    onResolve: (id: string, platforms?: string[]) => void
     onDeleteAction?: (draftId: string, projectId: string) => Promise<void>
     isHighlighted?: boolean
     isAgencyMode?: boolean
@@ -36,6 +36,23 @@ export function SignalCard({
     const [draftContent, setDraftContent] = useState<string | null>(null)
     const [isFetchingDraft, setIsFetchingDraft] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
+    const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
+
+    const togglePlatform = (p: string) => {
+        const pLower = p.toLowerCase()
+        const defaultPlatform = platform?.toLowerCase()
+        setSelectedPlatforms(prev => {
+            const current = (prev.length === 0 && defaultPlatform) ? [defaultPlatform] : prev
+            if (current.includes(pLower)) {
+                if (current.length === 1) return current
+                return current.filter(x => x !== pLower)
+            } else {
+                return [...current, pLower]
+            }
+        })
+    }
+
+    const currentSelected = selectedPlatforms.length > 0 ? selectedPlatforms : (platform ? [platform.toLowerCase()] : [])
 
     const isSocial = signal.signalType === 'social'
     const platform = signal.metadata?.platform?.toLowerCase()
@@ -164,6 +181,26 @@ export function SignalCard({
                                 )}
                             </div>
                         )}
+
+                        {isExpanded && isSocial && (
+                            <div className="mt-4 flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 animate-in fade-in slide-in-from-top-2">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">Distribution Ports:</span>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); togglePlatform('linkedin'); }}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${currentSelected.includes('linkedin') ? 'bg-blue-500/20 border-blue-500/40 text-blue-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                >
+                                    <Linkedin className="h-3.5 w-3.5" />
+                                    <span className="text-[9px] font-black uppercase tracking-tighter">LinkedIn</span>
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); togglePlatform('instagram'); }}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${currentSelected.includes('instagram') ? 'bg-pink-500/20 border-pink-500/40 text-pink-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                >
+                                    <Instagram className="h-3.5 w-3.5" />
+                                    <span className="text-[9px] font-black uppercase tracking-tighter">Instagram</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Action Hub */}
@@ -171,7 +208,7 @@ export function SignalCard({
                         <Button
                             id={`btn-signal-action-${signal.id}`}
                             className={`${isAgencyInsight ? "bg-violet-600 hover:bg-violet-500 text-white" : signal.buttonColor} px-6 rounded-xl h-10 font-black uppercase tracking-[0.1em] text-[10px] shadow-lg shadow-black/20 transition-all hover:scale-105 active:scale-95 border-b-2 border-black/20`}
-                            onClick={() => onResolve(signal.id)}
+                            onClick={() => onResolve(signal.id, isSocial ? currentSelected : undefined)}
                             disabled={isResolving}
                         >
                             {isResolving ? (

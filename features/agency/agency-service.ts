@@ -185,9 +185,9 @@ export class AgencyService {
     /**
      * Invoke the publishing Edge Function for a draft
      */
-    async publishSocialPost(accessToken: string, anonKey: string, draftId: string): Promise<void> {
+    async publishSocialPost(accessToken: string, anonKey: string, draftId: string, platforms?: string[]): Promise<void> {
         const { error } = await this.supabase.functions.invoke("publish-social-post", {
-            body: { draft_id: draftId },
+            body: { draft_id: draftId, platforms },
             headers: {
                 Authorization: `Bearer ${accessToken}`,
                 apikey: anonKey

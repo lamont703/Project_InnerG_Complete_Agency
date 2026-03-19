@@ -1,13 +1,9 @@
-/**
- * connector-sync/providers/meta/types.ts
- * Inner G Complete Agency — Meta (FB/IG) Connector Types
- */
-
 export interface MetaSyncConfig {
     access_token: string;
     page_id: string;
-    page_access_token: string;
-    page_name: string;
+    page_access_token?: string;
+    page_name?: string;
+    instagram_business_account_id?: string;
 }
 
 export interface MetaInsight {
@@ -19,6 +15,15 @@ export interface MetaInsight {
     id?: string;
 }
 
+export interface InstagramAccount {
+    id: string;
+    username: string;
+    name?: string;
+    profile_picture_url?: string;
+    followers_count: number;
+    media_count: number;
+}
+
 export interface InstagramMedia {
     id: string;
     caption?: string;
@@ -27,4 +32,17 @@ export interface InstagramMedia {
     timestamp: string;
     like_count: number;
     comments_count: number;
+    media_type?: string;
+}
+
+export interface InstagramComment {
+    id: string;
+    text: string;
+    timestamp: string;
+    from?: {
+        id: string;
+        username: string;
+    };
+    parent_id?: string;
+    media_id?: string;
 }

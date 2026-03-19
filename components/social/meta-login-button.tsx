@@ -19,7 +19,7 @@ interface MetaLoginButtonProps {
 export function MetaLoginButton({
     configId,
     projectId,
-    scopes = ['public_profile', 'email', 'instagram_basic', 'instagram_content_publish', 'pages_show_list', 'pages_read_engagement', 'business_management'],
+    scopes = ['public_profile', 'email', 'instagram_basic', 'instagram_content_publish', 'instagram_manage_comments', 'pages_show_list', 'pages_read_engagement', 'business_management'],
     size = 'medium',
     buttonText = 'Connect with Facebook',
     useRedirect = true
