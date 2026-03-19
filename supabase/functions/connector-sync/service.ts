@@ -26,6 +26,7 @@ import { syncLinkedIn } from "./providers/linkedin/index.ts"
 import { syncNotion } from "./providers/notion/index.ts"
 import { syncTikTok } from "./providers/tiktok/index.ts"
 import { syncNews } from "./providers/newsapi/index.ts"
+import { syncMeta } from "./providers/meta/index.ts"
 
 export interface SyncResult {
     success: boolean
@@ -135,6 +136,16 @@ export class SyncService {
                         this.adminClient,
                         projectId,
                         syncConfig as any
+                    )
+                    break
+                case "facebook":
+                case "instagram":
+                    result = await syncMeta(
+                        this.adminClient,
+                        this.logger,
+                        projectId,
+                        syncConfig as any,
+                        provider
                     )
                     break
                 default:

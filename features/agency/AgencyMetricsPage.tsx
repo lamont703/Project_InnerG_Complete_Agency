@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff, ThumbsUp, MessageSquare, Share2, Eye, Linkedin, BarChart3, Youtube, Video, Play, Instagram } from "lucide-react"
+import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff, ThumbsUp, MessageSquare, Share2, Eye, Linkedin, BarChart3, Youtube, Video, Play, Instagram, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Facebook, Twitter, Music, AtSign } from "lucide-react"
 
@@ -37,6 +37,8 @@ function AgencyMetricsContent() {
         operationalSignals,
         linkedinMetrics,
         youtubeMetrics,
+        instagramMetrics,
+        facebookMetrics,
         isLoading,
     } = useAgencyData()
 
@@ -203,42 +205,49 @@ function AgencyMetricsContent() {
             icon: ThumbsUp,
             color: "bg-rose-600/20 text-rose-500",
         },
-        // --- FACEBOOK STUBS ---
+        // --- FACEBOOK PAGE LIVE ---
         {
             id: "facebook_page_likes",
             label: "Facebook Page Likes",
-            value: "---",
+            value: facebookMetrics?.fans?.toLocaleString() || "---",
             icon: Facebook,
             color: "bg-blue-700/20 text-blue-500",
         },
         {
             id: "facebook_reach",
             label: "Facebook Reach",
-            value: "---",
+            value: facebookMetrics?.followers?.toLocaleString() || "---",
             icon: BarChart3,
             color: "bg-blue-600/20 text-blue-400",
         },
-        {
-            id: "facebook_engagement",
-            label: "Facebook Engagement",
-            value: "---",
-            icon: Zap,
-            color: "bg-blue-500/20 text-blue-300",
-        },
-        // --- INSTAGRAM AGENCY STUBS ---
+        // --- INSTAGRAM AGENCY LIVE ---
         {
             id: "instagram_followers",
             label: "Instagram Followers",
-            value: "---",
+            value: instagramMetrics?.followers?.toLocaleString() || "---",
             icon: Instagram,
             color: "bg-gradient-to-tr from-yellow-500/10 via-red-500/10 to-purple-500/10 text-pink-500",
         },
         {
             id: "instagram_reach",
             label: "Instagram Reach",
-            value: "---",
+            value: (instagramMetrics?.reach || 0) > 1000 ? (instagramMetrics.reach / 1000).toFixed(1) + "k" : instagramMetrics?.reach?.toLocaleString() || "---",
             icon: BarChart3,
             color: "bg-purple-500/20 text-purple-400",
+        },
+        {
+            id: "instagram_engagement",
+            label: "Instagram Engagement",
+            value: instagramMetrics?.engagement ? instagramMetrics.engagement.toFixed(1) : "---",
+            icon: Zap,
+            color: "bg-pink-500/20 text-pink-400",
+        },
+        {
+            id: "instagram_post_success",
+            label: "Automation Status",
+            value: instagramMetrics ? "Active" : "---",
+            icon: CheckCircle2,
+            color: "bg-emerald-500/20 text-emerald-400",
         },
         // --- THREADS STUBS ---
         {

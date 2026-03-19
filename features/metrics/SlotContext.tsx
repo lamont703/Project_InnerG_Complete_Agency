@@ -73,7 +73,15 @@ export function SlotProvider({
                     } else {
                         // Set defaults if no config exists
                         if (userRole === 'super-admin') {
-                            setActiveSlotIds(["active_architectures", "system_health", "agency_intelligence"])
+                            setActiveSlotIds([
+                                "active_architectures", 
+                                "system_health", 
+                                "agency_intelligence",
+                                "linkedin_impressions",
+                                "youtube_subscribers",
+                                "instagram_followers",
+                                "facebook_page_likes"
+                            ])
                         } else {
                             setActiveSlotIds(["total_signups", "app_installs", "funnel_conversion", "social_reach"])
                         }

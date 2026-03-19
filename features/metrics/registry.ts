@@ -38,8 +38,8 @@ export const METRIC_REGISTRY: MetricSlot[] = [
     },
     {
         id: "social_reach",
-        label: "Social Reach",
-        description: "Aggregated reach across Instagram, Facebook, and LinkedIn architectures.",
+        label: "Omni-Channel Reach",
+        description: "Aggregated reach across Instagram, Facebook, LinkedIn, and TikTok content architectures.",
         category: 'marketing',
         type: 'kpi',
         permissions: ['client', 'admin', 'super-admin'],
@@ -259,6 +259,51 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         type: 'kpi',
         permissions: ['admin', 'super-admin'],
         iconName: "BarChart3"
+    },
+    {
+        id: "instagram_impressions",
+        label: "Instagram Impressions",
+        description: "The total number of times your content was on-screen.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Eye"
+    },
+    {
+        id: "instagram_engagement",
+        label: "Instagram Engagement",
+        description: "Aggregated interactions including likes, comments, and saves.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Zap"
+    },
+    {
+        id: "instagram_profile_views",
+        label: "IG Profile Views",
+        description: "Total number of accounts that visited your Instagram profile.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "UserSquare2"
+    },
+    {
+        id: "instagram_website_clicks",
+        label: "IG Website Clicks",
+        description: "Total taps on the link in your Instagram bio.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "ExternalLink"
+    },
+    {
+        id: "instagram_post_success",
+        label: "Automation Status",
+        description: "Verifies the current AI write-access and publishing health for Instagram.",
+        category: 'operations',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "CheckCircle2"
     },
 
     // --- THREADS ARCHITECTURE STUBS ---

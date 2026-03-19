@@ -14,7 +14,10 @@ import {
     MessageSquare,
     Share2,
     Eye,
-    Video
+    Video,
+    UserSquare2,
+    ExternalLink,
+    CheckCircle2
 } from "lucide-react"
 import { Metric, RawMetricRecord } from "./types"
 import { getIcon } from "./utils/icon-map"
@@ -147,6 +150,27 @@ export class MetricsService {
         const liShares = liPosts.reduce((sum: number, p: any) => sum + (p.share_count || 0), 0)
         const liPostViews = liPosts.reduce((sum: number, p: any) => sum + (p.view_count || 0), 0)
 
+        // 4. Instagram Stats
+        const { data: igAccData } = await this.supabase
+            .from("instagram_accounts")
+            .select("follower_count, media_count")
+            .eq("project_id", projectId)
+            .limit(1) as any
+        
+        const igAcc = igAccData?.[0] || { follower_count: 0, media_count: 0 }
+
+        const { data: igMediaData } = await this.supabase
+            .from("instagram_media")
+            .select("like_count, comments_count, reach, impressions")
+            .eq("project_id", projectId) as any
+        
+        const igMedia = igMediaData || []
+        const igLikes = igMedia.reduce((sum: number, m: any) => sum + (m.like_count || 0), 0)
+        const igComments = igMedia.reduce((sum: number, m: any) => sum + (m.comments_count || 0), 0)
+        const igReachTotal = igMedia.reduce((sum: number, m: any) => sum + (m.reach || 0), 0)
+        const igImpressionsTotal = igMedia.reduce((sum: number, m: any) => sum + (m.impressions || 0), 0)
+        const igEngagement = igMedia.length > 0 ? (igLikes + igComments) / igMedia.length : 0
+
         const latest = snapshots[0]
         const previous = snapshots[1] || latest
 
@@ -272,6 +296,38 @@ export class MetricsService {
                 color: "text-[#0077b5] bg-[#0077b5]/10",
             },
             {
+                id: "instagram_followers",
+                label: "Instagram Followers",
+                value: igAcc.follower_count.toLocaleString(),
+                growth: "+3.4%",
+                icon: Instagram,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_reach",
+                label: "Instagram Reach",
+                value: igReachTotal.toLocaleString(),
+                growth: "+12%",
+                icon: BarChart3,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_engagement",
+                label: "Instagram Engagement",
+                value: igEngagement.toFixed(1),
+                growth: "+0.5%",
+                icon: Zap,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_post_success",
+                label: "Automation Status",
+                value: "Active",
+                growth: "100%",
+                icon: CheckCircle2,
+                color: "text-emerald-500 bg-emerald-500/10",
+            },
+            {
                 id: "freelancer_registrations",
                 label: "Freelancer Freedom",
                 value: "...", // Will be updated by live query below
@@ -382,6 +438,19 @@ export class MetricsService {
         const liShares = liPosts.reduce((sum: number, p: any) => sum + (p.share_count || 0), 0)
         const liPostViews = liPosts.reduce((sum: number, p: any) => sum + (p.view_count || 0), 0)
 
+        // 4. Instagram Stats
+        const [igAccData, igMediaData] = await Promise.all([
+            this.supabase.from("instagram_accounts").select("follower_count, media_count").eq("project_id", projectId).limit(1),
+            this.supabase.from("instagram_media").select("like_count, comments_count, reach, impressions").eq("project_id", projectId)
+        ]) as any
+        
+        const igAcc = igAccData?.data?.[0] || { follower_count: 0, media_count: 0 }
+        const igMedia = igMediaData?.data || []
+        const igLikes = igMedia.reduce((sum: number, m: any) => sum + (m.like_count || 0), 0)
+        const igComments = igMedia.reduce((sum: number, m: any) => sum + (m.comments_count || 0), 0)
+        const igReachTotal = igMedia.reduce((sum: number, m: any) => sum + (m.reach || 0), 0)
+        const igEngagement = igMedia.length > 0 ? (igLikes + igComments) / igMedia.length : 0
+
         const metrics: Metric[] = [
             {
                 id: "youtube_subscribers",
@@ -470,6 +539,38 @@ export class MetricsService {
                 growth: "+0%",
                 icon: Eye,
                 color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "instagram_followers",
+                label: "Instagram Followers",
+                value: igAcc.follower_count.toLocaleString(),
+                growth: "+0%",
+                icon: Instagram,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_reach",
+                label: "Instagram Reach",
+                value: igReachTotal.toLocaleString(),
+                growth: "+0%",
+                icon: BarChart3,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_engagement",
+                label: "Instagram Engagement",
+                value: igEngagement.toFixed(1),
+                growth: "+0%",
+                icon: Zap,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_post_success",
+                label: "Automation Status",
+                value: "Active",
+                growth: "100%",
+                icon: CheckCircle2,
+                color: "text-emerald-500 bg-emerald-500/10",
             }
         ]
 
@@ -660,5 +761,21 @@ export const DEMO_MOCK_METRICS: Metric[] = [
         growth: "+24%",
         icon: Eye,
         color: "text-[#0077b5] bg-[#0077b5]/10",
+    },
+    {
+        id: "instagram_followers",
+        label: "Instagram Followers",
+        value: "8,420",
+        growth: "+5.1%",
+        icon: Instagram,
+        color: "text-pink-500 bg-pink-500/10",
+    },
+    {
+        id: "instagram_reach",
+        label: "Instagram Reach",
+        value: "2.4k",
+        growth: "+18%",
+        icon: BarChart3,
+        color: "text-pink-500 bg-pink-500/10",
     },
 ]
