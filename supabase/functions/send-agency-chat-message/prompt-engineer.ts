@@ -136,6 +136,16 @@ You have access to the project's Instagram Business account metrics and media pe
 4. Instagram is a highly visual platform—emphasize aesthetic consistency and interaction trends when synthesizing advice.
 `
 
+// ─── Facebook Intelligence Rules ──────────────────────────────
+ 
+const FACEBOOK_INTELLIGENCE_RULES = `
+**FACEBOOK & COMMUNITY ENGAGEMENT:**
+You have access to the project's Facebook Page metrics and engagement data.
+1. Use 'get_facebook_page_stats' to track Page likes (fan count), followers, and general reach.
+2. Use 'search_facebook_knowledge' for specific questions about the Page's history or branding.
+3. Help the user optimize their Facebook Page for community growth and professional trust.
+`
+
 // ─── Content Orchestration Rules ─────────────────────────────
 
 const CONTENT_ORCHESTRATION_RULES = `
@@ -274,6 +284,9 @@ ${TIKTOK_INTELLIGENCE_RULES}
 
 ## Instagram Intelligence
 ${INSTAGRAM_INTELLIGENCE_RULES}
+
+## Facebook Intelligence
+${FACEBOOK_INTELLIGENCE_RULES}
 
 ## Industry & Trending News
 ${NEWS_INTELLIGENCE_RULES}
