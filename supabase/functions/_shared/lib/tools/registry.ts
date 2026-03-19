@@ -10,6 +10,7 @@ import { getSocialInsightsTool, listRecentSocialPostsTool, searchSocialKnowledge
 
 import { getYoutubeChannelStatsTool, listRecentYoutubeVideosTool, searchYoutubeKnowledgeTool } from "./youtube/index.ts"
 import { getLinkedinPageStatsTool, listRecentLinkedinPostsTool, searchLinkedinKnowledgeTool } from "./linkedin/index.ts"
+import { getInstagramAccountStatsTool, listRecentInstagramMediaTool, searchInstagramKnowledgeTool } from "./instagram/index.ts"
 import { listRecentNotionPagesTool, searchNotionKnowledgeTool } from "./notion/index.ts"
 import { getTiktokAccountStatsTool, listRecentTiktokVideosTool, searchTiktokKnowledgeTool } from "./tiktok/index.ts"
 import { searchCrmKnowledgeTool, listRecentContactsTool, listRecentOpportunitiesTool } from "./ghl/index.ts"
@@ -51,6 +52,11 @@ export function createDefaultRegistry(): ToolRegistry {
     registry.register(getLinkedinPageStatsTool)
     registry.register(listRecentLinkedinPostsTool)
     registry.register(searchLinkedinKnowledgeTool)
+
+    // Register Instagram Intelligence Tools
+    registry.register(getInstagramAccountStatsTool)
+    registry.register(listRecentInstagramMediaTool)
+    registry.register(searchInstagramKnowledgeTool)
 
     // Register Notion Intelligence Tools
     registry.register(listRecentNotionPagesTool)

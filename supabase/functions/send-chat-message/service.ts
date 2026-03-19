@@ -120,6 +120,7 @@ export class ChatService {
             notion_data_enabled: "notion",
             tiktok_data_enabled: "tiktok",
             github_data_enabled: "github",
+            instagram_data_enabled: "instagram",
             news_intelligence_enabled: "newsapi"
         }
 

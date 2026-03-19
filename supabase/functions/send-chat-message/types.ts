@@ -60,6 +60,8 @@ export const CONFIG_TO_SOURCE_TABLES: Record<string, string[]> = {
     notion_data_enabled: ["notion_pages"],
     tiktok_data_enabled: ["tiktok_accounts", "tiktok_videos"],
     github_data_enabled: ["github_repos", "github_commits", "github_pull_requests"],
+    instagram_data_enabled: ["instagram_accounts", "instagram_media"],
+    project_metrics_enabled: ["project_metrics_snapshots"],
     news_intelligence_enabled: ["news_intelligence"],
     project_knowledge_enabled: ["project_knowledge"],
 }
