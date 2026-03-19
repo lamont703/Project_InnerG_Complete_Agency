@@ -19,7 +19,7 @@ interface MetaLoginButtonProps {
 export function MetaLoginButton({
     configId,
     projectId,
-    scopes = ['public_profile', 'email', 'instagram_basic', 'instagram_manage_insights', 'pages_show_list', 'pages_read_engagement'],
+    scopes = ['public_profile', 'email', 'instagram_basic', 'instagram_content_publish', 'pages_show_list', 'pages_read_engagement', 'business_management'],
     size = 'medium',
     buttonText = 'Connect with Facebook',
     useRedirect = true
@@ -34,14 +34,18 @@ export function MetaLoginButton({
         if (typeof window !== 'undefined') {
             const currentOrigin = window.location.origin
             const safeOrigin = currentOrigin.replace(/\/$/, "") // Strip trailing slash
-            const forcedHttpsOrigin = safeOrigin.replace("http://", "https://")
-            setRedirectUri(`${forcedHttpsOrigin}/instagram/callback`)
+            
+            // Only force HTTPS for non-localhost environments (e.g. production/ngrok)
+            const isLocalhost = safeOrigin.includes("localhost")
+            const finalOrigin = isLocalhost ? safeOrigin : safeOrigin.replace("http://", "https://")
+            
+            setRedirectUri(`${finalOrigin}/instagram/callback`)
         }
     }, [])
 
     const oauthUrl = configId 
-        ? `https://www.facebook.com/v23.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${projectId || ""}&config_id=${configId}`
-        : `https://www.facebook.com/v23.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${projectId || ""}&scope=${encodeURIComponent(scopes.join(','))}`
+        ? `https://www.facebook.com/v25.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${projectId || ""}&config_id=${configId}`
+        : `https://www.facebook.com/v25.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${projectId || ""}&scope=${encodeURIComponent(scopes.join(','))}`
 
     useEffect(() => {
         // @ts-ignore
@@ -50,6 +54,19 @@ export function MetaLoginButton({
             FB.XFBML.parse();
         }
     }, [status, useRedirect])
+
+    if (!projectId && useRedirect) {
+        return (
+            <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
+                <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">
+                    Project Context Required
+                </p>
+                <p className="text-[9px] text-muted-foreground italic">
+                    Please select a project before connecting.
+                </p>
+            </div>
+        )
+    }
 
     if (useRedirect) {
         return (

@@ -489,10 +489,6 @@ export default function ConnectorAdminPage() {
                                             <MetaLoginButton 
                                                 size="large"
                                                 projectId={newProject}
-                                                configId={selectedType?.provider === "facebook" 
-                                                    ? process.env.NEXT_PUBLIC_META_CONFIG_ID_FB 
-                                                    : process.env.NEXT_PUBLIC_META_CONFIG_ID_IG
-                                                }
                                             />
                                             <p className="text-[8px] text-muted-foreground italic">
                                                 You will be redirected back here after authorizing.

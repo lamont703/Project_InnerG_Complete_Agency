@@ -496,10 +496,6 @@ export function ProjectConnectorsPage() {
                                                 <MetaLoginButton 
                                                     size="large"
                                                     projectId={projectId || undefined}
-                                                    configId={selectedType?.provider === "facebook" 
-                                                        ? process.env.NEXT_PUBLIC_META_CONFIG_ID_FB 
-                                                        : process.env.NEXT_PUBLIC_META_CONFIG_ID_IG
-                                                    }
                                                 />
                                             </div>
                                             <p className="text-[8px] text-muted-foreground italic">

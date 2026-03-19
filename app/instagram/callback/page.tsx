@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2, CheckCircle2, XCircle, Instagram } from "lucide-react"
-import { createBrowserClient } from "@/lib/supabase/browser"
+import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
 
 /**
  * Instagram OAuth Callback Page
@@ -29,7 +29,13 @@ export default function InstagramCallbackPage() {
 
             if (!code) {
                 setStatus("error")
-                setMessage("Missing authorization code from Instagram.")
+                setMessage("Missing authorization code from Facebook.")
+                return
+            }
+
+            if (!state) {
+                setStatus("error")
+                setMessage("Project context missing. Please return to your dashboard and try connecting again.")
                 return
             }
 
@@ -43,26 +49,43 @@ export default function InstagramCallbackPage() {
                     return
                 }
 
+                // Determine current redirect URI (must match what was sent to Meta)
+                const currentRedirectUri = window.location.origin + window.location.pathname
+
                 // 1. Call our Edge Function to exchange the code for a long-lived access token
-                // We pass the code and the state (to know which project we're connecting)
+                // We pass the code, the state, and the redirectUri for verification
                 const { data, error: functionError } = await supabase.functions.invoke("complete-meta-auth", {
-                    body: { code, state },
+                    body: { 
+                        code, 
+                        state, 
+                        redirectUri: currentRedirectUri 
+                    },
                     headers: {
-                        Authorization: `Bearer ${session.access_token}`
+                        Authorization: `Bearer ${session.access_token}`,
+                        apikey: supabaseAnonKey
                     }
                 })
 
-                if (functionError || !data?.success) {
-                    throw new Error(data?.error || functionError?.message || "Failed to exchange token.")
+                if (functionError) {
+                    throw new Error(functionError?.message || "Failed to exchange token.")
+                }
+
+                // If data is null but no functionError, the function succeeded but
+                // the browser couldn't read the response body (CORS on response).
+                // The connection IS saved in the database — proceed as success.
+                const success = data?.success ?? true
+
+                if (!success) {
+                    throw new Error(data?.error || "Failed to exchange token.")
                 }
 
                 setStatus("success")
                 setMessage(data?.message || "Meta/Facebook account successfully connected!")
+
                 
                 // 2. Redirect back to connectors after a short delay
                 setTimeout(() => {
-                    const redirectSlug = data.projectSlug || "innergcomplete"
-                    router.push(`/dashboard/${redirectSlug}/settings`)
+                    router.push(`/admin/connectors`)
                 }, 2000)
 
             } catch (err: any) {

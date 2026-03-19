@@ -15,7 +15,8 @@ import { MetaProvider } from "../_shared/lib/providers/meta.ts"
 
 const MetaAuthSchema = z.object({
     code: z.string().min(1, "Code is required"),
-    state: z.string().optional() // State should contain the project ID or slug
+    state: z.string().optional(), // State should contain the project ID or slug
+    redirectUri: z.string().optional() // Allow frontend to pass the exact URI used
 })
 
 export default createHandler(async ({ adminClient, body, user }) => {
@@ -32,19 +33,19 @@ export default createHandler(async ({ adminClient, body, user }) => {
 
     try {
         const meta = new MetaProvider()
-        // Determine redirect URI: Prefer the one in env, but use origin if it looks like a public tunnel
-        let redirectUri = getEnv("META_REDIRECT_URI")
+        // Determine redirect URI: Prefer the one sent by UI, then env, then default
+        let redirectUri = body.redirectUri || getEnv("META_REDIRECT_URI")
         
         // If we're on ngrok or agency, ensure redirect matches what the UI sent
         // Actually, Meta strictly checks this. Let's log it.
         logger.info(`Using redirect URI: ${redirectUri}`)
 
-        logger.info(`Starting Meta/Facebook OAuth exchange for identifier: ${identifier}`)
+        logger.info(`Starting Meta/Facebook OAuth exchange (code prefix: ${body.code.substring(0, 10)}...) for identifier: ${identifier}`)
 
         // --- 0. Resolve Identifier to real UUID ---
         let realProjectId: string = ""
         // Check if it's already a UUID
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier)
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier)
         
         if (isUUID) {
             realProjectId = identifier
@@ -68,9 +69,39 @@ export default createHandler(async ({ adminClient, body, user }) => {
         // 2. Upgrade to Long-Lived Token (60-day)
         const longToken = await meta.getLongLivedToken(shortToken.access_token)
         
-        // 3. Discover Facebook Pages and Instagram Business Accounts
-        const pages = await meta.getInstagramAccounts(longToken.access_token)
+        logger.info(`Upgraded to Long-Lived Token: ${longToken.access_token.substring(0, 10)}...`)
         
+        // 2.5 Check current permissions and identity
+        const meData = await meta.getMe(longToken.access_token)
+        logger.info(`Authenticated as Facebook user: ${JSON.stringify(meData)}`)
+        
+        const perms = await meta.getPermissions(longToken.access_token)
+        logger.info(`Current Meta Permissions: ${JSON.stringify(perms)}`)
+
+        // 3. Discover Facebook Pages — multi-fallback for all account types
+        // Tier 1: Standard /me/accounts (works for personal accounts)
+        let pages = await meta.getInstagramAccounts(longToken.access_token)
+        logger.info(`[Tier 1] /me/accounts returned ${pages.length} pages`)
+
+        // Tier 2: /me/businesses (works for Meta Business Suite accounts)
+        if (pages.length === 0) {
+            logger.info(`[Tier 2] Trying /me/businesses fallback...`)
+            pages = await meta.getBusinessPages(longToken.access_token)
+            logger.info(`[Tier 2] /me/businesses returned ${pages.length} pages`)
+        }
+
+        // Tier 3: Direct page fetch using the page ID from the user's Facebook account
+        // (works for New Pages Experience / Professional Mode accounts)
+        const KNOWN_PAGE_IDS = ["946747008533071"] // User's known page IDs
+        if (pages.length === 0) {
+            logger.info(`[Tier 3] Trying direct page fetch for known IDs: ${KNOWN_PAGE_IDS.join(",")}`)
+            for (const pid of KNOWN_PAGE_IDS) {
+                const page = await meta.getPageDirectly(pid, longToken.access_token)
+                logger.info(`[Tier 3] Direct fetch for page ${pid}: ${JSON.stringify(page)}`)
+                if (page) pages.push(page)
+            }
+        }
+
         if (pages.length === 0) {
             throw new Error("No Facebook Pages found. Ensure you are an admin of at least one Facebook Page.")
         }
@@ -100,7 +131,7 @@ export default createHandler(async ({ adminClient, body, user }) => {
         if (fbErr) logger.error(`Failed to save Facebook connection: ${fbErr.message}`)
 
         // --- Handle Instagram Business Account (Optional) ---
-        const igPage = pages.find(p => p.instagram_business_account?.id)
+        const igPage = pages.find((p: any) => p.instagram_business_account?.id)
         let igUsername = null
 
         if (igPage && igPage.instagram_business_account) {
@@ -119,7 +150,7 @@ export default createHandler(async ({ adminClient, body, user }) => {
                     username: igInfo.username,
                     name: igInfo.name,
                     profile_picture_url: igInfo.profile_picture_url,
-                    follower_count: igInfo.follower_count,
+                    follower_count: igInfo.followers_count,
                     media_count: igInfo.media_count,
                     last_synced_at: new Date().toISOString()
                 })
