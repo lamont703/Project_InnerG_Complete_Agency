@@ -55,6 +55,8 @@ async function run() {
     authUrl.searchParams.append('response_type', 'code');
     authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
     authUrl.searchParams.append('state', Math.random().toString(36).substring(7));
+    authUrl.searchParams.append('disable_auto_auth', '1');
+    authUrl.searchParams.append('prompt', 'login');
     
     console.log("\n1. IMPORTANT: Ensure your Redirect URI in TikTok Developer Portal is set to:");
     console.log("\x1b[32m%s\x1b[0m", REDIRECT_URI);
