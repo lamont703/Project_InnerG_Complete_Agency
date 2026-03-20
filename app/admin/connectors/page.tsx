@@ -489,6 +489,7 @@ export default function ConnectorAdminPage() {
                                             <MetaLoginButton 
                                                 size="large"
                                                 projectId={newProject}
+                                                configId="1304420384838040"
                                             />
                                             <p className="text-[8px] text-muted-foreground italic">
                                                 You will be redirected back here after authorizing.

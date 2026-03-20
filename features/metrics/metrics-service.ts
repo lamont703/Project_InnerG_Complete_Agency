@@ -161,15 +161,30 @@ export class MetricsService {
 
         const { data: igMediaData } = await this.supabase
             .from("instagram_media")
-            .select("like_count, comments_count, reach, impressions")
+            .select("like_count, comments_count, reach, impressions, video_views, saves")
             .eq("project_id", projectId) as any
         
         const igMedia = igMediaData || []
         const igLikes = igMedia.reduce((sum: number, m: any) => sum + (m.like_count || 0), 0)
         const igComments = igMedia.reduce((sum: number, m: any) => sum + (m.comments_count || 0), 0)
+        const igSaves = igMedia.reduce((sum: number, m: any) => sum + (m.saves || 0), 0)
+        const igVideoViews = igMedia.reduce((sum: number, m: any) => sum + (m.video_views || 0), 0)
         const igReachTotal = igMedia.reduce((sum: number, m: any) => sum + (m.reach || 0), 0)
         const igImpressionsTotal = igMedia.reduce((sum: number, m: any) => sum + (m.impressions || 0), 0)
-        const igEngagement = igMedia.length > 0 ? (igLikes + igComments) / igMedia.length : 0
+        const igEngagement = igMedia.length > 0 ? (igLikes + igComments + igSaves) / igMedia.length : 0
+        const igInteractions = igLikes + igComments + igSaves
+
+        // 5. Profile-level Activity (from snapshots)
+        const { data: snapshotData } = await this.supabase
+            .from("project_metrics_snapshots")
+            .select("metrics_payload")
+            .eq("project_id", projectId)
+            .order("snapshot_date", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        
+        const igProfileViews = (snapshotData as any)?.metrics_payload?.instagram_profile_views || 0;
+        const igWebsiteClicks = (snapshotData as any)?.metrics_payload?.instagram_website_clicks || 0;
 
         const latest = snapshots[0]
         const previous = snapshots[1] || latest
@@ -320,6 +335,38 @@ export class MetricsService {
                 color: "text-pink-500 bg-pink-500/10",
             },
             {
+                id: "instagram_profile_views",
+                label: "IG Profile Views",
+                value: igProfileViews.toLocaleString(),
+                growth: "+2.1%",
+                icon: UserSquare2,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_website_clicks",
+                label: "IG Website Clicks",
+                value: igWebsiteClicks.toLocaleString(),
+                growth: "+1.5%",
+                icon: ExternalLink,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_post_views",
+                label: "IG Video Views",
+                value: igVideoViews.toLocaleString(),
+                growth: "+8.4%",
+                icon: Eye,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_interactions",
+                label: "IG Interactions",
+                value: igInteractions.toLocaleString(),
+                growth: "+5.1%",
+                icon: Zap,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
                 id: "instagram_post_success",
                 label: "Automation Status",
                 value: "Active",
@@ -439,17 +486,24 @@ export class MetricsService {
         const liPostViews = liPosts.reduce((sum: number, p: any) => sum + (p.view_count || 0), 0)
 
         // 4. Instagram Stats
-        const [igAccData, igMediaData] = await Promise.all([
+        const [igAccData, igMediaData, snapshotData] = await Promise.all([
             this.supabase.from("instagram_accounts").select("follower_count, media_count").eq("project_id", projectId).limit(1),
-            this.supabase.from("instagram_media").select("like_count, comments_count, reach, impressions").eq("project_id", projectId)
+            this.supabase.from("instagram_media").select("like_count, comments_count, reach, impressions, video_views, saves").eq("project_id", projectId),
+            this.supabase.from("project_metrics_snapshots").select("metrics_payload").eq("project_id", projectId).order("snapshot_date", { ascending: false }).limit(1).maybeSingle()
         ]) as any
         
         const igAcc = igAccData?.data?.[0] || { follower_count: 0, media_count: 0 }
         const igMedia = igMediaData?.data || []
         const igLikes = igMedia.reduce((sum: number, m: any) => sum + (m.like_count || 0), 0)
         const igComments = igMedia.reduce((sum: number, m: any) => sum + (m.comments_count || 0), 0)
+        const igSaves = igMedia.reduce((sum: number, m: any) => sum + (m.saves || 0), 0)
+        const igVideoViews = igMedia.reduce((sum: number, m: any) => sum + (m.video_views || 0), 0)
         const igReachTotal = igMedia.reduce((sum: number, m: any) => sum + (m.reach || 0), 0)
-        const igEngagement = igMedia.length > 0 ? (igLikes + igComments) / igMedia.length : 0
+        const igEngagement = igMedia.length > 0 ? (igLikes + igComments + igSaves) / igMedia.length : 0
+        const igInteractions = igLikes + igComments + igSaves
+
+        const igProfileViews = (snapshotData as any)?.data?.metrics_payload?.instagram_profile_views || 0;
+        const igWebsiteClicks = (snapshotData as any)?.data?.metrics_payload?.instagram_website_clicks || 0;
 
         const metrics: Metric[] = [
             {
@@ -560,6 +614,38 @@ export class MetricsService {
                 id: "instagram_engagement",
                 label: "Instagram Engagement",
                 value: igEngagement.toFixed(1),
+                growth: "+0%",
+                icon: Zap,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_profile_views",
+                label: "IG Profile Views",
+                value: igProfileViews.toLocaleString(),
+                growth: "+0%",
+                icon: UserSquare2,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_website_clicks",
+                label: "IG Website Clicks",
+                value: igWebsiteClicks.toLocaleString(),
+                growth: "+0%",
+                icon: ExternalLink,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_post_views",
+                label: "IG Video Views",
+                value: igVideoViews.toLocaleString(),
+                growth: "+0%",
+                icon: Eye,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_interactions",
+                label: "IG Interactions",
+                value: igInteractions.toLocaleString(),
                 growth: "+0%",
                 icon: Zap,
                 color: "text-pink-500 bg-pink-500/10",

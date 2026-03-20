@@ -297,6 +297,24 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         iconName: "ExternalLink"
     },
     {
+        id: "instagram_post_views",
+        label: "IG Video Views",
+        description: "Cumulative view count aggregated across all Instagram Reels and Videos.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Eye"
+    },
+    {
+        id: "instagram_interactions",
+        label: "IG Interactions",
+        description: "Total likes, comments, and saves aggregated across all Instagram media.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['admin', 'super-admin'],
+        iconName: "Zap"
+    },
+    {
         id: "instagram_post_success",
         label: "Automation Status",
         description: "Verifies the current AI write-access and publishing health for Instagram.",

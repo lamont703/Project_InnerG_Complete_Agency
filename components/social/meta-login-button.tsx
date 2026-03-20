@@ -19,7 +19,7 @@ interface MetaLoginButtonProps {
 export function MetaLoginButton({
     configId,
     projectId,
-    scopes = ['public_profile', 'email', 'instagram_basic', 'instagram_content_publish', 'instagram_manage_comments', 'pages_show_list', 'pages_read_engagement', 'business_management'],
+    scopes = ['public_profile', 'email', 'instagram_business_basic', 'instagram_business_content_publish', 'instagram_business_manage_comments', 'instagram_business_manage_insights', 'pages_show_list', 'pages_read_engagement', 'business_management'],
     size = 'medium',
     buttonText = 'Connect with Facebook',
     useRedirect = true
@@ -44,8 +44,8 @@ export function MetaLoginButton({
     }, [])
 
     const oauthUrl = configId 
-        ? `https://www.facebook.com/v25.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${projectId || ""}&config_id=${configId}`
-        : `https://www.facebook.com/v25.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${projectId || ""}&scope=${encodeURIComponent(scopes.join(','))}`
+        ? `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${projectId || ""}&config_id=${configId}`
+        : `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${projectId || ""}&scope=${encodeURIComponent(scopes.join(','))}`
 
     useEffect(() => {
         // @ts-ignore

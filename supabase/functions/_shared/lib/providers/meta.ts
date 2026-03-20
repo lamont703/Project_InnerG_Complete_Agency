@@ -19,7 +19,7 @@ export interface MetaPage {
 }
 
 export class MetaProvider {
-    private baseUrl = "https://graph.facebook.com/v25.0"
+    private baseUrl = "https://graph.facebook.com/v19.0"
 
     /**
      * Exchanges auth code for a short-lived user access token

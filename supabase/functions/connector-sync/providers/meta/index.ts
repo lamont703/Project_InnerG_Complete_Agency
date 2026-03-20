@@ -7,7 +7,7 @@ import { MetaClient } from "./client.ts"
 import { MetaEngagementService } from "./engagement.ts"
 import { getEnv } from "../../../_shared/lib/core/env.ts"
 
-const API_VERSION = "v25.0";
+const API_VERSION = "v19.0";
 const BASE_URL = `https://graph.facebook.com/${API_VERSION}`;
 
 export async function syncMeta(
@@ -122,9 +122,10 @@ export async function syncMeta(
                 
                 if (mediaUpsertError) throw mediaUpsertError;
 
-                // 4. Fetch Comments for recently active media
+                // 4. Fetch Comments and Insights for recently active media
                 for (const media of syncedMedia) {
                     try {
+                        // 4a. Comments
                         const commentsRes = await fetch(`${BASE_URL}/${media.instagram_media_id}/comments?fields=id,text,timestamp,from,parent_id&access_token=${token}`);
                         const commentsData = await commentsRes.json();
                         
@@ -146,8 +147,28 @@ export async function syncMeta(
                             });
                             totalCommentsSynced += commentUpserts.length;
                         }
+
+                        // 4b. Media Insights (Reach, Impressions, Saved, Video Views)
+                        // Note: video_views (play_count) is only for VIDEO/REELS
+                        const metricsToFetch = ['reach', 'impressions', 'saved'];
+                        if (media.media_type === 'VIDEO') metricsToFetch.push('play_count');
+                        
+                        const insightsRes = await fetch(`${BASE_URL}/${media.instagram_media_id}/insights?metric=${metricsToFetch.join(',')}&access_token=${token}`);
+                        const insightsData = await insightsRes.json();
+                        
+                        if (insightsData.data) {
+                            const findInsight = (name: string) => insightsData.data.find((i: any) => i.name === name)?.values[0]?.value || 0;
+                            
+                            await adminClient.from("instagram_media").update({
+                                reach: findInsight('reach'),
+                                impressions: findInsight('impressions'),
+                                saves: findInsight('saved'),
+                                video_views: findInsight('play_count'),
+                                last_synced_at: new Date().toISOString()
+                            }).eq("id", media.id);
+                        }
                     } catch (err: any) {
-                        logger.error(`Failed to fetch comments for media ${media.instagram_media_id}: ${err.message}`);
+                        logger.error(`Failed to fetch extra data for media ${media.instagram_media_id}: ${err.message}`);
                     }
                 }
             }

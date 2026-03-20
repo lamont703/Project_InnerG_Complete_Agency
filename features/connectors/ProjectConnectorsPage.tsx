@@ -496,6 +496,7 @@ export function ProjectConnectorsPage() {
                                                 <MetaLoginButton 
                                                     size="large"
                                                     projectId={projectId || undefined}
+                                                    configId="1304420384838040"
                                                 />
                                             </div>
                                             <p className="text-[8px] text-muted-foreground italic">
