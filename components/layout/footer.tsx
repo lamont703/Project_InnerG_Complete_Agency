@@ -63,7 +63,7 @@ export function Footer() {
 
         <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 md:flex-row">
           <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} Inner G Complete Agency. All rights reserved.
+            &copy; {new Date().getFullYear()} Inner G Complete Agency App. All rights reserved.
           </p>
           <div className="flex gap-6">
             {["Privacy Policy", "Terms of Service", "Cookie Policy", "Data Deletion"].map((item) => {

@@ -34,6 +34,7 @@ import { DashboardHeader } from "@/components/layout/dashboard/header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MetaLoginButton } from "@/components/social/meta-login-button"
+import { TikTokLoginButton } from "@/components/social/tiktok-login-button"
 
 // PROVIDER ICONS + COLORS (Synced with Admin)
 const providerMeta: Record<string, { color: string; bgColor: string; label: string }> = {
@@ -489,18 +490,25 @@ export function ProjectConnectorsPage() {
                                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center px-6">
                                                 Meta uses Business Login for secure access to Pages and accounts.
                                             </p>
-                                            <div onClick={(e) => {
-                                                // Override the parent form's behavior if needed
-                                                // But for Meta login button, it uses its own SDK flow
-                                            }}>
-                                                <MetaLoginButton 
-                                                    size="large"
-                                                    projectId={projectId || undefined}
-                                                    configId="1304420384838040"
-                                                />
-                                            </div>
+                                            <MetaLoginButton 
+                                                size="large"
+                                                projectId={projectId || undefined}
+                                                configId="1304420384838040"
+                                            />
                                             <p className="text-[8px] text-muted-foreground italic">
                                                 You will be redirected back here after authorizing.
+                                            </p>
+                                        </div>
+                                    ) : selectedType?.provider === "tiktok" ? (
+                                        <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                            <p className="text-[10px] font-black text-pink-500 uppercase tracking-widest text-center px-6">
+                                                Connect TikTok to sync your videos and content insights.
+                                            </p>
+                                            <TikTokLoginButton 
+                                                projectId={projectId || undefined}
+                                            />
+                                            <p className="text-[8px] text-muted-foreground italic">
+                                                OAuth connection requires access to video.list and profile info.
                                             </p>
                                         </div>
                                     ) : Object.entries(selectedTypeSchema.properties || selectedTypeSchema).map(([key, schema]: [string, any]) => {

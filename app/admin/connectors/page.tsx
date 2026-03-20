@@ -35,6 +35,7 @@ import { Input } from "@/components/ui/input"
 import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
 import { AdminHeader } from "@/features/agency/components/AdminHeader"
 import { MetaLoginButton } from "@/components/social/meta-login-button"
+import { TikTokLoginButton } from "@/components/social/tiktok-login-button"
 
 // ─────────────────────────────────────────────
 // TYPES
@@ -478,24 +479,36 @@ export default function ConnectorAdminPage() {
                             </div>
 
                             {/* Dynamic Config Fields */}
-                            {selectedTypeSchema?.properties && (
+                            {selectedType?.provider === "instagram" || selectedType?.provider === "facebook" ? (
+                                <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center px-6">
+                                        Meta uses Business Login for secure access to Pages and accounts.
+                                    </p>
+                                    <MetaLoginButton 
+                                        size="large"
+                                        projectId={newProject}
+                                        configId="1304420384838040"
+                                    />
+                                    <p className="text-[8px] text-muted-foreground italic">
+                                        You will be redirected back here after authorizing.
+                                    </p>
+                                </div>
+                            ) : selectedType?.provider === "tiktok" ? (
+                                <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                    <p className="text-[10px] font-black text-pink-500 uppercase tracking-widest text-center px-6">
+                                        Connect TikTok to sync your videos and content insights.
+                                    </p>
+                                    <TikTokLoginButton 
+                                        projectId={newProject}
+                                    />
+                                    <p className="text-[8px] text-muted-foreground italic">
+                                        OAuth connection requires access to video.list and profile info.
+                                    </p>
+                                </div>
+                            ) : selectedTypeSchema?.properties && (
                                 <div className="space-y-3 mb-5 p-4 rounded-xl bg-muted/5 border border-border">
                                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Configuration</p>
-                                    {selectedType?.provider === "instagram" || selectedType?.provider === "facebook" ? (
-                                        <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
-                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center px-6">
-                                                Meta uses Business Login for secure access to Pages and accounts.
-                                            </p>
-                                            <MetaLoginButton 
-                                                size="large"
-                                                projectId={newProject}
-                                                configId="1304420384838040"
-                                            />
-                                            <p className="text-[8px] text-muted-foreground italic">
-                                                You will be redirected back here after authorizing.
-                                            </p>
-                                        </div>
-                                    ) : Object.entries(selectedTypeSchema.properties).map(([key, schema]: [string, any]) => {
+                                    {Object.entries(selectedTypeSchema.properties).map(([key, schema]: [string, any]) => {
                                         if (schema.type === "boolean") {
                                             return (
                                                 <label key={key} className="flex items-center gap-3 cursor-pointer">

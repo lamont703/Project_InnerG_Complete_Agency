@@ -15,7 +15,7 @@ const _jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://innergcomplete.com'),
-  title: 'Inner G Complete Agency | AI Consulting for Retail & Blockchain for SMBs',
+  title: 'Inner G Complete Agency | AI Consulting & Blockchain for SMBs',
   description:
     'Expert AI and blockchain consulting for small to medium-sized businesses. Total customized solutions for retail, payment processing, and operational efficiency.',
   keywords: ['AI consulting for retail', 'blockchain agency for SMBs', 'AI and blockchain consulting'],

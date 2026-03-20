@@ -2,8 +2,8 @@ import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 
 export const metadata = {
-  title: "Terms of Service | Inner G Complete Agency",
-  description: "Terms of Service for Inner G Complete Agency services and platform.",
+  title: "Terms of Service | Inner G Complete Agency App",
+  description: "Terms of Service for Inner G Complete Agency App services and platform.",
 }
 
 export default function TermsOfServicePage() {
@@ -16,19 +16,20 @@ export default function TermsOfServicePage() {
         
         <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none space-y-8 text-muted-foreground">
           <section>
-            <p><strong>Last Updated:</strong> {new Date().toLocaleDateString()}</p>
+            <p><strong>Last Updated:</strong> March 20, 2026</p>
             <p className="mt-4">
-              Welcome to Inner G Complete Agency. These Terms of Service ("Terms") govern your access to and use of our 
-              website, products, and services ("Services"). By accessing or using our Services, you agree to be bound by 
-              these Terms and our Privacy Policy.
+              Welcome to the <strong>Inner G Complete Agency App</strong>, a proprietary software developed and 
+              managed by <strong>Inner G Complete Agency</strong> ("the Company"). These Terms of Service 
+              ("Terms") govern your access to and use of our website, products, and services ("Services"), 
+              including the Inner G Complete Agency App software.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold text-foreground">1. Description of Service</h2>
             <p className="mt-4">
-              Inner G Complete Agency provides AI and Blockchain innovation services, consulting, and technological 
-              solutions designed for small to medium businesses. Our services include but are not limited to AI strategy, 
+              Inner G Complete Agency App provides AI and Blockchain innovation services, consulting, and technological 
+              solutions designed for small to medium businesses. Our Services include but are not limited to AI strategy, 
               system implementation, and digital transformation consulting.
             </p>
           </section>
@@ -36,23 +37,37 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="text-2xl font-semibold text-foreground">2. User Accounts</h2>
             <p className="mt-4">
-              To access certain features of our platform, you may be required to create an account. You are responsible 
-              for maintaining the confidentiality of your account credentials and for all activities that occur under your account. 
-              You agree to notify us immediately of any unauthorized use of your account.
+              To access certain features of the Inner G Complete Agency App, you may be required to create an account. 
+              You are responsible for maintaining the confidentiality of your account credentials and for all activities 
+              that occur under your account. You agree to notify us immediately of any unauthorized use of your account.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-foreground">3. Intellectual Property Rights</h2>
+            <h2 className="text-2xl font-semibold text-foreground">3. Social Media & Third-Party Integrations</h2>
+            <p className="mt-4">
+              Our Services include integrations with third-party social media platforms such as TikTok. By connecting these 
+              accounts to the Inner G Complete Agency App, you agree that:
+            </p>
+            <ul className="list-disc pl-6 mt-4 space-y-2">
+              <li>You are an authorized user of the connected third-party account.</li>
+              <li>You must comply with the respective platform's Terms of Service and Community Guidelines (e.g., TikTok's Terms of Service).</li>
+              <li>Inner G Complete Agency App is not responsible for any actions taken by third-party platforms on your account, including suspension, post-removal, or shadow-banning.</li>
+              <li>You are solely responsible for the content you post or sync from these third-party services.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-foreground">4. Intellectual Property Rights</h2>
             <p className="mt-4">
               The Services and their original content, features, and functionality are and will remain the exclusive 
-              property of Inner G Complete Agency and its licensors. Our trademarks and trade dress may not be used 
-              in connection with any product or service without the prior written consent of Inner G Complete Agency.
+              property of Inner G Complete Agency App and its licensors. Our trademarks and trade dress may not be used 
+              in connection with any product or service without our prior written consent.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-foreground">4. Prohibited Activities</h2>
+            <h2 className="text-2xl font-semibold text-foreground">5. Prohibited Activities</h2>
             <p className="mt-4">
               You agree not to engage in any of the following prohibited activities:
             </p>
@@ -65,7 +80,7 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-foreground">5. Termination</h2>
+            <h2 className="text-2xl font-semibold text-foreground">6. Termination</h2>
             <p className="mt-4">
               We may terminate or suspend your account and bar access to the Services immediately, without prior notice 
               or liability, under our sole discretion, for any reason whatsoever and without limitation, including but 
@@ -74,9 +89,9 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-foreground">6. Limitation of Liability</h2>
+            <h2 className="text-2xl font-semibold text-foreground">7. Limitation of Liability</h2>
             <p className="mt-4">
-              In no event shall Inner G Complete Agency, nor its directors, employees, partners, agents, suppliers, or 
+              In no event shall Inner G Complete Agency App, nor its directors, employees, partners, agents, suppliers, or 
               affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including 
               without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your 
               access to or use of or inability to access or use the Services.
@@ -84,7 +99,7 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-foreground">7. Governing Law</h2>
+            <h2 className="text-2xl font-semibold text-foreground">8. Governing Law</h2>
             <p className="mt-4">
               These Terms shall be governed and construed in accordance with the laws of the United States, without 
               regard to its conflict of law provisions. Our failure to enforce any right or provision of these Terms 
@@ -93,12 +108,12 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-foreground">8. Contact Us</h2>
+            <h2 className="text-2xl font-semibold text-foreground">9. Contact Us</h2>
             <p className="mt-4">
               If you have any questions about these Terms, please contact us at:
             </p>
             <p className="mt-2">
-              <strong>Inner G Complete Agency</strong><br />
+              <strong>Inner G Complete Agency App</strong><br />
               Email: support@lamont.innergcomplete.com
             </p>
           </section>
