@@ -57,14 +57,20 @@ export function createHandler<T extends z.ZodTypeAny = any>(
 
             // 3. Initialize Shared Infrastructure
             const adminClient = createAdminClient()
-            const authHeader = req.headers.get("Authorization")
+            
+            // Log ALL headers to see what's really happening
+            console.log(`[Middleware] Full Headers: ${JSON.stringify(Object.fromEntries(req.headers.entries()))}`)
+            
+            const authHeader = req.headers.get("Authorization") || req.headers.get("authorization")
+            console.log(`[Middleware] Auth Header: ${authHeader ? 'FOUND' : 'MISSING'} (requireAuth: ${config.requireAuth})`)
 
             let userResult = null
             if (authHeader || config.requireAuth) {
                 userResult = await getAuthenticatedUser(authHeader, adminClient)
 
                 if (config.requireAuth && userResult.error) {
-                    return unauthorizedResponse(userResult.error)
+                    console.error(`[Middleware] REJECTING request due to auth error: ${userResult.error}`)
+                    return unauthorizedResponse(`InnerG_Auth_Error: ${userResult.error}`)
                 }
             }
 

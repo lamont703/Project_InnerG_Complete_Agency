@@ -52,17 +52,24 @@ function InstagramCallbackContent() {
                 // Determine current redirect URI (must match what was sent to Meta)
                 const currentRedirectUri = window.location.origin + window.location.pathname
 
+                // Detect whether this is an Instagram-native OAuth flow.
+                // The Instagram button embeds '__instagram' in the state param.
+                // This tells the edge function to use INSTAGRAM_APP_ID/SECRET for the
+                // token exchange instead of META_APP_ID/SECRET — they are different apps
+                // and using the wrong client_id causes Meta to return a "redirect_uri
+                // mismatch" error (Meta bundles both mismatches into the same message).
+                const isInstagramFlow = state?.includes("__instagram") ?? false
+
+                console.log(`[Instagram Callback] isInstagramFlow: ${isInstagramFlow}, redirectUri: ${currentRedirectUri}`)
+
                 // 1. Call our Edge Function to exchange the code for a long-lived access token
-                // We pass the code, the state, and the redirectUri for verification
+                // We pass the code, the state, the redirectUri, and the isInstagram flag
                 const { data, error: functionError } = await supabase.functions.invoke("complete-meta-auth", {
                     body: { 
                         code, 
                         state, 
-                        redirectUri: currentRedirectUri 
-                    },
-                    headers: {
-                        Authorization: `Bearer ${session.access_token}`,
-                        apikey: supabaseAnonKey
+                        redirectUri: currentRedirectUri,
+                        isInstagram: isInstagramFlow
                     }
                 })
 

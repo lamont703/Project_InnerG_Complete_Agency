@@ -16,7 +16,8 @@ import { MetaProvider } from "../_shared/lib/providers/meta.ts"
 const MetaAuthSchema = z.object({
     code: z.string().min(1, "Code is required"),
     state: z.string().optional(), // State should contain the project ID or slug
-    redirectUri: z.string().optional() // Allow frontend to pass the exact URI used
+    redirectUri: z.string().optional(), // Allow frontend to pass the exact URI used
+    isInstagram: z.boolean().optional() // Flag to use Instagram App ID/Secret
 })
 
 export default createHandler(async ({ adminClient, body, user }) => {
@@ -24,10 +25,14 @@ export default createHandler(async ({ adminClient, body, user }) => {
 
     if (!user) throw new Error("Authentication required")
 
-    // Parse project identifier from state (e.g. "projectId=UUID" or just the UUID/Slug)
-    let identifier = body.state?.startsWith("projectId=") 
-        ? body.state.split("=")[1] 
-        : body.state
+    // Parse project identifier from state (e.g. "projectId=UUID", "UUID__instagram", or just UUID/Slug)
+    let identifier = body.state || ""
+    if (identifier.startsWith("projectId=")) {
+        identifier = identifier.split("=")[1]
+    }
+    if (identifier.includes("__")) {
+        identifier = identifier.split("__")[0]
+    }
 
     if (!identifier) throw new Error("Missing project identifier in OAuth state.")
 
@@ -64,13 +69,78 @@ export default createHandler(async ({ adminClient, body, user }) => {
         logger.info(`Resolved project UUID: ${realProjectId}`)
 
         // 1. Exchange for User Access Token (short-lived)
-        const shortToken = await meta.exchangeCodeForToken(body.code, redirectUri)
+        const isInstagram = body.isInstagram || body.code.startsWith("IGAA") // Instagram Basic tokens start with IGAA
+        logger.info(`Using app credentials: ${isInstagram ? "INSTAGRAM (1341582051161091)" : "META/FB"} | isInstagram flag: ${body.isInstagram}, code prefix: ${body.code.substring(0, 6)}`)
+        const shortToken = await meta.exchangeCodeForToken(body.code, redirectUri, isInstagram)
+        logger.info(`Short-lived token obtained: ${shortToken.access_token.substring(0, 10)}...`)
 
         // 2. Upgrade to Long-Lived Token (60-day)
-        const longToken = await meta.getLongLivedToken(shortToken.access_token)
-        
+        const longToken = await meta.getLongLivedToken(shortToken.access_token, isInstagram)
         logger.info(`Upgraded to Long-Lived Token: ${longToken.access_token.substring(0, 10)}...`)
-        
+
+        // ─── INSTAGRAM-NATIVE FLOW ────────────────────────────────────────────────
+        // The token from graph.instagram.com works against graph.instagram.com/me,
+        // NOT graph.facebook.com/me/accounts. We handle it separately.
+        if (isInstagram) {
+            logger.info(`[Instagram Native] Fetching IG business account via graph.instagram.com/me`)
+
+            // Get the Instagram user profile directly
+            const igMeUrl = `https://graph.instagram.com/me?fields=id,username,name,profile_picture_url,followers_count,media_count&access_token=${longToken.access_token}`
+            const igMeRes = await fetch(igMeUrl)
+            const igMe = await igMeRes.json()
+            logger.info(`[Instagram Native] IG Me: ${JSON.stringify(igMe)}`)
+
+            if (igMe.error) {
+                throw new Error(`Instagram profile fetch failed: ${igMe.error.message}`)
+            }
+
+            const igId = igMe.id
+            const igUsername = igMe.username
+
+            // Save Instagram account
+            await adminClient.from("instagram_accounts").upsert({
+                project_id: realProjectId,
+                instagram_business_id: igId,
+                username: igUsername,
+                name: igMe.name,
+                profile_picture_url: igMe.profile_picture_url,
+                follower_count: igMe.followers_count,
+                media_count: igMe.media_count,
+                last_synced_at: new Date().toISOString()
+            })
+
+            // Save Instagram connection
+            await adminClient.from("client_db_connections").upsert({
+                project_id: realProjectId,
+                label: `Instagram - ${igUsername}`,
+                db_type: "instagram",
+                connection_url_encrypted: "IG_NATIVE_OAUTH",
+                sync_config: {
+                    access_token: longToken.access_token,
+                    instagram_business_account_id: igId,
+                    token_type: "instagram_native"
+                },
+                is_active: true,
+                sync_status: "success"
+            })
+
+            const { data: project } = await adminClient
+                .from("projects")
+                .select("slug")
+                .eq("id", realProjectId)
+                .single()
+
+            logger.info(`[Instagram Native] Successfully connected Instagram @${igUsername} to project ${realProjectId}`)
+
+            return okResponse({
+                success: true,
+                projectSlug: project?.slug,
+                instagramUsername: igUsername,
+                message: `Instagram @${igUsername} successfully connected.`
+            })
+        }
+
+        // ─── FACEBOOK / META FLOW ─────────────────────────────────────────────────
         // 2.5 Check current permissions and identity
         const meData = await meta.getMe(longToken.access_token)
         logger.info(`Authenticated as Facebook user: ${JSON.stringify(meData)}`)
@@ -205,5 +275,13 @@ export default createHandler(async ({ adminClient, body, user }) => {
 }, {
     schema: MetaAuthSchema,
     requireAuth: true,
-    requiredEnv: ["META_APP_ID", "META_APP_SECRET", "META_REDIRECT_URI", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]
+    requiredEnv: [
+        "META_APP_ID", 
+        "META_APP_SECRET", 
+        "INSTAGRAM_APP_ID", 
+        "INSTAGRAM_APP_SECRET", 
+        "META_REDIRECT_URI", 
+        "SUPABASE_URL", 
+        "SUPABASE_SERVICE_ROLE_KEY"
+    ]
 })

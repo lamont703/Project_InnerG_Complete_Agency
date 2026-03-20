@@ -1,9 +1,12 @@
 export interface MetaSyncConfig {
     access_token: string;
-    page_id: string;
+    page_id?: string;
     page_access_token?: string;
     page_name?: string;
     instagram_business_account_id?: string;
+    /** "instagram_native" = token from instagram.com/oauth/authorize → graph.instagram.com
+     *  undefined / other   = token from Facebook Login → graph.facebook.com */
+    token_type?: string;
 }
 
 export interface MetaInsight {

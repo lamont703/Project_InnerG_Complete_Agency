@@ -60,19 +60,52 @@ export async function syncMeta(
             // Instagram sync logic
             const igId = config.instagram_business_account_id || config.page_id;
             if (!igId) throw new Error("Missing IG Business Account ID");
-            
-            // Profile Info
-            const profileRes = await fetch(`${BASE_URL}/${igId}?fields=username,followers_count,media_count&access_token=${token}`);
-            const profileData = await profileRes.json();
-            
-            // Insights (Aggregated)
-            const insRes = await fetch(`${BASE_URL}/${igId}/insights?metric=reach,impressions,profile_views,website_clicks&period=day&access_token=${token}`);
-            const insData = await insRes.json();
-            
-            // Media for engagement and recent performance
-            const mediaRes = await fetch(`${BASE_URL}/${igId}/media?fields=id,like_count,comments_count,timestamp,media_type,media_url,caption,permalink&limit=10&access_token=${token}`);
-            const mediaData = await mediaRes.json();
-            
+
+            const isNativeToken = config.token_type === "instagram_native";
+
+            let profileData: any;
+            let insData: any = { data: [] };
+            let mediaData: any = { data: [] };
+
+            if (isNativeToken) {
+                // ── Instagram-native OAuth token ────────────────────────────────
+                // These tokens work against graph.instagram.com, NOT graph.facebook.com.
+                // Fields available: id, username, name, profile_picture_url,
+                //   followers_count, media_count, website, biography
+                const IG_BASE = "https://graph.instagram.com";
+
+                const profileRes = await fetch(
+                    `${IG_BASE}/me?fields=id,username,name,profile_picture_url,followers_count,media_count&access_token=${token}`
+                );
+                profileData = await profileRes.json();
+                logger.info(`[IG Native Sync] Profile: ${JSON.stringify(profileData)}`);
+
+                if (profileData.error) {
+                    throw new Error(`Instagram profile fetch failed: ${profileData.error.message}`);
+                }
+
+                // Media via graph.instagram.com
+                const mediaRes = await fetch(
+                    `${IG_BASE}/${igId}/media?fields=id,like_count,comments_count,timestamp,media_type,media_url,caption,permalink&limit=10&access_token=${token}`
+                );
+                mediaData = await mediaRes.json();
+                logger.info(`[IG Native Sync] Media count: ${mediaData.data?.length ?? 0}`);
+
+                // Insights are not available for native tokens without instagram_manage_insights
+                // (scope may be missing). Skip gracefully.
+            } else {
+                // ── Legacy path: Facebook-issued business token ─────────────────
+                // Token came from Facebook Login; use graph.facebook.com endpoints.
+                const profileRes = await fetch(`${BASE_URL}/${igId}?fields=username,followers_count,media_count&access_token=${token}`);
+                profileData = await profileRes.json();
+
+                const insRes = await fetch(`${BASE_URL}/${igId}/insights?metric=reach,impressions,profile_views,website_clicks&period=day&access_token=${token}`);
+                insData = await insRes.json();
+
+                const mediaRes = await fetch(`${BASE_URL}/${igId}/media?fields=id,like_count,comments_count,timestamp,media_type,media_url,caption,permalink&limit=10&access_token=${token}`);
+                mediaData = await mediaRes.json();
+            }
+
             const metrics = MetaTransformer.transformInstagramMetrics(
                 profileData, 
                 insData.data || [], 
@@ -82,13 +115,13 @@ export async function syncMeta(
             // 1. Snapshot Aggregates
             await upsertProjectMetrics(adminClient, projectId, metrics);
 
-            // 2. Update Account Record
+            // 2. Update Account Record — username is always present at this point
             const { data: igAccount, error: igAccError } = await adminClient
                 .from("instagram_accounts")
                 .upsert({
                     project_id: projectId,
                     instagram_business_id: igId,
-                    username: profileData.username,
+                    username: profileData.username || "unknown",
                     follower_count: profileData.followers_count || 0,
                     media_count: profileData.media_count || 0,
                     last_synced_at: new Date().toISOString()
@@ -97,6 +130,7 @@ export async function syncMeta(
                 .single();
 
             if (igAccError) throw igAccError;
+
 
             // 3. Update Recent Media and Comments
             let totalCommentsSynced = 0;
