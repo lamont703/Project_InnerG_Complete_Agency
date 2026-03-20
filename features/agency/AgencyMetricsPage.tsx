@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff, ThumbsUp, MessageSquare, Share2, Eye, Linkedin, BarChart3, Youtube, Video, Play, Instagram, CheckCircle2 } from "lucide-react"
+import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff, ThumbsUp, MessageSquare, Share2, Eye, Linkedin, BarChart3, Youtube, Video, Play, Instagram, CheckCircle2, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Facebook, Twitter, Music, AtSign } from "lucide-react"
 
@@ -39,6 +39,7 @@ function AgencyMetricsContent() {
         youtubeMetrics,
         instagramMetrics,
         facebookMetrics,
+        tiktokMetrics,
         isLoading,
     } = useAgencyData()
 
@@ -105,6 +106,16 @@ function AgencyMetricsContent() {
             value: strategicSignals.length,
             icon: Sparkles,
             color: "bg-violet-500/20 text-violet-400",
+        },
+        {
+            id: "social_reach",
+            label: "Omni-Channel Reach",
+            value: ((linkedinMetrics?.followers || 0) +
+                (instagramMetrics?.reach || 0) +
+                (facebookMetrics?.reach || 0) +
+                (tiktokMetrics?.totalViews || 0)).toLocaleString(),
+            icon: Zap,
+            color: "bg-emerald-500/20 text-emerald-400",
         },
         {
             id: "linkedin_followers",
@@ -183,28 +194,29 @@ function AgencyMetricsContent() {
             icon: Video,
             color: "bg-rose-500/20 text-rose-400",
         },
-        // --- TIKTOK STUBS ---
+        // --- TIKTOK LIVE ---
         {
             id: "tiktok_followers",
             label: "TikTok Followers",
-            value: "---",
+            value: tiktokMetrics?.followerCount?.toLocaleString() || "0",
             icon: Music,
             color: "bg-pink-500/20 text-pink-400",
         },
         {
             id: "tiktok_views",
             label: "TikTok Views",
-            value: "---",
+            value: (tiktokMetrics?.totalViews || 0) > 1000 ? (tiktokMetrics.totalViews / 1000).toFixed(1) + "k" : tiktokMetrics?.totalViews?.toLocaleString() || "0",
             icon: Play,
             color: "bg-pink-600/20 text-pink-500",
         },
         {
             id: "tiktok_likes",
             label: "TikTok Likes",
-            value: "---",
-            icon: ThumbsUp,
+            value: tiktokMetrics?.videoLikes?.toLocaleString() || "0",
+            icon: Heart,
             color: "bg-rose-600/20 text-rose-500",
         },
+
         // --- FACEBOOK PAGE LIVE ---
         {
             id: "facebook_page_likes",

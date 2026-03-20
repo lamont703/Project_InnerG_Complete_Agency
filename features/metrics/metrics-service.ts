@@ -17,8 +17,12 @@ import {
     Video,
     UserSquare2,
     ExternalLink,
-    CheckCircle2
+    CheckCircle2,
+    Music,
+    Heart
 } from "lucide-react"
+
+
 import { Metric, RawMetricRecord } from "./types"
 import { getIcon } from "./utils/icon-map"
 
@@ -186,8 +190,27 @@ export class MetricsService {
         const igProfileViews = (snapshotData as any)?.metrics_payload?.instagram_profile_views || 0;
         const igWebsiteClicks = (snapshotData as any)?.metrics_payload?.instagram_website_clicks || 0;
 
+        // 6. TikTok Stats
+        const { data: ttAccData } = await this.supabase
+            .from("tiktok_accounts")
+            .select("follower_count, heart_count, video_count")
+            .eq("project_id", projectId)
+            .limit(1) as any
+        
+        const ttAcc = ttAccData?.[0] || { follower_count: 0, heart_count: 0, video_count: 0 }
+
+        const { data: ttVideoData } = await this.supabase
+            .from("tiktok_videos")
+            .select("view_count, like_count, comment_count, share_count")
+            .eq("project_id", projectId) as any
+        
+        const ttVideos = ttVideoData || []
+        const ttViews = ttVideos.reduce((sum: number, v: any) => sum + (v.view_count || 0), 0)
+        const ttLikes = ttVideos.reduce((sum: number, v: any) => sum + (v.like_count || 0), 0)
+
         const latest = snapshots[0]
         const previous = snapshots[1] || latest
+
 
         const metrics: Metric[] = [
             {
@@ -217,11 +240,12 @@ export class MetricsService {
             {
                 id: "social_reach",
                 label: "Total Social Reach",
-                value: (latest.social_reach_total / 1000).toFixed(1) + "k",
-                growth: this.calcGrowth(latest.social_reach_total, previous.social_reach_total),
-                icon: Instagram,
-                color: "text-pink-500 bg-pink-500/10",
+                value: ((latest.social_reach_total + ttViews) / 1000).toFixed(1) + "k",
+                growth: this.calcGrowth(latest.social_reach_total + ttViews, previous.social_reach_total + ttViews),
+                icon: Zap,
+                color: "text-emerald-500 bg-emerald-500/10",
             },
+
             {
                 id: "youtube_subscribers",
                 label: "YT Subscribers",
@@ -375,6 +399,32 @@ export class MetricsService {
                 color: "text-emerald-500 bg-emerald-500/10",
             },
             {
+                id: "tiktok_followers",
+                label: "TikTok Followers",
+                value: ttAcc.follower_count.toLocaleString(),
+                growth: "+0%",
+                icon: Music,
+                color: "text-pink-400 bg-pink-400/10",
+            },
+            {
+                id: "tiktok_views",
+                label: "TikTok Views",
+                value: (ttViews / 1000).toFixed(1) + "k",
+                growth: "+0%",
+                icon: Play,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "tiktok_likes",
+                label: "TikTok Likes",
+                value: ttLikes.toLocaleString(),
+                growth: "+0%",
+                icon: Heart,
+                color: "text-rose-500 bg-rose-500/10",
+            },
+
+
+            {
                 id: "freelancer_registrations",
                 label: "Freelancer Freedom",
                 value: "...", // Will be updated by live query below
@@ -470,11 +520,14 @@ export class MetricsService {
 
     async getProjectLevelMetrics(projectId: string): Promise<Metric[]> {
         // Fetch Platform Stats
-        const [ytData, liPageData, liPostAgg] = await Promise.all([
+        const [ytData, liPageData, liPostAgg, ttAccData, ttVideoData] = await Promise.all([
             this.supabase.from("youtube_channels").select("subscriber_count, view_count, video_count").eq("project_id", projectId).limit(1),
             this.supabase.from("linkedin_pages").select("follower_count, total_views, engagement_rate, total_clicks").eq("project_id", projectId).limit(1),
-            this.supabase.from("linkedin_posts").select("like_count, comment_count, share_count, view_count").eq("project_id", projectId)
+            this.supabase.from("linkedin_posts").select("like_count, comment_count, share_count, view_count").eq("project_id", projectId),
+            this.supabase.from("tiktok_accounts").select("follower_count, heart_count, video_count").eq("project_id", projectId).limit(1),
+            this.supabase.from("tiktok_videos").select("view_count, like_count, comment_count, share_count").eq("project_id", projectId)
         ]) as any
+
 
         const ytStats = ytData?.data?.[0] || { subscriber_count: 0, view_count: 0, video_count: 0 }
         const liPage = liPageData?.data?.[0] || { follower_count: 0, total_views: 0, engagement_rate: 0, total_clicks: 0 }
@@ -484,6 +537,12 @@ export class MetricsService {
         const liComments = liPosts.reduce((sum: number, p: any) => sum + (p.comment_count || 0), 0)
         const liShares = liPosts.reduce((sum: number, p: any) => sum + (p.share_count || 0), 0)
         const liPostViews = liPosts.reduce((sum: number, p: any) => sum + (p.view_count || 0), 0)
+
+        const ttAcc = ttAccData?.data?.[0] || { follower_count: 0, heart_count: 0, video_count: 0 }
+        const ttVideos = ttVideoData?.data || []
+        const ttViews = ttVideos.reduce((sum: number, v: any) => sum + (v.view_count || 0), 0)
+        const ttLikes = ttVideos.reduce((sum: number, v: any) => sum + (v.like_count || 0), 0)
+
 
         // 4. Instagram Stats
         const [igAccData, igMediaData, snapshotData] = await Promise.all([
@@ -506,6 +565,15 @@ export class MetricsService {
         const igWebsiteClicks = (snapshotData as any)?.data?.metrics_payload?.instagram_website_clicks || 0;
 
         const metrics: Metric[] = [
+            {
+                id: "social_reach",
+                label: "Omni-Channel Reach",
+                value: ((liPage.total_views + igReachTotal + ttViews) / 1000).toFixed(1) + "k",
+                growth: "+0%",
+                icon: Zap,
+                color: "text-emerald-500 bg-emerald-500/10",
+            },
+
             {
                 id: "youtube_subscribers",
                 label: "YT Subscribers",
@@ -657,8 +725,33 @@ export class MetricsService {
                 growth: "100%",
                 icon: CheckCircle2,
                 color: "text-emerald-500 bg-emerald-500/10",
+            },
+            {
+                id: "tiktok_followers",
+                label: "TikTok Followers",
+                value: ttAcc.follower_count.toLocaleString(),
+                growth: "+0%",
+                icon: Music,
+                color: "text-pink-400 bg-pink-400/10",
+            },
+            {
+                id: "tiktok_views",
+                label: "TikTok Views",
+                value: (ttViews / 1000).toFixed(1) + "k",
+                growth: "+0%",
+                icon: Play,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "tiktok_likes",
+                label: "TikTok Likes",
+                value: ttLikes.toLocaleString(),
+                growth: "+0%",
+                icon: Heart,
+                color: "text-rose-500 bg-rose-500/10",
             }
         ]
+
 
         // --- KANE'S BOOKSTORE SPECIFIC DATA ---
         const { data: project } = await this.supabase
@@ -754,12 +847,13 @@ export const DEMO_MOCK_METRICS: Metric[] = [
     },
     {
         id: "social_reach",
-        label: "Total Social Reach",
+        label: "Omni-Channel Reach",
         value: "82.4k",
         growth: "+115%",
-        icon: Instagram,
-        color: "text-pink-500 bg-pink-500/10",
+        icon: Zap,
+        color: "text-emerald-500 bg-emerald-500/10",
     },
+
     {
         id: "youtube_subscribers",
         label: "YT Subscribers",
@@ -800,6 +894,31 @@ export const DEMO_MOCK_METRICS: Metric[] = [
         icon: BarChart3,
         color: "text-[#0077b5] bg-[#0077b5]/10",
     },
+    {
+        id: "tiktok_followers",
+        label: "TikTok Followers",
+        value: "2,420",
+        growth: "+15.2%",
+        icon: Music,
+        color: "text-pink-400 bg-pink-400/10",
+    },
+    {
+        id: "tiktok_views",
+        label: "TikTok Views",
+        value: "45.1k",
+        growth: "+22%",
+        icon: Play,
+        color: "text-pink-500 bg-pink-500/10",
+    },
+    {
+        id: "tiktok_likes",
+        label: "TikTok Likes",
+        value: "12.8k",
+        growth: "+12.5%",
+        icon: ThumbsUp,
+        color: "text-rose-500 bg-rose-500/10",
+    },
+
     {
         id: "linkedin_engagement",
         label: "LinkedIn Engagement",
@@ -864,4 +983,29 @@ export const DEMO_MOCK_METRICS: Metric[] = [
         icon: BarChart3,
         color: "text-pink-500 bg-pink-500/10",
     },
+    {
+        id: "tiktok_followers",
+        label: "TikTok Followers",
+        value: "2,420",
+        growth: "+15.2%",
+        icon: Music,
+        color: "text-pink-400 bg-pink-400/10",
+    },
+    {
+        id: "tiktok_views",
+        label: "TikTok Views",
+        value: "45.1k",
+        growth: "+22%",
+        icon: Play,
+        color: "text-pink-500 bg-pink-500/10",
+    },
+    {
+        id: "tiktok_likes",
+        label: "TikTok Likes",
+        value: "12.8k",
+        growth: "+12.5%",
+        icon: ThumbsUp,
+        color: "text-rose-500 bg-rose-500/10",
+    },
 ]
+

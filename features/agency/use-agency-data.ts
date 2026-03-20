@@ -21,6 +21,8 @@ export function useAgencyData() {
     const [youtubeMetrics, setYoutubeMetrics] = useState<any>(null)
     const [instagramMetrics, setInstagramMetrics] = useState<any>(null)
     const [facebookMetrics, setFacebookMetrics] = useState<any>(null)
+    const [tiktokMetrics, setTiktokMetrics] = useState<any>(null)
+
 
     const [isLoading, setIsLoading] = useState(true)
     const [isSyncing, setIsSyncing] = useState(false)
@@ -48,14 +50,16 @@ export function useAgencyData() {
             setUserData(profile)
 
             // Parallel fetch for performance
-            const [projData, signalData, liMetrics, ytMetrics, igMetrics, fbMetrics] = await Promise.all([
+            const [projData, signalData, liMetrics, ytMetrics, igMetrics, fbMetrics, ttMetrics] = await Promise.all([
                 service.getActiveProjects(),
                 service.getAllAgencySignals(),
                 service.getLinkedInMetrics(),
                 service.getYouTubeMetrics(),
                 service.getInstagramMetrics(),
-                service.getFacebookMetrics()
+                service.getFacebookMetrics(),
+                service.getTikTokMetrics()
             ])
+
 
             setProjects(projData)
             setStrategicSignals(signalData.strategic)
@@ -64,6 +68,8 @@ export function useAgencyData() {
             setYoutubeMetrics(ytMetrics)
             setInstagramMetrics(igMetrics)
             setFacebookMetrics(fbMetrics)
+            setTiktokMetrics(ttMetrics)
+
 
             const draftData = await service.getSocialDrafts()
             setSocialDrafts(draftData)
@@ -285,6 +291,8 @@ export function useAgencyData() {
         youtubeMetrics,
         instagramMetrics,
         facebookMetrics,
+        tiktokMetrics,
+
         isLoading,
         isSyncing,
         resolvingId,
