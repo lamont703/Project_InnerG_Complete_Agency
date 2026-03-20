@@ -38,6 +38,14 @@ export function SignalCard({
     const [isDeleting, setIsDeleting] = useState(false)
     const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
 
+    const isSocial = signal.signalType === 'social'
+    const platform = signal.metadata?.platform?.toLowerCase()
+    const Icon = (isSocial && platform === 'linkedin') ? Linkedin : (isSocial && platform === 'youtube') ? Youtube : (TYPE_ICONS[signal.signalType] || Zap)
+
+    const isAgencyInsight = signal.isAgencyOnly || isAgencyMode
+    const socialPlanId = signal.metadata?.social_plan_id
+    const isLongBody = signal.body.length > 120
+
     const togglePlatform = (p: string) => {
         const pLower = p.toLowerCase()
         const defaultPlatform = platform?.toLowerCase()
@@ -53,14 +61,6 @@ export function SignalCard({
     }
 
     const currentSelected = selectedPlatforms.length > 0 ? selectedPlatforms : (platform ? [platform.toLowerCase()] : [])
-
-    const isSocial = signal.signalType === 'social'
-    const platform = signal.metadata?.platform?.toLowerCase()
-    const Icon = (isSocial && platform === 'linkedin') ? Linkedin : (isSocial && platform === 'youtube') ? Youtube : (TYPE_ICONS[signal.signalType] || Zap)
-
-    const isAgencyInsight = signal.isAgencyOnly || isAgencyMode
-    const socialPlanId = signal.metadata?.social_plan_id
-    const isLongBody = signal.body.length > 120
 
     const handleDiscuss = (e: React.MouseEvent) => {
         e.stopPropagation()
