@@ -213,7 +213,7 @@ export class LinkedInClient {
                     shareCommentary: {
                         text: text.slice(0, 3000)
                     },
-                    shareMediaCategory: mediaAsset ? "IMAGE" : "NONE"
+                    shareMediaCategory: mediaAsset ? (mediaAsset.includes("video") ? "VIDEO" : "IMAGE") : "NONE"
                 }
             },
             visibility: {
@@ -282,6 +282,69 @@ export class LinkedInClient {
             const error = await uploadRes.text();
             throw new Error(`LinkedIn Binary Upload Failed: ${error}`);
         }
+
+        return assetUrn;
+    }
+
+    /**
+     * Upload a video to LinkedIn and return the asset URN
+     */
+    async uploadVideo(authorUrn: string, videoBuffer: Uint8Array, mimeType: string): Promise<string> {
+        const urn = authorUrn.startsWith('urn:li:') ? authorUrn : `urn:li:organization:${authorUrn}`;
+
+        // 1. Register Video Upload
+        const registerData = await this.request<any>("/assets?action=registerUpload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                registerUploadRequest: {
+                    recipes: ["urn:li:digitalmediaRecipe:feedshare-video"],
+                    owner: urn,
+                    serviceRelationships: [
+                        {
+                            relationshipType: "OWNER",
+                            identifier: "urn:li:userGeneratedContent"
+                        }
+                    ]
+                }
+            })
+        });
+
+        const uploadUrl = registerData.value.uploadMechanism["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"].uploadUrl;
+        const assetUrn = registerData.value.asset;
+
+        // 2. Binary Upload
+        const uploadRes = await fetch(uploadUrl, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${this.accessToken}`,
+                "Content-Type": mimeType
+            },
+            body: new Blob([videoBuffer], { type: mimeType })
+        });
+
+        if (!uploadRes.ok) {
+            const error = await uploadRes.text();
+            throw new Error(`LinkedIn Video Binary Upload Failed: ${error}`);
+        }
+
+        // 3. Poll for "READY" status
+        let isReady = false;
+        let attempts = 0;
+        const maxAttempts = 20; 
+
+        while (!isReady && attempts < maxAttempts) {
+            await new Promise(r => setTimeout(r, 5000));
+            attempts++;
+            
+            const assetData = await this.request<any>(`/assets/${assetUrn.split(':').pop()}`);
+            if (assetData.recipes?.[0]?.status === "AVAILABLE") {
+                isReady = true;
+            }
+            console.log(`[LinkedInClient] Video processing status: ${assetData.recipes?.[0]?.status || "PROCESSING"}`);
+        }
+
+        if (!isReady) throw new Error("LinkedIn video processing timed out.");
 
         return assetUrn;
     }

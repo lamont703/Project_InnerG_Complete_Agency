@@ -7,11 +7,13 @@
  * for projects they have access to.
  */
 
-import { createHandler, z, Logger, okResponse, Repo } from "../_shared/lib/index.ts"
+import { createHandler, z, Logger, okResponse } from "../_shared/lib/index.ts"
 import { LinkedInClient } from "../connector-sync/providers/linkedin/client.ts"
+import { MetaClient } from "../connector-sync/providers/meta/client.ts"
 
 const PublishSchema = z.object({
-    draft_id: z.string().uuid()
+    draft_id: z.string().uuid(),
+    platforms: z.array(z.string()).optional()
 })
 
 export default createHandler(async ({ adminClient, body, user }) => {
@@ -27,7 +29,7 @@ export default createHandler(async ({ adminClient, body, user }) => {
         .single()
 
     if (fetchError || !draft) throw new Error(`Draft not found.`)
-    if (draft.status === "published") throw new Error("This draft has already been published.")
+    if (draft.status === "published" && !body.platforms) throw new Error("This draft has already been published.")
 
     // Perms Check
     if (user.role === 'client') {
@@ -46,81 +48,119 @@ export default createHandler(async ({ adminClient, body, user }) => {
         throw new Error(`FORBIDDEN: Role ${user.role} is not permitted to publish.`)
     }
 
-    // 2. Resolve credentials for the target platform
-    const { data: connection, error: connError } = await adminClient
-        .from("client_db_connections")
-        .select("sync_config")
-        .eq("project_id", draft.project_id)
-        .eq("db_type", draft.platform)
-        .single()
+    // 2. Resolve targeted platforms
+    const targetPlatforms: string[] = (body.platforms || [draft.platform]).map((p: string) => p.toLowerCase())
+    logger.info(`Orchestrating publish to ${targetPlatforms.join(', ')}`, { projectId: draft.project_id })
 
-    if (connError || !connection) throw new Error(`No active ${draft.platform} connection found for this project.`)
+    const results: Record<string, { success: boolean; error?: string; post_id?: string }> = {}
+    let lastExternalPostId = ""
 
-    const config = connection.sync_config as any
-    let externalPostId = ""
+    // 3. For each platform, fetch connection and publish
+    for (const platform of targetPlatforms) {
+        try {
+            const { data: connection, error: connError } = await adminClient
+                .from("client_db_connections")
+                .select("sync_config")
+                .eq("project_id", draft.project_id)
+                .eq("db_type", platform.toLowerCase())
+                .single()
 
-    // 3. Dispatch to platform
-    logger.info(`Orchestrating publish to ${draft.platform}`, { projectId: draft.project_id })
-    
-    if (draft.platform === "linkedin") {
-        const client = new LinkedInClient(config.access_token)
-        let authorUrn = ""
-        
-        if (config.page_id) {
-            authorUrn = config.page_id.startsWith('urn:li:') ? config.page_id : `urn:li:organization:${config.page_id}`
-        } else if (config.person_id) {
-            authorUrn = config.person_id.startsWith('urn:li:') ? config.person_id : `urn:li:person:${config.person_id}`
-        }
-        
-        if (!authorUrn) throw new Error("LinkedIn connection is missing author ID (page_id or person_id)")
-
-        let mediaAsset = undefined
-
-        // If draft has an image, upload it to LinkedIn first
-        if (draft.media_url) {
-            logger.info("Draft has media_url, uploading to LinkedIn...", { media_url: draft.media_url })
-            try {
-                const imgRes = await fetch(draft.media_url)
-                if (!imgRes.ok) throw new Error(`Failed to fetch media from Supabase: ${imgRes.statusText}`)
-                
-                const blob = await imgRes.blob()
-                const buffer = new Uint8Array(await blob.arrayBuffer())
-                
-                mediaAsset = await client.uploadImage(authorUrn, buffer, blob.type)
-                logger.info("Media uploaded to LinkedIn", { assetUrn: mediaAsset })
-            } catch (error: any) {
-                logger.error("Failed to upload image to LinkedIn", { error: error.message })
-                throw new Error(`Media upload failed: ${error.message}`)
+            if (connError || !connection) {
+                results[platform] = { success: false, error: "No active connection found" }
+                continue
             }
+
+            const config = connection.sync_config as any
+            const pLower = platform.toLowerCase()
+
+            if (pLower === "linkedin") {
+                const client = new LinkedInClient(config.access_token)
+                let authorUrn = ""
+                
+                if (config.page_id) {
+                    authorUrn = config.page_id.startsWith('urn:li:') ? config.page_id : `urn:li:organization:${config.page_id}`
+                } else if (config.person_id) {
+                    authorUrn = config.person_id.startsWith('urn:li:') ? config.person_id : `urn:li:person:${config.person_id}`
+                }
+                
+                if (!authorUrn) throw new Error("LinkedIn connection is missing author ID")
+
+                let mediaAsset = undefined
+                if (draft.media_url) {
+                    const isVideo = draft.media_url.includes(".mp4") || draft.media_url.includes(".mov")
+                    const mediaRes = await fetch(draft.media_url)
+                    if (mediaRes.ok) {
+                        const blob = await mediaRes.blob()
+                        const buffer = new Uint8Array(await blob.arrayBuffer())
+                        if (isVideo) {
+                            mediaAsset = await client.uploadVideo(authorUrn, buffer, blob.type || "video/mp4")
+                        } else {
+                            mediaAsset = await client.uploadImage(authorUrn, buffer, blob.type || "image/png")
+                        }
+                    }
+                }
+                
+                const postResult = await client.createPost(authorUrn, draft.content_text, mediaAsset)
+                results[platform] = { success: true, post_id: postResult.id }
+                lastExternalPostId = postResult.id
+            } 
+            else if (pLower === "instagram") {
+                if (!draft.media_url) {
+                    throw new Error("Instagram requires an image or video for posting.")
+                }
+                
+                const igUserId = config.instagram_business_account_id || config.page_id
+                if (!igUserId) throw new Error("Missing IG Business Account ID")
+                
+                const metaClient = new MetaClient(config.access_token)
+                const isVideo = draft.media_url.includes(".mp4") || draft.media_url.includes(".mov")
+
+                let postResult
+                if (isVideo) {
+                    postResult = await metaClient.createInstagramVideoPost(igUserId, draft.content_text, draft.media_url)
+                } else {
+                    postResult = await metaClient.createInstagramPost(igUserId, draft.content_text, draft.media_url)
+                }
+                
+                results[platform] = { success: true, post_id: postResult.id }
+                lastExternalPostId = postResult.id
+            }
+            else {
+                results[platform] = { success: false, error: "Platform not supported yet" }
+            }
+        } catch (error: any) {
+            logger.error(`Failed to publish to ${platform}`, { error: error.message })
+            results[platform] = { success: false, error: error.message }
         }
-        
-        const result = await client.createPost(authorUrn, draft.content_text, mediaAsset)
-        externalPostId = result.id
-    } else if (draft.platform === "tiktok") {
-        throw new Error("TikTok text-based posting not yet implemented in client.")
-    } else {
-        throw new Error(`Platform ${draft.platform} not supported for automated publishing yet.`)
     }
 
-    // 4. Update draft status
-    const { error: updateError } = await adminClient
-        .from("social_content_plan")
-        .update({
-            status: "published",
-            published_at: new Date().toISOString(),
-            external_post_id: externalPostId
-        })
-        .eq("id", draft.id)
+    // 4. Determine final status
+    const allSucceeded = targetPlatforms.every((p: string) => results[p]?.success)
+    const someSucceeded = targetPlatforms.length > 0 && targetPlatforms.some((p: string) => results[p]?.success)
 
-    if (updateError) throw updateError
+    if (someSucceeded) {
+        // Update draft status
+        const { error: updateError } = await adminClient
+            .from("social_content_plan")
+            .update({
+                status: allSucceeded ? "published" : "draft",
+                published_at: new Date().toISOString(),
+                external_post_id: lastExternalPostId,
+                error_log: allSucceeded ? null : JSON.stringify(results)
+            })
+            .eq("id", draft.id)
+
+        if (updateError) throw updateError
+    }
 
     return okResponse({ 
-        success: true, 
-        message: `Successfully published to ${draft.platform}`,
-        post_id: externalPostId 
+        success: someSucceeded, 
+        message: someSucceeded ? `Published to ${Object.keys(results).filter((p: string) => results[p].success).join(', ')}` : "Failed to publish to any platform",
+        results
     })
 }, {
     schema: PublishSchema,
     requireAuth: true,
     requiredEnv: ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]
 })
+

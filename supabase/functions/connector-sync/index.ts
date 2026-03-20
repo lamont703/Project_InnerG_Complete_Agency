@@ -10,15 +10,26 @@ const SyncRequestSchema = z.object({
  * connector-sync
  * Optimized for production-hardened modular architecture.
  */
-export default createHandler(async ({ adminClient, body, user }) => {
+export default createHandler(async ({ adminClient, body, user, req }) => {
     const logger = new Logger("connector-sync")
-    
-    // 1. Data Isolation Check
-    if (!user) {
+    logger.info("Received sync request", { connection_id: body.connection_id })
+
+    // 1. Authorization check
+    const authHeader = req.headers.get("Authorization")
+    const envServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    const isServiceRole = authHeader && envServiceKey && authHeader.includes(envServiceKey)
+
+    logger.info("Auth Check", { 
+        hasUser: !!user, 
+        hasAuthHeader: !!authHeader, 
+        isServiceRole 
+    })
+
+    if (!user && !isServiceRole) {
         throw new Error("UNAUTHORIZED: Authentication required to trigger sync.")
     }
 
-    if (user.role === 'client') {
+    if (user && user.role === 'client') {
         const { data: conn, error: connErr } = await adminClient
             .from('client_db_connections')
             .select('project_id')
@@ -42,9 +53,6 @@ export default createHandler(async ({ adminClient, body, user }) => {
             logger.warn("Unauthorized sync attempt", { userId: user.id, connectionId: body.connection_id, projectId: conn.project_id })
             throw new Error("UNAUTHORIZED: You do not have permission to sync this connection.")
         }
-    } else if (user.role !== 'super_admin' && user.role !== 'developer') {
-        // Fallback for other roles if they somehow call this
-        throw new Error(`FORBIDDEN: Role ${user.role} is not permitted to trigger sync.`)
     }
 
     // 2. Orchestrate Sync
@@ -57,7 +65,6 @@ export default createHandler(async ({ adminClient, body, user }) => {
         Deno.env.get("GOOGLE_CLIENT_SECRET") ?? ""
     )
 
-    logger.info("Received authorized sync request", { connection_id: body.connection_id, userId: user.id })
     const result = await service.sync(body.connection_id)
 
     return okResponse({
@@ -66,7 +73,7 @@ export default createHandler(async ({ adminClient, body, user }) => {
     })
 }, {
     schema: SyncRequestSchema,
-    requireAuth: true,
+    requireAuth: false,
     requiredEnv: [
         "SUPABASE_URL", 
         "SUPABASE_SERVICE_ROLE_KEY", 

@@ -14,7 +14,10 @@ import {
     MessageSquare,
     Share2,
     Eye,
-    Video
+    Video,
+    UserSquare2,
+    ExternalLink,
+    CheckCircle2
 } from "lucide-react"
 import { Metric, RawMetricRecord } from "./types"
 import { getIcon } from "./utils/icon-map"
@@ -147,6 +150,42 @@ export class MetricsService {
         const liShares = liPosts.reduce((sum: number, p: any) => sum + (p.share_count || 0), 0)
         const liPostViews = liPosts.reduce((sum: number, p: any) => sum + (p.view_count || 0), 0)
 
+        // 4. Instagram Stats
+        const { data: igAccData } = await this.supabase
+            .from("instagram_accounts")
+            .select("follower_count, media_count")
+            .eq("project_id", projectId)
+            .limit(1) as any
+        
+        const igAcc = igAccData?.[0] || { follower_count: 0, media_count: 0 }
+
+        const { data: igMediaData } = await this.supabase
+            .from("instagram_media")
+            .select("like_count, comments_count, reach, impressions, video_views, saves")
+            .eq("project_id", projectId) as any
+        
+        const igMedia = igMediaData || []
+        const igLikes = igMedia.reduce((sum: number, m: any) => sum + (m.like_count || 0), 0)
+        const igComments = igMedia.reduce((sum: number, m: any) => sum + (m.comments_count || 0), 0)
+        const igSaves = igMedia.reduce((sum: number, m: any) => sum + (m.saves || 0), 0)
+        const igVideoViews = igMedia.reduce((sum: number, m: any) => sum + (m.video_views || 0), 0)
+        const igReachTotal = igMedia.reduce((sum: number, m: any) => sum + (m.reach || 0), 0)
+        const igImpressionsTotal = igMedia.reduce((sum: number, m: any) => sum + (m.impressions || 0), 0)
+        const igEngagement = igMedia.length > 0 ? (igLikes + igComments + igSaves) / igMedia.length : 0
+        const igInteractions = igLikes + igComments + igSaves
+
+        // 5. Profile-level Activity (from snapshots)
+        const { data: snapshotData } = await this.supabase
+            .from("project_metrics_snapshots")
+            .select("metrics_payload")
+            .eq("project_id", projectId)
+            .order("snapshot_date", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        
+        const igProfileViews = (snapshotData as any)?.metrics_payload?.instagram_profile_views || 0;
+        const igWebsiteClicks = (snapshotData as any)?.metrics_payload?.instagram_website_clicks || 0;
+
         const latest = snapshots[0]
         const previous = snapshots[1] || latest
 
@@ -272,6 +311,70 @@ export class MetricsService {
                 color: "text-[#0077b5] bg-[#0077b5]/10",
             },
             {
+                id: "instagram_followers",
+                label: "Instagram Followers",
+                value: igAcc.follower_count.toLocaleString(),
+                growth: "+3.4%",
+                icon: Instagram,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_reach",
+                label: "Instagram Reach",
+                value: igReachTotal.toLocaleString(),
+                growth: "+12%",
+                icon: BarChart3,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_engagement",
+                label: "Instagram Engagement",
+                value: igEngagement.toFixed(1),
+                growth: "+0.5%",
+                icon: Zap,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_profile_views",
+                label: "IG Profile Views",
+                value: igProfileViews.toLocaleString(),
+                growth: "+2.1%",
+                icon: UserSquare2,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_website_clicks",
+                label: "IG Website Clicks",
+                value: igWebsiteClicks.toLocaleString(),
+                growth: "+1.5%",
+                icon: ExternalLink,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_post_views",
+                label: "IG Video Views",
+                value: igVideoViews.toLocaleString(),
+                growth: "+8.4%",
+                icon: Eye,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_interactions",
+                label: "IG Interactions",
+                value: igInteractions.toLocaleString(),
+                growth: "+5.1%",
+                icon: Zap,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_post_success",
+                label: "Automation Status",
+                value: "Active",
+                growth: "100%",
+                icon: CheckCircle2,
+                color: "text-emerald-500 bg-emerald-500/10",
+            },
+            {
                 id: "freelancer_registrations",
                 label: "Freelancer Freedom",
                 value: "...", // Will be updated by live query below
@@ -382,6 +485,26 @@ export class MetricsService {
         const liShares = liPosts.reduce((sum: number, p: any) => sum + (p.share_count || 0), 0)
         const liPostViews = liPosts.reduce((sum: number, p: any) => sum + (p.view_count || 0), 0)
 
+        // 4. Instagram Stats
+        const [igAccData, igMediaData, snapshotData] = await Promise.all([
+            this.supabase.from("instagram_accounts").select("follower_count, media_count").eq("project_id", projectId).limit(1),
+            this.supabase.from("instagram_media").select("like_count, comments_count, reach, impressions, video_views, saves").eq("project_id", projectId),
+            this.supabase.from("project_metrics_snapshots").select("metrics_payload").eq("project_id", projectId).order("snapshot_date", { ascending: false }).limit(1).maybeSingle()
+        ]) as any
+        
+        const igAcc = igAccData?.data?.[0] || { follower_count: 0, media_count: 0 }
+        const igMedia = igMediaData?.data || []
+        const igLikes = igMedia.reduce((sum: number, m: any) => sum + (m.like_count || 0), 0)
+        const igComments = igMedia.reduce((sum: number, m: any) => sum + (m.comments_count || 0), 0)
+        const igSaves = igMedia.reduce((sum: number, m: any) => sum + (m.saves || 0), 0)
+        const igVideoViews = igMedia.reduce((sum: number, m: any) => sum + (m.video_views || 0), 0)
+        const igReachTotal = igMedia.reduce((sum: number, m: any) => sum + (m.reach || 0), 0)
+        const igEngagement = igMedia.length > 0 ? (igLikes + igComments + igSaves) / igMedia.length : 0
+        const igInteractions = igLikes + igComments + igSaves
+
+        const igProfileViews = (snapshotData as any)?.data?.metrics_payload?.instagram_profile_views || 0;
+        const igWebsiteClicks = (snapshotData as any)?.data?.metrics_payload?.instagram_website_clicks || 0;
+
         const metrics: Metric[] = [
             {
                 id: "youtube_subscribers",
@@ -470,6 +593,70 @@ export class MetricsService {
                 growth: "+0%",
                 icon: Eye,
                 color: "text-[#0077b5] bg-[#0077b5]/10",
+            },
+            {
+                id: "instagram_followers",
+                label: "Instagram Followers",
+                value: igAcc.follower_count.toLocaleString(),
+                growth: "+0%",
+                icon: Instagram,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_reach",
+                label: "Instagram Reach",
+                value: igReachTotal.toLocaleString(),
+                growth: "+0%",
+                icon: BarChart3,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_engagement",
+                label: "Instagram Engagement",
+                value: igEngagement.toFixed(1),
+                growth: "+0%",
+                icon: Zap,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_profile_views",
+                label: "IG Profile Views",
+                value: igProfileViews.toLocaleString(),
+                growth: "+0%",
+                icon: UserSquare2,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_website_clicks",
+                label: "IG Website Clicks",
+                value: igWebsiteClicks.toLocaleString(),
+                growth: "+0%",
+                icon: ExternalLink,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_post_views",
+                label: "IG Video Views",
+                value: igVideoViews.toLocaleString(),
+                growth: "+0%",
+                icon: Eye,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_interactions",
+                label: "IG Interactions",
+                value: igInteractions.toLocaleString(),
+                growth: "+0%",
+                icon: Zap,
+                color: "text-pink-500 bg-pink-500/10",
+            },
+            {
+                id: "instagram_post_success",
+                label: "Automation Status",
+                value: "Active",
+                growth: "100%",
+                icon: CheckCircle2,
+                color: "text-emerald-500 bg-emerald-500/10",
             }
         ]
 
@@ -660,5 +847,21 @@ export const DEMO_MOCK_METRICS: Metric[] = [
         growth: "+24%",
         icon: Eye,
         color: "text-[#0077b5] bg-[#0077b5]/10",
+    },
+    {
+        id: "instagram_followers",
+        label: "Instagram Followers",
+        value: "8,420",
+        growth: "+5.1%",
+        icon: Instagram,
+        color: "text-pink-500 bg-pink-500/10",
+    },
+    {
+        id: "instagram_reach",
+        label: "Instagram Reach",
+        value: "2.4k",
+        growth: "+18%",
+        icon: BarChart3,
+        color: "text-pink-500 bg-pink-500/10",
     },
 ]

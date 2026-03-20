@@ -26,11 +26,15 @@ import {
     Save,
     Trash2,
     Edit2,
+    Instagram,
+    Facebook,
 } from "lucide-react"
 import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
 import { DashboardHeader } from "@/components/layout/dashboard/header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { MetaLoginButton } from "@/components/social/meta-login-button"
+import { TikTokLoginButton } from "@/components/social/tiktok-login-button"
 
 // PROVIDER ICONS + COLORS (Synced with Admin)
 const providerMeta: Record<string, { color: string; bgColor: string; label: string }> = {
@@ -44,6 +48,8 @@ const providerMeta: Record<string, { color: string; bgColor: string; label: stri
     notion: { color: "text-slate-200", bgColor: "bg-slate-500/10 border-slate-500/20", label: "Notion" },
     tiktok: { color: "text-pink-500", bgColor: "bg-pink-500/10 border-pink-500/20", label: "TikTok" },
     newsapi: { color: "text-amber-500", bgColor: "bg-amber-500/10 border-amber-500/20", label: "NewsAPI" },
+    instagram: { color: "text-pink-600", bgColor: "bg-pink-600/10 border-pink-600/20", label: "Instagram" },
+    facebook: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "Facebook Meta" },
 }
 
 const statusMeta: Record<string, { icon: any; color: string; label: string }> = {
@@ -479,7 +485,33 @@ export function ProjectConnectorsPage() {
                             {selectedTypeSchema && (
                                 <div className="space-y-4 mb-6 p-5 rounded-2xl bg-background/30 border border-border/50">
                                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">Protocol Configuration</p>
-                                    {Object.entries(selectedTypeSchema.properties || selectedTypeSchema).map(([key, schema]: [string, any]) => {
+                                    {selectedType?.provider === "instagram" || selectedType?.provider === "facebook" ? (
+                                        <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center px-6">
+                                                Meta uses Business Login for secure access to Pages and accounts.
+                                            </p>
+                                            <MetaLoginButton 
+                                                size="large"
+                                                projectId={projectId || undefined}
+                                                configId="1304420384838040"
+                                            />
+                                            <p className="text-[8px] text-muted-foreground italic">
+                                                You will be redirected back here after authorizing.
+                                            </p>
+                                        </div>
+                                    ) : selectedType?.provider === "tiktok" ? (
+                                        <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                            <p className="text-[10px] font-black text-pink-500 uppercase tracking-widest text-center px-6">
+                                                Connect TikTok to sync your videos and content insights.
+                                            </p>
+                                            <TikTokLoginButton 
+                                                projectId={projectId || undefined}
+                                            />
+                                            <p className="text-[8px] text-muted-foreground italic">
+                                                OAuth connection requires access to video.list and profile info.
+                                            </p>
+                                        </div>
+                                    ) : Object.entries(selectedTypeSchema.properties || selectedTypeSchema).map(([key, schema]: [string, any]) => {
                                         if (schema.type === "boolean") {
                                             return (
                                                 <div key={key} className="flex items-center gap-3">
@@ -702,10 +734,14 @@ export function ProjectConnectorsPage() {
                                                             <Youtube className={`h-5 w-5 ${meta.color}`} />
                                                         ) : provider === "linkedin" ? (
                                                             <Linkedin className={`h-5 w-5 ${meta.color}`} />
-                                                        ) : provider === "notion" ? (
-                                                            <BookOpen className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "tiktok" ? (
+                                                            <Zap className={`h-5 w-5 ${meta.color}`} />
                                                         ) : provider === "newsapi" ? (
                                                             <Newspaper className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "instagram" ? (
+                                                            <Instagram className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "facebook" ? (
+                                                            <Facebook className={`h-5 w-5 ${meta.color}`} />
                                                         ) : (
                                                             <Database className={`h-5 w-5 ${meta.color}`} />
                                                         )}

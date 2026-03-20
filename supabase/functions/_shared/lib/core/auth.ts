@@ -64,6 +64,18 @@ export async function getAuthenticatedUser(
         return { user: null, error: "Missing Authorization header." }
     }
 
+    // 1. Check for Service Role Key (System Access)
+    if (authHeader.includes(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)) {
+        return {
+            user: {
+                id: "00000000-0000-0000-0000-000000000000",
+                email: "system@innergcomplete.com",
+                role: "super_admin",
+            },
+            error: null,
+        }
+    }
+
     const userClient = createUserClient(authHeader)
     const { data: { user }, error: authError } = await userClient.auth.getUser()
 

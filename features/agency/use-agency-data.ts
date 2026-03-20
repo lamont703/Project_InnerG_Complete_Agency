@@ -19,6 +19,8 @@ export function useAgencyData() {
     const [socialDrafts, setSocialDrafts] = useState<any[]>([])
     const [linkedinMetrics, setLinkedinMetrics] = useState<any>(null)
     const [youtubeMetrics, setYoutubeMetrics] = useState<any>(null)
+    const [instagramMetrics, setInstagramMetrics] = useState<any>(null)
+    const [facebookMetrics, setFacebookMetrics] = useState<any>(null)
 
     const [isLoading, setIsLoading] = useState(true)
     const [isSyncing, setIsSyncing] = useState(false)
@@ -46,11 +48,13 @@ export function useAgencyData() {
             setUserData(profile)
 
             // Parallel fetch for performance
-            const [projData, signalData, liMetrics, ytMetrics] = await Promise.all([
+            const [projData, signalData, liMetrics, ytMetrics, igMetrics, fbMetrics] = await Promise.all([
                 service.getActiveProjects(),
                 service.getAllAgencySignals(),
                 service.getLinkedInMetrics(),
-                service.getYouTubeMetrics()
+                service.getYouTubeMetrics(),
+                service.getInstagramMetrics(),
+                service.getFacebookMetrics()
             ])
 
             setProjects(projData)
@@ -58,6 +62,8 @@ export function useAgencyData() {
             setOperationalSignals(signalData.operational)
             setLinkedinMetrics(liMetrics)
             setYoutubeMetrics(ytMetrics)
+            setInstagramMetrics(igMetrics)
+            setFacebookMetrics(fbMetrics)
 
             const draftData = await service.getSocialDrafts()
             setSocialDrafts(draftData)
@@ -133,7 +139,7 @@ export function useAgencyData() {
         }
     }
 
-    const handleResolveSignal = async (signalId: string) => {
+    const handleResolveSignal = async (signalId: string, platforms?: string[]) => {
         setResolvingId(signalId)
         try {
             // Handle mock signals (demo data) locally
@@ -149,6 +155,12 @@ export function useAgencyData() {
             // Find the signal to get its project_id
             const signal = [...strategicSignals, ...operationalSignals].find(s => s.id === signalId)
             if (!signal) throw new Error("Signal not found")
+
+            // If this is a social signal with a draft, and platforms are selected, publish instead of just resolving
+            if (signal.signal_type === 'social' && signal.metadata?.social_plan_id && platforms && platforms.length > 0) {
+                await handlePublishPost(signal.metadata.social_plan_id, platforms)
+                return
+            }
 
             await signalService.resolveSignal({
                 signalId,
@@ -166,12 +178,12 @@ export function useAgencyData() {
         }
     }
 
-    const handlePublishPost = async (draftId: string) => {
+    const handlePublishPost = async (draftId: string, platforms?: string[]) => {
         try {
             const { data: { session } } = await supabase.auth.getSession()
             if (!session) throw new Error("No active session")
 
-            await service.publishSocialPost(session.access_token, supabaseAnonKey, draftId)
+            await service.publishSocialPost(session.access_token, supabaseAnonKey, draftId, platforms)
             
             // Optimistic update
             setSocialDrafts(prev => prev.filter(d => d.id !== draftId))
@@ -195,6 +207,23 @@ export function useAgencyData() {
         } catch (err: any) {
             console.error("[useAgencyData] Image generation failed:", err)
             alert("Image generation failed: " + (err.message || "Unknown error"))
+            throw err
+        }
+    }
+
+    const handleGenerateVideo = async (draftId: string) => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) throw new Error("No active session")
+
+            const videoUrl = await service.generateSocialVideo(session.access_token, supabaseAnonKey, draftId)
+            
+            // Refresh data to show new video
+            await fetchData()
+            return videoUrl
+        } catch (err: any) {
+            console.error("[useAgencyData] Video generation failed:", err)
+            alert("Video generation failed: " + (err.message || "Unknown error"))
             throw err
         }
     }
@@ -253,6 +282,8 @@ export function useAgencyData() {
         socialDrafts,
         linkedinMetrics,
         youtubeMetrics,
+        instagramMetrics,
+        facebookMetrics,
         isLoading,
         isSyncing,
         resolvingId,
@@ -266,6 +297,7 @@ export function useAgencyData() {
         publishPost: handlePublishPost,
         deleteDraft: handleDeleteSocialDraft,
         generateImage: handleGenerateImage,
+        generateVideo: handleGenerateVideo,
         clearMedia: handleClearMedia
     }
 }

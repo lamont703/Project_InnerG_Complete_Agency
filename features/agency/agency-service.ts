@@ -185,9 +185,9 @@ export class AgencyService {
     /**
      * Invoke the publishing Edge Function for a draft
      */
-    async publishSocialPost(accessToken: string, anonKey: string, draftId: string): Promise<void> {
+    async publishSocialPost(accessToken: string, anonKey: string, draftId: string, platforms?: string[]): Promise<void> {
         const { error } = await this.supabase.functions.invoke("publish-social-post", {
-            body: { draft_id: draftId },
+            body: { draft_id: draftId, platforms },
             headers: {
                 Authorization: `Bearer ${accessToken}`,
                 apikey: anonKey
@@ -218,6 +218,26 @@ export class AgencyService {
         }
 
         return data.imageUrl
+    }
+
+    /**
+     * Generate an AI video for a social draft using Google Veo
+     */
+    async generateSocialVideo(accessToken: string, anonKey: string, draftId: string): Promise<string> {
+        const { data, error } = await this.supabase.functions.invoke("generate-social-video", {
+            body: { draft_id: draftId },
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                apikey: anonKey
+            }
+        })
+
+        if (error) {
+            const responseBody = await error.context?.json().catch(() => null)
+            throw new Error(responseBody?.error || error.message)
+        }
+
+        return data.videoUrl
     }
 
     /**
@@ -362,6 +382,104 @@ export class AgencyService {
             views: primary.view_count,
             videos: primary.video_count,
             channelTitle: primary.title
+        }
+    }
+
+    /**
+     * Fetch Instagram metrics for the agency project
+     */
+    async getInstagramMetrics(projectSlug: string = "innergcomplete"): Promise<any> {
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("id")
+            .eq("slug", projectSlug)
+            .single()
+
+        let accounts = null
+        if (project) {
+            const { data } = await this.supabase
+                .from("instagram_accounts")
+                .select("*")
+                .eq("project_id", project.id)
+            accounts = data
+        }
+
+        if (!accounts || accounts.length === 0) {
+            const { data: anyAcc } = await this.supabase
+                .from("instagram_accounts")
+                .select("*")
+                .order("last_synced_at", { ascending: false })
+                .limit(1)
+            accounts = anyAcc
+        }
+
+        if (!accounts || accounts.length === 0) return null
+
+        const primary = accounts[0]
+        
+        // Fetch Media Aggregations
+        const { data: media } = await this.supabase
+            .from("instagram_media")
+            .select("like_count, comments_count, reach, impressions")
+            .eq("project_id", primary.project_id)
+
+        const mediaStats = (media || []).reduce((acc: any, m: any) => ({
+            likes: acc.likes + (m.like_count || 0),
+            comments: acc.comments + (m.comments_count || 0),
+            reach: acc.reach + (m.reach || 0),
+            impressions: acc.impressions + (m.impressions || 0)
+        }), { likes: 0, comments: 0, reach: 0, impressions: 0 })
+
+        const mediaCount = (media || []).length
+        const engagement = mediaCount > 0 ? (mediaStats.likes + mediaStats.comments) / mediaCount : 0
+
+        return {
+            followers: primary.follower_count,
+            mediaCount: primary.media_count,
+            username: primary.username,
+            likes: mediaStats.likes,
+            comments: mediaStats.comments,
+            reach: mediaStats.reach,
+            impressions: mediaStats.impressions,
+            engagement: engagement
+        }
+    }
+
+    /**
+     * Fetch Facebook metrics for the agency project
+     */
+    async getFacebookMetrics(projectSlug: string = "innergcomplete"): Promise<any> {
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("id")
+            .eq("slug", projectSlug)
+            .single()
+
+        let pages = null
+        if (project) {
+            const { data } = await this.supabase
+                .from("facebook_pages")
+                .select("*")
+                .eq("project_id", project.id)
+            pages = data
+        }
+
+        if (!pages || pages.length === 0) {
+            const { data: anyPages } = await this.supabase
+                .from("facebook_pages")
+                .select("*")
+                .order("last_synced_at", { ascending: false })
+                .limit(1)
+            pages = anyPages
+        }
+
+        if (!pages || pages.length === 0) return null
+
+        const primary = pages[0]
+        return {
+            followers: primary.followers_count,
+            fans: primary.fan_count,
+            pageName: primary.name
         }
     }
 }

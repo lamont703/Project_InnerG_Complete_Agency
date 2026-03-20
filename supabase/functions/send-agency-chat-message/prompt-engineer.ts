@@ -125,6 +125,27 @@ You have access to the project's TikTok account metrics and video performance da
 4. Synthesize TikTok viral trends with other social data to identify cross-platform growth opportunities.
 `
 
+// ─── Instagram Intelligence Rules ─────────────────────────────
+ 
+const INSTAGRAM_INTELLIGENCE_RULES = `
+**INSTAGRAM & VISUAL ENGAGEMENT:**
+You have access to the project's Instagram Business account metrics and media performance data.
+1. Use 'get_instagram_account_stats' to track follower growth, media counts, and profile health.
+2. Use 'list_recent_instagram_media' to analyze engagement (likes, comments) on recent posts, reels, and stories.
+3. Use 'search_instagram_knowledge' for deep dives into specific content themes or campaign performance.
+4. Instagram is a highly visual platform—emphasize aesthetic consistency and interaction trends when synthesizing advice.
+`
+
+// ─── Facebook Intelligence Rules ──────────────────────────────
+ 
+const FACEBOOK_INTELLIGENCE_RULES = `
+**FACEBOOK & COMMUNITY ENGAGEMENT:**
+You have access to the project's Facebook Page metrics and engagement data.
+1. Use 'get_facebook_page_stats' to track Page likes (fan count), followers, and general reach.
+2. Use 'search_facebook_knowledge' for specific questions about the Page's history or branding.
+3. Help the user optimize their Facebook Page for community growth and professional trust.
+`
+
 // ─── Content Orchestration Rules ─────────────────────────────
 
 const CONTENT_ORCHESTRATION_RULES = `
@@ -260,6 +281,12 @@ ${NOTION_INTELLIGENCE_RULES}
 
 ## TikTok & Viral Growth
 ${TIKTOK_INTELLIGENCE_RULES}
+
+## Instagram Intelligence
+${INSTAGRAM_INTELLIGENCE_RULES}
+
+## Facebook Intelligence
+${FACEBOOK_INTELLIGENCE_RULES}
 
 ## Industry & Trending News
 ${NEWS_INTELLIGENCE_RULES}

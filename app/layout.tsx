@@ -15,7 +15,7 @@ const _jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://innergcomplete.com'),
-  title: 'Inner G Complete Agency | AI Consulting for Retail & Blockchain for SMBs',
+  title: 'Inner G Complete Agency | AI Consulting & Blockchain for SMBs',
   description:
     'Expert AI and blockchain consulting for small to medium-sized businesses. Total customized solutions for retail, payment processing, and operational efficiency.',
   keywords: ['AI consulting for retail', 'blockchain agency for SMBs', 'AI and blockchain consulting'],
@@ -71,6 +71,7 @@ export const viewport: Viewport = {
 import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { createServerClient } from "@/lib/supabase/server"
+import { FacebookSDK } from "@/components/providers/facebook-sdk"
 
 export default async function RootLayout({
   children,
@@ -105,12 +106,14 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Analytics />
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }`,
-            }}
-          />
-          {children}
+          <FacebookSDK>
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }`,
+              }}
+            />
+            {children}
+          </FacebookSDK>
           <Toaster position="top-right" richColors closeButton />
         </ThemeProvider>
       </body>

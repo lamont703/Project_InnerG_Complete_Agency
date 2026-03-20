@@ -122,6 +122,27 @@ You have access to the project's TikTok account and video performance data.
 4. Help the user optimize their TikTok presence for maximum reach and engagement.
 `
 
+// ─── Instagram Intelligence Rules ─────────────────────────────
+ 
+const INSTAGRAM_INTELLIGENCE_RULES = `
+**INSTAGRAM & VISUAL ENGAGEMENT:**
+You have access to the project's Instagram Business account and media performance data.
+1. Use 'get_instagram_account_stats' to track follower growth, media counts, and overall profile reach.
+2. Use 'list_recent_instagram_media' to analyze engagement (likes, comments) on recent posts and reels.
+3. Use 'search_instagram_knowledge' for deep dives into specific topics discussed on Instagram.
+4. Help the user optimize their Instagram presence for aesthetic consistency and interaction.
+`
+
+// ─── Facebook Intelligence Rules ──────────────────────────────
+ 
+const FACEBOOK_INTELLIGENCE_RULES = `
+**FACEBOOK & COMMUNITY ENGAGEMENT:**
+You have access to the project's Facebook Page metrics and engagement data.
+1. Use 'get_facebook_page_stats' to track Page likes (fan count), followers, and general reach.
+2. Use 'search_facebook_knowledge' for specific questions about the Page's history or branding.
+3. Help the user optimize their Facebook Page for community growth and professional trust.
+`
+
 // ─── Project Knowledge Rules ─────────────────────────────
 
 const PROJECT_KNOWLEDGE_RULES = `
@@ -219,6 +240,8 @@ export function buildSystemPrompt(params: {
     const hasLinkedin = enabledSources.some(s => s.includes("linkedin"))
     const hasNotion = enabledSources.some(s => s.includes("notion"))
     const hasTiktok = enabledSources.some(s => s.includes("tiktok"))
+    const hasInstagram = enabledSources.some(s => s.includes("instagram"))
+    const hasFacebook = enabledSources.some(s => s.includes("facebook"))
     const hasNews = enabledSources.some(s => s.includes("news"))
 
     const sourceList = enabledSources.length > 0
@@ -260,6 +283,10 @@ ${hasLinkedin ? `## LinkedIn & Professional Branding\n${LINKEDIN_INTELLIGENCE_RU
 ${hasNotion ? `## Notion & Knowledge Management\n${NOTION_INTELLIGENCE_RULES}` : ""}
 
 ${hasTiktok ? `## TikTok & Viral Growth\n${TIKTOK_INTELLIGENCE_RULES}` : ""}
+
+${hasInstagram ? `## Instagram Intelligence\n${INSTAGRAM_INTELLIGENCE_RULES}` : ""}
+
+${hasFacebook ? `## Facebook Intelligence\n${FACEBOOK_INTELLIGENCE_RULES}` : ""}
 
 ${hasNews ? `## Industry & Trending News\n${NEWS_INTELLIGENCE_RULES}` : ""}
 

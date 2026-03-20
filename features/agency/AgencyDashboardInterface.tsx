@@ -36,6 +36,7 @@ export function AgencyDashboardInterface() {
         publishPost,
         deleteDraft,
         generateImage,
+        generateVideo,
         clearMedia
     } = useAgencyData()
 
@@ -134,6 +135,7 @@ export function AgencyDashboardInterface() {
                         onPublishDraft={publishPost}
                         onDeleteDraft={deleteDraft}
                         onGenerateImage={generateImage}
+                        onGenerateVideo={generateVideo}
                         onClearMedia={clearMedia}
                         isResolving={!!resolvingId}
                         highlightId={newSignalId || newDraftId}
