@@ -12,9 +12,7 @@ async function listGeminiModels() {
     if (data.models) {
         console.log("✅ Models found:");
         data.models.forEach((m: any) => {
-            if (m.supportedGenerationMethods.includes("embedContent")) {
-                console.log(`- ${m.name} (Methods: ${m.supportedGenerationMethods.join(", ")})`);
-            }
+            console.log(`- ${m.name} (Methods: ${m.supportedGenerationMethods.join(", ")})`);
         });
     } else {
         console.error("❌ No models found or error:", data);

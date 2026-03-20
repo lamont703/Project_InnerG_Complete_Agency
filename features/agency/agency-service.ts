@@ -221,6 +221,26 @@ export class AgencyService {
     }
 
     /**
+     * Generate an AI video for a social draft using Google Veo
+     */
+    async generateSocialVideo(accessToken: string, anonKey: string, draftId: string): Promise<string> {
+        const { data, error } = await this.supabase.functions.invoke("generate-social-video", {
+            body: { draft_id: draftId },
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                apikey: anonKey
+            }
+        })
+
+        if (error) {
+            const responseBody = await error.context?.json().catch(() => null)
+            throw new Error(responseBody?.error || error.message)
+        }
+
+        return data.videoUrl
+    }
+
+    /**
      * Clear the media URL from a draft (Decline flow)
      */
     async clearDraftMedia(draftId: string): Promise<void> {

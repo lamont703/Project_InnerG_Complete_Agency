@@ -211,6 +211,23 @@ export function useAgencyData() {
         }
     }
 
+    const handleGenerateVideo = async (draftId: string) => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) throw new Error("No active session")
+
+            const videoUrl = await service.generateSocialVideo(session.access_token, supabaseAnonKey, draftId)
+            
+            // Refresh data to show new video
+            await fetchData()
+            return videoUrl
+        } catch (err: any) {
+            console.error("[useAgencyData] Video generation failed:", err)
+            alert("Video generation failed: " + (err.message || "Unknown error"))
+            throw err
+        }
+    }
+
     const handleClearMedia = async (draftId: string) => {
         try {
             await service.clearDraftMedia(draftId)
@@ -280,6 +297,7 @@ export function useAgencyData() {
         publishPost: handlePublishPost,
         deleteDraft: handleDeleteSocialDraft,
         generateImage: handleGenerateImage,
+        generateVideo: handleGenerateVideo,
         clearMedia: handleClearMedia
     }
 }

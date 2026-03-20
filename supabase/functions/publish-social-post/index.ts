@@ -87,11 +87,16 @@ export default createHandler(async ({ adminClient, body, user }) => {
 
                 let mediaAsset = undefined
                 if (draft.media_url) {
-                    const imgRes = await fetch(draft.media_url)
-                    if (imgRes.ok) {
-                        const blob = await imgRes.blob()
+                    const isVideo = draft.media_url.includes(".mp4") || draft.media_url.includes(".mov")
+                    const mediaRes = await fetch(draft.media_url)
+                    if (mediaRes.ok) {
+                        const blob = await mediaRes.blob()
                         const buffer = new Uint8Array(await blob.arrayBuffer())
-                        mediaAsset = await client.uploadImage(authorUrn, buffer, blob.type)
+                        if (isVideo) {
+                            mediaAsset = await client.uploadVideo(authorUrn, buffer, blob.type || "video/mp4")
+                        } else {
+                            mediaAsset = await client.uploadImage(authorUrn, buffer, blob.type || "image/png")
+                        }
                     }
                 }
                 
@@ -101,14 +106,21 @@ export default createHandler(async ({ adminClient, body, user }) => {
             } 
             else if (pLower === "instagram") {
                 if (!draft.media_url) {
-                    throw new Error("Instagram requires an image for posting.")
+                    throw new Error("Instagram requires an image or video for posting.")
                 }
                 
                 const igUserId = config.instagram_business_account_id || config.page_id
                 if (!igUserId) throw new Error("Missing IG Business Account ID")
                 
                 const metaClient = new MetaClient(config.access_token)
-                const postResult = await metaClient.createInstagramPost(igUserId, draft.content_text, draft.media_url)
+                const isVideo = draft.media_url.includes(".mp4") || draft.media_url.includes(".mov")
+
+                let postResult
+                if (isVideo) {
+                    postResult = await metaClient.createInstagramVideoPost(igUserId, draft.content_text, draft.media_url)
+                } else {
+                    postResult = await metaClient.createInstagramPost(igUserId, draft.content_text, draft.media_url)
+                }
                 
                 results[platform] = { success: true, post_id: postResult.id }
                 lastExternalPostId = postResult.id

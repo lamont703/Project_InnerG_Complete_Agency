@@ -8,11 +8,6 @@ export class MetaClient {
 
     constructor(private accessToken: string) {}
 
-    /**
-     * Publishes a photo post to an Instagram Business Account
-     * 1. Create a media container
-     * 2. Publish the container
-     */
     async createInstagramPost(igUserId: string, caption: string, imageUrl: string): Promise<{ id: string }> {
         // Step 1: Create Media Container
         console.log(`[MetaClient] Creating container for IG User ${igUserId}`);
@@ -50,6 +45,71 @@ export class MetaClient {
         if (!publishRes.ok) {
             const err = await publishRes.json().catch(() => ({ error: { message: publishRes.statusText } }));
             throw new Error(`IG Publish Error: ${err.error?.message || "Unknown error"}`);
+        }
+
+        return await publishRes.json();
+    }
+
+    /**
+     * Publishes a video post to an Instagram Business Account
+     */
+    async createInstagramVideoPost(igUserId: string, caption: string, videoUrl: string): Promise<{ id: string }> {
+        // Step 1: Create Video Container
+        console.log(`[MetaClient] Creating video container for IG User ${igUserId}`);
+        const containerRes = await fetch(`${this.baseUrl}/${igUserId}/media`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                media_type: "VIDEO",
+                video_url: videoUrl,
+                caption: caption,
+                access_token: this.accessToken
+            })
+        });
+
+        if (!containerRes.ok) {
+            const err = await containerRes.json().catch(() => ({ error: { message: containerRes.statusText } }));
+            throw new Error(`IG Video Container Error: ${err.error?.message || "Unknown error"}`);
+        }
+
+        const containerData = await containerRes.json();
+        const creationId = containerData.id;
+
+        // Step 2: Poll for "FINISHED" status
+        let isReady = false;
+        let attempts = 0;
+        const maxAttempts = 30; // 3 minutes max (6s * 30)
+
+        while (!isReady && attempts < maxAttempts) {
+            await new Promise(r => setTimeout(r, 6000));
+            attempts++;
+            
+            const statusRes = await fetch(`${this.baseUrl}/${creationId}?fields=status_code&access_token=${this.accessToken}`);
+            const statusData = await statusRes.json();
+            
+            if (statusData.status_code === "FINISHED") {
+                isReady = true;
+            } else if (statusData.status_code === "ERROR") {
+                throw new Error("Instagram video processing failed.");
+            }
+            console.log(`[MetaClient] Video processing status: ${statusData.status_code || "IN_PROGRESS"}`);
+        }
+
+        if (!isReady) throw new Error("Instagram video processing timed out.");
+
+        // Step 3: Publish
+        const publishRes = await fetch(`${this.baseUrl}/${igUserId}/media_publish`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                creation_id: creationId,
+                access_token: this.accessToken
+            })
+        });
+
+        if (!publishRes.ok) {
+            const err = await publishRes.json().catch(() => ({ error: { message: publishRes.statusText } }));
+            throw new Error(`IG Video Publish Error: ${err.error?.message || "Unknown error"}`);
         }
 
         return await publishRes.json();
