@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Loader2 } from "lucide-react"
 import { useFacebook } from "@/components/providers/facebook-sdk"
 
 interface MetaLoginButtonProps {
@@ -27,25 +28,28 @@ export function MetaLoginButton({
     const { status } = useFacebook()
     const appId = process.env.NEXT_PUBLIC_META_APP_ID || "929507499941848"
     
-    // Determine redirect URI dynamically based on current origin
-    const [redirectUri, setRedirectUri] = useState("https://agency.innergcomplete.com/instagram/callback")
+    // null = not yet determined (before mount). Must NOT default to production URL —
+    // on ngrok the dialog would be sent with the wrong redirect_uri and the exchange fails.
+    const [redirectUri, setRedirectUri] = useState<string | null>(null)
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const currentOrigin = window.location.origin
-            const safeOrigin = currentOrigin.replace(/\/$/, "") // Strip trailing slash
-            
-            // Only force HTTPS for non-localhost environments (e.g. production/ngrok)
-            const isLocalhost = safeOrigin.includes("localhost")
-            const finalOrigin = isLocalhost ? safeOrigin : safeOrigin.replace("http://", "https://")
+            const currentOrigin = window.location.origin.replace(/\/$/, "")
+            // Keep http:// for localhost; force https:// everywhere else
+            const finalOrigin = currentOrigin.includes("localhost")
+                ? currentOrigin
+                : currentOrigin.replace(/^http:\/\//, "https://")
             
             setRedirectUri(`${finalOrigin}/instagram/callback`)
         }
     }, [])
 
-    const oauthUrl = configId 
-        ? `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${projectId || ""}&config_id=${configId}`
-        : `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${projectId || ""}&scope=${encodeURIComponent(scopes.join(','))}`
+    // Only build the OAuth URL after redirectUri is confirmed — same reason as above.
+    const oauthUrl = redirectUri
+        ? (configId 
+            ? `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${projectId || ""}&config_id=${configId}`
+            : `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${projectId || ""}&scope=${encodeURIComponent(scopes.join(','))}`)
+        : null
 
     useEffect(() => {
         // @ts-ignore
@@ -69,6 +73,14 @@ export function MetaLoginButton({
     }
 
     if (useRedirect) {
+        if (!oauthUrl) {
+            return (
+                <div className="flex items-center justify-center gap-2 font-bold px-6 py-3 rounded-xl bg-[#1877F2] opacity-60 text-white shadow-lg shadow-blue-500/20 cursor-wait">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="text-sm">Preparing...</span>
+                </div>
+            )
+        }
         return (
             <a 
                 href={oauthUrl}

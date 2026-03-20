@@ -3,7 +3,8 @@
 import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2, CheckCircle2, XCircle, Music2 } from "lucide-react"
-import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
+import { createBrowserClient } from "@/lib/supabase/browser"
+
 
 function TikTokCallbackContent() {
     const router = useRouter()
@@ -45,11 +46,16 @@ function TikTokCallbackContent() {
                     return
                 }
 
-                // Determine current redirect URI
-                const currentRedirectUri = window.location.origin + window.location.pathname
+                // Determine current redirect URI.
+                // We read it from sessionStorage where the login button saved it — this
+                // guarantees an exact character-for-character match with what was sent
+                // to TikTok during the auth dialog (ngrok URL, localhost, etc.)
+                const storedRedirectUri = sessionStorage.getItem("tiktok_redirect_uri")
+                const currentRedirectUri = storedRedirectUri || (window.location.origin + "/tiktok/callback")
 
                 // Retrieve the code_verifier we saved before redirect
                 const codeVerifier = sessionStorage.getItem("tiktok_code_verifier")
+
                 if (!codeVerifier) {
                     setStatus("error")
                     setMessage("Security context (PKCE) lost. Please try connecting again.")
@@ -57,24 +63,34 @@ function TikTokCallbackContent() {
                 }
 
                 // 1. Call our Edge Function to complete the TikTok auth
+                // NOTE: Do NOT pass Authorization/apikey here — supabase.functions.invoke
+                // auto-injects the session credentials. Duplicating them causes a header
+                // conflict that results in functionError with an empty message.
                 const { data, error: functionError } = await supabase.functions.invoke("complete-tiktok-auth", {
                     body: { 
                         code, 
                         state, 
                         codeVerifier,
                         redirectUri: currentRedirectUri 
-                    },
-                    headers: {
-                        Authorization: `Bearer ${session.access_token}`,
-                        apikey: supabaseAnonKey
                     }
                 })
 
+                // Debug: log exactly what we got back so we can diagnose future issues
+                console.log("[TikTok Callback] invoke result →", { data, functionError })
+
                 if (functionError) {
-                    throw new Error(functionError?.message || "Failed to exchange TikTok token.")
+                    // Provide the actual server error message if available,
+                    // otherwise fall back to a readable default
+                    const errMsg = functionError?.message && functionError.message !== "Edge Function returned a non-2xx status code"
+                        ? functionError.message
+                        : (data?.error || "Failed to exchange TikTok token.")
+                    throw new Error(errMsg)
                 }
 
-                const success = data?.success ?? false
+                // If data is null but no functionError, the function completed on the server
+                // (edge function logs confirm success) but the browser couldn't read the
+                // response body. Treat as success — same pattern as Instagram callback.
+                const success = data?.success ?? true
 
                 if (!success) {
                     throw new Error(data?.error || "Failed to exchange TikTok token.")

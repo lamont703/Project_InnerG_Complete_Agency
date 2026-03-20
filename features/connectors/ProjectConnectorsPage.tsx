@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MetaLoginButton } from "@/components/social/meta-login-button"
 import { TikTokLoginButton } from "@/components/social/tiktok-login-button"
+import { InstagramLoginButton } from "@/components/social/instagram-login-button"
 
 // PROVIDER ICONS + COLORS (Synced with Admin)
 const providerMeta: Record<string, { color: string; bgColor: string; label: string }> = {
@@ -48,7 +49,7 @@ const providerMeta: Record<string, { color: string; bgColor: string; label: stri
     notion: { color: "text-slate-200", bgColor: "bg-slate-500/10 border-slate-500/20", label: "Notion" },
     tiktok: { color: "text-pink-500", bgColor: "bg-pink-500/10 border-pink-500/20", label: "TikTok" },
     newsapi: { color: "text-amber-500", bgColor: "bg-amber-500/10 border-amber-500/20", label: "NewsAPI" },
-    instagram: { color: "text-pink-600", bgColor: "bg-pink-600/10 border-pink-600/20", label: "Instagram" },
+    instagram: { color: "text-white", bgColor: "bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] border-pink-500/20", label: "Instagram" },
     facebook: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "Facebook Meta" },
 }
 
@@ -485,7 +486,7 @@ export function ProjectConnectorsPage() {
                             {selectedTypeSchema && (
                                 <div className="space-y-4 mb-6 p-5 rounded-2xl bg-background/30 border border-border/50">
                                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">Protocol Configuration</p>
-                                    {selectedType?.provider === "instagram" || selectedType?.provider === "facebook" ? (
+                                    {selectedType?.provider === "facebook" ? (
                                         <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
                                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center px-6">
                                                 Meta uses Business Login for secure access to Pages and accounts.
@@ -496,7 +497,20 @@ export function ProjectConnectorsPage() {
                                                 configId="1304420384838040"
                                             />
                                             <p className="text-[8px] text-muted-foreground italic">
-                                                You will be redirected back here after authorizing.
+                                                You will be redirected back here after authorizing via Facebook.
+                                            </p>
+                                        </div>
+                                    ) : selectedType?.provider === "instagram" ? (
+                                        <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                            <p className="text-[10px] font-black text-pink-500 uppercase tracking-widest text-center px-6">
+                                                Connect your Instagram Business account directly.
+                                            </p>
+                                            <InstagramLoginButton 
+                                                size="large"
+                                                projectId={projectId || undefined}
+                                            />
+                                            <p className="text-[8px] text-muted-foreground italic">
+                                                Authorized via the native Instagram Login flow.
                                             </p>
                                         </div>
                                     ) : selectedType?.provider === "tiktok" ? (

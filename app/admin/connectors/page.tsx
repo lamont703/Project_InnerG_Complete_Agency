@@ -36,6 +36,7 @@ import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
 import { AdminHeader } from "@/features/agency/components/AdminHeader"
 import { MetaLoginButton } from "@/components/social/meta-login-button"
 import { TikTokLoginButton } from "@/components/social/tiktok-login-button"
+import { InstagramLoginButton } from "@/components/social/instagram-login-button"
 
 // ─────────────────────────────────────────────
 // TYPES
@@ -88,7 +89,7 @@ const providerMeta: Record<string, { color: string; bgColor: string; label: stri
     notion: { color: "text-slate-200", bgColor: "bg-slate-500/10 border-slate-500/20", label: "Notion" },
     tiktok: { color: "text-pink-500", bgColor: "bg-pink-500/10 border-pink-500/20", label: "TikTok" },
     newsapi: { color: "text-amber-500", bgColor: "bg-amber-500/10 border-amber-500/20", label: "NewsAPI" },
-    instagram: { color: "text-pink-600", bgColor: "bg-pink-600/10 border-pink-600/20", label: "Instagram" },
+    instagram: { color: "text-white", bgColor: "bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] border-pink-500/20", label: "Instagram" },
     facebook: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "Facebook Meta" },
 }
 
@@ -479,7 +480,7 @@ export default function ConnectorAdminPage() {
                             </div>
 
                             {/* Dynamic Config Fields */}
-                            {selectedType?.provider === "instagram" || selectedType?.provider === "facebook" ? (
+                            {selectedType?.provider === "facebook" ? (
                                 <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
                                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center px-6">
                                         Meta uses Business Login for secure access to Pages and accounts.
@@ -490,7 +491,20 @@ export default function ConnectorAdminPage() {
                                         configId="1304420384838040"
                                     />
                                     <p className="text-[8px] text-muted-foreground italic">
-                                        You will be redirected back here after authorizing.
+                                        You will be redirected back here after authorizing via Facebook.
+                                    </p>
+                                </div>
+                            ) : selectedType?.provider === "instagram" ? (
+                                <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                    <p className="text-[10px] font-black text-pink-500 uppercase tracking-widest text-center px-6">
+                                        Connect your Instagram Business account directly.
+                                    </p>
+                                    <InstagramLoginButton 
+                                        size="large"
+                                        projectId={newProject}
+                                    />
+                                    <p className="text-[8px] text-muted-foreground italic">
+                                        Authorized via the native Instagram Login flow.
                                     </p>
                                 </div>
                             ) : selectedType?.provider === "tiktok" ? (

@@ -20,42 +20,82 @@ export interface MetaPage {
 
 export class MetaProvider {
     private baseUrl = "https://graph.facebook.com/v19.0"
+    private igApiUrl = "https://api.instagram.com"
+    private igGraphUrl = "https://graph.instagram.com"
 
     /**
-     * Exchanges auth code for a short-lived user access token
+     * Exchanges auth code for a short-lived user access token.
+     *
+     * Facebook Login flow  → GET https://graph.facebook.com/v19.0/oauth/access_token
+     * Instagram Login for Business → POST https://api.instagram.com/oauth/access_token
+     *   (application/x-www-form-urlencoded body, NOT query params)
      */
-    async exchangeCodeForToken(code: string, redirectUri: string): Promise<MetaTokenResponse> {
-        const appId = getEnv("META_APP_ID")
-        const appSecret = getEnv("META_APP_SECRET")
+    async exchangeCodeForToken(code: string, redirectUri: string, useInstagram = false): Promise<MetaTokenResponse> {
+        const appId = useInstagram ? getEnv("INSTAGRAM_APP_ID") : getEnv("META_APP_ID")
+        const appSecret = useInstagram ? getEnv("INSTAGRAM_APP_SECRET") : getEnv("META_APP_SECRET")
 
+        if (useInstagram) {
+            // Instagram Login for Business requires a POST with form-encoded body
+            const body = new URLSearchParams({
+                client_id: appId,
+                client_secret: appSecret,
+                grant_type: "authorization_code",
+                redirect_uri: redirectUri,
+                code: code
+            })
+            const res = await fetch(`${this.igApiUrl}/oauth/access_token`, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: body.toString()
+            })
+            if (!res.ok) {
+                const err = await res.json()
+                throw new Error(`Meta Token Exchange Error: ${err.error_message || err.error?.message || JSON.stringify(err)}`)
+            }
+            return await res.json()
+        }
+
+        // Facebook / standard Meta flow — GET with query params
         const url = `${this.baseUrl}/oauth/access_token?client_id=${appId}&redirect_uri=${redirectUri}&client_secret=${appSecret}&code=${code}`
-        
         const res = await fetch(url)
         if (!res.ok) {
             const err = await res.json()
             throw new Error(`Meta Token Exchange Error: ${err.error?.message || "Unknown error"}`)
         }
-        
         return await res.json()
     }
 
     /**
-     * Converts short-lived token to long-lived (60 day) token
+     * Converts short-lived token to long-lived (60 day) token.
+     *
+     * Facebook flow  → graph.facebook.com (grant_type=fb_exchange_token)
+     * Instagram flow → graph.instagram.com (grant_type=ig_exchange_token)
      */
-    async getLongLivedToken(shortToken: string): Promise<MetaTokenResponse> {
-        const appId = getEnv("META_APP_ID")
-        const appSecret = getEnv("META_APP_SECRET")
+    async getLongLivedToken(shortToken: string, useInstagram = false): Promise<MetaTokenResponse> {
+        const appId = useInstagram ? getEnv("INSTAGRAM_APP_ID") : getEnv("META_APP_ID")
+        const appSecret = useInstagram ? getEnv("INSTAGRAM_APP_SECRET") : getEnv("META_APP_SECRET")
 
+        if (useInstagram) {
+            // Instagram-specific long-lived token exchange
+            const url = `${this.igGraphUrl}/access_token?grant_type=ig_exchange_token&client_id=${appId}&client_secret=${appSecret}&access_token=${shortToken}`
+            const res = await fetch(url)
+            if (!res.ok) {
+                const err = await res.json()
+                throw new Error(`Instagram LLT Upgrade Error: ${err.error?.message || JSON.stringify(err)}`)
+            }
+            return await res.json()
+        }
+
+        // Facebook / standard Meta flow
         const url = `${this.baseUrl}/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortToken}`
-        
         const res = await fetch(url)
         if (!res.ok) {
             const err = await res.json()
             throw new Error(`Meta LLT Upgrade Error: ${err.error?.message || "Unknown error"}`)
         }
-        
         return await res.json()
     }
+
 
     /**
      * Checks what permissions the current token actually has

@@ -60,12 +60,16 @@ export async function getAuthenticatedUser(
     authHeader: string | null,
     adminClient?: SupabaseClient
 ): Promise<AuthResult> {
+    console.log(`[Auth] Checking auth header: ${authHeader ? 'Present' : 'Missing'}`)
+    
     if (!authHeader) {
         return { user: null, error: "Missing Authorization header." }
     }
 
     // 1. Check for Service Role Key (System Access)
-    if (authHeader.includes(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)) {
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    if (serviceRoleKey && authHeader.includes(serviceRoleKey)) {
+        console.log(`[Auth] Path matched: Authenticated via Service Role Key`)
         return {
             user: {
                 id: "00000000-0000-0000-0000-000000000000",
@@ -76,10 +80,13 @@ export async function getAuthenticatedUser(
         }
     }
 
-    const userClient = createUserClient(authHeader)
-    const { data: { user }, error: authError } = await userClient.auth.getUser()
+    // 2. Validate token via getUser(jwt)
+    // Strip "Bearer " if present to get raw JWT
+    const jwt = authHeader.replace(/^Bearer\s+/i, "")
+    const { data: { user }, error: authError } = await (adminClient ?? createAdminClient()).auth.getUser(jwt)
 
     if (authError || !user) {
+        console.error(`[Auth] getUser failed: ${authError?.message || "No user found"}`)
         return { user: null, error: authError?.message || "Authentication failed." }
     }
 
@@ -90,6 +97,8 @@ export async function getAuthenticatedUser(
         .select("role")
         .eq("id", user.id)
         .single()
+
+    console.log(`[Auth] Authenticated user: ${user.id} (role: ${profile?.role ?? "unknown"})`)
 
     return {
         user: {
