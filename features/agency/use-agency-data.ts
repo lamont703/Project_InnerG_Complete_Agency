@@ -157,8 +157,9 @@ export function useAgencyData() {
             if (!signal) throw new Error("Signal not found")
 
             // If this is a social signal with a draft, and platforms are selected, publish instead of just resolving
-            if (signal.signal_type === 'social' && signal.metadata?.social_plan_id && platforms && platforms.length > 0) {
-                await handlePublishPost(signal.metadata.social_plan_id, platforms)
+            const signalAny = signal as any
+            if (signalAny.signal_type === 'social' && signalAny.metadata?.social_plan_id && platforms && platforms.length > 0) {
+                await handlePublishPost(signalAny.metadata.social_plan_id, platforms)
                 return
             }
 
