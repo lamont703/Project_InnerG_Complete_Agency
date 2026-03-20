@@ -482,4 +482,68 @@ export class AgencyService {
             pageName: primary.name
         }
     }
+
+    /**
+     * Fetch TikTok metrics for the agency project
+     */
+    async getTikTokMetrics(projectSlug: string = "innergcomplete"): Promise<any> {
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("id")
+            .eq("slug", projectSlug)
+            .single()
+
+        let accounts = null
+        if (project) {
+            const { data } = await this.supabase
+                .from("tiktok_accounts")
+                .select("*")
+                .eq("project_id", project.id)
+            accounts = data
+        }
+
+        if (!accounts || accounts.length === 0) {
+            const { data: anyAcc } = await this.supabase
+                .from("tiktok_accounts")
+                .select("*")
+                .order("last_synced_at", { ascending: false })
+                .limit(1)
+            accounts = anyAcc
+        }
+
+        if (!accounts || accounts.length === 0) return null
+
+        const account = accounts[0]
+        
+        // Fetch Video Aggregations
+        const { data: videos } = await this.supabase
+            .from("tiktok_videos")
+            .select("view_count, like_count, comment_count, share_count")
+            .eq("project_id", account.project_id)
+
+        const videoStats = (videos || []).reduce((acc: any, v: any) => ({
+            views: acc.views + (v.view_count || 0),
+            likes: acc.likes + (v.like_count || 0),
+            comments: acc.comments + (v.comment_count || 0),
+            shares: acc.shares + (v.share_count || 0)
+        }), { views: 0, likes: 0, comments: 0, shares: 0 })
+
+        const videoLikes = videoStats.likes;
+        const videoComments = videoStats.comments;
+        const videoShares = videoStats.shares;
+        const videoViews = videoStats.views;
+
+        return {
+            followerCount: account.follower_count || 0,
+            heartCount: videoLikes, // Using aggregated video likes as requested
+            videoCount: account.video_count || 0,
+            username: account.username || 'TikTok User',
+            averageViews: videos && videos.length > 0 ? videoViews / videos.length : 0,
+            totalViews: videoViews,
+            videoLikes,
+            videoComments,
+            videoShares,
+            latestVideos: (videos || []).slice(0, 5)
+        }
+    }
 }

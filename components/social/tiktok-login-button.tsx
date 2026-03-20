@@ -99,7 +99,9 @@ export function TikTokLoginButton({
             `&redirect_uri=${encodeURIComponent(redirectUri)}` +
             `&state=${state}` +
             `&code_challenge=${challenge}` +
-            `&code_challenge_method=S256`
+            `&code_challenge_method=S256` +
+            `&disable_auto_auth=1` +
+            `&prompt=login`
 
         window.location.href = oauthUrl
     }
