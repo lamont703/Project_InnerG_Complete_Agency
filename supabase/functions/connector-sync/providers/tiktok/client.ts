@@ -37,22 +37,49 @@ export class TikTokClient {
 
     async getUserInfo() {
         // Reference: https://developers.tiktok.com/doc/tiktok-api-v2-user-info/
-        return this.request("/user/info/", "GET", undefined, {
-            fields: "open_id,union_id,avatar_url,display_name,follower_count,following_count,heart_count,video_count"
-        });
+        // We request every available field so nothing is left on the table.
+        const fields = [
+            "open_id",
+            "union_id",
+            "avatar_url",
+            "avatar_url_100",
+            "avatar_url_200",
+            "display_name",
+            "bio_description",
+            "profile_deep_link",
+            "is_verified",
+            "follower_count",
+            "following_count",
+            "heart_count",
+            "video_count"
+        ].join(",");
+        return this.request("/user/info/", "GET", undefined, { fields });
     }
 
     async getUserVideos(cursor?: number, count = 20) {
         // Reference: https://developers.tiktok.com/doc/tiktok-api-v2-video-list/
-        const body: any = {
-            max_count: count
-        };
-        if (cursor) {
-            body.cursor = cursor;
-        }
+        // Requesting every field available from the video/list endpoint.
+        const fields = [
+            "id",
+            "create_time",
+            "cover_image_url",
+            "share_url",
+            "embed_link",
+            "embed_html",
+            "video_description",
+            "duration",
+            "height",
+            "width",
+            "title",
+            "view_count",
+            "like_count",
+            "comment_count",
+            "share_count"
+        ].join(",");
 
-        return this.request("/video/list/", "POST", body, {
-            fields: "id,create_time,cover_image_url,share_url,video_description,duration,height,width,title,embed_html,view_count,like_count,comment_count,share_count"
-        });
+        const body: any = { max_count: count };
+        if (cursor) body.cursor = cursor;
+
+        return this.request("/video/list/", "POST", body, { fields });
     }
 }
