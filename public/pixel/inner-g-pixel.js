@@ -108,11 +108,30 @@
         track("page_view");
     };
 
+    const handleAutoClickTracking = (e) => {
+        const target = e.target.closest("button, a, [data-ig-click]");
+        if (!target) return;
+
+        const metadata = {
+            tag: target.tagName.toLowerCase(),
+            text: target.innerText?.trim().substring(0, 50),
+            id: target.id || undefined,
+            classes: target.className || undefined,
+            href: target.href || undefined,
+            ig_click: target.getAttribute("data-ig-click") || undefined
+        };
+
+        track("click", metadata);
+    };
+
     if (document.readyState === "complete" || document.readyState === "interactive") {
         handleInitialPing();
     } else {
         window.addEventListener("DOMContentLoaded", handleInitialPing);
     }
+
+    // Attach global click listener
+    document.addEventListener("click", handleAutoClickTracking, true);
 
     // 7. Session Duration (Heartbeat) - Optional, kept simple for v1
     // window.addEventListener("beforeunload", () => track("session_end"));
