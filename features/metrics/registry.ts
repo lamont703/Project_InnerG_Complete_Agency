@@ -146,6 +146,33 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         permissions: ['client-admin', 'client-viewer', 'super-admin'],
         iconName: "TrendingUp"
     },
+    {
+        id: "pixel_click_login",
+        label: "Login Clicks",
+        description: "Number of users who clicked the Login button.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "LogIn"
+    },
+    {
+        id: "pixel_click_create_account",
+        label: "Create Account Clicks",
+        description: "Number of users who clicked the Create Account button.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "UserPlus"
+    },
+    {
+        id: "pixel_click_claim_free",
+        label: "Claim Free Month Clicks",
+        description: "Number of users who clicked the Claim My Free Month — Join Now button.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Zap"
+    },
 
     // --- AGENCY SLOTS (Super Admin Only) ---
     {
