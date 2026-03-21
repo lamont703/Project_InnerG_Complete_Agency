@@ -46,10 +46,10 @@ export function ProjectSlotConfig() {
                 setProjectName(project.name)
 
                 // 2. Fetch Current Entitlements
-                const { data: entitlements } = await supabase
-                    .from("project_slot_entitlements")
+                const { data: entitlements } = await (supabase
+                    .from("project_slot_entitlements") as any)
                     .select("slot_id")
-                    .eq("project_id", project.id) as any
+                    .eq("project_id", project.id)
 
                 if (entitlements) {
                     setEntitledSlotIds(entitlements.map((e: any) => e.slot_id))
@@ -87,8 +87,8 @@ export function ProjectSlotConfig() {
 
             // 2. Insert New
             if (entitledSlotIds.length > 0) {
-                const { error } = await supabase
-                    .from("project_slot_entitlements")
+                const { error } = await (supabase
+                    .from("project_slot_entitlements") as any)
                     .insert(
                         entitledSlotIds.map(id => ({
                             project_id: projectId,

@@ -62,10 +62,10 @@ export function SlotProvider({
                     console.log("[SlotContext] Resolved projectId:", project.id, "for slug:", projectSlug || "innergcomplete")
 
                     // 2. Fetch Project Entitlements (What the agency allows for this project)
-                    const { data: entitlements } = await supabase
-                        .from("project_slot_entitlements")
+                    const { data: entitlements } = await (supabase
+                        .from("project_slot_entitlements") as any)
                         .select("slot_id")
-                        .eq("project_id", project.id) as any
+                        .eq("project_id", project.id)
 
                     const allowedSlotIds = (entitlements || []).map((e: any) => e.slot_id)
 
