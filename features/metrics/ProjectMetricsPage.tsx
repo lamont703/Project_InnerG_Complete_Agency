@@ -15,7 +15,7 @@ import { createBrowserClient } from "@/lib/supabase/browser"
 
 export function ProjectMetricsPage() {
     const params = useParams()
-    const [role, setRole] = useState<'client' | 'admin' | 'super-admin'>('client')
+    const [role, setRole] = useState<'client-admin' | 'client-viewer' | 'super-admin'>('client-admin')
     const [userData, setUserData] = useState<{ name: string; role: string } | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
@@ -57,7 +57,6 @@ export function ProjectMetricsPage() {
 
     return (
         <SlotProvider userRole={role} projectSlug={params?.slug as string}>
-            {console.log("[ProjectMetricsPage] Providing context with role:", role, "slug:", params?.slug)}
             <ProjectMetricsContent initialUserData={userData} />
         </SlotProvider>
     )

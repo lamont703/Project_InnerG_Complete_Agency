@@ -21,7 +21,7 @@ function DashboardContent() {
     const slug = (params?.slug as string) ?? "agency-global"
 
     return (
-        <SlotProvider userRole="client" projectSlug={slug}>
+        <SlotProvider userRole="client-admin" projectSlug={slug}>
             <DashboardPageContent />
         </SlotProvider>
     )
