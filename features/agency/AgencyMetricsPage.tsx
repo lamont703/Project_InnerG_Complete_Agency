@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff, ThumbsUp, MessageSquare, Share2, Eye, Linkedin, BarChart3, Youtube, Video, Play, Instagram, CheckCircle2, Heart } from "lucide-react"
+import { Loader2, Building2, AlertTriangle, Sparkles, Layout, Target, Activity, Zap, Check, EyeOff, ThumbsUp, MessageSquare, Share2, Eye, Linkedin, BarChart3, Youtube, Video, Play, Instagram, CheckCircle2, Heart, Users, UserSearch } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Facebook, Twitter, Music, AtSign } from "lucide-react"
 
@@ -40,6 +40,7 @@ function AgencyMetricsContent() {
         instagramMetrics,
         facebookMetrics,
         tiktokMetrics,
+        pixelMetrics,
         isLoading,
     } = useAgencyData()
 
@@ -297,6 +298,28 @@ function AgencyMetricsContent() {
             value: "---",
             icon: Zap,
             color: "bg-sky-400/20 text-sky-300",
+        },
+        // --- PIXEL LIVE ---
+        {
+            id: "pixel_total_pings",
+            label: "Website Hits",
+            value: pixelMetrics?.totalHits?.toLocaleString() || "0",
+            icon: Activity,
+            color: "bg-blue-500/20 text-blue-400",
+        },
+        {
+            id: "pixel_unique_visitors",
+            label: "Unique Visitors",
+            value: pixelMetrics?.uniqueVisitors?.toLocaleString() || "0",
+            icon: Users,
+            color: "bg-indigo-500/20 text-indigo-400",
+        },
+        {
+            id: "pixel_identified_count",
+            label: "Identified Leads",
+            value: pixelMetrics?.identifiedCount?.toLocaleString() || "0",
+            icon: UserSearch,
+            color: "bg-emerald-500/20 text-emerald-400",
         }
     ]
 

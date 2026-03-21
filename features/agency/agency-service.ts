@@ -546,4 +546,84 @@ export class AgencyService {
             latestVideos: (videos || []).slice(0, 5)
         }
     }
+
+    /**
+     * Fetch Pixel tracking metrics for the agency project
+     */
+    async getPixelMetrics(projectSlug: string = "innergcomplete"): Promise<any> {
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("id")
+            .eq("slug", projectSlug)
+            .single()
+
+        if (!project) return null
+
+        const [events, visitors] = await Promise.all([
+            this.supabase.from("pixel_events").select("*", { count: "exact", head: true }).eq("project_id", project.id),
+            this.supabase.from("pixel_visitors").select("*").eq("project_id", project.id)
+        ])
+
+        const totalHits = events.count || 0
+        const visitorData = visitors.data || []
+        const identifiedCount = visitorData.filter((v: any) => 
+            v.email || 
+            v.full_name || 
+            (v.identity_metadata && Object.keys(v.identity_metadata).length > 0)
+        ).length
+
+        return {
+            totalHits,
+            uniqueVisitors: visitorData.length,
+            identifiedCount
+        }
+    }
+
+    /**
+     * Force sync pixel data to public snapshots
+     */
+    async syncPixelSnapshot(projectSlug: string = "innergcomplete"): Promise<void> {
+        const metrics = await this.getPixelMetrics(projectSlug)
+        if (!metrics) throw new Error("Could not fetch metrics for project")
+
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("id")
+            .eq("slug", projectSlug)
+            .single()
+
+        if (!project) throw new Error("Project not found")
+
+        // Get latest snapshot payload to preserve other fields
+        const { data: latest } = await this.supabase
+            .from("project_metrics_snapshots")
+            .select("metrics_payload")
+            .eq("project_id", project.id)
+            .order("snapshot_date", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+        const payload = (latest as any)?.metrics_payload || {}
+        
+        // Merge pixel data
+        const updatedPayload = {
+            ...payload,
+            pixel_total_hits: metrics.totalHits,
+            pixel_unique_visitors: metrics.uniqueVisitors,
+            pixel_identified_leads: metrics.identifiedCount,
+            last_pixel_sync: new Date().toISOString()
+        }
+
+        const { error } = await this.supabase
+            .from("project_metrics_snapshots")
+            .upsert({
+                project_id: project.id,
+                snapshot_date: new Date().toISOString().split('T')[0],
+                metrics_payload: updatedPayload
+            }, {
+                onConflict: 'project_id,snapshot_date'
+            })
+
+        if (error) throw error
+    }
 }

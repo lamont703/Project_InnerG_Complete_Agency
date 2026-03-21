@@ -4,10 +4,12 @@ import React, { useState, useEffect, Suspense } from "react"
 import { Loader2 } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { PixelSetup } from "@/features/pixel/components/PixelSetup"
+import { useAgencyData } from "@/features/agency/use-agency-data"
 
 function AgencyPixelPageContent() {
     // Agency global slug is often "innergcomplete" or similar
     const agencySlug = "innergcomplete"
+    const { syncPixel, isSyncing } = useAgencyData()
     
     const [projectData, setProjectData] = useState<{ id: string; name: string } | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -60,6 +62,8 @@ function AgencyPixelPageContent() {
                 projectId={projectData?.id || "agency-global-innerg"} 
                 projectName={projectData?.name || "Inner G Agency"} 
                 isAgency={true}
+                onSync={() => syncPixel(agencySlug)}
+                isSyncing={isSyncing}
             />
         </main>
     )
