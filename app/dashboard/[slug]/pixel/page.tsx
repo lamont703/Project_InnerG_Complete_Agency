@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react"
 import { useParams } from "next/navigation"
-import { Loader2 } from "lucide-react"
+import { Loader2, AlertCircle } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { PixelSetup } from "@/features/pixel/components/PixelSetup"
 
@@ -51,10 +51,15 @@ function PixelPageContent() {
 
     if (!projectData) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center p-8 text-center">
-                <div className="space-y-4">
-                    <h2 className="text-2xl font-bold">Project Not Found</h2>
-                    <p className="text-muted-foreground">Unable to find project data for tracking setup.</p>
+            <div className="min-h-[60vh] flex items-center justify-center p-6 text-center">
+                <div className="space-y-4 max-w-sm">
+                    <div className="h-16 w-16 bg-destructive/10 text-destructive rounded-full flex items-center justify-center mx-auto mb-4">
+                        <AlertCircle className="h-8 w-8" />
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight">Project Not Found</h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                        Unable to connect to the intelligence grid. The project slug <code className="bg-secondary px-1 rounded">{slug}</code> may be invalid or restricted.
+                    </p>
                 </div>
             </div>
         )
