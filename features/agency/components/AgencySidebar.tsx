@@ -42,6 +42,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
     ]
 
     const adminItems = [
+        { href: "/admin/projects", icon: Building2, label: "Project Access Hub", active: pathname.startsWith("/admin/projects") },
         { href: "/admin/metrics", icon: BarChart3, label: "Metrics & Intelligence", active: pathname === "/admin/metrics" },
         { href: "/admin/token-usage", icon: Layout, label: "Token Usage", active: pathname === "/admin/token-usage" },
         { href: "/admin/connectors", icon: Plug, label: "Connectors", active: pathname === "/admin/connectors" },

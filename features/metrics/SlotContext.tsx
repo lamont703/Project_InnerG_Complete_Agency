@@ -61,31 +61,20 @@ export function SlotProvider({
                     setProjectId(project.id)
                     console.log("[SlotContext] Resolved projectId:", project.id, "for slug:", projectSlug || "innergcomplete")
 
-                    // 2. Load from DB
-                    const { data: config } = await supabase
-                        .from("user_dashboard_configs")
-                        .select("slot_ids")
-                        .eq("user_id", user.id)
-                        .eq("project_id", project.id)
-                        .maybeSingle() as any
+                    // 2. Fetch Project Entitlements (What the agency allows for this project)
+                    const { data: entitlements } = await supabase
+                        .from("project_slot_entitlements")
+                        .select("slot_id")
+                        .eq("project_id", project.id) as any
 
-                    if (config?.slot_ids && Array.isArray(config.slot_ids)) {
-                        setActiveSlotIds(config.slot_ids)
-                    } else {
-                        // Set defaults if no config exists
-                        if (userRole === 'super-admin') {
-                            setActiveSlotIds([
-                                "active_architectures", 
-                                "system_health", 
-                                "agency_intelligence",
-                                "linkedin_impressions",
-                                "youtube_subscribers",
-                                "instagram_followers",
-                                "facebook_page_likes"
-                            ])
-                        } else {
-                            setActiveSlotIds(["total_signups", "app_installs", "funnel_conversion", "social_reach"])
-                        }
+                    const allowedSlotIds = (entitlements || []).map((e: any) => e.slot_id)
+
+                    // 3. Mirror the Exactly Enabled Architecture (Source of Truth: Agency Hub)
+                    // This creates unity across all roles as requested.
+                    setActiveSlotIds(allowedSlotIds)
+                    
+                    if (userRole !== 'super-admin') {
+                        setAvailableSlots(prev => prev.filter(slot => allowedSlotIds.includes(slot.id)))
                     }
                 } else {
                     console.warn("[SlotContext] FAILED to resolve project for slug:", projectSlug || "agency-global")

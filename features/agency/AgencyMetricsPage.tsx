@@ -358,13 +358,13 @@ function AgencyMetricsContent() {
                         </div>
                     </div>
 
-                    {/* Preview Section */}
-                    <section className="mb-16">
+                    {/* Agency Command Architecture (Read-Only) */}
+                    <section>
                         <div className="flex items-center gap-3 mb-8">
                             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
                                 <Layout className="h-4 w-4 text-primary" />
                             </div>
-                            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground">Live Preview (Primary Grid)</h2>
+                            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground">Global Intelligence Infrastructure</h2>
                         </div>
                         
                         <MetricSlotGrid
@@ -394,99 +394,6 @@ function AgencyMetricsContent() {
                             />
                         </div>
                     </section>
-
-
-                    {/* Slot Registry Management */}
-                    <section>
-                        <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center border border-accent/20">
-                                    <Target className="h-4 w-4 text-accent" />
-                                </div>
-                                <h2 className="text-xs font-black uppercase tracking-[0.3em] text-foreground">Slot Registry & Port Configuration</h2>
-                            </div>
-                            <div className="px-4 py-1.5 rounded-full bg-muted/10 border border-border text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                {activeSlotIds.length} / {availableSlots.length} Active
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {availableSlots.map(slot => {
-                                const isActive = activeSlotIds.includes(slot.id)
-                                const Icon = getIcon(slot.iconName)
-
-                                return (
-                                    <div
-                                        key={slot.id}
-                                        onClick={() => toggleSlot(slot.id)}
-                                        className={`group p-6 rounded-3xl border transition-all duration-500 cursor-pointer relative overflow-hidden h-full flex flex-col ${isActive
-                                            ? 'bg-primary/5 border-primary/30 shadow-[0_0_40px_rgba(var(--primary),0.05)]'
-                                            : 'bg-muted/5 border-border hover:border-primary/20'
-                                            }`}
-                                    >
-                                        <div className="flex items-start gap-5 mb-6">
-                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center border transition-all duration-500 ${isActive ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 scale-110' : 'bg-white/5 text-muted-foreground border-white/10'
-                                                }`}>
-                                                <Icon className="h-6 w-6" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center justify-between">
-                                                    <span className={`text-base font-bold tracking-tight ${isActive ? 'text-foreground' : 'text-muted-foreground transition-colors group-hover:text-foreground'}`}>
-                                                        {slot.label}
-                                                    </span>
-                                                    {isActive ? (
-                                                        <div className="h-6 w-6 bg-primary/20 rounded-xl flex items-center justify-center border border-primary/40 animate-in zoom-in duration-300">
-                                                            <Check className="h-3 w-3 text-primary" />
-                                                        </div>
-                                                    ) : (
-                                                        <EyeOff className="h-4 w-4 text-muted-foreground/20 group-hover:text-muted-foreground transition-colors" />
-                                                    )}
-                                                </div>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mt-1">{slot.category}</p>
-                                            </div>
-                                        </div>
-                                        
-                                        <p className="text-sm text-muted-foreground leading-relaxed flex-1">
-                                            {slot.description}
-                                        </p>
-
-                                        <div className="mt-8 pt-6 border-t border-border/20 flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-muted'}`} />
-                                                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/40">{isActive ? 'Broadcasting' : 'Standby'}</span>
-                                            </div>
-                                            <span className="text-[10px] font-bold text-muted-foreground/20 italic">ID: {slot.id}</span>
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </section>
-
-                    {/* Footer / Info */}
-                    <div className="mt-20 p-8 rounded-3xl bg-muted/5 border border-border border-dashed flex flex-col md:flex-row items-center justify-between gap-8">
-                        <div className="flex items-center gap-6">
-                            <Activity className="h-10 w-10 text-primary/20" />
-                            <div>
-                                <p className="text-xs font-black uppercase tracking-widest text-primary">Intelligence Sync Protocol</p>
-                                <p className="text-sm text-muted-foreground mt-1 max-w-md">Your configuration affects how the AI prioritizes signal generation and real-time alerts. Pinned ports receive high-frequency stream updates.</p>
-                            </div>
-                        </div>
-                        <Button 
-                            onClick={saveChanges}
-                            disabled={isSaving}
-                            className="h-12 px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-primary/20 border-b-2 border-black/20 min-w-[240px]"
-                        >
-                            {isSaving ? (
-                                <>
-                                    <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                                    Synchronizing...
-                                </>
-                            ) : (
-                                "Apply Changes Systemwide"
-                            )}
-                        </Button>
-                    </div>
                     </div>
             </main>
         </div>

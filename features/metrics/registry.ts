@@ -402,7 +402,6 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         iconName: "Zap"
     },
 
-    // --- KANE'S BOOKSTORE EXCLUSIVE SLOTS ---
     {
         id: "bookstore_inventory_value",
         label: "Inventory Asset Value",
@@ -410,8 +409,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         category: 'finance',
         type: 'kpi',
         permissions: ['client-admin', 'client-viewer', 'super-admin'],
-        iconName: "HardDrive",
-        allowedProjectSlugs: ['kanes-bookstore']
+        iconName: "HardDrive"
     },
     {
         id: "active_readers",
@@ -420,8 +418,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         category: 'marketing',
         type: 'kpi',
         permissions: ['client-admin', 'client-viewer', 'super-admin'],
-        iconName: "BookOpen",
-        allowedProjectSlugs: ['kanes-bookstore']
+        iconName: "BookOpen"
     },
     {
         id: "monthly_book_sales",
@@ -430,8 +427,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         category: 'finance',
         type: 'kpi',
         permissions: ['client-admin', 'client-viewer', 'super-admin'],
-        iconName: "TrendingUp",
-        allowedProjectSlugs: ['kanes-bookstore']
+        iconName: "TrendingUp"
     },
     {
         id: "bookstore_total_orders",
@@ -440,8 +436,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         category: 'finance',
         type: 'kpi',
         permissions: ['client-admin', 'client-viewer', 'super-admin'],
-        iconName: "ShoppingBag",
-        allowedProjectSlugs: ['kanes-bookstore']
+        iconName: "ShoppingBag"
     },
     {
         id: "bookstore_total_sales_value",
@@ -450,8 +445,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         category: 'finance',
         type: 'kpi',
         permissions: ['client-admin', 'client-viewer', 'super-admin'],
-        iconName: "DollarSign",
-        allowedProjectSlugs: ['kanes-bookstore']
+        iconName: "DollarSign"
     },
     {
         id: "bookstore_avg_order_value",
@@ -460,33 +454,21 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         category: 'finance',
         type: 'kpi',
         permissions: ['client-admin', 'client-viewer', 'super-admin'],
-        iconName: "Calculator",
-        allowedProjectSlugs: ['kanes-bookstore']
+        iconName: "Calculator"
     }
 ]
 
 /**
- * Returns available slots based on the user's highest permission level and project context.
+ * Returns available slots based on the user's highest permission level.
+ * Project-specific filtering is now handled dynamically by the database-backed SlotProvider.
  */
 export function getAvailableSlots(
     userRole: 'client-admin' | 'client-viewer' | 'super-admin',
-    projectSlug?: string
+    _projectSlug?: string
 ): MetricSlot[] {
     return METRIC_REGISTRY.filter(slot => {
-        // 1. Check Permissions
-        const hasPermission = slot.permissions.includes(userRole)
-        if (!hasPermission) return false
-
-        // 2. Check Project Restrictions
-        if (slot.allowedProjectSlugs && slot.allowedProjectSlugs.length > 0) {
-            // Super-admins see everything in the registry to manage it
-            if (userRole === 'super-admin') return true
-
-            if (!projectSlug) return false
-            return slot.allowedProjectSlugs.includes(projectSlug)
-        }
-
-        return true
+        // Check Permissions
+        return slot.permissions.includes(userRole)
     })
 }
 
