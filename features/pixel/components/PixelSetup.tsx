@@ -144,25 +144,38 @@ export function PixelSetup({ projectId, projectName, isAgency = false }: PixelSe
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Terminal className="h-5 w-5 text-primary" />
-                                Installation Support
+                                Developer Installation
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex gap-3">
                                 <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">1</div>
-                                <p className="text-sm text-muted-foreground">
-                                    Paste the snippet globally across all pages to track full user journeys.
-                                </p>
+                                <div className="space-y-1">
+                                    <p className="text-sm font-medium">Where to Place</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Paste the snippet at the very bottom of your <code className="bg-secondary px-1 rounded">&lt;head&gt;</code> section, just before the closing <code className="bg-secondary px-1 rounded">&lt;/head&gt;</code> tag.
+                                    </p>
+                                </div>
                             </div>
                             <div className="flex gap-3">
                                 <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">2</div>
-                                <p className="text-sm text-muted-foreground">
-                                    Works with Shopify, Webflow, WordPress, and all major site builders.
-                                </p>
+                                <div className="space-y-1">
+                                    <p className="text-sm font-medium">Automatic Tracking</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Once installed, the pixel immediately starts tracking page views, sessions, and visitor origins without further configuration.
+                                    </p>
+                                </div>
                             </div>
-                            <Button variant="link" className="p-0 h-auto text-primary gap-1">
-                                View Installation Guide <ExternalLink className="h-3 w-3" />
-                            </Button>
+                            <div className="pt-2 border-t border-border/50">
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-2">Supported Platforms</p>
+                                <div className="flex flex-wrap gap-2 opacity-70">
+                                    <Badge variant="secondary" className="text-[9px]">Shopify</Badge>
+                                    <Badge variant="secondary" className="text-[9px]">Webflow</Badge>
+                                    <Badge variant="secondary" className="text-[9px]">WordPress</Badge>
+                                    <Badge variant="secondary" className="text-[9px]">React/Next.js</Badge>
+                                    <Badge variant="secondary" className="text-[9px]">HTML</Badge>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -170,7 +183,7 @@ export function PixelSetup({ projectId, projectName, isAgency = false }: PixelSe
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Activity className={`h-5 w-5 ${lastHit ? "text-green-500 animate-pulse" : "text-primary"}`} />
-                                Tracking Status
+                                Live Status
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -192,22 +205,57 @@ export function PixelSetup({ projectId, projectName, isAgency = false }: PixelSe
                                 </p>
                             )}
 
-                            <p className="text-xs text-muted-foreground italic">
+                            <p className="text-xs text-muted-foreground italic leading-relaxed">
                                 {lastHit 
-                                    ? "Your Agentic Operating System is currently processing real-time visitor data."
-                                    : "Once installed, your Inner G Minions will start receiving heartbeat pings from your website."
+                                    ? "Your Agentic Operating System is currently processing real-time visitor data from this project."
+                                    : "Once installed correctly, the status above will turn green as soon as a user visits any page on your site."
                                 }
                             </p>
                         </CardContent>
                     </Card>
                 </div>
 
+                <Card className="glass-panel border-border/50">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <CheckCircle2 className="h-5 w-5 text-primary" />
+                            Identity Stitching (Advanced)
+                        </CardTitle>
+                        <CardDescription>
+                            Link website visitors to known users by calling the identify function during login or checkout.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="relative group">
+                            <pre className="p-4 bg-[#0d1117] text-[#e6edf3] font-mono text-xs overflow-x-auto rounded-lg border border-border/50">
+{`// Call this whenever a user identifies themselves (e.g. logs in)
+window.innerG.identify("user@email.com", {
+  name: "John Doe",
+  plan: "premium"
+});`}
+                            </pre>
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(`window.innerG.identify("user@email.com", { name: "John Doe", plan: "premium" });`)
+                                    setCopied(true)
+                                    setTimeout(() => setCopied(false), 2000)
+                                }}
+                            >
+                                {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 flex gap-4 items-start">
                     <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
                     <div className="space-y-1">
-                        <p className="text-sm font-semibold text-primary">Data Privacy & Stitching</p>
+                        <p className="text-sm font-semibold text-primary">Data Privacy & Ethics</p>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                            The Inner G Pixel is a first-party tracking solution. All data collected is stored securely in your private agency database and used exclusively for your Agentic Operating System to improve attribution and campaign ROI.
+                            The Inner G Pixel is a first-party tracking solution designed for the Agentic Operating System. All data collected is stored securely in your private database and used for smarter automation, attribution, and customer intelligence.
                         </p>
                     </div>
                 </div>

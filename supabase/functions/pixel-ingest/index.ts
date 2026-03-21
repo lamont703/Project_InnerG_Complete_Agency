@@ -11,7 +11,7 @@
 import { createHandler, z, okResponse, Logger } from "../_shared/lib/index.ts"
 
 const PixelEventSchema = z.object({
-    projectId: z.string().uuid("Invalid Project ID"),
+    projectId: z.string().min(1, "Project ID is required"),
     visitorId: z.string().min(1, "Visitor ID is required"),
     event: z.string().default("page_view"),
     url: z.string().optional(),
