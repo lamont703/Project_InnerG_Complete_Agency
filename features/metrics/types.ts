@@ -27,7 +27,7 @@ export interface MetricSlot {
     description: string
     category: 'agency' | 'marketing' | 'operations' | 'finance'
     type: 'kpi' | 'chart' | 'list'
-    permissions: ('client' | 'admin' | 'super-admin')[]
+    permissions: ('client-admin' | 'client-viewer' | 'super-admin')[]
     iconName: string // Lucide icon name as string for serializable registry
     allowedProjectSlugs?: string[] // Optional: restrict this slot to specific projects
 }

@@ -57,6 +57,7 @@ export function ProjectMetricsPage() {
 
     return (
         <SlotProvider userRole={role} projectSlug={params?.slug as string}>
+            {console.log("[ProjectMetricsPage] Providing context with role:", role, "slug:", params?.slug)}
             <ProjectMetricsContent initialUserData={userData} />
         </SlotProvider>
     )

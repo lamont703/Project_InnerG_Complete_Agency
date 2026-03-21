@@ -21,11 +21,11 @@ const SlotContext = createContext<SlotContextType | undefined>(undefined)
 
 export function SlotProvider({
     children,
-    userRole = 'client',
+    userRole = 'client-admin',
     projectSlug
 }: {
     children: React.ReactNode,
-    userRole?: 'client' | 'admin' | 'super-admin'
+    userRole?: 'client-admin' | 'client-viewer' | 'super-admin'
     projectSlug?: string
 }) {
     const [activeSlotIds, setActiveSlotIds] = useState<string[]>([])
@@ -37,6 +37,7 @@ export function SlotProvider({
 
     useEffect(() => {
         const slots = getAvailableSlots(userRole, projectSlug)
+        console.log("[SlotContext] Initialized available slots:", slots.length, "for role:", userRole, "slug:", projectSlug)
         setAvailableSlots(slots)
 
         const load = async () => {
