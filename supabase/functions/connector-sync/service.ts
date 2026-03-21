@@ -70,17 +70,21 @@ export class SyncService {
         const projectId = connection.project_id
 
         this.logger.info(`Starting sync for ${connectionId} (normalized provider: "${provider}")`)
-
+        
         // 1. Mark as syncing
+        this.logger.info(`[SyncService] Updating connection status to 'syncing'...`)
         await this.connectorRepo.updateStatus(connectionId, "syncing")
+        this.logger.info(`[SyncService] Status updated.`)
 
         // 2. Create log entry
+        this.logger.info(`[SyncService] Creating sync log entry...`)
         const syncLogId = await this.connectorRepo.createSyncLog({
             connection_id: connectionId,
             project_id: projectId,
             connector_type: provider,
             status: "running",
         })
+        this.logger.info(`[SyncService] Sync log created: ${syncLogId}`)
 
         // 3. Dispatch
         let result: SyncResult

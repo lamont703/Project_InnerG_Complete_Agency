@@ -135,3 +135,21 @@ verify_jwt = false
 
 [functions.generate-social-image]
 verify_jwt = false
+
+[functions.generate-social-video]
+verify_jwt = false
+
+[functions.complete-meta-auth]
+verify_jwt = false
+
+[functions.complete-tiktok-auth]
+verify_jwt = false
+
+[functions.pixel-ingest]
+verify_jwt = false
+
+[functions.webhook-meta-instagram]
+verify_jwt = false
+
+[functions.webhook-tiktok]
+verify_jwt = false
