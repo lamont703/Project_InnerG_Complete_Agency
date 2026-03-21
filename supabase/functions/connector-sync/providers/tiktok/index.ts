@@ -15,17 +15,24 @@ export async function syncTikTok(
         access_token: string;
         refresh_token?: string;
         tiktok_user_id?: string;
-    }
+    },
+    clientId: string,
+    clientSecret: string,
+    connectionId: string
 ): Promise<SyncResult> {
     if (!config.access_token) {
         return { success: false, records_synced: 0, tables_synced: [], error: "Missing TikTok Access Token" };
     }
 
-    const client = new TikTokClient(config.access_token);
+    let currentAccessToken = config.access_token;
     let recordsSynced = 0;
     const tablesSynced: string[] = [];
 
-    try {
+    const performSync = async (token: string): Promise<SyncResult> => {
+        const client = new TikTokClient(token);
+        let innerRecordsSynced = 0;
+        const innerTablesSynced: string[] = [];
+
         // 1. Sync User Info (Account)
         const userResponse = await client.getUserInfo();
         const user = userResponse.data?.user;
@@ -39,8 +46,8 @@ export async function syncTikTok(
             if (accountErr) {
                 console.error(`Error syncing TikTok account ${user.open_id}:`, accountErr);
             } else {
-                recordsSynced++;
-                tablesSynced.push("tiktok_accounts");
+                innerRecordsSynced++;
+                innerTablesSynced.push("tiktok_accounts");
             }
         }
 
@@ -64,9 +71,9 @@ export async function syncTikTok(
                 if (videoErr) {
                     console.error(`Error syncing TikTok videos:`, videoErr);
                 } else {
-                    recordsSynced += videos.length;
-                    if (!tablesSynced.includes("tiktok_videos")) {
-                        tablesSynced.push("tiktok_videos");
+                    innerRecordsSynced += videos.length;
+                    if (!innerTablesSynced.includes("tiktok_videos")) {
+                        innerTablesSynced.push("tiktok_videos");
                     }
                 }
             }
@@ -74,16 +81,67 @@ export async function syncTikTok(
             hasMore = videoResponse.data?.has_more || false;
             cursor = videoResponse.data?.cursor;
 
-            // Safety break to prevent infinite loops (TikTok max count is usually high)
-            if (recordsSynced > 500) break; 
+            if (innerRecordsSynced > 500) break; 
         }
 
         return {
             success: true,
-            records_synced: recordsSynced,
-            tables_synced: tablesSynced
+            records_synced: innerRecordsSynced,
+            tables_synced: innerTablesSynced
         };
+    };
 
+    try {
+        try {
+            return await performSync(currentAccessToken);
+        } catch (err: any) {
+            // Check if it's a token error
+            const isTokenError = 
+                err.message.includes("access_token_invalid") || 
+                err.message.includes("Access token is invalid") ||
+                err.message.includes("401");
+
+            if (isTokenError && config.refresh_token && clientId && clientSecret) {
+                console.log(`TikTok Access Token expired for connection ${connectionId}. Attempting refresh...`);
+                
+                const refreshRes = await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({
+                        client_key: clientId,
+                        client_secret: clientSecret,
+                        grant_type: "refresh_token",
+                        refresh_token: config.refresh_token,
+                    }),
+                });
+
+                if (refreshRes.ok) {
+                    const refreshData = await refreshRes.json();
+                    if (refreshData.access_token) {
+                        currentAccessToken = refreshData.access_token;
+                        
+                        // Update the connection config with the new token
+                        const newConfig = {
+                            ...config,
+                            access_token: refreshData.access_token,
+                            refresh_token: refreshData.refresh_token || config.refresh_token,
+                        };
+
+                        await adminClient
+                            .from("client_db_connections")
+                            .update({ sync_config: newConfig })
+                            .eq("id", connectionId);
+
+                        console.log(`TikTok token successfully refreshed for ${connectionId}. Retrying sync...`);
+                        return await performSync(currentAccessToken);
+                    }
+                } else {
+                    const errData = await refreshRes.json().catch(() => ({}));
+                    console.error("TikTok token refresh failed:", errData);
+                }
+            }
+            throw err; // Re-throw if not a token error or refresh failed
+        }
     } catch (err: any) {
         return {
             success: false,

@@ -10,7 +10,7 @@ export class TikTokTransformer {
         return {
             project_id: projectId,
             tiktok_user_id: user.open_id,
-            username: user.display_name || user.open_id,
+            username: user.username || user.display_name || user.open_id,
             display_name: user.display_name,
             union_id: user.union_id,
             avatar_url: user.avatar_url,

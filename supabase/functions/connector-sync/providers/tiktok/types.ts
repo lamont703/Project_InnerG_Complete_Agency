@@ -10,6 +10,7 @@ export interface TikTokUser {
     avatar_url_100?: string;
     avatar_url_200?: string;
     display_name?: string;
+    username?: string;
     bio_description?: string;
     profile_deep_link?: string;
     is_verified?: boolean;

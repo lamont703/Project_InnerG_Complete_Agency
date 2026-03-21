@@ -21,23 +21,23 @@ export class TikTokClient {
             body: body ? JSON.stringify(body) : undefined,
         });
 
-        if (!response.ok) {
-            let errorMsg = response.statusText;
-            try {
-                const error = await response.json();
-                errorMsg = error.error?.message || error.message || response.statusText;
-            } catch (_) {
-                // Ignore parse error
-            }
-            throw new Error(`TikTok API Error: ${errorMsg}`);
+        const data = await response.json().catch(() => ({}));
+
+        // TikTok v2 sometimes returns 200 OK but with an error body
+        if (data.error && data.error.code !== "ok" && data.error.code !== 0) {
+            const code = data.error.code;
+            const message = data.error.message || "Unknown TikTok Error";
+            throw new Error(`TikTok API Error (${code}): ${message}`);
         }
 
-        return response.json();
+        if (!response.ok) {
+            throw new Error(`TikTok HTTP Error: ${response.status} ${response.statusText}`);
+        }
+
+        return data;
     }
 
     async getUserInfo() {
-        // Reference: https://developers.tiktok.com/doc/tiktok-api-v2-user-info/
-        // We request every available field so nothing is left on the table.
         const fields = [
             "open_id",
             "union_id",
@@ -45,6 +45,7 @@ export class TikTokClient {
             "avatar_url_100",
             "avatar_url_200",
             "display_name",
+            "username", // Added missing username field
             "bio_description",
             "profile_deep_link",
             "is_verified",
@@ -57,8 +58,6 @@ export class TikTokClient {
     }
 
     async getUserVideos(cursor?: number, count = 20) {
-        // Reference: https://developers.tiktok.com/doc/tiktok-api-v2-video-list/
-        // Requesting every field available from the video/list endpoint.
         const fields = [
             "id",
             "create_time",

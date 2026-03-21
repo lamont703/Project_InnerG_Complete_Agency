@@ -45,7 +45,9 @@ export class SyncService {
         private ghlApiKey: string = "",
         private ghlLocationId: string = "",
         private googleClientId: string = "",
-        private googleClientSecret: string = ""
+        private googleClientSecret: string = "",
+        private tiktokClientId: string = "",
+        private tiktokClientSecret: string = ""
     ) {
         this.connectorRepo = new Repo.ConnectorRepo(adminClient)
         this.activityRepo = new Repo.ActivityRepo(adminClient)
@@ -128,7 +130,10 @@ export class SyncService {
                     result = await syncTikTok(
                         this.adminClient,
                         projectId,
-                        syncConfig as any
+                        syncConfig as any,
+                        this.tiktokClientId,
+                        this.tiktokClientSecret,
+                        connectionId
                     )
                     break
                 case "newsapi":
