@@ -111,12 +111,7 @@ export class MetricsService {
 
         if (error) throw error
 
-        const snapshots = data as RawMetricRecord[]
-        if (!snapshots || snapshots.length === 0) {
-            return DEMO_MOCK_METRICS
-        }
-
-        // Fetch Extra Stats from dedicated tables
+        // 1. Fetch Campaign / Project context first
         const { data: campaignData } = await this.supabase
             .from("campaigns")
             .select("project_id")
@@ -124,6 +119,22 @@ export class MetricsService {
             .single()
 
         const projectId = (campaignData as any)?.project_id || ""
+
+        const snapshots = (data as RawMetricRecord[]) || []
+        
+        // If NO snapshots AND NO project, fallback to demo.
+        // Otherwise, if we have a project, continue to fetch real stats (YouTube, TikTok, etc.)
+        if (snapshots.length === 0 && !projectId) {
+            return DEMO_MOCK_METRICS
+        }
+
+        const latest = snapshots[0] || {
+            total_signups: 0,
+            reader_app_installs: 0,
+            funnel_conversion_rate: 0,
+            social_reach_total: 0
+        }
+        const previous = snapshots[1] || latest
 
         // 1. YouTube Stats
         const { data: ytData } = await this.supabase
@@ -206,8 +217,12 @@ export class MetricsService {
             .eq("project_id", projectId) as any
         
         const ttVideos = ttVideoData || []
-        const ttViews = ttVideos.reduce((sum: number, v: any) => sum + (v.view_count || 0), 0)
-        const ttLikes = ttVideos.reduce((sum: number, v: any) => sum + (v.like_count || 0), 0)
+        
+        // Use Number() for numeric safety with BIGINT columns from Postgres
+        const ttViews = ttVideos.reduce((sum: number, v: any) => sum + Number(v.view_count || 0), 0)
+        const ttLikes = ttVideos.reduce((sum: number, v: any) => sum + Number(v.like_count || 0), 0)
+
+        console.log(`[MetricsService] getLatestMetrics: project=${projectId}, ttAccs=${ttAccData?.length || 0}, ttVideos=${ttVideos.length}, totalViews=${ttViews}`)
 
         // 7. Pixel Stats
         const [pixelHits, pixelVisitors] = await Promise.all([
@@ -222,9 +237,6 @@ export class MetricsService {
             v.full_name || 
             (v.identity_metadata && Object.keys(v.identity_metadata).length > 0)
         ).length
-
-        const latest = snapshots[0]
-        const previous = snapshots[1] || latest
 
         const metrics: Metric[] = [
             {
@@ -278,8 +290,8 @@ export class MetricsService {
             {
                 id: "social_reach",
                 label: "Total Social Reach",
-                value: ((latest.social_reach_total + ttViews) / 1000).toFixed(1) + "k",
-                growth: this.calcGrowth(latest.social_reach_total + ttViews, previous.social_reach_total + ttViews),
+                value: ((Number(latest.social_reach_total) + ttViews) / 1000).toFixed(1) + "k",
+                growth: this.calcGrowth(Number(latest.social_reach_total) + ttViews, Number(previous.social_reach_total) + ttViews),
                 icon: Zap,
                 color: "text-emerald-500 bg-emerald-500/10",
             },
@@ -447,7 +459,7 @@ export class MetricsService {
             {
                 id: "tiktok_views",
                 label: "TikTok Views",
-                value: (ttViews / 1000).toFixed(1) + "k",
+                value: ttViews.toLocaleString(),
                 growth: "+0%",
                 icon: Play,
                 color: "text-pink-500 bg-pink-500/10",
@@ -578,8 +590,12 @@ export class MetricsService {
 
         const ttAcc = ttAccData?.data?.[0] || { follower_count: 0, heart_count: 0, video_count: 0 }
         const ttVideos = ttVideoData?.data || []
-        const ttViews = ttVideos.reduce((sum: number, v: any) => sum + (v.view_count || 0), 0)
-        const ttLikes = ttVideos.reduce((sum: number, v: any) => sum + (v.like_count || 0), 0)
+        
+        // Use Number() for numeric safety with BIGINT columns from Postgres
+        const ttViews = ttVideos.reduce((sum: number, v: any) => sum + Number(v.view_count || 0), 0)
+        const ttLikes = ttVideos.reduce((sum: number, v: any) => sum + Number(v.like_count || 0), 0)
+
+        console.log(`[MetricsService] getProjectLevelMetrics: project=${projectId}, ttAcc=${ttAccData?.data?.length || 0}, ttVideos=${ttVideos.length}, totalViews=${ttViews}`)
 
 
         // 4. Instagram Stats
@@ -617,7 +633,7 @@ export class MetricsService {
             {
                 id: "social_reach",
                 label: "Omni-Channel Reach",
-                value: ((liPage.total_views + igReachTotal + ttViews) / 1000).toFixed(1) + "k",
+                value: ((Number(liPage.total_views) + Number(igReachTotal) + Number(ttViews)) / 1000).toFixed(1) + "k",
                 growth: "+0%",
                 icon: Zap,
                 color: "text-emerald-500 bg-emerald-500/10",
@@ -786,7 +802,7 @@ export class MetricsService {
             {
                 id: "tiktok_views",
                 label: "TikTok Views",
-                value: (ttViews / 1000).toFixed(1) + "k",
+                value: ttViews.toLocaleString(),
                 growth: "+0%",
                 icon: Play,
                 color: "text-pink-500 bg-pink-500/10",

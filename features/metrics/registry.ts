@@ -154,7 +154,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total impressions across all posts on the LinkedIn page.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "BarChart3"
     },
     {
@@ -163,7 +163,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Aggregated engagement rate across LinkedIn content architecture.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Zap"
     },
     {
@@ -172,7 +172,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total clicks on links and content within LinkedIn posts.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Target"
     },
     {
@@ -181,7 +181,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total likes aggregated across all posts in the LinkedIn content architecture.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "ThumbsUp"
     },
     {
@@ -190,7 +190,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total comments aggregated across all posts in the LinkedIn content architecture.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "MessageSquare"
     },
     {
@@ -199,7 +199,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total shares aggregated across all posts in the LinkedIn content architecture.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Share2"
     },
     {
@@ -208,7 +208,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Cumulative view count aggregated across all individual LinkedIn posts.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Eye"
     },
 
@@ -219,7 +219,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total follower count across connected TikTok profiles.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Music"
     },
     {
@@ -228,7 +228,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total video views across TikTok content architecture.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Play"
     },
     {
@@ -237,7 +237,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Aggregated heart count across all TikTok publications.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "ThumbsUp"
     },
 
@@ -248,7 +248,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total community size for connected Facebook Organization Pages.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Facebook"
     },
     {
@@ -257,7 +257,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total unique users who saw Facebook content in their feed.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "BarChart3"
     },
     {
@@ -266,7 +266,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total interactions (likes, shares, comments) on Facebook posts.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Zap"
     },
 
@@ -277,7 +277,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total follower count for Agency-managed Instagram profiles.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Instagram"
     },
     {
@@ -286,7 +286,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total unique accounts reached across Instagram feed and stories.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "BarChart3"
     },
     {
@@ -295,7 +295,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "The total number of times your content was on-screen.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Eye"
     },
     {
@@ -304,7 +304,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Aggregated interactions including likes, comments, and saves.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Zap"
     },
     {
@@ -313,7 +313,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total number of accounts that visited your Instagram profile.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "UserSquare2"
     },
     {
@@ -322,7 +322,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total taps on the link in your Instagram bio.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "ExternalLink"
     },
     {
@@ -331,7 +331,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Cumulative view count aggregated across all Instagram Reels and Videos.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Eye"
     },
     {
@@ -340,7 +340,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total likes, comments, and saves aggregated across all Instagram media.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Zap"
     },
     {
@@ -349,7 +349,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Verifies the current AI write-access and publishing health for Instagram.",
         category: 'operations',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "CheckCircle2"
     },
 
@@ -360,7 +360,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total follower count across connected Threads accounts.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "AtSign"
     },
     {
@@ -369,7 +369,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total likes aggregated across all Threads posts.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "ThumbsUp"
     },
 
@@ -380,7 +380,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total follower count across connected X/Twitter accounts.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Twitter"
     },
     {
@@ -389,7 +389,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total number of times X/Twitter posts were seen.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "BarChart3"
     },
     {
@@ -398,7 +398,7 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         description: "Total interactions recorded across the X content archive.",
         category: 'agency',
         type: 'kpi',
-        permissions: ['admin', 'super-admin'],
+        permissions: ['client', 'admin', 'super-admin'],
         iconName: "Zap"
     },
 
