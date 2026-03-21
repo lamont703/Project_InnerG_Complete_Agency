@@ -62,7 +62,9 @@ export default createHandler(async ({ adminClient, body, user, req }) => {
         Deno.env.get("GHL_API_KEY") ?? "",
         Deno.env.get("GHL_LOCATION_ID") ?? "",
         Deno.env.get("GOOGLE_CLIENT_ID") ?? "",
-        Deno.env.get("GOOGLE_CLIENT_SECRET") ?? ""
+        Deno.env.get("GOOGLE_CLIENT_SECRET") ?? "",
+        Deno.env.get("TIKTOK_PRODUCTION_CLIENT_KEY") ?? "",
+        Deno.env.get("TIKTOK_PRODUCTION_CLIENT_SECRET") ?? ""
     )
 
     const result = await service.sync(body.connection_id)
@@ -80,7 +82,9 @@ export default createHandler(async ({ adminClient, body, user, req }) => {
         "GHL_API_KEY", 
         "GHL_LOCATION_ID",
         "GOOGLE_CLIENT_ID",
-        "GOOGLE_CLIENT_SECRET"
+        "GOOGLE_CLIENT_SECRET",
+        "TIKTOK_PRODUCTION_CLIENT_KEY",
+        "TIKTOK_PRODUCTION_CLIENT_SECRET"
     ]
 })
 
