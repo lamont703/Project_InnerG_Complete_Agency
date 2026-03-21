@@ -236,14 +236,19 @@ export class MetricsService {
                 .select("element_name")
                 .eq("project_id", projectId)
                 .eq("event_name", "click")
-                .in("element_name", ["Sign In", "Buy XRP", "Join The Revolution", "Become a Trader", "Login", "LOGIN", "Create Account", "Claim My Free Month — Join Now"])
+                .in("element_name", ["Sign In", "Buy XRP", "Buy XRP ↗", "Join The Revolution", "Become a Trader", "Login", "LOGIN", "Create Account", "Claim My Free Month — Join Now"])
         ]) as any
 
         const totalHits = pixelHits.count || 0
         const visitors = pixelVisitors.data || []
         
         const pixelClicks = (clickBreakdown.data || []).reduce((acc: any, c: any) => {
-            if (c.element_name) acc[c.element_name] = (acc[c.element_name] || 0) + 1
+            if (c.element_name) {
+                let name = c.element_name;
+                if (name === "LOGIN") name = "Login";
+                if (name === "Buy XRP ↗") name = "Buy XRP";
+                acc[name] = (acc[name] || 0) + 1;
+            }
             return acc
         }, {} as Record<string, number>)
 
@@ -680,7 +685,7 @@ export class MetricsService {
                 .select("element_name")
                 .eq("project_id", projectId)
                 .eq("event_name", "click")
-                .in("element_name", ["Sign In", "Buy XRP", "Join The Revolution", "Become a Trader", "Login", "LOGIN", "Create Account", "Claim My Free Month — Join Now"])
+                .in("element_name", ["Sign In", "Buy XRP", "Buy XRP ↗", "Join The Revolution", "Become a Trader", "Login", "LOGIN", "Create Account", "Claim My Free Month — Join Now"])
         ]) as any
         
         const igAcc = igAccData?.data?.[0] || { follower_count: 0, media_count: 0 }
@@ -701,7 +706,12 @@ export class MetricsService {
          const visitors = pixelVisitors.data || []
          
          const pixelClicks = (clickBreakdown.data || []).reduce((acc: any, c: any) => {
-             if (c.element_name) acc[c.element_name] = (acc[c.element_name] || 0) + 1
+             if (c.element_name) {
+                 let name = c.element_name;
+                 if (name === "LOGIN") name = "Login";
+                 if (name === "Buy XRP ↗") name = "Buy XRP";
+                 acc[name] = (acc[name] || 0) + 1;
+             }
              return acc
          }, {} as Record<string, number>)
  

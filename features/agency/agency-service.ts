@@ -566,7 +566,7 @@ export class AgencyService {
                 .select("element_name")
                 .eq("project_id", project.id)
                 .eq("event_name", "click")
-                .in("element_name", ["Sign In", "Buy XRP", "Join The Revolution", "Become a Trader", "Login", "LOGIN", "Create Account", "Claim My Free Month — Join Now"])
+                .in("element_name", ["Sign In", "Buy XRP", "Buy XRP ↗", "Join The Revolution", "Become a Trader", "Login", "LOGIN", "Create Account", "Claim My Free Month — Join Now"])
         ])
 
         const totalHits = events.count || 0
@@ -575,7 +575,10 @@ export class AgencyService {
         // Count specific clicks
         const clicks = (clickData.data || []).reduce((acc: any, c: any) => {
             if (c.element_name) {
-                acc[c.element_name] = (acc[c.element_name] || 0) + 1
+                let name = c.element_name;
+                if (name === "LOGIN") name = "Login";
+                if (name === "Buy XRP ↗") name = "Buy XRP";
+                acc[name] = (acc[name] || 0) + 1
             }
             return acc
         }, {} as Record<string, number>)
@@ -627,7 +630,7 @@ export class AgencyService {
             pixel_unique_visitors: metrics.uniqueVisitors,
             pixel_identified_leads: metrics.identifiedCount,
             pixel_click_signin: metrics.clicks["Sign In"] || 0,
-            pixel_click_buy_xrp: metrics.clicks["Buy XRP"] || 0,
+            pixel_click_buy_xrp: (metrics.clicks["Buy XRP"] || 0) + (metrics.clicks["Buy XRP ↗"] || 0),
             pixel_click_join_revolution: metrics.clicks["Join The Revolution"] || 0,
             pixel_click_become_trader: metrics.clicks["Become a Trader"] || 0,
             pixel_click_login: (metrics.clicks["Login"] || 0) + (metrics.clicks["LOGIN"] || 0),
