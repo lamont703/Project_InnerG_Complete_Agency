@@ -110,6 +110,42 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         permissions: ['client-admin', 'client-viewer', 'super-admin'],
         iconName: "UserSearch"
     },
+    {
+        id: "pixel_click_signin",
+        label: "Sign In Clicks",
+        description: "Total clicks on the 'Sign In' button tracked via the Inner G Pixel.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "LogIn"
+    },
+    {
+        id: "pixel_click_buy_xrp",
+        label: "Buy XRP Clicks",
+        description: "Total clicks on the 'Buy XRP' link tracked via the Inner G Pixel.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "DollarSign"
+    },
+    {
+        id: "pixel_click_join_revolution",
+        label: "Join Revolution Clicks",
+        description: "Total clicks on 'Join The Revolution' tracked via the Inner G Pixel.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Users"
+    },
+    {
+        id: "pixel_click_become_trader",
+        label: "Become a Trader Clicks",
+        description: "Total clicks on 'Become a Trader' tracked via the Inner G Pixel.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "TrendingUp"
+    },
 
     // --- AGENCY SLOTS (Super Admin Only) ---
     {

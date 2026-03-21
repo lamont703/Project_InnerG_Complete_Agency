@@ -559,13 +559,27 @@ export class AgencyService {
 
         if (!project) return null
 
-        const [events, visitors] = await Promise.all([
+        const [events, visitors, clickData] = await Promise.all([
             this.supabase.from("pixel_events").select("*", { count: "exact", head: true }).eq("project_id", project.id),
-            this.supabase.from("pixel_visitors").select("*").eq("project_id", project.id)
+            this.supabase.from("pixel_visitors").select("*").eq("project_id", project.id),
+            this.supabase.from("pixel_events")
+                .select("element_name")
+                .eq("project_id", project.id)
+                .eq("event_name", "click")
+                .in("element_name", ["Sign In", "Buy XRP", "Join The Revolution", "Become a Trader"])
         ])
 
         const totalHits = events.count || 0
         const visitorData = visitors.data || []
+        
+        // Count specific clicks
+        const clicks = (clickData.data || []).reduce((acc: any, c: any) => {
+            if (c.element_name) {
+                acc[c.element_name] = (acc[c.element_name] || 0) + 1
+            }
+            return acc
+        }, {} as Record<string, number>)
+
         const identifiedCount = visitorData.filter((v: any) => 
             v.email || 
             v.full_name || 
@@ -575,7 +589,8 @@ export class AgencyService {
         return {
             totalHits,
             uniqueVisitors: visitorData.length,
-            identifiedCount
+            identifiedCount,
+            clicks
         }
     }
 
@@ -611,6 +626,10 @@ export class AgencyService {
             pixel_total_hits: metrics.totalHits,
             pixel_unique_visitors: metrics.uniqueVisitors,
             pixel_identified_leads: metrics.identifiedCount,
+            pixel_click_signin: metrics.clicks["Sign In"] || 0,
+            pixel_click_buy_xrp: metrics.clicks["Buy XRP"] || 0,
+            pixel_click_join_revolution: metrics.clicks["Join The Revolution"] || 0,
+            pixel_click_become_trader: metrics.clicks["Become a Trader"] || 0,
             last_pixel_sync: new Date().toISOString()
         }
 
