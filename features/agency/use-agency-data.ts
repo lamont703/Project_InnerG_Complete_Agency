@@ -22,6 +22,7 @@ export function useAgencyData() {
     const [instagramMetrics, setInstagramMetrics] = useState<any>(null)
     const [facebookMetrics, setFacebookMetrics] = useState<any>(null)
     const [tiktokMetrics, setTiktokMetrics] = useState<any>(null)
+    const [pixelMetrics, setPixelMetrics] = useState<any>(null)
 
 
     const [isLoading, setIsLoading] = useState(true)
@@ -50,14 +51,15 @@ export function useAgencyData() {
             setUserData(profile)
 
             // Parallel fetch for performance
-            const [projData, signalData, liMetrics, ytMetrics, igMetrics, fbMetrics, ttMetrics] = await Promise.all([
+            const [projData, signalData, liMetrics, ytMetrics, igMetrics, fbMetrics, ttMetrics, pixelMetricsData] = await Promise.all([
                 service.getActiveProjects(),
                 service.getAllAgencySignals(),
                 service.getLinkedInMetrics(),
                 service.getYouTubeMetrics(),
                 service.getInstagramMetrics(),
                 service.getFacebookMetrics(),
-                service.getTikTokMetrics()
+                service.getTikTokMetrics(),
+                service.getPixelMetrics()
             ])
 
 
@@ -69,6 +71,7 @@ export function useAgencyData() {
             setInstagramMetrics(igMetrics)
             setFacebookMetrics(fbMetrics)
             setTiktokMetrics(ttMetrics)
+            setPixelMetrics(pixelMetricsData)
 
 
             const draftData = await service.getSocialDrafts()
@@ -258,6 +261,20 @@ export function useAgencyData() {
         }
     }
 
+    const handleSyncPixel = async (projectSlug: string = "innergcomplete") => {
+        setIsSyncing(true)
+        try {
+            await service.syncPixelSnapshot(projectSlug)
+            await fetchData()
+            alert("Pixel data successfully synchronized to dashboard snapshots!")
+        } catch (err: any) {
+            console.error("Pixel Sync failed:", err)
+            alert("Pixel Sync failed: " + (err.message || "Unknown error"))
+        } finally {
+            setIsSyncing(false)
+        }
+    }
+
     useEffect(() => {
         fetchData()
 
@@ -292,6 +309,7 @@ export function useAgencyData() {
         instagramMetrics,
         facebookMetrics,
         tiktokMetrics,
+        pixelMetrics,
 
         isLoading,
         isSyncing,
@@ -307,6 +325,7 @@ export function useAgencyData() {
         deleteDraft: handleDeleteSocialDraft,
         generateImage: handleGenerateImage,
         generateVideo: handleGenerateVideo,
-        clearMedia: handleClearMedia
+        clearMedia: handleClearMedia,
+        syncPixel: handleSyncPixel
     }
 }

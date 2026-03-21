@@ -9,7 +9,8 @@ import {
     ExternalLink,
     AlertCircle,
     CheckCircle2,
-    Activity
+    Activity,
+    Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,9 +22,11 @@ interface PixelSetupProps {
     projectId: string
     projectName: string
     isAgency?: boolean
+    onSync?: () => Promise<void>
+    isSyncing?: boolean
 }
 
-export function PixelSetup({ projectId, projectName, isAgency = false }: PixelSetupProps) {
+export function PixelSetup({ projectId, projectName, isAgency = false, onSync, isSyncing = false }: PixelSetupProps) {
     const [copied, setCopied] = useState(false)
     const [lastHit, setLastHit] = useState<Date | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -194,9 +197,35 @@ export function PixelSetup({ projectId, projectName, isAgency = false }: PixelSe
                                         {lastHit ? "Receiving Data" : "Waiting for Ping..."}
                                     </span>
                                 </div>
-                                <Badge variant={lastHit ? "default" : "secondary"} className={`text-[10px] uppercase ${lastHit ? "bg-green-600 hover:bg-green-600" : ""}`}>
-                                    {lastHit ? "Active" : "Inactive"}
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-6 w-6 text-muted-foreground hover:text-primary"
+                                        onClick={async () => {
+                                            setIsLoading(true);
+                                            // Trigger a manual fetch
+                                            const { data } = await supabase
+                                                .from("pixel_events")
+                                                .select("created_at")
+                                                .eq("project_id", projectId)
+                                                .order("created_at", { ascending: false })
+                                                .limit(1)
+                                                .maybeSingle() as any
+                                            
+                                            if (data?.created_at) {
+                                                setLastHit(new Date(data.created_at))
+                                            }
+                                            setIsLoading(false);
+                                        }}
+                                        disabled={isLoading}
+                                    >
+                                        <Activity className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} />
+                                    </Button>
+                                    <Badge variant={lastHit ? "default" : "secondary"} className={`text-[10px] uppercase ${lastHit ? "bg-green-600 hover:bg-green-600" : ""}`}>
+                                        {lastHit ? "Active" : "Inactive"}
+                                    </Badge>
+                                </div>
                             </div>
                             
                             {lastHit && (
@@ -205,12 +234,28 @@ export function PixelSetup({ projectId, projectName, isAgency = false }: PixelSe
                                 </p>
                             )}
 
-                            <p className="text-xs text-muted-foreground italic leading-relaxed">
-                                {lastHit 
-                                    ? "Your Agentic Operating System is currently processing real-time visitor data from this project."
-                                    : "Once installed correctly, the status above will turn green as soon as a user visits any page on your site."
-                                }
-                            </p>
+                            <div className="flex flex-col gap-2">
+                                <p className="text-xs text-muted-foreground italic leading-relaxed">
+                                    {lastHit 
+                                        ? "Your Agentic Operating System is currently processing real-time visitor data from this project."
+                                        : "Once installed correctly, the status above will turn green as soon as a user visits any page on your site."
+                                    }
+                                </p>
+                                <Button 
+                                    className="w-full h-8 text-[10px] uppercase font-black tracking-widest"
+                                    onClick={onSync || (() => window.location.reload())}
+                                    disabled={isSyncing}
+                                >
+                                    {isSyncing ? (
+                                        <>
+                                            <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                                            Synchronizing...
+                                        </>
+                                    ) : (
+                                        "Force Sync to Dashboard"
+                                    )}
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>

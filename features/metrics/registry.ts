@@ -82,6 +82,35 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         iconName: "UserCheck"
     },
 
+    // --- PIXEL SLOTS (Website Intelligence) ---
+    {
+        id: "pixel_total_pings",
+        label: "Website Hits",
+        description: "Total page views and interactions tracked by the Inner G Pixel.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "Activity"
+    },
+    {
+        id: "pixel_unique_visitors",
+        label: "Unique Visitors",
+        description: "Total unique browsers identified by the tracking pixel.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "Users"
+    },
+    {
+        id: "pixel_identified_count",
+        label: "Identified Leads",
+        description: "Total visitors successfully stitched to a social identity or email address.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "UserSearch"
+    },
+
     // --- AGENCY SLOTS (Super Admin Only) ---
     {
         id: "active_architectures",

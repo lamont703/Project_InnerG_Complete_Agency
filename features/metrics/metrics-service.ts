@@ -19,7 +19,8 @@ import {
     ExternalLink,
     CheckCircle2,
     Music,
-    Heart
+    Heart,
+    UserSearch
 } from "lucide-react"
 
 
@@ -208,9 +209,22 @@ export class MetricsService {
         const ttViews = ttVideos.reduce((sum: number, v: any) => sum + (v.view_count || 0), 0)
         const ttLikes = ttVideos.reduce((sum: number, v: any) => sum + (v.like_count || 0), 0)
 
+        // 7. Pixel Stats
+        const [pixelHits, pixelVisitors] = await Promise.all([
+            this.supabase.from("pixel_events").select("*", { count: "exact", head: true }).eq("project_id", projectId),
+            this.supabase.from("pixel_visitors").select("*").eq("project_id", projectId)
+        ]) as any
+
+        const totalHits = pixelHits.count || 0
+        const visitors = pixelVisitors.data || []
+        const identifiedCount = visitors.filter((v: any) => 
+            v.email || 
+            v.full_name || 
+            (v.identity_metadata && Object.keys(v.identity_metadata).length > 0)
+        ).length
+
         const latest = snapshots[0]
         const previous = snapshots[1] || latest
-
 
         const metrics: Metric[] = [
             {
@@ -220,6 +234,30 @@ export class MetricsService {
                 growth: this.calcGrowth(latest.total_signups, previous.total_signups),
                 icon: Users,
                 color: "text-primary bg-primary/10",
+            },
+            {
+                id: "pixel_total_pings",
+                label: "Website Hits",
+                value: totalHits.toLocaleString(),
+                growth: "+100%",
+                icon: Activity,
+                color: "text-blue-500 bg-blue-500/10",
+            },
+            {
+                id: "pixel_unique_visitors",
+                label: "Unique Visitors",
+                value: visitors.length.toLocaleString(),
+                growth: "+100%",
+                icon: Users,
+                color: "text-indigo-500 bg-indigo-500/10",
+            },
+            {
+                id: "pixel_identified_count",
+                label: "Identified Leads",
+                value: identifiedCount.toLocaleString(),
+                growth: "+100%",
+                icon: UserSearch,
+                color: "text-emerald-500 bg-emerald-500/10",
             },
             {
                 id: "app_installs",
@@ -545,10 +583,12 @@ export class MetricsService {
 
 
         // 4. Instagram Stats
-        const [igAccData, igMediaData, snapshotData] = await Promise.all([
+        const [igAccData, igMediaData, snapshotData, pixelHits, pixelVisitors] = await Promise.all([
             this.supabase.from("instagram_accounts").select("follower_count, media_count").eq("project_id", projectId).limit(1),
             this.supabase.from("instagram_media").select("like_count, comments_count, reach, impressions, video_views, saves").eq("project_id", projectId),
-            this.supabase.from("project_metrics_snapshots").select("metrics_payload").eq("project_id", projectId).order("snapshot_date", { ascending: false }).limit(1).maybeSingle()
+            this.supabase.from("project_metrics_snapshots").select("metrics_payload").eq("project_id", projectId).order("snapshot_date", { ascending: false }).limit(1).maybeSingle(),
+            this.supabase.from("pixel_events").select("*", { count: "exact", head: true }).eq("project_id", projectId),
+            this.supabase.from("pixel_visitors").select("*").eq("project_id", projectId)
         ]) as any
         
         const igAcc = igAccData?.data?.[0] || { follower_count: 0, media_count: 0 }
@@ -563,6 +603,15 @@ export class MetricsService {
 
         const igProfileViews = (snapshotData as any)?.data?.metrics_payload?.instagram_profile_views || 0;
         const igWebsiteClicks = (snapshotData as any)?.data?.metrics_payload?.instagram_website_clicks || 0;
+
+        // Pixel aggregates
+        const totalHits = pixelHits.count || 0
+        const visitors = pixelVisitors.data || []
+        const identifiedCount = visitors.filter((v: any) => 
+            v.email || 
+            v.full_name || 
+            (v.identity_metadata && Object.keys(v.identity_metadata).length > 0)
+        ).length
 
         const metrics: Metric[] = [
             {
@@ -749,6 +798,30 @@ export class MetricsService {
                 growth: "+0%",
                 icon: Heart,
                 color: "text-rose-500 bg-rose-500/10",
+            },
+            {
+                id: "pixel_total_pings",
+                label: "Website Hits",
+                value: totalHits.toLocaleString(),
+                growth: "+100%", // Start at 100% since it's new
+                icon: Activity,
+                color: "text-blue-500 bg-blue-500/10",
+            },
+            {
+                id: "pixel_unique_visitors",
+                label: "Unique Visitors",
+                value: visitors.length.toLocaleString(),
+                growth: "+100%",
+                icon: Users,
+                color: "text-indigo-500 bg-indigo-500/10",
+            },
+            {
+                id: "pixel_identified_count",
+                label: "Identified Leads",
+                value: identifiedCount.toLocaleString(),
+                growth: "+100%",
+                icon: UserSearch,
+                color: "text-emerald-500 bg-emerald-500/10",
             }
         ]
 
