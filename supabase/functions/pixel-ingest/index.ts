@@ -37,9 +37,12 @@ export default createHandler(async ({ adminClient, body, req }) => {
     const city = headers["cf-ipcity"]
 
     logger.info(`Received pixel event: ${body.event} for project: ${body.projectId} | Visitor: ${body.visitorId}`)
-
     try {
-        // 2. Insert Raw Event
+        // 2. Extract Element Identification (Pluck from metadata)
+        const elementName = body.metadata?.ig_click || body.metadata?.id || body.metadata?.text
+        const elementType = body.metadata?.tag
+
+        // 3. Insert Raw Event
         const { error: eventError } = await adminClient
             .from("pixel_events")
             .insert({
@@ -53,7 +56,9 @@ export default createHandler(async ({ adminClient, body, req }) => {
                 ip_address: ipAddress,
                 country: country,
                 city: city,
-                metadata: body.metadata || {}
+                metadata: body.metadata || {},
+                element_name: elementName,
+                element_type: elementType
             })
 
         if (eventError) {
