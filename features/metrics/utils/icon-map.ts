@@ -27,7 +27,9 @@ import {
     TrendingUp,
     ShoppingBag,
     DollarSign,
-    Calculator
+    Calculator,
+    LogIn,
+    Users
 } from "lucide-react"
 
 export const SLOT_ICON_MAP: Record<string, any> = {
@@ -59,7 +61,9 @@ export const SLOT_ICON_MAP: Record<string, any> = {
     TrendingUp,
     ShoppingBag,
     DollarSign,
-    Calculator
+    Calculator,
+    LogIn,
+    Users
 }
 
 export function getIcon(name: string) {

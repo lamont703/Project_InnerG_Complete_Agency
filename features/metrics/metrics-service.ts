@@ -20,7 +20,10 @@ import {
     CheckCircle2,
     Music,
     Heart,
-    UserSearch
+    UserSearch,
+    LogIn,
+    TrendingUp,
+    DollarSign
 } from "lucide-react"
 
 
@@ -225,13 +228,24 @@ export class MetricsService {
         console.log(`[MetricsService] getLatestMetrics: project=${projectId}, ttAccs=${ttAccData?.length || 0}, ttVideos=${ttVideos.length}, totalViews=${ttViews}`)
 
         // 7. Pixel Stats
-        const [pixelHits, pixelVisitors] = await Promise.all([
+        const [pixelHits, pixelVisitors, clickBreakdown] = await Promise.all([
             this.supabase.from("pixel_events").select("*", { count: "exact", head: true }).eq("project_id", projectId),
-            this.supabase.from("pixel_visitors").select("*").eq("project_id", projectId)
+            this.supabase.from("pixel_visitors").select("*").eq("project_id", projectId),
+            this.supabase.from("pixel_events")
+                .select("element_name")
+                .eq("project_id", projectId)
+                .eq("event_name", "click")
+                .in("element_name", ["Sign In", "Buy XRP", "Join The Revolution", "Become a Trader"])
         ]) as any
 
         const totalHits = pixelHits.count || 0
         const visitors = pixelVisitors.data || []
+        
+        const pixelClicks = (clickBreakdown.data || []).reduce((acc: any, c: any) => {
+            if (c.element_name) acc[c.element_name] = (acc[c.element_name] || 0) + 1
+            return acc
+        }, {} as Record<string, number>)
+
         const identifiedCount = visitors.filter((v: any) => 
             v.email || 
             v.full_name || 
@@ -270,6 +284,102 @@ export class MetricsService {
                 growth: "+100%",
                 icon: UserSearch,
                 color: "text-emerald-500 bg-emerald-500/10",
+            },
+            {
+                id: "pixel_click_signin",
+                label: "Sign In Clicks",
+                value: (pixelClicks["Sign In"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: LogIn,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "pixel_click_buy_xrp",
+                label: "Buy XRP Clicks",
+                value: (pixelClicks["Buy XRP"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: DollarSign,
+                color: "text-emerald-400 bg-emerald-400/10",
+            },
+            {
+                id: "pixel_click_join_revolution",
+                label: "Join Revolution Clicks",
+                value: (pixelClicks["Join The Revolution"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: Users,
+                color: "text-indigo-400 bg-indigo-400/10",
+            },
+            {
+                id: "pixel_click_become_trader",
+                label: "Become a Trader Clicks",
+                value: (pixelClicks["Become a Trader"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: TrendingUp,
+                color: "text-orange-400 bg-orange-400/10",
+            },
+            {
+                id: "pixel_click_signin",
+                label: "Sign In Clicks",
+                value: (pixelClicks["Sign In"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: LogIn,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "pixel_click_buy_xrp",
+                label: "Buy XRP Clicks",
+                value: (pixelClicks["Buy XRP"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: DollarSign,
+                color: "text-emerald-400 bg-emerald-400/10",
+            },
+            {
+                id: "pixel_click_join_revolution",
+                label: "Join Revolution Clicks",
+                value: (pixelClicks["Join The Revolution"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: Users,
+                color: "text-indigo-400 bg-indigo-400/10",
+            },
+            {
+                id: "pixel_click_become_trader",
+                label: "Become a Trader Clicks",
+                value: (pixelClicks["Become a Trader"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: TrendingUp,
+                color: "text-orange-400 bg-orange-400/10",
+            },
+            {
+                id: "pixel_click_signin",
+                label: "Sign In Clicks",
+                value: (pixelClicks["Sign In"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: LogIn,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "pixel_click_buy_xrp",
+                label: "Buy XRP Clicks",
+                value: (pixelClicks["Buy XRP"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: DollarSign,
+                color: "text-emerald-400 bg-emerald-400/10",
+            },
+            {
+                id: "pixel_click_join_revolution",
+                label: "Join Revolution Clicks",
+                value: (pixelClicks["Join The Revolution"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: Users,
+                color: "text-indigo-400 bg-indigo-400/10",
+            },
+            {
+                id: "pixel_click_become_trader",
+                label: "Become a Trader Clicks",
+                value: (pixelClicks["Become a Trader"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: TrendingUp,
+                color: "text-orange-400 bg-orange-400/10",
             },
             {
                 id: "app_installs",
@@ -599,12 +709,17 @@ export class MetricsService {
 
 
         // 4. Instagram Stats
-        const [igAccData, igMediaData, snapshotData, pixelHits, pixelVisitors] = await Promise.all([
+        const [igAccData, igMediaData, snapshotData, pixelHits, pixelVisitors, clickBreakdown] = await Promise.all([
             this.supabase.from("instagram_accounts").select("follower_count, media_count").eq("project_id", projectId).limit(1),
             this.supabase.from("instagram_media").select("like_count, comments_count, reach, impressions, video_views, saves").eq("project_id", projectId),
             this.supabase.from("project_metrics_snapshots").select("metrics_payload").eq("project_id", projectId).order("snapshot_date", { ascending: false }).limit(1).maybeSingle(),
             this.supabase.from("pixel_events").select("*", { count: "exact", head: true }).eq("project_id", projectId),
-            this.supabase.from("pixel_visitors").select("*").eq("project_id", projectId)
+            this.supabase.from("pixel_visitors").select("*").eq("project_id", projectId),
+            this.supabase.from("pixel_events")
+                .select("element_name")
+                .eq("project_id", projectId)
+                .eq("event_name", "click")
+                .in("element_name", ["Sign In", "Buy XRP", "Join The Revolution", "Become a Trader"])
         ]) as any
         
         const igAcc = igAccData?.data?.[0] || { follower_count: 0, media_count: 0 }
@@ -619,15 +734,21 @@ export class MetricsService {
 
         const igProfileViews = (snapshotData as any)?.data?.metrics_payload?.instagram_profile_views || 0;
         const igWebsiteClicks = (snapshotData as any)?.data?.metrics_payload?.instagram_website_clicks || 0;
-
-        // Pixel aggregates
-        const totalHits = pixelHits.count || 0
-        const visitors = pixelVisitors.data || []
-        const identifiedCount = visitors.filter((v: any) => 
-            v.email || 
-            v.full_name || 
-            (v.identity_metadata && Object.keys(v.identity_metadata).length > 0)
-        ).length
+ 
+         // Pixel aggregates
+         const totalHits = pixelHits.count || 0
+         const visitors = pixelVisitors.data || []
+         
+         const pixelClicks = (clickBreakdown.data || []).reduce((acc: any, c: any) => {
+             if (c.element_name) acc[c.element_name] = (acc[c.element_name] || 0) + 1
+             return acc
+         }, {} as Record<string, number>)
+ 
+         const identifiedCount = visitors.filter((v: any) => 
+             v.email || 
+             v.full_name || 
+             (v.identity_metadata && Object.keys(v.identity_metadata).length > 0)
+         ).length
 
         const metrics: Metric[] = [
             {
@@ -838,7 +959,39 @@ export class MetricsService {
                 growth: "+100%",
                 icon: UserSearch,
                 color: "text-emerald-500 bg-emerald-500/10",
-            }
+            },
+            {
+                id: "pixel_click_signin",
+                label: "Sign In Clicks",
+                value: (pixelClicks["Sign In"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: LogIn,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "pixel_click_buy_xrp",
+                label: "Buy XRP Clicks",
+                value: (pixelClicks["Buy XRP"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: DollarSign,
+                color: "text-emerald-400 bg-emerald-400/10",
+            },
+            {
+                id: "pixel_click_join_revolution",
+                label: "Join Revolution Clicks",
+                value: (pixelClicks["Join The Revolution"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: Users,
+                color: "text-indigo-400 bg-indigo-400/10",
+            },
+            {
+                id: "pixel_click_become_trader",
+                label: "Become a Trader Clicks",
+                value: (pixelClicks["Become a Trader"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: TrendingUp,
+                color: "text-orange-400 bg-orange-400/10",
+            },
         ]
 
 
@@ -1095,6 +1248,38 @@ export const DEMO_MOCK_METRICS: Metric[] = [
         growth: "+12.5%",
         icon: ThumbsUp,
         color: "text-rose-500 bg-rose-500/10",
+    },
+    {
+        id: "pixel_click_signin",
+        label: "Sign In Clicks",
+        value: "42",
+        growth: "+100%",
+        icon: LogIn,
+        color: "text-blue-400 bg-blue-400/10",
+    },
+    {
+        id: "pixel_click_buy_xrp",
+        label: "Buy XRP Clicks",
+        value: "128",
+        growth: "+100%",
+        icon: DollarSign,
+        color: "text-emerald-400 bg-emerald-400/10",
+    },
+    {
+        id: "pixel_click_join_revolution",
+        label: "Join Revolution Clicks",
+        value: "85",
+        growth: "+100%",
+        icon: Users,
+        color: "text-indigo-400 bg-indigo-400/10",
+    },
+    {
+        id: "pixel_click_become_trader",
+        label: "Become a Trader Clicks",
+        value: "212",
+        growth: "+100%",
+        icon: TrendingUp,
+        color: "text-orange-400 bg-orange-400/10",
     },
 ]
 
