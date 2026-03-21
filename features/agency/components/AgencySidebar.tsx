@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import {
     Building2,
@@ -12,6 +12,7 @@ import {
     Layout,
     LogOut,
     X,
+    Zap
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -26,6 +27,7 @@ interface AgencySidebarProps {
  */
 export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
     const router = useRouter()
+    const pathname = usePathname()
 
     const handleSignOut = async () => {
         const supabase = createBrowserClient()
@@ -35,48 +37,54 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
     }
 
     const navItems = [
-        { href: "/select-portal", icon: Layout, label: "Switch Portal", active: false },
-        { href: "/dashboard/innergcomplete", icon: Building2, label: "Agency Command", active: true },
+        { href: "/select-portal", icon: Layout, label: "Switch Portal", active: pathname === "/select-portal" },
+        { href: "/dashboard/innergcomplete", icon: Building2, label: "Agency Command", active: pathname === "/dashboard/innergcomplete" },
     ]
 
     const adminItems = [
-        { href: "/admin/metrics", icon: BarChart3, label: "Metrics & Intelligence" },
-        { href: "/admin/token-usage", icon: Layout, label: "Token Usage" },
-        { href: "/admin/connectors", icon: Plug, label: "Connectors" },
-        { href: "/admin/knowledge", icon: BookOpen, label: "Knowledge CMS" },
-        { href: "/admin/settings", icon: Settings, label: "Agency Settings" },
+        { href: "/admin/metrics", icon: BarChart3, label: "Metrics & Intelligence", active: pathname === "/admin/metrics" },
+        { href: "/admin/token-usage", icon: Layout, label: "Token Usage", active: pathname === "/admin/token-usage" },
+        { href: "/admin/connectors", icon: Plug, label: "Connectors", active: pathname === "/admin/connectors" },
+        { href: "/admin/pixel", icon: Zap, label: "Agency Pixel", active: pathname === "/admin/pixel" },
+        { href: "/admin/knowledge", icon: BookOpen, label: "Knowledge CMS", active: pathname === "/admin/knowledge" },
+        { href: "/admin/settings", icon: Settings, label: "Agency Settings", active: pathname === "/admin/settings" },
     ]
 
     const SidebarContent = () => (
         <>
             <nav className="flex-1 px-4 space-y-2">
-                {navItems.map((item) => (
-                    <Link
-                        key={item.label}
-                        href={item.href}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${item.active
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-muted-foreground hover:bg-secondary/50"
-                            }`}
-                    >
-                        <item.icon className="h-5 w-5" />
-                        {item.label}
-                    </Link>
-                ))}
-
-                <div className="pt-6 mt-6 border-t border-border">
-                    <p className="px-4 mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">AGENCY ADMIN</p>
-                    {adminItems.map((item) => (
+                    {navItems.map((item) => (
                         <Link
                             key={item.label}
                             href={item.href}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-secondary/50 transition-colors"
+                            onClick={onClose}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${item.active
+                                ? "bg-primary/10 text-primary font-medium"
+                                : "text-muted-foreground hover:bg-secondary/50"
+                                }`}
                         >
                             <item.icon className="h-5 w-5" />
                             {item.label}
                         </Link>
                     ))}
-                </div>
+
+                    <div className="pt-6 mt-6 border-t border-border">
+                        <p className="px-4 mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">AGENCY ADMIN</p>
+                        {adminItems.map((item) => (
+                            <Link
+                                key={item.label}
+                                href={item.href}
+                                onClick={onClose}
+                                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${item.active
+                                    ? "bg-primary/10 text-primary font-medium"
+                                    : "text-muted-foreground hover:bg-secondary/50"
+                                    }`}
+                            >
+                                <item.icon className="h-5 w-5" />
+                                {item.label}
+                            </Link>
+                        ))}
+                    </div>
             </nav>
 
             <div className="p-6 border-t border-border mt-auto">

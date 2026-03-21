@@ -15,7 +15,8 @@ import {
     BookOpen,
     Bot,
     BarChart3,
-    Plug
+    Plug,
+    Zap
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -99,6 +100,12 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
             active: pathname === `/dashboard/${projectSlug}/knowledge`,
         },
         {
+            href: `/dashboard/${projectSlug}/pixel`,
+            icon: Zap,
+            label: "Connect Website",
+            active: pathname === `/dashboard/${projectSlug}/pixel`,
+        },
+        {
             href: "/select-portal",
             icon: Layout,
             label: "Switch Portal",
@@ -114,6 +121,7 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                         key={item.label}
                         href={item.href}
                         id={`sidebar-nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                        onClick={onClose}
                         className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${item.active
                             ? "bg-primary/10 text-primary font-medium"
                             : "text-muted-foreground hover:bg-secondary/50"

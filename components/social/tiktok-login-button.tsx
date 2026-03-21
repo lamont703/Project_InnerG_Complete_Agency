@@ -25,6 +25,7 @@ export function TikTokLoginButton({
 }: TikTokLoginButtonProps) {
     // null = not yet determined (before mount). Must NOT default to prod URL.
     const [redirectUri, setRedirectUri] = useState<string | null>(null)
+    const [visitorId, setVisitorId] = useState<string | null>(null)
 
     // TikTok App Config (Production)
     const clientKey = process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY || "awm639z2ylg9rhgo"
@@ -46,6 +47,12 @@ export function TikTokLoginButton({
                 : currentOrigin.replace(/^http:\/\//, "https://")
             
             setRedirectUri(`${finalOrigin}/tiktok/callback`)
+
+            // Capture the Pixel Visitor ID from localStorage
+            const storedVisitorId = localStorage.getItem("inner_g_visitor_id")
+            if (storedVisitorId) {
+                setVisitorId(storedVisitorId)
+            }
         }
     }, [])
 
@@ -89,8 +96,8 @@ export function TikTokLoginButton({
 
         // TikTok OAuth 2.0 Auth URL
         const csrfState = Math.random().toString(36).substring(7)
-        // We pack the projectId into the state so we know where to save the token on callback
-        const state = `${projectId}__${csrfState}`
+        // We pack the projectId and visitorId into the state so we know where to save the token on callback
+        const state = `${projectId}__${csrfState}${visitorId ? `__${visitorId}` : ""}`
         
         const oauthUrl = `https://www.tiktok.com/v2/auth/authorize/` +
             `?client_key=${clientKey}` +

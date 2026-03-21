@@ -42,6 +42,7 @@ export function InstagramLoginButton({
     // hardcoded production URL here, because if the user is on ngrok the dialog
     // would be launched with the wrong redirect_uri and the exchange will fail.
     const [redirectUri, setRedirectUri] = useState<string | null>(null)
+    const [visitorId, setVisitorId] = useState<string | null>(null)
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -52,6 +53,12 @@ export function InstagramLoginButton({
                 : currentOrigin.replace(/^http:\/\//, "https://")
             
             setRedirectUri(`${finalOrigin}/instagram/callback`)
+
+            // Capture the Pixel Visitor ID from localStorage
+            const storedVisitorId = localStorage.getItem("inner_g_visitor_id")
+            if (storedVisitorId) {
+                setVisitorId(storedVisitorId)
+            }
         }
     }, [])
 
@@ -85,11 +92,11 @@ export function InstagramLoginButton({
      */
     const oauthUrl = `https://www.instagram.com/oauth/authorize` +
         `?force_reauth=true` +
-        `&client_id=${appId}` +
+        `?&client_id=${appId}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}` +
         `&response_type=code` +
         `&scope=${encodeURIComponent(scopes.join(','))}` +
-        (projectId ? `&state=${projectId}__instagram` : "") +
+        (projectId ? `&state=${projectId}__instagram${visitorId ? `__${visitorId}` : ""}` : "") +
         (configId ? `&config_id=${configId}` : "")
 
     return (

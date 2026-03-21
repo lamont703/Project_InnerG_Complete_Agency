@@ -25,13 +25,14 @@ export default createHandler(async ({ adminClient, body, user }) => {
 
     if (!user) throw new Error("Authentication required")
 
-    // Parse project identifier from state (e.g. "projectId=UUID", "UUID__instagram", or just UUID/Slug)
-    let identifier = body.state || ""
-    if (identifier.startsWith("projectId=")) {
-        identifier = identifier.split("=")[1]
-    }
-    if (identifier.includes("__")) {
-        identifier = identifier.split("__")[0]
+    // Parse project identifier and optional visitorId from state 
+    // Format: "projectId", "projectId__type", or "projectId__type__visitorId"
+    const stateParts = (body.state || "").split("__")
+    let identifier = stateParts[0] || ""
+    const visitorId = stateParts[2] || null // Third part is our visitorId
+
+    if (visitorId) {
+        logger.info(`Identity Stitching: Detected visitorId ${visitorId} in OAuth state.`)
     }
 
     if (!identifier) throw new Error("Missing project identifier in OAuth state.")
@@ -108,6 +109,27 @@ export default createHandler(async ({ adminClient, body, user }) => {
                 media_count: igMe.media_count,
                 last_synced_at: new Date().toISOString()
             })
+
+            // Identity Stitching: Connect this Instagram user to the website visitor
+            if (visitorId) {
+                const { error: stitchError } = await adminClient
+                    .from("pixel_visitors")
+                    .upsert({
+                        visitor_id: visitorId,
+                        project_id: realProjectId,
+                        full_name: igMe.name,
+                        last_seen: new Date().toISOString(),
+                        identity_metadata: {
+                            instagram_id: igId,
+                            instagram_username: igUsername,
+                            p_url: igMe.profile_picture_url,
+                            source: "instagram_native_oauth"
+                        }
+                    }, { onConflict: "visitor_id, project_id" })
+                
+                if (stitchError) logger.error(`Identity Stitching failed: ${stitchError.message}`)
+                else logger.info(`Stitched Instagram @${igUsername} to visitor ${visitorId}`)
+            }
 
             // Save Instagram connection
             await adminClient.from("client_db_connections").upsert({
