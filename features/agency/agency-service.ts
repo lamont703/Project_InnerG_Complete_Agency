@@ -566,7 +566,7 @@ export class AgencyService {
                 .select("element_name")
                 .eq("project_id", project.id)
                 .eq("event_name", "click")
-                .in("element_name", ["Sign In", "Buy XRP", "Join The Revolution", "Become a Trader"])
+                .in("element_name", ["Sign In", "Buy XRP", "Join The Revolution", "Become a Trader", "Login", "LOGIN", "Create Account", "Claim My Free Month — Join Now"])
         ])
 
         const totalHits = events.count || 0
@@ -630,6 +630,9 @@ export class AgencyService {
             pixel_click_buy_xrp: metrics.clicks["Buy XRP"] || 0,
             pixel_click_join_revolution: metrics.clicks["Join The Revolution"] || 0,
             pixel_click_become_trader: metrics.clicks["Become a Trader"] || 0,
+            pixel_click_login: (metrics.clicks["Login"] || 0) + (metrics.clicks["LOGIN"] || 0),
+            pixel_click_create_account: metrics.clicks["Create Account"] || 0,
+            pixel_click_claim_free: metrics.clicks["Claim My Free Month — Join Now"] || 0,
             last_pixel_sync: new Date().toISOString()
         }
 

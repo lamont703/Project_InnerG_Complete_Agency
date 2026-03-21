@@ -23,7 +23,8 @@ import {
     UserSearch,
     LogIn,
     TrendingUp,
-    DollarSign
+    DollarSign,
+    UserPlus
 } from "lucide-react"
 
 
@@ -235,7 +236,7 @@ export class MetricsService {
                 .select("element_name")
                 .eq("project_id", projectId)
                 .eq("event_name", "click")
-                .in("element_name", ["Sign In", "Buy XRP", "Join The Revolution", "Become a Trader"])
+                .in("element_name", ["Sign In", "Buy XRP", "Join The Revolution", "Become a Trader", "Login", "LOGIN", "Create Account", "Claim My Free Month — Join Now"])
         ]) as any
 
         const totalHits = pixelHits.count || 0
@@ -318,67 +319,27 @@ export class MetricsService {
                 color: "text-orange-400 bg-orange-400/10",
             },
             {
-                id: "pixel_click_signin",
-                label: "Sign In Clicks",
-                value: (pixelClicks["Sign In"] || 0).toLocaleString(),
+                id: "pixel_click_login",
+                label: "Login Clicks",
+                value: ((pixelClicks["Login"] || 0) + (pixelClicks["LOGIN"] || 0)).toLocaleString(),
                 growth: "+100%",
                 icon: LogIn,
                 color: "text-blue-400 bg-blue-400/10",
             },
             {
-                id: "pixel_click_buy_xrp",
-                label: "Buy XRP Clicks",
-                value: (pixelClicks["Buy XRP"] || 0).toLocaleString(),
+                id: "pixel_click_create_account",
+                label: "Create Account Clicks",
+                value: (pixelClicks["Create Account"] || 0).toLocaleString(),
                 growth: "+100%",
-                icon: DollarSign,
+                icon: UserPlus,
                 color: "text-emerald-400 bg-emerald-400/10",
             },
             {
-                id: "pixel_click_join_revolution",
-                label: "Join Revolution Clicks",
-                value: (pixelClicks["Join The Revolution"] || 0).toLocaleString(),
+                id: "pixel_click_claim_free",
+                label: "Claim Free Month Clicks",
+                value: (pixelClicks["Claim My Free Month — Join Now"] || 0).toLocaleString(),
                 growth: "+100%",
-                icon: Users,
-                color: "text-indigo-400 bg-indigo-400/10",
-            },
-            {
-                id: "pixel_click_become_trader",
-                label: "Become a Trader Clicks",
-                value: (pixelClicks["Become a Trader"] || 0).toLocaleString(),
-                growth: "+100%",
-                icon: TrendingUp,
-                color: "text-orange-400 bg-orange-400/10",
-            },
-            {
-                id: "pixel_click_signin",
-                label: "Sign In Clicks",
-                value: (pixelClicks["Sign In"] || 0).toLocaleString(),
-                growth: "+100%",
-                icon: LogIn,
-                color: "text-blue-400 bg-blue-400/10",
-            },
-            {
-                id: "pixel_click_buy_xrp",
-                label: "Buy XRP Clicks",
-                value: (pixelClicks["Buy XRP"] || 0).toLocaleString(),
-                growth: "+100%",
-                icon: DollarSign,
-                color: "text-emerald-400 bg-emerald-400/10",
-            },
-            {
-                id: "pixel_click_join_revolution",
-                label: "Join Revolution Clicks",
-                value: (pixelClicks["Join The Revolution"] || 0).toLocaleString(),
-                growth: "+100%",
-                icon: Users,
-                color: "text-indigo-400 bg-indigo-400/10",
-            },
-            {
-                id: "pixel_click_become_trader",
-                label: "Become a Trader Clicks",
-                value: (pixelClicks["Become a Trader"] || 0).toLocaleString(),
-                growth: "+100%",
-                icon: TrendingUp,
+                icon: Zap,
                 color: "text-orange-400 bg-orange-400/10",
             },
             {
@@ -719,7 +680,7 @@ export class MetricsService {
                 .select("element_name")
                 .eq("project_id", projectId)
                 .eq("event_name", "click")
-                .in("element_name", ["Sign In", "Buy XRP", "Join The Revolution", "Become a Trader"])
+                .in("element_name", ["Sign In", "Buy XRP", "Join The Revolution", "Become a Trader", "Login", "LOGIN", "Create Account", "Claim My Free Month — Join Now"])
         ]) as any
         
         const igAcc = igAccData?.data?.[0] || { follower_count: 0, media_count: 0 }
@@ -990,6 +951,30 @@ export class MetricsService {
                 value: (pixelClicks["Become a Trader"] || 0).toLocaleString(),
                 growth: "+100%",
                 icon: TrendingUp,
+                color: "text-orange-400 bg-orange-400/10",
+            },
+            {
+                id: "pixel_click_login",
+                label: "Login Clicks",
+                value: ((pixelClicks["Login"] || 0) + (pixelClicks["LOGIN"] || 0)).toLocaleString(),
+                growth: "+100%",
+                icon: LogIn,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "pixel_click_create_account",
+                label: "Create Account Clicks",
+                value: (pixelClicks["Create Account"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: UserPlus,
+                color: "text-emerald-400 bg-emerald-400/10",
+            },
+            {
+                id: "pixel_click_claim_free",
+                label: "Claim Free Month Clicks",
+                value: (pixelClicks["Claim My Free Month — Join Now"] || 0).toLocaleString(),
+                growth: "+100%",
+                icon: Zap,
                 color: "text-orange-400 bg-orange-400/10",
             },
         ]
@@ -1279,6 +1264,30 @@ export const DEMO_MOCK_METRICS: Metric[] = [
         value: "212",
         growth: "+100%",
         icon: TrendingUp,
+        color: "text-orange-400 bg-orange-400/10",
+    },
+    {
+        id: "pixel_click_login",
+        label: "Login Clicks",
+        value: "42",
+        growth: "+100%",
+        icon: LogIn,
+        color: "text-blue-400 bg-blue-400/10",
+    },
+    {
+        id: "pixel_click_create_account",
+        label: "Create Account Clicks",
+        value: "128",
+        growth: "+100%",
+        icon: UserPlus,
+        color: "text-emerald-400 bg-emerald-400/10",
+    },
+    {
+        id: "pixel_click_claim_free",
+        label: "Claim Free Month Clicks",
+        value: "85",
+        growth: "+100%",
+        icon: Zap,
         color: "text-orange-400 bg-orange-400/10",
     },
 ]
