@@ -68,6 +68,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
 }
 
+import Script from 'next/script'
 import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { createServerClient } from "@/lib/supabase/server"
@@ -114,6 +115,15 @@ export default async function RootLayout({
             />
             {children}
           </FacebookSDK>
+
+          {/* Inner G Complete Agency Pixel */}
+          <Script 
+            id="inner-g-pixel"
+            src="https://senkwhdxgtypcrtoggyf.supabase.co/storage/v1/object/public/pixel/inner-g-pixel.js"
+            data-client-id="00000000-0000-0000-0000-000000000001"
+            strategy="afterInteractive"
+          />
+
           <Toaster position="top-right" richColors closeButton />
         </ThemeProvider>
       </body>

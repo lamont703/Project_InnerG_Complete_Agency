@@ -18,9 +18,10 @@ export default createHandler(async ({ adminClient, body, user }) => {
 
     if (!user) throw new Error("Authentication required")
 
-    // Parse project identifier from state (projectId__csrf)
+    // Parse project identifier and optional visitorId from state (projectId__csrf__visitorId)
     const stateParts = body.state?.split("__") || []
     const identifier = stateParts[0]
+    const visitorId = stateParts[2] || null
 
     if (!identifier) throw new Error("Missing project identifier in OAuth state.")
 
@@ -57,7 +58,28 @@ export default createHandler(async ({ adminClient, body, user }) => {
         const profile = await tiktok.getUserInfo(tokenData.access_token)
         logger.info(`Authenticated as TikTok user: ${profile.display_name} (${profile.open_id})`)
 
-        // 4. Save TikTok Connection
+        // 4. Identity Stitching: Connect this TikTok user to the website visitor
+        if (visitorId) {
+            const { error: stitchErr } = await adminClient
+                .from("pixel_visitors")
+                .upsert({
+                    visitor_id: visitorId,
+                    project_id: realProjectId,
+                    full_name: profile.display_name,
+                    last_seen: new Date().toISOString(),
+                    identity_metadata: {
+                        tiktok_open_id: profile.open_id,
+                        tiktok_display_name: profile.display_name,
+                        p_url: profile.avatar_url,
+                        source: "tiktok_oauth_v2"
+                    }
+                }, { onConflict: "visitor_id, project_id" })
+            
+            if (stitchErr) logger.error(`TikTok Identity Stitching failed: ${stitchErr.message}`)
+            else logger.info(`Stitched TikTok @${profile.display_name} to visitor ${visitorId}`)
+        }
+
+        // 5. Save TikTok Connection
         const { error: tiktokErr } = await adminClient
             .from("client_db_connections")
             .upsert({
