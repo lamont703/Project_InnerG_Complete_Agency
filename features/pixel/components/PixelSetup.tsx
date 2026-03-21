@@ -51,7 +51,7 @@ export function PixelSetup({ projectId, projectName, isAgency = false }: PixelSe
                 .eq("project_id", projectId)
                 .order("created_at", { ascending: false })
                 .limit(1)
-                .single() as any
+                .maybeSingle() as any
 
             if (data?.created_at) {
                 setLastHit(new Date(data.created_at))
