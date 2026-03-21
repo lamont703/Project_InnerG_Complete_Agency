@@ -119,7 +119,7 @@ export default async function RootLayout({
           {/* Inner G Complete Agency Pixel */}
           <Script 
             id="inner-g-pixel"
-            src="https://senkwhdxgtypcrtoggyf.supabase.co/storage/v1/object/public/pixel/inner-g-pixel.js"
+            src="https://senkwhdxgtypcrtoggyf.supabase.co/storage/v1/object/public/pixel/inner-g-pixel-v2.js"
             data-client-id="00000000-0000-0000-0000-000000000001"
             strategy="afterInteractive"
           />
