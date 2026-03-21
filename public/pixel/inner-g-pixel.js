@@ -17,7 +17,9 @@
 
     // 1. Initial configuration
     const SCRIPT_ID = "inner-g-pixel";
-    const API_URL = "https://senkwhdxgtypcrtoggyf.supabase.co/functions/v1/pixel-ingest"; 
+    var API_URL = "https://senkwhdxgtypcrtoggyf.supabase.co/functions/v1/pixel-ingest";
+    var API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlbmt3aGR4Z3R5cGNydG9nZ3lmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDE1MjQsImV4cCI6MjA4Nzk3NzUyNH0._ZQTmLzfR2sWdREeZk1hyGgdREMDUv345F0t2q3p16g";
+ 
     const LOCAL_STORAGE_KEY = "inner_g_visitor_id";
 
     // 2. Identify Project ID from the script tag
@@ -54,19 +56,20 @@
             timestamp: new Date().toISOString()
         };
 
-        // Use beacon for reliability if available, fallback to fetch
-        if (navigator.sendBeacon) {
-            const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
-            navigator.sendBeacon(API_URL, blob);
-        } else {
-            fetch(API_URL, {
-                method: "POST",
-                mode: "cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-                keepalive: true
-            }).catch(() => {}); // Fail silently
-        }
+        // We use fetch with keepalive as it supports headers (required for Supabase apikey)
+        fetch(API_URL, {
+            method: "POST",
+            mode: "cors",
+            headers: { 
+                "Content-Type": "application/json",
+                "apikey": API_KEY,
+                "Authorization": "Bearer " + API_KEY
+            },
+            body: JSON.stringify(payload),
+            keepalive: true
+        }).catch(function(e) {
+            console.error("[Inner G Pixel] failed to send event: ", e);
+        });
     }
 
     // 5. Expose Global API for manual tracking
@@ -85,12 +88,18 @@
             
             // Send to ingest specifically for identity upsert
             fetch(API_URL, {
-                method: "POST",
-                mode: "cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-                keepalive: true
-            }).catch(() => {});
+            method: "POST",
+            mode: "cors",
+            headers: { 
+                "Content-Type": "application/json",
+                "apikey": API_KEY,
+                "Authorization": "Bearer " + API_KEY
+            },
+            body: JSON.stringify(payload),
+            keepalive: true
+        }).catch(function(e) {
+            console.error("[inner-g-pixel] failed to send event: ", e);
+        });
         }
     };
 
