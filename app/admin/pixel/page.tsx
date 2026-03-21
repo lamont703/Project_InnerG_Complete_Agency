@@ -32,7 +32,7 @@ function AgencyPixelPageContent() {
                 } else {
                     // Fallback to a default if the project isn't found
                     setProjectData({
-                        id: "agency-global-innerg",
+                        id: "00000000-0000-0000-0000-000000000001",
                         name: "Inner G Agency"
                     })
                 }
