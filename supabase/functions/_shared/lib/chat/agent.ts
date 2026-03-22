@@ -11,11 +11,11 @@
  */
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { Logger, generateContent, embedText, GEMINI_MODELS, RagService } from "../_shared/lib/index.ts"
-import { buildSystemPrompt, RESPONSE_SCHEMA } from "./prompt-engineer.ts"
-import { parseAiResponse, persistSignal, persistTicket, logSignalActivity } from "./signal-processor.ts"
+import { Logger, generateContent, embedText, GEMINI_MODELS, RagService } from "../index.ts"
+import { buildSystemPrompt, RESPONSE_SCHEMA } from "./prompts.ts"
+import { parseAiResponse, persistSignal, persistTicket, logSignalActivity } from "./signals.ts"
 import { CONFIG_TO_SOURCE_TABLES, ChatFunctionResponse } from "./types.ts"
-import { createDefaultRegistry } from "../_shared/lib/tools/registry.ts"
+import { createDefaultRegistry } from "../tools/registry.ts"
 
 export interface ChatServiceInput {
     project_id: string
@@ -23,7 +23,8 @@ export interface ChatServiceInput {
     model?: string
     session_id?: string | null
     userId: string
-    authHeader: string
+    authHeader?: string
+    metadata?: any
 }
 
 const AGENCY_PROJECT_ID = "00000000-0000-0000-0000-000000000001"
@@ -256,7 +257,7 @@ export class ChatService {
             this.logger.info("Creating new chat session")
             const { data: session, error: sessionErr } = await this.adminClient
                 .from("chat_sessions")
-                .insert({ project_id, user_id: userId, model_used: model })
+                .insert({ project_id, user_id: userId, model_used: model, metadata: input.metadata || {} })
                 .select("id")
                 .single()
 

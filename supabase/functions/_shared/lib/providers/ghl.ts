@@ -95,6 +95,20 @@ export class GhlProvider {
   }
 
   /**
+   * Searches for contacts by email, phone, or name.
+   */
+  async getContactByQuery(locationId: string, query: string) {
+    const response = await fetch(
+      `${GHL_API_BASE}/contacts/?locationId=${locationId}&query=${encodeURIComponent(query)}`,
+      { headers: this.headers },
+    );
+    if (!response.ok)
+      throw new Error(`GHL_SEARCH_CONTACT_ERROR: ${await response.text()}`);
+    const data = await response.json();
+    return data.contacts || [];
+  }
+
+  /**
    * Lists pipelines for a location.
    */
   async listPipelines(locationId: string) {
@@ -229,6 +243,33 @@ export class GhlProvider {
     }
 
     if (!response.ok) throw new Error(`GHL_SOCIAL_STATS_ERROR: ${await response.text()}`);
+    return await response.json();
+  }
+
+  /**
+   * Sends an outbound SMS/email/social message via GHL conversations.
+   * Requires v2 API capabilities.
+   */
+  async sendMessage(params: {
+    contactId: string;
+    type: "SMS" | "Email" | "WhatsApp" | "Facebook" | "Instagram";
+    message: string;
+    subject?: string;
+  }) {
+    const response = await fetch(`${GHL_API_BASE}/conversations/messages`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify({
+        type: params.type,
+        contactId: params.contactId,
+        message: params.message,
+        subject: params.subject,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`GHL_SEND_MESSAGE_ERROR: ${await response.text()}`);
+    }
     return await response.json();
   }
 }
