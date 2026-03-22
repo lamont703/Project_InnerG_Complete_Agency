@@ -26,6 +26,8 @@ export { TikTokProvider } from "./providers/tiktok.ts"
 
 // Shared Business Logic Services
 export * from "./services/invite.ts"
+export * from "./chat/agent.ts"
+export * from "./chat/agency-agent.ts"
 
 // Tool Registry System
 export * from "./tools/index.ts"

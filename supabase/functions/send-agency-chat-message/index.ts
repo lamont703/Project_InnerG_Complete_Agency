@@ -6,8 +6,7 @@
  * Trigger: HTTP POST from the Agency Agent chat UI
  */
 
-import { createHandler, z, Logger, okResponse } from "../_shared/lib/index.ts"
-import { AgencyChatService } from "./service.ts"
+import { createHandler, z, Logger, okResponse, AgencyChatService } from "../_shared/lib/index.ts"
 
 const AgencyChatSchema = z.object({
     message: z.string().min(1, "Message cannot be empty"),

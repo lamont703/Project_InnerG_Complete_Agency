@@ -10,10 +10,10 @@
  */
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { Logger, embedText, generateContent, GEMINI_MODELS, Repo, TicketWorkflow } from "../_shared/lib/index.ts"
-import { buildAgencySystemPrompt, AGENCY_RESPONSE_SCHEMA } from "./prompt-engineer.ts"
-import { parseAiResponse, persistSignal, persistTicket, logSignalActivity } from "../send-chat-message/signal-processor.ts"
-import { createDefaultRegistry } from "../_shared/lib/tools/registry.ts"
+import { Logger, embedText, generateContent, GEMINI_MODELS, Repo, TicketWorkflow } from "../index.ts"
+import { buildAgencySystemPrompt, AGENCY_RESPONSE_SCHEMA } from "./agency-prompts.ts"
+import { parseAiResponse, persistSignal, persistTicket, logSignalActivity } from "./signals.ts"
+import { createDefaultRegistry } from "../tools/registry.ts"
 
 // Agency sentinel project ID — all agency-level sessions are stored here
 const AGENCY_PROJECT_SENTINEL = "00000000-0000-0000-0000-000000000001"
@@ -24,6 +24,7 @@ export interface AgencyChatInput {
     model?: string
     target_project_id?: string | null
     userId: string
+    metadata?: any
 }
 
 export interface AgencyChatResult {
@@ -165,6 +166,7 @@ export class AgencyChatService {
                     project_id: AGENCY_PROJECT_SENTINEL,
                     user_id: userId,
                     model_used: model,
+                    metadata: input.metadata || {}
                 })
                 .select("id")
                 .single()

@@ -6,8 +6,7 @@
  * Trigger: HTTP POST from the client-facing Growth Assistant chat UI
  */
 
-import { createHandler, z, Logger, okResponse } from "../_shared/lib/index.ts"
-import { ChatService } from "./service.ts"
+import { createHandler, z, Logger, okResponse, ChatService } from "../_shared/lib/index.ts"
 
 const ChatMessageSchema = z.object({
     project_id: z.string().uuid(),

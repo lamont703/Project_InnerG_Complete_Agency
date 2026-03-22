@@ -10,7 +10,7 @@
  * ─────────────────────────────────────────────────────────
  */
 
-import { SignalPayload } from "../_shared/lib/types/index.ts"
+import { SignalPayload } from "../types/index.ts"
 
 // ─── Request ──────────────────────────────────────────────
 
