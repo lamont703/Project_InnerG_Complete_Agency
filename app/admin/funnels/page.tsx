@@ -1,181 +1,21 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Loader2, Layout, Target, Zap, Filter, Compass, TrendingUp, Sparkles, Plus, Youtube, Music, Linkedin, Instagram, Facebook, Twitter, AtSign, Globe } from "lucide-react"
+import { Loader2, TrendingUp, Target, Filter, Sparkles, Plus } from "lucide-react"
 import { AgencyHeader } from "@/features/agency/components/AgencyHeader"
 import { useAdminSidebar } from "@/features/agency/context/AdminSidebarContext"
 import { useAgencyData } from "@/features/agency/use-agency-data"
-import { SankeyFunnel } from "@/features/agency/components/SankeyFunnel"
 import { Button } from "@/components/ui/button"
+import { OmniChannelStream } from "@/features/funnels/components/OmniChannelStream"
 
 export default function FunnelVisualizationPage() {
     const { 
         userData, 
         isLoading, 
-        projects,
-        youtubeMetrics,
-        tiktokMetrics,
-        linkedinMetrics,
-        instagramMetrics,
-        facebookMetrics,
-        pixelMetrics
     } = useAgencyData()
     const { isSidebarOpen, setIsSidebarOpen } = useAdminSidebar()
     const [currentTime, setCurrentTime] = useState(new Date())
     const [mounted, setMounted] = useState(false)
-
-    // Calculate Dynamic Funnel Data (8 Sources: 2 Columns of 4)
-    const funnelData = {
-        sources: [
-            { 
-                id: 'yt', 
-                icon: Youtube, 
-                label: "YouTube", 
-                value: (youtubeMetrics?.views || 0) > 1000 ? (youtubeMetrics.views / 1000).toFixed(1) + "k" : (youtubeMetrics?.views || 0).toString(),
-                rawValue: youtubeMetrics?.views || 0,
-                subValue: "Channel Views", 
-                color: "bg-red-500", 
-                glowColor: "rgba(239,68,68,0.5)", 
-                hex: "#EF4444" 
-            },
-            { 
-                id: 'tt', 
-                icon: Music, 
-                label: "TikTok", 
-                value: (tiktokMetrics?.totalViews || 0) > 1000 ? (tiktokMetrics.totalViews / 1000).toFixed(1) + "k" : (tiktokMetrics?.totalViews || 0).toString(),
-                rawValue: tiktokMetrics?.totalViews || 0,
-                subValue: "Video Reach", 
-                color: "bg-pink-500", 
-                glowColor: "rgba(236,72,153,0.5)", 
-                hex: "#EC4899" 
-            },
-            { 
-                id: 'li', 
-                icon: Linkedin, 
-                label: "LinkedIn", 
-                value: (linkedinMetrics?.views || 0) > 1000 ? (linkedinMetrics.views / 1000).toFixed(1) + "k" : (linkedinMetrics?.views || 0).toString(),
-                rawValue: linkedinMetrics?.views || 0,
-                subValue: "Post Reach", 
-                color: "bg-blue-500", 
-                glowColor: "rgba(59,130,246,0.5)", 
-                hex: "#3B82F6" 
-            },
-            { 
-                id: 'ig', 
-                icon: Instagram, 
-                label: "Instagram", 
-                value: (instagramMetrics?.reach || 0) > 1000 ? (instagramMetrics.reach / 1000).toFixed(1) + "k" : (instagramMetrics?.reach || 0).toString(),
-                rawValue: instagramMetrics?.reach || 0,
-                subValue: "Direct Reach", 
-                color: "bg-purple-500", 
-                glowColor: "rgba(168,85,247,0.5)", 
-                hex: "#A855F7" 
-            },
-            { 
-                id: 'fb', 
-                icon: Facebook, 
-                label: "Facebook", 
-                value: (facebookMetrics?.reach || 0) > 1000 ? (facebookMetrics.reach / 1000).toFixed(1) + "k" : (facebookMetrics?.reach || 0).toString(),
-                rawValue: facebookMetrics?.reach || 0,
-                subValue: "Organic Flow", 
-                color: "bg-blue-600", 
-                glowColor: "rgba(37,99,235,0.5)", 
-                hex: "#2563EB" 
-            },
-            { 
-                id: 'tw', 
-                icon: Twitter, 
-                label: "X / Twitter", 
-                value: "0", 
-                rawValue: 0, 
-                subValue: "Pulse Traffic", 
-                color: "bg-zinc-800", 
-                glowColor: "rgba(161,161,170,0.5)", 
-                hex: "#A1A1AA" 
-            },
-            { 
-                id: 'th', 
-                icon: AtSign, 
-                label: "Threads", 
-                value: "0", 
-                rawValue: 0, 
-                subValue: "Social Threads", 
-                color: "bg-zinc-100", 
-                glowColor: "rgba(255,255,255,0.3)", 
-                hex: "#FFFFFF" 
-            },
-        ],
-        engagement: {
-            label: "Engagement Pool",
-            value: (
-                (youtubeMetrics?.likes || 0) + 
-                (linkedinMetrics?.likes || 0) + 
-                (instagramMetrics?.likes || 0) + 
-                (tiktokMetrics?.videoLikes || 0) +
-                (youtubeMetrics?.comments || 0) + 
-                (linkedinMetrics?.comments || 0) + 
-                (instagramMetrics?.comments || 0) + 
-                (tiktokMetrics?.videoComments || 0) +
-                (linkedinMetrics?.shares || 0) +
-                (tiktokMetrics?.videoShares || 0) +
-                (pixelMetrics?.uniqueVisitors || 0)
-            ).toLocaleString(),
-            rawValue: (
-                (youtubeMetrics?.likes || 0) + 
-                (linkedinMetrics?.likes || 0) + 
-                (instagramMetrics?.likes || 0) + 
-                (tiktokMetrics?.videoLikes || 0) +
-                (youtubeMetrics?.comments || 0) + 
-                (linkedinMetrics?.comments || 0) + 
-                (instagramMetrics?.comments || 0) + 
-                (tiktokMetrics?.videoComments || 0) +
-                (linkedinMetrics?.shares || 0) +
-                (tiktokMetrics?.videoShares || 0) +
-                (pixelMetrics?.uniqueVisitors || 0)
-            ),
-            subValue: "Intention Signal Filter",
-            metrics: [
-                { 
-                    label: "Total Hearts/Likes", 
-                    value: ((youtubeMetrics?.likes || 0) + (linkedinMetrics?.likes || 0) + (instagramMetrics?.likes || 0) + (tiktokMetrics?.videoLikes || 0) + (facebookMetrics?.likes || 0)).toLocaleString() 
-                },
-                { 
-                    label: "Conversation (Comments)", 
-                    value: ((youtubeMetrics?.comments || 0) + (linkedinMetrics?.comments || 0) + (instagramMetrics?.comments || 0) + (tiktokMetrics?.videoComments || 0) + (facebookMetrics?.comments || 0)).toLocaleString() 
-                },
-                { 
-                    label: "Share Velocity", 
-                    value: ((linkedinMetrics?.shares || 0) + (tiktokMetrics?.videoShares || 0)).toLocaleString() 
-                },
-                { 
-                    label: "Pixel Unique Visitors", 
-                    value: (pixelMetrics?.uniqueVisitors || 0).toLocaleString() 
-                }
-            ]
-        },
-        conversion: {
-            label: "Conversion Hub",
-            value: (
-                (pixelMetrics?.clicks["Go To Step #2"] || 0) + 
-                (pixelMetrics?.clicks["Request Growth Audit"] || 0) +
-                (pixelMetrics?.clicks["Schedule a Growth Audit"] || 0) +
-                (pixelMetrics?.clicks["button-CLEbFRjXN7_btn"] || 0)
-            ).toString(),
-            rawValue: (
-                (pixelMetrics?.clicks["Go To Step #2"] || 0) + 
-                (pixelMetrics?.clicks["Request Growth Audit"] || 0) +
-                (pixelMetrics?.clicks["Schedule a Growth Audit"] || 0) +
-                (pixelMetrics?.clicks["button-CLEbFRjXN7_btn"] || 0)
-            ),
-            subValue: "Revenue Qualified Output",
-            metrics: [
-                { label: "Step #2 Clicks", value: (pixelMetrics?.clicks["Go To Step #2"] || 0).toString() },
-                { label: "Request Audit", value: (pixelMetrics?.clicks["Request Growth Audit"] || 0).toString() },
-                { label: "Schedule Audit", value: (pixelMetrics?.clicks["Schedule a Growth Audit"] || 0).toString() },
-                { label: "School Logins", value: (pixelMetrics?.clicks["button-CLEbFRjXN7_btn"] || 0).toString() }
-            ]
-        }
-    }
 
     useEffect(() => {
         setMounted(true)
@@ -243,29 +83,10 @@ export default function FunnelVisualizationPage() {
                     </div>
 
                     {/* The Sankey Component */}
-                    <section className="relative p-10 rounded-[3rem] border border-white/10 bg-black/40 backdrop-blur-3xl overflow-hidden shadow-2xl">
-                         <div className="absolute top-6 left-10 flex items-center gap-3 z-20">
-                            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Live Telemetry Rendering Engine</span>
-                         </div>
-
-                         <div className="absolute top-6 right-10 flex items-center gap-6 z-20">
-                            <div className="flex flex-col items-end">
-                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Global Reach</span>
-                                <span className="text-sm font-black text-white tracking-tight">
-                                    {((youtubeMetrics?.views || 0) + (tiktokMetrics?.totalViews || 0) + (linkedinMetrics?.views || 0) + (instagramMetrics?.reach || 0)).toLocaleString()}
-                                </span>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <span className="text-[9px] font-bold text-white/50 uppercase tracking-widest">Efficiency index</span>
-                                <span className="text-sm font-black text-emerald-400 tracking-tight">8.5 / 10</span>
-                            </div>
-                         </div>
-
-                         <div className="relative min-h-[600px] flex items-center justify-center">
-                            <SankeyFunnel data={funnelData} />
-                         </div>
-                    </section>
+                    <OmniChannelStream 
+                        projectSlug="innergcomplete" 
+                        title="Global Conversion Intelligence" 
+                    />
 
                     {/* Analysis Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

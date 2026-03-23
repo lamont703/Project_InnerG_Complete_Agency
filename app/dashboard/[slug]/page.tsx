@@ -16,6 +16,7 @@ import { DashboardMobileNav, type MobileTab } from "@/components/layout/dashboar
 
 import { MobileNavProvider, useMobileNav } from "@/features/agency/context/MobileNavContext"
 
+
 function DashboardContent() {
     const params = useParams()
     const slug = (params?.slug as string) ?? "agency-global"
@@ -91,7 +92,7 @@ function DashboardPageContent() {
         return () => clearInterval(timer)
     }, [slug])
 
-    const { activeTab, setActiveTab } = useMobileNav()
+    const { activeTab } = useMobileNav()
 
     if (isLoading) {
         return (

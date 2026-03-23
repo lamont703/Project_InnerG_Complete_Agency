@@ -159,6 +159,18 @@ export default function ProjectManagementPage() {
                                             <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                                         </Button>
                                     </Link>
+                                    <Link href={`/admin/projects/${project.slug}/funnel-config`}>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="w-full justify-between h-12 px-4 rounded-2xl bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/10 text-amber-500 group/btn transition-all shadow-xl shadow-amber-500/5"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Zap className="h-4 w-4" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest italic">Funnel Blueprint</span>
+                                            </div>
+                                            <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                                        </Button>
+                                    </Link>
                                     <Link href={`/admin/projects/${project.slug}/metrics`}>
                                         <Button 
                                             variant="ghost" 

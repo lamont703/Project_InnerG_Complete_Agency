@@ -23,6 +23,7 @@ export function useAgencyData() {
     const [facebookMetrics, setFacebookMetrics] = useState<any>(null)
     const [tiktokMetrics, setTiktokMetrics] = useState<any>(null)
     const [pixelMetrics, setPixelMetrics] = useState<any>(null)
+    const [funnelConfig, setFunnelConfig] = useState<any>(null)
 
 
     const [isLoading, setIsLoading] = useState(true)
@@ -51,7 +52,7 @@ export function useAgencyData() {
             setUserData(profile)
 
             // Parallel fetch for performance
-            const [projData, signalData, liMetrics, ytMetrics, igMetrics, fbMetrics, ttMetrics, pixelMetricsData] = await Promise.all([
+            const [projData, signalData, liMetrics, ytMetrics, igMetrics, fbMetrics, ttMetrics, pixelMetricsData, fConfig] = await Promise.all([
                 service.getActiveProjects(),
                 service.getAllAgencySignals(),
                 service.getLinkedInMetrics(),
@@ -59,7 +60,8 @@ export function useAgencyData() {
                 service.getInstagramMetrics(),
                 service.getFacebookMetrics(),
                 service.getTikTokMetrics(),
-                service.getPixelMetrics()
+                service.getPixelMetrics(),
+                service.getFunnelConfig()
             ])
 
 
@@ -72,6 +74,7 @@ export function useAgencyData() {
             setFacebookMetrics(fbMetrics)
             setTiktokMetrics(ttMetrics)
             setPixelMetrics(pixelMetricsData)
+            setFunnelConfig(fConfig)
 
 
             const draftData = await service.getSocialDrafts()
@@ -310,6 +313,7 @@ export function useAgencyData() {
         facebookMetrics,
         tiktokMetrics,
         pixelMetrics,
+        funnelConfig,
 
         isLoading,
         isSyncing,
