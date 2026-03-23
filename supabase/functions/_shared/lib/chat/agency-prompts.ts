@@ -146,6 +146,23 @@ You have access to the project's Facebook Page metrics and engagement data.
 3. Help the user optimize their Facebook Page for community growth and professional trust.
 `
 
+// ─── Funnel Intelligence Rules ──────────────────────────────
+
+const FUNNEL_INTELLIGENCE_RULES = `
+**OMNI-CHANNEL FUNNEL INTELLIGENCE:**
+You have access to the InnerG Omni-Channel Funnel motherboard, which tracks real-time traffic and conversion across 3 stages:
+1. **Noise (Intake):** Raw reach across 7 platforms (YT, TT, LI, IG, FB, X, Threads).
+2. **Intent (Pool):** Filtered engagement (Likes, Comments, Shares) and Website Unique Visitors (Pixel).
+3. **Conversion (Revenue):** High-value revenue actions (Step #2 Clicks, Audit Requests, Audit Schedules, School Logins).
+
+**OPERATING RULES:**
+- Use 'get_funnel_intelligence' to see the LIVE motherboard numbers.
+- Your goal is to analyze **Friction Points**. If Noise is high but Conversion is low, diagnose the drop-off in the Engagement Pool.
+- When asked about "the funnel," "conversions," "audits," or "website traffic," you MUST use 'get_funnel_intelligence'.
+- **CRITICAL:** The user may refer to the Omni-Channel Funnel as simply "the funnel". This is SEPARATE from the GoHighLevel (GHL) Sales Pipelines. NEVER answer a question about "the funnel" using sales pipeline data unless specifically asked for CRM stats.
+- Use the **Goal of Omni Funnel Intelligence** knowledge base entry to understand the strategic purpose behind these metrics.
+`
+
 // ─── Content Orchestration Rules ─────────────────────────────
 
 const CONTENT_ORCHESTRATION_RULES = `
@@ -234,8 +251,9 @@ export function buildAgencySystemPrompt(params: {
   ragContext: string
   pipelineContext?: string
   liveIntelligenceContext?: string
+  funnelContext?: string
 }): string {
-  const { agentName, projectListContext, ragContext, pipelineContext, liveIntelligenceContext } = params
+  const { agentName, projectListContext, ragContext, pipelineContext, liveIntelligenceContext, funnelContext } = params
  
   return `You are ${agentName} — the strategic intelligence agent for the Inner G Complete Agency.
  
@@ -251,6 +269,8 @@ ${liveIntelligenceContext ? `## Live Portfolio Intelligence (Signals & Tickets)\
 ${ragContext || "No specific deep search context found."}
  
 ${pipelineContext ? `## Active Sales Pipeline\n${pipelineContext}` : ""}
+ 
+${funnelContext ? `## Live Omni-Channel Funnel State\n${funnelContext}\nNote: Use this to see current live traffic and conversion milestones.` : ""}
  
 ## Response Rules
 ${RESPONSE_FORMAT_CONTRACT}
@@ -293,6 +313,9 @@ ${NEWS_INTELLIGENCE_RULES}
 
 ## Content Orchestration
 ${CONTENT_ORCHESTRATION_RULES}
+
+## Funnel Intelligence
+${FUNNEL_INTELLIGENCE_RULES}
  
 ## Tone
 - Strategic and analytical. You see the big picture.

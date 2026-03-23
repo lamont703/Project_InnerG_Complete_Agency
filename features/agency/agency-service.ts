@@ -272,15 +272,6 @@ export class AgencyService {
             pages = data
         }
 
-        // 2. Fallback: If no pages for specific project, try to find any synced page (for Agency overview)
-        if (!pages || pages.length === 0) {
-            const { data: anyPages } = await this.supabase
-                .from("linkedin_pages")
-                .select("*")
-                .order("last_synced_at", { ascending: false })
-                .limit(1)
-            pages = anyPages
-        }
 
         if (!pages || pages.length === 0) return null
 
@@ -365,23 +356,29 @@ export class AgencyService {
             channels = data
         }
 
-        if (!channels || channels.length === 0) {
-            const { data: anyChannels } = await this.supabase
-                .from("youtube_channels")
-                .select("*")
-                .order("last_synced_at", { ascending: false })
-                .limit(1)
-            channels = anyChannels
-        }
 
         if (!channels || channels.length === 0) return null
 
         const primary = channels[0]
+
+        // Fetch Video Aggregations for YouTube
+        const { data: videos } = await this.supabase
+            .from("youtube_videos")
+            .select("like_count, comment_count")
+            .eq("project_id", primary.project_id)
+
+        const videoStats = (videos || []).reduce((acc: any, v: any) => ({
+            likes: acc.likes + (v.like_count || 0),
+            comments: acc.comments + (v.comment_count || 0)
+        }), { likes: 0, comments: 0 })
+
         return {
             subscribers: primary.subscriber_count,
             views: primary.view_count,
             videos: primary.video_count,
-            channelTitle: primary.title
+            channelTitle: primary.title,
+            likes: videoStats.likes,
+            comments: videoStats.comments
         }
     }
 
@@ -404,14 +401,6 @@ export class AgencyService {
             accounts = data
         }
 
-        if (!accounts || accounts.length === 0) {
-            const { data: anyAcc } = await this.supabase
-                .from("instagram_accounts")
-                .select("*")
-                .order("last_synced_at", { ascending: false })
-                .limit(1)
-            accounts = anyAcc
-        }
 
         if (!accounts || accounts.length === 0) return null
 
@@ -464,14 +453,6 @@ export class AgencyService {
             pages = data
         }
 
-        if (!pages || pages.length === 0) {
-            const { data: anyPages } = await this.supabase
-                .from("facebook_pages")
-                .select("*")
-                .order("last_synced_at", { ascending: false })
-                .limit(1)
-            pages = anyPages
-        }
 
         if (!pages || pages.length === 0) return null
 
@@ -502,14 +483,6 @@ export class AgencyService {
             accounts = data
         }
 
-        if (!accounts || accounts.length === 0) {
-            const { data: anyAcc } = await this.supabase
-                .from("tiktok_accounts")
-                .select("*")
-                .order("last_synced_at", { ascending: false })
-                .limit(1)
-            accounts = anyAcc
-        }
 
         if (!accounts || accounts.length === 0) return null
 
@@ -563,17 +536,18 @@ export class AgencyService {
             this.supabase.from("pixel_events").select("*", { count: "exact", head: true }).eq("project_id", project.id),
             this.supabase.from("pixel_visitors").select("*").eq("project_id", project.id),
             this.supabase.from("pixel_events")
-                .select("element_name")
+                .select("event_name, element_name")
                 .eq("project_id", project.id)
-                .eq("event_name", "click")
-                .in("element_name", ["Sign In", "Buy XRP", "Buy XRP ↗", "Join The Revolution", "Become a Trader", "Login", "LOGIN", "Create Account", "Claim My Free Month — Join Now"])
         ])
 
         const totalHits = events.count || 0
         const visitorData = visitors.data || []
         
-        // Count specific clicks
+        // Count specific events and elements
         const clicks = (clickData.data || []).reduce((acc: any, c: any) => {
+            if (c.event_name) {
+                acc[c.event_name] = (acc[c.event_name] || 0) + 1
+            }
             if (c.element_name) {
                 let name = c.element_name;
                 if (name === "LOGIN") name = "Login";
@@ -650,5 +624,26 @@ export class AgencyService {
             })
 
         if (error) throw error
+    }
+
+    /**
+     * Fetch funnel configuration for a specific project
+     */
+    async getFunnelConfig(projectSlug: string = "innergcomplete"): Promise<any> {
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("id")
+            .eq("slug", projectSlug)
+            .single()
+
+        if (!project) return null
+
+        const { data } = await (this.supabase
+            .from("project_agent_config") as any)
+            .select("funnel_config")
+            .eq("project_id", project.id)
+            .single()
+
+        return data?.funnel_config || null
     }
 }

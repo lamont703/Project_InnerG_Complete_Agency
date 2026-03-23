@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import {
     LayoutDashboard,
@@ -16,7 +16,8 @@ import {
     Bot,
     BarChart3,
     Plug,
-    Zap
+    Zap,
+    GitBranch
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -36,6 +37,8 @@ interface DashboardSidebarProps {
 export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: DashboardSidebarProps) {
     const router = useRouter()
     const pathname = usePathname()
+    const searchParams = useSearchParams()
+    const currentTab = searchParams?.get("tab")
     const [userRole, setUserRole] = useState<UserRole | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
@@ -80,6 +83,12 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
             icon: LayoutDashboard,
             label: "Intelligence Hub",
             active: pathname === `/dashboard/${projectSlug}`,
+        },
+        {
+            href: `/dashboard/${projectSlug}/funnels`,
+            icon: GitBranch,
+            label: "Funnels & Conversions",
+            active: pathname === `/dashboard/${projectSlug}/funnels`,
         },
         {
             href: `/dashboard/${projectSlug}/metrics`,

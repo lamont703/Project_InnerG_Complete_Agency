@@ -26,8 +26,6 @@ export function MobileNavProvider({ children }: { children: React.ReactNode }) {
         const isClientDashboard = pathname?.startsWith("/dashboard/") && !isAgencyDashboard
         
         if (!isAgencyDashboard && !isClientDashboard) {
-            // Default to agency dashboard for admins, or try to find a slug?
-            // For now, let's just navigate to the agency dashboard as a safe bet for admins
             router.push(`/dashboard/innergcomplete?tab=${tab}`)
         }
     }

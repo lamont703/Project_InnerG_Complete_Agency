@@ -12,7 +12,8 @@ import {
     Layout,
     LogOut,
     X,
-    Zap
+    Zap,
+    Target
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -44,6 +45,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
     const adminItems = [
         { href: "/admin/projects", icon: Building2, label: "Project Access Hub", active: pathname.startsWith("/admin/projects") },
         { href: "/admin/metrics", icon: BarChart3, label: "Metrics & Intelligence", active: pathname === "/admin/metrics" },
+        { href: "/admin/funnels", icon: Target, label: "Funnels & Conversion", active: pathname === "/admin/funnels" },
         { href: "/admin/token-usage", icon: Layout, label: "Token Usage", active: pathname === "/admin/token-usage" },
         { href: "/admin/connectors", icon: Plug, label: "Connectors", active: pathname === "/admin/connectors" },
         { href: "/admin/pixel", icon: Zap, label: "Agency Pixel", active: pathname === "/admin/pixel" },

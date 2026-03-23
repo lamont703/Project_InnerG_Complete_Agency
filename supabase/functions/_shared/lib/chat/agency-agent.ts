@@ -106,33 +106,32 @@ export class AgencyChatService {
                 match_count: 20,
             })
 
-            if (rpcErr) {
-                this.logger.warn("RAG RPC search failed", { error: rpcErr })
+            if (!rpcErr && chunks) {
                 contextChunks.push(...chunks.map((c: any) => {
                     const projectLabel = c.project_id ? `[Project: ${c.project_id}]` : "[Agency-Wide]"
-                    return `${projectLabel} (${c.source_table}) (ID: ${c.source_id}): ${c.content}`
+                    return `${projectLabel} (${c.source_table}) (ID: ${c.source_id}): ${c.content_chunk}`
                 }))
+            }
 
-                // Layer 2: Agency-wide memory
-                try {
-                    const { data: pastSummaries, error: summaryErr } = await this.adminClient.rpc("match_session_summaries_agency", {
-                        query_embedding: queryVector,
-                        p_user_id: userId,
-                        match_threshold: 0.45,
-                        match_count: 5,
-                    })
+            // Layer 2: Agency-wide memory
+            try {
+                const { data: pastSummaries, error: summaryErr } = await this.adminClient.rpc("match_session_summaries_agency", {
+                    query_embedding: queryVector,
+                    p_user_id: userId,
+                    match_threshold: 0.45,
+                    match_count: 5,
+                })
 
-                    if (summaryErr) {
-                        this.logger.warn("Agency session summary search failed", { error: summaryErr })
-                    } else if (pastSummaries?.length > 0) {
-                        this.logger.info(`Found ${pastSummaries.length} relevant past agency summaries`)
-                        contextChunks.push(...pastSummaries.map((s: any) => 
-                            `[PAST MEMORY] [Project: ${s.project_id}] ${s.content_chunk}`
-                        ))
-                    }
-                } catch (err) {
-                    this.logger.warn("Agency session summary exception", { error: err })
+                if (summaryErr) {
+                    this.logger.warn("Agency session summary search failed", { error: summaryErr })
+                } else if (pastSummaries?.length > 0) {
+                    this.logger.info(`Found ${pastSummaries.length} relevant past agency summaries`)
+                    contextChunks.push(...pastSummaries.map((s: any) =>
+                        `[PAST MEMORY] [Project: ${s.project_id}] ${s.content_chunk}`
+                    ))
                 }
+            } catch (err) {
+                this.logger.warn("Agency session summary exception", { error: err })
             }
         }
 
@@ -142,7 +141,8 @@ export class AgencyChatService {
             .from("agency_knowledge")
             .select("title, body, tags")
             .eq("is_published", true)
-            .limit(5)
+            .order("created_at", { ascending: false })
+            .limit(25)
 
         if (knowledgeErr) {
             this.logger.warn("Knowledge base fetch failed", { error: knowledgeErr })
@@ -278,8 +278,28 @@ export class AgencyChatService {
             this.logger.warn("Live intel fetch failed", { error: String(err) })
         }
 
-        // ── Step 8: Build System Prompt ───────────────────────
-        this.logger.info("Step 8: Building system prompt")
+        // ── Step 8: Build Funnel Context Snapshot ────────────
+        this.logger.info("Step 8: Building funnel context snapshot")
+        let funnelContext = ""
+        try {
+            const [{ data: pEvents }, { data: pVisitors }] = await Promise.all([
+                this.adminClient.from("pixel_events").select("element_name").eq("event_name", "click"),
+                this.adminClient.from("visitors").select("visitor_id")
+            ])
+
+            const visitors = pVisitors?.length || 0
+            const clicks: Record<string, number> = {}
+            pEvents?.forEach(e => { if (e.element_name) clicks[e.element_name] = (clicks[e.element_name] || 0) + 1 })
+
+            funnelContext = `Live Omni-Channel Snapshot:\n`
+            funnelContext += `• Intake/Intent: ${visitors.toLocaleString()} Unique Pixel Visitors\n`
+            funnelContext += `• Conversions: ${clicks["Go To Step #2"] || 0} Step-2, ${clicks["Request Growth Audit"] || 0} Audit Requests, ${clicks["Schedule a Growth Audit"] || 0} Audit Appointments recorded.\n`
+        } catch (err) {
+            this.logger.warn("Funnel snapshot failed", { error: String(err) })
+        }
+
+        // ── Step 9: Build System Prompt ───────────────────────
+        this.logger.info("Step 9: Building system prompt")
         const ragContext = [
             contextChunks.length > 0 ? "Agency Cross-Project Data (Deep Search):\n" + contextChunks.join("\n---\n") : "",
             knowledgeContext,
@@ -291,11 +311,12 @@ export class AgencyChatService {
             projectListContext,
             ragContext,
             pipelineContext: pipelineContext || undefined,
-            liveIntelligenceContext: liveIntelligenceContext || undefined
+            liveIntelligenceContext: liveIntelligenceContext || undefined,
+            funnelContext: funnelContext || undefined
         })
 
-        // ── Step 9: Call Gemini (with Tool Loop) ────────────
-        this.logger.info(`Step 9: Calling Gemini v1beta API (${model}) with Multi-Step Tool Capabilities`)
+        // ── Step 10: Call Gemini (with Tool Loop) ────────────
+        this.logger.info(`Step 10: Calling Gemini v1beta API (${model}) with Multi-Step Tool Capabilities`)
         const registry = createDefaultRegistry()
         const tools = [{ functionDeclarations: registry.getDefinitions() }]
 
