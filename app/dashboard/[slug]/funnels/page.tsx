@@ -113,7 +113,7 @@ export default function ClientFunnelPage() {
                             { title: "Awareness Velocity", value: "+12.4%", status: "STABLE", icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
                             { title: "Engagement Depth", value: "74.1%", status: "ACTIVE", icon: Sparkles, color: "text-blue-400", bg: "bg-blue-500/10" },
                             { title: "Conversion Accuracy", value: "98.2%", status: "HIGH", icon: Target, color: "text-violet-400", bg: "bg-violet-500/10" }
-                        ].map((stat) => (
+                        ].map((stat: any) => (
                             <div key={stat.title} className="p-8 rounded-[2.5rem] border border-white/5 bg-white/5 backdrop-blur-md group hover:border-emerald-500/30 transition-all duration-500">
                                 <div className="flex items-center justify-between mb-6">
                                     <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color}`}>
