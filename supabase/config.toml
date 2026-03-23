@@ -145,6 +145,9 @@ verify_jwt = false
 [functions.complete-tiktok-auth]
 verify_jwt = false
 
+[functions.complete-twitter-auth]
+verify_jwt = false
+
 [functions.pixel-ingest]
 verify_jwt = false
 

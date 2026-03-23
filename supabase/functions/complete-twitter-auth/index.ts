@@ -15,8 +15,9 @@ const TwitterAuthSchema = z.object({
 
 export default createHandler(async ({ adminClient, body, user }) => {
     const logger = new Logger("complete-twitter-auth")
-
-    if (!user) throw new Error("Authentication required")
+    
+    // For debugging we allow no user for now. 
+    // In production we should use the state's project_id to verify.
 
     // Parse project identifier and optional visitorId from state 
     // Format from TwitterLoginButton: `projectId:${projectId}__state:${csrfState}${visitorId ? `__visitor:${visitorId}` : ""}`
@@ -31,6 +32,12 @@ export default createHandler(async ({ adminClient, body, user }) => {
         const redirectUri = body.redirectUri || "https://innergcomplete.com/x/callback"
         
         logger.info(`Starting X (Twitter) OAuth exchange for projectId: ${projectIdPart}`, { redirectUri })
+
+        // 0. Ensure user is authenticated (redundant with requireAuth: true, but safe)
+        if (!user) {
+            logger.error("No authenticated user found in context.")
+            throw new Error("Authentication required to connect X.")
+        }
 
         // 1. Resolve Project UUID (Handle slugs/UUIDs)
         let realProjectId: string = ""
@@ -51,7 +58,7 @@ export default createHandler(async ({ adminClient, body, user }) => {
 
         // 2. Exchange for Access & Refresh Tokens
         const tokenData = await twitter.exchangeCodeForToken(body.code, redirectUri, body.codeVerifier)
-        logger.info(`X Tokens Acquired: ${tokenData.access_token.substring(0, 10)}...`)
+        logger.info(`X Tokens Acquired for user ${user.id}`)
         
         // 3. Fetch User Profile
         const profile = await twitter.getUserMe(tokenData.access_token)
@@ -79,8 +86,6 @@ export default createHandler(async ({ adminClient, body, user }) => {
         }
 
         // 5. Save X Connection
-        // We'll use a generic table or specialized table if needed.
-        // For now, save into client_db_connections like TikTok/Instagram
         const { error: twitterErr } = await adminClient
             .from("client_db_connections")
             .upsert({
@@ -96,7 +101,7 @@ export default createHandler(async ({ adminClient, body, user }) => {
                     display_name: profile.name,
                     profile_image_url: profile.profile_image_url,
                     follower_count: profile.public_metrics?.followers_count || 0,
-                    user_id: user.id, // Auth user who connected it
+                    user_id: user.id,
                     connected_at: new Date().toISOString()
                 },
                 is_active: true,
@@ -120,8 +125,8 @@ export default createHandler(async ({ adminClient, body, user }) => {
     } catch (err: any) {
         logger.error(`X Auth Failed: ${err.message}`, err)
         return new Response(JSON.stringify({ 
-            success: false, 
-            error: err.message 
+            data: null, 
+            error: { code: "X_AUTH_FAILED", message: err.message }
         }), { 
             status: 400, 
             headers: { "Content-Type": "application/json" }
@@ -132,8 +137,7 @@ export default createHandler(async ({ adminClient, body, user }) => {
     requireAuth: true,
     requiredEnv: [
         "TWITTER_CLIENT_ID", 
-        "TWITTER_CLIENT_SECRET", 
-        "SUPABASE_URL", 
-        "SUPABASE_SERVICE_ROLE_KEY"
+        "TWITTER_CLIENT_SECRET"
     ]
 })
+

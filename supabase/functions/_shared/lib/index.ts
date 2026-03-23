@@ -23,6 +23,7 @@ export { GhlProvider } from "./providers/ghl.ts"
 export { GithubProvider } from "./providers/github.ts"
 export { MetaProvider } from "./providers/meta.ts"
 export { TikTokProvider } from "./providers/tiktok.ts"
+export { TwitterProvider } from "./providers/twitter.ts"
 
 // Shared Business Logic Services
 export * from "./services/invite.ts"
