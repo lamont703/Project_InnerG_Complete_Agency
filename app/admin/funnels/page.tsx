@@ -94,7 +94,7 @@ export default function FunnelVisualizationPage() {
                             { title: "Awareness Velocity", value: "+15.2%", status: "UP", icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
                             { title: "Lead Saturation", value: "82.4%", status: "OPTIMAL", icon: Target, color: "text-blue-400", bg: "bg-blue-500/10" },
                             { title: "Drop-off Pressure", value: "2.1%", status: "LOW", icon: Filter, color: "text-amber-400", bg: "bg-amber-500/10" }
-                        ].map((stat) => (
+                        ].map((stat: any) => (
                             <div key={stat.title} className="p-6 rounded-3xl border border-white/5 bg-white/5 backdrop-blur-sm group hover:border-white/20 transition-all duration-300">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className={`p-2 rounded-xl ${stat.bg} ${stat.color}`}>

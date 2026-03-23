@@ -169,7 +169,7 @@ export function OmniChannelStream({ projectSlug, title = "Omni-Channel Stream", 
             
             {showMetricsGrid && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12 pt-8 border-t border-white/5">
-                    {funnelData.sources.filter(s => s.rawValue > 0).slice(0, 4).map(source => (
+                    {funnelData.sources.filter((s: any) => s.rawValue > 0).slice(0, 4).map((source: any) => (
                         <div key={source.id} className="flex flex-col">
                             <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">{source.label}</span>
                             <span className="text-lg font-black text-white leading-none">{source.value}</span>
