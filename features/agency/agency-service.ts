@@ -549,10 +549,7 @@ export class AgencyService {
                 acc[c.event_name] = (acc[c.event_name] || 0) + 1
             }
             if (c.element_name) {
-                let name = c.element_name;
-                if (name === "LOGIN") name = "Login";
-                if (name === "Buy XRP ↗") name = "Buy XRP";
-                acc[name] = (acc[name] || 0) + 1
+                acc[c.element_name] = (acc[c.element_name] || 0) + 1
             }
             return acc
         }, {} as Record<string, number>)
