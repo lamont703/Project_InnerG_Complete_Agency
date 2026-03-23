@@ -18,12 +18,16 @@ import { searchCrmKnowledgeTool, listRecentContactsTool, listRecentOpportunities
 import { createSocialDraftTool, listSocialDraftsTool } from "./orchestration/index.ts"
 import { getProjectMetricsTool } from "./metrics/index.ts"
 import { generateSocialVisualTool } from "./creative/index.ts"
+import { getFunnelIntelligenceTool } from "./agency/funnel.ts"
 
 /**
  * Creates and configures the default tool registry for AI agents.
  */
 export function createDefaultRegistry(): ToolRegistry {
     const registry = new ToolRegistry()
+
+    // Register Agency Core Tools
+    registry.register(getFunnelIntelligenceTool)
 
     // Register Ticket Tools
     registry.register(listOpenTicketsTool)
