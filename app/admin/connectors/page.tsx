@@ -37,6 +37,7 @@ import { AdminHeader } from "@/features/agency/components/AdminHeader"
 import { MetaLoginButton } from "@/components/social/meta-login-button"
 import { TikTokLoginButton } from "@/components/social/tiktok-login-button"
 import { InstagramLoginButton } from "@/components/social/instagram-login-button"
+import { TwitterLoginButton } from "@/components/social/twitter-login-button"
 
 // ─────────────────────────────────────────────
 // TYPES
@@ -91,6 +92,7 @@ const providerMeta: Record<string, { color: string; bgColor: string; label: stri
     newsapi: { color: "text-amber-500", bgColor: "bg-amber-500/10 border-amber-500/20", label: "NewsAPI" },
     instagram: { color: "text-white", bgColor: "bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] border-pink-500/20", label: "Instagram" },
     facebook: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "Facebook Meta" },
+    twitter: { color: "text-zinc-100", bgColor: "bg-black border-white/20", label: "X (Twitter)" },
 }
 
 const statusMeta: Record<string, { icon: any; color: string; label: string }> = {
@@ -519,6 +521,18 @@ export default function ConnectorAdminPage() {
                                         OAuth connection requires access to video.list and profile info.
                                     </p>
                                 </div>
+                            ) : selectedType?.provider === "twitter" ? (
+                                <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest text-center px-6">
+                                        Connect X (Twitter) via OAuth 2.0 PKCE.
+                                    </p>
+                                    <TwitterLoginButton 
+                                        projectId={newProject}
+                                    />
+                                    <p className="text-[8px] text-muted-foreground italic">
+                                        Includes access to follow counts and recent performance signals.
+                                    </p>
+                                </div>
                             ) : selectedTypeSchema?.properties && (
                                 <div className="space-y-3 mb-5 p-4 rounded-xl bg-muted/5 border border-border">
                                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Configuration</p>
@@ -758,6 +772,8 @@ export default function ConnectorAdminPage() {
                                                             <Instagram className={`h-5 w-5 ${meta.color}`} />
                                                         ) : provider === "facebook" ? (
                                                             <Facebook className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "twitter" ? (
+                                                            <Twitter className={`h-5 w-5 ${meta.color}`} />
                                                         ) : (
                                                             <Database className={`h-5 w-5 ${meta.color}`} />
                                                         )}
