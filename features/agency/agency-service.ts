@@ -377,11 +377,25 @@ export class AgencyService {
         if (!channels || channels.length === 0) return null
 
         const primary = channels[0]
+
+        // Fetch Video Aggregations for YouTube
+        const { data: videos } = await this.supabase
+            .from("youtube_videos")
+            .select("like_count, comment_count")
+            .eq("project_id", primary.project_id)
+
+        const videoStats = (videos || []).reduce((acc: any, v: any) => ({
+            likes: acc.likes + (v.like_count || 0),
+            comments: acc.comments + (v.comment_count || 0)
+        }), { likes: 0, comments: 0 })
+
         return {
             subscribers: primary.subscriber_count,
             views: primary.view_count,
             videos: primary.video_count,
-            channelTitle: primary.title
+            channelTitle: primary.title,
+            likes: videoStats.likes,
+            comments: videoStats.comments
         }
     }
 
@@ -566,7 +580,7 @@ export class AgencyService {
                 .select("element_name")
                 .eq("project_id", project.id)
                 .eq("event_name", "click")
-                .in("element_name", ["Sign In", "Buy XRP", "Buy XRP ↗", "Join The Revolution", "Become a Trader", "Login", "LOGIN", "Create Account", "Claim My Free Month — Join Now"])
+                .in("element_name", ["Sign In", "Buy XRP", "Buy XRP ↗", "Join The Revolution", "Become a Trader", "Login", "LOGIN", "Create Account", "Claim My Free Month — Join Now", "Go To Step #2", "Request Growth Audit", "Schedule a Growth Audit", "button-CLEbFRjXN7_btn"])
         ])
 
         const totalHits = events.count || 0
