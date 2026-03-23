@@ -532,25 +532,34 @@ export class AgencyService {
 
         if (!project) return null
 
+        // 1. Optimized Server-Side Extraction via RPC
+        const { data, error } = await this.supabase.rpc("get_pixel_metrics_summary", {
+            p_project_id: project.id
+        })
+
+        // 2. Return data if RPC is successful
+        if (!error && data) {
+            return data
+        }
+
+        // 3. Fallback logic if RPC is missing or fails (limit still applies here)
+        console.warn("[AgencyService] Error fetching pixel metrics via RPC, using fallback...", error)
+        
         const [events, visitors, clickData] = await Promise.all([
             this.supabase.from("pixel_events").select("*", { count: "exact", head: true }).eq("project_id", project.id),
             this.supabase.from("pixel_visitors").select("*").eq("project_id", project.id),
             this.supabase.from("pixel_events")
                 .select("event_name, element_name")
                 .eq("project_id", project.id)
+                .limit(5000)
         ])
 
         const totalHits = events.count || 0
         const visitorData = visitors.data || []
         
-        // Count specific events and elements
         const clicks = (clickData.data || []).reduce((acc: any, c: any) => {
-            if (c.event_name) {
-                acc[c.event_name] = (acc[c.event_name] || 0) + 1
-            }
-            if (c.element_name) {
-                acc[c.element_name] = (acc[c.element_name] || 0) + 1
-            }
+            if (c.event_name) acc[c.event_name] = (acc[c.event_name] || 0) + 1
+            if (c.element_name) acc[c.element_name] = (acc[c.element_name] || 0) + 1
             return acc
         }, {} as Record<string, number>)
 
