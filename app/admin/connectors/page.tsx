@@ -40,6 +40,7 @@ import { TikTokLoginButton } from "@/components/social/tiktok-login-button"
 import { InstagramLoginButton } from "@/components/social/instagram-login-button"
 import { TwitterLoginButton } from "@/components/social/twitter-login-button"
 import { LinkedInLoginButton } from "@/components/social/linkedin-login-button"
+import { YouTubeLoginButton } from "@/components/social/youtube-login-button"
 
 // ─────────────────────────────────────────────
 // TYPES
@@ -545,6 +546,24 @@ export default function ConnectorAdminPage() {
                                     />
                                     <p className="text-[8px] text-muted-foreground italic">
                                         Authorizes personal posts and organization page access.
+                                    </p>
+                                </div>
+                            ) : selectedType?.provider === "youtube" ? (
+                                <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                    <p className="text-[10px] font-black text-red-500 uppercase tracking-widest text-center px-6">
+                                        Connect your YouTube Channel via Google OAuth.
+                                    </p>
+                                    <YouTubeLoginButton 
+                                        projectId={newProject}
+                                        disabled={!newProject}
+                                    />
+                                    {(!newProject || !newLabel) && (
+                                        <p className="text-[10px] text-destructive font-bold animate-pulse">
+                                            Please enter a label and select a project first.
+                                        </p>
+                                    )}
+                                    <p className="text-[8px] text-muted-foreground italic">
+                                        Authorizes analytics and channel content discovery.
                                     </p>
                                 </div>
                             ) : selectedTypeSchema?.properties && (

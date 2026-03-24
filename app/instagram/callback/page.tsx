@@ -64,7 +64,7 @@ function InstagramCallbackContent() {
 
                 // 1. Call our Edge Function to exchange the code for a long-lived access token
                 // We pass the code, the state, the redirectUri, and the isInstagram flag
-                const { data, error: functionError } = await supabase.functions.invoke("complete-meta-auth", {
+                const { data: response, error: functionError } = await supabase.functions.invoke("complete-meta-auth", {
                     body: { 
                         code, 
                         state, 
@@ -77,13 +77,16 @@ function InstagramCallbackContent() {
                     throw new Error(functionError?.message || "Failed to exchange token.")
                 }
 
+                // Handle the Project's standard okResponse wrapping { data: payload, error: null }
+                const data = response?.data || response
+
                 // If data is null but no functionError, the function succeeded but
                 // the browser couldn't read the response body (CORS on response).
                 // The connection IS saved in the database — proceed as success.
                 const success = data?.success ?? true
 
                 if (!success) {
-                    throw new Error(data?.error || "Failed to exchange token.")
+                    throw new Error(data?.error || data?.message || "Failed to exchange token.")
                 }
 
                 setStatus("success")

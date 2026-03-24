@@ -128,7 +128,7 @@ function LinkedInCallbackContent() {
                             onClick={() => router.push("/admin/connectors")}
                             className="mt-4 px-6 py-2 bg-secondary/50 hover:bg-secondary rounded-xl text-xs font-bold text-foreground transition-all"
                         >
-                            Return to Bridges
+                            Return to Connectors
                         </button>
                     </>
                 )}
