@@ -92,7 +92,7 @@ export function InstagramLoginButton({
      */
     const oauthUrl = `https://www.instagram.com/oauth/authorize` +
         `?force_reauth=true` +
-        `?&client_id=${appId}` +
+        `&client_id=${appId}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}` +
         `&response_type=code` +
         `&scope=${encodeURIComponent(scopes.join(','))}` +

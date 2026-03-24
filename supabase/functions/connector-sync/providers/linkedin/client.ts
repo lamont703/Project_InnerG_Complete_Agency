@@ -16,6 +16,7 @@ export class LinkedInClient {
             headers: {
                 "Authorization": `Bearer ${this.accessToken}`,
                 "X-Restli-Protocol-Version": "2.0.0",
+                "Linkedin-Version": "202502",
                 "Accept": "application/json",
                 ...(options.headers || {})
             }
@@ -244,7 +245,7 @@ export class LinkedInClient {
     /**
      * Upload an image to LinkedIn and return the asset URN
      */
-    async uploadImage(authorUrn: string, imageBuffer: Uint8Array, mimeType: string): Promise<string> {
+    async uploadImage(authorUrn: string, imageBuffer: Blob, mimeType: string): Promise<string> {
         const urn = authorUrn.startsWith('urn:li:') ? authorUrn : `urn:li:organization:${authorUrn}`;
 
         // 1. Register Upload
@@ -275,7 +276,7 @@ export class LinkedInClient {
                 "Authorization": `Bearer ${this.accessToken}`,
                 "Content-Type": mimeType
             },
-            body: new Blob([imageBuffer], { type: mimeType })
+            body: imageBuffer
         });
 
         if (!uploadRes.ok) {
@@ -289,7 +290,7 @@ export class LinkedInClient {
     /**
      * Upload a video to LinkedIn and return the asset URN
      */
-    async uploadVideo(authorUrn: string, videoBuffer: Uint8Array, mimeType: string): Promise<string> {
+    async uploadVideo(authorUrn: string, videoBuffer: Blob, mimeType: string): Promise<string> {
         const urn = authorUrn.startsWith('urn:li:') ? authorUrn : `urn:li:organization:${authorUrn}`;
 
         // 1. Register Video Upload
@@ -320,7 +321,7 @@ export class LinkedInClient {
                 "Authorization": `Bearer ${this.accessToken}`,
                 "Content-Type": mimeType
             },
-            body: new Blob([videoBuffer], { type: mimeType })
+            body: videoBuffer
         });
 
         if (!uploadRes.ok) {

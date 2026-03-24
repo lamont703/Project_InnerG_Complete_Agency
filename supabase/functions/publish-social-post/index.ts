@@ -58,17 +58,26 @@ export default createHandler(async ({ adminClient, body, user }) => {
     // 3. For each platform, fetch connection and publish
     for (const platform of targetPlatforms) {
         try {
-            const { data: connection, error: connError } = await adminClient
+            const { data: connections, error: connError } = await adminClient
                 .from("client_db_connections")
-                .select("sync_config")
+                .select("id, label, sync_config")
                 .eq("project_id", draft.project_id)
                 .eq("db_type", platform.toLowerCase())
-                .single()
 
-            if (connError || !connection) {
+            if (connError || !connections || connections.length === 0) {
                 results[platform] = { success: false, error: "No active connection found" }
                 continue
             }
+
+            // If multiple connections, intelligently select. 
+            // For LinkedIn, prefer organization/page over individual if available.
+            let connection = connections[0]
+            if (platform.toLowerCase() === "linkedin" && connections.length > 1) {
+                const pageConn = connections.find((c: any) => (c.sync_config as any).page_id || c.label.toLowerCase().includes("page") || c.label.toLowerCase().includes("agency"))
+                if (pageConn) connection = pageConn
+            }
+
+            logger.info(`Found ${connections.length} connections for ${platform}. Selected: ${connection.label} (${connection.id})`)
 
             const config = connection.sync_config as any
             const pLower = platform.toLowerCase()
@@ -91,16 +100,16 @@ export default createHandler(async ({ adminClient, body, user }) => {
                     const mediaRes = await fetch(draft.media_url)
                     if (mediaRes.ok) {
                         const blob = await mediaRes.blob()
-                        const buffer = new Uint8Array(await blob.arrayBuffer())
                         if (isVideo) {
-                            mediaAsset = await client.uploadVideo(authorUrn, buffer, blob.type || "video/mp4")
+                            mediaAsset = await client.uploadVideo(authorUrn, blob, blob.type || "video/mp4")
                         } else {
-                            mediaAsset = await client.uploadImage(authorUrn, buffer, blob.type || "image/png")
+                            mediaAsset = await client.uploadImage(authorUrn, blob, blob.type || "image/png")
                         }
                     }
                 }
                 
                 const postResult = await client.createPost(authorUrn, draft.content_text, mediaAsset)
+                logger.info(`Successfully published to LinkedIn`, { post_id: postResult.id })
                 results[platform] = { success: true, post_id: postResult.id }
                 lastExternalPostId = postResult.id
             } 
@@ -122,6 +131,7 @@ export default createHandler(async ({ adminClient, body, user }) => {
                     postResult = await metaClient.createInstagramPost(igUserId, draft.content_text, draft.media_url)
                 }
                 
+                logger.info(`Successfully published to Instagram`, { post_id: postResult.id })
                 results[platform] = { success: true, post_id: postResult.id }
                 lastExternalPostId = postResult.id
             }
@@ -129,7 +139,7 @@ export default createHandler(async ({ adminClient, body, user }) => {
                 results[platform] = { success: false, error: "Platform not supported yet" }
             }
         } catch (error: any) {
-            logger.error(`Failed to publish to ${platform}`, { error: error.message })
+            logger.error(`Failed to publish to ${platform}`, error)
             results[platform] = { success: false, error: error.message }
         }
     }
