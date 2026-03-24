@@ -24,6 +24,7 @@ export { GithubProvider } from "./providers/github.ts"
 export { MetaProvider } from "./providers/meta.ts"
 export { TikTokProvider } from "./providers/tiktok.ts"
 export { TwitterProvider } from "./providers/twitter.ts"
+export { LinkedInProvider } from "./providers/linkedin.ts"
 
 // Shared Business Logic Services
 export * from "./services/invite.ts"
