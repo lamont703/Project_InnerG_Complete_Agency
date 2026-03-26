@@ -18,7 +18,8 @@ import {
     Plug,
     Zap,
     GitBranch,
-    Users
+    Users,
+    Calendar
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -42,7 +43,7 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
     const currentTab = searchParams?.get("tab")
     const [userRole, setUserRole] = useState<UserRole | null>(null)
     const [isLoading, setIsLoading] = useState(true)
-    const [features, setFeatures] = useState<{ community_agents?: boolean }>({})
+    const [features, setFeatures] = useState<{ community_agents?: boolean; social_planner?: boolean }>({})
 
     useEffect(() => {
         const fetchUserRoleAndFeatures = async () => {
@@ -115,6 +116,14 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                 icon: Users,
                 label: "Community Hub Agents",
                 active: pathname === `/dashboard/${projectSlug}/community`,
+            }
+        ] : []),
+        ...(features.social_planner ? [
+            {
+                href: `/dashboard/${projectSlug}/social-planner`,
+                icon: Calendar,
+                label: "Social Planner Agent",
+                active: pathname === `/dashboard/${projectSlug}/social-planner`,
             }
         ] : []),
         {

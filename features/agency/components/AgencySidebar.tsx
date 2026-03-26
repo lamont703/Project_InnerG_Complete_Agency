@@ -15,7 +15,8 @@ import {
     X,
     Zap,
     Target,
-    Users
+    Users,
+    Calendar
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -31,7 +32,7 @@ interface AgencySidebarProps {
 export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
     const router = useRouter()
     const pathname = usePathname()
-    const [features, setFeatures] = useState<{ community_agents?: boolean }>({})
+    const [features, setFeatures] = useState<{ community_agents?: boolean; social_planner?: boolean }>({})
 
     useEffect(() => {
         const fetchAgencyFeatures = async () => {
@@ -66,6 +67,9 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
         { href: "/dashboard/innergcomplete", icon: Building2, label: "Agency Command", active: pathname === "/dashboard/innergcomplete" },
         ...(features.community_agents ? [
             { href: "/dashboard/innergcomplete/community", icon: Users, label: "Community Hub Agents", active: pathname === "/dashboard/innergcomplete/community" }
+        ] : []),
+        ...(features.social_planner ? [
+            { href: "/dashboard/innergcomplete/social-planner", icon: Calendar, label: "Social Planner Agent", active: pathname === "/dashboard/innergcomplete/social-planner" }
         ] : []),
     ]
 

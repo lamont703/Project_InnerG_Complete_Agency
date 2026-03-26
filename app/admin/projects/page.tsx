@@ -14,7 +14,8 @@ import {
     ChevronRight,
     ExternalLink,
     Brain,
-    MessageSquare
+    MessageSquare,
+    Calendar
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -180,6 +181,18 @@ export default function ProjectManagementPage() {
                                             <div className="flex items-center gap-3">
                                                 <MessageSquare className="h-4 w-4" />
                                                 <span className="text-[10px] font-black uppercase tracking-widest italic">Community Agents</span>
+                                            </div>
+                                            <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                                        </Button>
+                                    </Link>
+                                    <Link href={`/admin/projects/${project.slug}/social-planner`}>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="w-full justify-between h-12 px-4 rounded-2xl bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/10 text-blue-400 group/btn transition-all shadow-xl shadow-blue-500/5"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Calendar className="h-4 w-4" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest italic">Social Scheduling</span>
                                             </div>
                                             <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                                         </Button>
