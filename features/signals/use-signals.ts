@@ -44,7 +44,7 @@ export function useSignals(projectSlug: string, initialSignals?: Signal[]) {
         fetchSignals()
     }, [fetchSignals])
 
-    const resolveSignal = async (signalId: string) => {
+    const resolveSignal = async (signalId: string, params?: { platforms?: string[], scheduledAt?: string }) => {
         if (!projectId) return
         setResolvingId(signalId)
 
@@ -55,7 +55,9 @@ export function useSignals(projectSlug: string, initialSignals?: Signal[]) {
             await signalService.resolveSignal({
                 signalId,
                 projectId,
-                accessToken: session.access_token
+                accessToken: session.access_token,
+                platforms: params?.platforms,
+                scheduledAt: params?.scheduledAt
             })
 
             // Remove from local state

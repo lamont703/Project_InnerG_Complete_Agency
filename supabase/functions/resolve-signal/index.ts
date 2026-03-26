@@ -23,10 +23,7 @@ createHandler(async (context: FunctionContext) => {
     }
 
     // 2. Execute Business Logic
-    const result = await resolveSignal(adminClient, user.id, {
-        signal_id,
-        project_id
-    })
+    const result = await resolveSignal(adminClient, user.id, body)
 
     // 3. Standardized Success Response
     return okResponse(result)

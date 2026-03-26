@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { toast } from "sonner"
 import { SocialPostModal } from "@/features/social/components/SocialPostModal"
+import { SocialCalendarView } from "@/features/social/components/SocialCalendarView"
 
 interface ScheduledPost {
     id: string
@@ -59,6 +60,9 @@ export default function SocialPlannerPage() {
     const [searchQuery, setSearchQuery] = useState("")
     const [sortBy, setSortBy] = useState<'scheduled_at' | 'created_at' | 'status' | 'type'>('scheduled_at')
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+    const [editingPost, setEditingPost] = useState<ScheduledPost | null>(null)
+
+    const [view, setView] = useState<'queue' | 'calendar'>('queue')
 
     const loadPosts = async () => {
         try {
@@ -95,9 +99,7 @@ export default function SocialPlannerPage() {
                 scheduled_at: p.scheduled_at || p.published_at || p.created_at,
                 content: p.content_text,
                 title: p.title || (p.source_type ? `${p.source_type.toUpperCase()} Sequence` : "Agent Intel Post"),
-                status: p.status === 'published' ? 'completed' : 
-                        p.status === 'scheduled' ? 'pending' : 
-                        p.status === 'failed' ? 'error' : p.status
+                status: p.status // Use raw status from DB
             }))
 
             const sorted = normalized.sort((a: any, b: any) => {
@@ -222,6 +224,23 @@ export default function SocialPlannerPage() {
                                 <Filter className={`h-4 w-4 transition-transform ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />
                             </button>
                         </div>
+                        <div className="flex items-center gap-1 bg-muted/10 border border-border/40 rounded-2xl p-1 h-11">
+                            <button 
+                                onClick={() => setView('queue')}
+                                className={`flex items-center gap-2 px-4 h-full rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${view === 'queue' ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground hover:bg-muted/20'}`}
+                            >
+                                <Zap className="h-3.5 w-3.5" />
+                                Queue
+                            </button>
+                            <button 
+                                onClick={() => setView('calendar')}
+                                className={`flex items-center gap-2 px-4 h-full rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${view === 'calendar' ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground hover:bg-muted/20'}`}
+                            >
+                                <Calendar className="h-3.5 w-3.5" />
+                                Calendar
+                            </button>
+                        </div>
+
                         <Button 
                             onClick={() => setIsPostModalOpen(true)}
                             className="rounded-xl flex items-center gap-2 font-black uppercase tracking-widest text-[10px] h-11 bg-primary text-primary-foreground px-6 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
@@ -244,7 +263,7 @@ export default function SocialPlannerPage() {
                             </div>
                             <div>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Pending Dispatch</span>
-                                <span className="text-2xl font-bold text-foreground">{posts.filter(p => p.status === 'pending').length}</span>
+                                <span className="text-2xl font-bold text-foreground">{posts.filter(p => p.status === 'scheduled').length}</span>
                             </div>
                         </div>
                         <div className="p-6 rounded-3xl glass-panel border border-border flex items-center gap-4">
@@ -253,7 +272,7 @@ export default function SocialPlannerPage() {
                             </div>
                             <div>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Successfully Published</span>
-                                <span className="text-2xl font-bold text-foreground">{posts.filter(p => p.status === 'completed').length}</span>
+                                <span className="text-2xl font-bold text-foreground">{posts.filter(p => p.status === 'published').length}</span>
                             </div>
                         </div>
                         <div className="p-6 rounded-3xl glass-panel border border-border flex items-center gap-4">
@@ -271,132 +290,153 @@ export default function SocialPlannerPage() {
                             </div>
                             <div>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Halt / Errors</span>
-                                <span className="text-2xl font-bold text-foreground">{posts.filter(p => p.status === 'error').length}</span>
+                                <span className="text-2xl font-bold text-foreground">{posts.filter(p => p.status === 'failed').length}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Operational Queue */}
-                    <div className="space-y-6">
-                        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2 mb-6">
-                            <Calendar className="h-4 w-4" />
-                            Content Deployment Queue
-                        </h2>
+                    {/* operational content switcher */}
+                    {view === 'queue' ? (
+                        /* Operational Queue */
+                        <div className="space-y-6">
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2 mb-6">
+                                <Zap className="h-4 w-4" />
+                                Content Deployment Queue
+                            </h2>
 
-                        <div className="space-y-4">
-                            {filteredPosts.map(post => (
-                                <div 
-                                    key={post.id}
-                                    className={`p-6 rounded-3xl border transition-all relative overflow-hidden group hover:scale-[1.01] ${
-                                        post.status === 'completed' ? 'bg-muted/5 border-border' : 
-                                        post.status === 'pending' ? 'glass-panel border-primary/20 shadow-xl shadow-primary/5' :
-                                        'bg-red-500/5 border-red-500/20'
-                                    }`}
-                                >
-                                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                                        <div className="flex items-center gap-4 min-w-0 flex-1">
-                                            <div className="h-14 w-14 rounded-2xl bg-background border border-border flex items-center justify-center shrink-0 shadow-inner group-hover:scale-110 transition-transform">
-                                                {getPlatformIcon(post.platform)}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <div className="flex items-center gap-3 mb-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <h3 className="text-sm font-bold tracking-tight truncate max-w-[200px]">{post.title || "Untitled Sequence"}</h3>
-                                                        {post.type === 'agent' && (
-                                                            <div className="flex items-center gap-1 bg-primary/20 text-primary px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border border-primary/20 shadow-lg shadow-primary/10">
-                                                                <Zap className="h-2 w-2" />
-                                                                AI Agent
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${
-                                                        post.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                        post.status === 'pending' ? 'bg-primary/10 text-primary animate-pulse' :
-                                                        'bg-red-500/10 text-red-400'
-                                                    }`}>
-                                                        {post.status}
-                                                    </span>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground line-clamp-1 italic max-w-xl">"{post.content}"</p>
-                                                {post.ai_reasoning && (
-                                                    <p className="text-[9px] text-muted-foreground/60 mt-1 italic line-clamp-1">Intent: {post.ai_reasoning}</p>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-6 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-border/40">
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Scheduled Dispatch</span>
-                                                <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-                                                    <Clock className="h-3 w-3 text-primary" />
-                                                    {new Date(post.scheduled_at || new Date().toISOString()).toLocaleString()}
-                                                </div>
-                                            </div>
-
-                                            <div className="h-10 w-px bg-border/40 hidden md:block" />
-
-                                            <div className="flex items-center gap-2">
-                                                {post.status === 'completed' && post.external_post_id && (
-                                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-all">
-                                                        <ExternalLink className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                                {post.status === 'pending' && (
-                                                    <Button 
-                                                        onClick={() => handlePublishNow(post.id)}
-                                                        variant="ghost" 
-                                                        className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-2 group/pub"
-                                                    >
-                                                        <Zap className="h-3 w-3 group-hover/pub:animate-pulse" />
-                                                        Execute Now
-                                                    </Button>
-                                                )}
-                                                <Button 
-                                                    variant="ghost" 
-                                                    className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all text-muted-foreground"
-                                                >
-                                                    Modify
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {post.status === 'error' && post.error_message && (
-                                        <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] flex items-center gap-2">
-                                            <AlertTriangle className="h-3 w-3" />
-                                            Dispatch Failure: {post.error_message}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-
-                            {filteredPosts.length === 0 && (
-                                <div className="py-24 text-center border border-dashed border-border rounded-[2rem] bg-muted/5 flex flex-col items-center">
-                                    <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-6 text-primary/20">
-                                        <Calendar className="h-10 w-10" />
-                                    </div>
-                                    <h4 className="text-lg font-bold uppercase tracking-tight italic opacity-40">Queue Matrix Empty</h4>
-                                    <p className="text-xs text-muted-foreground max-w-xs mt-2 mb-8 leading-relaxed">No content has been provisioned for automated dispatch. Start by drafting your first broadcast sequence.</p>
-                                    <Button 
-                                        onClick={() => setIsPostModalOpen(true)}
-                                        className="h-12 px-10 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/20"
+                            <div className="space-y-4">
+                                {filteredPosts.map(post => (
+                                    <div 
+                                        key={post.id}
+                                        className={`p-6 rounded-3xl border transition-all relative overflow-hidden group hover:scale-[1.01] ${
+                                            post.status === 'published' ? 'bg-emerald-500/[0.02] border-emerald-500/10' : 
+                                            post.status === 'scheduled' ? 'glass-panel-strong border-blue-500/20 shadow-xl shadow-blue-500/5' :
+                                            post.status === 'draft' ? 'bg-violet-500/[0.02] border-violet-500/10' :
+                                            post.status === 'failed' ? 'bg-red-500/5 border-red-500/20' :
+                                            'bg-muted/5 border-border'
+                                        }`}
                                     >
-                                        Initiate First Sequence
-                                    </Button>
-                                </div>
-                            )}
+                                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                                            <div className="flex items-center gap-4 min-w-0 flex-1">
+                                                <div className="h-14 w-14 rounded-2xl bg-background border border-border flex items-center justify-center shrink-0 shadow-inner group-hover:scale-110 transition-transform">
+                                                    {getPlatformIcon(post.platform)}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-3 mb-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <h3 className="text-sm font-bold tracking-tight truncate max-w-[200px]">{post.title || "Untitled Sequence"}</h3>
+                                                            {post.type === 'agent' && (
+                                                                <div className="flex items-center gap-1 bg-primary/20 text-primary px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border border-primary/20 shadow-lg shadow-primary/10">
+                                                                    <Zap className="h-2 w-2" />
+                                                                    AI Agent
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <span className={`text-[8px] px-2.5 py-1 rounded-md font-black uppercase tracking-widest border transition-colors ${
+                                                            post.status === 'published' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]' :
+                                                            post.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.1)]' :
+                                                            post.status === 'draft' ? 'bg-muted/10 text-muted-foreground border-white/5' :
+                                                            post.status === 'approved' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]' :
+                                                            'bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]'
+                                                        }`}>
+                                                            {post.status}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground line-clamp-1 italic max-w-xl">"{post.content}"</p>
+                                                    {post.ai_reasoning && (
+                                                        <p className="text-[9px] text-muted-foreground/60 mt-1 italic line-clamp-1">Intent: {post.ai_reasoning}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-6 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-border/40">
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Scheduled Dispatch</span>
+                                                    <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                                                        <Clock className="h-3 w-3 text-primary" />
+                                                        {new Date(post.scheduled_at || new Date().toISOString()).toLocaleString()}
+                                                    </div>
+                                                </div>
+
+                                                <div className="h-10 w-px bg-border/40 hidden md:block" />
+
+                                                <div className="flex items-center gap-2">
+                                                    {post.status === 'completed' && post.external_post_id && (
+                                                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-all">
+                                                            <ExternalLink className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                    {post.status === 'pending' && (
+                                                        <Button 
+                                                            onClick={() => handlePublishNow(post.id)}
+                                                            variant="ghost" 
+                                                            className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-2 group/pub"
+                                                        >
+                                                            <Zap className="h-3 w-3 group-hover/pub:animate-pulse" />
+                                                            Execute Now
+                                                        </Button>
+                                                    )}
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all text-muted-foreground"
+                                                        onClick={() => {
+                                                            setEditingPost(post)
+                                                            setIsPostModalOpen(true)
+                                                        }}
+                                                    >
+                                                        Modify
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {post.status === 'error' && post.error_message && (
+                                            <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] flex items-center gap-2">
+                                                <AlertTriangle className="h-3 w-3" />
+                                                Dispatch Failure: {post.error_message}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {filteredPosts.length === 0 && (
+                                    <div className="py-24 text-center border border-dashed border-border rounded-[2rem] bg-muted/5 flex flex-col items-center">
+                                        <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-6 text-primary/20">
+                                            <Calendar className="h-10 w-10" />
+                                        </div>
+                                        <h4 className="text-lg font-bold uppercase tracking-tight italic opacity-40">Queue Matrix Empty</h4>
+                                        <p className="text-xs text-muted-foreground max-w-xs mt-2 mb-8 leading-relaxed">No content has been provisioned for automated dispatch. Start by drafting your first broadcast sequence.</p>
+                                        <Button 
+                                            onClick={() => setIsPostModalOpen(true)}
+                                            className="h-12 px-10 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/20"
+                                        >
+                                            Initiate First Sequence
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <SocialCalendarView 
+                            posts={posts} 
+                            onPublishNow={handlePublishNow} 
+                            getPlatformIcon={getPlatformIcon}
+                        />
+                    )}
 
                 </div>
             </main>
 
             <SocialPostModal 
                 isOpen={isPostModalOpen} 
-                onClose={() => setIsPostModalOpen(false)} 
+                onClose={() => {
+                    setIsPostModalOpen(false)
+                    setEditingPost(null)
+                }} 
                 projectId={projectId || ""}
                 onSuccess={loadPosts}
                 platforms={allowedPlatforms}
+                initialData={editingPost}
             />
         </div>
     )

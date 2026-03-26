@@ -145,13 +145,47 @@ export async function syncLinkedIn(
                     if (totalComments > 0 && !tablesSynced.includes("linkedin_comments")) {
                         tablesSynced.push("linkedin_comments");
                     }
-                } else {
-                    console.error(`[LinkedInSync] Could not resolve post UUID for ${post.id}:`, fetchError?.message);
                 }
             }
             
             if (posts.length > 0 && !tablesSynced.includes("linkedin_posts")) {
                 tablesSynced.push("linkedin_posts");
+            }
+
+            // 4. Prune Deleted Posts (Synchronize Deletions)
+            // Fetch the last 50 synced posts to verify existence
+            const { data: recentDBPosts } = await adminClient
+                .from("linkedin_posts")
+                .select("id, linkedin_post_id")
+                .eq("project_id", projectId)
+                .is("deleted_at", null) // If we have a soft delete system
+                .order("created_at", { ascending: false })
+                .limit(50);
+
+            if (recentDBPosts && recentDBPosts.length > 0) {
+                const dbPostUrns = recentDBPosts.map((p: any) => p.linkedin_post_id);
+                const liveUrns = await client.checkPostsExist(dbPostUrns);
+                
+                const deletedUrns = dbPostUrns.filter((urn: any) => !liveUrns.includes(urn));
+                if (deletedUrns.length > 0) {
+                    console.info(`[LinkedInSync] Pruning ${deletedUrns.length} deleted posts:`, deletedUrns);
+                    
+                    // a) Remove from linkedin_posts (clean up the dashboard)
+                    await adminClient
+                        .from("linkedin_posts")
+                        .delete()
+                        .in("linkedin_post_id", deletedUrns)
+                        .eq("project_id", projectId);
+
+                    // b) Update social_content_plan if they originated here 
+                    // (Optional: we might want to keep them as 'published' but mark as distant/missing)
+                    // For now, let's just delete the planner entry too if the user wants "removed"
+                    await adminClient
+                        .from("social_content_plan")
+                        .delete()
+                        .in("external_post_id", deletedUrns)
+                        .eq("project_id", projectId);
+                }
             }
 
             // 6. Engagement Intelligence: AI-driven comment replies
@@ -161,14 +195,45 @@ export async function syncLinkedIn(
                 getEnv("GEMINI_API_KEY")
             );
 
-            const commentsReplied = await engagementAgent.processNewComments(client, canonicalUrn).catch(err => {
+            const commentsReplied = (await engagementAgent.processNewComments(client, canonicalUrn).catch(err => {
                 console.error(`[LinkedInEngagement] Process failed:`, err.message);
                 return 0;
-            });
+            })) || 0;
 
             if (commentsReplied > 0) {
                 console.log(`[LinkedInEngagement] Sent ${commentsReplied} AI engagement responses.`);
                 recordsSynced += commentsReplied;
+            }
+
+            // 7. Cross-Table Alignment Guard (Strict Sources Table Sync)
+            // If a 'published' LinkedIn record in the social_content_plan is NOT present in our synced linkedin_posts table,
+            // then it should be removed from the social_content_plan to maintain a single source of truth.
+            const { data: contentPlanItems } = await adminClient
+                .from("social_content_plan")
+                .select("id, external_post_id")
+                .eq("project_id", projectId)
+                .eq("platform", "linkedin")
+                .eq("status", "published");
+
+            if (contentPlanItems && contentPlanItems.length > 0) {
+                // Get all valid linkedin post IDs we have for this project
+                const { data: validPosts } = await adminClient
+                    .from("linkedin_posts")
+                    .select("linkedin_post_id")
+                    .eq("project_id", projectId);
+                
+                const validPostUrns = new Set(validPosts?.map((p: any) => p.linkedin_post_id) || []);
+                const staleIds = contentPlanItems
+                    .filter((item: any) => !item.external_post_id || !validPostUrns.has(item.external_post_id))
+                    .map((item: any) => item.id);
+
+                if (staleIds.length > 0) {
+                    console.info(`[LinkedInSync] Purging ${staleIds.length} stale social_content_plan records NOT found in linkedin_posts.`);
+                    await adminClient
+                        .from("social_content_plan")
+                        .delete()
+                        .in("id", staleIds);
+                }
             }
         }
 

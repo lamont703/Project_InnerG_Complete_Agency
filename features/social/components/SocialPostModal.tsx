@@ -31,6 +31,7 @@ interface SocialPostModalProps {
     projectId: string
     onSuccess: () => void
     platforms: string[]
+    initialData?: any
 }
 
 interface GHLAccount {
@@ -40,7 +41,7 @@ interface GHLAccount {
     type: string
 }
 
-export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platforms }: SocialPostModalProps) {
+export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platforms, initialData }: SocialPostModalProps) {
     const [isSaving, setIsSaving] = useState(false)
     const [title, setTitle] = useState("")
     const [content, setContent] = useState("")
@@ -51,6 +52,35 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
     const [selectedGHLAccount, setSelectedGHLAccount] = useState("")
     const [ghlNotify, setGHLNotify] = useState(false)
     const [isLoadingAccounts, setIsLoadingAccounts] = useState(false)
+
+    useEffect(() => {
+        if (isOpen && initialData) {
+            setTitle(initialData.title || "")
+            setContent(initialData.content_text || initialData.content || "")
+            setSelectedPlatform(initialData.platform || platforms[0] || "")
+            
+            if (initialData.scheduled_at) {
+                // Convert to datetime-local format: YYYY-MM-DDTHH:mm
+                const date = new Date(initialData.scheduled_at)
+                const formatted = date.toISOString().slice(0, 16)
+                setScheduledAt(formatted)
+            }
+            
+            setExecuteNow(initialData.status === 'published')
+            
+            if (initialData.dispatch_metadata) {
+                setSelectedGHLAccount(initialData.destination_id || "")
+                setGHLNotify(initialData.dispatch_metadata.communityPostDetails?.notifyAllGroupMembers || false)
+            }
+        } else if (isOpen) {
+            // Reset for new post
+            setTitle("")
+            setContent("")
+            setSelectedPlatform(platforms[0] || "")
+            setScheduledAt("")
+            setExecuteNow(false)
+        }
+    }, [isOpen, initialData, platforms])
 
     useEffect(() => {
         if (isOpen && selectedPlatform === 'ghl') {
@@ -80,7 +110,7 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!selectedPlatform || !scheduledAt || !content) {
+        if (!selectedPlatform || (!executeNow && !scheduledAt) || !content) {
             toast.error("Please fill all mandatory protocols")
             return
         }
@@ -103,23 +133,37 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                 }
             }
 
-            // Unified Dispatch Protocol: Consolidated Strategic Planning & Execution
-            const { error } = await (supabase as any)
+            // 1. Unified Dispatch Protocol: Save strategic planning data
+            const { data: savedPost, error } = await (supabase as any)
                 .from("social_content_plan")
-                .insert({
+                .upsert({
+                    id: initialData?.id,
                     project_id: projectId,
                     platform: selectedPlatform,
                     destination_id: destinationId,
                     title,
                     content_text: content,
-                    status: executeNow ? 'published' : 'scheduled',
-                    source_type: 'manual',
+                    status: executeNow ? 'approved' : 'scheduled', // 'approved' as temporary status while dispatching
+                    source_type: initialData?.source_type || 'manual',
                     scheduled_at: executeNow ? new Date().toISOString() : new Date(scheduledAt || new Date()).toISOString(),
-                    ai_reasoning: executeNow ? "Immediate human-led broadcast override." : "Human-provisioned tactical broadcast via Social Planner.",
-                    dispatch_metadata: metadata
+                    ai_reasoning: executeNow ? "Immediate manual force-dispatch override." : (initialData?.ai_reasoning || "Human-provisioned tactical broadcast via Social Planner."),
+                    dispatch_metadata: {
+                        ...(initialData?.dispatch_metadata || {}),
+                        ...metadata
+                    }
                 })
+                .select()
+                .single()
 
             if (error) throw error
+
+            // 2. If Execute Now is active, trigger the dispatcher immediately
+            if (executeNow && savedPost) {
+                const { error: dispatchError } = await supabase.functions.invoke("publish-social-post", {
+                    body: { draft_id: savedPost.id }
+                })
+                if (dispatchError) throw dispatchError
+            }
             
             toast.success("Broadcast synchronized and provisioned")
             onSuccess()

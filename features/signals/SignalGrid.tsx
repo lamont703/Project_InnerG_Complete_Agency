@@ -6,7 +6,7 @@ import { useSignals } from "./use-signals"
 interface SignalGridProps {
     projectSlug: string
     initialSignals?: any[]
-    onResolve?: (id: string) => void
+    onResolve?: (id: string, params?: { platforms?: string[], scheduledAt?: string }) => void
     isFlush?: boolean
 }
 
@@ -26,8 +26,8 @@ export function SignalGrid({
         resolveSignal
     } = useSignals(projectSlug, initialSignals)
 
-    const handleResolve = async (id: string) => {
-        await resolveSignal(id)
+    const handleResolve = async (id: string, params?: { platforms?: string[], scheduledAt?: string }) => {
+        await resolveSignal(id, params)
         parentOnResolve?.(id)
     }
 

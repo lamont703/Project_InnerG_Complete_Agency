@@ -15,6 +15,8 @@ import { SignalRepo, ActivityRepo, TicketRepo } from "../_shared/lib/db/index.ts
 export interface ResolveSignalPayload {
     signal_id: string
     project_id: string
+    platforms?: string[]
+    scheduled_at?: string
 }
 
 /**
@@ -66,6 +68,39 @@ export async function resolveSignal(
     } catch (err) {
         // Non-fatal, just log and continue
         console.warn("[resolveSignal] Could not sync ticket status:", err)
+    }
+
+    // 5. If social signal, update the content plan status
+    if (signal.signal_type === 'social' && signal.metadata?.social_plan_id) {
+        // Fetch current status to avoid overwriting scheduled posts
+        const { data: currentDraft } = await adminClient
+            .from("social_content_plan")
+            .select("status")
+            .eq("id", signal.metadata.social_plan_id)
+            .single()
+
+        const status = payload.scheduled_at ? 'scheduled' : 'published'
+        
+        // ONLY update if it's currently a draft OR if we are explicitly scheduling it now.
+        // If it's ALREADY 'scheduled', and we're just acknowledging the signal without a time, keep it scheduled.
+        if (currentDraft?.status === 'draft' || payload.scheduled_at) {
+            const updateData: any = {
+                status,
+                scheduled_at: payload.scheduled_at || new Date().toISOString()
+            }
+            
+            await adminClient
+                .from("social_content_plan")
+                .update(updateData)
+                .eq("id", signal.metadata.social_plan_id)
+
+            await activityRepo.log({
+                project_id,
+                action: `Social content ${status}: ${signal.title}`,
+                category: "marketing",
+                triggered_by: userId
+            })
+        }
     }
 
     return { signal_id, resolved: true }

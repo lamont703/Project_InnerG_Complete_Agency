@@ -176,7 +176,7 @@ export class AgencyService {
         const { data } = await this.supabase
             .from("social_content_plan")
             .select("*, projects(name)")
-            .eq("status", "draft")
+            .in("status", ["draft", "scheduled", "approved", "failed"])
             .order("created_at", { ascending: false })
 
         return (data as any[]) || []
@@ -185,9 +185,9 @@ export class AgencyService {
     /**
      * Invoke the publishing Edge Function for a draft
      */
-    async publishSocialPost(accessToken: string, anonKey: string, draftId: string, platforms?: string[]): Promise<void> {
+    async publishSocialPost(accessToken: string, anonKey: string, draftId: string, platforms?: string[], scheduledAt?: string): Promise<void> {
         const { error } = await this.supabase.functions.invoke("publish-social-post", {
-            body: { draft_id: draftId, platforms },
+            body: { draft_id: draftId, platforms, scheduled_at: scheduledAt },
             headers: {
                 Authorization: `Bearer ${accessToken}`,
                 apikey: anonKey

@@ -13,7 +13,8 @@ import { MetaClient } from "../connector-sync/providers/meta/client.ts"
 
 const PublishSchema = z.object({
     draft_id: z.string().uuid(),
-    platforms: z.array(z.string()).optional()
+    platforms: z.array(z.string()).optional(),
+    scheduled_at: z.string().optional()
 })
 
 export default createHandler(async ({ adminClient, body, user }) => {
@@ -50,7 +51,30 @@ export default createHandler(async ({ adminClient, body, user }) => {
 
     // 2. Resolve targeted platforms
     const targetPlatforms: string[] = (body.platforms || [draft.platform]).map((p: string) => p.toLowerCase())
-    logger.info(`Orchestrating publish to ${targetPlatforms.join(', ')}`, { projectId: draft.project_id })
+    logger.info(`Orchestrating ${body.scheduled_at ? 'schedule' : 'publish'} to ${targetPlatforms.join(', ')}`, { projectId: draft.project_id })
+
+    // If scheduled_at is provided, just update the status and return
+    if (body.scheduled_at) {
+        const { error: scheduleError } = await adminClient
+            .from("social_content_plan")
+            .update({
+                status: "scheduled",
+                scheduled_at: body.scheduled_at,
+                platform: targetPlatforms[0], // Primary platform
+                dispatch_metadata: { 
+                    ...draft.dispatch_metadata,
+                    platforms: targetPlatforms 
+                }
+            })
+            .eq("id", body.draft_id)
+
+        if (scheduleError) throw scheduleError
+        
+        return okResponse({
+            success: true,
+            message: `Scheduled for ${body.scheduled_at} to ${targetPlatforms.join(', ')}`
+        })
+    }
 
     const results: Record<string, { success: boolean; error?: string; post_id?: string }> = {}
     let lastExternalPostId = ""

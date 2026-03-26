@@ -10,7 +10,7 @@ interface SignalSlotFeedProps {
     slotId: string
     signals: Signal[]
     isAgencyMode?: boolean
-    onResolve?: (id: string, platforms?: string[]) => void
+    onResolve?: (id: string, params?: { platforms?: string[], scheduledAt?: string }) => void
     onDeleteAction?: (draftId: string, projectId: string) => Promise<void>
     isResolving?: boolean
     highlightId?: string | null
