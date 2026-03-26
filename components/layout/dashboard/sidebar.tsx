@@ -17,7 +17,8 @@ import {
     BarChart3,
     Plug,
     Zap,
-    GitBranch
+    GitBranch,
+    Users
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -41,15 +42,16 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
     const currentTab = searchParams?.get("tab")
     const [userRole, setUserRole] = useState<UserRole | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [features, setFeatures] = useState<{ community_agents?: boolean }>({})
 
     useEffect(() => {
-        const fetchUserRole = async () => {
+        const fetchUserRoleAndFeatures = async () => {
             try {
                 const supabase = createBrowserClient()
                 const { data: { user } } = await supabase.auth.getUser()
 
                 if (user) {
-                    // Fetch role from the public.users table
+                    // 1. Fetch role
                     const { data: profile } = await supabase
                         .from("users")
                         .select("role")
@@ -59,16 +61,27 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                     if (profile) {
                         setUserRole(profile.role as UserRole)
                     }
+
+                    // 2. Fetch project features
+                    const { data: project } = await supabase
+                        .from("projects")
+                        .select("settings")
+                        .eq("slug", projectSlug)
+                        .single() as any
+                    
+                    if (project?.settings?.features) {
+                        setFeatures(project.settings.features)
+                    }
                 }
             } catch (err) {
-                console.error("[Sidebar] Error fetching role:", err)
+                console.error("[Sidebar] Error fetching role/features:", err)
             } finally {
                 setIsLoading(false)
             }
         }
 
-        fetchUserRole()
-    }, [])
+        fetchUserRoleAndFeatures()
+    }, [projectSlug])
 
     const handleSignOut = async () => {
         const supabase = createBrowserClient()
@@ -96,6 +109,14 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
             label: "Metrics & Intelligence",
             active: pathname === `/dashboard/${projectSlug}/metrics`,
         },
+        ...(features.community_agents ? [
+            {
+                href: `/dashboard/${projectSlug}/community`,
+                icon: Users,
+                label: "Community Hub",
+                active: pathname === `/dashboard/${projectSlug}/community`,
+            }
+        ] : []),
         {
             href: `/dashboard/${projectSlug}/connectors`,
             icon: Plug,

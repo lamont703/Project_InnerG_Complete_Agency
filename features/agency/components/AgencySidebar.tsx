@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import {
@@ -13,7 +14,8 @@ import {
     LogOut,
     X,
     Zap,
-    Target
+    Target,
+    Users
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -29,6 +31,28 @@ interface AgencySidebarProps {
 export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
     const router = useRouter()
     const pathname = usePathname()
+    const [features, setFeatures] = useState<{ community_agents?: boolean }>({})
+
+    useEffect(() => {
+        const fetchAgencyFeatures = async () => {
+            try {
+                const supabase = createBrowserClient()
+                // The agency project typically has slug 'innergcomplete'
+                const { data: project } = await supabase
+                    .from("projects")
+                    .select("settings")
+                    .eq("slug", "innergcomplete")
+                    .single() as any
+                
+                if (project?.settings?.features) {
+                    setFeatures(project.settings.features)
+                }
+            } catch (err) {
+                console.error("[AgencySidebar] Feature fetch error:", err)
+            }
+        }
+        fetchAgencyFeatures()
+    }, [])
 
     const handleSignOut = async () => {
         const supabase = createBrowserClient()
@@ -40,6 +64,9 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
     const navItems = [
         { href: "/select-portal", icon: Layout, label: "Switch Portal", active: pathname === "/select-portal" },
         { href: "/dashboard/innergcomplete", icon: Building2, label: "Agency Command", active: pathname === "/dashboard/innergcomplete" },
+        ...(features.community_agents ? [
+            { href: "/dashboard/innergcomplete/community", icon: Users, label: "Community Hub", active: pathname === "/dashboard/innergcomplete/community" }
+        ] : []),
     ]
 
     const adminItems = [
