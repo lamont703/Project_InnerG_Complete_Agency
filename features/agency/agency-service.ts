@@ -43,11 +43,17 @@ export class AgencyService {
     /**
      * Fetch recent signals, split into Strategic (Agency Only) and Operational
      */
-    async getAllAgencySignals(): Promise<{ strategic: StrategicSignal[], operational: OperationalSignal[] }> {
-        const { data } = await this.supabase
+    async getAllAgencySignals(projectId?: string): Promise<{ strategic: StrategicSignal[], operational: OperationalSignal[] }> {
+        let query = this.supabase
             .from("ai_signals")
             .select("id, project_id, signal_type, title, body, severity, is_resolved, is_agency_only, created_at, action_url, metadata, projects(name)")
             .eq("is_resolved", false)
+
+        if (projectId) {
+            query = query.eq("project_id", projectId)
+        }
+
+        const { data } = await query
             .order("created_at", { ascending: false })
             .limit(50)
 
@@ -172,13 +178,17 @@ export class AgencyService {
     /**
      * Fetch pending social content drafts
      */
-    async getSocialDrafts(): Promise<any[]> {
-        const { data } = await this.supabase
+    async getSocialDrafts(projectId?: string): Promise<any[]> {
+        let query = this.supabase
             .from("social_content_plan")
             .select("*, projects(name)")
             .in("status", ["draft", "scheduled", "approved", "failed"])
-            .order("created_at", { ascending: false })
 
+        if (projectId) {
+            query = query.eq("project_id", projectId)
+        }
+
+        const { data } = await query.order("created_at", { ascending: false })
         return (data as any[]) || []
     }
 

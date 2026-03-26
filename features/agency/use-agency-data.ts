@@ -10,7 +10,7 @@ import {
     AgencyUserData
 } from "./types"
 
-export function useAgencyData() {
+export function useAgencyData(projectSlug?: string) {
     const router = useRouter()
     const [userData, setUserData] = useState<AgencyUserData | null>(null)
     const [projects, setProjects] = useState<AgencyProject[]>([])
@@ -51,17 +51,23 @@ export function useAgencyData() {
             }
             setUserData(profile)
 
-            // Parallel fetch for performance
+            // Resolve Project Context
+            let currentProjectId = undefined
+            if (projectSlug) {
+                currentProjectId = await signalService.getProjectId(projectSlug)
+            }
+
+            // Parallel fetch for performance - Scoped by project if provided
             const [projData, signalData, liMetrics, ytMetrics, igMetrics, fbMetrics, ttMetrics, pixelMetricsData, fConfig] = await Promise.all([
                 service.getActiveProjects(),
-                service.getAllAgencySignals(),
-                service.getLinkedInMetrics(),
-                service.getYouTubeMetrics(),
-                service.getInstagramMetrics(),
-                service.getFacebookMetrics(),
-                service.getTikTokMetrics(),
-                service.getPixelMetrics(),
-                service.getFunnelConfig()
+                service.getAllAgencySignals(currentProjectId),
+                service.getLinkedInMetrics(projectSlug),
+                service.getYouTubeMetrics(projectSlug),
+                service.getInstagramMetrics(projectSlug),
+                service.getFacebookMetrics(projectSlug),
+                service.getTikTokMetrics(projectSlug),
+                service.getPixelMetrics(projectSlug),
+                service.getFunnelConfig(projectSlug)
             ])
 
 
@@ -77,7 +83,7 @@ export function useAgencyData() {
             setFunnelConfig(fConfig)
 
 
-            const draftData = await service.getSocialDrafts()
+            const draftData = await service.getSocialDrafts(currentProjectId)
             setSocialDrafts(draftData)
 
         } catch (err) {
@@ -85,7 +91,7 @@ export function useAgencyData() {
         } finally {
             setIsLoading(false)
         }
-    }, [router, service, supabase])
+    }, [router, service, supabase, projectSlug, signalService])
 
     const handleSyncGHL = async () => {
         setIsSyncing(true)
