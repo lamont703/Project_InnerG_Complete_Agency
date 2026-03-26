@@ -113,7 +113,7 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
             {
                 href: `/dashboard/${projectSlug}/community`,
                 icon: Users,
-                label: "Community Hub",
+                label: "Community Hub Agents",
                 active: pathname === `/dashboard/${projectSlug}/community`,
             }
         ] : []),

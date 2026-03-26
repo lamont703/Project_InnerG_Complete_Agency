@@ -65,7 +65,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
         { href: "/select-portal", icon: Layout, label: "Switch Portal", active: pathname === "/select-portal" },
         { href: "/dashboard/innergcomplete", icon: Building2, label: "Agency Command", active: pathname === "/dashboard/innergcomplete" },
         ...(features.community_agents ? [
-            { href: "/dashboard/innergcomplete/community", icon: Users, label: "Community Hub", active: pathname === "/dashboard/innergcomplete/community" }
+            { href: "/dashboard/innergcomplete/community", icon: Users, label: "Community Hub Agents", active: pathname === "/dashboard/innergcomplete/community" }
         ] : []),
     ]
 

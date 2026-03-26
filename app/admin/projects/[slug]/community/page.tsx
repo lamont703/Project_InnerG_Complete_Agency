@@ -13,7 +13,13 @@ import {
     Users,
     Activity,
     Settings,
-    AlertTriangle
+    AlertTriangle,
+    Globe,
+    BookOpen,
+    Zap,
+    CheckCircle2,
+    Plus,
+    Minus
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -30,49 +36,77 @@ export default function AgencyCommunityConfigPage() {
     const [projectName, setProjectName] = useState("")
     const [projectId, setProjectId] = useState<string | null>(null)
     const [featureEnabled, setFeatureEnabled] = useState(false)
-
+    const [allowedInfrastructure, setAllowedInfrastructure] = useState<string[]>([])
     const [error, setError] = useState<string | null>(null)
+
+    const INFRA_OPTIONS = [
+        { 
+            id: 'link', 
+            name: 'Link Community Infrastructure', 
+            desc: 'Establish an external bridge for AI personas.',
+            icon: Globe
+        },
+        { 
+            id: 'book_reader', 
+            name: 'Book Reader App', 
+            desc: 'Connect internal discussion threads.',
+            icon: BookOpen
+        },
+        { 
+            id: 'discord', 
+            name: 'Discord Webhook', 
+            desc: 'Reply to messages in specific channels.',
+            icon: MessageSquare
+        },
+        { 
+            id: 'slack', 
+            name: 'Slack Internal', 
+            desc: 'Monitor workspaces and key threads.',
+            icon: Activity
+        },
+        { 
+            id: 'telegram', 
+            name: 'Telegram Bot', 
+            desc: 'Broadcast and engage with groups.',
+            icon: Zap
+        },
+        { 
+            id: 'ghl', 
+            name: 'GoHighLevel Community', 
+            desc: 'Manage GHL community posts and member engagement.',
+            icon: MessageSquare
+        }
+    ]
 
     useEffect(() => {
         const load = async () => {
             try {
                 const supabase = createBrowserClient()
                 const { data: { user } } = await supabase.auth.getUser()
-                console.log("[CommunityConfig] Current User ID:", user?.id)
                 
                 if (!user) { 
                     router.push("/login")
                     return 
                 }
 
-                // 1. Fetch role
                 const { data: profile, error: profileErr } = await supabase
                     .from("users")
                     .select("role")
                     .eq("id", user.id)
                     .single() as any
 
-                console.log("[CommunityConfig] User Profile:", profile, "Error:", profileErr)
-
                 if (profileErr || !profile || profile.role !== "super_admin") {
-                    console.error("[CommunityConfig] Access Denied: Not a super_admin or profile not found")
                     setError(`Access Denied: ${profileErr?.message || "Not a super_admin"}`)
-                    // Stay on page for debugging instead of router.push("/select-portal")
                     return
                 }
 
-                // 2. Fetch project
-                console.log("[CommunityConfig] Looking up project by slug:", slug)
                 const { data: project, error: projectErr } = await supabase
                     .from("projects")
                     .select("id, name, settings")
                     .eq("slug", slug)
                     .single() as any
 
-                console.log("[CommunityConfig] Project data:", project, "Error:", projectErr)
-
                 if (projectErr || !project) {
-                    console.error("[CommunityConfig] Project lookup failed:", projectErr)
                     setError(`Project lookup failed: ${projectErr?.message || "Not found"}`)
                     return
                 }
@@ -80,12 +114,11 @@ export default function AgencyCommunityConfigPage() {
                 setProjectId(project.id)
                 setProjectName(project.name)
                 
-                // Extract feature flag
                 const settings = project.settings || {}
                 setFeatureEnabled(settings.features?.community_agents ?? false)
+                setAllowedInfrastructure(settings.features?.community_infrastructure_whitelist ?? [])
 
             } catch (err: any) {
-                console.error("[AgencyCommunityConfig] Runtime error:", err)
                 setError(err.message)
             } finally {
                 setIsLoading(false)
@@ -102,7 +135,6 @@ export default function AgencyCommunityConfigPage() {
         try {
             const supabase = createBrowserClient()
             
-            // Fetch current settings first to do a partial merge
             const { data: currentProject } = await supabase
                 .from("projects")
                 .select("settings")
@@ -114,7 +146,8 @@ export default function AgencyCommunityConfigPage() {
                 ...currentSettings,
                 features: {
                     ...(currentSettings.features || {}),
-                    community_agents: featureEnabled
+                    community_agents: featureEnabled,
+                    community_infrastructure_whitelist: allowedInfrastructure
                 }
             }
 
@@ -131,6 +164,12 @@ export default function AgencyCommunityConfigPage() {
         } finally {
             setIsSaving(false)
         }
+    }
+
+    const toggleInfra = (id: string) => {
+        setAllowedInfrastructure(prev => 
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        )
     }
 
     if (isLoading) {
@@ -219,6 +258,58 @@ export default function AgencyCommunityConfigPage() {
                             {/* Decorative gradient */}
                             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none group-hover:bg-emerald-500/10 transition-all duration-500" />
                         </div>
+
+                        {/* Infrastructure Configuration */}
+                        {featureEnabled && (
+                            <div className="p-8 rounded-3xl glass-panel border border-border space-y-8 animate-in fade-in slide-in-from-top-4">
+                                <div className="space-y-1">
+                                    <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
+                                        <Zap className="h-5 w-5" />
+                                        Infrastructure Configuration
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Select which external bridges the client is permitted to establish.
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {INFRA_OPTIONS.map((opt) => {
+                                        const isSelected = allowedInfrastructure.includes(opt.id);
+                                        return (
+                                            <div 
+                                                key={opt.id}
+                                                onClick={() => toggleInfra(opt.id)}
+                                                className={`p-4 rounded-2xl border transition-all cursor-pointer group/opt ${
+                                                    isSelected 
+                                                    ? 'bg-primary/5 border-primary/40 ring-1 ring-primary/20' 
+                                                    : 'bg-muted/5 border-border hover:border-primary/20 hover:bg-muted/10'
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className={`p-2 rounded-xl ${isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground group-hover/opt:text-primary transition-colors'}`}>
+                                                        <opt.icon className="h-5 w-5" />
+                                                    </div>
+                                                    <div className={`h-5 w-5 rounded-full border flex items-center justify-center transition-all ${
+                                                        isSelected ? 'bg-primary border-primary text-white' : 'border-border'
+                                                    }`}>
+                                                        {isSelected && <CheckCircle2 className="h-3 w-3" />}
+                                                    </div>
+                                                </div>
+                                                <h4 className="text-sm font-bold tracking-tight mb-1">{opt.name}</h4>
+                                                <p className="text-[11px] text-muted-foreground leading-relaxed">{opt.desc}</p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-start gap-3">
+                                    <Shield className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                    <p className="text-xs text-muted-foreground leading-relaxed italic">
+                                        Whitelisting these protocols ensures that client-side users only see relevant connection options in their Community Hub setup.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-6">

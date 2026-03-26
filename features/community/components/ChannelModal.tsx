@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
     Dialog, 
     DialogContent, 
@@ -21,7 +21,8 @@ import {
     Search,
     Check,
     Plug,
-    BookOpen
+    BookOpen,
+    Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -33,11 +34,18 @@ interface ChannelModalProps {
     onClose: () => void
     projectId: string
     onSuccess: () => void
+    initialData?: {
+        id: string
+        name: string
+        platform: string
+        config: any
+    } | null
 }
 
-export function ChannelModal({ isOpen, onClose, projectId, onSuccess }: ChannelModalProps) {
+export function ChannelModal({ isOpen, onClose, projectId, onSuccess, initialData }: ChannelModalProps) {
     const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
     const [isSaving, setIsSaving] = useState(false)
+    const [whitelist, setWhitelist] = useState<string[] | null>(null)
     const [formData, setFormData] = useState({
         name: "",
         apiKey: "",
@@ -45,7 +53,45 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess }: ChannelM
         webhookUrl: ""
     })
 
-    const platforms = [
+    useEffect(() => {
+        if (isOpen && initialData) {
+            setSelectedPlatform(initialData.platform)
+            setFormData({
+                name: initialData.name,
+                apiKey: initialData.config?.apiKey || "",
+                baseUrl: initialData.config?.baseUrl || "",
+                webhookUrl: initialData.config?.webhookUrl || ""
+            })
+        } else if (isOpen) {
+            setSelectedPlatform(null)
+            setFormData({ name: "", apiKey: "", baseUrl: "", webhookUrl: "" })
+        }
+    }, [isOpen, initialData])
+
+    useEffect(() => {
+        const fetchProject = async () => {
+            const supabase = createBrowserClient()
+            const { data } = await (supabase as any)
+                .from("projects")
+                .select("settings")
+                .eq("id", projectId)
+                .single()
+            
+            const allowed = data?.settings?.features?.community_infrastructure_whitelist || []
+            setWhitelist(allowed)
+        }
+        if (isOpen && projectId) fetchProject()
+    }, [isOpen, projectId])
+
+    const allPlatforms = [
+        { 
+            id: 'link', 
+            name: 'Link Community Infrastructure', 
+            icon: Globe, 
+            color: 'text-primary', 
+            bg: 'bg-primary/10',
+            description: 'Establish an external bridge for AI personas.'
+        },
         { 
             id: 'book_reader', 
             name: 'Book Reader App', 
@@ -77,8 +123,18 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess }: ChannelM
             color: 'text-sky-400', 
             bg: 'bg-sky-500/10',
             description: 'Broadcast and engage with groups.'
+        },
+        { 
+            id: 'ghl', 
+            name: 'GoHighLevel Community', 
+            icon: MessageSquare, 
+            color: 'text-amber-500', 
+            bg: 'bg-amber-500/10',
+            description: 'Manage GHL community posts and member engagement.'
         }
     ]
+
+    const platforms = allPlatforms.filter(p => whitelist?.includes(p.id))
 
     const handleSave = async () => {
         if (!selectedPlatform || !formData.name) {
@@ -95,26 +151,59 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess }: ChannelM
                 webhookUrl: formData.webhookUrl
             }
 
-            const { error } = await (supabase as any)
-                .from("community_channels")
-                .insert({
-                    project_id: projectId,
-                    name: formData.name,
-                    platform: selectedPlatform,
-                    config,
-                    is_active: true
-                })
+            const payload = {
+                project_id: projectId,
+                name: formData.name,
+                platform: selectedPlatform,
+                config,
+                is_active: true
+            }
 
-            if (error) throw error
+            let result;
+            if (initialData?.id) {
+                result = await (supabase as any)
+                    .from("community_channels")
+                    .update(payload)
+                    .eq("id", initialData.id)
+            } else {
+                result = await (supabase as any)
+                    .from("community_channels")
+                    .insert(payload)
+            }
+
+            if (result.error) throw result.error
             
-            toast.success(`${formData.name} linked successfully.`)
+            toast.success(`${formData.name} ${initialData?.id ? 'updated' : 'linked'} successfully.`)
             onSuccess()
             onClose()
-            setSelectedPlatform(null)
-            setFormData({ name: "", apiKey: "", baseUrl: "", webhookUrl: "" })
         } catch (err: any) {
             console.error("[ChannelModal] Save error:", err)
             toast.error(err.message || "Failed to link community channel.")
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    const handleDelete = async () => {
+        if (!initialData?.id) return
+        if (!confirm("Are you sure you want to decommission this connection?")) return
+
+        setIsSaving(true)
+        try {
+            const supabase = createBrowserClient()
+            const { error } = await (supabase as any)
+                .from("community_channels")
+                .delete()
+                .eq("id", initialData.id)
+
+            if (error) throw error
+            
+            toast.success("Bridge connection decommissioned.")
+            onSuccess()
+            onClose()
+        } catch (err: any) {
+            console.error("[ChannelModal] Delete error:", err)
+            toast.error(err.message || "Failed to delete connection.")
         } finally {
             setIsSaving(false)
         }
@@ -128,16 +217,27 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess }: ChannelM
                         <Plug className="h-6 w-6" />
                     </div>
                     <DialogTitle className="text-2xl font-black uppercase tracking-tight">
-                        Link Community Infrastructure
+                        {initialData?.id ? "Re-Configure Community Bridge" : "Link Community Infrastructure"}
                     </DialogTitle>
                     <DialogDescription className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60">
-                        Establish an external bridge for AI personas.
+                        {initialData?.id ? "Update the neural bridge parameters." : "Establish an external bridge for AI personas."}
                     </DialogDescription>
                 </DialogHeader>
 
                 {!selectedPlatform ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4">
-                        {platforms.map(p => (
+                        {whitelist === null ? (
+                            <div className="col-span-full py-10 flex flex-col items-center justify-center gap-3">
+                                <Loader2 className="h-5 w-5 animate-spin text-primary opacity-40" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic">Verifying Deployment Tokens...</span>
+                            </div>
+                        ) : platforms.length === 0 ? (
+                            <div className="col-span-full py-10 px-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex flex-col items-center text-center">
+                                <Shield className="h-6 w-6 text-amber-500 mb-3" />
+                                <h4 className="text-sm font-bold mb-1 tracking-tight italic">Protocol Restriction Active</h4>
+                                <p className="text-xs text-muted-foreground leading-relaxed">No infrastructure connections have been whitelisted for this portal by the parent agency.</p>
+                            </div>
+                        ) : platforms.map(p => (
                             <button
                                 key={p.id}
                                 onClick={() => setSelectedPlatform(p.id)}
@@ -210,6 +310,28 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess }: ChannelM
                                         />
                                     </div>
                                 </>
+                            ) : selectedPlatform === 'ghl' ? (
+                                <>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Location ID</label>
+                                        <Input 
+                                            placeholder="GHL Location ID (e.g. QLyYYRoOhCg65lKW9HDX)" 
+                                            className="rounded-xl h-12"
+                                            value={formData.baseUrl}
+                                            onChange={e => setFormData({...formData, baseUrl: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Location Access Token</label>
+                                        <Input 
+                                            type="password"
+                                            placeholder="pit-••••••••••••••••" 
+                                            className="rounded-xl h-12"
+                                            value={formData.apiKey}
+                                            onChange={e => setFormData({...formData, apiKey: e.target.value})}
+                                        />
+                                    </div>
+                                </>
                             ) : (
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Platform Webhook Destination URL</label>
@@ -236,10 +358,17 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess }: ChannelM
                     <div className="flex items-center gap-3 w-full">
                         <Button 
                             variant="outline" 
-                            onClick={onClose}
-                            className="rounded-xl flex-1 border-border font-bold uppercase tracking-widest text-[10px]"
+                            onClick={initialData?.id ? handleDelete : onClose}
+                            disabled={isSaving}
+                            className={`rounded-xl flex-1 border-border font-bold uppercase tracking-widest text-[10px] ${
+                                initialData?.id ? 'hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/40 text-muted-foreground' : ''
+                            }`}
                         >
-                            Abort Link
+                            {initialData?.id ? (
+                                <><Trash2 className="h-4 w-4 mr-2" /> Decommission Connection</>
+                            ) : (
+                                "Abort Link"
+                            )}
                         </Button>
                         <Button 
                             onClick={handleSave}
@@ -249,7 +378,7 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess }: ChannelM
                             {isSaving ? (
                                 <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Encrypting...</>
                             ) : (
-                                <><Save className="h-4 w-4 mr-2" /> Establish Neural Bridge</>
+                                <><Save className="h-4 w-4 mr-2" /> {initialData?.id ? 'Seal Neural Bridge Update' : 'Establish Neural Bridge'}</>
                             )}
                         </Button>
                     </div>

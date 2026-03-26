@@ -20,7 +20,8 @@ import {
     Shield,
     Target,
     BookOpen,
-    Globe
+    Globe,
+    Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -76,6 +77,7 @@ export default function CommunityHubPage() {
     const [isChannelModalOpen, setIsChannelModalOpen] = useState(false)
     const [isDeploymentModalOpen, setIsDeploymentModalOpen] = useState(false)
     const [editingPersona, setEditingPersona] = useState<CommunityAgent | null>(null)
+    const [editingChannel, setEditingChannel] = useState<CommunityChannel | null>(null)
 
     const load = async () => {
         try {
@@ -151,6 +153,44 @@ export default function CommunityHubPage() {
             toast.success(`Agent ${!currentStatus ? 'activated' : 'deactivated'}`)
         } catch (err) {
             toast.error("Failed to update agent status")
+        }
+    }
+
+    const deletePersona = async (id: string) => {
+        if (!confirm("Caution: Deleting this persona will dismantle all active bridge links for this agent. Proceed?")) return
+
+        try {
+            const supabase = createBrowserClient()
+            const { error } = await (supabase as any)
+                .from("community_agents")
+                .delete()
+                .eq("id", id)
+
+            if (error) throw error
+            
+            setAgents(prev => prev.filter(a => a.id !== id))
+            setDeployments(prev => prev.filter(d => d.agent_id !== id))
+            toast.success("Persona node decommissioned and data purged.")
+        } catch (err) {
+            console.error("[CommunityHub] Delete error:", err)
+            toast.error("Failed to decommission persona node.")
+        }
+    }
+
+    const decommissionLink = async (id: string) => {
+        try {
+            const supabase = createBrowserClient()
+            const { error } = await (supabase as any)
+                .from("community_agent_deployments")
+                .delete()
+                .eq("id", id)
+
+            if (error) throw error
+            setDeployments(prev => prev.filter(d => d.id !== id))
+            toast.success("Neural link decommissioned successfully")
+        } catch (err) {
+            console.error("[CommunityHub] Decommission error:", err)
+            toast.error("Failed to dissolve bridge connection")
         }
     }
 
@@ -252,6 +292,14 @@ export default function CommunityHubPage() {
                                                 <Button 
                                                     variant="ghost" 
                                                     size="icon" 
+                                                    onClick={() => deletePersona(agent.id)}
+                                                    className="h-8 w-8 rounded-lg hover:bg-red-500/10 hover:text-red-500"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
                                                     onClick={() => toggleAgentStatus(agent.id, agent.is_active)}
                                                     className={`h-8 w-8 rounded-lg ${agent.is_active ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-muted-foreground hover:bg-muted'}`}
                                                 >
@@ -309,7 +357,7 @@ export default function CommunityHubPage() {
                                     Platform Ingress Points
                                 </h2>
                                 <Button 
-                                    onClick={() => setIsChannelModalOpen(true)}
+                                    onClick={() => { setEditingChannel(null); setIsChannelModalOpen(true); }}
                                     className="rounded-xl flex items-center gap-2 font-bold uppercase tracking-widest text-[9px] h-9 bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 px-6"
                                 >
                                     <Plus className="h-3 w-3" />
@@ -340,7 +388,16 @@ export default function CommunityHubPage() {
                                                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50" />
                                                 <span className="text-[9px] font-bold text-emerald-500/80 uppercase tracking-widest italic">Live Sink</span>
                                             </div>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingChannel(channel);
+                                                    setIsChannelModalOpen(true);
+                                                }}
+                                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
                                                 <Edit2 className="h-3.5 w-3.5" />
                                             </Button>
                                         </div>
@@ -397,7 +454,10 @@ export default function CommunityHubPage() {
                                                 </div>
                                                 <div className="flex flex-col items-center">
                                                     <div className="h-10 w-10 rounded-xl bg-muted border border-border flex items-center justify-center text-muted-foreground">
-                                                        {d.channel?.platform === 'book_reader' ? <BookOpen className="h-5 w-5" /> : <Globe className="h-5 w-5" />}
+                                                        {d.channel?.platform === 'book_reader' ? <BookOpen className="h-5 w-5" /> : 
+                                                         d.channel?.platform === 'discord' ? <MessageSquare className="h-5 w-5" /> :
+                                                         d.channel?.platform === 'slack' ? <Zap className="h-5 w-5" /> :
+                                                         <Globe className="h-5 w-5" />}
                                                     </div>
                                                     <span className="text-[9px] font-black uppercase mt-1 tracking-tight truncate max-w-[80px]">{d.channel?.name}</span>
                                                 </div>
@@ -407,7 +467,11 @@ export default function CommunityHubPage() {
                                                 Persona <span className="text-foreground font-bold">{d.agent?.role}</span> is monitoring <span className="text-foreground font-bold">{d.channel?.platform}</span> threads.
                                             </p>
 
-                                            <Button variant="ghost" className="w-full rounded-xl h-10 border border-border/50 text-[9px] font-black uppercase tracking-widest hover:text-red-400 hover:bg-red-400/10">
+                                            <Button 
+                                                variant="ghost" 
+                                                onClick={() => decommissionLink(d.id)}
+                                                className="w-full rounded-xl h-10 border border-border/50 text-[9px] font-black uppercase tracking-widest hover:text-red-400 hover:bg-red-400/10"
+                                            >
                                                 Decommission Link
                                             </Button>
                                         </div>
@@ -512,6 +576,7 @@ export default function CommunityHubPage() {
                 isOpen={isChannelModalOpen} 
                 onClose={() => setIsChannelModalOpen(false)} 
                 projectId={projectId || ""}
+                initialData={editingChannel as any}
                 onSuccess={load}
             />
             <DeploymentModal
