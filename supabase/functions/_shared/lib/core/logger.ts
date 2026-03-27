@@ -63,9 +63,25 @@ export class Logger {
     }
 
     error(message: string, error?: unknown, context?: Record<string, unknown>) {
+        let errorMsg: string;
+        let stack: string | undefined;
+
+        if (error instanceof Error) {
+            errorMsg = error.message;
+            stack = error.stack;
+        } else if (typeof error === 'object' && error !== null) {
+            try {
+                errorMsg = JSON.stringify(error, null, 2);
+            } catch {
+                errorMsg = String(error);
+            }
+        } else {
+            errorMsg = String(error);
+        }
+
         this.log(message, "error", {
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
+            error: errorMsg,
+            stack: stack,
             ...(context || {})
         });
     }

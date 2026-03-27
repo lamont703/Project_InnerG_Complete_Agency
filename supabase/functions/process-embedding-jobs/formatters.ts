@@ -187,6 +187,64 @@ export function formatGithubPullRequest(row: any): string {
     return `GitHub PR #${row.number || "0"} [${state}] (${date}): "${row.title || "Untitled"}". ${row.body ? `Description: ${row.body.slice(0, 200)}...` : ""}`
 }
 
+export function formatTwitterAccount(row: any): string {
+    const followers = row.followers_count ?? 0
+    const following = row.following_count ?? 0
+    const tweets = row.tweet_count ?? 0
+    return `X (Twitter) Account [${row.username}]: "${row.name || "Untitled"}". Stats: ${followers.toLocaleString()} followers, ${following.toLocaleString()} following, ${tweets.toLocaleString()} total tweets.`
+}
+
+export function formatTwitterTweet(row: any): string {
+    const likes = row.like_count ?? 0
+    const retweets = row.retweet_count ?? 0
+    const impressions = row.impression_count ?? 0
+    const date = row.created_at ? new Date(row.created_at).toISOString().split("T")[0] : "recently"
+    return `X (Twitter) Tweet [${date}]: "${row.text?.slice(0, 100) || "No text"}..." Stats: ${impressions.toLocaleString()} impressions, ${likes.toLocaleString()} likes, ${retweets.toLocaleString()} retweets.`
+}
+
+export function formatInstagramMedia(row: any): string {
+    const type = row.media_type || "MEDIA"
+    const likes = row.like_count ?? 0
+    const comments = row.comments_count ?? 0
+    const date = row.timestamp ? new Date(row.timestamp).toISOString().split("T")[0] : "recently"
+    return `Instagram ${type} [${date}]: "${row.caption?.slice(0, 100) || "No caption"}..." Stats: ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments.`
+}
+
+export function formatInstagramComment(row: any): string {
+    const date = row.timestamp ? new Date(row.timestamp).toISOString().split("T")[0] : "recently"
+    return `Instagram Comment [${date}]: "${row.text || "No content"}" by ${row.username || "Unknown"}`
+}
+
+export function formatGithubRepo(row: any): string {
+    return `GitHub Repository: "${row.full_name || row.name}" [Language: ${row.language || "Unknown"}]. Stars: ${row.stargazers_count ?? 0}, Forks: ${row.forks_count ?? 0}. Description: ${row.description || "No description"}.`
+}
+
+export function formatGrowthAuditLead(row: any): string {
+    const status = row.status || "new"
+    const score = row.audit_score != null ? `${row.audit_score}/100` : "N/A"
+    return `Growth Audit Lead [${status}]: ${row.company_name || "Unknown Company"} (${row.contact_name || "Unknown Contact"}). Website: ${row.website_url || "N/A"}. AI Audit Score: ${score}.`
+}
+
+export function formatPixelEvent(row: any): string {
+    const type = row.event_type || "view"
+    const url = row.url || "unknown"
+    const date = row.created_at ? new Date(row.created_at).toISOString().split("T")[0] : "recently"
+    return `Pixel Event [${date}]: ${type.toUpperCase()} on ${url}. Session ID: ${row.session_id || "N/A"}.`
+}
+
+export function formatPixelVisitor(row: any): string {
+    const country = row.country || "Unknown"
+    const device = row.device_type || "unknown"
+    return `Pixel Visitor: [${row.visitor_id}] from ${country}. Device: ${device}. Channels: ${row.last_source || "direct"}.`
+}
+
+export function formatSocialContentPlan(row: any): string {
+    const platform = row.platform || "unknown"
+    const status = row.status || "draft"
+    const date = row.scheduled_at ? new Date(row.scheduled_at).toISOString().split("T")[0] : "unscheduled"
+    return `Social Content Plan [${platform.toUpperCase()} — ${status}]: "${row.title || "Untitled"}". Scheduled for: ${date}. Content: ${row.content?.slice(0, 200) || "No content."}`
+}
+
 /**
  * Master dispatcher — picks the right formatter for each source table.
  * ⚠️ Add new tables HERE. Do not add formatting logic anywhere else.
@@ -218,6 +276,15 @@ export function formatSourceRow(sourceTable: string, row: any): string {
             case "linkedin_comments": return formatLinkedinComment(row)
             case "github_commits": return formatGithubCommit(row)
             case "github_pull_requests": return formatGithubPullRequest(row)
+            case "twitter_accounts": return formatTwitterAccount(row)
+            case "twitter_tweets": return formatTwitterTweet(row)
+            case "instagram_media": return formatInstagramMedia(row)
+            case "instagram_comments": return formatInstagramComment(row)
+            case "github_repos": return formatGithubRepo(row)
+            case "growth_audit_leads": return formatGrowthAuditLead(row)
+            case "pixel_events": return formatPixelEvent(row)
+            case "pixel_visitors": return formatPixelVisitor(row)
+            case "social_content_plan": return formatSocialContentPlan(row)
             default: return JSON.stringify(row)
         }
     } catch (err) {
