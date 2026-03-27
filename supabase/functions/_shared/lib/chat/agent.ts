@@ -51,8 +51,20 @@ export class ChatService {
         const model = input.model ?? GEMINI_MODELS.FLASH_LITE
         this.logger.info("Starting growth assistant chat execution", { project_id, userId, model, hasSessionId: !!session_id })
 
-        // ── Step 1: Token Budget Check ────────────────────────
-        this.logger.info("Step 1: Checking token budget")
+        // ── Step 1: Strict Tenancy & Ownership Verification ───
+        this.logger.info("Step 1: Verifying project access", { project_id, userId })
+        const { data: hasAccess, error: accessErr } = await this.adminClient.rpc("check_project_access", {
+            p_project_id: project_id,
+            p_user_id: userId
+        })
+
+        if (accessErr || !hasAccess) {
+            this.logger.error("Unauthorized access attempt", { project_id, userId, error: accessErr })
+            throw new Error("UNAUTHORIZED: You do not have permission to access the Growth Assistant for this project.")
+        }
+
+        // ── Step 1b: Token Budget Check ────────────────────────
+        this.logger.info("Step 1b: Checking token budget")
         let budgetRows = null
         try {
             const { data } = await this.adminClient.rpc("check_token_budget", {

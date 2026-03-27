@@ -63,7 +63,7 @@ export class RagService {
             searchTasks.push(
                 this.client.rpc("match_documents", {
                     query_embedding: embedding,
-                    match_threshold: minSimilarity + 0.1, // Stricter for agency peering (0.45)
+                    match_threshold: Math.max(minSimilarity + 0.1, 0.45), // Stricter for agency peering
                     match_count: Math.floor(limit / 2),
                     p_project_id: agencyProjectId
                 })
@@ -77,6 +77,8 @@ export class RagService {
             const taskProjectId = index === 0 ? projectId : agencyProjectId
             return (r.data || []).map((item: any) => ({
                 ...item,
+                // If the DB returned null (shared info), assign it to the agency project ID
+                // to correctly categorize it as "peered" data during isolation check.
                 project_id: item.project_id || taskProjectId
             }))
         }) as (RagResult & { project_id: string })[]
@@ -85,16 +87,16 @@ export class RagService {
             // If the chunk belongs to the local project, it's always allowed (siloed)
             if (r.project_id === projectId) return true
 
-            // If the chunk belongs to the Agency and we are a client portal,
+            // If the chunk belongs to the Agency and we are in a client portal,
             // ONLY allow limited shared tables.
-            // Note: 'project_knowledge' is EXCLUDED here because it contains Agency internal SOPs.
-            const GLOBAL_TABLES = ["ai_signals", "session_summaries", "news_intelligence"]
-            const isGlobalTable = GLOBAL_TABLES.includes(r.source_table)
+            // Note: 'project_knowledge' is EXCLUDED here because it contains Agency internal/confidential docs.
+            const PUBLIC_AGENCY_TABLES = ["agency_knowledge", "news_intelligence"]
+            const isSharedGlobal = PUBLIC_AGENCY_TABLES.includes(r.source_table)
 
-            return isGlobalTable
+            return isSharedGlobal
         }).map(r => ({
             ...r,
-            content: r.project_id === agencyProjectId ? `[AGENCY_SHARED] ${r.content}` : r.content
+            content: r.project_id === agencyProjectId ? `[SHARED INSIGHT] ${r.content}` : r.content
         }))
     }
 
