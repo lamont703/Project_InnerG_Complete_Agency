@@ -24,7 +24,8 @@ import {
     LogIn,
     TrendingUp,
     DollarSign,
-    UserPlus
+    UserPlus,
+    Twitter
 } from "lucide-react"
 
 
@@ -165,10 +166,10 @@ export class MetricsService {
             .eq("project_id", projectId) as any
         
         const liPosts = liPostAgg || []
-        const liLikes = liPosts.reduce((sum: number, p: any) => sum + (p.like_count || 0), 0)
-        const liComments = liPosts.reduce((sum: number, p: any) => sum + (p.comment_count || 0), 0)
-        const liShares = liPosts.reduce((sum: number, p: any) => sum + (p.share_count || 0), 0)
-        const liPostViews = liPosts.reduce((sum: number, p: any) => sum + (p.view_count || 0), 0)
+        const liLikes = liPosts.reduce((sum: number, p: any) => sum + Number(p.like_count || 0), 0)
+        const liComments = liPosts.reduce((sum: number, p: any) => sum + Number(p.comment_count || 0), 0)
+        const liShares = liPosts.reduce((sum: number, p: any) => sum + Number(p.share_count || 0), 0)
+        const liPostViews = liPosts.reduce((sum: number, p: any) => sum + Number(p.view_count || 0), 0)
 
         // 4. Instagram Stats
         const { data: igAccData } = await this.supabase
@@ -185,12 +186,12 @@ export class MetricsService {
             .eq("project_id", projectId) as any
         
         const igMedia = igMediaData || []
-        const igLikes = igMedia.reduce((sum: number, m: any) => sum + (m.like_count || 0), 0)
-        const igComments = igMedia.reduce((sum: number, m: any) => sum + (m.comments_count || 0), 0)
-        const igSaves = igMedia.reduce((sum: number, m: any) => sum + (m.saves || 0), 0)
-        const igVideoViews = igMedia.reduce((sum: number, m: any) => sum + (m.video_views || 0), 0)
-        const igReachTotal = igMedia.reduce((sum: number, m: any) => sum + (m.reach || 0), 0)
-        const igImpressionsTotal = igMedia.reduce((sum: number, m: any) => sum + (m.impressions || 0), 0)
+        const igLikes = igMedia.reduce((sum: number, m: any) => sum + Number(m.like_count || 0), 0)
+        const igComments = igMedia.reduce((sum: number, m: any) => sum + Number(m.comments_count || 0), 0)
+        const igSaves = igMedia.reduce((sum: number, m: any) => sum + Number(m.saves || 0), 0)
+        const igVideoViews = igMedia.reduce((sum: number, m: any) => sum + Number(m.video_views || 0), 0)
+        const igReachTotal = igMedia.reduce((sum: number, m: any) => sum + Number(m.reach || 0), 0)
+        const igImpressionsTotal = igMedia.reduce((sum: number, m: any) => sum + Number(m.impressions || 0), 0)
         const igEngagement = igMedia.length > 0 ? (igLikes + igComments + igSaves) / igMedia.length : 0
         const igInteractions = igLikes + igComments + igSaves
 
@@ -226,9 +227,28 @@ export class MetricsService {
         const ttViews = ttVideos.reduce((sum: number, v: any) => sum + Number(v.view_count || 0), 0)
         const ttLikes = ttVideos.reduce((sum: number, v: any) => sum + Number(v.like_count || 0), 0)
 
-        console.log(`[MetricsService] getLatestMetrics: project=${projectId}, ttAccs=${ttAccData?.length || 0}, ttVideos=${ttVideos.length}, totalViews=${ttViews}`)
+        // 7. Twitter (X) Stats
+        const { data: xAccData } = await this.supabase
+            .from("twitter_accounts")
+            .select("follower_count, following_count, tweet_count")
+            .eq("project_id", projectId)
+            .limit(1) as any
+        
+        const xAcc = xAccData?.[0] || { follower_count: 0, following_count: 0, tweet_count: 0 }
 
-        // 7. Pixel Stats
+        const { data: xTweetData } = await this.supabase
+            .from("twitter_tweets")
+            .select("like_count, retweet_count, reply_count, quote_count, impression_count")
+            .eq("project_id", projectId) as any
+        
+        const xTweets = xTweetData || []
+        const xLikes = xTweets.reduce((sum: number, t: any) => sum + Number(t.like_count || 0), 0)
+        const xRetweets = xTweets.reduce((sum: number, t: any) => sum + Number(t.retweet_count || 0), 0)
+        const xImpressions = xTweets.reduce((sum: number, t: any) => sum + Number(t.impression_count || 0), 0)
+
+        console.log(`[MetricsService] getLatestMetrics: project=${projectId}, xAccs=${xAccData?.length || 0}, xTweets=${xTweets.length}, totalImpressions=${xImpressions}`)
+
+        // 8. Pixel Stats
         const [pixelHits, pixelVisitors, clickBreakdown] = await Promise.all([
             this.supabase.from("pixel_events").select("*", { count: "exact", head: true }).eq("project_id", projectId),
             this.supabase.from("pixel_visitors").select("*").eq("project_id", projectId),
@@ -366,10 +386,50 @@ export class MetricsService {
             {
                 id: "social_reach",
                 label: "Total Social Reach",
-                value: ((Number(latest.social_reach_total) + ttViews) / 1000).toFixed(1) + "k",
-                growth: this.calcGrowth(Number(latest.social_reach_total) + ttViews, Number(previous.social_reach_total) + ttViews),
+                value: (Number(latest.social_reach_total) + ttViews + xImpressions).toLocaleString(),
+                growth: this.calcGrowth(Number(latest.social_reach_total) + ttViews + xImpressions, Number(previous.social_reach_total) + ttViews + xImpressions),
                 icon: Zap,
                 color: "text-emerald-500 bg-emerald-500/10",
+            },
+            {
+                id: "twitter_followers",
+                label: "Twitter Followers",
+                value: xAcc.follower_count.toLocaleString(),
+                growth: "+0%",
+                icon: Twitter,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "twitter_impressions",
+                label: "Twitter Reach",
+                value: xImpressions.toLocaleString(),
+                growth: "+0%",
+                icon: BarChart3,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "twitter_likes",
+                label: "Twitter Likes",
+                value: xLikes.toLocaleString(),
+                growth: "+0%",
+                icon: ThumbsUp,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "twitter_retweets",
+                label: "Twitter Retweets",
+                value: xRetweets.toLocaleString(),
+                growth: "+0%",
+                icon: Share2,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "twitter_engagement",
+                label: "Twitter Engagement",
+                value: (xLikes + xRetweets + xTweets.reduce((sum: number, t: any) => sum + Number(t.reply_count || 0), 0)).toLocaleString(),
+                growth: "+0%",
+                icon: Zap,
+                color: "text-blue-400 bg-blue-400/10",
             },
 
             {
@@ -383,7 +443,7 @@ export class MetricsService {
             {
                 id: "youtube_views",
                 label: "YouTube Views",
-                value: (ytStats.view_count / 1000).toFixed(1) + "k",
+                value: ytStats.view_count.toLocaleString(),
                 growth: "+1.2%",
                 icon: Play,
                 color: "text-white bg-white/10",
@@ -407,7 +467,7 @@ export class MetricsService {
             {
                 id: "linkedin_impressions",
                 label: "LinkedIn Reach",
-                value: (liPage.total_views / 1000).toFixed(1) + "k",
+                value: liPage.total_views.toLocaleString(),
                 growth: "+5.4%",
                 icon: BarChart3,
                 color: "text-[#0077b5] bg-[#0077b5]/10",
@@ -646,12 +706,14 @@ export class MetricsService {
 
     async getProjectLevelMetrics(projectId: string): Promise<Metric[]> {
         // Fetch Platform Stats
-        const [ytData, liPageData, liPostAgg, ttAccData, ttVideoData] = await Promise.all([
+        const [ytData, liPageData, liPostAgg, ttAccData, ttVideoData, xAccData, xTweetData] = await Promise.all([
             this.supabase.from("youtube_channels").select("subscriber_count, view_count, video_count").eq("project_id", projectId).limit(1),
             this.supabase.from("linkedin_pages").select("follower_count, total_views, engagement_rate, total_clicks").eq("project_id", projectId).limit(1),
             this.supabase.from("linkedin_posts").select("like_count, comment_count, share_count, view_count").eq("project_id", projectId),
             this.supabase.from("tiktok_accounts").select("follower_count, heart_count, video_count").eq("project_id", projectId).limit(1),
-            this.supabase.from("tiktok_videos").select("view_count, like_count, comment_count, share_count").eq("project_id", projectId)
+            this.supabase.from("tiktok_videos").select("view_count, like_count, comment_count, share_count").eq("project_id", projectId),
+            this.supabase.from("twitter_accounts").select("follower_count, following_count, tweet_count").eq("project_id", projectId).limit(1),
+            this.supabase.from("twitter_tweets").select("like_count, retweet_count, reply_count, quote_count, impression_count").eq("project_id", projectId)
         ]) as any
 
 
@@ -659,10 +721,10 @@ export class MetricsService {
         const liPage = liPageData?.data?.[0] || { follower_count: 0, total_views: 0, engagement_rate: 0, total_clicks: 0 }
         const liPosts = liPostAgg?.data || []
         
-        const liLikes = liPosts.reduce((sum: number, p: any) => sum + (p.like_count || 0), 0)
-        const liComments = liPosts.reduce((sum: number, p: any) => sum + (p.comment_count || 0), 0)
-        const liShares = liPosts.reduce((sum: number, p: any) => sum + (p.share_count || 0), 0)
-        const liPostViews = liPosts.reduce((sum: number, p: any) => sum + (p.view_count || 0), 0)
+        const liLikes = liPosts.reduce((sum: number, p: any) => sum + Number(p.like_count || 0), 0)
+        const liComments = liPosts.reduce((sum: number, p: any) => sum + Number(p.comment_count || 0), 0)
+        const liShares = liPosts.reduce((sum: number, p: any) => sum + Number(p.share_count || 0), 0)
+        const liPostViews = liPosts.reduce((sum: number, p: any) => sum + Number(p.view_count || 0), 0)
 
         const ttAcc = ttAccData?.data?.[0] || { follower_count: 0, heart_count: 0, video_count: 0 }
         const ttVideos = ttVideoData?.data || []
@@ -671,7 +733,12 @@ export class MetricsService {
         const ttViews = ttVideos.reduce((sum: number, v: any) => sum + Number(v.view_count || 0), 0)
         const ttLikes = ttVideos.reduce((sum: number, v: any) => sum + Number(v.like_count || 0), 0)
 
-        console.log(`[MetricsService] getProjectLevelMetrics: project=${projectId}, ttAcc=${ttAccData?.data?.length || 0}, ttVideos=${ttVideos.length}, totalViews=${ttViews}`)
+        const xAcc = xAccData?.data?.[0] || { follower_count: 0, following_count: 0, tweet_count: 0 }
+        const xTweets = xTweetData?.data || []
+        const xLikes = xTweets.reduce((sum: number, t: any) => sum + Number(t.like_count || 0), 0)
+        const xImpressions = xTweets.reduce((sum: number, t: any) => sum + Number(t.impression_count || 0), 0)
+
+        console.log(`[MetricsService] getProjectLevelMetrics: project=${projectId}, ttVideos=${ttVideos.length}, totalViews=${ttViews}, xTweets=${xTweets.length}, totalImpressions=${xImpressions}`)
 
 
         // 4. Instagram Stats
@@ -690,11 +757,11 @@ export class MetricsService {
         
         const igAcc = igAccData?.data?.[0] || { follower_count: 0, media_count: 0 }
         const igMedia = igMediaData?.data || []
-        const igLikes = igMedia.reduce((sum: number, m: any) => sum + (m.like_count || 0), 0)
-        const igComments = igMedia.reduce((sum: number, m: any) => sum + (m.comments_count || 0), 0)
-        const igSaves = igMedia.reduce((sum: number, m: any) => sum + (m.saves || 0), 0)
-        const igVideoViews = igMedia.reduce((sum: number, m: any) => sum + (m.video_views || 0), 0)
-        const igReachTotal = igMedia.reduce((sum: number, m: any) => sum + (m.reach || 0), 0)
+        const igLikes = igMedia.reduce((sum: number, m: any) => sum + Number(m.like_count || 0), 0)
+        const igComments = igMedia.reduce((sum: number, m: any) => sum + Number(m.comments_count || 0), 0)
+        const igSaves = igMedia.reduce((sum: number, m: any) => sum + Number(m.saves || 0), 0)
+        const igVideoViews = igMedia.reduce((sum: number, m: any) => sum + Number(m.video_views || 0), 0)
+        const igReachTotal = igMedia.reduce((sum: number, m: any) => sum + Number(m.reach || 0), 0)
         const igEngagement = igMedia.length > 0 ? (igLikes + igComments + igSaves) / igMedia.length : 0
         const igInteractions = igLikes + igComments + igSaves
 
@@ -725,10 +792,50 @@ export class MetricsService {
             {
                 id: "social_reach",
                 label: "Omni-Channel Reach",
-                value: ((Number(liPage.total_views) + Number(igReachTotal) + Number(ttViews)) / 1000).toFixed(1) + "k",
+                value: (Number(liPage.total_views) + Number(igReachTotal) + Number(ttViews) + Number(xImpressions)).toLocaleString(),
                 growth: "+0%",
                 icon: Zap,
                 color: "text-emerald-500 bg-emerald-500/10",
+            },
+            {
+                id: "twitter_followers",
+                label: "X (Twitter) Followers",
+                value: xAcc.follower_count.toLocaleString(),
+                growth: "+0%",
+                icon: Twitter,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "twitter_impressions",
+                label: "X (Twitter) Impressions",
+                value: xImpressions.toLocaleString(),
+                growth: "+0%",
+                icon: BarChart3,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "twitter_likes",
+                label: "X (Twitter) Likes",
+                value: xLikes.toLocaleString(),
+                growth: "+0%",
+                icon: ThumbsUp,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "twitter_retweets",
+                label: "X (Twitter) Retweets",
+                value: xTweets.reduce((sum: number, t: any) => sum + Number(t.retweet_count || 0), 0).toLocaleString(),
+                growth: "+0%",
+                icon: Share2,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "twitter_engagement",
+                label: "X (Twitter) Engagement",
+                value: (xLikes + xTweets.reduce((sum: number, t: any) => sum + Number(t.retweet_count || 0), 0) + xTweets.reduce((sum: number, t: any) => sum + Number(t.reply_count || 0), 0)).toLocaleString(),
+                growth: "+0%",
+                icon: Zap,
+                color: "text-blue-400 bg-blue-400/10",
             },
 
             {
@@ -742,7 +849,7 @@ export class MetricsService {
             {
                 id: "youtube_views",
                 label: "YouTube Views",
-                value: (ytStats.view_count / 1000).toFixed(1) + "k",
+                value: ytStats.view_count.toLocaleString(),
                 growth: "+0%",
                 icon: Play,
                 color: "text-white bg-white/10",
@@ -766,7 +873,7 @@ export class MetricsService {
             {
                 id: "linkedin_impressions",
                 label: "LinkedIn Reach",
-                value: (liPage.total_views / 1000).toFixed(1) + "k",
+                value: liPage.total_views.toLocaleString(),
                 growth: "+0%",
                 icon: BarChart3,
                 color: "text-[#0077b5] bg-[#0077b5]/10",
@@ -1301,4 +1408,3 @@ export const DEMO_MOCK_METRICS: Metric[] = [
         color: "text-orange-400 bg-orange-400/10",
     },
 ]
-

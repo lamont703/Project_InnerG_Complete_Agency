@@ -456,9 +456,27 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         iconName: "BarChart3"
     },
     {
+        id: "twitter_likes",
+        label: "X (Twitter) Likes",
+        description: "Total likes aggregated across all X/Twitter publications.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "ThumbsUp"
+    },
+    {
+        id: "twitter_retweets",
+        label: "X (Twitter) Retweets",
+        description: "Total retweets recorded across the X content archive.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Share2"
+    },
+    {
         id: "twitter_engagement",
         label: "X (Twitter) Engagement",
-        description: "Total interactions recorded across the X content archive.",
+        description: "Total interactions (likes, retweets, replies) on X posts.",
         category: 'agency',
         type: 'kpi',
         permissions: ['client-admin', 'client-viewer', 'super-admin'],

@@ -22,6 +22,7 @@ export function useAgencyData(projectSlug?: string) {
     const [instagramMetrics, setInstagramMetrics] = useState<any>(null)
     const [facebookMetrics, setFacebookMetrics] = useState<any>(null)
     const [tiktokMetrics, setTiktokMetrics] = useState<any>(null)
+    const [twitterMetrics, setTwitterMetrics] = useState<any>(null)
     const [pixelMetrics, setPixelMetrics] = useState<any>(null)
     const [funnelConfig, setFunnelConfig] = useState<any>(null)
 
@@ -58,7 +59,7 @@ export function useAgencyData(projectSlug?: string) {
             }
 
             // Parallel fetch for performance - Scoped by project if provided
-            const [projData, signalData, liMetrics, ytMetrics, igMetrics, fbMetrics, ttMetrics, pixelMetricsData, fConfig] = await Promise.all([
+            const [projData, signalData, liMetrics, ytMetrics, igMetrics, fbMetrics, ttMetrics, xMetrics, pixelMetricsData, fConfig] = await Promise.all([
                 service.getActiveProjects(),
                 service.getAllAgencySignals(currentProjectId),
                 service.getLinkedInMetrics(projectSlug),
@@ -66,6 +67,7 @@ export function useAgencyData(projectSlug?: string) {
                 service.getInstagramMetrics(projectSlug),
                 service.getFacebookMetrics(projectSlug),
                 service.getTikTokMetrics(projectSlug),
+                service.getTwitterMetrics(projectSlug),
                 service.getPixelMetrics(projectSlug),
                 service.getFunnelConfig(projectSlug)
             ])
@@ -79,6 +81,7 @@ export function useAgencyData(projectSlug?: string) {
             setInstagramMetrics(igMetrics)
             setFacebookMetrics(fbMetrics)
             setTiktokMetrics(ttMetrics)
+            setTwitterMetrics(xMetrics)
             setPixelMetrics(pixelMetricsData)
             setFunnelConfig(fConfig)
 
@@ -327,6 +330,7 @@ export function useAgencyData(projectSlug?: string) {
         instagramMetrics,
         facebookMetrics,
         tiktokMetrics,
+        twitterMetrics,
         pixelMetrics,
         funnelConfig,
 

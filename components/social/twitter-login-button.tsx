@@ -29,7 +29,8 @@ export function TwitterLoginButton({
     // Scopes needed for syncing tweet data and profile info
     const scopes = [
         'tweet.read',
-        'users.read'
+        'users.read',
+        'offline.access'
     ].join(' ') // X scopes use SPACE separator
 
     useEffect(() => {

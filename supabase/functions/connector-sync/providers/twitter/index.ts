@@ -88,7 +88,7 @@ export async function syncTwitter(
             console.warn(`[TwitterSync] Sync attempt failed: ${err.message}`);
             
             // Check if it's a 401/token error and try refresh
-            if ((err.message.includes("401") || err.message.includes("token")) && config.refresh_token) {
+            if ((err.message.includes("401") || err.message.includes("Unauthorized") || err.message.includes("token")) && config.refresh_token) {
                 console.log(`[TwitterSync] Access Token presumably expired. Attempting refresh...`);
                 
                 try {

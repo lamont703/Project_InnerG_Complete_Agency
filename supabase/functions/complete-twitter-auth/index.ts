@@ -59,6 +59,9 @@ export default createHandler(async ({ adminClient, body, user }) => {
         // 2. Exchange for Access & Refresh Tokens
         const tokenData = await twitter.exchangeCodeForToken(body.code, redirectUri, body.codeVerifier)
         logger.info(`X Tokens Acquired for user ${user.id}`)
+        if (!tokenData.refresh_token) {
+            logger.warn("No refresh_token received from X. Sync will fail after access_token expires. Ensure 'offline.access' scope is present.")
+        }
         
         // 3. Fetch User Profile
         const profile = await twitter.getUserMe(tokenData.access_token)
