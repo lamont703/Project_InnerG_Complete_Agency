@@ -64,7 +64,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
 
     const navItems = [
         { href: "/select-portal", icon: Layout, label: "Switch Portal", active: pathname === "/select-portal" },
-        { href: "/dashboard/innergcomplete", icon: Building2, label: "Agency Command", active: pathname === "/dashboard/innergcomplete" },
+        { href: "/dashboard/innergcomplete", icon: Building2, label: "InnerG Chat Agent", active: pathname === "/dashboard/innergcomplete" },
         ...(features.community_agents ? [
             { href: "/dashboard/innergcomplete/community", icon: Users, label: "Community Hub Agents", active: pathname === "/dashboard/innergcomplete/community" }
         ] : []),
@@ -148,7 +148,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
                                 Inner G Complete
                             </span>
                             <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                                Agency Command
+                                InnerG Chat Agent
                             </span>
                         </div>
                     </Link>
@@ -173,7 +173,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                             <span className="text-lg font-bold">G</span>
                         </div>
-                        <span className="text-lg font-bold tracking-tight text-foreground">Agency Command</span>
+                        <span className="text-lg font-bold tracking-tight text-foreground">InnerG Chat Agent</span>
                     </Link>
                     <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-full glass-panel">
                         <X className="h-4 w-4" />
