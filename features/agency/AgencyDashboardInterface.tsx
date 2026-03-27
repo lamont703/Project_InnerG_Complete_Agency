@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react"
 import { AgencyHeader } from "./components/AgencyHeader"
 import { AgencyChatInterface } from "./components/AgencyChat"
 import { UnifiedStream } from "./components/UnifiedStream"
+import { SocialPostModal } from "@/features/social/components/SocialPostModal"
 
 // Hooks
 import { useAgencyData } from "./use-agency-data"
@@ -32,6 +33,7 @@ export function AgencyDashboardInterface() {
         resolvingId,
         newSignalId,
         newDraftId,
+        refresh,
         resolveSignal,
         publishPost,
         deleteDraft,
@@ -45,6 +47,7 @@ export function AgencyDashboardInterface() {
 
     const [currentTime, setCurrentTime] = useState(new Date())
     const [mounted, setMounted] = useState(false)
+    const [isPostModalOpen, setIsPostModalOpen] = useState(false)
 
     useEffect(() => {
         setMounted(true)
@@ -99,7 +102,9 @@ export function AgencyDashboardInterface() {
         }))
     ].sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
 
-    const portalName = projects.find(p => p.slug === slug)?.name
+    const currentProject = projects.find(p => p.slug === slug)
+    const portalName = currentProject?.name
+    const currentProjectId = currentProject?.id
 
     return (
         <div className="flex-1 flex flex-col h-full relative overflow-hidden">
@@ -115,6 +120,7 @@ export function AgencyDashboardInterface() {
                     mounted={mounted}
                     onMenuOpen={() => setIsSidebarOpen(true)}
                     portalName={portalName}
+                    onProvisionAction={() => setIsPostModalOpen(true)}
                 />
             </div>
 
@@ -143,6 +149,15 @@ export function AgencyDashboardInterface() {
                     />
                 </div>
             </div>
+
+            {/* Social Post Modal */}
+            <SocialPostModal
+                isOpen={isPostModalOpen}
+                onClose={() => setIsPostModalOpen(false)}
+                projectId={currentProjectId || ""}
+                onSuccess={refresh}
+                platforms={currentProject?.settings?.features?.social_planner_platforms || []}
+            />
         </div>
     )
 }

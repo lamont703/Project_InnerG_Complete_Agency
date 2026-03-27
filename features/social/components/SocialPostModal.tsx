@@ -143,6 +143,11 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                 }
 
                 // 1. Unified Dispatch Protocol: Save strategic planning data
+                
+                // For Twitter/LinkedIn/TikTok etc., we keep metadata empty to match successful provisioned posts.
+                // We only include specific metadata for GHL (which requires communityPostDetails).
+                const finalMetadata = platform === 'ghl' ? { ...(initialData?.dispatch_metadata || {}), ...metadata } : {}
+
                 const { data: savedPost, error } = await (supabase as any)
                     .from("social_content_plan")
                     .upsert({
@@ -158,10 +163,7 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                         source_type: initialData?.source_type || 'manual',
                         scheduled_at: executeNow ? new Date().toISOString() : new Date(scheduledAt || new Date()).toISOString(),
                         ai_reasoning: executeNow ? "Immediate manual force-dispatch override." : (initialData?.ai_reasoning || "Human-provisioned tactical broadcast via Social Planner."),
-                        dispatch_metadata: {
-                            ...(initialData?.dispatch_metadata || {}),
-                            ...metadata
-                        }
+                        dispatch_metadata: finalMetadata
                     })
                     .select()
                     .single()
@@ -317,13 +319,30 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Payload Content (The Post Content)</label>
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Payload Content (The Post Content)</label>
+                                {selectedPlatforms.includes('twitter') && (
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-[9px] font-black uppercase tracking-widest ${content.length > 280 ? 'text-red-500 animate-pulse' : 'text-muted-foreground'}`}>
+                                            X limit: {content.length} / 280
+                                        </span>
+                                        {content.length > 280 && (
+                                            <AlertTriangle className="h-3 w-3 text-red-500" />
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                             <textarea
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
                                 placeholder="What would you like to broadcast to your nodes?"
-                                className="w-full h-40 bg-muted/10 border border-border rounded-2xl p-6 text-sm font-medium leading-relaxed placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary outline-none transition-all resize-none"
+                                className={`w-full h-40 bg-muted/10 border ${content.length > 280 && selectedPlatforms.includes('twitter') ? 'border-red-500/50' : 'border-border'} rounded-2xl p-6 text-sm font-medium leading-relaxed placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary outline-none transition-all resize-none`}
                             />
+                            {content.length > 280 && selectedPlatforms.includes('twitter') && (
+                                <p className="text-[9px] text-red-500/80 font-bold italic animate-in fade-in slide-in-from-top-1">
+                                    "Your broadcast exceeds the standard X (Twitter) character limit for non-verified accounts."
+                                </p>
+                            )}
                         </div>
 
                         {/* Dispatch Control */}

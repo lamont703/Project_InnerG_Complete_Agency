@@ -151,7 +151,8 @@ export class TwitterProvider {
 
         if (!res.ok) {
             const err = await res.json().catch(() => ({ message: res.statusText }));
-            throw new Error(`X (Twitter) Create Tweet Error: ${err.message || err.detail || JSON.stringify(err)}`);
+            console.error("X (Twitter) API Error Full Response:", JSON.stringify(err, null, 2));
+            throw new Error(`X (Twitter) Create Tweet Error: ${err.detail || err.message || JSON.stringify(err)}`);
         }
 
         const data = await res.json();

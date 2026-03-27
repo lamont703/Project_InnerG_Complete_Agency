@@ -7,6 +7,7 @@ export interface AgencyProject {
     status: string
     type: string
     active_campaign_name?: string
+    settings?: any
     clients?: {
         name: string
         industry: string

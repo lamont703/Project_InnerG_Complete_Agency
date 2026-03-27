@@ -169,8 +169,14 @@ export default createHandler(async ({ adminClient, body, user }) => {
                 try {
                     postResult = await client.createTweet(token, draft.content_text)
                 } catch (err: any) {
-                    if ((err.message.includes("Unauthorized") || err.message.includes("401")) && config.refresh_token) {
-                        logger.info(`Twitter token expired. Attempting refresh...`)
+                    const isAuthError = err.message.toLowerCase().includes("unauthorized") || 
+                                       err.message.includes("401") || 
+                                       err.message.toLowerCase().includes("forbidden") || 
+                                       err.message.includes("403") || 
+                                       err.message.toLowerCase().includes("not permitted")
+                    
+                    if (isAuthError && config.refresh_token) {
+                        logger.info(`Twitter token issue identified. Attempting forced refresh...`)
                         const refreshData = await client.refreshToken(config.refresh_token)
                         if (refreshData.access_token) {
                             token = refreshData.access_token
