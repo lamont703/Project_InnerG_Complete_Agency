@@ -19,7 +19,8 @@ import {
     Image as ImageIcon,
     Globe,
     ChevronDown,
-    Shield
+    Shield,
+    Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -52,6 +53,7 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
     const [selectedGHLAccount, setSelectedGHLAccount] = useState("")
     const [ghlNotify, setGHLNotify] = useState(false)
     const [isLoadingAccounts, setIsLoadingAccounts] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     useEffect(() => {
         if (isOpen && initialData) {
@@ -192,6 +194,32 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
             toast.error(`Provisioning Failed: ${err.message}`)
         } finally {
             setIsSaving(false)
+        }
+    }
+
+    const handleDelete = async () => {
+        if (!initialData?.id) return
+        
+        const confirmed = window.confirm("Are you sure you want to delete this broadcast node? This action is irreversible.")
+        if (!confirmed) return
+
+        setIsDeleting(true)
+        try {
+            const supabase = createBrowserClient()
+            const { error } = await supabase
+                .from("social_content_plan")
+                .delete()
+                .eq("id", initialData.id)
+
+            if (error) throw error
+
+            toast.success("Broadcast node successfully purged")
+            onSuccess()
+            onClose()
+        } catch (err: any) {
+            toast.error(`Deletion Failed: ${err.message}`)
+        } finally {
+            setIsDeleting(false)
         }
     }
 
@@ -398,17 +426,34 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
 
                 {/* Footer Controls */}
                 <div className="px-8 py-8 border-t border-border bg-muted/5 flex items-center justify-between">
-                    <Button 
-                        type="button" 
-                        variant="ghost" 
-                        onClick={onClose}
-                        className="rounded-xl h-12 px-8 font-black uppercase tracking-widest text-[9px] hover:bg-muted"
-                    >
-                        Halt Sequence
-                    </Button>
+                    {initialData?.id ? (
+                        <Button 
+                            type="button" 
+                            variant="ghost" 
+                            disabled={isDeleting || isSaving}
+                            onClick={handleDelete}
+                            className="rounded-xl h-12 px-8 font-black uppercase tracking-widest text-[9px] hover:bg-red-500/10 text-red-500 transition-all font-black uppercase tracking-widest text-[9px] hover:bg-muted font-black uppercase tracking-widest text-[9px] hover:bg-muted"
+                        >
+                            {isDeleting ? (
+                                <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Purging...</>
+                            ) : (
+                                <><Trash2 className="h-4 w-4 mr-2" /> Delete Post</>
+                            )}
+                        </Button>
+                    ) : (
+                        <Button 
+                            type="button" 
+                            variant="ghost" 
+                            onClick={onClose}
+                            className="rounded-xl h-12 px-8 font-black uppercase tracking-widest text-[9px] hover:bg-muted text-muted-foreground"
+                        >
+                            Halt Sequence
+                        </Button>
+                    )}
+                    
                     <Button 
                         type="submit"
-                        disabled={isSaving}
+                        disabled={isSaving || isDeleting}
                         className="rounded-xl h-12 px-10 bg-primary text-primary-foreground font-black uppercase tracking-widest text-[9px] shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
                     >
                         {isSaving ? (
