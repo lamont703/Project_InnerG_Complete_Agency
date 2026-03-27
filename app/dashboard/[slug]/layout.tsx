@@ -6,6 +6,7 @@ import { AdminSidebarProvider, useAdminSidebar } from "@/features/agency/context
 import { MobileNavProvider, useMobileNav } from "@/features/agency/context/MobileNavContext"
 import { DashboardMobileNav } from "@/components/layout/dashboard/MobileNav"
 import { DashboardSidebar } from "@/components/layout/dashboard/sidebar"
+import { AgencySidebar } from "@/features/agency/components/AgencySidebar"
 
 function ClientDashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const params = useParams()
@@ -13,13 +14,22 @@ function ClientDashboardLayoutContent({ children }: { children: React.ReactNode 
     const { isSidebarOpen, setIsSidebarOpen, toggleSidebar } = useAdminSidebar()
     const { activeTab, setActiveTab } = useMobileNav()
 
+    const isAgencyPortal = slug === "innergcomplete"
+
     return (
-        <div className="min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden w-full text-foreground">
-            <DashboardSidebar
-                projectSlug={slug}
-                isSidebarOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
+        <div className="min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden w-full text-foreground text-foreground">
+            {isAgencyPortal ? (
+                <AgencySidebar
+                    isSidebarOpen={isSidebarOpen}
+                    onClose={() => setIsSidebarOpen(false)}
+                />
+            ) : (
+                <DashboardSidebar
+                    projectSlug={slug}
+                    isSidebarOpen={isSidebarOpen}
+                    onClose={() => setIsSidebarOpen(false)}
+                />
+            )}
             <main className="flex-1 flex flex-col h-screen bg-background relative w-full selection:bg-primary/30 overflow-hidden">
                 <div className="flex-1 flex flex-col min-h-0">
                     {children}

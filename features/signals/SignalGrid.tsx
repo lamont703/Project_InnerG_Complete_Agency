@@ -6,11 +6,11 @@ import { useSignals } from "./use-signals"
 interface SignalGridProps {
     projectSlug: string
     initialSignals?: any[]
-    onResolve?: (id: string) => void
+    onResolve?: (id: string, params?: { platforms?: string[], scheduledAt?: string }) => void
     isFlush?: boolean
 }
 
-import { SignalSlotFeed } from "./components/SignalSlotFeed"
+import { UnifiedStream } from "../agency/components/UnifiedStream"
 
 export function SignalGrid({
     projectSlug,
@@ -20,14 +20,17 @@ export function SignalGrid({
 }: SignalGridProps) {
     const {
         signals,
+        drafts,
         isLoading,
         resolvingId,
         error,
-        resolveSignal
+        resolveSignal,
+        publishDraft,
+        deleteDraft
     } = useSignals(projectSlug, initialSignals)
 
-    const handleResolve = async (id: string) => {
-        await resolveSignal(id)
+    const handleResolve = async (id: string, params?: { platforms?: string[], scheduledAt?: string }) => {
+        await resolveSignal(id, params)
         parentOnResolve?.(id)
     }
 
@@ -40,13 +43,23 @@ export function SignalGrid({
         )
     }
 
+    // Map signals to the format UnifiedStream expects if necessary
+    // (In this case they already match mostly, but we define the mapper for safety)
+    const mappedSignals = signals.map(s => ({
+        ...s,
+        createdAt: s.createdAt || new Date().toISOString()
+    }))
+
     return (
         <div className={isFlush ? "h-full min-h-0 flex flex-col" : "mb-12 h-[700px]"}>
-            <SignalSlotFeed
-                slotId="marketing_intelligence"
-                signals={signals}
+            <UnifiedStream
+                signals={mappedSignals}
+                drafts={drafts}
+                onResolveSignal={handleResolve}
+                onPublishDraft={publishDraft}
+                onDeleteDraft={deleteDraft}
                 isResolving={!!resolvingId}
-                onResolve={handleResolve}
+                isFlush={isFlush}
             />
         </div>
     )

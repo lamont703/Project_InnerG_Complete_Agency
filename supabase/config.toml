@@ -145,6 +145,9 @@ verify_jwt = false
 [functions.complete-tiktok-auth]
 verify_jwt = false
 
+[functions.complete-twitter-auth]
+verify_jwt = false
+
 [functions.pixel-ingest]
 verify_jwt = false
 
@@ -152,4 +155,13 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.webhook-tiktok]
+verify_jwt = false
+
+[functions.complete-linkedin-auth]
+verify_jwt = false
+
+[functions.complete-youtube-auth]
+verify_jwt = false
+
+[functions.webhook-ghl-sms]
 verify_jwt = false

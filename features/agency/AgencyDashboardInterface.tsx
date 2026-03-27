@@ -38,7 +38,7 @@ export function AgencyDashboardInterface() {
         generateImage,
         generateVideo,
         clearMedia
-    } = useAgencyData()
+    } = useAgencyData(slug)
 
     const { setIsSidebarOpen } = useAdminSidebar()
     const { activeTab } = useMobileNav()

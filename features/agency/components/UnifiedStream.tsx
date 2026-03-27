@@ -18,9 +18,24 @@ import {
     Youtube,
     Edit3,
     Sparkles,
-    Video
+    Video,
+    Calendar as CalendarIcon,
+    Clock
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { 
+    DropdownMenu, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+    DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu"
+import { 
+    Popover, 
+    PopoverContent, 
+    PopoverTrigger 
+} from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { format } from "date-fns"
 import { SignalCard } from "../../signals/components/SignalCard"
 
 interface SocialDraft {
@@ -29,6 +44,7 @@ interface SocialDraft {
     content_text: string
     ai_reasoning: string
     source_type: string
+    status: string
     projects: { name: string }
     project_id: string
     created_at: string
@@ -54,7 +70,7 @@ interface UnifiedStreamProps {
     signals: Signal[]
     drafts: SocialDraft[]
     onResolveSignal: (id: string) => void
-    onPublishDraft: (id: string, platforms?: string[]) => Promise<void>
+    onPublishDraft: (id: string, params?: { platforms?: string[], scheduledAt?: string }) => Promise<void>
     onDeleteDraft?: (draftId: string, projectId: string) => Promise<void>
     onGenerateImage?: (draftId: string) => Promise<string>
     onGenerateVideo?: (draftId: string) => Promise<string>
@@ -93,6 +109,8 @@ export function UnifiedStream({
     const [isDeletingDraftId, setIsDeletingDraftId] = useState<string | null>(null)
     const [isGeneratingImageId, setIsGeneratingImageId] = useState<string | null>(null)
     const [isGeneratingVideoId, setIsGeneratingVideoId] = useState<string | null>(null)
+    const [scheduledDates, setScheduledDates] = useState<Record<string, Date>>({})
+    const [scheduledTimes, setScheduledTimes] = useState<Record<string, string>>({})
 
     const handleGenerateImage = async (id: string) => {
         if (!onGenerateImage) return
@@ -142,11 +160,39 @@ export function UnifiedStream({
         setSelectedDraftPlatforms(prev => ({ ...prev, [draftId]: next }))
     }
 
-    const handlePublish = async (id: string, defaultPlatform: string) => {
+    const StatusBadge = ({ status }: { status?: string | null }) => {
+        if (!status) return null
+        
+        const COLORS: Record<string, string> = {
+            draft: 'bg-muted/20 text-muted-foreground border-white/5',
+            scheduled: 'bg-primary/20 text-primary border-primary/40 animate-pulse',
+            published: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+            approved: 'bg-amber-500/20 text-amber-500 border-amber-500/30',
+            failed: 'bg-red-500/20 text-red-500 border-red-500/40'
+        }
+
+        return (
+            <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-widest border ${COLORS[status] || COLORS.draft}`}>
+                {status}
+            </span>
+        )
+    }
+
+    const getScheduledDateTime = (draftId: string) => {
+        const date = scheduledDates[draftId]
+        if (!date) return null
+        const time = scheduledTimes[draftId] || "12:00"
+        const [hours, minutes] = time.split(':').map(Number)
+        const d = new Date(date)
+        d.setHours(hours, minutes, 0, 0)
+        return d
+    }
+
+    const handlePublish = async (id: string, defaultPlatform: string, scheduledAt?: string) => {
         const platforms = getSelectedDraftPlatforms(id, defaultPlatform)
         setIsPublishingId(id)
         try {
-            await onPublishDraft(id, platforms)
+            await onPublishDraft(id, { platforms, scheduledAt })
         } finally {
             setIsPublishingId(null)
         }
@@ -171,12 +217,14 @@ export function UnifiedStream({
             data: s
         }))
 
-        const draftItems = drafts.map(d => ({
-            type: 'draft' as const,
-            id: d.id,
-            date: new Date(d.created_at || 0).getTime(),
-            data: d
-        }))
+        const draftItems = drafts
+            .filter(d => d.status !== 'scheduled')
+            .map(d => ({
+                type: 'draft' as const,
+                id: d.id,
+                date: new Date(d.created_at || 0).getTime(),
+                data: d
+            }))
 
         return [...signalItems, ...draftItems].sort((a, b) => b.date - a.date)
     }, [signals, drafts])
@@ -220,6 +268,10 @@ export function UnifiedStream({
                         
                 if (item.type === 'signal') {
                             const signal = item.data as any
+                            const status = signal.metadata?.social_plan_id 
+                                ? drafts.find(d => d.id === signal.metadata.social_plan_id)?.status 
+                                : null
+
                             return (
                                 <SignalCard 
                                     key={signal.id}
@@ -229,6 +281,7 @@ export function UnifiedStream({
                                     onDeleteAction={onDeleteDraft}
                                     isAgencyMode={true}
                                     isHighlighted={isHighlighted}
+                                    statusBadge={<StatusBadge status={status} />}
                                 />
                             )
                         } else {
@@ -251,7 +304,10 @@ export function UnifiedStream({
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-violet-400">Campaign Content</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-violet-400">Campaign Content</span>
+                                                    <StatusBadge status={draft.status} />
+                                                </div>
                                                 <span className="text-[8px] font-bold text-muted-foreground/30 uppercase tracking-tighter">
                                                     {draft.projects?.name}
                                                 </span>
@@ -324,14 +380,91 @@ export function UnifiedStream({
                                     )}
 
                                     <div className="flex flex-col gap-2 relative z-10">
-                                        <Button
-                                            size="sm"
-                                            className="w-full h-9 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-black uppercase tracking-widest shadow-md transition-all active:scale-95"
-                                            onClick={() => handlePublish(draft.id, draft.platform)}
-                                            disabled={isPublishingId === draft.id}
-                                        >
-                                            {isPublishingId === draft.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>APPROVE & PUBLISH <Send className="ml-2 h-3.5 w-3.5" /></>}
-                                        </Button>
+                                        <div className="flex items-center">
+                                            <Button
+                                                id={`btn-draft-publish-${draft.id}`}
+                                                size="sm"
+                                                className="flex-1 h-9 rounded-l-lg rounded-r-none bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-black uppercase tracking-widest shadow-md transition-all active:scale-95 border-r border-white/10"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handlePublish(draft.id, draft.platform)
+                                                }}
+                                                disabled={isPublishingId === draft.id}
+                                            >
+                                                {isPublishingId === draft.id ? (
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                ) : (
+                                                    <>
+                                                        {draft.status === 'scheduled' ? 'POST NOW' : 'PUBLISH NOW'} 
+                                                        <Zap className="ml-2 h-3.5 w-3.5" />
+                                                    </>
+                                                )}
+                                            </Button>
+
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        size="sm"
+                                                        className="h-9 px-2 rounded-r-lg rounded-l-none bg-violet-600 hover:bg-violet-500 text-white border-l border-white/10"
+                                                        disabled={isPublishingId === draft.id}
+                                                    >
+                                                        <ChevronDown className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="glass-panel-strong border-white/10 p-2">
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <DropdownMenuItem 
+                                                                onSelect={(e) => e.preventDefault()}
+                                                                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-white cursor-pointer p-3 rounded-lg"
+                                                            >
+                                                                <CalendarIcon className="h-3.5 w-3.5" />
+                                                                Schedule Dispatch
+                                                            </DropdownMenuItem>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-0 border-white/10 glass-panel-strong" align="end">
+                                                            <div className="p-4 bg-background/50 backdrop-blur-3xl rounded-3xl overflow-hidden border border-white/5">
+                                                                <Calendar
+                                                                    mode="single"
+                                                                    selected={scheduledDates[draft.id]}
+                                                                    onSelect={(date) => date && setScheduledDates(prev => ({ ...prev, [draft.id]: date }))}
+                                                                    initialFocus
+                                                                />
+                                                                {scheduledDates[draft.id] && (
+                                                                    <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-4">Target Date</span>
+                                                                            <span className="text-xs font-bold text-primary">{format(scheduledDates[draft.id], "PPP")}</span>
+                                                                        </div>
+                                                                        <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/10">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                                                                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Post Time</span>
+                                                                            </div>
+                                                                            <input 
+                                                                                type="time" 
+                                                                                className="bg-transparent text-xs font-bold text-primary outline-none focus:text-white transition-colors"
+                                                                                value={scheduledTimes[draft.id] || "12:00"}
+                                                                                onChange={(e) => setScheduledTimes(prev => ({ ...prev, [draft.id]: e.target.value }))}
+                                                                            />
+                                                                        </div>
+                                                                        <Button 
+                                                                            className="w-full bg-primary text-primary-foreground h-9 rounded-xl font-black uppercase tracking-widest text-[9px]"
+                                                                            onClick={() => {
+                                                                                const dt = getScheduledDateTime(draft.id)
+                                                                                if (dt) handlePublish(draft.id, draft.platform, dt.toISOString())
+                                                                            }}
+                                                                        >
+                                                                            Confirm Schedule
+                                                                        </Button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                         
                                         <div className="flex gap-2">
                                             <Button

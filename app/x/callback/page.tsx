@@ -57,7 +57,7 @@ function TwitterCallbackContent() {
                 }
 
                 // 1. Call our Edge Function to complete the X auth
-                const { data, error: functionError } = await supabase.functions.invoke("complete-twitter-auth", {
+                const { data: responseBody, error: functionError } = await supabase.functions.invoke("complete-twitter-auth", {
                     body: { 
                         code, 
                         state, 
@@ -66,19 +66,23 @@ function TwitterCallbackContent() {
                     }
                 })
 
-                console.log("[X Callback] invoke result →", { data, functionError })
+                console.log("[X Callback] invoke response body →", responseBody)
 
                 if (functionError) {
-                    const errMsg = (data?.error || functionError.message || "Failed to exchange X token.")
-                    throw new Error(errMsg)
+                    throw new Error(functionError.message || "Failed to exchange X token.")
                 }
 
-                if (!data?.success) {
-                    throw new Error(data?.error || "Failed to exchange X token.")
+                // Handle standardized response format { data: { success, ... }, error }
+                const data = responseBody?.data || responseBody
+                const success = data?.success || (!functionError && responseBody?.data)
+
+                if (!success) {
+                    const errorMsg = data?.error?.message || data?.error || responseBody?.error?.message || "Failed to exchange X token."
+                    throw new Error(errorMsg)
                 }
 
                 setStatus("success")
-                setMessage(`X account "@${data?.username || 'Success'}" connected!`)
+                setMessage(data?.message || `X account "@${data?.username || 'Success'}" connected!`)
 
                 // 2. Redirect back
                 setTimeout(() => {

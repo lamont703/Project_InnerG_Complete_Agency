@@ -66,7 +66,7 @@ function TikTokCallbackContent() {
                 // NOTE: Do NOT pass Authorization/apikey here — supabase.functions.invoke
                 // auto-injects the session credentials. Duplicating them causes a header
                 // conflict that results in functionError with an empty message.
-                const { data, error: functionError } = await supabase.functions.invoke("complete-tiktok-auth", {
+                const { data: response, error: functionError } = await supabase.functions.invoke("complete-tiktok-auth", {
                     body: { 
                         code, 
                         state, 
@@ -76,24 +76,21 @@ function TikTokCallbackContent() {
                 })
 
                 // Debug: log exactly what we got back so we can diagnose future issues
-                console.log("[TikTok Callback] invoke result →", { data, functionError })
+                console.log("[TikTok Callback] invoke result →", { response, functionError })
+                
+                // Handle the Project's standard okResponse wrapping { data: payload, error: null }
+                const data = response?.data || response
 
                 if (functionError) {
-                    // Provide the actual server error message if available,
-                    // otherwise fall back to a readable default
-                    const errMsg = functionError?.message && functionError.message !== "Edge Function returned a non-2xx status code"
-                        ? functionError.message
-                        : (data?.error || "Failed to exchange TikTok token.")
+                    const errMsg = (data?.error || data?.message || functionError?.message) && 
+                                  functionError.message !== "Edge Function returned a non-2xx status code"
+                        ? (data?.error || data?.message || functionError.message)
+                        : "Failed to exchange TikTok token."
                     throw new Error(errMsg)
                 }
 
-                // If data is null but no functionError, the function completed on the server
-                // (edge function logs confirm success) but the browser couldn't read the
-                // response body. Treat as success — same pattern as Instagram callback.
-                const success = data?.success ?? true
-
-                if (!success) {
-                    throw new Error(data?.error || "Failed to exchange TikTok token.")
+                if (data && !data.success) {
+                    throw new Error(data?.error || data?.message || "Failed to exchange TikTok token.")
                 }
 
                 setStatus("success")

@@ -16,6 +16,7 @@ export class LinkedInClient {
             headers: {
                 "Authorization": `Bearer ${this.accessToken}`,
                 "X-Restli-Protocol-Version": "2.0.0",
+                "Linkedin-Version": "202502",
                 "Accept": "application/json",
                 ...(options.headers || {})
             }
@@ -158,7 +159,7 @@ export class LinkedInClient {
     /**
      * List recent posts (UGC shares) for a page
      */
-    async listRecentPosts(pageUrn: string, count = 10): Promise<LinkedInPost[]> {
+    async listRecentPosts(pageUrn: string, count = 20): Promise<LinkedInPost[]> {
         // Ensure we use a proper URN for authors
         const urn = pageUrn.startsWith('urn:li:') ? pageUrn : `urn:li:organization:${pageUrn}`;
         
@@ -167,6 +168,25 @@ export class LinkedInClient {
             `/ugcPosts?q=authors&authors=List(${encodedUrn})&count=${count}`
         );
         return data.elements || [];
+    }
+
+    /**
+     * Batch check if specific posts still exist on LinkedIn
+     * @returns List of IDs that are still live
+     */
+    async checkPostsExist(postUrns: string[]): Promise<string[]> {
+        if (postUrns.length === 0) return [];
+        
+        const encodedIds = postUrns.map(id => encodeURIComponent(id)).join(',');
+        try {
+            const data = await this.request<{ results: Record<string, any> }>(
+                `/ugcPosts?ids=List(${encodedIds})`
+            );
+            return Object.keys(data.results || {});
+        } catch (err) {
+            console.warn("[LinkedInClient] Batch check failed:", err);
+            return postUrns; // Fallback to assume they exist if the query itself fails
+        }
     }
 
     /**
@@ -244,7 +264,7 @@ export class LinkedInClient {
     /**
      * Upload an image to LinkedIn and return the asset URN
      */
-    async uploadImage(authorUrn: string, imageBuffer: Uint8Array, mimeType: string): Promise<string> {
+    async uploadImage(authorUrn: string, imageBuffer: Blob, mimeType: string): Promise<string> {
         const urn = authorUrn.startsWith('urn:li:') ? authorUrn : `urn:li:organization:${authorUrn}`;
 
         // 1. Register Upload
@@ -275,7 +295,7 @@ export class LinkedInClient {
                 "Authorization": `Bearer ${this.accessToken}`,
                 "Content-Type": mimeType
             },
-            body: new Blob([imageBuffer], { type: mimeType })
+            body: imageBuffer
         });
 
         if (!uploadRes.ok) {
@@ -289,7 +309,7 @@ export class LinkedInClient {
     /**
      * Upload a video to LinkedIn and return the asset URN
      */
-    async uploadVideo(authorUrn: string, videoBuffer: Uint8Array, mimeType: string): Promise<string> {
+    async uploadVideo(authorUrn: string, videoBuffer: Blob, mimeType: string): Promise<string> {
         const urn = authorUrn.startsWith('urn:li:') ? authorUrn : `urn:li:organization:${authorUrn}`;
 
         // 1. Register Video Upload
@@ -320,7 +340,7 @@ export class LinkedInClient {
                 "Authorization": `Bearer ${this.accessToken}`,
                 "Content-Type": mimeType
             },
-            body: new Blob([videoBuffer], { type: mimeType })
+            body: videoBuffer
         });
 
         if (!uploadRes.ok) {

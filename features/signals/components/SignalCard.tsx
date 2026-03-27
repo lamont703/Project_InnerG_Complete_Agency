@@ -1,6 +1,19 @@
 import { useState, useEffect } from "react"
-import { Database, Zap, Instagram, Loader2, ArrowUpRight, Bug, ChevronDown, ChevronUp, Trash2, Send, Linkedin, Youtube } from "lucide-react"
+import { Database, Zap, Instagram, Loader2, ArrowUpRight, Bug, ChevronDown, ChevronUp, Trash2, Send, Linkedin, Youtube, Calendar as CalendarIcon, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { 
+    DropdownMenu, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+    DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu"
+import { 
+    Popover, 
+    PopoverContent, 
+    PopoverTrigger 
+} from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { format } from "date-fns"
 import { Signal } from "../types"
 import { createBrowserClient } from "@/lib/supabase/browser"
 
@@ -18,25 +31,29 @@ const TYPE_ICONS: Record<string, any> = {
 interface SignalCardProps {
     signal: Signal
     isResolving: boolean
-    onResolve: (id: string, platforms?: string[]) => void
+    onResolve: (id: string, params?: { platforms?: string[], scheduledAt?: string }) => void
     onDeleteAction?: (draftId: string, projectId: string) => Promise<void>
     isHighlighted?: boolean
+    statusBadge?: React.ReactNode
     isAgencyMode?: boolean
 }
 
-export function SignalCard({ 
-    signal, 
-    isResolving, 
-    onResolve, 
+export function SignalCard({
+    signal,
+    onResolve,
     onDeleteAction,
-    isAgencyMode = false, 
-    isHighlighted = false 
+    isResolving,
+    isAgencyMode = false,
+    isHighlighted = false,
+    statusBadge
 }: SignalCardProps) {
     const [isExpanded, setIsExpanded] = useState(false)
     const [draftContent, setDraftContent] = useState<string | null>(null)
     const [isFetchingDraft, setIsFetchingDraft] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
+    const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined)
+    const [scheduledTime, setScheduledTime] = useState<string>("12:00")
 
     const isSocial = signal.signalType === 'social'
     const platform = signal.metadata?.platform?.toLowerCase()
@@ -45,6 +62,14 @@ export function SignalCard({
     const isAgencyInsight = signal.isAgencyOnly || isAgencyMode
     const socialPlanId = signal.metadata?.social_plan_id
     const isLongBody = signal.body.length > 120
+
+    const getFullScheduledDate = () => {
+        if (!scheduledDate) return null
+        const [hours, minutes] = scheduledTime.split(':').map(Number)
+        const d = new Date(scheduledDate)
+        d.setHours(hours, minutes, 0, 0)
+        return d
+    }
 
     const togglePlatform = (p: string) => {
         const pLower = p.toLowerCase()
@@ -127,6 +152,7 @@ export function SignalCard({
                     <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/20">
                         {isAgencyInsight ? "Intelligence Layer" : "Monitoring"}
                     </span>
+                    {statusBadge}
                     <span className={`flex h-2 w-2 rounded-full animate-pulse ${isAgencyInsight ? "bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.6)]" : `${signal.color} shadow-[0_0_12px_rgba(var(--primary),0.6)]`
                         }`} />
                 </div>
@@ -182,7 +208,7 @@ export function SignalCard({
                             </div>
                         )}
 
-                        {isExpanded && isSocial && (
+                        {isExpanded && (isSocial || socialPlanId) && (
                             <div className="mt-4 flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 animate-in fade-in slide-in-from-top-2">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">Distribution Ports:</span>
                                 <button
@@ -205,21 +231,107 @@ export function SignalCard({
 
                     {/* Action Hub */}
                     <div className="flex flex-wrap items-center gap-3">
-                        <Button
-                            id={`btn-signal-action-${signal.id}`}
-                            className={`${isAgencyInsight ? "bg-violet-600 hover:bg-violet-500 text-white" : signal.buttonColor} px-6 rounded-xl h-10 font-black uppercase tracking-[0.1em] text-[10px] shadow-lg shadow-black/20 transition-all hover:scale-105 active:scale-95 border-b-2 border-black/20`}
-                            onClick={() => onResolve(signal.id, isSocial ? currentSelected : undefined)}
-                            disabled={isResolving}
-                        >
-                            {isResolving ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <>
-                                    {isAgencyInsight ? "ACKNOWLEDGE" : signal.actionLabel}
-                                    <ArrowUpRight className="h-3.5 w-3.5 ml-2" />
-                                </>
-                            )}
-                        </Button>
+                        {(isSocial || socialPlanId) && (signal.actionLabel?.includes("APPROVE") || signal.actionLabel?.includes("PUBLISH")) ? (
+                            <div className="flex items-center">
+                                <Button
+                                    id={`btn-signal-action-${signal.id}`}
+                                    className={`${isAgencyInsight ? "bg-violet-600 hover:bg-violet-500 text-white" : signal.buttonColor} px-6 rounded-l-xl rounded-r-none h-10 font-black uppercase tracking-[0.1em] text-[10px] shadow-lg shadow-black/20 transition-all hover:scale-[1.02] active:scale-95 border-b-2 border-black/20 border-r border-white/10`}
+                                    onClick={() => onResolve(signal.id, { platforms: currentSelected })}
+                                    disabled={isResolving}
+                                >
+                                    {isResolving ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <>
+                                            PUBLISH NOW
+                                            <Zap className="h-3.5 w-3.5 ml-2" />
+                                        </>
+                                    )}
+                                </Button>
+                                
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            className={`${isAgencyInsight ? "bg-violet-600 hover:bg-violet-500 text-white" : signal.buttonColor} px-2 rounded-r-xl rounded-l-none h-10 border-b-2 border-black/20`}
+                                            disabled={isResolving}
+                                        >
+                                            <ChevronDown className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="glass-panel-strong border-white/10 p-2">
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <DropdownMenuItem 
+                                                    onSelect={(e) => e.preventDefault()}
+                                                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-white cursor-pointer p-3 rounded-lg"
+                                                >
+                                                    <CalendarIcon className="h-3.5 w-3.5" />
+                                                    Schedule Dispatch
+                                                </DropdownMenuItem>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0 border-white/10 glass-panel-strong" align="end">
+                                                <div className="p-4 bg-background/50 backdrop-blur-3xl rounded-3xl overflow-hidden border border-white/5">
+                                                    <Calendar
+                                                        mode="single"
+                                                        selected={scheduledDate}
+                                                        onSelect={setScheduledDate}
+                                                        initialFocus
+                                                    />
+                                                    {scheduledDate && (
+                                                        <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-4">Target Date</span>
+                                                                <span className="text-xs font-bold text-primary">{format(scheduledDate, "PPP")}</span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/10">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Post Time</span>
+                                                                </div>
+                                                                <input 
+                                                                    type="time" 
+                                                                    className="bg-transparent text-xs font-bold text-primary outline-none focus:text-white transition-colors"
+                                                                    value={scheduledTime}
+                                                                    onChange={(e) => setScheduledTime(e.target.value)}
+                                                                />
+                                                            </div>
+                                                            <Button 
+                                                                className="w-full bg-primary text-primary-foreground h-10 rounded-xl font-black uppercase tracking-widest text-[9px]"
+                                                                onClick={() => {
+                                                                    const dt = getFullScheduledDate()
+                                                                    if (dt) onResolve(signal.id, { 
+                                                                        platforms: currentSelected,
+                                                                        scheduledAt: dt.toISOString() 
+                                                                    })
+                                                                }}
+                                                            >
+                                                                Confirm Schedule
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        ) : (
+                            <Button
+                                id={`btn-signal-action-${signal.id}`}
+                                className={`${isAgencyInsight ? "bg-violet-600 hover:bg-violet-500 text-white" : signal.buttonColor} px-6 rounded-xl h-10 font-black uppercase tracking-[0.1em] text-[10px] shadow-lg shadow-black/20 transition-all hover:scale-105 active:scale-95 border-b-2 border-black/20`}
+                                onClick={() => onResolve(signal.id, isSocial ? { platforms: currentSelected } : undefined)}
+                                disabled={isResolving}
+                            >
+                                {isResolving ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <>
+                                        {isAgencyInsight ? "ACKNOWLEDGE" : signal.actionLabel}
+                                        <ArrowUpRight className="h-3.5 w-3.5 ml-2" />
+                                    </>
+                                )}
+                            </Button>
+                        )}
 
                         {(isLongBody || socialPlanId) && (
                             <Button

@@ -19,6 +19,7 @@ import { createSocialDraftTool, listSocialDraftsTool } from "./orchestration/ind
 import { getProjectMetricsTool } from "./metrics/index.ts"
 import { generateSocialVisualTool } from "./creative/index.ts"
 import { getFunnelIntelligenceTool } from "./agency/funnel.ts"
+import { getTwitterAccountStatsTool, listRecentTweetsTool, searchTwitterKnowledgeTool } from "./twitter/index.ts"
 
 /**
  * Creates and configures the default tool registry for AI agents.
@@ -86,6 +87,11 @@ export function createDefaultRegistry(): ToolRegistry {
 
     // Register Creative AI Tools
     registry.register(generateSocialVisualTool)
+
+    // Register X (Twitter) Intelligence Tools
+    registry.register(getTwitterAccountStatsTool)
+    registry.register(listRecentTweetsTool)
+    registry.register(searchTwitterKnowledgeTool)
 
     return registry
 }

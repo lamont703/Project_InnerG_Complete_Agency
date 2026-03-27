@@ -10,7 +10,7 @@ import {
     AgencyUserData
 } from "./types"
 
-export function useAgencyData() {
+export function useAgencyData(projectSlug?: string) {
     const router = useRouter()
     const [userData, setUserData] = useState<AgencyUserData | null>(null)
     const [projects, setProjects] = useState<AgencyProject[]>([])
@@ -22,6 +22,7 @@ export function useAgencyData() {
     const [instagramMetrics, setInstagramMetrics] = useState<any>(null)
     const [facebookMetrics, setFacebookMetrics] = useState<any>(null)
     const [tiktokMetrics, setTiktokMetrics] = useState<any>(null)
+    const [twitterMetrics, setTwitterMetrics] = useState<any>(null)
     const [pixelMetrics, setPixelMetrics] = useState<any>(null)
     const [funnelConfig, setFunnelConfig] = useState<any>(null)
 
@@ -51,17 +52,24 @@ export function useAgencyData() {
             }
             setUserData(profile)
 
-            // Parallel fetch for performance
-            const [projData, signalData, liMetrics, ytMetrics, igMetrics, fbMetrics, ttMetrics, pixelMetricsData, fConfig] = await Promise.all([
+            // Resolve Project Context
+            let currentProjectId = undefined
+            if (projectSlug) {
+                currentProjectId = await signalService.getProjectId(projectSlug)
+            }
+
+            // Parallel fetch for performance - Scoped by project if provided
+            const [projData, signalData, liMetrics, ytMetrics, igMetrics, fbMetrics, ttMetrics, xMetrics, pixelMetricsData, fConfig] = await Promise.all([
                 service.getActiveProjects(),
-                service.getAllAgencySignals(),
-                service.getLinkedInMetrics(),
-                service.getYouTubeMetrics(),
-                service.getInstagramMetrics(),
-                service.getFacebookMetrics(),
-                service.getTikTokMetrics(),
-                service.getPixelMetrics(),
-                service.getFunnelConfig()
+                service.getAllAgencySignals(currentProjectId),
+                service.getLinkedInMetrics(projectSlug),
+                service.getYouTubeMetrics(projectSlug),
+                service.getInstagramMetrics(projectSlug),
+                service.getFacebookMetrics(projectSlug),
+                service.getTikTokMetrics(projectSlug),
+                service.getTwitterMetrics(projectSlug),
+                service.getPixelMetrics(projectSlug),
+                service.getFunnelConfig(projectSlug)
             ])
 
 
@@ -73,11 +81,12 @@ export function useAgencyData() {
             setInstagramMetrics(igMetrics)
             setFacebookMetrics(fbMetrics)
             setTiktokMetrics(ttMetrics)
+            setTwitterMetrics(xMetrics)
             setPixelMetrics(pixelMetricsData)
             setFunnelConfig(fConfig)
 
 
-            const draftData = await service.getSocialDrafts()
+            const draftData = await service.getSocialDrafts(currentProjectId)
             setSocialDrafts(draftData)
 
         } catch (err) {
@@ -85,7 +94,7 @@ export function useAgencyData() {
         } finally {
             setIsLoading(false)
         }
-    }, [router, service, supabase])
+    }, [router, service, supabase, projectSlug, signalService])
 
     const handleSyncGHL = async () => {
         setIsSyncing(true)
@@ -151,7 +160,7 @@ export function useAgencyData() {
         }
     }
 
-    const handleResolveSignal = async (signalId: string, platforms?: string[]) => {
+    const handleResolveSignal = async (signalId: string, params?: { platforms?: string[], scheduledAt?: string }) => {
         setResolvingId(signalId)
         try {
             // Handle mock signals (demo data) locally
@@ -168,17 +177,20 @@ export function useAgencyData() {
             const signal = [...strategicSignals, ...operationalSignals].find(s => s.id === signalId)
             if (!signal) throw new Error("Signal not found")
 
-            // If this is a social signal with a draft, and platforms are selected, publish instead of just resolving
+            // 1. If this is a social signal with a draft, and platforms/scheduling are relevant, handle the content plan update
             const signalAny = signal as any
-            if (signalAny.signal_type === 'social' && signalAny.metadata?.social_plan_id && platforms && platforms.length > 0) {
-                await handlePublishPost(signalAny.metadata.social_plan_id, platforms)
-                return
+            if (signalAny.signal_type === 'social' && signalAny.metadata?.social_plan_id && (params?.platforms || params?.scheduledAt)) {
+                await handlePublishPost(signalAny.metadata.social_plan_id, params)
+                // We DON'T return here anymore, we proceed to resolve the actual signal record
             }
 
+            // 2. Resolve the signal record itself so it disappears from the feed
             await signalService.resolveSignal({
                 signalId,
                 projectId: signal.project_id,
-                accessToken: session.access_token
+                accessToken: session.access_token,
+                platforms: params?.platforms,
+                scheduledAt: params?.scheduledAt
             })
 
             // Remove real signals from local state after successful API call
@@ -191,16 +203,22 @@ export function useAgencyData() {
         }
     }
 
-    const handlePublishPost = async (draftId: string, platforms?: string[]) => {
+    const handlePublishPost = async (draftId: string, params?: { platforms?: string[], scheduledAt?: string }) => {
         try {
             const { data: { session } } = await supabase.auth.getSession()
             if (!session) throw new Error("No active session")
 
-            await service.publishSocialPost(session.access_token, supabaseAnonKey, draftId, platforms)
+            await service.publishSocialPost(session.access_token, supabaseAnonKey, draftId, params?.platforms, params?.scheduledAt || undefined)
             
             // Optimistic update
-            setSocialDrafts(prev => prev.filter(d => d.id !== draftId))
-            alert("Social post successfully published!")
+            // If scheduled, keep it in the list (updated status will show via re-fetch or state sync)
+            if (params?.scheduledAt) {
+                // For scheduled, we don't filter it out because we want to see the status badge
+                await fetchData()
+            } else {
+                setSocialDrafts(prev => prev.filter(d => d.id !== draftId))
+            }
+            alert(params?.scheduledAt ? "Social post successfully scheduled!" : "Social post successfully published!")
         } catch (err: any) {
             console.error("[useAgencyData] Publish failed:", err)
             alert("Publishing failed: " + (err.message || "Unknown error"))
@@ -312,6 +330,7 @@ export function useAgencyData() {
         instagramMetrics,
         facebookMetrics,
         tiktokMetrics,
+        twitterMetrics,
         pixelMetrics,
         funnelConfig,
 

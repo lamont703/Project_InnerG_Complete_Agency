@@ -46,4 +46,6 @@ export interface ResolveSignalParams {
     signalId: string
     projectId: string
     accessToken: string
+    platforms?: string[]
+    scheduledAt?: string
 }

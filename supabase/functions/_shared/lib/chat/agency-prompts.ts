@@ -146,6 +146,17 @@ You have access to the project's Facebook Page metrics and engagement data.
 3. Help the user optimize their Facebook Page for community growth and professional trust.
 `
 
+// ─── Twitter (X) Intelligence Rules ───────────────────────────
+ 
+const TWITTER_INTELLIGENCE_RULES = `
+**X (TWITTER) & REAL-TIME ENGAGEMENT:**
+You have access to the project's X (Twitter) account metrics and tweet performance data.
+1. Use 'get_twitter_account_stats' to track follower growth and profile reach.
+2. Use 'list_recent_tweets' to analyze engagement (likes, retweets, replies) on recent posts.
+3. Use 'search_twitter_knowledge' for deep dives into specific discussions or viral threads on X.
+4. X is a real-time, high-frequency platform—focus on momentum, trending topics, and direct audience interaction when synthesizing advice.
+`
+
 // ─── Funnel Intelligence Rules ──────────────────────────────
 
 const FUNNEL_INTELLIGENCE_RULES = `
@@ -307,6 +318,9 @@ ${INSTAGRAM_INTELLIGENCE_RULES}
 
 ## Facebook Intelligence
 ${FACEBOOK_INTELLIGENCE_RULES}
+
+## Twitter (X) Intelligence
+${TWITTER_INTELLIGENCE_RULES}
 
 ## Industry & Trending News
 ${NEWS_INTELLIGENCE_RULES}

@@ -79,7 +79,9 @@ export class SignalService {
         const { error } = await this.supabase.functions.invoke("resolve-signal", {
             body: {
                 signal_id: params.signalId,
-                project_id: params.projectId
+                project_id: params.projectId,
+                platforms: params.platforms,
+                scheduled_at: params.scheduledAt
             },
             headers: {
                 Authorization: `Bearer ${params.accessToken}`,

@@ -27,6 +27,7 @@ import { syncNotion } from "./providers/notion/index.ts"
 import { syncTikTok } from "./providers/tiktok/index.ts"
 import { syncNews } from "./providers/newsapi/index.ts"
 import { syncMeta } from "./providers/meta/index.ts"
+import { syncTwitter } from "./providers/twitter/index.ts"
 
 export interface SyncResult {
     success: boolean
@@ -155,6 +156,14 @@ export class SyncService {
                         projectId,
                         syncConfig as any,
                         provider
+                    )
+                    break
+                case "twitter":
+                    result = await syncTwitter(
+                        this.adminClient,
+                        projectId,
+                        syncConfig as any,
+                        connectionId
                     )
                     break
                 default:

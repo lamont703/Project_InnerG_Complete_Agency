@@ -43,11 +43,17 @@ export class AgencyService {
     /**
      * Fetch recent signals, split into Strategic (Agency Only) and Operational
      */
-    async getAllAgencySignals(): Promise<{ strategic: StrategicSignal[], operational: OperationalSignal[] }> {
-        const { data } = await this.supabase
+    async getAllAgencySignals(projectId?: string): Promise<{ strategic: StrategicSignal[], operational: OperationalSignal[] }> {
+        let query = this.supabase
             .from("ai_signals")
             .select("id, project_id, signal_type, title, body, severity, is_resolved, is_agency_only, created_at, action_url, metadata, projects(name)")
             .eq("is_resolved", false)
+
+        if (projectId) {
+            query = query.eq("project_id", projectId)
+        }
+
+        const { data } = await query
             .order("created_at", { ascending: false })
             .limit(50)
 
@@ -172,22 +178,26 @@ export class AgencyService {
     /**
      * Fetch pending social content drafts
      */
-    async getSocialDrafts(): Promise<any[]> {
-        const { data } = await this.supabase
+    async getSocialDrafts(projectId?: string): Promise<any[]> {
+        let query = this.supabase
             .from("social_content_plan")
             .select("*, projects(name)")
-            .eq("status", "draft")
-            .order("created_at", { ascending: false })
+            .in("status", ["draft", "scheduled", "approved", "failed"])
 
+        if (projectId) {
+            query = query.eq("project_id", projectId)
+        }
+
+        const { data } = await query.order("created_at", { ascending: false })
         return (data as any[]) || []
     }
 
     /**
      * Invoke the publishing Edge Function for a draft
      */
-    async publishSocialPost(accessToken: string, anonKey: string, draftId: string, platforms?: string[]): Promise<void> {
+    async publishSocialPost(accessToken: string, anonKey: string, draftId: string, platforms?: string[], scheduledAt?: string): Promise<void> {
         const { error } = await this.supabase.functions.invoke("publish-social-post", {
-            body: { draft_id: draftId, platforms },
+            body: { draft_id: draftId, platforms, scheduled_at: scheduledAt },
             headers: {
                 Authorization: `Bearer ${accessToken}`,
                 apikey: anonKey
@@ -285,15 +295,15 @@ export class AgencyService {
             .eq("project_id", primary.project_id)
 
         const postStats = (posts || []).reduce((acc: any, p: any) => ({
-            likes: acc.likes + (p.like_count || 0),
-            comments: acc.comments + (p.comment_count || 0),
-            shares: acc.shares + (p.share_count || 0),
-            postViews: acc.postViews + (p.view_count || 0)
+            likes: acc.likes + Number(p.like_count || 0),
+            comments: acc.comments + Number(p.comment_count || 0),
+            shares: acc.shares + Number(p.share_count || 0),
+            postViews: acc.postViews + Number(p.view_count || 0)
         }), { likes: 0, comments: 0, shares: 0, postViews: 0 })
 
         return {
             followers: primary.follower_count,
-            views: primary.total_views,
+            views: postStats.postViews || primary.total_views || 0,
             clicks: primary.total_clicks,
             engagement: primary.engagement_rate,
             pageName: primary.name,
@@ -364,17 +374,18 @@ export class AgencyService {
         // Fetch Video Aggregations for YouTube
         const { data: videos } = await this.supabase
             .from("youtube_videos")
-            .select("like_count, comment_count")
+            .select("like_count, comment_count, view_count")
             .eq("project_id", primary.project_id)
 
         const videoStats = (videos || []).reduce((acc: any, v: any) => ({
-            likes: acc.likes + (v.like_count || 0),
-            comments: acc.comments + (v.comment_count || 0)
-        }), { likes: 0, comments: 0 })
+            likes: acc.likes + Number(v.like_count || 0),
+            comments: acc.comments + Number(v.comment_count || 0),
+            views: acc.views + Number(v.view_count || 0)
+        }), { likes: 0, comments: 0, views: 0 })
 
         return {
             subscribers: primary.subscriber_count,
-            views: primary.view_count,
+            views: videoStats.views || primary.view_count || 0,
             videos: primary.video_count,
             channelTitle: primary.title,
             likes: videoStats.likes,
@@ -413,10 +424,10 @@ export class AgencyService {
             .eq("project_id", primary.project_id)
 
         const mediaStats = (media || []).reduce((acc: any, m: any) => ({
-            likes: acc.likes + (m.like_count || 0),
-            comments: acc.comments + (m.comments_count || 0),
-            reach: acc.reach + (m.reach || 0),
-            impressions: acc.impressions + (m.impressions || 0)
+            likes: acc.likes + Number(m.like_count || 0),
+            comments: acc.comments + Number(m.comments_count || 0),
+            reach: acc.reach + Number(m.reach || 0),
+            impressions: acc.impressions + Number(m.impressions || 0)
         }), { likes: 0, comments: 0, reach: 0, impressions: 0 })
 
         const mediaCount = (media || []).length
@@ -495,10 +506,10 @@ export class AgencyService {
             .eq("project_id", account.project_id)
 
         const videoStats = (videos || []).reduce((acc: any, v: any) => ({
-            views: acc.views + (v.view_count || 0),
-            likes: acc.likes + (v.like_count || 0),
-            comments: acc.comments + (v.comment_count || 0),
-            shares: acc.shares + (v.share_count || 0)
+            views: acc.views + Number(v.view_count || 0),
+            likes: acc.likes + Number(v.like_count || 0),
+            comments: acc.comments + Number(v.comment_count || 0),
+            shares: acc.shares + Number(v.share_count || 0)
         }), { views: 0, likes: 0, comments: 0, shares: 0 })
 
         const videoLikes = videoStats.likes;
@@ -630,6 +641,58 @@ export class AgencyService {
             })
 
         if (error) throw error
+    }
+
+    /**
+     * Fetch Twitter metrics for a project
+     */
+    async getTwitterMetrics(projectSlug: string = "innergcomplete"): Promise<any> {
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("id")
+            .eq("slug", projectSlug)
+            .single()
+
+        if (!project) return null
+
+        const { data: accounts } = await this.supabase
+            .from("twitter_accounts")
+            .select("*")
+            .eq("project_id", project.id)
+
+        if (!accounts || accounts.length === 0) return null
+
+        const primary = accounts[0]
+
+        // Fetch Tweet Aggregations
+        const { data: tweets } = await this.supabase
+            .from("twitter_tweets")
+            .select("like_count, retweet_count, reply_count, quote_count, impression_count")
+            .eq("project_id", project.id)
+
+        const tweetStats = (tweets || []).reduce((acc: any, t: any) => ({
+            likes: acc.likes + Number(t.like_count || 0),
+            retweets: acc.retweets + Number(t.retweet_count || 0),
+            replies: acc.replies + Number(t.reply_count || 0),
+            quotes: acc.quotes + Number(t.quote_count || 0),
+            impressions: acc.impressions + Number(t.impression_count || 0)
+        }), { likes: 0, retweets: 0, replies: 0, quotes: 0, impressions: 0 })
+
+        return {
+            followerCount: primary.follower_count || 0,
+            followingCount: primary.following_count || 0,
+            tweetCount: primary.tweet_count || 0,
+            username: primary.username,
+            name: primary.name,
+            profilePictureUrl: primary.profile_picture_url,
+            likes: tweetStats.likes,
+            retweets: tweetStats.retweets,
+            replies: tweetStats.replies,
+            quotes: tweetStats.quotes,
+            reach: tweetStats.impressions,
+            impressions: tweetStats.impressions,
+            impression_count: tweetStats.impressions
+        }
     }
 
     /**

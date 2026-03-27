@@ -143,6 +143,15 @@ You have access to the project's Facebook Page metrics and engagement data.
 3. Help the user optimize their Facebook Page for community growth and professional trust.
 `
 
+const TWITTER_INTELLIGENCE_RULES = `
+**X (TWITTER) & REAL-TIME ENGAGEMENT:**
+You have access to the project's X (Twitter) account metrics and tweet performance data.
+1. Use 'get_twitter_account_stats' to track follower growth and profile reach.
+2. Use 'list_recent_tweets' to analyze engagement (likes, retweets, replies) on recent posts.
+3. Use 'search_twitter_knowledge' for deep dives into specific discussions or viral threads on X.
+4. Help the user optimize their X presence for momentum and trending topic alignment.
+`
+
 // ─── Project Knowledge Rules ─────────────────────────────
 
 const PROJECT_KNOWLEDGE_RULES = `
@@ -242,6 +251,7 @@ export function buildSystemPrompt(params: {
     const hasTiktok = enabledSources.some(s => s.includes("tiktok"))
     const hasInstagram = enabledSources.some(s => s.includes("instagram"))
     const hasFacebook = enabledSources.some(s => s.includes("facebook"))
+    const hasTwitter = enabledSources.some(s => s.includes("twitter"))
     const hasNews = enabledSources.some(s => s.includes("news"))
 
     const sourceList = enabledSources.length > 0
@@ -287,6 +297,8 @@ ${hasTiktok ? `## TikTok & Viral Growth\n${TIKTOK_INTELLIGENCE_RULES}` : ""}
 ${hasInstagram ? `## Instagram Intelligence\n${INSTAGRAM_INTELLIGENCE_RULES}` : ""}
 
 ${hasFacebook ? `## Facebook Intelligence\n${FACEBOOK_INTELLIGENCE_RULES}` : ""}
+
+${hasTwitter ? `## X (Twitter) Intelligence\n${TWITTER_INTELLIGENCE_RULES}` : ""}
 
 ${hasNews ? `## Industry & Trending News\n${NEWS_INTELLIGENCE_RULES}` : ""}
 
