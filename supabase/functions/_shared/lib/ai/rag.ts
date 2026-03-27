@@ -49,54 +49,23 @@ export class RagService {
         const embedding = await embedText(query, apiKey)
         if (!embedding) return []
 
-        // 2. Perform Parallel Search (Project Local + Agency Master)
-        const searchTasks = [
-            this.client.rpc("match_documents", {
-                query_embedding: embedding,
-                match_threshold: minSimilarity,
-                match_count: limit,
-                p_project_id: projectId
-            })
-        ]
-
-        if (includeAgencyKnowledge && projectId !== agencyProjectId) {
-            searchTasks.push(
-                this.client.rpc("match_documents", {
-                    query_embedding: embedding,
-                    match_threshold: Math.max(minSimilarity + 0.1, 0.45), // Stricter for agency peering
-                    match_count: Math.floor(limit / 2),
-                    p_project_id: agencyProjectId
-                })
-            )
-        }
-
-        const results = await Promise.all(searchTasks)
+        // 2. Perform Local Project Search
+        const results = await this.client.rpc("match_documents", {
+            query_embedding: embedding,
+            match_threshold: minSimilarity,
+            match_count: limit,
+            p_project_id: projectId
+        })
         
-        // 3. Process & Filter Results
-        const combined = results.flatMap((r: any, index: number) => {
-            const taskProjectId = index === 0 ? projectId : agencyProjectId
-            return (r.data || []).map((item: any) => ({
-                ...item,
-                // If the DB returned null (shared info), assign it to the agency project ID
-                // to correctly categorize it as "peered" data during isolation check.
-                project_id: item.project_id || taskProjectId
-            }))
-        }) as (RagResult & { project_id: string })[]
-
-        return combined.filter(r => {
-            // If the chunk belongs to the local project, it's always allowed (siloed)
-            if (r.project_id === projectId) return true
-
-            // If the chunk belongs to the Agency and we are in a client portal,
-            // ONLY allow limited shared tables.
-            // Note: 'project_knowledge' is EXCLUDED here because it contains Agency internal/confidential docs.
-            const PUBLIC_AGENCY_TABLES = ["agency_knowledge", "news_intelligence"]
-            const isSharedGlobal = PUBLIC_AGENCY_TABLES.includes(r.source_table)
-
-            return isSharedGlobal
-        }).map(r => ({
+        // 3. Process & Return Results
+        const rawData = results.data || []
+        
+        return rawData.map((item: any) => ({
+            ...item,
+            project_id: item.project_id || projectId
+        })).map(r => ({
             ...r,
-            content: r.project_id === agencyProjectId ? `[SHARED INSIGHT] ${r.content}` : r.content
+            content: r.content
         }))
     }
 
