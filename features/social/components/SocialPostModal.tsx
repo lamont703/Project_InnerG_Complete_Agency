@@ -45,7 +45,7 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
     const [isSaving, setIsSaving] = useState(false)
     const [title, setTitle] = useState("")
     const [content, setContent] = useState("")
-    const [selectedPlatform, setSelectedPlatform] = useState(platforms[0] || "")
+    const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(initialData?.platform ? [initialData.platform] : [platforms[0]].filter(Boolean))
     const [scheduledAt, setScheduledAt] = useState("")
     const [executeNow, setExecuteNow] = useState(false)
     const [ghlAccounts, setGHLAccounts] = useState<GHLAccount[]>([])
@@ -57,7 +57,7 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
         if (isOpen && initialData) {
             setTitle(initialData.title || "")
             setContent(initialData.content_text || initialData.content || "")
-            setSelectedPlatform(initialData.platform || platforms[0] || "")
+            setSelectedPlatforms(initialData.platform ? [initialData.platform] : [])
             
             if (initialData.scheduled_at) {
                 // Convert to datetime-local format: YYYY-MM-DDTHH:mm
@@ -76,17 +76,17 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
             // Reset for new post
             setTitle("")
             setContent("")
-            setSelectedPlatform(platforms[0] || "")
+            setSelectedPlatforms([platforms[0]].filter(Boolean))
             setScheduledAt("")
             setExecuteNow(false)
         }
     }, [isOpen, initialData, platforms])
 
     useEffect(() => {
-        if (isOpen && selectedPlatform === 'ghl') {
+        if (isOpen && selectedPlatforms.includes('ghl')) {
             fetchGHLAccounts()
         }
-    }, [isOpen, selectedPlatform])
+    }, [isOpen, selectedPlatforms])
 
     const fetchGHLAccounts = async () => {
         setIsLoadingAccounts(true)
@@ -108,10 +108,18 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
         }
     }
 
+    const togglePlatform = (p: string) => {
+        setSelectedPlatforms(prev => 
+            prev.includes(p) 
+                ? prev.filter(item => item !== p)
+                : [...prev, p]
+        )
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!selectedPlatform || (!executeNow && !scheduledAt) || !content) {
-            toast.error("Please fill all mandatory protocols")
+        if (selectedPlatforms.length === 0 || (!executeNow && !scheduledAt) || !content) {
+            toast.error("Please select at least one target and fill all mandatory protocols")
             return
         }
 
@@ -119,53 +127,59 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
         try {
             const supabase = createBrowserClient()
             
-            let destinationId = selectedPlatform // Default
-            let metadata: any = {}
+            const results = await Promise.all(selectedPlatforms.map(async (platform) => {
+                let destinationId = platform // Default
+                let metadata: any = {}
 
-            if (selectedPlatform === 'ghl') {
-                destinationId = selectedGHLAccount
-                metadata = {
-                    communityPostDetails: {
-                        title: title,
-                        notifyAllGroupMembers: ghlNotify,
-                        shortenedLinks: []
+                if (platform === 'ghl') {
+                    destinationId = selectedGHLAccount
+                    metadata = {
+                        communityPostDetails: {
+                            title: title,
+                            notifyAllGroupMembers: ghlNotify,
+                            shortenedLinks: []
+                        }
                     }
                 }
-            }
 
-            // 1. Unified Dispatch Protocol: Save strategic planning data
-            const { data: savedPost, error } = await (supabase as any)
-                .from("social_content_plan")
-                .upsert({
-                    id: initialData?.id,
-                    project_id: projectId,
-                    platform: selectedPlatform,
-                    destination_id: destinationId,
-                    title,
-                    content_text: content,
-                    status: executeNow ? 'approved' : 'scheduled', // 'approved' as temporary status while dispatching
-                    source_type: initialData?.source_type || 'manual',
-                    scheduled_at: executeNow ? new Date().toISOString() : new Date(scheduledAt || new Date()).toISOString(),
-                    ai_reasoning: executeNow ? "Immediate manual force-dispatch override." : (initialData?.ai_reasoning || "Human-provisioned tactical broadcast via Social Planner."),
-                    dispatch_metadata: {
-                        ...(initialData?.dispatch_metadata || {}),
-                        ...metadata
-                    }
-                })
-                .select()
-                .single()
+                // 1. Unified Dispatch Protocol: Save strategic planning data
+                const { data: savedPost, error } = await (supabase as any)
+                    .from("social_content_plan")
+                    .upsert({
+                        // Only use ID for initial data if it's the SAME platform. 
+                        // If we had many platforms, we'd need multiple IDs or it creates new ones.
+                        id: (initialData?.id && initialData.platform === platform) ? initialData.id : undefined,
+                        project_id: projectId,
+                        platform,
+                        destination_id: destinationId,
+                        title,
+                        content_text: content,
+                        status: executeNow ? 'approved' : 'scheduled', // 'approved' as temporary status while dispatching
+                        source_type: initialData?.source_type || 'manual',
+                        scheduled_at: executeNow ? new Date().toISOString() : new Date(scheduledAt || new Date()).toISOString(),
+                        ai_reasoning: executeNow ? "Immediate manual force-dispatch override." : (initialData?.ai_reasoning || "Human-provisioned tactical broadcast via Social Planner."),
+                        dispatch_metadata: {
+                            ...(initialData?.dispatch_metadata || {}),
+                            ...metadata
+                        }
+                    })
+                    .select()
+                    .single()
 
-            if (error) throw error
+                if (error) throw error
 
-            // 2. If Execute Now is active, trigger the dispatcher immediately
-            if (executeNow && savedPost) {
-                const { error: dispatchError } = await supabase.functions.invoke("publish-social-post", {
-                    body: { draft_id: savedPost.id }
-                })
-                if (dispatchError) throw dispatchError
-            }
+                // 2. If Execute Now is active, trigger the dispatcher immediately for this platform's record
+                if (executeNow && savedPost) {
+                    const { error: dispatchError } = await supabase.functions.invoke("publish-social-post", {
+                        body: { draft_id: savedPost.id }
+                    })
+                    if (dispatchError) throw dispatchError
+                }
+                
+                return savedPost
+            }))
             
-            toast.success("Broadcast synchronized and provisioned")
+            toast.success(`${results.length} Broadcast node(s) synchronized and provisioned`)
             onSuccess()
             onClose()
             // Reset state
@@ -217,26 +231,35 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                 <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
                     {/* Platform Matrix */}
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                            <Globe className="h-3 w-3" />
-                            Target Delivery Node
-                        </label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <Globe className="h-3 w-3" />
+                                Target Delivery Nodes
+                            </label>
+                            <span className="text-[8px] font-bold text-muted-foreground uppercase bg-muted/20 px-2 py-0.5 rounded-full">
+                                {selectedPlatforms.length} Selected
+                            </span>
+                        </div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             {platforms.map(p => {
                                 const ui = PLATFORM_UI[p] || { icon: Globe, color: 'text-primary' }
+                                const isSelected = selectedPlatforms.includes(p)
                                 return (
                                     <button
                                         key={p}
                                         type="button"
-                                        onClick={() => setSelectedPlatform(p)}
-                                        className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 group ${
-                                            selectedPlatform === p 
+                                        onClick={() => togglePlatform(p)}
+                                        className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 group relative ${
+                                            isSelected 
                                             ? 'bg-primary/5 border-primary shadow-lg shadow-primary/5' 
                                             : 'bg-muted/5 border-border hover:border-primary/40'
                                         }`}
                                     >
-                                        <ui.icon className={`h-6 w-6 ${selectedPlatform === p ? ui.color : 'text-muted-foreground opacity-40 group-hover:opacity-100'}`} />
-                                        <span className={`text-[9px] font-black uppercase tracking-widest ${selectedPlatform === p ? 'text-primary' : 'text-muted-foreground opacity-60'}`}>{p}</span>
+                                        <ui.icon className={`h-6 w-6 ${isSelected ? ui.color : 'text-muted-foreground opacity-40 group-hover:opacity-100'}`} />
+                                        <span className={`text-[9px] font-black uppercase tracking-widest ${isSelected ? 'text-primary' : 'text-muted-foreground opacity-60'}`}>{p}</span>
+                                        {isSelected && (
+                                            <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                        )}
                                     </button>
                                 )
                             })}
@@ -244,7 +267,7 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                     </div>
 
                     {/* Platform Specific Config (e.g. GHL Account) */}
-                    {selectedPlatform === 'ghl' && (
+                    {selectedPlatforms.includes('ghl') && (
                         <div className="space-y-4 animate-in slide-in-from-top-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
                                 <Shield className="h-3 w-3" />

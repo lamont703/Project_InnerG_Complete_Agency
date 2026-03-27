@@ -70,33 +70,60 @@ export async function resolveSignal(
         console.warn("[resolveSignal] Could not sync ticket status:", err)
     }
 
-    // 5. If social signal, update the content plan status
+    // 5. If social signal, handle multi-platform content plan orchestration
     if (signal.signal_type === 'social' && signal.metadata?.social_plan_id) {
-        // Fetch current status to avoid overwriting scheduled posts
+        const draftId = signal.metadata.social_plan_id
+        
+        // Fetch current draft to use as a template for cloning
         const { data: currentDraft } = await adminClient
             .from("social_content_plan")
-            .select("status")
-            .eq("id", signal.metadata.social_plan_id)
+            .select("*")
+            .eq("id", draftId)
             .single()
 
-        const status = payload.scheduled_at ? 'scheduled' : 'published'
-        
-        // ONLY update if it's currently a draft OR if we are explicitly scheduling it now.
-        // If it's ALREADY 'scheduled', and we're just acknowledging the signal without a time, keep it scheduled.
-        if (currentDraft?.status === 'draft' || payload.scheduled_at) {
-            const updateData: any = {
-                status,
-                scheduled_at: payload.scheduled_at || new Date().toISOString()
-            }
-            
+        if (currentDraft) {
+            const status = payload.scheduled_at ? 'scheduled' : 'published'
+            const targetPlatforms = payload.platforms && payload.platforms.length > 0 
+                ? payload.platforms 
+                : [currentDraft.platform]
+
+            // 5a. Update the original draft with the first platform
+            const primaryPlatform = targetPlatforms[0]
             await adminClient
                 .from("social_content_plan")
-                .update(updateData)
-                .eq("id", signal.metadata.social_plan_id)
+                .update({
+                    status,
+                    platform: primaryPlatform,
+                    scheduled_at: payload.scheduled_at || new Date().toISOString()
+                })
+                .eq("id", draftId)
+
+            // 5b. For additional platforms, create NEW records (clones)
+            if (targetPlatforms.length > 1) {
+                const clones = targetPlatforms.slice(1).map(p => ({
+                    project_id,
+                    platform: p,
+                    content_text: currentDraft.content_text,
+                    ai_reasoning: currentDraft.ai_reasoning,
+                    source_type: currentDraft.source_type,
+                    status,
+                    scheduled_at: payload.scheduled_at || new Date().toISOString(),
+                    media_url: currentDraft.media_url,
+                    metadata: {
+                        ...currentDraft.metadata,
+                        cloned_from: draftId,
+                        cloned_at: new Date().toISOString()
+                    }
+                }))
+
+                await adminClient
+                    .from("social_content_plan")
+                    .insert(clones)
+            }
 
             await activityRepo.log({
                 project_id,
-                action: `Social content ${status}: ${signal.title}`,
+                action: `Social content ${status} for ${targetPlatforms.join(', ')}`,
                 category: "marketing",
                 triggered_by: userId
             })

@@ -20,7 +20,11 @@ import {
     Sparkles,
     Video,
     Calendar as CalendarIcon,
-    Clock
+    Clock,
+    Facebook,
+    Twitter,
+    MessageSquare,
+    Zap as ZapIcon
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { 
@@ -37,6 +41,8 @@ import {
 import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { SignalCard } from "../../signals/components/SignalCard"
+import { createBrowserClient } from "@/lib/supabase/browser"
+import { toast } from "sonner"
 
 interface SocialDraft {
     id: string
@@ -49,6 +55,7 @@ interface SocialDraft {
     project_id: string
     created_at: string
     media_url?: string | null
+    metadata?: any
 }
 
 interface Signal {
@@ -191,8 +198,56 @@ export function UnifiedStream({
     const handlePublish = async (id: string, defaultPlatform: string, scheduledAt?: string) => {
         const platforms = getSelectedDraftPlatforms(id, defaultPlatform)
         setIsPublishingId(id)
+        
         try {
-            await onPublishDraft(id, { platforms, scheduledAt })
+            const supabase = createBrowserClient()
+            const draft = drafts.find(d => d.id === id)
+            if (!draft) return
+
+            for (const platform of platforms) {
+                let targetId = id
+                
+                // If this is a different platform than the original draft, we need a separate record
+                if (platform.toLowerCase() !== draft.platform.toLowerCase()) {
+                    // Create a clone for this platform
+                    const { data: newDraft, error: cloneError } = await (supabase as any)
+                        .from("social_content_plan")
+                        .insert({
+                            project_id: draft.project_id,
+                            platform: platform,
+                            content_text: draft.content_text,
+                            ai_reasoning: draft.ai_reasoning,
+                            source_type: draft.source_type,
+                            status: scheduledAt ? "scheduled" : "approved", // Set to approved momentarily so publish function can pick it up
+                            scheduled_at: scheduledAt || new Date().toISOString(),
+                            media_url: draft.media_url,
+                            metadata: {
+                                ...draft.metadata,
+                                cloned_from: id,
+                                cloned_at: new Date().toISOString()
+                            }
+                        })
+                        .select("id")
+                        .single()
+                    
+                    if (cloneError) {
+                        console.error(`Failed to clone draft for ${platform}:`, cloneError)
+                        toast.error(`Error provisioning ${platform}`)
+                        continue
+                    }
+                    targetId = newDraft.id
+                }
+
+                // Now publish/schedule this specific draft for this specific platform
+                await onPublishDraft(targetId, { 
+                    platforms: [platform], // Pass specifically this platform to the publish function
+                    scheduledAt 
+                })
+            }
+            toast.success(`Broadcasting to ${platforms.length} distribution ports`)
+        } catch (err) {
+            console.error("Publishing error:", err)
+            toast.error("Multi-platform dispatch failed")
         } finally {
             setIsPublishingId(null)
         }
@@ -300,7 +355,16 @@ export function UnifiedStream({
                                 >
                                     <div className="flex items-center gap-3 mb-4">
                                         <div className="h-8 w-8 rounded-lg bg-violet-500/10 flex items-center justify-center border border-violet-500/20 shadow-inner">
-                                            {draft.platform === 'linkedin' ? <Linkedin className="h-4 w-4 text-blue-400" /> : draft.platform === 'youtube' ? <Youtube className="h-4 w-4 text-red-500" /> : <Instagram className="h-4 w-4 text-pink-400" />}
+                                            {(() => {
+                                                const p = draft.platform.toLowerCase()
+                                                if (p === 'linkedin') return <Linkedin className="h-4 w-4 text-blue-400" />
+                                                if (p === 'instagram') return <Instagram className="h-4 w-4 text-pink-400" />
+                                                if (p === 'facebook') return <Facebook className="h-4 w-4 text-blue-600" />
+                                                if (p === 'twitter' || p === 'x') return <Twitter className="h-4 w-4 text-zinc-400" />
+                                                if (p === 'youtube') return <Youtube className="h-4 w-4 text-red-500" />
+                                                if (p === 'ghl') return <MessageSquare className="h-4 w-4 text-orange-400" />
+                                                return <Sparkles className="h-4 w-4 text-violet-400" />
+                                            })()}
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between">
@@ -322,8 +386,9 @@ export function UnifiedStream({
                                     </div>
 
                                     {isExpanded && (
-                                        <div className="mb-4 flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 animate-in fade-in slide-in-from-top-1">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mr-1">Target Ports:</span>
+                                        <div className="mb-4 flex flex-wrap items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 animate-in fade-in slide-in-from-top-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mr-1 w-full md:w-auto mb-2 md:mb-0">Target Ports:</span>
+                                            
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); toggleDraftPlatform(draft.id, 'linkedin', draft.platform); }}
                                                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all ${getSelectedDraftPlatforms(draft.id, draft.platform).includes('linkedin') ? 'bg-blue-500/20 border-blue-500/40 text-blue-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
@@ -331,12 +396,45 @@ export function UnifiedStream({
                                                 <Linkedin className="h-3 w-3" />
                                                 <span className="text-[8px] font-black uppercase tracking-tighter">LinkedIn</span>
                                             </button>
+
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); toggleDraftPlatform(draft.id, 'instagram', draft.platform); }}
                                                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all ${getSelectedDraftPlatforms(draft.id, draft.platform).includes('instagram') ? 'bg-pink-500/20 border-pink-500/40 text-pink-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
                                             >
                                                 <Instagram className="h-3 w-3" />
                                                 <span className="text-[8px] font-black uppercase tracking-tighter">Instagram</span>
+                                            </button>
+
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); toggleDraftPlatform(draft.id, 'facebook', draft.platform); }}
+                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all ${getSelectedDraftPlatforms(draft.id, draft.platform).includes('facebook') ? 'bg-blue-600/20 border-blue-600/40 text-blue-500 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                            >
+                                                <Facebook className="h-3 w-3" />
+                                                <span className="text-[8px] font-black uppercase tracking-tighter">Facebook</span>
+                                            </button>
+
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); toggleDraftPlatform(draft.id, 'twitter', draft.platform); }}
+                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all ${getSelectedDraftPlatforms(draft.id, draft.platform).includes('twitter') ? 'bg-zinc-500/20 border-zinc-500/40 text-zinc-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                            >
+                                                <Twitter className="h-3 w-3" />
+                                                <span className="text-[8px] font-black uppercase tracking-tighter">X (Twitter)</span>
+                                            </button>
+
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); toggleDraftPlatform(draft.id, 'youtube', draft.platform); }}
+                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all ${getSelectedDraftPlatforms(draft.id, draft.platform).includes('youtube') ? 'bg-red-500/20 border-red-500/40 text-red-500 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                            >
+                                                <Youtube className="h-3 w-3" />
+                                                <span className="text-[8px] font-black uppercase tracking-tighter">YouTube</span>
+                                            </button>
+
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); toggleDraftPlatform(draft.id, 'ghl', draft.platform); }}
+                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all ${getSelectedDraftPlatforms(draft.id, draft.platform).includes('ghl') ? 'bg-orange-500/20 border-orange-500/40 text-orange-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                            >
+                                                <MessageSquare className="h-3 w-3" />
+                                                <span className="text-[8px] font-black uppercase tracking-tighter">GHL</span>
                                             </button>
                                         </div>
                                     )}

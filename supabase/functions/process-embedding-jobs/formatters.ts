@@ -112,7 +112,36 @@ export function formatYoutubeChannel(row: any): string {
     const views = row.view_count ?? 0
     const videos = row.video_count ?? 0
     const date = row.last_synced_at ? new Date(row.last_synced_at).toISOString().split("T")[0] : "recently"
-    return `YouTube Channel Analysis [${row.channel_id}]: "${row.title || "Untitled"}". Stats as of ${date}: ${subs.toLocaleString()} subscribers, ${views.toLocaleString()} total views, ${videos.toLocaleString()} videos. Description: ${row.description || "No description"}.`
+    return `YouTube Channel Analysis [${row.channel_id}]: "${row.title || "Untitled"}". Stats as of ${date}: ${subs.toLocaleString()} subscribers, [Reach/Views]: ${views.toLocaleString()} total views, ${videos.toLocaleString()} videos. Description: ${row.description || "No description"}.`
+}
+
+export function formatInstagramAccount(row: any): string {
+    const followers = row.follower_count ?? 0
+    const media = row.media_count ?? 0
+    const date = row.last_synced_at ? new Date(row.last_synced_at).toISOString().split("T")[0] : "recently"
+    return `Instagram Account Performance [${row.instagram_business_id}]: "${row.name || row.username}". Stats as of ${date}: ${followers.toLocaleString()} followers, ${media.toLocaleString()} media items.`
+}
+
+export function formatFacebookPage(row: any): string {
+    const followers = row.followers_count ?? 0
+    const fans = row.fan_count ?? 0
+    const date = row.last_synced_at ? new Date(row.last_synced_at).toISOString().split("T")[0] : "recently"
+    return `Facebook Page Performance [${row.facebook_page_id}]: "${row.name || "Untitled"}". Stats as of ${date}: ${followers.toLocaleString()} followers, ${fans.toLocaleString()} fans/likes.`
+}
+
+export function formatGhlSocialAccount(row: any): string {
+    return `GHL Social Account [${row.type}]: "${row.name}" [GHL ID: ${row.ghl_account_id}]`
+}
+
+export function formatGhlSocialPost(row: any): string {
+    const status = row.status || "unknown"
+    const date = row.posted_at ? new Date(row.posted_at).toISOString().split("T")[0] : (row.scheduled_at ? new Date(row.scheduled_at).toISOString().split("T")[0] : "recently")
+    return `GHL Social Post [${status}] (${date}): "${row.content || "No content"}" [Type: ${row.post_type || "text"}]`
+}
+
+export function formatGhlSocialInsight(row: any): string {
+    const type = row.type?.replace(/_/g, " ").toUpperCase() || "STRATEGY"
+    return `GHL Social Insight [${type}]: "${row.title}". Analysis: ${row.content}`
 }
 
 export function formatYoutubeVideo(row: any): string {
@@ -120,7 +149,7 @@ export function formatYoutubeVideo(row: any): string {
     const likes = row.like_count ?? 0
     const comments = row.comment_count ?? 0
     const published = row.published_at ? new Date(row.published_at).toISOString().split("T")[0] : "unknown"
-    return `YouTube Video Performance & Agency Philosophy: "${row.title || "Untitled"}" [ID: ${row.video_id}]. Published on ${published}. URL: ${row.video_url || "N/A"}. Stats: ${views.toLocaleString()} views, ${likes.toLocaleString()} likes. Description: ${row.description || "No description"}. [AGENCY LINE OF THINKING & VALUES TRANSCRIPT]: ${row.transcript?.slice(0, 6000) || "No transcript available."}`
+    return `YouTube Video Performance & Agency Philosophy: "${row.title || "Untitled"}" [ID: ${row.video_id}]. Published on ${published}. URL: ${row.video_url || "N/A"}. Stats: ${views.toLocaleString()} views, ${likes.toLocaleString()} likes. Description: ${row.description?.slice(0, 2000) || "No description"}. [AGENCY LINE OF THINKING & VALUES TRANSCRIPT]: ${row.transcript?.slice(0, 10000) || "No transcript available."}`
 }
 
 export function formatLinkedinPage(row: any): string {
@@ -138,7 +167,7 @@ export function formatLinkedinPost(row: any): string {
     const comments = row.comment_count ?? 0
     const shares = row.share_count ?? 0
     const published = row.published_at ? new Date(row.published_at).toISOString().split("T")[0] : "unknown"
-    return `LinkedIn Post Performance: "${row.content?.slice(0, 100) || "No content"}..." [ID: ${row.linkedin_post_id}]. Published on ${published}. Lifetime Stats: ${views.toLocaleString()} impressions, ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments, ${shares.toLocaleString()} shares.`
+    return `LinkedIn Post Performance: "${row.content || "No content"}" [ID: ${row.linkedin_post_id}]. Published on ${published}. Lifetime Stats: [Reach/Views]: ${views.toLocaleString()} impressions, ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments, ${shares.toLocaleString()} shares.`
 }
 
 export function formatNotionPage(row: any): string {
@@ -162,7 +191,7 @@ export function formatTiktokVideo(row: any): string {
     const comments = row.comment_count ?? 0
     const shares = row.share_count ?? 0
     const published = row.published_at ? new Date(row.published_at).toISOString().split("T")[0] : "unknown"
-    return `TikTok Video Performance: "${row.title || "Untitled"}" [ID: ${row.tiktok_video_id}]. Published on ${published}. Lifetime Stats: ${views.toLocaleString()} views, ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments, ${shares.toLocaleString()} shares.`
+    return `TikTok Video Performance: "${row.title || "Untitled"}" [ID: ${row.tiktok_video_id}]. Published on ${published}. Lifetime Stats: [Reach/Views]: ${views.toLocaleString()} views, ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments, ${shares.toLocaleString()} shares. Description: ${row.video_description || "No description"}.`
 }
 
 export function formatNewsIntelligence(row: any): string {
@@ -188,10 +217,20 @@ export function formatGithubPullRequest(row: any): string {
 }
 
 export function formatTwitterAccount(row: any): string {
-    const followers = row.followers_count ?? 0
+    const followers = row.follower_count ?? 0
     const following = row.following_count ?? 0
     const tweets = row.tweet_count ?? 0
     return `X (Twitter) Account [${row.username}]: "${row.name || "Untitled"}". Stats: ${followers.toLocaleString()} followers, ${following.toLocaleString()} following, ${tweets.toLocaleString()} total tweets.`
+}
+
+export function formatInstagramMedia(row: any): string {
+    const type = row.media_type || "MEDIA"
+    const likes = row.like_count ?? 0
+    const comments = row.comments_count ?? 0
+    const reach = row.reach ?? 0
+    const impressions = row.impressions ?? 0
+    const date = row.timestamp ? new Date(row.timestamp).toISOString().split("T")[0] : "recently"
+    return `Instagram ${type} [${date}]: "${row.caption || "No caption"}" Stats: [Reach/Views]: ${reach.toLocaleString()} reach, ${impressions.toLocaleString()} impressions, ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments.`
 }
 
 export function formatTwitterTweet(row: any): string {
@@ -199,16 +238,9 @@ export function formatTwitterTweet(row: any): string {
     const retweets = row.retweet_count ?? 0
     const impressions = row.impression_count ?? 0
     const date = row.created_at ? new Date(row.created_at).toISOString().split("T")[0] : "recently"
-    return `X (Twitter) Tweet [${date}]: "${row.text?.slice(0, 100) || "No text"}..." Stats: ${impressions.toLocaleString()} impressions, ${likes.toLocaleString()} likes, ${retweets.toLocaleString()} retweets.`
+    return `X (Twitter) Tweet [${date}]: "${row.text || "No text"}" Stats: [Reach/Views]: ${impressions.toLocaleString()} impressions, ${likes.toLocaleString()} likes, ${retweets.toLocaleString()} retweets.`
 }
 
-export function formatInstagramMedia(row: any): string {
-    const type = row.media_type || "MEDIA"
-    const likes = row.like_count ?? 0
-    const comments = row.comments_count ?? 0
-    const date = row.timestamp ? new Date(row.timestamp).toISOString().split("T")[0] : "recently"
-    return `Instagram ${type} [${date}]: "${row.caption?.slice(0, 100) || "No caption"}..." Stats: ${likes.toLocaleString()} likes, ${comments.toLocaleString()} comments.`
-}
 
 export function formatInstagramComment(row: any): string {
     const date = row.timestamp ? new Date(row.timestamp).toISOString().split("T")[0] : "recently"
@@ -285,6 +317,10 @@ export function formatSourceRow(sourceTable: string, row: any): string {
             case "pixel_events": return formatPixelEvent(row)
             case "pixel_visitors": return formatPixelVisitor(row)
             case "social_content_plan": return formatSocialContentPlan(row)
+            case "facebook_pages": return formatFacebookPage(row)
+            case "ghl_social_accounts": return formatGhlSocialAccount(row)
+            case "ghl_social_posts": return formatGhlSocialPost(row)
+            case "ghl_social_insights": return formatGhlSocialInsight(row)
             default: return JSON.stringify(row)
         }
     } catch (err) {

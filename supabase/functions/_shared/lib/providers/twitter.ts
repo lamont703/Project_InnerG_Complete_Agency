@@ -130,4 +130,31 @@ export class TwitterProvider {
 
         return await res.json();
     }
+
+    /**
+     * Creates a new Tweet (Twitter API v2 POST /tweets)
+     */
+    async createTweet(accessToken: string, text: string, mediaId?: string): Promise<any> {
+        const body: any = { text };
+        if (mediaId) {
+            body.media = { media_ids: [mediaId] };
+        }
+
+        const res = await fetch(`${this.baseUrl}/tweets`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${accessToken}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ message: res.statusText }));
+            throw new Error(`X (Twitter) Create Tweet Error: ${err.message || err.detail || JSON.stringify(err)}`);
+        }
+
+        const data = await res.json();
+        return data.data;
+    }
 }

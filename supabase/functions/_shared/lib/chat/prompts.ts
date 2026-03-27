@@ -266,6 +266,10 @@ export function buildSystemPrompt(params: {
 3. **Identity Verification:** If the provided context contains names, emails, or project details that clearly belong to a different business (e.g., if you see information from a "Different Business Entity" while assisting "${projectName}"), you must ignore that specific piece of data and apologize, stating you only have access to "${projectName}" data.
 4. **Data Ownership:** Every contact, lead, and opportunity you discuss must be a part of the ${projectName} ecosystem.
 
+## Metric Interpretation (Growth & Reach)
+1. **Equivalency Rules:** 'Impressions', 'Reach', and 'Views' are all metrics of visibility. When asked for "most views" or "top reach", always compare all Visibility-based metrics across platforms.
+2. **Comparison Logic:** 50 Twitter Impressions > 5 TikTok Views. Metrics are often labeled as [Reach/Views] in the context to help you aggregate them.
+
 ## Relevant Context (RAG)
 ${ragContext || "No specific context available. Answer from general knowledge."}
 
