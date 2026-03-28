@@ -3,7 +3,7 @@ import { SyncService } from "./service.ts"
 
 // 🛡️ Strict validation for the sync request
 const SyncRequestSchema = z.object({
-    connection_id: z.string().uuid()
+    connection_id: z.string().uuid().optional()
 })
 
 /**
@@ -12,7 +12,7 @@ const SyncRequestSchema = z.object({
  */
 export default createHandler(async ({ adminClient, body, user, req }) => {
     const logger = new Logger("connector-sync")
-    logger.info("Received sync request", { connection_id: body.connection_id })
+    logger.info("Received sync request", { connection_id: body.connection_id || "GLOBAL_CRON_SYNC" })
 
     // 1. Authorization check
     const authHeader = req.headers.get("Authorization")
@@ -55,6 +55,10 @@ export default createHandler(async ({ adminClient, body, user, req }) => {
         }
     }
 
+    if (!body.connection_id && !isServiceRole) {
+        throw new Error("UNAUTHORIZED: Global sync requires Service Role authentication.")
+    }
+
     // 2. Orchestrate Sync
     const service = new SyncService(
         adminClient,
@@ -67,12 +71,44 @@ export default createHandler(async ({ adminClient, body, user, req }) => {
         Deno.env.get("TIKTOK_PRODUCTION_CLIENT_SECRET") ?? ""
     )
 
-    const result = await service.sync(body.connection_id)
+    if (body.connection_id) {
+        // Single Connection Sync
+        const result = await service.sync(body.connection_id)
+        return okResponse({
+            connection_id: body.connection_id,
+            ...result
+        })
+    } else {
+        // Global Cron Sync: fetch all active connections and sync them
+        const { data: connections, error: connErr } = await adminClient
+            .from('client_db_connections')
+            .select('id, platform')
+            .eq('status', 'active')
 
-    return okResponse({
-        connection_id: body.connection_id,
-        ...result
-    })
+        if (connErr || !connections) {
+            throw new Error(`Failed to load connections for global sync: ${connErr?.message}`)
+        }
+
+        logger.info(`Starting global sync for ${connections.length} active connectors`)
+
+        // Run concurrently to avoid timeout constraints across many connectors
+        const syncPromises = connections.map(async (conn) => {
+            try {
+                const res = await service.sync(conn.id)
+                return { id: conn.id, platform: conn.platform, success: true, ...res }
+            } catch (err: any) {
+                logger.error(`Global sync failed for connector ${conn.id}`, err)
+                return { id: conn.id, platform: conn.platform, success: false, error: err.message }
+            }
+        })
+
+        const results = await Promise.all(syncPromises)
+        
+        return okResponse({
+            processed: connections.length,
+            results
+        })
+    }
 }, {
     schema: SyncRequestSchema,
     requireAuth: false,
