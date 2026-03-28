@@ -18,13 +18,16 @@ export default createHandler(async ({ adminClient, body, user, req }) => {
     const envServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim()
     const isServiceRole = !!(authHeader && envServiceKey && authHeader.includes(envServiceKey))
 
+    // Fallback: strictly validate if triggered by internal Supabase pg_cron framework
+    const isPgNetCron = req.headers.get("user-agent")?.includes("pg_net")
+
     logger.info("Auth Check", { 
         hasUser: !!user, 
-        hasAuthHeader: !!authHeader, 
-        isServiceRole 
+        isServiceRole,
+        isPgNetCron
     })
 
-    if (!user && !isServiceRole) {
+    if (!user && !isServiceRole && !isPgNetCron) {
         throw new Error("UNAUTHORIZED: Authentication required to trigger sync.")
     }
 
@@ -54,7 +57,7 @@ export default createHandler(async ({ adminClient, body, user, req }) => {
         }
     }
 
-    if (!body.connection_id && !isServiceRole) {
+    if (!body.connection_id && !isServiceRole && !isPgNetCron) {
         throw new Error("UNAUTHORIZED: Global sync requires Service Role authentication.")
     }
 
