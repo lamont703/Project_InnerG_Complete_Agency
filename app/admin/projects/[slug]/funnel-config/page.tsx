@@ -59,6 +59,11 @@ interface FunnelConfig {
         subLabel: string
         metrics: FunnelMetric[]
     }
+    subscribers: {
+        label: string
+        subLabel: string
+        metrics: FunnelMetric[]
+    }
 }
 
 const PLATFORM_ICONS: Record<string, any> = {
@@ -99,6 +104,13 @@ const DEFAULT_CONFIG: FunnelConfig = {
             { id: "audit_request", label: "Request Audit", enabled: true, event_name: "Request Growth Audit" },
             { id: "audit_schedule", label: "Schedule Audit", enabled: true, event_name: "Schedule a Growth Audit" },
             { id: "school_login", label: "School Logins", enabled: true, event_name: "button-CLEbFRjXN7_btn" }
+        ]
+    },
+    subscribers: {
+        label: "Subscribers",
+        subLabel: "Audience Retention",
+        metrics: [
+            { id: "newsletter", label: "Newsletter Signups", enabled: true, event_name: "Newsletter Subscribe" }
         ]
     }
 }
@@ -176,7 +188,11 @@ export default function FunnelConfigPage() {
                 if (agentConfig) {
                     setConfigId(agentConfig.id)
                     if (agentConfig.funnel_config) {
-                        setConfig(agentConfig.funnel_config)
+                        const loadedConfig = agentConfig.funnel_config;
+                        if (!loadedConfig.subscribers) {
+                            loadedConfig.subscribers = DEFAULT_CONFIG.subscribers;
+                        }
+                        setConfig(loadedConfig)
                     }
                 }
             } catch (err) {
@@ -217,7 +233,7 @@ export default function FunnelConfigPage() {
         }))
     }
 
-    const updateMetric = (category: 'engagement' | 'conversion', id: string, updates: Partial<FunnelMetric>) => {
+    const updateMetric = (category: 'engagement' | 'conversion' | 'subscribers', id: string, updates: Partial<FunnelMetric>) => {
         setConfig(prev => ({
             ...prev,
             [category]: {
@@ -249,6 +265,32 @@ export default function FunnelConfigPage() {
             conversion: {
                 ...prev.conversion,
                 metrics: prev.conversion.metrics.filter(m => m.id !== id)
+            }
+        }))
+    }
+
+    const addSubscriberMetric = () => {
+        const newMetric: FunnelMetric = {
+            id: `sub_${Date.now()}`,
+            label: "New Milestone",
+            enabled: true,
+            event_name: ""
+        }
+        setConfig(prev => ({
+            ...prev,
+            subscribers: {
+                ...prev.subscribers,
+                metrics: [...prev.subscribers.metrics, newMetric]
+            }
+        }))
+    }
+
+    const removeSubscriberMetric = (id: string) => {
+        setConfig(prev => ({
+            ...prev,
+            subscribers: {
+                ...prev.subscribers,
+                metrics: prev.subscribers.metrics.filter(m => m.id !== id)
             }
         }))
     }
@@ -470,6 +512,91 @@ export default function FunnelConfigPage() {
                                                     />
                                                     <button 
                                                         onClick={() => removeConversionMetric(metric.id)}
+                                                        className="p-1 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-all ml-1"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Section: Subscribers Hub */}
+                    <section className="space-y-4 mb-12">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500">
+                                <Users className="h-4 w-4" />
+                            </div>
+                            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-foreground">Subscribers Hub (Retention)</h2>
+                        </div>
+
+                        <div className="glass-panel border-white/10 rounded-[2.5rem] p-8 space-y-8">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic">Main Stage Label</label>
+                                    <input 
+                                        value={config.subscribers.label}
+                                        onChange={(e) => setConfig(prev => ({ ...prev, subscribers: { ...prev.subscribers, label: e.target.value } }))}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl h-10 px-4 text-sm font-bold focus:ring-1 focus:ring-amber-500 outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic">Stage Goal</label>
+                                    <input 
+                                        value={config.subscribers.subLabel}
+                                        onChange={(e) => setConfig(prev => ({ ...prev, subscribers: { ...prev.subscribers, subLabel: e.target.value } }))}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl h-10 px-4 text-sm font-bold focus:ring-1 focus:ring-amber-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 pt-6 border-t border-white/5">
+                                <div className="flex items-center justify-between mb-4">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-foreground block italic">High-Value Event Mapping</label>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={addSubscriberMetric}
+                                        className="h-8 px-3 rounded-xl bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/10 text-amber-500 text-[9px] font-black uppercase tracking-widest gap-2"
+                                    >
+                                        <Plus className="h-3.5 w-3.5" />
+                                        Add Milestone
+                                    </Button>
+                                </div>
+                                <div className="space-y-3">
+                                    {config.subscribers.metrics.map(metric => (
+                                        <div key={metric.id} className="flex flex-col md:flex-row md:items-center gap-4 p-5 rounded-2xl bg-white/5 border border-white/5 group hover:border-amber-500/20 transition-all relative">
+                                            <div className="flex-1 space-y-1">
+                                                <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground italic">Display Title</label>
+                                                <input 
+                                                    value={metric.label}
+                                                    onChange={(e) => updateMetric('subscribers', metric.id, { label: e.target.value })}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl h-10 px-4 text-sm font-bold outline-none focus:border-amber-500/50 transition-all font-mono"
+                                                    placeholder="e.g. Newsletter Subscription"
+                                                />
+                                            </div>
+                                            <div className="flex-[2] space-y-1">
+                                                <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground italic">Pixel Event Name / Element ID</label>
+                                                <input 
+                                                    value={metric.event_name}
+                                                    onChange={(e) => updateMetric('subscribers', metric.id, { event_name: e.target.value })}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl h-10 px-4 text-sm font-bold outline-none focus:border-amber-500/50 transition-all font-mono"
+                                                    placeholder="e.g. subscribe_callback or id-123"
+                                                />
+                                            </div>
+                                            <div className="flex flex-row md:flex-col items-center gap-2 px-4 border-l border-white/5 h-full">
+                                                <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{metric.enabled ? 'Track' : 'Ignore'}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <ToggleSwitch 
+                                                        enabled={metric.enabled}
+                                                        onChange={(v) => updateMetric('subscribers', metric.id, { enabled: v })}
+                                                    />
+                                                    <button 
+                                                        onClick={() => removeSubscriberMetric(metric.id)}
                                                         className="p-1 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-all ml-1"
                                                     >
                                                         <Trash2 className="h-3.5 w-3.5" />
