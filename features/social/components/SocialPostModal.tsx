@@ -20,7 +20,9 @@ import {
     Globe,
     ChevronDown,
     Shield,
-    Trash2
+    Trash2,
+    Video,
+    RotateCcw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -33,6 +35,9 @@ interface SocialPostModalProps {
     onSuccess: () => void
     platforms: string[]
     initialData?: any
+    onGenerateImage?: (id: string) => Promise<string>
+    onGenerateVideo?: (id: string) => Promise<string>
+    onClearMedia?: (id: string) => Promise<void>
 }
 
 interface GHLAccount {
@@ -42,7 +47,17 @@ interface GHLAccount {
     type: string
 }
 
-export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platforms, initialData }: SocialPostModalProps) {
+export function SocialPostModal({ 
+    isOpen, 
+    onClose, 
+    projectId, 
+    onSuccess, 
+    platforms, 
+    initialData,
+    onGenerateImage,
+    onGenerateVideo,
+    onClearMedia
+}: SocialPostModalProps) {
     const [isSaving, setIsSaving] = useState(false)
     const [title, setTitle] = useState("")
     const [content, setContent] = useState("")
@@ -54,6 +69,11 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
     const [ghlNotify, setGHLNotify] = useState(false)
     const [isLoadingAccounts, setIsLoadingAccounts] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
+    
+    // Media Generation States
+    const [mediaUrl, setMediaUrl] = useState<string | null>(initialData?.media_url || null)
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false)
+    const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
 
     useEffect(() => {
         if (isOpen && initialData) {
@@ -74,6 +94,9 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                 setSelectedGHLAccount(initialData.destination_id || "")
                 setGHLNotify(initialData.dispatch_metadata.communityPostDetails?.notifyAllGroupMembers || false)
             }
+            
+            // Sync Media Preview State
+            setMediaUrl(initialData.media_url || null)
         } else if (isOpen) {
             // Reset for new post
             setTitle("")
@@ -81,6 +104,7 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
             setSelectedPlatforms([platforms[0]].filter(Boolean))
             setScheduledAt("")
             setExecuteNow(false)
+            setMediaUrl(null)
         }
     }, [isOpen, initialData, platforms])
 
@@ -107,6 +131,51 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
             console.error("Failed to load GHL accounts", err)
         } finally {
             setIsLoadingAccounts(false)
+        }
+    }
+
+    const handleGenerateImage = async () => {
+        if (!onGenerateImage || !initialData?.id) {
+            toast.error("Please save the draft first to enable media generation")
+            return
+        }
+        setIsGeneratingImage(true)
+        try {
+            const url = await onGenerateImage(initialData.id)
+            setMediaUrl(url)
+            toast.success("Strategic visual payload generated via Nano Banana Pro")
+        } catch (err: any) {
+            toast.error(`Generation Failed: ${err.message}`)
+        } finally {
+            setIsGeneratingImage(false)
+        }
+    }
+
+    const handleGenerateVideo = async () => {
+        if (!onGenerateVideo || !initialData?.id) {
+            toast.error("Please save the draft first to enable media generation")
+            return
+        }
+        setIsGeneratingVideo(true)
+        try {
+            const url = await onGenerateVideo(initialData.id)
+            setMediaUrl(url)
+            toast.success("Motion 3 video payload synthesized via Google Veo")
+        } catch (err: any) {
+            toast.error(`Synthesis Failed: ${err.message}`)
+        } finally {
+            setIsGeneratingVideo(false)
+        }
+    }
+
+    const handleClearMedia = async () => {
+        if (!onClearMedia || !initialData?.id) return
+        try {
+            await onClearMedia(initialData.id)
+            setMediaUrl(null)
+            toast.success("Asset declined and purged from deployment")
+        } catch (err: any) {
+            toast.error(`Purge Failed: ${err.message}`)
         }
     }
 
@@ -369,6 +438,102 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                             {content.length > 280 && selectedPlatforms.includes('twitter') && (
                                 <p className="text-[9px] text-red-500/80 font-bold italic animate-in fade-in slide-in-from-top-1">
                                     "Your broadcast exceeds the standard X (Twitter) character limit for non-verified accounts."
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Media Generation Area */}
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <ImageIcon className="h-3 w-3" />
+                                Multimedia Asset Payload
+                            </label>
+                            
+                            <div className="flex gap-4">
+                                <Button
+                                    type="button"
+                                    onClick={handleGenerateImage}
+                                    disabled={!initialData?.id || isGeneratingImage || isGeneratingVideo || isSaving}
+                                    className="flex-1 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 text-violet-400 font-black uppercase tracking-tighter text-[10px] gap-2 transition-all"
+                                >
+                                    {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin text-violet-400" /> : <Zap className="h-4 w-4 text-violet-400" />}
+                                    {isGeneratingImage ? "Magic in Progress..." : "Generate Magic Image"}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    onClick={handleGenerateVideo}
+                                    disabled={!initialData?.id || isGeneratingImage || isGeneratingVideo || isSaving}
+                                    className="flex-1 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-400 font-black uppercase tracking-tighter text-[10px] gap-2 transition-all"
+                                >
+                                    {isGeneratingVideo ? <Loader2 className="h-4 w-4 animate-spin text-blue-400" /> : <Video className="h-4 w-4 text-blue-400" />}
+                                    {isGeneratingVideo ? "Synthesizing Motion..." : "Synthesize Motion 3"}
+                                </Button>
+                            </div>
+
+                            {mediaUrl && (
+                                <div className="mt-6 rounded-3xl overflow-hidden border border-border shadow-2xl relative group/media animate-in zoom-in-95 duration-500">
+                                    {mediaUrl.includes(".mp4") || mediaUrl.includes(".mov") ? (
+                                        <video 
+                                            src={mediaUrl} 
+                                            autoPlay 
+                                            loop 
+                                            muted 
+                                            playsInline
+                                            className="w-full h-auto object-cover max-h-[400px]"
+                                        />
+                                    ) : (
+                                        <img 
+                                            src={mediaUrl} 
+                                            alt="AI Generated Visual" 
+                                            className="w-full h-auto object-cover max-h-[400px]"
+                                        />
+                                    )}
+                                    <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover/media:opacity-100 transition-opacity">
+                                        <div className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
+                                            <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none">
+                                                {mediaUrl.includes(".mp4") ? "Google Veo AI" : "Banana Pro XL"}
+                                            </span>
+                                        </div>
+
+                                        <Button
+                                            type="button"
+                                            onClick={mediaUrl.includes(".mp4") ? handleGenerateVideo : handleGenerateImage}
+                                            disabled={isGeneratingImage || isGeneratingVideo}
+                                            className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md shadow-lg"
+                                            size="icon"
+                                        >
+                                            {(isGeneratingImage || isGeneratingVideo) ? (
+                                                <Loader2 className="h-4 w-4 animate-spin text-white" />
+                                            ) : (
+                                                <RotateCcw className="h-4 w-4 text-white" />
+                                            )}
+                                        </Button>
+
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="icon"
+                                            onClick={handleClearMedia}
+                                            className="h-8 w-8 rounded-full shadow-lg"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+
+                                    {(isGeneratingImage || isGeneratingVideo) && (
+                                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
+                                            <div className="flex flex-col items-center gap-4">
+                                                <Loader2 className="h-8 w-8 animate-spin text-white" />
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Synthesizing Iteration...</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {!initialData?.id && (
+                                <p className="text-[9px] text-amber-500/60 font-medium italic text-center">
+                                    "Save this broadcast node as a draft to unlock strategic multimedia generation."
                                 </p>
                             )}
                         </div>

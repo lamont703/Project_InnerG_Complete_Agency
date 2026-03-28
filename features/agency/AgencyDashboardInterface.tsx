@@ -156,7 +156,12 @@ export function AgencyDashboardInterface() {
                 onClose={() => setIsPostModalOpen(false)}
                 projectId={currentProjectId || ""}
                 onSuccess={refresh}
-                platforms={currentProject?.settings?.features?.social_planner_platforms || []}
+                platforms={(currentProject?.settings?.features?.social_planner_platforms?.length || 0) > 0 
+                    ? currentProject?.settings?.features?.social_planner_platforms 
+                    : ['twitter', 'linkedin', 'facebook', 'instagram', 'youtube', 'ghl']}
+                onGenerateImage={generateImage}
+                onGenerateVideo={generateVideo}
+                onClearMedia={clearMedia}
             />
         </div>
     )

@@ -165,9 +165,27 @@ export default createHandler(async ({ adminClient, body, user }) => {
                 const client = new TwitterProvider()
                 let token = config.access_token
                 let postResult
+                let mediaId: string | undefined = undefined
+
+                const performXPublish = async (currentReqToken: string) => {
+                    // Stage Media if present
+                    if (draft.media_url) {
+                        try {
+                            const mediaRes = await fetch(draft.media_url)
+                            if (mediaRes.ok) {
+                                const blob = await mediaRes.blob()
+                                logger.info(`Staging media for X...`, { type: blob.type, size: blob.size })
+                                mediaId = await client.uploadMedia(currentReqToken, blob)
+                            }
+                        } catch (mediaErr: any) {
+                            logger.warn(`X Media staging failed, attempting text-only fallback: ${mediaErr.message}`)
+                        }
+                    }
+                    return await client.createTweet(currentReqToken, draft.content_text, mediaId)
+                }
                 
                 try {
-                    postResult = await client.createTweet(token, draft.content_text)
+                    postResult = await performXPublish(token)
                 } catch (err: any) {
                     const isAuthError = err.message.toLowerCase().includes("unauthorized") || 
                                        err.message.includes("401") || 
@@ -194,7 +212,7 @@ export default createHandler(async ({ adminClient, body, user }) => {
                             
                             if (!updateErr) {
                                 logger.info(`Token refreshed. Retrying publish...`)
-                                postResult = await client.createTweet(token, draft.content_text)
+                                postResult = await performXPublish(token)
                             } else {
                                 throw new Error(`Refresh succeeded but failed to update DB: ${updateErr.message}`)
                             }
@@ -206,7 +224,7 @@ export default createHandler(async ({ adminClient, body, user }) => {
                     }
                 }
 
-                logger.info(`Successfully published to X (Twitter)`, { post_id: postResult.id })
+                logger.info(`Successfully published to X (Twitter)`, { post_id: postResult.id, has_media: !!mediaId })
                 results[platform] = { success: true, post_id: postResult.id }
                 lastExternalPostId = postResult.id
             }
