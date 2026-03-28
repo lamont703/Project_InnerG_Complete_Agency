@@ -498,7 +498,7 @@ export function ProjectConnectorsPage() {
                                             </p>
                                             <MetaLoginButton 
                                                 size="large"
-                                                projectId={projectId || undefined}
+                                                projectId={projectId || ""}
                                                 configId="1304420384838040"
                                             />
                                             <p className="text-[8px] text-muted-foreground italic">
@@ -512,7 +512,7 @@ export function ProjectConnectorsPage() {
                                             </p>
                                             <InstagramLoginButton 
                                                 size="large"
-                                                projectId={projectId || undefined}
+                                                projectId={projectId || ""}
                                             />
                                             <p className="text-[8px] text-muted-foreground italic">
                                                 Authorized via the native Instagram Login flow.
@@ -524,7 +524,7 @@ export function ProjectConnectorsPage() {
                                                 Connect TikTok to sync your videos and content insights.
                                             </p>
                                             <TikTokLoginButton 
-                                                projectId={projectId || undefined}
+                                                projectId={projectId || ""}
                                             />
                                             <p className="text-[8px] text-muted-foreground italic">
                                                 OAuth connection requires access to video.list and profile info.
@@ -536,7 +536,7 @@ export function ProjectConnectorsPage() {
                                                 Connect X (Twitter) via OAuth 2.0 PKCE.
                                             </p>
                                             <TwitterLoginButton 
-                                                projectId={projectId || undefined}
+                                                projectId={projectId || ""}
                                             />
                                             <p className="text-[8px] text-muted-foreground italic">
                                                 Includes access to follow counts and recent performance signals.
@@ -548,7 +548,7 @@ export function ProjectConnectorsPage() {
                                                 Connect your LinkedIn Profile or Page via OAuth.
                                             </p>
                                             <LinkedInLoginButton 
-                                                projectId={projectId || undefined}
+                                                projectId={projectId || ""}
                                             />
                                             <p className="text-[8px] text-muted-foreground italic">
                                                 Authorizes personal posts and organization page access.
@@ -560,7 +560,7 @@ export function ProjectConnectorsPage() {
                                                 Connect your YouTube Channel via Google OAuth.
                                             </p>
                                             <YouTubeLoginButton 
-                                                projectId={projectId || undefined}
+                                                projectId={projectId || ""}
                                                 disabled={!projectId}
                                             />
                                             {(!projectId || !newLabel) && (
