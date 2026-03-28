@@ -272,4 +272,39 @@ export class GhlProvider {
     }
     return await response.json();
   }
+
+  /**
+   * Publishes a post to a social media account via GHL.
+   */
+  async publishSocialPost(locationId: string, payload: {
+    content: string;
+    accountIds: string[];
+    title?: string;
+    mediaUrl?: string;
+    scheduledAt?: string;
+  }) {
+    const body: any = {
+      postType: "post",
+      text: payload.content,
+      accounts: payload.accountIds,
+    };
+
+    if (payload.title) body.title = payload.title;
+    if (payload.mediaUrl) body.media = [payload.mediaUrl];
+    if (payload.scheduledAt) body.scheduledAt = payload.scheduledAt;
+
+    const response = await fetch(
+      `${GHL_API_BASE}/social-media-posting/${locationId}/posts`, 
+      {
+        method: "POST",
+        headers: this.headers,
+        body: JSON.stringify(body),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`GHL_PUBLISH_POST_ERROR: ${await response.text()}`);
+    }
+    return await response.json();
+  }
 }

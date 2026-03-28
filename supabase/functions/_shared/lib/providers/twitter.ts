@@ -130,4 +130,77 @@ export class TwitterProvider {
 
         return await res.json();
     }
+
+    /**
+     * Uploads media to X (Twitter) API v1.1
+     * Returns a media_id which can be used in createTweet
+     */
+    async uploadMedia(accessToken: string, mediaBlob: Blob): Promise<string> {
+        const url = "https://upload.twitter.com/1.1/media/upload.json";
+        
+        // Convert Blob to Base64 to avoid 'Transfer-Encoding: chunked' issues with Deno's FormData
+        // which Twitter's v1.1 API proxy rejects with a 403 Forbidden.
+        const buffer = await mediaBlob.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        const base64Data = btoa(binary);
+
+        const bodyParams = new URLSearchParams();
+        bodyParams.append("media_data", base64Data);
+
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${accessToken}`,
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: bodyParams.toString()
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            let errMsg = errText;
+            try {
+                const parsed = JSON.parse(errText);
+                errMsg = parsed.error || parsed.error_description || parsed.message || JSON.stringify(parsed);
+            } catch (e) {
+                // Not JSON
+            }
+            throw new Error(`X (Twitter) Media Upload Error: ${errMsg} (Status: ${res.status})`);
+        }
+
+        const data = await res.json();
+        return data.media_id_string;
+    }
+
+    /**
+     * Creates a new Tweet (Twitter API v2 POST /tweets)
+     */
+    async createTweet(accessToken: string, text: string, mediaId?: string): Promise<any> {
+        const body: any = { text };
+        if (mediaId) {
+            body.media = { media_ids: [mediaId] };
+        }
+
+        const res = await fetch(`${this.baseUrl}/tweets`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${accessToken}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ message: res.statusText }));
+            console.error("X (Twitter) API Error Full Response:", JSON.stringify(err, null, 2));
+            throw new Error(`X (Twitter) Create Tweet Error: ${err.detail || err.message || JSON.stringify(err)}`);
+        }
+
+        const data = await res.json();
+        return data.data;
+    }
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Database, Zap, Instagram, Loader2, ArrowUpRight, Bug, ChevronDown, ChevronUp, Trash2, Send, Linkedin, Youtube, Calendar as CalendarIcon, Clock } from "lucide-react"
+import { Database, Zap, Instagram, Loader2, ArrowUpRight, Bug, ChevronDown, ChevronUp, Trash2, Send, Linkedin, Youtube, Calendar as CalendarIcon, Clock, Facebook, Twitter, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { 
     DropdownMenu, 
@@ -209,8 +209,9 @@ export function SignalCard({
                         )}
 
                         {isExpanded && (isSocial || socialPlanId) && (
-                            <div className="mt-4 flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 animate-in fade-in slide-in-from-top-2">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1">Distribution Ports:</span>
+                            <div className="mt-4 flex flex-wrap items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 animate-in fade-in slide-in-from-top-2">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-1 w-full md:w-auto mb-2 md:mb-0">Distribution Ports:</span>
+                                
                                 <button
                                     onClick={(e) => { e.stopPropagation(); togglePlatform('linkedin'); }}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${currentSelected.includes('linkedin') ? 'bg-blue-500/20 border-blue-500/40 text-blue-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
@@ -218,12 +219,45 @@ export function SignalCard({
                                     <Linkedin className="h-3.5 w-3.5" />
                                     <span className="text-[9px] font-black uppercase tracking-tighter">LinkedIn</span>
                                 </button>
+
                                 <button
                                     onClick={(e) => { e.stopPropagation(); togglePlatform('instagram'); }}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${currentSelected.includes('instagram') ? 'bg-pink-500/20 border-pink-500/40 text-pink-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
                                 >
                                     <Instagram className="h-3.5 w-3.5" />
                                     <span className="text-[9px] font-black uppercase tracking-tighter">Instagram</span>
+                                </button>
+
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); togglePlatform('facebook'); }}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${currentSelected.includes('facebook') ? 'bg-blue-600/20 border-blue-600/40 text-blue-500 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                >
+                                    <Facebook className="h-3.5 w-3.5" />
+                                    <span className="text-[9px] font-black uppercase tracking-tighter">Facebook</span>
+                                </button>
+
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); togglePlatform('twitter'); }}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${currentSelected.includes('twitter') ? 'bg-zinc-500/20 border-zinc-500/40 text-zinc-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                >
+                                    <Twitter className="h-3.5 w-3.5" />
+                                    <span className="text-[9px] font-black uppercase tracking-tighter">X (Twitter)</span>
+                                </button>
+
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); togglePlatform('youtube'); }}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${currentSelected.includes('youtube') ? 'bg-red-500/20 border-red-500/40 text-red-500 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                >
+                                    <Youtube className="h-3.5 w-3.5" />
+                                    <span className="text-[9px] font-black uppercase tracking-tighter">YouTube</span>
+                                </button>
+
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); togglePlatform('ghl'); }}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${currentSelected.includes('ghl') ? 'bg-orange-500/20 border-orange-500/40 text-orange-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                >
+                                    <MessageSquare className="h-3.5 w-3.5" />
+                                    <span className="text-[9px] font-black uppercase tracking-tighter">GHL</span>
                                 </button>
                             </div>
                         )}

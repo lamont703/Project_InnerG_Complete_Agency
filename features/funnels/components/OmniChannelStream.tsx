@@ -72,6 +72,23 @@ export function OmniChannelStream({ projectSlug, title = "Omni-Channel Stream", 
                 { id: "audit_schedule", label: "Schedule Audit", enabled: true, event_name: "Schedule a Growth Audit" },
                 { id: "school_login", label: "School Logins", enabled: true, event_name: "button-CLEbFRjXN7_btn" }
             ]
+        },
+        subscribers: {
+            label: "Subscribers",
+            subLabel: "Audience Retention",
+            metrics: [
+                { id: "newsletter", label: "Newsletter Signups", enabled: true, event_name: "Newsletter Subscribe" }
+            ]
+        }
+    }
+
+    if (funnelConfig && !funnelConfig.subscribers) {
+        funnelConfig.subscribers = {
+            label: "Subscribers",
+            subLabel: "Audience Retention",
+            metrics: [
+                { id: "newsletter", label: "Newsletter Signups", enabled: true, event_name: "Newsletter Subscribe" }
+            ]
         }
     }
 
@@ -144,6 +161,19 @@ export function OmniChannelStream({ projectSlug, title = "Omni-Channel Stream", 
                 return acc + (pixelMetrics?.clicks[m.event_name || ''] || 0);
             }, 0).toString(),
             metrics: config.conversion.metrics.filter((m: any) => m.enabled).map((m: any) => {
+                return { label: m.label, value: (pixelMetrics?.clicks[m.event_name || ''] || 0).toString() };
+            })
+        },
+        subscribers: {
+            label: config.subscribers.label,
+            subValue: config.subscribers.subLabel,
+            rawValue: config.subscribers.metrics.filter((m:any) => m.enabled).reduce((acc: number, m: any) => {
+                return acc + (pixelMetrics?.clicks[m.event_name || ''] || 0);
+            }, 0),
+            value: config.subscribers.metrics.filter((m:any) => m.enabled).reduce((acc: number, m: any) => {
+                return acc + (pixelMetrics?.clicks[m.event_name || ''] || 0);
+            }, 0).toString(),
+            metrics: config.subscribers.metrics.filter((m: any) => m.enabled).map((m: any) => {
                 return { label: m.label, value: (pixelMetrics?.clicks[m.event_name || ''] || 0).toString() };
             })
         }

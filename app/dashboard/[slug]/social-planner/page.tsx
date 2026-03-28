@@ -28,6 +28,7 @@ import { createBrowserClient } from "@/lib/supabase/browser"
 import { toast } from "sonner"
 import { SocialPostModal } from "@/features/social/components/SocialPostModal"
 import { SocialCalendarView } from "@/features/social/components/SocialCalendarView"
+import { useAgencyData } from "@/features/agency/use-agency-data"
 
 interface ScheduledPost {
     id: string
@@ -52,77 +53,52 @@ export default function SocialPlannerPage() {
     const router = useRouter()
     const slug = params.slug as string
     
-    const [isLoading, setIsLoading] = useState(true)
-    const [posts, setPosts] = useState<ScheduledPost[]>([])
-    const [projectId, setProjectId] = useState<string | null>(null)
-    const [allowedPlatforms, setAllowedPlatforms] = useState<string[]>([])
+    const { 
+        socialDrafts, 
+        projects, 
+        isLoading, 
+        refresh,
+        generateImage,
+        generateVideo,
+        clearMedia
+    } = useAgencyData(slug)
+
     const [isPostModalOpen, setIsPostModalOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState("")
     const [sortBy, setSortBy] = useState<'scheduled_at' | 'created_at' | 'status' | 'type'>('scheduled_at')
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-    const [editingPost, setEditingPost] = useState<ScheduledPost | null>(null)
-
+    const [editingPost, setEditingPost] = useState<any>(null)
     const [view, setView] = useState<'queue' | 'calendar'>('queue')
 
-    const loadPosts = async () => {
-        try {
-            const supabase = createBrowserClient()
-            
-            // 1. Get project and verify features
-            const { data: project } = await supabase
-                .from("projects")
-                .select("id, settings")
-                .eq("slug", slug)
-                .single() as any
-            
-            if (!project) return
-            setProjectId(project.id)
-            
-            const isEnabled = project.settings?.features?.social_planner ?? false
-            if (!isEnabled) {
-                // If not allowed, redirect to dashboard
-                router.push(`/dashboard/${slug}`)
-                return
-            }
+    const currentProject = projects.find(p => p.slug === slug)
+    const projectId = currentProject?.id
+    
+    // Default to the full suite if the project hasn't explicitly restricted its target platforms
+    const DEFAULT_PLATFORMS = ['twitter', 'linkedin', 'facebook', 'instagram', 'youtube', 'ghl']
+    const allowedPlatforms = (currentProject?.settings?.features?.social_planner_platforms?.length || 0) > 0 
+        ? currentProject?.settings?.features?.social_planner_platforms 
+        : DEFAULT_PLATFORMS
 
-            setAllowedPlatforms(project.settings?.features?.social_planner_platforms ?? [])
-
-            // 2. Fetch Unified Content Plan
-            const { data: planData } = await supabase
-                .from("social_content_plan")
-                .select("*")
-                .eq("project_id", project.id) as any
-
-            const normalized = (planData || []).map((p: any) => ({
-                ...p,
-                type: p.source_type === 'manual' ? 'manual' : 'agent',
-                scheduled_at: p.scheduled_at || p.published_at || p.created_at,
-                content: p.content_text,
-                title: p.title || (p.source_type ? `${p.source_type.toUpperCase()} Sequence` : "Agent Intel Post"),
-                status: p.status // Use raw status from DB
-            }))
-
-            const sorted = normalized.sort((a: any, b: any) => {
-                let comparison = 0
-                if (sortBy === 'scheduled_at') {
-                    comparison = new Date(a.scheduled_at || 0).getTime() - new Date(b.scheduled_at || 0).getTime()
-                } else if (sortBy === 'created_at') {
-                    comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-                } else if (sortBy === 'status') {
-                    comparison = a.status.localeCompare(b.status)
-                } else if (sortBy === 'type') {
-                    comparison = a.type.localeCompare(b.type)
-                }
-                return sortOrder === 'desc' ? comparison * -1 : comparison
-            })
-
-            setPosts(sorted)
-        } catch (err) {
-            console.error("[SocialPlanner] Load error:", err)
-        } finally {
-            setIsLoading(false)
+    const posts = (socialDrafts || []).map((p: any) => ({
+        ...p,
+        type: p.source_type === 'manual' ? 'manual' : 'agent',
+        scheduled_at: p.scheduled_at || p.published_at || p.created_at,
+        content: p.content_text,
+        title: p.title || (p.source_type ? `${p.source_type.toUpperCase()} Sequence` : "Agent Intel Post"),
+        status: p.status
+    })).sort((a: any, b: any) => {
+        let comparison = 0
+        if (sortBy === 'scheduled_at') {
+            comparison = new Date(a.scheduled_at || 0).getTime() - new Date(b.scheduled_at || 0).getTime()
+        } else if (sortBy === 'created_at') {
+            comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        } else if (sortBy === 'status') {
+            comparison = a.status.localeCompare(b.status)
+        } else if (sortBy === 'type') {
+            comparison = a.type.localeCompare(b.type)
         }
-    }
+        return sortOrder === 'desc' ? comparison * -1 : comparison
+    })
 
     const handlePublishNow = async (id: string) => {
         try {
@@ -137,15 +113,29 @@ export default function SocialPlannerPage() {
 
             if (error) throw error
             toast.success("Dispatch sequence initiated")
-            loadPosts()
+            refresh()
         } catch (err: any) {
             toast.error(`Dispatch Failed: ${err.message}`)
         }
     }
 
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => setMounted(true), [])
+
     useEffect(() => {
-        loadPosts()
-    }, [slug, sortBy, sortOrder])
+        // Feature gate check - Only redirect if we have project data AND it's explicitly disabled
+        // We wait for loading to finish and projects to be populated to avoid premature redirects
+        if (!isLoading && projects.length > 0 && slug && mounted) {
+            const project = projects.find(p => p.slug === slug)
+            
+            // Critical: ONLY redirect if the project exists AND social_planner is specifically FALSE.
+            // If the project is still hydrating, we stay on the page.
+            if (project && project.settings?.features?.social_planner === false) {
+                console.warn(`[SocialPlanner] Feature disabled for ${slug}, redirecting...`)
+                router.push(`/dashboard/${slug}`)
+            }
+        }
+    }, [slug, isLoading, projects, router, mounted])
 
     const getPlatformIcon = (platform: string) => {
         switch (platform.toLowerCase()) {
@@ -258,12 +248,12 @@ export default function SocialPlannerPage() {
                     {/* Status Overview */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                         <div className="p-6 rounded-3xl glass-panel border border-border flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                                <Clock className="h-6 w-6" />
+                            <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                                <Zap className="h-6 w-6" />
                             </div>
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Pending Dispatch</span>
-                                <span className="text-2xl font-bold text-foreground">{posts.filter(p => p.status === 'scheduled').length}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Approved Tactical</span>
+                                <span className="text-2xl font-bold text-foreground">{posts.filter(p => p.status === 'approved').length}</span>
                             </div>
                         </div>
                         <div className="p-6 rounded-3xl glass-panel border border-border flex items-center gap-4">
@@ -271,26 +261,26 @@ export default function SocialPlannerPage() {
                                 <CheckCircle2 className="h-6 w-6" />
                             </div>
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Successfully Published</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Published Content</span>
                                 <span className="text-2xl font-bold text-foreground">{posts.filter(p => p.status === 'published').length}</span>
                             </div>
                         </div>
                         <div className="p-6 rounded-3xl glass-panel border border-border flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
-                                <Zap className="h-6 w-6" />
+                            <div className="h-12 w-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-500">
+                                <Plus className="h-6 w-6" />
                             </div>
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Active Bridges</span>
-                                <span className="text-2xl font-bold text-foreground">{allowedPlatforms.length}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Tactical Drafts</span>
+                                <span className="text-2xl font-bold text-foreground">{posts.filter(p => p.status === 'draft').length}</span>
                             </div>
                         </div>
                         <div className="p-6 rounded-3xl glass-panel border border-border flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500">
-                                <XCircle className="h-6 w-6" />
+                            <div className="h-12 w-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
+                                <Clock className="h-6 w-6" />
                             </div>
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Halt / Errors</span>
-                                <span className="text-2xl font-bold text-foreground">{posts.filter(p => p.status === 'failed').length}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Scheduled Dispatch</span>
+                                <span className="text-2xl font-bold text-foreground">{posts.filter(p => p.status === 'scheduled').length}</span>
                             </div>
                         </div>
                     </div>
@@ -434,9 +424,12 @@ export default function SocialPlannerPage() {
                     setEditingPost(null)
                 }} 
                 projectId={projectId || ""}
-                onSuccess={loadPosts}
+                onSuccess={refresh}
                 platforms={allowedPlatforms}
                 initialData={editingPost}
+                onGenerateImage={generateImage}
+                onGenerateVideo={generateVideo}
+                onClearMedia={clearMedia}
             />
         </div>
     )

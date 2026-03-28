@@ -10,6 +10,8 @@
 import { createHandler, z, Logger, okResponse } from "../_shared/lib/index.ts"
 import { LinkedInClient } from "../connector-sync/providers/linkedin/client.ts"
 import { MetaClient } from "../connector-sync/providers/meta/client.ts"
+import { TwitterProvider } from "../_shared/lib/providers/twitter.ts"
+import { GhlProvider } from "../_shared/lib/providers/ghl.ts"
 
 const PublishSchema = z.object({
     draft_id: z.string().uuid(),
@@ -158,6 +160,101 @@ export default createHandler(async ({ adminClient, body, user }) => {
                 logger.info(`Successfully published to Instagram`, { post_id: postResult.id })
                 results[platform] = { success: true, post_id: postResult.id }
                 lastExternalPostId = postResult.id
+            }
+            else if (pLower === "twitter" || pLower === "x") {
+                const client = new TwitterProvider()
+                let token = config.access_token
+                let postResult
+                let mediaId: string | undefined = undefined
+
+                const performXPublish = async (currentReqToken: string) => {
+                    // Stage Media if present
+                    if (draft.media_url) {
+                        try {
+                            const mediaRes = await fetch(draft.media_url)
+                            if (mediaRes.ok) {
+                                const blob = await mediaRes.blob()
+                                logger.info(`Staging media for X...`, { type: blob.type, size: blob.size })
+                                mediaId = await client.uploadMedia(currentReqToken, blob)
+                            }
+                        } catch (mediaErr: any) {
+                            logger.warn(`X Media staging failed, attempting text-only fallback: ${mediaErr.message}`)
+                        }
+                    }
+                    return await client.createTweet(currentReqToken, draft.content_text, mediaId)
+                }
+                
+                try {
+                    postResult = await performXPublish(token)
+                } catch (err: any) {
+                    const isAuthError = err.message.toLowerCase().includes("unauthorized") || 
+                                       err.message.includes("401") || 
+                                       err.message.toLowerCase().includes("forbidden") || 
+                                       err.message.includes("403") || 
+                                       err.message.toLowerCase().includes("not permitted")
+                    
+                    if (isAuthError && config.refresh_token) {
+                        logger.info(`Twitter token issue identified. Attempting forced refresh...`)
+                        const refreshData = await client.refreshToken(config.refresh_token)
+                        if (refreshData.access_token) {
+                            token = refreshData.access_token
+                            // Update the connection config
+                            const { error: updateErr } = await adminClient
+                                .from("client_db_connections")
+                                .update({ 
+                                    sync_config: { 
+                                        ...config, 
+                                        access_token: token,
+                                        refresh_token: refreshData.refresh_token || config.refresh_token
+                                    } 
+                                })
+                                .eq("id", connection.id)
+                            
+                            if (!updateErr) {
+                                logger.info(`Token refreshed. Retrying publish...`)
+                                postResult = await performXPublish(token)
+                            } else {
+                                throw new Error(`Refresh succeeded but failed to update DB: ${updateErr.message}`)
+                            }
+                        } else {
+                            throw err
+                        }
+                    } else {
+                        throw err
+                    }
+                }
+
+                logger.info(`Successfully published to X (Twitter)`, { post_id: postResult.id, has_media: !!mediaId })
+                results[platform] = { success: true, post_id: postResult.id }
+                lastExternalPostId = postResult.id
+            }
+            else if (pLower === "facebook") {
+                const metaClient = new MetaClient(config.access_token)
+                const pageId = config.page_id || config.instagram_business_account_id
+                if (!pageId) throw new Error("Missing Facebook Page ID")
+                
+                const postResult = await metaClient.createFacebookPost(pageId, draft.content_text)
+                logger.info(`Successfully published to Facebook`, { post_id: postResult.id })
+                results[platform] = { success: true, post_id: postResult.id }
+                lastExternalPostId = postResult.id
+            }
+            else if (pLower === "ghl") {
+                const ghl = new GhlProvider(config.access_token || config.apiKey)
+                const locationId = config.locationId || config.page_id
+                if (!locationId) throw new Error("Missing GHL Location ID")
+                
+                // Destination ID might contain the specific social account ID in GHL
+                const accountId = draft.destination_id && draft.destination_id !== 'ghl' ? draft.destination_id : null
+                
+                const postResult = await ghl.publishSocialPost(locationId, {
+                    content: draft.content_text,
+                    accountIds: accountId ? [accountId] : [],
+                    title: draft.metadata?.title
+                })
+                
+                logger.info(`Successfully published to GHL`, { post_id: postResult.id || postResult.postId || "GHL_POST" })
+                results[platform] = { success: true, post_id: postResult.id || postResult.postId || "GHL_POST" }
+                lastExternalPostId = postResult.id || postResult.postId || "GHL_POST"
             }
             else {
                 results[platform] = { success: false, error: "Platform not supported yet" }

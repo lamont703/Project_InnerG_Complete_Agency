@@ -182,7 +182,7 @@ export class AgencyService {
         let query = this.supabase
             .from("social_content_plan")
             .select("*, projects(name)")
-            .in("status", ["draft", "scheduled", "approved", "failed"])
+            .in("status", ["draft", "scheduled", "approved", "failed", "published"])
 
         if (projectId) {
             query = query.eq("project_id", projectId)

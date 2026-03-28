@@ -49,52 +49,23 @@ export class RagService {
         const embedding = await embedText(query, apiKey)
         if (!embedding) return []
 
-        // 2. Perform Parallel Search (Project Local + Agency Master)
-        const searchTasks = [
-            this.client.rpc("match_documents", {
-                query_embedding: embedding,
-                match_threshold: minSimilarity,
-                match_count: limit,
-                p_project_id: projectId
-            })
-        ]
-
-        if (includeAgencyKnowledge && projectId !== agencyProjectId) {
-            searchTasks.push(
-                this.client.rpc("match_documents", {
-                    query_embedding: embedding,
-                    match_threshold: minSimilarity + 0.1, // Stricter for agency peering (0.45)
-                    match_count: Math.floor(limit / 2),
-                    p_project_id: agencyProjectId
-                })
-            )
-        }
-
-        const results = await Promise.all(searchTasks)
+        // 2. Perform Local Project Search
+        const results = await this.client.rpc("match_documents", {
+            query_embedding: embedding,
+            match_threshold: minSimilarity,
+            match_count: limit,
+            p_project_id: projectId
+        })
         
-        // 3. Process & Filter Results
-        const combined = results.flatMap((r: any, index: number) => {
-            const taskProjectId = index === 0 ? projectId : agencyProjectId
-            return (r.data || []).map((item: any) => ({
-                ...item,
-                project_id: item.project_id || taskProjectId
-            }))
-        }) as (RagResult & { project_id: string })[]
-
-        return combined.filter(r => {
-            // If the chunk belongs to the local project, it's always allowed (siloed)
-            if (r.project_id === projectId) return true
-
-            // If the chunk belongs to the Agency and we are a client portal,
-            // ONLY allow limited shared tables.
-            // Note: 'project_knowledge' is EXCLUDED here because it contains Agency internal SOPs.
-            const GLOBAL_TABLES = ["ai_signals", "session_summaries", "news_intelligence"]
-            const isGlobalTable = GLOBAL_TABLES.includes(r.source_table)
-
-            return isGlobalTable
-        }).map(r => ({
+        // 3. Process & Return Results
+        const rawData = results.data || []
+        
+        return rawData.map((item: any) => ({
+            ...item,
+            project_id: item.project_id || projectId
+        })).map(r => ({
             ...r,
-            content: r.project_id === agencyProjectId ? `[AGENCY_SHARED] ${r.content}` : r.content
+            content: r.content
         }))
     }
 

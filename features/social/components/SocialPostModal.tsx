@@ -19,7 +19,10 @@ import {
     Image as ImageIcon,
     Globe,
     ChevronDown,
-    Shield
+    Shield,
+    Trash2,
+    Video,
+    RotateCcw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -32,6 +35,9 @@ interface SocialPostModalProps {
     onSuccess: () => void
     platforms: string[]
     initialData?: any
+    onGenerateImage?: (id: string) => Promise<string>
+    onGenerateVideo?: (id: string) => Promise<string>
+    onClearMedia?: (id: string) => Promise<void>
 }
 
 interface GHLAccount {
@@ -41,23 +47,40 @@ interface GHLAccount {
     type: string
 }
 
-export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platforms, initialData }: SocialPostModalProps) {
+export function SocialPostModal({ 
+    isOpen, 
+    onClose, 
+    projectId, 
+    onSuccess, 
+    platforms, 
+    initialData,
+    onGenerateImage,
+    onGenerateVideo,
+    onClearMedia
+}: SocialPostModalProps) {
     const [isSaving, setIsSaving] = useState(false)
     const [title, setTitle] = useState("")
     const [content, setContent] = useState("")
-    const [selectedPlatform, setSelectedPlatform] = useState(platforms[0] || "")
+    const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(initialData?.platform ? [initialData.platform] : [platforms[0]].filter(Boolean))
     const [scheduledAt, setScheduledAt] = useState("")
+    const [recurrence, setRecurrence] = useState<"none" | "weekly" | "monthly">("none")
     const [executeNow, setExecuteNow] = useState(false)
     const [ghlAccounts, setGHLAccounts] = useState<GHLAccount[]>([])
     const [selectedGHLAccount, setSelectedGHLAccount] = useState("")
     const [ghlNotify, setGHLNotify] = useState(false)
     const [isLoadingAccounts, setIsLoadingAccounts] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
+    
+    // Media Generation States
+    const [mediaUrl, setMediaUrl] = useState<string | null>(initialData?.media_url || null)
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false)
+    const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
 
     useEffect(() => {
         if (isOpen && initialData) {
             setTitle(initialData.title || "")
             setContent(initialData.content_text || initialData.content || "")
-            setSelectedPlatform(initialData.platform || platforms[0] || "")
+            setSelectedPlatforms(initialData.platform ? [initialData.platform] : [])
             
             if (initialData.scheduled_at) {
                 // Convert to datetime-local format: YYYY-MM-DDTHH:mm
@@ -72,21 +95,26 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                 setSelectedGHLAccount(initialData.destination_id || "")
                 setGHLNotify(initialData.dispatch_metadata.communityPostDetails?.notifyAllGroupMembers || false)
             }
+            
+            // Sync Media Preview State
+            setMediaUrl(initialData.media_url || null)
         } else if (isOpen) {
             // Reset for new post
             setTitle("")
             setContent("")
-            setSelectedPlatform(platforms[0] || "")
+            setSelectedPlatforms([platforms[0]].filter(Boolean))
             setScheduledAt("")
+            setRecurrence("none")
             setExecuteNow(false)
+            setMediaUrl(null)
         }
     }, [isOpen, initialData, platforms])
 
     useEffect(() => {
-        if (isOpen && selectedPlatform === 'ghl') {
+        if (isOpen && selectedPlatforms.includes('ghl')) {
             fetchGHLAccounts()
         }
-    }, [isOpen, selectedPlatform])
+    }, [isOpen, selectedPlatforms])
 
     const fetchGHLAccounts = async () => {
         setIsLoadingAccounts(true)
@@ -108,10 +136,63 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
         }
     }
 
+    const handleGenerateImage = async () => {
+        if (!onGenerateImage || !initialData?.id) {
+            toast.error("Please save the draft first to enable media generation")
+            return
+        }
+        setIsGeneratingImage(true)
+        try {
+            const url = await onGenerateImage(initialData.id)
+            setMediaUrl(url)
+            toast.success("Strategic visual payload generated via Nano Banana Pro")
+        } catch (err: any) {
+            toast.error(`Generation Failed: ${err.message}`)
+        } finally {
+            setIsGeneratingImage(false)
+        }
+    }
+
+    const handleGenerateVideo = async () => {
+        if (!onGenerateVideo || !initialData?.id) {
+            toast.error("Please save the draft first to enable media generation")
+            return
+        }
+        setIsGeneratingVideo(true)
+        try {
+            const url = await onGenerateVideo(initialData.id)
+            setMediaUrl(url)
+            toast.success("Motion 3 video payload synthesized via Google Veo")
+        } catch (err: any) {
+            toast.error(`Synthesis Failed: ${err.message}`)
+        } finally {
+            setIsGeneratingVideo(false)
+        }
+    }
+
+    const handleClearMedia = async () => {
+        if (!onClearMedia || !initialData?.id) return
+        try {
+            await onClearMedia(initialData.id)
+            setMediaUrl(null)
+            toast.success("Asset declined and purged from deployment")
+        } catch (err: any) {
+            toast.error(`Purge Failed: ${err.message}`)
+        }
+    }
+
+    const togglePlatform = (p: string) => {
+        setSelectedPlatforms(prev => 
+            prev.includes(p) 
+                ? prev.filter(item => item !== p)
+                : [...prev, p]
+        )
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!selectedPlatform || (!executeNow && !scheduledAt) || !content) {
-            toast.error("Please fill all mandatory protocols")
+        if (selectedPlatforms.length === 0 || (!executeNow && !scheduledAt) || !content) {
+            toast.error("Please select at least one target and fill all mandatory protocols")
             return
         }
 
@@ -119,53 +200,92 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
         try {
             const supabase = createBrowserClient()
             
-            let destinationId = selectedPlatform // Default
-            let metadata: any = {}
+            const results = await Promise.all(selectedPlatforms.map(async (platform) => {
+                let destinationId = platform // Default
+                let metadata: any = {}
 
-            if (selectedPlatform === 'ghl') {
-                destinationId = selectedGHLAccount
-                metadata = {
-                    communityPostDetails: {
-                        title: title,
-                        notifyAllGroupMembers: ghlNotify,
-                        shortenedLinks: []
+                if (platform === 'ghl') {
+                    destinationId = selectedGHLAccount
+                    metadata = {
+                        communityPostDetails: {
+                            title: title,
+                            notifyAllGroupMembers: ghlNotify,
+                            shortenedLinks: []
+                        }
                     }
                 }
-            }
 
-            // 1. Unified Dispatch Protocol: Save strategic planning data
-            const { data: savedPost, error } = await (supabase as any)
-                .from("social_content_plan")
-                .upsert({
-                    id: initialData?.id,
-                    project_id: projectId,
-                    platform: selectedPlatform,
-                    destination_id: destinationId,
-                    title,
-                    content_text: content,
-                    status: executeNow ? 'approved' : 'scheduled', // 'approved' as temporary status while dispatching
-                    source_type: initialData?.source_type || 'manual',
-                    scheduled_at: executeNow ? new Date().toISOString() : new Date(scheduledAt || new Date()).toISOString(),
-                    ai_reasoning: executeNow ? "Immediate manual force-dispatch override." : (initialData?.ai_reasoning || "Human-provisioned tactical broadcast via Social Planner."),
-                    dispatch_metadata: {
-                        ...(initialData?.dispatch_metadata || {}),
-                        ...metadata
+                // 1. Unified Dispatch Protocol: Save strategic planning data
+                const finalMetadata = platform === 'ghl' ? { ...(initialData?.dispatch_metadata || {}), ...metadata } : {}
+
+                // GENERATE DATES FOR RECURRENCE
+                let datesToSchedule: Date[] = []
+                const baseDate = executeNow ? new Date() : new Date(scheduledAt || new Date())
+                datesToSchedule.push(baseDate)
+
+                if (!executeNow) {
+                    if (recurrence === "weekly") {
+                        // Generate next 51 weeks (52 total)
+                        for (let i = 1; i < 52; i++) {
+                            const nextDate = new Date(baseDate)
+                            nextDate.setDate(baseDate.getDate() + (i * 7))
+                            datesToSchedule.push(nextDate)
+                        }
+                    } else if (recurrence === "monthly") {
+                        // Generate next 11 months (12 total)
+                        for (let i = 1; i < 12; i++) {
+                            const nextDate = new Date(baseDate)
+                            nextDate.setMonth(baseDate.getMonth() + i)
+                            datesToSchedule.push(nextDate)
+                        }
                     }
-                })
-                .select()
-                .single()
+                }
 
-            if (error) throw error
-
-            // 2. If Execute Now is active, trigger the dispatcher immediately
-            if (executeNow && savedPost) {
-                const { error: dispatchError } = await supabase.functions.invoke("publish-social-post", {
-                    body: { draft_id: savedPost.id }
+                // If updating an existing draft, we only process the single modified date
+                const postsToInsert = datesToSchedule.map((date, index) => {
+                    const post: any = {
+                        project_id: projectId,
+                        platform,
+                        destination_id: destinationId,
+                        title: recurrence !== "none" && index > 0 ? `${title} (Occurrence ${index + 1})` : title,
+                        content_text: content,
+                        status: executeNow ? 'approved' : 'scheduled',
+                        source_type: initialData?.source_type || 'manual',
+                        scheduled_at: date.toISOString(),
+                        ai_reasoning: executeNow ? "Immediate manual force-dispatch override." : (initialData?.ai_reasoning || "Human-provisioned tactical broadcast via Social Planner."),
+                        dispatch_metadata: finalMetadata
+                    }
+                    
+                    if (initialData?.id && initialData.platform === platform && index === 0) {
+                        post.id = initialData.id
+                    } else {
+                        post.id = crypto.randomUUID()
+                    }
+                    
+                    return post
                 })
-                if (dispatchError) throw dispatchError
-            }
+
+                const { data: savedPosts, error } = await (supabase as any)
+                    .from("social_content_plan")
+                    .upsert(postsToInsert)
+                    .select()
+
+                if (error) throw error
+
+                const firstSaved = savedPosts?.[0]
+
+                // 2. If Execute Now is active, trigger the dispatcher immediately for this platform's primary record
+                if (executeNow && firstSaved) {
+                    const { error: dispatchError } = await supabase.functions.invoke("publish-social-post", {
+                        body: { draft_id: firstSaved.id }
+                    })
+                    if (dispatchError) throw dispatchError
+                }
+                
+                return firstSaved
+            }))
             
-            toast.success("Broadcast synchronized and provisioned")
+            toast.success(`${results.length} Broadcast node(s) synchronized and provisioned`)
             onSuccess()
             onClose()
             // Reset state
@@ -176,6 +296,32 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
             toast.error(`Provisioning Failed: ${err.message}`)
         } finally {
             setIsSaving(false)
+        }
+    }
+
+    const handleDelete = async () => {
+        if (!initialData?.id) return
+        
+        const confirmed = window.confirm("Are you sure you want to delete this broadcast node? This action is irreversible.")
+        if (!confirmed) return
+
+        setIsDeleting(true)
+        try {
+            const supabase = createBrowserClient()
+            const { error } = await supabase
+                .from("social_content_plan")
+                .delete()
+                .eq("id", initialData.id)
+
+            if (error) throw error
+
+            toast.success("Broadcast node successfully purged")
+            onSuccess()
+            onClose()
+        } catch (err: any) {
+            toast.error(`Deletion Failed: ${err.message}`)
+        } finally {
+            setIsDeleting(false)
         }
     }
 
@@ -217,26 +363,35 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                 <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
                     {/* Platform Matrix */}
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                            <Globe className="h-3 w-3" />
-                            Target Delivery Node
-                        </label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <Globe className="h-3 w-3" />
+                                Target Delivery Nodes
+                            </label>
+                            <span className="text-[8px] font-bold text-muted-foreground uppercase bg-muted/20 px-2 py-0.5 rounded-full">
+                                {selectedPlatforms.length} Selected
+                            </span>
+                        </div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             {platforms.map(p => {
                                 const ui = PLATFORM_UI[p] || { icon: Globe, color: 'text-primary' }
+                                const isSelected = selectedPlatforms.includes(p)
                                 return (
                                     <button
                                         key={p}
                                         type="button"
-                                        onClick={() => setSelectedPlatform(p)}
-                                        className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 group ${
-                                            selectedPlatform === p 
+                                        onClick={() => togglePlatform(p)}
+                                        className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 group relative ${
+                                            isSelected 
                                             ? 'bg-primary/5 border-primary shadow-lg shadow-primary/5' 
                                             : 'bg-muted/5 border-border hover:border-primary/40'
                                         }`}
                                     >
-                                        <ui.icon className={`h-6 w-6 ${selectedPlatform === p ? ui.color : 'text-muted-foreground opacity-40 group-hover:opacity-100'}`} />
-                                        <span className={`text-[9px] font-black uppercase tracking-widest ${selectedPlatform === p ? 'text-primary' : 'text-muted-foreground opacity-60'}`}>{p}</span>
+                                        <ui.icon className={`h-6 w-6 ${isSelected ? ui.color : 'text-muted-foreground opacity-40 group-hover:opacity-100'}`} />
+                                        <span className={`text-[9px] font-black uppercase tracking-widest ${isSelected ? 'text-primary' : 'text-muted-foreground opacity-60'}`}>{p}</span>
+                                        {isSelected && (
+                                            <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                        )}
                                     </button>
                                 )
                             })}
@@ -244,7 +399,7 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                     </div>
 
                     {/* Platform Specific Config (e.g. GHL Account) */}
-                    {selectedPlatform === 'ghl' && (
+                    {selectedPlatforms.includes('ghl') && (
                         <div className="space-y-4 animate-in slide-in-from-top-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
                                 <Shield className="h-3 w-3" />
@@ -294,13 +449,126 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Payload Content (The Post Content)</label>
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Payload Content (The Post Content)</label>
+                                {selectedPlatforms.includes('twitter') && (
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-[9px] font-black uppercase tracking-widest ${content.length > 280 ? 'text-red-500 animate-pulse' : 'text-muted-foreground'}`}>
+                                            X limit: {content.length} / 280
+                                        </span>
+                                        {content.length > 280 && (
+                                            <AlertTriangle className="h-3 w-3 text-red-500" />
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                             <textarea
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
                                 placeholder="What would you like to broadcast to your nodes?"
-                                className="w-full h-40 bg-muted/10 border border-border rounded-2xl p-6 text-sm font-medium leading-relaxed placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary outline-none transition-all resize-none"
+                                className={`w-full h-40 bg-muted/10 border ${content.length > 280 && selectedPlatforms.includes('twitter') ? 'border-red-500/50' : 'border-border'} rounded-2xl p-6 text-sm font-medium leading-relaxed placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary outline-none transition-all resize-none`}
                             />
+                            {content.length > 280 && selectedPlatforms.includes('twitter') && (
+                                <p className="text-[9px] text-red-500/80 font-bold italic animate-in fade-in slide-in-from-top-1">
+                                    "Your broadcast exceeds the standard X (Twitter) character limit for non-verified accounts."
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Media Generation Area */}
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <ImageIcon className="h-3 w-3" />
+                                Multimedia Asset Payload
+                            </label>
+                            
+                            <div className="flex gap-4">
+                                <Button
+                                    type="button"
+                                    onClick={handleGenerateImage}
+                                    disabled={!initialData?.id || isGeneratingImage || isGeneratingVideo || isSaving}
+                                    className="flex-1 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 text-violet-400 font-black uppercase tracking-tighter text-[10px] gap-2 transition-all"
+                                >
+                                    {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin text-violet-400" /> : <Zap className="h-4 w-4 text-violet-400" />}
+                                    {isGeneratingImage ? "Magic in Progress..." : "Generate Magic Image"}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    onClick={handleGenerateVideo}
+                                    disabled={!initialData?.id || isGeneratingImage || isGeneratingVideo || isSaving}
+                                    className="flex-1 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-400 font-black uppercase tracking-tighter text-[10px] gap-2 transition-all"
+                                >
+                                    {isGeneratingVideo ? <Loader2 className="h-4 w-4 animate-spin text-blue-400" /> : <Video className="h-4 w-4 text-blue-400" />}
+                                    {isGeneratingVideo ? "Synthesizing Motion..." : "Synthesize Motion 3"}
+                                </Button>
+                            </div>
+
+                            {mediaUrl && (
+                                <div className="mt-6 rounded-3xl overflow-hidden border border-border shadow-2xl relative group/media animate-in zoom-in-95 duration-500">
+                                    {mediaUrl.includes(".mp4") || mediaUrl.includes(".mov") ? (
+                                        <video 
+                                            src={mediaUrl} 
+                                            autoPlay 
+                                            loop 
+                                            muted 
+                                            playsInline
+                                            className="w-full h-auto object-cover max-h-[400px]"
+                                        />
+                                    ) : (
+                                        <img 
+                                            src={mediaUrl} 
+                                            alt="AI Generated Visual" 
+                                            className="w-full h-auto object-cover max-h-[400px]"
+                                        />
+                                    )}
+                                    <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover/media:opacity-100 transition-opacity">
+                                        <div className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
+                                            <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none">
+                                                {mediaUrl.includes(".mp4") ? "Google Veo AI" : "Banana Pro XL"}
+                                            </span>
+                                        </div>
+
+                                        <Button
+                                            type="button"
+                                            onClick={mediaUrl.includes(".mp4") ? handleGenerateVideo : handleGenerateImage}
+                                            disabled={isGeneratingImage || isGeneratingVideo}
+                                            className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md shadow-lg"
+                                            size="icon"
+                                        >
+                                            {(isGeneratingImage || isGeneratingVideo) ? (
+                                                <Loader2 className="h-4 w-4 animate-spin text-white" />
+                                            ) : (
+                                                <RotateCcw className="h-4 w-4 text-white" />
+                                            )}
+                                        </Button>
+
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="icon"
+                                            onClick={handleClearMedia}
+                                            className="h-8 w-8 rounded-full shadow-lg"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+
+                                    {(isGeneratingImage || isGeneratingVideo) && (
+                                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
+                                            <div className="flex flex-col items-center gap-4">
+                                                <Loader2 className="h-8 w-8 animate-spin text-white" />
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Synthesizing Iteration...</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {!initialData?.id && (
+                                <p className="text-[9px] text-amber-500/60 font-medium italic text-center">
+                                    "Save this broadcast node as a draft to unlock strategic multimedia generation."
+                                </p>
+                            )}
                         </div>
 
                         {/* Dispatch Control */}
@@ -323,21 +591,40 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                             </div>
 
                             {!executeNow ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-1">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Dispatch Timestamp</label>
-                                        <input 
-                                            type="datetime-local"
-                                            value={scheduledAt}
-                                            onChange={(e) => setScheduledAt(e.target.value)}
-                                            className="w-full h-10 bg-background border border-border rounded-xl px-4 text-xs font-bold focus:ring-1 focus:ring-primary outline-none"
-                                        />
+                                <div className="space-y-6 animate-in fade-in slide-in-from-top-1">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Dispatch Timestamp</label>
+                                            <input 
+                                                type="datetime-local"
+                                                value={scheduledAt}
+                                                onChange={(e) => setScheduledAt(e.target.value)}
+                                                className="w-full h-10 bg-background border border-border rounded-xl px-4 text-xs font-bold focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Recurrence Protocol</label>
+                                            <select 
+                                                value={recurrence}
+                                                onChange={(e) => setRecurrence(e.target.value as any)}
+                                                className="w-full h-10 bg-background border border-border rounded-xl px-4 text-xs font-bold focus:ring-1 focus:ring-primary outline-none disabled:opacity-50"
+                                            >
+                                                <option value="none">One-Time Dispatch</option>
+                                                <option value="weekly">Weekly (1 Year / 52 Posts)</option>
+                                                <option value="monthly">Monthly (1 Year / 12 Posts)</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col justify-center">
-                                        <p className="text-[10px] text-muted-foreground leading-relaxed italic pr-4">
-                                            "Your broadcast will join the orbital queue for future dispatch."
-                                        </p>
-                                    </div>
+                                    {recurrence !== "none" && (
+                                        <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl">
+                                            <p className="text-[10px] uppercase font-black tracking-widest text-primary flex items-center gap-2">
+                                                <Zap className="h-3 w-3" /> System Replication Active
+                                            </p>
+                                            <p className="text-[9px] text-muted-foreground mt-1 font-medium italic">
+                                                "Orchestrating a multi-broadcast constellation. {recurrence === 'weekly' ? '52' : '12'} sequential payload drafts will be generated."
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 animate-in zoom-in-95">
@@ -346,7 +633,7 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
                                         Manual Force-Dispatch Active
                                     </p>
                                     <p className="text-[9px] text-muted-foreground leading-relaxed italic">
-                                        "Bypassing the queue. This broadcast will be executed immediately across all target nodes."
+                                        "Bypassing the queue and ignoring recurrence loops. This broadcast will be executed immediately across all target nodes."
                                     </p>
                                 </div>
                             )}
@@ -356,17 +643,34 @@ export function SocialPostModal({ isOpen, onClose, projectId, onSuccess, platfor
 
                 {/* Footer Controls */}
                 <div className="px-8 py-8 border-t border-border bg-muted/5 flex items-center justify-between">
-                    <Button 
-                        type="button" 
-                        variant="ghost" 
-                        onClick={onClose}
-                        className="rounded-xl h-12 px-8 font-black uppercase tracking-widest text-[9px] hover:bg-muted"
-                    >
-                        Halt Sequence
-                    </Button>
+                    {initialData?.id ? (
+                        <Button 
+                            type="button" 
+                            variant="ghost" 
+                            disabled={isDeleting || isSaving}
+                            onClick={handleDelete}
+                            className="rounded-xl h-12 px-8 font-black uppercase tracking-widest text-[9px] hover:bg-red-500/10 text-red-500 transition-all font-black uppercase tracking-widest text-[9px] hover:bg-muted font-black uppercase tracking-widest text-[9px] hover:bg-muted"
+                        >
+                            {isDeleting ? (
+                                <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Purging...</>
+                            ) : (
+                                <><Trash2 className="h-4 w-4 mr-2" /> Delete Post</>
+                            )}
+                        </Button>
+                    ) : (
+                        <Button 
+                            type="button" 
+                            variant="ghost" 
+                            onClick={onClose}
+                            className="rounded-xl h-12 px-8 font-black uppercase tracking-widest text-[9px] hover:bg-muted text-muted-foreground"
+                        >
+                            Halt Sequence
+                        </Button>
+                    )}
+                    
                     <Button 
                         type="submit"
-                        disabled={isSaving}
+                        disabled={isSaving || isDeleting}
                         className="rounded-xl h-12 px-10 bg-primary text-primary-foreground font-black uppercase tracking-widest text-[9px] shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
                     >
                         {isSaving ? (

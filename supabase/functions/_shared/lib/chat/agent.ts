@@ -51,8 +51,20 @@ export class ChatService {
         const model = input.model ?? GEMINI_MODELS.FLASH_LITE
         this.logger.info("Starting growth assistant chat execution", { project_id, userId, model, hasSessionId: !!session_id })
 
-        // ── Step 1: Token Budget Check ────────────────────────
-        this.logger.info("Step 1: Checking token budget")
+        // ── Step 1: Strict Tenancy & Ownership Verification ───
+        this.logger.info("Step 1: Verifying project access", { project_id, userId })
+        const { data: hasAccess, error: accessErr } = await this.adminClient.rpc("check_project_access", {
+            p_project_id: project_id,
+            p_user_id: userId
+        })
+
+        if (accessErr || !hasAccess) {
+            this.logger.error("Unauthorized access attempt", { project_id, userId, error: accessErr })
+            throw new Error("UNAUTHORIZED: You do not have permission to access the Growth Assistant for this project.")
+        }
+
+        // ── Step 1b: Token Budget Check ────────────────────────
+        this.logger.info("Step 1b: Checking token budget")
         let budgetRows = null
         try {
             const { data } = await this.adminClient.rpc("check_token_budget", {
@@ -359,6 +371,7 @@ export class ChatService {
         const toolHistory: any[] = [{ role: "user", parts: [{ text: message }] }]
         let loopCount = 0
         const MAX_LOOPS = 4
+        const executedDrafts = new Set<string>()
 
         while (loopCount < MAX_LOOPS) {
             const modelParts = (geminiResult.rawData as any).candidates?.[0]?.content?.parts || []
@@ -372,6 +385,21 @@ export class ChatService {
             try {
                 const functionResponses = await Promise.all(toolCalls.map(async (part: any) => {
                     const { name, args } = part.functionCall
+                    
+                    // CRITICAL: Prevent duplicate social drafts in a single chat turn
+                    if (name === "create_social_draft") {
+                        if (executedDrafts.has(name)) {
+                            this.logger.warn(`Blocked duplicate execution of ${name}`)
+                            return {
+                                functionResponse: {
+                                    name,
+                                    response: { result: "BLOCKED: You have already drafted a post for this request. Do NOT draft another one." }
+                                }
+                            }
+                        }
+                        executedDrafts.add(name)
+                    }
+
                     this.logger.info(`Executing tool: ${name}`, { args })
 
                     const result = await registry.call(name, {

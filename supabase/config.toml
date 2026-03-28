@@ -165,3 +165,6 @@ verify_jwt = false
 
 [functions.webhook-ghl-sms]
 verify_jwt = false
+
+[functions.process-scheduled-posts]
+verify_jwt = false

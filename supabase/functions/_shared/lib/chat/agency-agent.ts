@@ -338,6 +338,7 @@ export class AgencyChatService {
         const toolHistory: any[] = [{ role: "user", parts: [{ text: message }] }]
         let loopCount = 0
         const MAX_LOOPS = 4 // Allow up to 4 tool-use steps (e.g. Search -> Think -> Create -> Finish)
+        const executedDrafts = new Set<string>()
 
         while (loopCount < MAX_LOOPS) {
             const modelParts = (geminiResult.rawData as any).candidates?.[0]?.content?.parts || []
@@ -351,6 +352,21 @@ export class AgencyChatService {
             try {
                 const functionResponses = await Promise.all(toolCalls.map(async (part: any) => {
                     const { name, args } = part.functionCall
+                    
+                    // CRITICAL: Prevent duplicate social drafts in a single chat turn
+                    if (name === "create_social_draft") {
+                        if (executedDrafts.has(name)) {
+                            this.logger.warn(`Blocked duplicate execution of ${name}`)
+                            return {
+                                functionResponse: {
+                                    name,
+                                    response: { result: "BLOCKED: You have already drafted a post for this request. Do NOT draft another one." }
+                                }
+                            }
+                        }
+                        executedDrafts.add(name)
+                    }
+
                     this.logger.info(`Executing tool: ${name}`, { args })
 
                     const result = await registry.call(name, {
