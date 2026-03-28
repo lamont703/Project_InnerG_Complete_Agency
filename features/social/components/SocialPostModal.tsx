@@ -63,6 +63,7 @@ export function SocialPostModal({
     const [content, setContent] = useState("")
     const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(initialData?.platform ? [initialData.platform] : [platforms[0]].filter(Boolean))
     const [scheduledAt, setScheduledAt] = useState("")
+    const [recurrence, setRecurrence] = useState<"none" | "weekly" | "monthly">("none")
     const [executeNow, setExecuteNow] = useState(false)
     const [ghlAccounts, setGHLAccounts] = useState<GHLAccount[]>([])
     const [selectedGHLAccount, setSelectedGHLAccount] = useState("")
@@ -103,6 +104,7 @@ export function SocialPostModal({
             setContent("")
             setSelectedPlatforms([platforms[0]].filter(Boolean))
             setScheduledAt("")
+            setRecurrence("none")
             setExecuteNow(false)
             setMediaUrl(null)
         }
@@ -214,42 +216,73 @@ export function SocialPostModal({
                 }
 
                 // 1. Unified Dispatch Protocol: Save strategic planning data
-                
-                // For Twitter/LinkedIn/TikTok etc., we keep metadata empty to match successful provisioned posts.
-                // We only include specific metadata for GHL (which requires communityPostDetails).
                 const finalMetadata = platform === 'ghl' ? { ...(initialData?.dispatch_metadata || {}), ...metadata } : {}
 
-                const { data: savedPost, error } = await (supabase as any)
-                    .from("social_content_plan")
-                    .upsert({
-                        // Only use ID for initial data if it's the SAME platform. 
-                        // If we had many platforms, we'd need multiple IDs or it creates new ones.
-                        id: (initialData?.id && initialData.platform === platform) ? initialData.id : undefined,
+                // GENERATE DATES FOR RECURRENCE
+                let datesToSchedule: Date[] = []
+                const baseDate = executeNow ? new Date() : new Date(scheduledAt || new Date())
+                datesToSchedule.push(baseDate)
+
+                if (!executeNow) {
+                    if (recurrence === "weekly") {
+                        // Generate next 51 weeks (52 total)
+                        for (let i = 1; i < 52; i++) {
+                            const nextDate = new Date(baseDate)
+                            nextDate.setDate(baseDate.getDate() + (i * 7))
+                            datesToSchedule.push(nextDate)
+                        }
+                    } else if (recurrence === "monthly") {
+                        // Generate next 11 months (12 total)
+                        for (let i = 1; i < 12; i++) {
+                            const nextDate = new Date(baseDate)
+                            nextDate.setMonth(baseDate.getMonth() + i)
+                            datesToSchedule.push(nextDate)
+                        }
+                    }
+                }
+
+                // If updating an existing draft, we only process the single modified date
+                const postsToInsert = datesToSchedule.map((date, index) => {
+                    const post: any = {
                         project_id: projectId,
                         platform,
                         destination_id: destinationId,
-                        title,
+                        title: recurrence !== "none" && index > 0 ? `${title} (Occurrence ${index + 1})` : title,
                         content_text: content,
-                        status: executeNow ? 'approved' : 'scheduled', // 'approved' as temporary status while dispatching
+                        status: executeNow ? 'approved' : 'scheduled',
                         source_type: initialData?.source_type || 'manual',
-                        scheduled_at: executeNow ? new Date().toISOString() : new Date(scheduledAt || new Date()).toISOString(),
+                        scheduled_at: date.toISOString(),
                         ai_reasoning: executeNow ? "Immediate manual force-dispatch override." : (initialData?.ai_reasoning || "Human-provisioned tactical broadcast via Social Planner."),
                         dispatch_metadata: finalMetadata
-                    })
+                    }
+                    
+                    if (initialData?.id && initialData.platform === platform && index === 0) {
+                        post.id = initialData.id
+                    } else {
+                        post.id = crypto.randomUUID()
+                    }
+                    
+                    return post
+                })
+
+                const { data: savedPosts, error } = await (supabase as any)
+                    .from("social_content_plan")
+                    .upsert(postsToInsert)
                     .select()
-                    .single()
 
                 if (error) throw error
 
-                // 2. If Execute Now is active, trigger the dispatcher immediately for this platform's record
-                if (executeNow && savedPost) {
+                const firstSaved = savedPosts?.[0]
+
+                // 2. If Execute Now is active, trigger the dispatcher immediately for this platform's primary record
+                if (executeNow && firstSaved) {
                     const { error: dispatchError } = await supabase.functions.invoke("publish-social-post", {
-                        body: { draft_id: savedPost.id }
+                        body: { draft_id: firstSaved.id }
                     })
                     if (dispatchError) throw dispatchError
                 }
                 
-                return savedPost
+                return firstSaved
             }))
             
             toast.success(`${results.length} Broadcast node(s) synchronized and provisioned`)
@@ -558,21 +591,40 @@ export function SocialPostModal({
                             </div>
 
                             {!executeNow ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-1">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Dispatch Timestamp</label>
-                                        <input 
-                                            type="datetime-local"
-                                            value={scheduledAt}
-                                            onChange={(e) => setScheduledAt(e.target.value)}
-                                            className="w-full h-10 bg-background border border-border rounded-xl px-4 text-xs font-bold focus:ring-1 focus:ring-primary outline-none"
-                                        />
+                                <div className="space-y-6 animate-in fade-in slide-in-from-top-1">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Dispatch Timestamp</label>
+                                            <input 
+                                                type="datetime-local"
+                                                value={scheduledAt}
+                                                onChange={(e) => setScheduledAt(e.target.value)}
+                                                className="w-full h-10 bg-background border border-border rounded-xl px-4 text-xs font-bold focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Recurrence Protocol</label>
+                                            <select 
+                                                value={recurrence}
+                                                onChange={(e) => setRecurrence(e.target.value as any)}
+                                                className="w-full h-10 bg-background border border-border rounded-xl px-4 text-xs font-bold focus:ring-1 focus:ring-primary outline-none disabled:opacity-50"
+                                            >
+                                                <option value="none">One-Time Dispatch</option>
+                                                <option value="weekly">Weekly (1 Year / 52 Posts)</option>
+                                                <option value="monthly">Monthly (1 Year / 12 Posts)</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col justify-center">
-                                        <p className="text-[10px] text-muted-foreground leading-relaxed italic pr-4">
-                                            "Your broadcast will join the orbital queue for future dispatch."
-                                        </p>
-                                    </div>
+                                    {recurrence !== "none" && (
+                                        <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl">
+                                            <p className="text-[10px] uppercase font-black tracking-widest text-primary flex items-center gap-2">
+                                                <Zap className="h-3 w-3" /> System Replication Active
+                                            </p>
+                                            <p className="text-[9px] text-muted-foreground mt-1 font-medium italic">
+                                                "Orchestrating a multi-broadcast constellation. {recurrence === 'weekly' ? '52' : '12'} sequential payload drafts will be generated."
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 animate-in zoom-in-95">
@@ -581,7 +633,7 @@ export function SocialPostModal({
                                         Manual Force-Dispatch Active
                                     </p>
                                     <p className="text-[9px] text-muted-foreground leading-relaxed italic">
-                                        "Bypassing the queue. This broadcast will be executed immediately across all target nodes."
+                                        "Bypassing the queue and ignoring recurrence loops. This broadcast will be executed immediately across all target nodes."
                                     </p>
                                 </div>
                             )}

@@ -41,31 +41,55 @@ export const createSocialDraftTool: RegisteredTool = {
                 ai_reasoning: {
                     type: "string",
                     description: "Briefly explain why this content was selected for posting."
+                },
+                recurrence: {
+                    type: "string",
+                    description: "Optional. Specifies if the post should be automatically replicated on a schedule. 'weekly' creates 52 weekly identical drafts. 'monthly' creates 12 monthly identical drafts.",
+                    enum: ["none", "weekly", "monthly"]
                 }
             },
             required: ["platform", "content_text"]
         }
     },
     execute: async (context: ToolContext, args: any) => {
-        const { platform, content_text, source_type, source_metadata, source_id, ai_reasoning } = args
+        const { platform, content_text, source_type, source_metadata, source_id, ai_reasoning, recurrence } = args
         const targetProjectId = context.projectId
+
+        const baseDate = new Date()
+        let datesToSchedule: Date[] = [baseDate]
+
+        if (recurrence === "weekly") {
+            for (let i = 1; i < 52; i++) {
+                const nextDate = new Date(baseDate)
+                nextDate.setDate(baseDate.getDate() + (i * 7))
+                datesToSchedule.push(nextDate)
+            }
+        } else if (recurrence === "monthly") {
+            for (let i = 1; i < 12; i++) {
+                const nextDate = new Date(baseDate)
+                nextDate.setMonth(baseDate.getMonth() + i)
+                datesToSchedule.push(nextDate)
+            }
+        }
+
+        const postsToInsert = datesToSchedule.map((date, index) => ({
+            project_id: targetProjectId,
+            platform,
+            content_text,
+            status: "draft",
+            source_type: source_type || "manual",
+            source_metadata: {
+                ...(source_metadata || {}),
+                ...(source_id ? { source_record_id: source_id } : {})
+            },
+            scheduled_at: index > 0 ? date.toISOString() : null,
+            ai_reasoning: ai_reasoning || ""
+        }))
 
         const { data, error } = await context.adminClient
             .from("social_content_plan")
-            .insert({
-                project_id: targetProjectId,
-                platform,
-                content_text,
-                status: "draft",
-                source_type: source_type || "manual",
-                source_metadata: {
-                    ...(source_metadata || {}),
-                    ...(source_id ? { source_record_id: source_id } : {})
-                },
-                ai_reasoning: ai_reasoning || ""
-            })
+            .insert(postsToInsert)
             .select()
-            .single()
 
         if (error) throw error
 
@@ -77,14 +101,16 @@ export const createSocialDraftTool: RegisteredTool = {
                 .update({ 
                     is_processed: true,
                     processed_at: new Date().toISOString(),
-                    social_plan_id: data.id
+                    social_plan_id: data[0].id
                 })
                 .eq("id", source_id)
         }
 
         return {
-            message: `Successfully created a ${platform} draft. It is now awaiting review in the dashboard.`,
-            draft_id: data.id
+            message: recurrence && recurrence !== "none" 
+                ? `Successfully orchestrated ${data.length} recurring drafts for ${platform}. The first draft is ID ${data[0].id}.` 
+                : `Successfully created a ${platform} draft. It is now awaiting review in the dashboard.`,
+            draft_id: data[0].id
         }
     }
 }
