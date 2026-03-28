@@ -14,10 +14,9 @@ export default createHandler(async ({ adminClient, body, user, req }) => {
     const logger = new Logger("connector-sync")
     logger.info("Received sync request", { connection_id: body.connection_id || "GLOBAL_CRON_SYNC" })
 
-    // 1. Authorization check
     const authHeader = req.headers.get("Authorization")
-    const envServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
-    const isServiceRole = authHeader && envServiceKey && authHeader.includes(envServiceKey)
+    const envServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim()
+    const isServiceRole = !!(authHeader && envServiceKey && authHeader.includes(envServiceKey))
 
     logger.info("Auth Check", { 
         hasUser: !!user, 
