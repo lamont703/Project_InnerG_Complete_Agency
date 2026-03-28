@@ -302,15 +302,19 @@ export function useAgencyData(projectSlug?: string) {
         // Realtime Hot-Reload for Signals and Social Drafts
         const hotReloadChannel = supabase
             .channel('agency-data-hotreload')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ai_signals' }, (payload) => {
-                setNewSignalId(payload.new.id)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_signals' }, (payload) => {
+                if (payload.eventType === 'INSERT' && payload.new) {
+                    setNewSignalId((payload.new as any).id)
+                    setTimeout(() => setNewSignalId(null), 5000)
+                }
                 fetchData()
-                setTimeout(() => setNewSignalId(null), 5000)
             })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_content_plan' }, (payload) => {
-                setNewDraftId(payload.new.id)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'social_content_plan' }, (payload) => {
+                if (payload.eventType === 'INSERT' && payload.new) {
+                    setNewDraftId((payload.new as any).id)
+                    setTimeout(() => setNewDraftId(null), 5000)
+                }
                 fetchData()
-                setTimeout(() => setNewDraftId(null), 5000)
             })
             .subscribe()
 

@@ -41,18 +41,14 @@ export const createSocialDraftTool: RegisteredTool = {
                 ai_reasoning: {
                     type: "string",
                     description: "Briefly explain why this content was selected for posting."
-                },
-                project_id: {
-                    type: "string",
-                    description: "The UUID of the project this post belongs to. If omitted, it will use the current context."
                 }
             },
             required: ["platform", "content_text"]
         }
     },
     execute: async (context: ToolContext, args: any) => {
-        const { platform, content_text, source_type, source_metadata, source_id, ai_reasoning, project_id } = args
-        const targetProjectId = project_id || context.projectId
+        const { platform, content_text, source_type, source_metadata, source_id, ai_reasoning } = args
+        const targetProjectId = context.projectId
 
         const { data, error } = await context.adminClient
             .from("social_content_plan")
