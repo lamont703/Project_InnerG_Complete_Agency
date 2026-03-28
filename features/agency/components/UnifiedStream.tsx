@@ -273,7 +273,7 @@ export function UnifiedStream({
         }))
 
         const draftItems = drafts
-            .filter(d => d.status !== 'scheduled')
+            .filter(d => !['published', 'scheduled', 'approved'].includes(d.status))
             .map(d => ({
                 type: 'draft' as const,
                 id: d.id,
