@@ -12,7 +12,11 @@ BEGIN
     CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA public;
     CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA public;
 
-    PERFORM cron.unschedule('process-scheduled-posts-minute');
+    BEGIN
+        PERFORM cron.unschedule('process-scheduled-posts-minute');
+    EXCEPTION
+        WHEN OTHERS THEN NULL;
+    END;
     
     PERFORM cron.schedule(
         'process-scheduled-posts-minute',
