@@ -28,6 +28,7 @@ import {
     Edit2,
     Instagram,
     Facebook,
+    Twitter,
 } from "lucide-react"
 import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
 import { DashboardHeader } from "@/components/layout/dashboard/header"
@@ -36,6 +37,9 @@ import { Input } from "@/components/ui/input"
 import { MetaLoginButton } from "@/components/social/meta-login-button"
 import { TikTokLoginButton } from "@/components/social/tiktok-login-button"
 import { InstagramLoginButton } from "@/components/social/instagram-login-button"
+import { TwitterLoginButton } from "@/components/social/twitter-login-button"
+import { LinkedInLoginButton } from "@/components/social/linkedin-login-button"
+import { YouTubeLoginButton } from "@/components/social/youtube-login-button"
 
 // PROVIDER ICONS + COLORS (Synced with Admin)
 const providerMeta: Record<string, { color: string; bgColor: string; label: string }> = {
@@ -51,6 +55,7 @@ const providerMeta: Record<string, { color: string; bgColor: string; label: stri
     newsapi: { color: "text-amber-500", bgColor: "bg-amber-500/10 border-amber-500/20", label: "NewsAPI" },
     instagram: { color: "text-white", bgColor: "bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] border-pink-500/20", label: "Instagram" },
     facebook: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "Facebook Meta" },
+    twitter: { color: "text-zinc-100", bgColor: "bg-zinc-800 border-zinc-700/50", label: "X (Twitter)" },
 }
 
 const statusMeta: Record<string, { icon: any; color: string; label: string }> = {
@@ -525,6 +530,48 @@ export function ProjectConnectorsPage() {
                                                 OAuth connection requires access to video.list and profile info.
                                             </p>
                                         </div>
+                                    ) : selectedType?.provider === "twitter" ? (
+                                        <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest text-center px-6">
+                                                Connect X (Twitter) via OAuth 2.0 PKCE.
+                                            </p>
+                                            <TwitterLoginButton 
+                                                projectId={projectId || undefined}
+                                            />
+                                            <p className="text-[8px] text-muted-foreground italic">
+                                                Includes access to follow counts and recent performance signals.
+                                            </p>
+                                        </div>
+                                    ) : selectedType?.provider === "linkedin" ? (
+                                        <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest text-center px-6">
+                                                Connect your LinkedIn Profile or Page via OAuth.
+                                            </p>
+                                            <LinkedInLoginButton 
+                                                projectId={projectId || undefined}
+                                            />
+                                            <p className="text-[8px] text-muted-foreground italic">
+                                                Authorizes personal posts and organization page access.
+                                            </p>
+                                        </div>
+                                    ) : selectedType?.provider === "youtube" ? (
+                                        <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                            <p className="text-[10px] font-black text-red-500 uppercase tracking-widest text-center px-6">
+                                                Connect your YouTube Channel via Google OAuth.
+                                            </p>
+                                            <YouTubeLoginButton 
+                                                projectId={projectId || undefined}
+                                                disabled={!projectId}
+                                            />
+                                            {(!projectId || !newLabel) && (
+                                                <p className="text-[10px] text-destructive font-bold animate-pulse">
+                                                    Please enter a label for this channel connection to continue.
+                                                </p>
+                                            )}
+                                            <p className="text-[8px] text-muted-foreground italic">
+                                                Authorizes analytics and channel content discovery.
+                                            </p>
+                                        </div>
                                     ) : Object.entries(selectedTypeSchema.properties || selectedTypeSchema).map(([key, schema]: [string, any]) => {
                                         if (schema.type === "boolean") {
                                             return (
@@ -756,6 +803,8 @@ export function ProjectConnectorsPage() {
                                                             <Instagram className={`h-5 w-5 ${meta.color}`} />
                                                         ) : provider === "facebook" ? (
                                                             <Facebook className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "twitter" ? (
+                                                            <Twitter className={`h-5 w-5 ${meta.color}`} />
                                                         ) : (
                                                             <Database className={`h-5 w-5 ${meta.color}`} />
                                                         )}
