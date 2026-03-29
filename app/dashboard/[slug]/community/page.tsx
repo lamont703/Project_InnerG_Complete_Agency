@@ -21,7 +21,9 @@ import {
     Target,
     BookOpen,
     Globe,
-    Trash2
+    Trash2,
+    Sparkles,
+    Terminal
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -30,6 +32,7 @@ import { PersonaModal } from "@/features/community/components/PersonaModal"
 import { ChannelModal } from "@/features/community/components/ChannelModal"
 
 import { DeploymentModal } from "@/features/community/components/DeploymentModal"
+import { EmojiForgeModal } from "@/features/community/components/EmojiForgeModal"
 
 interface CommunityAgent {
     id: string
@@ -78,6 +81,7 @@ export default function CommunityHubPage() {
     const [isDeploymentModalOpen, setIsDeploymentModalOpen] = useState(false)
     const [editingPersona, setEditingPersona] = useState<CommunityAgent | null>(null)
     const [editingChannel, setEditingChannel] = useState<CommunityChannel | null>(null)
+    const [isEmojiForgeOpen, setIsEmojiForgeOpen] = useState(false)
 
     const load = async () => {
         try {
@@ -206,6 +210,7 @@ export default function CommunityHubPage() {
         { id: 'roster', label: 'Tactical Roster', icon: Users },
         { id: 'channels', label: 'Operation Channels', icon: Plug },
         { id: 'deployments', label: 'Deployment Matrix', icon: LinkIcon },
+        { id: 'emoji', label: 'Emoji Forge', icon: Sparkles },
         { id: 'monitor', label: 'Interaction Monitor', icon: Activity },
     ]
 
@@ -561,6 +566,95 @@ export default function CommunityHubPage() {
                         </div>
                     )}
 
+                    {/* EMOJI FORGE TAB */}
+                    {activeTab === "emoji" && (
+                        <div className="p-6 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4">
+                            <div className="rounded-3xl border border-indigo-500/20 bg-indigo-500/5 overflow-hidden">
+                                <div className="p-8">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4">
+                                                <Sparkles className="h-6 w-6 text-indigo-400" />
+                                            </div>
+                                            <h2 className="text-xl font-black uppercase tracking-tight">Neural Emoji Forge</h2>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-1 opacity-60 italic">
+                                                Deploy branded emojis to any connected Discord server.
+                                            </p>
+                                        </div>
+                                        <Button
+                                            onClick={() => setIsEmojiForgeOpen(true)}
+                                            disabled={channels.filter(c => c.platform === 'discord').length === 0}
+                                            className="h-14 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-indigo-500/20"
+                                        >
+                                            <Sparkles className="h-4 w-4 mr-2" />
+                                            Open Forge
+                                        </Button>
+                                    </div>
+
+                                    {channels.filter(c => c.platform === 'discord').length === 0 ? (
+                                        <div className="mt-8 p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 text-center">
+                                            <p className="text-sm font-bold italic">No Discord bridges active.</p>
+                                            <p className="text-[10px] text-muted-foreground mt-1">Establish a Neural Bridge first from the Operation Channels tab.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                                            {["innerg_fire","innerg_sync","innerg_check","innerg_neural","innerg_rocket"].map((name, i) => (
+                                                <div key={name} className="aspect-square rounded-2xl bg-background border border-border flex items-center justify-center overflow-hidden group hover:border-indigo-500/40 transition-all">
+                                                    <img
+                                                        src={`/emojis/${name}.png`}
+                                                        alt={name}
+                                                        className="w-16 h-16 object-contain group-hover:scale-110 transition-transform"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Slash Command Registration */}
+                                    {channels.filter(c => c.platform === 'discord').length > 0 && (
+                                        <div className="mt-8 pt-8 border-t border-indigo-500/10">
+                                            <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
+                                                <Terminal className="h-3 w-3" />
+                                                Slash Command Registration
+                                            </h3>
+                                            <div className="grid gap-3">
+                                                {channels.filter(c => c.platform === 'discord').map((ch: any) => (
+                                                    <div key={ch.id} className="flex items-center justify-between p-4 rounded-2xl bg-background border border-border">
+                                                        <div>
+                                                            <p className="text-[11px] font-black uppercase">{ch.name}</p>
+                                                            <p className="text-[9px] text-muted-foreground mt-0.5 font-mono">
+                                                                {ch.config?.commands_registered
+                                                                    ? `✅ /ask · /audit · /agent registered`
+                                                                    : "Commands not yet registered"}
+                                                            </p>
+                                                        </div>
+                                                        <Button
+                                                            size="sm"
+                                                            disabled={ch.config?.commands_registered}
+                                                            onClick={async () => {
+                                                                const { createBrowserClient: cbc } = await import("@/lib/supabase/browser")
+                                                                const sb = cbc()
+                                                                const { error } = await (sb.functions.invoke as any)("register-discord-commands", {
+                                                                    body: { channel_id: ch.id }
+                                                                })
+                                                                if (error) { toast.error("Command registration failed"); return }
+                                                                toast.success(`/ask, /audit, /agent registered on ${ch.name}!`)
+                                                                load()
+                                                            }}
+                                                            className="h-9 px-5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-violet-600 hover:bg-violet-500 text-white"
+                                                        >
+                                                            {ch.config?.commands_registered ? "Registered" : "Register Now"}
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             </main>
 
@@ -585,6 +679,11 @@ export default function CommunityHubPage() {
                 agents={agents}
                 channels={channels}
                 onSuccess={load}
+            />
+            <EmojiForgeModal
+                isOpen={isEmojiForgeOpen}
+                onClose={() => setIsEmojiForgeOpen(false)}
+                discordChannels={(channels as any[]).filter(c => c.platform === 'discord')}
             />
 
         </div>

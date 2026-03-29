@@ -177,3 +177,9 @@ verify_jwt = false
 
 [functions.complete-discord-auth]
 verify_jwt = false
+
+[functions.deploy-emoji]
+verify_jwt = false
+
+[functions.register-discord-commands]
+verify_jwt = false
