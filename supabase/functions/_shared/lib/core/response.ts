@@ -85,3 +85,17 @@ function errorResponse(status: number, code: string, message: string, details?: 
 export function corsPreflightResponse(): Response {
     return new Response(null, { headers: corsHeaders })
 }
+
+/**
+ * Returns a raw, un-wrapped response.
+ * Used for external platform webhooks (Discord, Meta) that require a specific root-level structure.
+ */
+export function rawResponse(data: unknown, status = 200, extraHeaders?: HeadersInit): Response {
+    return new Response(
+        JSON.stringify(data),
+        {
+            status,
+            headers: { ...corsHeaders, "Content-Type": "application/json", ...(extraHeaders ?? {}) }
+        }
+    )
+}

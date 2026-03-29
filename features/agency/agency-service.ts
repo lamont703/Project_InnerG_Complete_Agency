@@ -33,8 +33,8 @@ export class AgencyService {
     async getActiveProjects(): Promise<AgencyProject[]> {
         const { data } = await this.supabase
             .from("projects")
-            .select("id, name, slug, status, type, active_campaign_name, clients(name, industry)")
-            .eq("status", "active")
+            .select("id, name, slug, status, type, settings, active_campaign_name, clients(name, industry)")
+            .in("status", ["active", "building"])
             .order("name")
 
         return (data as any[]) || []
