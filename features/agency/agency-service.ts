@@ -589,6 +589,52 @@ export class AgencyService {
     }
 
     /**
+     * Fetch Pixel tracking metrics ONLY for the last 24 hours
+     */
+    async getRolling24hPixelMetrics(projectSlug: string = "innergcomplete"): Promise<any> {
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("id")
+            .eq("slug", projectSlug)
+            .single()
+
+        if (!project) return null
+
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+        const [events, visitors, clickData] = await Promise.all([
+            this.supabase.from("pixel_events")
+                .select("*", { count: "exact", head: true })
+                .eq("project_id", project.id)
+                .gte("created_at", oneDayAgo),
+            this.supabase.from("pixel_visitors")
+                .select("*")
+                .eq("project_id", project.id)
+                .gte("created_at", oneDayAgo),
+            this.supabase.from("pixel_events")
+                .select("event_name, element_name")
+                .eq("project_id", project.id)
+                .gte("created_at", oneDayAgo)
+                .limit(5000)
+        ])
+
+        const totalHits = events.count || 0
+        const visitorData = visitors.data || []
+        
+        const clicks = (clickData.data || []).reduce((acc: any, c: any) => {
+            if (c.event_name) acc[c.event_name] = (acc[c.event_name] || 0) + 1
+            if (c.element_name) acc[c.element_name] = (acc[c.element_name] || 0) + 1
+            return acc
+        }, {} as Record<string, number>)
+
+        return {
+            totalHits,
+            uniqueVisitors: visitorData.length,
+            clicks
+        }
+    }
+
+    /**
      * Force sync pixel data to public snapshots
      */
     async syncPixelSnapshot(projectSlug: string = "innergcomplete"): Promise<void> {

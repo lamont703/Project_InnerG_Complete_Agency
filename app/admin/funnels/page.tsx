@@ -7,6 +7,7 @@ import { useAdminSidebar } from "@/features/agency/context/AdminSidebarContext"
 import { useAgencyData } from "@/features/agency/use-agency-data"
 import { Button } from "@/components/ui/button"
 import { OmniChannelStream } from "@/features/funnels/components/OmniChannelStream"
+import { FunnelHourlyMetrics } from "@/features/funnels/components/FunnelHourlyMetrics"
 
 export default function FunnelVisualizationPage() {
     const { 
@@ -88,25 +89,8 @@ export default function FunnelVisualizationPage() {
                         title="Global Conversion Intelligence" 
                     />
 
-                    {/* Analysis Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {[
-                            { title: "Awareness Velocity", value: "+15.2%", status: "UP", icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-                            { title: "Lead Saturation", value: "82.4%", status: "OPTIMAL", icon: Target, color: "text-blue-400", bg: "bg-blue-500/10" },
-                            { title: "Drop-off Pressure", value: "2.1%", status: "LOW", icon: Filter, color: "text-amber-400", bg: "bg-amber-500/10" }
-                        ].map((stat: any) => (
-                            <div key={stat.title} className="p-6 rounded-3xl border border-white/5 bg-white/5 backdrop-blur-sm group hover:border-white/20 transition-all duration-300">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className={`p-2 rounded-xl ${stat.bg} ${stat.color}`}>
-                                        <stat.icon className="h-4 w-4" />
-                                    </div>
-                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${stat.bg} ${stat.color}`}>{stat.status}</span>
-                                </div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/60 mb-1 group-hover:text-white transition-colors">{stat.title}</p>
-                                <p className="text-2xl font-black text-white">{stat.value}</p>
-                            </div>
-                        ))}
-                    </div>
+                    {/* Funnel Hourly Metrics */}
+                    <FunnelHourlyMetrics projectSlug="innergcomplete" />
                 </div>
             </main>
         </div>
