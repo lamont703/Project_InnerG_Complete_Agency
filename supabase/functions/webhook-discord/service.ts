@@ -615,28 +615,43 @@ CRITICAL RULES:
      */
     private async resolveAgentForGuild(guildId: string): Promise<any | null> {
         try {
-            // 1. Find the community channel for this guild
-            const { data: channels } = await this.adminClient
+            // 1. Find the community channel and its project settings
+            const { data: projects } = await this.adminClient
                 .from("community_channels")
-                .select("id, project_id")
+                .select("id, project_id, projects(id, settings)")
                 .eq("platform", "discord")
                 .filter("config->>guild_id", "eq", guildId)
+                .limit(1)
 
-            if (!channels || channels.length === 0) return null
+            if (!projects || projects.length === 0) return null
+            
+            const project = (projects[0] as any).projects
+            if (!project) return null
 
-            const projectId = channels[0].project_id
+            const isEnabled = project.settings?.features?.community_agents ?? false
+            if (!isEnabled) return null
+
+            const whitelist = project.settings?.features?.community_persona_whitelist || []
 
             // 2. Find the active agent for this project
             const { data: agent } = await this.adminClient
                 .from("community_agents")
                 .select("id, name, role, persona_prompt, mood, mission_objective, is_active")
-                .eq("project_id", projectId)
+                .eq("project_id", project.id)
                 .eq("is_active", true)
                 .order("created_at", { ascending: true })
                 .limit(1)
                 .maybeSingle()
 
-            return agent || null
+            if (!agent) return null
+
+            // 3. Verify Isolation (If a whitelist exists, the agent MUST be on it)
+            if (whitelist.length > 0 && !whitelist.includes(agent.id)) {
+                this.logger.warn(`Agent ${agent.name} (${agent.id}) is not authorized for project ${project.id} via persona whitelist.`)
+                return null
+            }
+
+            return agent
         } catch (err) {
             this.logger.error("Failed to resolve agent for guild", err)
             return null

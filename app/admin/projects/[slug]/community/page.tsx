@@ -19,11 +19,15 @@ import {
     Zap,
     CheckCircle2,
     Plus,
-    Minus
+    Minus,
+    Brain,
+    Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { AdminHeader } from "@/features/agency/components/AdminHeader"
+import { PersonaModal } from "@/features/community/components/PersonaModal"
+import { toast } from "sonner"
 
 export default function AgencyCommunityConfigPage() {
     const router = useRouter()
@@ -37,7 +41,12 @@ export default function AgencyCommunityConfigPage() {
     const [projectId, setProjectId] = useState<string | null>(null)
     const [featureEnabled, setFeatureEnabled] = useState(false)
     const [allowedInfrastructure, setAllowedInfrastructure] = useState<string[]>([])
+    const [allowedPersonas, setAllowedPersonas] = useState<string[]>([])
+    const [roster, setRoster] = useState<any[]>([])
+    const [library, setLibrary] = useState<any[]>([])
     const [error, setError] = useState<string | null>(null)
+    const [isPersonaModalOpen, setIsPersonaModalOpen] = useState(false)
+    const [editingPersona, setEditingPersona] = useState<any>(null)
 
     const INFRA_OPTIONS = [
         { 
@@ -117,6 +126,23 @@ export default function AgencyCommunityConfigPage() {
                 const settings = project.settings || {}
                 setFeatureEnabled(settings.features?.community_agents ?? false)
                 setAllowedInfrastructure(settings.features?.community_infrastructure_whitelist ?? [])
+                setAllowedPersonas(settings.features?.community_persona_whitelist ?? [])
+
+                // Fetch library agents (global templates)
+                const { data: libraryAgents } = await supabase
+                    .from("community_agents")
+                    .select("*")
+                    .is("project_id", null)
+
+                setLibrary(libraryAgents || [])
+
+                // Fetch current agent roster for this project
+                const { data: agents } = await supabase
+                    .from("community_agents")
+                    .select("id, name, role, is_active, is_agency_template")
+                    .eq("project_id", project.id)
+
+                setRoster(agents || [])
 
             } catch (err: any) {
                 setError(err.message)
@@ -147,7 +173,8 @@ export default function AgencyCommunityConfigPage() {
                 features: {
                     ...(currentSettings.features || {}),
                     community_agents: featureEnabled,
-                    community_infrastructure_whitelist: allowedInfrastructure
+                    community_infrastructure_whitelist: allowedInfrastructure,
+                    community_persona_whitelist: allowedPersonas
                 }
             }
 
@@ -167,9 +194,76 @@ export default function AgencyCommunityConfigPage() {
     }
 
     const toggleInfra = (id: string) => {
-        setAllowedInfrastructure(prev => 
-            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        setAllowedInfrastructure((prev: string[]) => 
+            prev.includes(id) ? prev.filter((i: string) => i !== id) : [...prev, id]
         )
+    }
+
+    const assignToProject = async (template: any) => {
+        if (!projectId) return
+        try {
+            const supabase = createBrowserClient()
+            const payload = {
+                project_id: projectId,
+                name: template.name,
+                role: template.role,
+                persona_prompt: template.persona_prompt,
+                mood: template.mood,
+                mission_objective: template.mission_objective,
+                is_active: true,
+                is_agency_template: true,
+                active_platforms: template.active_platforms || ['book-reader'],
+                platform_identities: {}
+            }
+
+            const { data: newAgent, error } = await (supabase as any)
+                .from("community_agents")
+                .insert(payload)
+                .select()
+                .single()
+
+            if (error) throw error
+            
+            setRoster(prev => [...prev, newAgent])
+            toast.success(`${template.name} assigned to project portfolio.`)
+        } catch (err) {
+            toast.error("Failed to assign library agent.")
+        }
+    }
+
+    const deleteAgent = async (agentId: string) => {
+        if (!confirm("Are you sure you want to unassign/delete this persona from the project? This cannot be undone.")) return
+        try {
+            const supabase = createBrowserClient()
+            const { error } = await supabase
+                .from("community_agents")
+                .delete()
+                .eq("id", agentId)
+            
+            if (error) throw error
+            
+            setRoster(prev => prev.filter(a => a.id !== agentId))
+            setAllowedPersonas(prev => prev.filter(id => id !== agentId))
+            toast.success("Persona unassigned from project.")
+        } catch (err) {
+            toast.error("Failed to unassign persona.")
+        }
+    }
+
+    const toggleAgentStatus = async (agentId: string, currentStatus: boolean) => {
+        try {
+            const supabase = createBrowserClient()
+            const { error } = await (supabase as any)
+                .from("community_agents")
+                .update({ is_active: !currentStatus })
+                .eq("id", agentId)
+
+            if (error) throw error
+            setRoster(prev => prev.map(a => a.id === agentId ? { ...a, is_active: !currentStatus } : a))
+            toast.success(`Agent ${!currentStatus ? 'activated' : 'deactivated'}`)
+        } catch (err) {
+            toast.error("Failed to update agent status")
+        }
     }
 
     if (isLoading) {
@@ -310,6 +404,163 @@ export default function AgencyCommunityConfigPage() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Persona Entitlements */}
+                        {featureEnabled && (
+                            <div className="p-8 rounded-3xl glass-panel border border-border space-y-8 animate-in fade-in slide-in-from-top-4">
+                                <div className="space-y-1">
+                                    <h3 className="text-xl font-bold flex items-center gap-2 text-emerald-400">
+                                        <Shield className="h-5 w-5" />
+                                        Persona Entitlements
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Authorize specific AI personas to be active in this portal's Community Hub.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Project Specific Roster</span>
+                                        <Button 
+                                            onClick={() => { setEditingPersona(null); setIsPersonaModalOpen(true); }}
+                                            variant="ghost" 
+                                            className="h-7 rounded-lg text-[9px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/5 px-3"
+                                        >
+                                            <Plus className="h-3 w-3 mr-2" />
+                                            Provision New Persona
+                                        </Button>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        {roster.length > 0 ? (
+                                            roster.map((agent) => {
+                                                const isSelected = allowedPersonas.includes(agent.id);
+                                                return (
+                                                    <div 
+                                                        key={agent.id}
+                                                        className={`p-4 rounded-2xl border transition-all flex items-center justify-between group/persona ${
+                                                            isSelected 
+                                                            ? 'bg-emerald-500/5 border-emerald-500/40 ring-1 ring-emerald-500/20' 
+                                                            : 'bg-muted/5 border-border hover:border-emerald-500/20 hover:bg-muted/10'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-4 flex-1">
+                                                            <div 
+                                                                onClick={() => {
+                                                                    setAllowedPersonas((prev: string[]) => 
+                                                                        prev.includes(agent.id) ? prev.filter((p: string) => p !== agent.id) : [...prev, agent.id]
+                                                                    )
+                                                                }}
+                                                                className={`h-10 w-10 rounded-xl flex items-center justify-center cursor-pointer transition-all ${
+                                                                    isSelected ? 'bg-emerald-500/20 text-emerald-400 shadow-lg shadow-emerald-500/10' : 'bg-muted text-muted-foreground group-hover/persona:text-emerald-400 transition-colors'
+                                                                }`}
+                                                            >
+                                                                {isSelected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <h4 className="text-sm font-bold tracking-tight">{agent.name}</h4>
+                                                                    {agent.is_active ? (
+                                                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50" />
+                                                                    ) : (
+                                                                        <span className="h-1.5 w-1.5 rounded-full bg-muted" />
+                                                                    )}
+                                                                    {agent.is_agency_template ? (
+                                                                        <span className="ml-2 px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[7px] font-black uppercase border border-emerald-500/20">Agency Logic</span>
+                                                                    ) : (
+                                                                        <span className="ml-2 px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 text-[7px] font-black uppercase border border-indigo-500/20">Portal Native</span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/70">{agent.role}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-2 opacity-0 group-hover/persona:opacity-100 transition-opacity">
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                onClick={() => { setEditingPersona(agent); setIsPersonaModalOpen(true); }}
+                                                                className="h-8 w-8 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-400"
+                                                            >
+                                                                <Activity className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                onClick={() => toggleAgentStatus(agent.id, agent.is_active)}
+                                                                className={`h-8 w-8 rounded-lg transition-all ${agent.is_active ? 'bg-emerald-500/10 text-emerald-400' : 'text-muted-foreground hover:bg-muted'}`}
+                                                            >
+                                                                <Zap className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                onClick={() => deleteAgent(agent.id)}
+                                                                className="h-8 w-8 rounded-lg hover:bg-red-500/10 hover:text-red-400"
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="p-10 rounded-3xl border border-dashed border-border text-center">
+                                                <p className="text-sm text-muted-foreground">No personas provisioned for this project yet.</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Agency Template Library */}
+                                    <div className="pt-8 space-y-4">
+                                        <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Agency Intelligence Library</span>
+                                            <span className="text-[9px] font-bold text-muted-foreground/40 italic">Available for Assignment</span>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {library.map(template => (
+                                                <div key={template.id} className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex items-center justify-between group/lib relative overflow-hidden">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover/lib:scale-110 transition-transform">
+                                                            <Brain className="h-5 w-5" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="text-sm font-bold tracking-tight">{template.name}</h4>
+                                                            <p className="text-[9px] font-black uppercase tracking-widest text-primary/60">{template.role}</p>
+                                                        </div>
+                                                    </div>
+                                                    <Button 
+                                                        onClick={() => assignToProject(template)}
+                                                        className="h-9 px-6 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                                                    >
+                                                        Assign to Project
+                                                    </Button>
+                                                    
+                                                    {/* Decorative background text */}
+                                                    <div className="absolute -right-4 -bottom-2 text-[40px] font-black text-primary/5 pointer-events-none select-none italic uppercase">
+                                                        Template
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            
+                                            {library.length === 0 && (
+                                                <div className="p-6 rounded-2xl border border-dashed border-border text-center">
+                                                    <p className="text-xs text-muted-foreground italic opacity-50">Global Librarian: No templates registered.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-start gap-3">
+                                    <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                                    <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+                                        Isolation Protocol: Only whitelisted personas will be loaded into the client's Persona Lab. This prevents unauthorized exposure of agency-wide intelligence modules.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-6">
@@ -369,6 +620,23 @@ export default function AgencyCommunityConfigPage() {
                     )}
                 </div>
             </main>
+
+            <PersonaModal 
+                isOpen={isPersonaModalOpen} 
+                onClose={() => setIsPersonaModalOpen(false)} 
+                projectId={projectId || ""}
+                initialData={editingPersona || undefined}
+                isAgencyMode={true}
+                onSuccess={async () => {
+                    if (!projectId) return
+                    const supabase = createBrowserClient()
+                    const { data: agents } = await supabase
+                        .from("community_agents")
+                        .select("id, name, role, is_active, is_agency_template")
+                        .eq("project_id", projectId)
+                    setRoster(agents || [])
+                }}
+            />
         </div>
     )
 }

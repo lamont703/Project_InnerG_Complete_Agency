@@ -40,9 +40,10 @@ interface PersonaModalProps {
     projectId: string
     onSuccess: () => void
     initialData?: any
+    isAgencyMode?: boolean
 }
 
-export function PersonaModal({ isOpen, onClose, projectId, onSuccess, initialData }: PersonaModalProps) {
+export function PersonaModal({ isOpen, onClose, projectId, onSuccess, initialData, isAgencyMode = false }: PersonaModalProps) {
     const [step, setStep] = useState(1)
     const [isSaving, setIsSaving] = useState(false)
     const [formData, setFormData] = useState({
@@ -101,8 +102,9 @@ export function PersonaModal({ isOpen, onClose, projectId, onSuccess, initialDat
                     ...formData, 
                     project_id: projectId, 
                     is_active: true,
-                    active_platforms: ['book-reader'], // Satisfy NOT NULL constraint explicitly
-                    platform_identities: {} // Satisfy NOT NULL constraint explicitly
+                    is_agency_template: isAgencyMode,
+                    active_platforms: ['book-reader'], 
+                    platform_identities: {} 
                 }
 
                 console.log("[PersonaModal] Provisioning Payload:", payload)
@@ -149,8 +151,11 @@ export function PersonaModal({ isOpen, onClose, projectId, onSuccess, initialDat
                         <DialogTitle className="text-2xl font-black uppercase tracking-tight">
                             {initialData ? 'Intelligence Recalibration' : 'Persona Provisioning Protocol'}
                         </DialogTitle>
-                        <DialogDescription className="text-xs uppercase font-bold tracking-[0.2em] text-muted-foreground/60">
+                        <DialogDescription className="text-xs uppercase font-bold tracking-[0.2em] text-muted-foreground/60 flex items-center gap-2">
                             Neural Sync: Step {step} of 3
+                            {isAgencyMode && (
+                                <span className="ml-2 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[8px] border border-emerald-500/20">Agency Intelligence</span>
+                            )}
                         </DialogDescription>
                     </DialogHeader>
 

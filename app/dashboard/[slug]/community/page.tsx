@@ -122,16 +122,26 @@ export default function CommunityHubPage() {
                     .order("created_at", { ascending: true })
             ]) as any
 
-            if (agentRes.data) setAgents(agentRes.data)
-            if (channelRes.data) setChannels(channelRes.data)
-            if (deploymentRes.data) {
-                // Filter deployments to only those belonging to the current project's agents
-                // This is a safety check as deployments table doesn't have project_id directly
-                const filtered = deploymentRes.data.filter((d: any) => 
-                    agentRes.data?.some((a: any) => a.id === d.agent_id)
-                )
-                setDeployments(filtered)
+            if (agentRes.data) {
+                const whitelist = project.settings?.features?.community_persona_whitelist || [];
+                
+                // Isolation Protocol: Agency-provided agents must be whitelisted.
+                // Portal-generated agents (is_agency_template = false) are always available to the creator project.
+                const filteredAgents = whitelist.length > 0 
+                    ? agentRes.data.filter((a: any) => !a.is_agency_template || whitelist.includes(a.id))
+                    : agentRes.data;
+                
+                setAgents(filteredAgents);
+                
+                if (deploymentRes.data) {
+                    // Filter deployments to only those belonging to the filtered agents
+                    const filteredDeployments = deploymentRes.data.filter((d: any) => 
+                        filteredAgents.some((a: any) => a.id === d.agent_id)
+                    );
+                    setDeployments(filteredDeployments);
+                }
             }
+            if (channelRes.data) setChannels(channelRes.data)
 
         } catch (err) {
             console.error("[CommunityHub] Load error:", err)
