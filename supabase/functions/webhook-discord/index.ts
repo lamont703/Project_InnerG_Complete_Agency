@@ -13,14 +13,6 @@ import { DiscordInteractionService } from "./service.ts"
 export default createHandler(async ({ adminClient, req, body, rawBody }) => {
     const logger = new Logger("webhook-discord")
     
-    // Discord requires checking specific headers for security
-    const signature = req.headers.get("X-Signature-Ed25519")
-    const timestamp = req.headers.get("X-Signature-Timestamp")
-
-    if (!signature || !timestamp || !rawBody) {
-        return validationErrorResponse("Missing security headers or body payload")
-    }
-
     const publicKey = Deno.env.get("DISCORD_PUBLIC_KEY")
     if (!publicKey) {
         logger.error("DISCORD_PUBLIC_KEY not configured in environment")
@@ -29,14 +21,31 @@ export default createHandler(async ({ adminClient, req, body, rawBody }) => {
 
     const service = new DiscordInteractionService(adminClient, logger, publicKey)
 
-    // 1. Verify Request Signature
+    // 1. Check for Internal Relay Secret (Bypass for Gateway Events like joins/mentions)
+    const relaySecret = req.headers.get("X-Neural-Bridge-Secret")
+    const expectedSecret = Deno.env.get("NEURAL_BRIDGE_SECRET")
+
+    if (relaySecret && expectedSecret && relaySecret === expectedSecret) {
+        logger.info("Neural Bridge Relay authenticated via secret")
+        const eventResult = await service.handleInternalEvent(body)
+        return okResponse(eventResult)
+    }
+
+    // 2. Standard Discord Verification (For Interactions)
+    const signature = req.headers.get("X-Signature-Ed25519")
+    const timestamp = req.headers.get("X-Signature-Timestamp")
+
+    if (!signature || !timestamp || !rawBody) {
+        return validationErrorResponse("Missing security headers or body payload")
+    }
+
     const isValid = await service.verifySignature(rawBody, signature, timestamp)
     if (!isValid) {
         logger.warn("Security handshake failed: Invalid signature")
         return validationErrorResponse("Unauthorized signature")
     }
 
-    // 2. Process Interaction
+    // 3. Process Interaction
     const result = await service.handleInteraction(body)
 
     return rawResponse(result)

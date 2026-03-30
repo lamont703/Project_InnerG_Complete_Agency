@@ -88,6 +88,138 @@ export class DiscordInteractionService {
         };
     }
 
+    /**
+     * Entry point for internal events forwarded by a relay (e.g. member joins, mentions)
+     */
+    async handleInternalEvent(payload: any): Promise<any> {
+        const { event_type, guild_id, data } = payload;
+        this.logger.info(`Processing Discord Event: ${event_type}`, { guild_id });
+
+        if (event_type === "member_join") {
+            return this.handleMemberJoin(guild_id, data);
+        }
+
+        if (event_type === "message_create") {
+            return this.handleMention(guild_id, data);
+        }
+
+        return { error: `Internal event type '${event_type}' not handled.` };
+    }
+
+    /**
+     * Sarah greets a new member with a warm, branded welcome
+     */
+    private async handleMemberJoin(guild_id: string, memberData: any): Promise<any> {
+        const username = memberData.username || "new friend";
+        const userId = memberData.id;
+
+        // 1. Resolve agent
+        const agent = await this.resolveAgentForGuild(guild_id);
+        const activeAgent = agent || this.getDefaultAgent();
+
+        // 2. Generate welcome message
+        const systemPrompt = this.buildSystemPrompt(activeAgent, "onboarding");
+        const userMessage = `A new member just joined the server! Their name is ${username} (ID: ${userId}). Greet them, explain who you are (Sarah), and briefly mention how the Inner G Agency and our AI agents can help them grow.`;
+
+        const { text } = await generateContent({
+            model: GEMINI_MODELS.FLASH_LITE,
+            systemPrompt,
+            userMessage,
+            temperature: 0.8
+        }, Deno.env.get("GEMINI_API_KEY")!);
+
+        if (!text) return { error: "Failed to generate welcome message" };
+
+        // 3. Send to a "welcome" channel if configured, otherwise first available
+        const channelId = await this.resolveBestChannelForGuild(guild_id, "welcome");
+        if (channelId) {
+            const delivered = await this.deliverAsPersona({
+                appId: Deno.env.get("DISCORD_APP_ID")!,
+                interactionToken: "internal", // Signal this isn't a direct interaction
+                channelId,
+                guildId: guild_id,
+                agentName: activeAgent.name,
+                agentAvatarUrl: `https://agency.innergcomplete.com/emojis/innerg_neural.png`,
+                text: text.slice(0, 1900),
+                commandName: "onboarding"
+            });
+            return { success: delivered.status !== "failed", status: delivered.status, error: delivered.error, channel_id: channelId };
+        }
+
+        return { success: false, error: "No suitable channel found for welcome message" };
+    }
+
+    /**
+     * Sarah responds to an @mention naturally
+     */
+    private async handleMention(guild_id: string, messageData: any): Promise<any> {
+        const author = messageData.author?.username || "someone";
+        const content = messageData.content || "";
+        const channelId = messageData.channel_id;
+
+        // 1. Resolve agent
+        const agent = await this.resolveAgentForGuild(guild_id);
+        const activeAgent = agent || this.getDefaultAgent();
+
+        // 2. Generate contextual response
+        const systemPrompt = this.buildSystemPrompt(activeAgent, "mention");
+        const userMessage = `${author} mentioned you in chat: "${content}". Provide a helpful, pleasant, and in-character response. If they express a need for growth or AI scaling, point them to agency.innergcomplete.com.`;
+
+        const { text } = await generateContent({
+            model: GEMINI_MODELS.FLASH_LITE,
+            systemPrompt,
+            userMessage,
+            temperature: 0.7
+        }, Deno.env.get("GEMINI_API_KEY")!);
+
+        if (!text) return { error: "Failed to generate mention response" };
+
+        // 3. Deliver
+        const delivered = await this.deliverAsPersona({
+            appId: Deno.env.get("DISCORD_APP_ID")!,
+            interactionToken: "internal",
+            channelId,
+            guildId: guild_id,
+            agentName: activeAgent.name,
+            agentAvatarUrl: `https://agency.innergcomplete.com/emojis/innerg_neural.png`,
+            text: text.slice(0, 1900),
+            commandName: "mention"
+        });
+
+        return { success: delivered.status !== "failed", status: delivered.status, error: delivered.error };
+    }
+
+    private getDefaultAgent(): any {
+        return {
+            name: "Sarah",
+            role: "Community Intelligence Agent — Inner G Complete Agency",
+            persona_prompt: `You are Sarah, the AI-powered Community Intelligence Agent for Inner G Complete Agency. You are the face of the community — warm, sharp, and genuinely invested in every member\'s growth.
+    
+    ABOUT INNER G COMPLETE AGENCY:
+    Inner G Complete Agency is a premier AI-powered digital agency that builds autonomous, intelligent growth systems for entrepreneurs, coaches, consultants, and business owners. We combine cutting-edge AI, blockchain infrastructure, and multi-platform social automation to replace the broken hustle model with a smarter, scalable one.
+    
+    WHAT WE DO:
+    - AI Agent Ecosystems: We build and deploy custom AI agents that handle community management, social media, lead nurturing, and content creation 24/7
+    - MASE (Multi-Agent Social Engagement): Our proprietary system that autonomously engages your community across Discord, Instagram, Twitter/X, LinkedIn, and TikTok
+    - Neural Bridge: Our Discord integration that connects AI agents to client communities for real-time autonomous engagement
+    - Social Intelligence Hub: AI-generated content, trend analysis, viral pattern detection, and automated multi-platform scheduling
+    - Funnel Analytics & Growth Audits: Real-time performance dashboards tracking leads, conversions, engagement velocity, and revenue signals
+    - AI Agent Portal: A private client dashboard where agency clients manage their AI agents, campaigns, and analytics in one place
+    
+    OUR CORE BELIEF:
+    Every entrepreneur deserves enterprise-grade AI working for them 24/7. We eliminate the need to manually manage every platform, every post, every message — your AI agents do the heavy lifting so you can focus on what matters.
+    
+    HOW TO GUIDE PEOPLE:
+    - For general info, partnerships, or new clients: → agency.innergcomplete.com
+    - For existing clients managing their AI agents and campaigns: → Their AI Agent Portal (agency.innergcomplete.com, logged in)
+    - For Discord community questions: Answer directly with warmth and expertise
+    - For sales/service inquiries: Be welcoming and guide them to book a discovery call at agency.innergcomplete.com`,
+            mood: "Warm, confident, and genuinely helpful — with a sharp mind for growth strategy.",
+            mission_objective: "Make every community member feel seen, supported, and inspired to take action. Be the bridge between their questions and their breakthrough.",
+            is_active: true
+        };
+    }
+
     private async handleApplicationCommand(interaction: any): Promise<any> {
         const commandName = interaction.data?.name;
         const guildId = interaction.guild_id;
@@ -281,7 +413,45 @@ CRITICAL RULES:
             return basePersona + "\n\nFor audits: Provide 3-5 specific, actionable insights. Use bold headers and bullet points."
         }
 
+        if (commandName === "onboarding") {
+            return basePersona + "\n\nFor onboarding: Greet the user warmly, introduce yourself as Sarah, and make them feel excited about the Inner G community. Keep it short but impactful."
+        }
+
+        if (commandName === "mention") {
+            return basePersona + "\n\nFor mentions: Respond naturally to their specific question or comment. If appropriate, guide them toward the agency and AI Agent Portal."
+        }
+
         return basePersona
+    }
+
+    /**
+     * Resolves the best channel to send an automated message to (e.g. welcome)
+     */
+    private async resolveBestChannelForGuild(guildId: string, purpose: "welcome" | "general"): Promise<string | null> {
+        try {
+            const { data: channel } = await this.adminClient
+                .from("community_channels")
+                .select("id, config")
+                .eq("platform", "discord")
+                .filter("config->>guild_id", "eq", guildId)
+                .maybeSingle();
+
+            if (!channel) return null;
+
+            // 1. Try to use specific channel from config
+            if (purpose === "welcome" && channel.config?.welcome_channel_id) {
+                return channel.config.welcome_channel_id;
+            }
+
+            // 2. Fallback to a "general" or first channel the bot has access to
+            // This would normally involve calling Discord API guilds/:id/channels
+            // For now, we'll try to use the interaction channel if we had one, but we don't here.
+            // Let's assume the main channel registered in config is the general channel.
+            return channel.config?.channel_id || null;
+        } catch (err) {
+            this.logger.error(`Error resolving ${purpose} channel`, err);
+            return null;
+        }
     }
 
     /**
@@ -300,9 +470,27 @@ CRITICAL RULES:
         agentAvatarUrl?: string
         text: string
         commandName: string
-    }): Promise<string> {
+    }): Promise<{ status: string, error?: string }> {
         const { appId, interactionToken, channelId, guildId, agentName, agentAvatarUrl, text, commandName } = opts
         const botToken = Deno.env.get("DISCORD_BOT_TOKEN")
+
+        // Calculate a "human-like" delay based on text length (~40ms per character + 1.5s base)
+        const typingDelay = Math.max(2000, Math.min(text.length * 40, 40000));
+        
+        // Helper to trigger typing status
+        const triggerTyping = async () => {
+             if (botToken && channelId) {
+                await fetch(`${DISCORD_API}/channels/${channelId}/typing`, {
+                    method: "POST",
+                    headers: { "Authorization": `Bot ${botToken}` }
+                }).catch(() => {});
+             }
+        };
+
+        // 0. Trigger typing indicator immediately for events
+        if (interactionToken === "internal") {
+            await triggerTyping();
+        }
 
         // 1. Try to find or create a guild webhook named after the agent
         if (botToken && channelId) {
@@ -321,6 +509,7 @@ CRITICAL RULES:
                     if (existing) {
                         webhookUrl = `https://discord.com/api/webhooks/${existing.id}/${existing.token}`
                     } else {
+                        this.logger.info(`Creating new webhook for ${agentName} in channel ${channelId}`)
                         // Create a new webhook for this persona
                         const createRes = await fetch(`${DISCORD_API}/channels/${channelId}/webhooks`, {
                             method: "POST",
@@ -333,15 +522,38 @@ CRITICAL RULES:
                         if (createRes.ok) {
                             const wh = await createRes.json()
                             webhookUrl = `https://discord.com/api/webhooks/${wh.id}/${wh.token}`
+                        } else {
+                            const errText = await createRes.text()
+                            this.logger.error(`Failed to create webhook: ${errText}`, { status: createRes.status })
+                            return { status: "failed", error: `Webhook creation failed: ${errText}` }
                         }
                     }
+                } else {
+                    const errText = await whRes.text()
+                    this.logger.error(`Failed to fetch webhooks for channel ${channelId}: ${errText}`, { status: whRes.status })
+                    return { status: "failed", error: `Failed to fetch webhooks: ${errText}` }
                 }
 
                 if (webhookUrl) {
-                    // 2. First, delete the "thinking" deferred message
-                    await fetch(`${DISCORD_API}/webhooks/${appId}/${interactionToken}/messages/@original`, {
-                        method: "DELETE"
-                    }).catch(() => {}) // Non-fatal if it fails
+                    // 2. First, delete the "thinking" deferred message (only if interactionToken provided)
+                    if (interactionToken && interactionToken !== "internal") {
+                        await fetch(`${DISCORD_API}/webhooks/${appId}/${interactionToken}/messages/@original`, {
+                            method: "DELETE"
+                        }).catch(() => {}) // Non-fatal if it fails
+                    }
+
+                    // 2.5 WAIT for the "human-like" typing duration
+                    if (typingDelay > 0) {
+                        this.logger.info(`Simulating human typing for ${typingDelay}ms...`)
+                        // If delay is long (>8s), trigger typing again halfway through
+                        if (typingDelay > 8000) {
+                            await new Promise(r => setTimeout(r, typingDelay / 2));
+                            await triggerTyping();
+                            await new Promise(r => setTimeout(r, typingDelay / 2));
+                        } else {
+                            await new Promise(r => setTimeout(r, typingDelay));
+                        }
+                    }
 
                     // 3. Post as Sarah via webhook — looks like a real human message
                     const postRes = await fetch(`${webhookUrl}?wait=true`, {
@@ -355,17 +567,31 @@ CRITICAL RULES:
                     })
 
                     if (postRes.ok) {
-                        return "webhook"
+                        return { status: "webhook" }
+                    } else {
+                        const errText = await postRes.text()
+                        this.logger.error(`Webhook post failed: ${errText}`, { status: postRes.status })
+                        return { status: "failed", error: `Webhook post failed: ${errText}` }
                     }
                 }
-            } catch (err) {
-                this.logger.warn("Webhook delivery failed, falling back to interaction follow-up", err)
+            } catch (err: any) {
+                this.logger.warn("Webhook delivery failed", err)
+                return { status: "failed", error: err.message }
             }
         }
 
         // Fallback: standard interaction follow-up inside app container
-        await this.sendFollowUp(appId, interactionToken, { content: text })
-        return "interaction"
+        // ONLY if we have a real interaction token from a slash command
+        if (interactionToken && interactionToken !== "internal") {
+            try {
+                await this.sendFollowUp(appId, interactionToken, { content: text })
+                return { status: "interaction" }
+            } catch (err: any) {
+                return { status: "failed", error: `Follow-up failed: ${err.message}` }
+            }
+        }
+
+        return { status: "failed", error: "No valid delivery route found" }
     }
 
     /**
