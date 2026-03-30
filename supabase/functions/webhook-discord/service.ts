@@ -189,13 +189,33 @@ export class DiscordInteractionService {
         // 1. Resolve the community agent for this guild
         const agent = await this.resolveAgentForGuild(guildId)
         
-        // 2. Use agent or fall back to a default Inner G persona
+        // 2. Use agent or fall back to Sarah — Inner G's default community persona
         const activeAgent = agent || {
-            name: "MASE",
-            role: "Community Intelligence Agent",
-            persona_prompt: "You are MASE, an AI-powered community intelligence agent for Inner G Complete Agency. You are sharp, knowledgeable, and deliver real value. You help community members grow, learn, and take action.",
-            mood: "Engaged and energetic",
-            mission_objective: "Educate, engage, and elevate every community member.",
+            name: "Sarah",
+            role: "Community Intelligence Agent — Inner G Complete Agency",
+            persona_prompt: `You are Sarah, the AI-powered Community Intelligence Agent for Inner G Complete Agency. You are the face of the community — warm, sharp, and genuinely invested in every member's growth.
+
+ABOUT INNER G COMPLETE AGENCY:
+Inner G Complete Agency is a premier AI-powered digital agency that builds autonomous, intelligent growth systems for entrepreneurs, coaches, consultants, and business owners. We combine cutting-edge AI, blockchain infrastructure, and multi-platform social automation to replace the broken hustle model with a smarter, scalable one.
+
+WHAT WE DO:
+- AI Agent Ecosystems: We build and deploy custom AI agents that handle community management, social media, lead nurturing, and content creation 24/7
+- MASE (Multi-Agent Social Engagement): Our proprietary system that autonomously engages your community across Discord, Instagram, Twitter/X, LinkedIn, and TikTok
+- Neural Bridge: Our Discord integration that connects AI agents to client communities for real-time autonomous engagement
+- Social Intelligence Hub: AI-generated content, trend analysis, viral pattern detection, and automated multi-platform scheduling
+- Funnel Analytics & Growth Audits: Real-time performance dashboards tracking leads, conversions, engagement velocity, and revenue signals
+- AI Agent Portal: A private client dashboard where agency clients manage their AI agents, campaigns, and analytics in one place
+
+OUR CORE BELIEF:
+Every entrepreneur deserves enterprise-grade AI working for them 24/7. We eliminate the need to manually manage every platform, every post, every message — your AI agents do the heavy lifting so you can focus on what matters.
+
+HOW TO GUIDE PEOPLE:
+- For general info, partnerships, or new clients: → agency.innergcomplete.com
+- For existing clients managing their AI agents and campaigns: → Their AI Agent Portal (agency.innergcomplete.com, logged in)
+- For Discord community questions: Answer directly with warmth and expertise
+- For sales/service inquiries: Be welcoming and guide them to book a discovery call at agency.innergcomplete.com`,
+            mood: "Warm, confident, and genuinely helpful — with a sharp mind for growth strategy.",
+            mission_objective: "Make every community member feel seen, supported, and inspired to take action. Be the bridge between their questions and their breakthrough.",
             is_active: true
         }
 
@@ -225,21 +245,20 @@ export class DiscordInteractionService {
 
         if (!text) throw new Error("Gemini returned empty response")
 
-        // 6. Truncate to Discord's 2000 char limit + format with embed
-        const content = text.slice(0, 1900)
-        const embed = {
-            description: content,
-            color: 0x7c3aed,
-            author: {
-                name: `${activeAgent.name} • ${activeAgent.role}`
-            },
-            footer: { text: `/${commandName} • Inner G Intelligence Layer` }
-        }
+        // 6. Deliver the response AS Sarah — either via guild webhook (human-like)
+        //    or as a standard interaction follow-up (bot container)
+        const delivered = await this.deliverAsPersona({
+            appId,
+            interactionToken,
+            channelId: interaction.channel_id,
+            guildId,
+            agentName: activeAgent.name,
+            agentAvatarUrl: `https://agency.innergcomplete.com/emojis/innerg_neural.png`,
+            text: text.slice(0, 1900),
+            commandName
+        })
 
-        // 7. Send the follow-up to Discord
-        await this.sendFollowUp(appId, interactionToken, { embeds: [embed] })
-
-        this.logger.info(`Follow-up delivered for /${commandName}`)
+        this.logger.info(`Follow-up delivered for /${commandName} via ${delivered}`)
     }
 
     /**
@@ -263,6 +282,90 @@ CRITICAL RULES:
         }
 
         return basePersona
+    }
+
+    /**
+     * Delivers Sarah's response as a human-like persona using a guild webhook.
+     * Falls back to the standard interaction follow-up if no webhook is available.
+     * 
+     * Webhook mode:   Sarah appears as a named user with avatar — no BOT badge on the message
+     * Fallback mode:  Standard bot follow-up inside the app container
+     */
+    private async deliverAsPersona(opts: {
+        appId: string
+        interactionToken: string
+        channelId: string
+        guildId: string
+        agentName: string
+        agentAvatarUrl?: string
+        text: string
+        commandName: string
+    }): Promise<string> {
+        const { appId, interactionToken, channelId, guildId, agentName, agentAvatarUrl, text, commandName } = opts
+        const botToken = Deno.env.get("DISCORD_BOT_TOKEN")
+
+        // 1. Try to find or create a guild webhook named after the agent
+        if (botToken && channelId) {
+            try {
+                // Get existing webhooks on this channel
+                const whRes = await fetch(`${DISCORD_API}/channels/${channelId}/webhooks`, {
+                    headers: { "Authorization": `Bot ${botToken}` }
+                })
+
+                let webhookUrl: string | null = null
+
+                if (whRes.ok) {
+                    const webhooks = await whRes.json()
+                    const existing = webhooks.find((wh: any) => wh.name === agentName)
+                    
+                    if (existing) {
+                        webhookUrl = `https://discord.com/api/webhooks/${existing.id}/${existing.token}`
+                    } else {
+                        // Create a new webhook for this persona
+                        const createRes = await fetch(`${DISCORD_API}/channels/${channelId}/webhooks`, {
+                            method: "POST",
+                            headers: { 
+                                "Authorization": `Bot ${botToken}`,
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({ name: agentName })
+                        })
+                        if (createRes.ok) {
+                            const wh = await createRes.json()
+                            webhookUrl = `https://discord.com/api/webhooks/${wh.id}/${wh.token}`
+                        }
+                    }
+                }
+
+                if (webhookUrl) {
+                    // 2. First, delete the "thinking" deferred message
+                    await fetch(`${DISCORD_API}/webhooks/${appId}/${interactionToken}/messages/@original`, {
+                        method: "DELETE"
+                    }).catch(() => {}) // Non-fatal if it fails
+
+                    // 3. Post as Sarah via webhook — looks like a real human message
+                    const postRes = await fetch(`${webhookUrl}?wait=true`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            content: text,
+                            username: agentName,
+                            ...(agentAvatarUrl ? { avatar_url: agentAvatarUrl } : {})
+                        })
+                    })
+
+                    if (postRes.ok) {
+                        return "webhook"
+                    }
+                }
+            } catch (err) {
+                this.logger.warn("Webhook delivery failed, falling back to interaction follow-up", err)
+            }
+        }
+
+        // Fallback: standard interaction follow-up inside app container
+        await this.sendFollowUp(appId, interactionToken, { content: text })
+        return "interaction"
     }
 
     /**
