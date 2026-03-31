@@ -635,6 +635,78 @@ export class AgencyService {
     }
 
     /**
+     * Fetch social platform growth over the last 24 hours
+     */
+    async getRolling24hSocialGrowth(projectSlug: string = "innergcomplete"): Promise<any | null> {
+        const { data: project } = await this.supabase
+            .from("projects")
+            .select("id")
+            .eq("slug", projectSlug)
+            .single()
+
+        if (!project) return null
+
+        // Fetch current totals
+        const [yt, tt, li, ig, tw, fb] = await Promise.all([
+            this.getYouTubeMetrics(projectSlug).catch(() => null),
+            this.getTikTokMetrics(projectSlug).catch(() => null),
+            this.getLinkedInMetrics(projectSlug).catch(() => null),
+            this.getInstagramMetrics(projectSlug).catch(() => null),
+            this.getTwitterMetrics(projectSlug).catch(() => null),
+            this.getFacebookMetrics(projectSlug).catch(() => null)
+        ])
+
+        const now = {
+            yt: yt?.views || 0,
+            tt: tt?.totalViews || 0,
+            li: li?.views || 0,
+            ig: ig?.reach || 0,
+            tw: tw?.impressions || 0,
+            fb: fb?.reach || 0
+        }
+
+        // Get snapshot from ~24h ago
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+        const { data: snapshot } = await this.supabase
+            .from("project_hourly_metrics")
+            .select("*")
+            .eq("project_id", project.id)
+            .gte("snapshot_timestamp", oneDayAgo)
+            .order("snapshot_timestamp", { ascending: true })
+            .limit(1)
+            .maybeSingle()
+
+        if (!snapshot) {
+            return {
+                youtube: 0,
+                tiktok: 0,
+                linkedin: 0,
+                instagram: 0,
+                twitter: 0,
+                facebook: 0,
+                is_initialized: false
+            }
+        }
+
+        return {
+            youtube: Math.max(0, now.yt - Number(snapshot.youtube_views || 0)),
+            tiktok: Math.max(0, now.tt - Number(snapshot.tiktok_views || 0)),
+            linkedin: Math.max(0, now.li - Number(snapshot.linkedin_views || 0)),
+            instagram: Math.max(0, now.ig - Number(snapshot.instagram_reach || 0)),
+            twitter: Math.max(0, now.tw - Number(snapshot.twitter_impressions || 0)),
+            facebook: Math.max(0, now.fb - Number(snapshot.facebook_reach || 0)),
+            engagement: Math.max(0, (
+                (yt?.likes || 0) + (yt?.comments || 0) +
+                (tt?.videoLikes || 0) + (tt?.videoComments || 0) +
+                (li?.likes || 0) + (li?.comments || 0) +
+                (ig?.likes || 0) + (ig?.comments || 0) +
+                (tw?.likes || 0) + (tw?.replies || 0)
+            ) - Number((snapshot.metrics_payload as any)?.likes || 0)),
+            is_initialized: true
+        }
+    }
+
+    /**
      * Force sync pixel data to public snapshots
      */
     async syncPixelSnapshot(projectSlug: string = "innergcomplete"): Promise<void> {

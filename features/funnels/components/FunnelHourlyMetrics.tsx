@@ -18,6 +18,7 @@ export function FunnelHourlyMetrics({ projectSlug }: FunnelHourlyMetricsProps) {
         facebookMetrics,
         twitterMetrics,
         pixelMetrics24h: pixelMetrics,
+        socialGrowth24h,
         funnelConfig
     } = useProjectFunnel(projectSlug)
 
@@ -70,31 +71,22 @@ export function FunnelHourlyMetrics({ projectSlug }: FunnelHourlyMetricsProps) {
         }
     }
 
-    // 1. Global Source Intake
+    // 1. Global Source Intake (24h Growth Delta)
     const totalSourceIntake = config.sources.filter((s:any) => s.enabled).reduce((acc: number, s: any) => {
-        const sourceData = s.id === 'yt' ? youtubeMetrics : 
-                           s.id === 'tt' ? tiktokMetrics : 
-                           s.id === 'li' ? linkedinMetrics : 
-                           s.id === 'ig' ? instagramMetrics : 
-                           s.id === 'tw' ? twitterMetrics :
-                           s.id === 'fb' ? facebookMetrics : null;
-        return acc + (sourceData ? sourceData[s.metric] || 0 : 0);
+        if (!socialGrowth24h) return 0;
+        
+        const delta = s.id === 'yt' ? socialGrowth24h.youtube : 
+                      s.id === 'tt' ? socialGrowth24h.tiktok : 
+                      s.id === 'li' ? socialGrowth24h.linkedin : 
+                      s.id === 'ig' ? socialGrowth24h.instagram : 
+                      s.id === 'tw' ? socialGrowth24h.twitter :
+                      s.id === 'fb' ? socialGrowth24h.facebook : 0;
+        
+        return acc + (delta || 0);
     }, 0);
 
-    // 2. Engagement Pool
-    let totalEngagement = 0;
-    if (config.engagement.metrics.find((m:any) => m.id === 'likes')?.enabled) {
-        totalEngagement += (youtubeMetrics?.likes || 0) + (linkedinMetrics?.likes || 0) + (instagramMetrics?.likes || 0) + (tiktokMetrics?.videoLikes || 0) + (facebookMetrics?.likes || 0) + (twitterMetrics?.likes || 0);
-    }
-    if (config.engagement.metrics.find((m:any) => m.id === 'comments')?.enabled) {
-        totalEngagement += (youtubeMetrics?.comments || 0) + (linkedinMetrics?.comments || 0) + (instagramMetrics?.comments || 0) + (tiktokMetrics?.videoComments || 0) + (facebookMetrics?.comments || 0) + (twitterMetrics?.replies || 0);
-    }
-    if (config.engagement.metrics.find((m:any) => m.id === 'shares')?.enabled) {
-        totalEngagement += (linkedinMetrics?.shares || 0) + (tiktokMetrics?.videoShares || 0) + (twitterMetrics?.retweets || 0);
-    }
-    if (config.engagement.metrics.find((m:any) => m.id === 'visitors')?.enabled) {
-        totalEngagement += (pixelMetrics?.uniqueVisitors || 0);
-    }
+    // 2. Engagement Pool (24h Growth Delta)
+    const totalEngagement = (socialGrowth24h?.engagement || 0) + (pixelMetrics?.uniqueVisitors || 0);
 
     // 3. Conversion Hub
     const totalConversions = config.conversion.metrics.filter((m:any) => m.enabled).reduce((acc: number, m: any) => {

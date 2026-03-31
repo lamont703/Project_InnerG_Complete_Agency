@@ -12,6 +12,7 @@ export function useProjectFunnel(projectSlug: string) {
     const [facebookMetrics, setFacebookMetrics] = useState<any>(null)
     const [pixelMetrics, setPixelMetrics] = useState<any>(null)
     const [pixelMetrics24h, setPixelMetrics24h] = useState<any>(null)
+    const [socialGrowth24h, setSocialGrowth24h] = useState<any>(null)
     const [funnelConfig, setFunnelConfig] = useState<any>(null)
 
     const [supabase] = useState(() => createBrowserClient())
@@ -22,7 +23,7 @@ export function useProjectFunnel(projectSlug: string) {
         
         setIsLoading(true)
         try {
-            const [yt, tt, li, ig, tw, fb, pixel, pixel24h, config] = await Promise.all([
+            const [yt, tt, li, ig, tw, fb, pixel, pixel24h, social24h, config] = await Promise.all([
                 service.getYouTubeMetrics(projectSlug),
                 service.getTikTokMetrics(projectSlug),
                 service.getLinkedInMetrics(projectSlug),
@@ -31,6 +32,7 @@ export function useProjectFunnel(projectSlug: string) {
                 service.getFacebookMetrics(projectSlug),
                 service.getPixelMetrics(projectSlug),
                 service.getRolling24hPixelMetrics(projectSlug),
+                service.getRolling24hSocialGrowth(projectSlug),
                 service.getFunnelConfig(projectSlug)
             ])
 
@@ -42,6 +44,7 @@ export function useProjectFunnel(projectSlug: string) {
             setFacebookMetrics(fb)
             setPixelMetrics(pixel)
             setPixelMetrics24h(pixel24h)
+            setSocialGrowth24h(social24h)
             setFunnelConfig(config)
         } catch (err) {
             console.error("[useProjectFunnel] Error:", err)
@@ -64,6 +67,7 @@ export function useProjectFunnel(projectSlug: string) {
         twitterMetrics,
         pixelMetrics,
         pixelMetrics24h,
+        socialGrowth24h,
         funnelConfig,
         refresh: fetchData
     }

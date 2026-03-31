@@ -37,20 +37,47 @@ export function FacebookSDK({ children }: { children?: React.ReactNode }) {
     const refreshStatus = useCallback(() => {
         // @ts-ignore
         if (typeof FB !== 'undefined') {
-            // @ts-ignore
-            FB.getLoginStatus(function(response: any) {
-                console.log("[Facebook SDK] Status Updated:", response.status);
-                setLoginStatus({
-                    status: response.status,
-                    authResponse: response.authResponse
+            // Guard: FB Login requires HTTPS (strict protocol check to avoid SDK errors on http localhost)
+            const isSecure = window.location.protocol === 'https:';
+            
+            if (!isSecure) {
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    // Just log a silent warning once
+                    setLoginStatus({ status: 'unknown' });
+                    return;
+                }
+                console.warn("[Facebook SDK] FB.getLoginStatus requires HTTPS. Bypassing check.");
+                setLoginStatus({ status: 'unknown' });
+                return;
+            }
+
+            try {
+                // @ts-ignore
+                FB.getLoginStatus(function(response: any) {
+                    console.log("[Facebook SDK] Status Updated:", response.status);
+                    setLoginStatus({
+                        status: response.status || 'unknown',
+                        authResponse: response.authResponse
+                    });
                 });
-            });
+            } catch (err) {
+                console.error("[Facebook SDK] Error fetching login status:", err);
+                setLoginStatus({ status: 'unknown' });
+            }
         }
     }, [])
 
     useEffect(() => {
         // @ts-ignore
         window.fbAsyncInit = function() {
+            // Guard: Strict HTTPS Requirement for Facebook SDK
+            const isSecure = window.location.protocol === 'https:';
+            if (!isSecure) {
+                console.warn("[Facebook SDK] HTTPS required for SDK initialization. Pausing FB.init...");
+                setLoginStatus({ status: 'unknown' });
+                return;
+            }
+
             // @ts-ignore
             FB.init({
                 appId      : appId,
