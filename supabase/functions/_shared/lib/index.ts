@@ -27,6 +27,7 @@ export { TwitterProvider } from "./providers/twitter.ts"
 export { LinkedInProvider } from "./providers/linkedin.ts"
 export { YouTubeProvider } from "./providers/youtube.ts"
 export { DiscordProvider } from "./providers/discord.ts"
+export { AlpacaProvider } from "./providers/alpaca.ts"
 
 // Shared Business Logic Services
 export * from "./services/invite.ts"

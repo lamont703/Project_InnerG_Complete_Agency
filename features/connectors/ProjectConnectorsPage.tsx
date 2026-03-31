@@ -40,6 +40,7 @@ import { InstagramLoginButton } from "@/components/social/instagram-login-button
 import { TwitterLoginButton } from "@/components/social/twitter-login-button"
 import { LinkedInLoginButton } from "@/components/social/linkedin-login-button"
 import { YouTubeLoginButton } from "@/components/social/youtube-login-button"
+import { AlpacaLoginButton } from "@/components/social/alpaca-login-button"
 
 // PROVIDER ICONS + COLORS (Synced with Admin)
 const providerMeta: Record<string, { color: string; bgColor: string; label: string }> = {
@@ -56,6 +57,8 @@ const providerMeta: Record<string, { color: string; bgColor: string; label: stri
     instagram: { color: "text-white", bgColor: "bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] border-pink-500/20", label: "Instagram" },
     facebook: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "Facebook Meta" },
     twitter: { color: "text-zinc-100", bgColor: "bg-zinc-800 border-zinc-700/50", label: "X (Twitter)" },
+    alpaca: { color: "text-cyan-400", bgColor: "bg-cyan-500/10 border-cyan-500/20", label: "Alpaca Broker" },
+    alpaca_keys: { color: "text-cyan-200", bgColor: "bg-cyan-600/10 border-cyan-600/20", label: "Alpaca (Manual API Keys)" },
 }
 
 const statusMeta: Record<string, { icon: any; color: string; label: string }> = {
@@ -491,7 +494,7 @@ export function ProjectConnectorsPage() {
                             {selectedTypeSchema && (
                                 <div className="space-y-4 mb-6 p-5 rounded-2xl bg-background/30 border border-border/50">
                                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">Protocol Configuration</p>
-                                    {selectedType?.provider === "facebook" ? (
+                                    {selectedType?.provider?.toLowerCase() === "facebook" ? (
                                         <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
                                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center px-6">
                                                 Meta uses Business Login for secure access to Pages and accounts.
@@ -505,7 +508,7 @@ export function ProjectConnectorsPage() {
                                                 You will be redirected back here after authorizing via Facebook.
                                             </p>
                                         </div>
-                                    ) : selectedType?.provider === "instagram" ? (
+                                    ) : selectedType?.provider?.toLowerCase() === "instagram" ? (
                                         <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
                                             <p className="text-[10px] font-black text-pink-500 uppercase tracking-widest text-center px-6">
                                                 Connect your Instagram Business account directly.
@@ -518,7 +521,7 @@ export function ProjectConnectorsPage() {
                                                 Authorized via the native Instagram Login flow.
                                             </p>
                                         </div>
-                                    ) : selectedType?.provider === "tiktok" ? (
+                                    ) : selectedType?.provider?.toLowerCase() === "tiktok" ? (
                                         <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
                                             <p className="text-[10px] font-black text-pink-500 uppercase tracking-widest text-center px-6">
                                                 Connect TikTok to sync your videos and content insights.
@@ -530,7 +533,7 @@ export function ProjectConnectorsPage() {
                                                 OAuth connection requires access to video.list and profile info.
                                             </p>
                                         </div>
-                                    ) : selectedType?.provider === "twitter" ? (
+                                    ) : selectedType?.provider?.toLowerCase() === "twitter" ? (
                                         <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
                                             <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest text-center px-6">
                                                 Connect X (Twitter) via OAuth 2.0 PKCE.
@@ -542,7 +545,7 @@ export function ProjectConnectorsPage() {
                                                 Includes access to follow counts and recent performance signals.
                                             </p>
                                         </div>
-                                    ) : selectedType?.provider === "linkedin" ? (
+                                    ) : selectedType?.provider?.toLowerCase() === "linkedin" ? (
                                         <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
                                             <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest text-center px-6">
                                                 Connect your LinkedIn Profile or Page via OAuth.
@@ -554,7 +557,7 @@ export function ProjectConnectorsPage() {
                                                 Authorizes personal posts and organization page access.
                                             </p>
                                         </div>
-                                    ) : selectedType?.provider === "youtube" ? (
+                                    ) : selectedType?.provider?.toLowerCase() === "youtube" ? (
                                         <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
                                             <p className="text-[10px] font-black text-red-500 uppercase tracking-widest text-center px-6">
                                                 Connect your YouTube Channel via Google OAuth.
@@ -570,6 +573,27 @@ export function ProjectConnectorsPage() {
                                             )}
                                             <p className="text-[8px] text-muted-foreground italic">
                                                 Authorizes analytics and channel content discovery.
+                                            </p>
+                                        </div>
+                                    ) : (selectedType?.provider?.toLowerCase() === "alpaca" || selectedType?.name === "Alpaca Brokerage") ? (
+                                        <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                            <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest text-center px-6">
+                                                Connect Alpaca Brokerage for Automated Trading.
+                                            </p>
+                                            
+                                            <div className="px-12 text-center flex flex-col gap-3">
+                                                <p className="text-[9px] text-muted-foreground leading-relaxed">
+                                                    <span className="font-bold text-foreground">Authorize Inner G Complete Agency App:</span> By allowing Inner G Complete Agency App to access your Alpaca account, you are granting access to your account information and authorization to place transactions in your account at your direction. Alpaca does not warrant or guarantee that Inner G Complete Agency App will work as advertised or expected.
+                                                </p>
+                                            </div>
+
+                                            <AlpacaLoginButton 
+                                                projectId={projectId || ""}
+                                            />
+                                            
+                                            <p className="text-[8px] text-muted-foreground italic flex items-center gap-2">
+                                                <Database size={10} />
+                                                Authorizes accounts, trading, and real-time market data.
                                             </p>
                                         </div>
                                     ) : Object.entries(selectedTypeSchema.properties || selectedTypeSchema).map(([key, schema]: [string, any]) => {
@@ -805,6 +829,8 @@ export function ProjectConnectorsPage() {
                                                             <Facebook className={`h-5 w-5 ${meta.color}`} />
                                                         ) : provider === "twitter" ? (
                                                             <Twitter className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "alpaca" ? (
+                                                            <Database className={`h-5 w-5 ${meta.color}`} />
                                                         ) : (
                                                             <Database className={`h-5 w-5 ${meta.color}`} />
                                                         )}
