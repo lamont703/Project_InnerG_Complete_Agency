@@ -50,7 +50,8 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess, initialDat
         name: "",
         apiKey: "",
         baseUrl: "",
-        webhookUrl: ""
+        webhookUrl: "",
+        discordChannelId: ""
     })
 
     useEffect(() => {
@@ -60,11 +61,12 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess, initialDat
                 name: initialData.name,
                 apiKey: initialData.config?.apiKey || "",
                 baseUrl: initialData.config?.baseUrl || "",
-                webhookUrl: initialData.config?.webhookUrl || ""
+                webhookUrl: initialData.config?.webhookUrl || "",
+                discordChannelId: initialData.config?.channel_id || ""
             })
         } else if (isOpen) {
             setSelectedPlatform(null)
-            setFormData({ name: "", apiKey: "", baseUrl: "", webhookUrl: "" })
+            setFormData({ name: "", apiKey: "", baseUrl: "", webhookUrl: "", discordChannelId: "" })
         }
     }, [isOpen, initialData])
 
@@ -148,7 +150,9 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess, initialDat
             const config = {
                 apiKey: formData.apiKey,
                 baseUrl: formData.baseUrl,
-                webhookUrl: formData.webhookUrl
+                webhookUrl: formData.webhookUrl,
+                // Discord bot delivery target — the specific text channel ID
+                ...(formData.discordChannelId ? { channel_id: formData.discordChannelId } : {})
             }
 
             const payload = {
@@ -373,14 +377,26 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess, initialDat
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Legacy Webhook URL</label>
-                                        <Input 
-                                            placeholder="https://discord.com/api/webhooks/..." 
-                                            className="rounded-xl h-12"
-                                            value={formData.webhookUrl}
-                                            onChange={e => setFormData({...formData, webhookUrl: e.target.value})}
-                                        />
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Discord Text Channel ID <span className="text-primary">(for Bot Delivery)</span></label>
+                                            <Input 
+                                                placeholder="e.g. 1234567890123456789" 
+                                                className="rounded-xl h-12 font-mono text-sm"
+                                                value={formData.discordChannelId}
+                                                onChange={e => setFormData({...formData, discordChannelId: e.target.value})}
+                                            />
+                                            <p className="text-[9px] text-muted-foreground italic ml-1">Right-click any text channel in Discord → Copy Channel ID (Developer Mode must be ON)</p>
+                                        </div>
+                                        <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Legacy Webhook URL <span className="text-muted-foreground/40">(optional)</span></label>
+                                            <Input 
+                                                placeholder="https://discord.com/api/webhooks/..." 
+                                                className="rounded-xl h-12"
+                                                value={formData.webhookUrl}
+                                                onChange={e => setFormData({...formData, webhookUrl: e.target.value})}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
