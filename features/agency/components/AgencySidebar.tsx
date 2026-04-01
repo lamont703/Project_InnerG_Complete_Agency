@@ -16,7 +16,8 @@ import {
     Zap,
     Target,
     Users,
-    Calendar
+    Calendar,
+    TrendingUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -32,7 +33,11 @@ interface AgencySidebarProps {
 export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
     const router = useRouter()
     const pathname = usePathname()
-    const [features, setFeatures] = useState<{ community_agents?: boolean; social_planner?: boolean }>({})
+    const [features, setFeatures] = useState<{ 
+        community_agents?: boolean; 
+        social_planner?: boolean;
+        crypto_intelligence?: boolean;
+    }>({})
 
     useEffect(() => {
         const fetchAgencyFeatures = async () => {
@@ -41,12 +46,23 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
                 // The agency project typically has slug 'innergcomplete'
                 const { data: project } = await supabase
                     .from("projects")
-                    .select("settings")
+                    .select("id, settings")
                     .eq("slug", "innergcomplete")
                     .single() as any
                 
                 if (project?.settings?.features) {
-                    setFeatures(project.settings.features)
+                    setFeatures(prev => ({ ...prev, ...project.settings.features }))
+                }
+
+                // 2. Check crypto intelligence status
+                const { data: cryptoConfig } = await supabase
+                    .from("crypto_intelligence_config")
+                    .select("is_active")
+                    .eq("project_id", project?.id)
+                    .single() as any
+
+                if (cryptoConfig?.is_active) {
+                    setFeatures(prev => ({ ...prev, crypto_intelligence: true }))
                 }
             } catch (err) {
                 console.error("[AgencySidebar] Feature fetch error:", err)
@@ -75,6 +91,9 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
 
     const adminItems = [
         { href: "/admin/projects", icon: Building2, label: "Project Access Hub", active: pathname.startsWith("/admin/projects") },
+        ...(features.crypto_intelligence ? [
+            { href: "/dashboard/innergcomplete/crypto", icon: TrendingUp, label: "Crypto Trading Intelligence", active: pathname === "/dashboard/innergcomplete/crypto" }
+        ] : []),
         { href: "/admin/metrics", icon: BarChart3, label: "Metrics & Intelligence", active: pathname === "/admin/metrics" },
         { href: "/admin/funnels", icon: Target, label: "Funnels & Conversion", active: pathname === "/admin/funnels" },
         { href: "/admin/token-usage", icon: Layout, label: "Token Usage", active: pathname === "/admin/token-usage" },

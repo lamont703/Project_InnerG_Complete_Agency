@@ -19,7 +19,8 @@ import {
     Zap,
     GitBranch,
     Users,
-    Calendar
+    Calendar,
+    TrendingUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -43,7 +44,11 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
     const currentTab = searchParams?.get("tab")
     const [userRole, setUserRole] = useState<UserRole | null>(null)
     const [isLoading, setIsLoading] = useState(true)
-    const [features, setFeatures] = useState<{ community_agents?: boolean; social_planner?: boolean }>({})
+    const [features, setFeatures] = useState<{ 
+        community_agents?: boolean; 
+        social_planner?: boolean;
+        crypto_intelligence?: boolean;
+    }>({})
 
     useEffect(() => {
         const fetchUserRoleAndFeatures = async () => {
@@ -66,12 +71,23 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                     // 2. Fetch project features
                     const { data: project } = await supabase
                         .from("projects")
-                        .select("settings")
+                        .select("id, settings")
                         .eq("slug", projectSlug)
                         .single() as any
                     
                     if (project?.settings?.features) {
-                        setFeatures(project.settings.features)
+                        setFeatures(prev => ({ ...prev, ...project.settings.features }))
+                    }
+
+                    // 3. Fetch crypto intelligence status
+                    const { data: cryptoConfig } = await supabase
+                        .from("crypto_intelligence_config")
+                        .select("is_active")
+                        .eq("project_id", project?.id)
+                        .single() as any
+
+                    if (cryptoConfig?.is_active) {
+                        setFeatures(prev => ({ ...prev, crypto_intelligence: true }))
                     }
                 }
             } catch (err) {
@@ -124,6 +140,14 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                 icon: Calendar,
                 label: "Social Planner Agent",
                 active: pathname === `/dashboard/${projectSlug}/social-planner`,
+            }
+        ] : []),
+        ...(features.crypto_intelligence ? [
+            {
+                href: `/dashboard/${projectSlug}/crypto`,
+                icon: TrendingUp,
+                label: "Crypto Trading Intelligence",
+                active: pathname === `/dashboard/${projectSlug}/crypto`,
             }
         ] : []),
         {
