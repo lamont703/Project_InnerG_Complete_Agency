@@ -13,7 +13,8 @@ import {
     Settings,
     MessageSquare,
     CheckCircle2,
-    Info
+    Info,
+    Plug
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -27,6 +28,8 @@ interface CryptoConfig {
     risk_per_trade_percent: number
     min_confidence_score: number
     discord_channel_id: string
+    discord_channel_name?: string
+    alpaca_api_key_id?: string | null
 }
 
 export default function CryptoConfigPage() {
@@ -34,13 +37,16 @@ export default function CryptoConfigPage() {
     const { slug } = useParams()
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
+    const [isScanning, setIsScanning] = useState(false)
     const [project, setProject] = useState<any>(null)
+    const [alpacaConnector, setAlpacaConnector] = useState<any>(null)
     const [config, setConfig] = useState<CryptoConfig>({
         is_active: false,
         symbols: ["BTC/USD", "ETH/USD"],
         risk_per_trade_percent: 1.0,
         min_confidence_score: 80,
-        discord_channel_id: ""
+        discord_channel_id: "",
+        alpaca_api_key_id: null
     })
 
     useEffect(() => {
@@ -48,12 +54,12 @@ export default function CryptoConfigPage() {
             try {
                 const supabase = createBrowserClient()
                 
-                // Get project details
-                const { data: projData } = await supabase
+                // 1. Get project details
+                const { data: projData } = await (supabase
                     .from("projects")
                     .select("*")
-                    .eq("slug", slug)
-                    .single()
+                    .eq("slug", slug as string)
+                    .single() as any)
 
                 if (!projData) {
                     router.push("/admin/projects")
@@ -61,15 +67,49 @@ export default function CryptoConfigPage() {
                 }
                 setProject(projData)
 
-                // Get crypto config
-                const { data: cfgData } = await supabase
+                // 2. Find any existing Alpaca Connectors for this project
+                const { data: connectorData } = await (supabase
+                    .from("client_db_connections")
+                    .select("id, label, is_active")
+                    .eq("project_id", projData.id)
+                    .or("db_type.eq.alpaca,db_type.eq.alpaca_keys")
+                    .single() as any)
+
+                if (connectorData) {
+                    setAlpacaConnector(connectorData)
+                    // Pre-sync the config state with the discovered connector
+                    setConfig(prev => ({ ...prev, alpaca_api_key_id: connectorData.id }))
+                }
+
+                // 3. Find any active Community Channels (Discord) for this project
+                const { data: communityData } = await (supabase
+                    .from("community_channels")
+                    .select("id, name, config")
+                    .eq("project_id", projData.id)
+                    .eq("platform", "discord")
+                    .eq("is_active", true)
+                    .single() as any)
+
+                let communityChannelId = ""
+                if (communityData?.config?.channel_id || communityData?.config?.discord_channel_id) {
+                    communityChannelId = communityData.config.channel_id || communityData.config.discord_channel_id
+                }
+
+                // 4. Get crypto config
+                const { data: cfgData } = await (supabase
                     .from("crypto_intelligence_config")
                     .select("*")
                     .eq("project_id", projData.id)
-                    .single()
+                    .single() as any)
 
                 if (cfgData) {
-                    setConfig(cfgData)
+                    setConfig({
+                        ...cfgData,
+                        discord_channel_id: cfgData.discord_channel_id || communityChannelId,
+                        discord_channel_name: communityData?.name || "Community Main"
+                    })
+                } else if (communityChannelId) {
+                    setConfig(prev => ({ ...prev, discord_channel_id: communityChannelId }))
                 }
             } catch (err) {
                 console.error("Failed to load crypto config", err)
@@ -84,13 +124,17 @@ export default function CryptoConfigPage() {
         setIsSaving(true)
         try {
             const supabase = createBrowserClient()
-            const { error } = await supabase
+            // Explicitly ensure the connector ID is locked in
+            const finalConfig = {
+                ...config,
+                project_id: project.id,
+                alpaca_api_key_id: alpacaConnector?.id || config.alpaca_api_key_id,
+                updated_at: new Date().toISOString()
+            }
+
+            const { error } = await (supabase
                 .from("crypto_intelligence_config")
-                .upsert({
-                    project_id: project.id,
-                    ...config,
-                    updated_at: new Date().toISOString()
-                }, { onConflict: 'project_id' })
+                .upsert(finalConfig as any, { onConflict: 'project_id' }))
 
             if (error) throw error
             toast.success("Crypto Strategy and Intelligence updated successfully")
@@ -99,6 +143,25 @@ export default function CryptoConfigPage() {
             toast.error("Failed to sync neural configuration")
         } finally {
             setIsSaving(false)
+        }
+    }
+
+    const handleManualScan = async () => {
+        if (!project?.id) return
+        setIsScanning(true)
+        try {
+            const supabase = createBrowserClient()
+            const { error } = await supabase.functions.invoke('crypto-intelligence-engine', {
+                body: { project_id: project.id }
+            })
+
+            if (error) throw error
+            toast.success("Manual SMC Scan Complete. Check the Trading Hub for any staged signals.")
+        } catch (err: any) {
+            console.error("Scan failed", err)
+            toast.error(err.message || "Manual scan failed to resolve market confluences")
+        } finally {
+            setIsScanning(false)
         }
     }
 
@@ -137,17 +200,50 @@ export default function CryptoConfigPage() {
                             <p className="text-gray-400 text-sm max-w-md leading-relaxed">
                                 Activate the institutional SMC/ICT scanner to track liquidity, structure breaks, and supply/demand zones across the project's asset portfolio.
                             </p>
+                            
+                            {/* Alpaca Status Badge */}
+                            <div className="mt-6 flex items-center gap-3">
+                                {alpacaConnector ? (
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                                        <Plug size={12} /> Alpaca Linked: {alpacaConnector.label || 'Active Gateway'}
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest">
+                                        <ShieldAlert size={12} /> Alpaca Connection Missing
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="flex flex-col items-center gap-3 relative z-10">
-                            <Switch 
-                                checked={config.is_active}
-                                onCheckedChange={(val) => setConfig({...config, is_active: val})}
-                                className="data-[state=checked]:bg-emerald-500 scale-125"
-                            />
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${config.is_active ? 'text-emerald-400' : 'text-gray-500'}`}>
-                                {config.is_active ? 'System Online' : 'System Offline'}
-                            </span>
+                            <Button 
+                                onClick={handleManualScan}
+                                disabled={isScanning || !config.is_active || !alpacaConnector}
+                                variant="outline"
+                                className="h-12 px-6 rounded-xl border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-400 font-black uppercase tracking-widest italic text-[10px]"
+                            >
+                                {isScanning ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        Scanning...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Zap size={14} className="mr-2" />
+                                        Force Neural Scan
+                                    </>
+                                )}
+                            </Button>
+                            <div className="flex flex-col items-center gap-2">
+                                <Switch 
+                                    checked={config.is_active}
+                                    onCheckedChange={(val) => setConfig({...config, is_active: val})}
+                                    className="data-[state=checked]:bg-emerald-500 scale-125"
+                                />
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${config.is_active ? 'text-emerald-400' : 'text-gray-500'}`}>
+                                    {config.is_active ? 'System Online' : 'System Offline'}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -225,16 +321,26 @@ export default function CryptoConfigPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start relative z-10">
                                 <div>
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 block italic text-indigo-400">Discord Intelligence Channel ID</label>
-                                    <input 
-                                        type="text"
-                                        value={config.discord_channel_id}
-                                        onChange={(e) => setConfig({...config, discord_channel_id: e.target.value})}
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white font-mono placeholder:text-white/20 focus:ring-1 focus:ring-indigo-500 transition-all font-bold tracking-widest"
-                                        placeholder="123456789012345678"
-                                    />
+                                    <div className="relative group/input">
+                                        <input 
+                                            type="text"
+                                            value={config.discord_channel_id}
+                                            onChange={(e) => setConfig({...config, discord_channel_id: e.target.value})}
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white font-mono placeholder:text-white/20 focus:ring-1 focus:ring-indigo-500 transition-all font-bold tracking-widest group-hover/input:border-white/20"
+                                            placeholder="Auto-discovering community gateway..."
+                                        />
+                                        {config.discord_channel_id && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase tracking-widest">
+                                                <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                                                Live Community Sync
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="mt-4 flex items-center gap-2 p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
                                         <Info size={14} className="text-indigo-400" />
-                                        <p className="text-[10px] text-indigo-400/70 font-medium">This ID links the Intelligence Engine directly to your chosen Community Hub Agent.</p>
+                                        <p className="text-[10px] text-indigo-400/70 font-medium">
+                                            {config.discord_channel_name ? `Linked to: ${config.discord_channel_name}` : "This ID links the Intelligence Engine directly to your chosen Community Hub Agent."}
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="space-y-4">

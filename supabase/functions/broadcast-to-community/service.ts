@@ -149,8 +149,10 @@ CRITICAL RULES:
 
     private async deliverToDiscord(agent: any, deployment: any, content: string): Promise<boolean> {
         const botToken = Deno.env.get("DISCORD_BOT_TOKEN")
-        const guildId = deployment.channel.config?.guild_id
-        const channelId = deployment.channel.config?.channel_id || deployment.room_id
+        const guildId = deployment.channel?.config?.guild_id || deployment.channel?.config?.discord_guild_id
+        const channelId = deployment.channel?.config?.channel_id || 
+                          deployment.channel?.config?.discord_channel_id || 
+                          deployment.room_id
 
         if (!botToken || !channelId) {
             this.logger.error("Missing Discord credentials for delivery", { channelId })

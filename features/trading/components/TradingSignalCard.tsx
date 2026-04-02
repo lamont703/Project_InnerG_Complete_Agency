@@ -19,6 +19,7 @@ const supabase = createBrowserClient();
 interface SignalProps {
   signal: {
     id: string;
+    project_id: string;
     symbol: string;
     bias: 'LONG' | 'SHORT';
     entry_price: number;
@@ -42,6 +43,7 @@ export const TradingSignalCard: React.FC<SignalProps> = ({ signal }) => {
   const isUp = signal.bias === 'LONG';
   
   const statusColors = {
+    STAGED: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
     PENDING: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
     ACTIVE: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
     HIT_TP: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
@@ -61,7 +63,7 @@ export const TradingSignalCard: React.FC<SignalProps> = ({ signal }) => {
             {isUp ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
           </div>
           <div>
-            <h3 className="text-xl font-bold text-white tracking-tight">{signal.symbol}</h3>
+            <h3 className="text-xl font-bold text-zinc-900 tracking-tight">{signal.symbol}</h3>
             <div className="flex items-center gap-2 mt-1">
               <span className={`text-xs font-black px-2 py-0.5 rounded uppercase tracking-widest ${isUp ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
                 {signal.bias}
@@ -140,7 +142,7 @@ export const TradingSignalCard: React.FC<SignalProps> = ({ signal }) => {
       </button>
 
       {showNarrative && (
-        <div className="animate-in slide-in-from-top-4 duration-300 overflow-hidden bg-black/20 rounded-xl p-4 mb-4 text-xs text-gray-300 leading-relaxed border border-indigo-500/20 shadow-inner">
+        <div className="animate-in slide-in-from-top-4 duration-300 overflow-hidden bg-black/20 rounded-xl p-4 mb-4 text-[13px] font-medium text-white leading-relaxed border border-indigo-500/20 shadow-inner">
            {signal.narrative_reasoning || "Analyzing project fundamentals and narrative sentiment for AI/DePIN confluence..."}
         </div>
       )}
@@ -151,16 +153,32 @@ export const TradingSignalCard: React.FC<SignalProps> = ({ signal }) => {
           <>
             <button 
               onClick={async () => {
-                const { error } = await supabase.from('crypto_signals').update({ status: 'ACTIVE' } as any).eq('id', signal.id);
-                if (!error) {
-                    await fetch('/functions/v1/broadcast-to-community', {
-                        method: 'POST',
-                        body: JSON.stringify({ 
-                            type: 'TRADING_SIGNAL', 
-                            signal_id: signal.id,
-                            channel_id: 'discord' 
-                        })
-                    });
+                // 1. Attempt Broadcast First (Safety Logic)
+                const { data, error: broadcastInvokeError } = await supabase.functions.invoke('broadcast-to-community', {
+                    body: { 
+                        type: 'TRADING_SIGNAL', 
+                        signal_id: signal.id,
+                        project_id: signal.project_id
+                    }
+                });
+
+                if (broadcastInvokeError || (data && !data.success)) {
+                    const relayError = broadcastInvokeError?.message || data?.error || "Broadcast delivery failed.";
+                    console.error("Broadcast failed:", relayError);
+                    toast.error(`Relay Error: ${relayError}. Signal remains STAGED.`);
+                    return;
+                }
+
+                // 2. Only update status IF broadcast was successful
+                const { error: updateError } = await supabase
+                    .from('crypto_signals')
+                    .update({ status: 'ACTIVE' } as any)
+                    .eq('id', signal.id);
+
+                if (updateError) {
+                    console.error("Status update failed:", updateError);
+                    toast.error("Broadcast Sent, but internal status failed to update.");
+                } else {
                     toast.success("Intelligence Broadcasted to Community!");
                 }
               }}
