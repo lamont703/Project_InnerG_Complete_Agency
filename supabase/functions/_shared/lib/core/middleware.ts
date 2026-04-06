@@ -22,6 +22,7 @@ export interface FunctionContext<T = any> {
     adminClient: SupabaseClient
     user: AuthUser | null
     body: T
+    rawBody?: string
 }
 
 export interface HandlerConfig<T extends z.ZodTypeAny = any> {
@@ -81,11 +82,15 @@ export function createHandler<T extends z.ZodTypeAny = any>(
                 }
             }
 
-            // 5. Body Parsing & Validation
             let body: any = {}
+            let rawBody: string | undefined = undefined
+            
             if (req.method !== "GET" && req.method !== "HEAD") {
                 try {
-                    body = await req.json()
+                    rawBody = await req.text()
+                    if (rawBody) {
+                        body = JSON.parse(rawBody)
+                    }
                 } catch {
                     // Fallback to empty object if no body or malformed JSON
                 }
@@ -104,7 +109,8 @@ export function createHandler<T extends z.ZodTypeAny = any>(
                 req,
                 adminClient,
                 user: userResult?.user || null,
-                body
+                body,
+                rawBody
             })
 
         } catch (err) {

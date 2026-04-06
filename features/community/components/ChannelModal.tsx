@@ -50,7 +50,8 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess, initialDat
         name: "",
         apiKey: "",
         baseUrl: "",
-        webhookUrl: ""
+        webhookUrl: "",
+        discordChannelId: ""
     })
 
     useEffect(() => {
@@ -60,11 +61,12 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess, initialDat
                 name: initialData.name,
                 apiKey: initialData.config?.apiKey || "",
                 baseUrl: initialData.config?.baseUrl || "",
-                webhookUrl: initialData.config?.webhookUrl || ""
+                webhookUrl: initialData.config?.webhookUrl || "",
+                discordChannelId: initialData.config?.channel_id || ""
             })
         } else if (isOpen) {
             setSelectedPlatform(null)
-            setFormData({ name: "", apiKey: "", baseUrl: "", webhookUrl: "" })
+            setFormData({ name: "", apiKey: "", baseUrl: "", webhookUrl: "", discordChannelId: "" })
         }
     }, [isOpen, initialData])
 
@@ -102,11 +104,11 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess, initialDat
         },
         { 
             id: 'discord', 
-            name: 'Discord Webhook', 
+            name: 'Discord Neural Bridge', 
             icon: MessageSquare, 
             color: 'text-indigo-400', 
             bg: 'bg-indigo-500/10',
-            description: 'Reply to messages in specific channels.'
+            description: 'Full bot integration for active persona engagement.'
         },
         { 
             id: 'slack', 
@@ -148,7 +150,9 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess, initialDat
             const config = {
                 apiKey: formData.apiKey,
                 baseUrl: formData.baseUrl,
-                webhookUrl: formData.webhookUrl
+                webhookUrl: formData.webhookUrl,
+                // Discord bot delivery target — the specific text channel ID
+                ...(formData.discordChannelId ? { channel_id: formData.discordChannelId } : {})
             }
 
             const payload = {
@@ -332,6 +336,69 @@ export function ChannelModal({ isOpen, onClose, projectId, onSuccess, initialDat
                                         />
                                     </div>
                                 </>
+                            ) : selectedPlatform === 'discord' ? (
+                                <div className="space-y-6">
+                                    <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 text-center space-y-4">
+                                        <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center mx-auto text-indigo-400">
+                                            <MessageSquare className="h-6 w-6" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <h4 className="text-sm font-bold tracking-tight">Advanced Neural Integration</h4>
+                                            <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+                                                This will invite the <strong>{process.env.NEXT_PUBLIC_APP_NAME || 'Agency'}</strong> bot to your server. 
+                                                Ensure you have <strong>Manage Server</strong> permissions on the target Discord server.
+                                            </p>
+                                        </div>
+                                        
+                                        <Button 
+                                            variant="secondary"
+                                            className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-[10px]"
+                                            onClick={() => {
+                                                const clientId = "1487865692589002892" // From .env
+                                                const redirect = encodeURIComponent(`${window.location.origin}/discord/callback`)
+                                                const scopes = encodeURIComponent("identify bot email applications.commands guilds role_connections.write")
+                                                const permissions = "311494735936" // The permissions integer I calculated
+                                                // Using projectId as state to associate the guild with this client
+                                                const oauthUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=${permissions}&response_type=code&redirect_uri=${redirect}&integration_type=0&scope=${scopes}&state=${projectId}`
+                                                window.location.href = oauthUrl
+                                            }}
+                                        >
+                                            <ExternalLink className="h-4 w-4 mr-2" />
+                                            Authorize Neural App
+                                        </Button>
+                                    </div>
+
+                                    <div className="relative">
+                                        <div className="absolute inset-0 flex items-center">
+                                            <span className="w-full border-t border-border/50" />
+                                        </div>
+                                        <div className="relative flex justify-center text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground bg-background px-3">
+                                            OR USE LEGACY WEBHOOK
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Discord Text Channel ID <span className="text-primary">(for Bot Delivery)</span></label>
+                                            <Input 
+                                                placeholder="e.g. 1234567890123456789" 
+                                                className="rounded-xl h-12 font-mono text-sm"
+                                                value={formData.discordChannelId}
+                                                onChange={e => setFormData({...formData, discordChannelId: e.target.value})}
+                                            />
+                                            <p className="text-[9px] text-muted-foreground italic ml-1">Right-click any text channel in Discord → Copy Channel ID (Developer Mode must be ON)</p>
+                                        </div>
+                                        <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Legacy Webhook URL <span className="text-muted-foreground/40">(optional)</span></label>
+                                            <Input 
+                                                placeholder="https://discord.com/api/webhooks/..." 
+                                                className="rounded-xl h-12"
+                                                value={formData.webhookUrl}
+                                                onChange={e => setFormData({...formData, webhookUrl: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             ) : (
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Platform Webhook Destination URL</label>

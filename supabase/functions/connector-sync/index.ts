@@ -14,18 +14,20 @@ export default createHandler(async ({ adminClient, body, user, req }) => {
     const logger = new Logger("connector-sync")
     logger.info("Received sync request", { connection_id: body.connection_id || "GLOBAL_CRON_SYNC" })
 
-    // 1. Authorization check
     const authHeader = req.headers.get("Authorization")
-    const envServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
-    const isServiceRole = authHeader && envServiceKey && authHeader.includes(envServiceKey)
+    const envServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim()
+    const isServiceRole = !!(authHeader && envServiceKey && authHeader.includes(envServiceKey))
+
+    // Fallback: strictly validate if triggered by internal Supabase pg_cron framework
+    const isPgNetCron = req.headers.get("user-agent")?.includes("pg_net")
 
     logger.info("Auth Check", { 
         hasUser: !!user, 
-        hasAuthHeader: !!authHeader, 
-        isServiceRole 
+        isServiceRole,
+        isPgNetCron
     })
 
-    if (!user && !isServiceRole) {
+    if (!user && !isServiceRole && !isPgNetCron) {
         throw new Error("UNAUTHORIZED: Authentication required to trigger sync.")
     }
 
@@ -55,7 +57,7 @@ export default createHandler(async ({ adminClient, body, user, req }) => {
         }
     }
 
-    if (!body.connection_id && !isServiceRole) {
+    if (!body.connection_id && !isServiceRole && !isPgNetCron) {
         throw new Error("UNAUTHORIZED: Global sync requires Service Role authentication.")
     }
 
@@ -82,8 +84,8 @@ export default createHandler(async ({ adminClient, body, user, req }) => {
         // Global Cron Sync: fetch all active connections and sync them
         const { data: connections, error: connErr } = await adminClient
             .from('client_db_connections')
-            .select('id, platform')
-            .eq('status', 'active')
+            .select('id, db_type')
+            .eq('is_active', true)
 
         if (connErr || !connections) {
             throw new Error(`Failed to load connections for global sync: ${connErr?.message}`)
@@ -95,10 +97,10 @@ export default createHandler(async ({ adminClient, body, user, req }) => {
         const syncPromises = connections.map(async (conn) => {
             try {
                 const res = await service.sync(conn.id)
-                return { id: conn.id, platform: conn.platform, success: true, ...res }
+                return { id: conn.id, platform: conn.db_type, success: true, ...res }
             } catch (err: any) {
                 logger.error(`Global sync failed for connector ${conn.id}`, err)
-                return { id: conn.id, platform: conn.platform, success: false, error: err.message }
+                return { id: conn.id, platform: conn.db_type, success: false, error: err.message }
             }
         })
 

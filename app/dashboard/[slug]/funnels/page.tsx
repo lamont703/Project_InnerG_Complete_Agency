@@ -5,6 +5,7 @@ import { useParams } from "next/navigation"
 import { Loader2, TrendingUp, Target, Filter, Sparkles } from "lucide-react"
 import { DashboardHeader } from "@/components/layout/dashboard/header"
 import { OmniChannelStream } from "@/features/funnels/components/OmniChannelStream"
+import { FunnelHourlyMetrics } from "@/features/funnels/components/FunnelHourlyMetrics"
 import { createBrowserClient } from "@/lib/supabase/browser"
 
 export default function ClientFunnelPage() {
@@ -107,25 +108,8 @@ export default function ClientFunnelPage() {
                         showMetricsGrid={true}
                     />
 
-                    {/* Analysis Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {[
-                            { title: "Awareness Velocity", value: "+12.4%", status: "STABLE", icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-                            { title: "Engagement Depth", value: "74.1%", status: "ACTIVE", icon: Sparkles, color: "text-blue-400", bg: "bg-blue-500/10" },
-                            { title: "Conversion Accuracy", value: "98.2%", status: "HIGH", icon: Target, color: "text-violet-400", bg: "bg-violet-500/10" }
-                        ].map((stat: any) => (
-                            <div key={stat.title} className="p-8 rounded-[2.5rem] border border-white/5 bg-white/5 backdrop-blur-md group hover:border-emerald-500/30 transition-all duration-500">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color}`}>
-                                        <stat.icon className="h-5 w-5" />
-                                    </div>
-                                    <span className={`text-[10px] font-black px-3 py-1 rounded-full ${stat.bg} ${stat.color} tracking-widest`}>{stat.status}</span>
-                                </div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-2 group-hover:text-white/80 transition-colors">{stat.title}</p>
-                                <p className="text-3xl font-black text-white">{stat.value}</p>
-                            </div>
-                        ))}
-                    </div>
+                    {/* Funnel Hoverly Metrics */}
+                    <FunnelHourlyMetrics projectSlug={slug} />
                 </div>
             </main>
         </div>

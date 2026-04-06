@@ -41,6 +41,7 @@ import { InstagramLoginButton } from "@/components/social/instagram-login-button
 import { TwitterLoginButton } from "@/components/social/twitter-login-button"
 import { LinkedInLoginButton } from "@/components/social/linkedin-login-button"
 import { YouTubeLoginButton } from "@/components/social/youtube-login-button"
+import { AlpacaLoginButton } from "@/components/social/alpaca-login-button"
 
 // ─────────────────────────────────────────────
 // TYPES
@@ -96,6 +97,8 @@ const providerMeta: Record<string, { color: string; bgColor: string; label: stri
     instagram: { color: "text-white", bgColor: "bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] border-pink-500/20", label: "Instagram" },
     facebook: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "Facebook Meta" },
     twitter: { color: "text-zinc-100", bgColor: "bg-black border-white/20", label: "X (Twitter)" },
+    alpaca: { color: "text-cyan-400", bgColor: "bg-cyan-500/10 border-cyan-500/20", label: "Alpaca Brokerage" },
+    alpaca_keys: { color: "text-cyan-200", bgColor: "bg-cyan-600/10 border-cyan-600/20", label: "Alpaca (Manual API Keys)" },
 }
 
 const statusMeta: Record<string, { icon: any; color: string; label: string }> = {
@@ -566,6 +569,27 @@ export default function ConnectorAdminPage() {
                                         Authorizes analytics and channel content discovery.
                                     </p>
                                 </div>
+                            ) : (selectedType?.provider?.toLowerCase() === "alpaca" || selectedType?.name === "Alpaca Brokerage") ? (
+                                <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                    <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest text-center px-6">
+                                        Connect Alpaca Brokerage for Automated Trading.
+                                    </p>
+                                    
+                                    <div className="px-12 text-center flex flex-col gap-3">
+                                        <p className="text-[9px] text-muted-foreground leading-relaxed">
+                                            <span className="font-bold text-foreground">Authorize Inner G Complete Agency App:</span> By allowing Inner G Complete Agency App to access your Alpaca account, you are granting access to your account information and authorization to place transactions in your account at your direction. Alpaca does not warrant or guarantee that Inner G Complete Agency App will work as advertised or expected.
+                                        </p>
+                                    </div>
+
+                                    <AlpacaLoginButton 
+                                        projectId={newProject}
+                                    />
+                                    
+                                    <p className="text-[8px] text-muted-foreground italic flex items-center gap-2">
+                                        <Database size={10} />
+                                        Authorizes accounts, trading, and real-time market data.
+                                    </p>
+                                </div>
                             ) : selectedTypeSchema?.properties && (
                                 <div className="space-y-3 mb-5 p-4 rounded-xl bg-muted/5 border border-border">
                                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Configuration</p>
@@ -743,6 +767,8 @@ export default function ConnectorAdminPage() {
                                                 <Zap className={`h-4 w-4 ${meta.color}`} />
                                             ) : ct.provider === "newsapi" ? (
                                                 <Newspaper className={`h-4 w-4 ${meta.color}`} />
+                                            ) : ct.provider === "alpaca" ? (
+                                                <Plug className={`h-4 w-4 ${meta.color}`} />
                                             ) : (
                                                 <Database className={`h-4 w-4 ${meta.color}`} />
                                             )}
@@ -807,6 +833,8 @@ export default function ConnectorAdminPage() {
                                                             <Facebook className={`h-5 w-5 ${meta.color}`} />
                                                         ) : provider === "twitter" ? (
                                                             <Twitter className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "alpaca" ? (
+                                                            <Plug className={`h-5 w-5 ${meta.color}`} />
                                                         ) : (
                                                             <Database className={`h-5 w-5 ${meta.color}`} />
                                                         )}

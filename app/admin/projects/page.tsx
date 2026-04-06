@@ -15,7 +15,8 @@ import {
     ExternalLink,
     Brain,
     MessageSquare,
-    Calendar
+    Calendar,
+    TrendingUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -205,6 +206,18 @@ export default function ProjectManagementPage() {
                                             <div className="flex items-center gap-3">
                                                 <BarChart3 className="h-4 w-4" />
                                                 <span className="text-[10px] font-black uppercase tracking-widest italic">Metrics & Ports</span>
+                                            </div>
+                                            <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                                        </Button>
+                                    </Link>
+                                    <Link href={`/admin/projects/${project.slug}/crypto`}>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="w-full justify-between h-12 px-4 rounded-2xl bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/10 text-indigo-400 group/btn transition-all shadow-xl shadow-indigo-500/5"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <TrendingUp className="h-4 w-4" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest italic">Crypto Strategy</span>
                                             </div>
                                             <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                                         </Button>

@@ -360,7 +360,7 @@ export function UnifiedStream({
                                                 if (p === 'linkedin') return <Linkedin className="h-4 w-4 text-blue-400" />
                                                 if (p === 'instagram') return <Instagram className="h-4 w-4 text-pink-400" />
                                                 if (p === 'facebook') return <Facebook className="h-4 w-4 text-blue-600" />
-                                                if (p === 'twitter' || p === 'x') return <Twitter className="h-4 w-4 text-zinc-400" />
+                                                if (p === 'twitter' || p === 'x' || p === 'twitter_x') return <Twitter className="h-4 w-4 text-zinc-400" />
                                                 if (p === 'youtube') return <Youtube className="h-4 w-4 text-red-500" />
                                                 if (p === 'ghl') return <MessageSquare className="h-4 w-4 text-orange-400" />
                                                 return <Sparkles className="h-4 w-4 text-violet-400" />
@@ -414,8 +414,8 @@ export function UnifiedStream({
                                             </button>
 
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); toggleDraftPlatform(draft.id, 'twitter', draft.platform); }}
-                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all ${getSelectedDraftPlatforms(draft.id, draft.platform).includes('twitter') ? 'bg-zinc-500/20 border-zinc-500/40 text-zinc-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
+                                                onClick={(e) => { e.stopPropagation(); toggleDraftPlatform(draft.id, 'twitter_x', draft.platform); }}
+                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all ${getSelectedDraftPlatforms(draft.id, draft.platform).includes('twitter_x') ? 'bg-zinc-500/20 border-zinc-500/40 text-zinc-400 font-bold' : 'bg-transparent border-white/5 text-muted-foreground/30 hover:border-white/10'}`}
                                             >
                                                 <Twitter className="h-3 w-3" />
                                                 <span className="text-[8px] font-black uppercase tracking-tighter">X (Twitter)</span>

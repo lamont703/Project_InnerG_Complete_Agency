@@ -191,6 +191,10 @@ export function SocialPostModal({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (!projectId || projectId === "") {
+            toast.error("Project context not synchronized. Please refresh the portal.")
+            return
+        }
         if (selectedPlatforms.length === 0 || (!executeNow && !scheduledAt) || !content) {
             toast.error("Please select at least one target and fill all mandatory protocols")
             return
@@ -252,6 +256,7 @@ export function SocialPostModal({
                         status: executeNow ? 'approved' : 'scheduled',
                         source_type: initialData?.source_type || 'manual',
                         scheduled_at: date.toISOString(),
+                        media_url: mediaUrl,
                         ai_reasoning: executeNow ? "Immediate manual force-dispatch override." : (initialData?.ai_reasoning || "Human-provisioned tactical broadcast via Social Planner."),
                         dispatch_metadata: finalMetadata
                     }
@@ -332,7 +337,7 @@ export function SocialPostModal({
         instagram: { icon: Instagram, color: 'text-pink-500' },
         facebook: { icon: Facebook, color: 'text-blue-600' },
         linkedin: { icon: Linkedin, color: 'text-blue-500' },
-        twitter: { icon: Twitter, color: 'text-zinc-400' },
+        twitter_x: { icon: Twitter, color: 'text-zinc-400' },
         ghl: { icon: MessageSquare, color: 'text-orange-500' },
         discord: { icon: MessageSquare, color: 'text-indigo-400' },
         slack: { icon: Zap, color: 'text-emerald-400' }
@@ -451,7 +456,7 @@ export function SocialPostModal({
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Payload Content (The Post Content)</label>
-                                {selectedPlatforms.includes('twitter') && (
+                                {selectedPlatforms.includes('twitter_x') && (
                                     <div className="flex items-center gap-2">
                                         <span className={`text-[9px] font-black uppercase tracking-widest ${content.length > 280 ? 'text-red-500 animate-pulse' : 'text-muted-foreground'}`}>
                                             X limit: {content.length} / 280
@@ -466,9 +471,9 @@ export function SocialPostModal({
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
                                 placeholder="What would you like to broadcast to your nodes?"
-                                className={`w-full h-40 bg-muted/10 border ${content.length > 280 && selectedPlatforms.includes('twitter') ? 'border-red-500/50' : 'border-border'} rounded-2xl p-6 text-sm font-medium leading-relaxed placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary outline-none transition-all resize-none`}
+                                className={`w-full h-40 bg-muted/10 border ${content.length > 280 && selectedPlatforms.includes('twitter_x') ? 'border-red-500/50' : 'border-border'} rounded-2xl p-6 text-sm font-medium leading-relaxed placeholder:text-muted-foreground/30 focus:ring-1 focus:ring-primary outline-none transition-all resize-none`}
                             />
-                            {content.length > 280 && selectedPlatforms.includes('twitter') && (
+                            {content.length > 280 && selectedPlatforms.includes('twitter_x') && (
                                 <p className="text-[9px] text-red-500/80 font-bold italic animate-in fade-in slide-in-from-top-1">
                                     "Your broadcast exceeds the standard X (Twitter) character limit for non-verified accounts."
                                 </p>

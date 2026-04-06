@@ -28,6 +28,7 @@ import { syncTikTok } from "./providers/tiktok/index.ts"
 import { syncNews } from "./providers/newsapi/index.ts"
 import { syncMeta } from "./providers/meta/index.ts"
 import { syncTwitter } from "./providers/twitter/index.ts"
+import { syncAlpaca } from "./providers/alpaca/index.ts"
 
 export interface SyncResult {
     success: boolean
@@ -165,6 +166,10 @@ export class SyncService {
                         syncConfig as any,
                         connectionId
                     )
+                    break
+                case "alpaca":
+                case "alpaca_keys":
+                    result = await syncAlpaca(this.adminClient, projectId, syncConfig as any)
                     break
                 default:
                     result = {

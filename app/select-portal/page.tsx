@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import {
     ArrowRight,
     BookOpen,
@@ -155,8 +156,14 @@ export default function SelectPortalPage() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-16 gap-8">
                     <div className="flex flex-col">
                         <Link href="/" className="inline-flex items-center gap-2 mb-8 group">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105">
-                                <span className="text-xl font-bold">G</span>
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105 overflow-hidden">
+                                <Image 
+                                    src="/icon-light-32x32.png" 
+                                    alt="Inner G Logo" 
+                                    width={32} 
+                                    height={32}
+                                    className="h-full w-full object-contain"
+                                />
                             </div>
                             <span className="text-xl font-bold tracking-tight text-foreground">
                                 Inner G Complete

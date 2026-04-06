@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import {
     Building2,
     BarChart3,
@@ -16,7 +17,8 @@ import {
     Zap,
     Target,
     Users,
-    Calendar
+    Calendar,
+    TrendingUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -32,7 +34,11 @@ interface AgencySidebarProps {
 export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
     const router = useRouter()
     const pathname = usePathname()
-    const [features, setFeatures] = useState<{ community_agents?: boolean; social_planner?: boolean }>({})
+    const [features, setFeatures] = useState<{ 
+        community_agents?: boolean; 
+        social_planner?: boolean;
+        crypto_intelligence?: boolean;
+    }>({})
 
     useEffect(() => {
         const fetchAgencyFeatures = async () => {
@@ -41,12 +47,23 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
                 // The agency project typically has slug 'innergcomplete'
                 const { data: project } = await supabase
                     .from("projects")
-                    .select("settings")
+                    .select("id, settings")
                     .eq("slug", "innergcomplete")
                     .single() as any
                 
                 if (project?.settings?.features) {
-                    setFeatures(project.settings.features)
+                    setFeatures(prev => ({ ...prev, ...project.settings.features }))
+                }
+
+                // 2. Check crypto intelligence status
+                const { data: cryptoConfig } = await supabase
+                    .from("crypto_intelligence_config")
+                    .select("is_active")
+                    .eq("project_id", project?.id)
+                    .single() as any
+
+                if (cryptoConfig?.is_active) {
+                    setFeatures(prev => ({ ...prev, crypto_intelligence: true }))
                 }
             } catch (err) {
                 console.error("[AgencySidebar] Feature fetch error:", err)
@@ -75,6 +92,9 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
 
     const adminItems = [
         { href: "/admin/projects", icon: Building2, label: "Project Access Hub", active: pathname.startsWith("/admin/projects") },
+        ...(features.crypto_intelligence ? [
+            { href: "/dashboard/innergcomplete/crypto", icon: TrendingUp, label: "Crypto Trading Intelligence", active: pathname === "/dashboard/innergcomplete/crypto" }
+        ] : []),
         { href: "/admin/metrics", icon: BarChart3, label: "Metrics & Intelligence", active: pathname === "/admin/metrics" },
         { href: "/admin/funnels", icon: Target, label: "Funnels & Conversion", active: pathname === "/admin/funnels" },
         { href: "/admin/token-usage", icon: Layout, label: "Token Usage", active: pathname === "/admin/token-usage" },
@@ -140,8 +160,14 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
             <aside className="hidden lg:flex w-72 flex-col glass-panel border-r border-border h-screen sticky top-0">
                 <div className="p-8 pb-10">
                     <Link href="/" className="flex items-center gap-2 group">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105">
-                            <span className="text-xl font-bold">G</span>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105 overflow-hidden">
+                            <Image 
+                                src="/icon-light-32x32.png" 
+                                alt="Inner G Logo" 
+                                width={32} 
+                                height={32}
+                                className="h-full w-full object-contain"
+                            />
                         </div>
                         <div>
                             <span className="text-xl font-bold tracking-tight text-foreground block leading-tight">
@@ -170,8 +196,14 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
             >
                 <div className="p-6 pb-10 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                            <span className="text-lg font-bold">G</span>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground overflow-hidden">
+                            <Image 
+                                src="/icon-light-32x32.png" 
+                                alt="Inner G Logo" 
+                                width={24} 
+                                height={24}
+                                className="h-full w-full object-contain"
+                            />
                         </div>
                         <span className="text-lg font-bold tracking-tight text-foreground">InnerG Chat Agent</span>
                     </Link>

@@ -168,3 +168,18 @@ verify_jwt = false
 
 [functions.process-scheduled-posts]
 verify_jwt = false
+
+[functions.webhook-discord]
+verify_jwt = false
+
+[functions.discord-role-verification]
+verify_jwt = false
+
+[functions.complete-discord-auth]
+verify_jwt = false
+
+[functions.deploy-emoji]
+verify_jwt = false
+
+[functions.register-discord-commands]
+verify_jwt = false

@@ -70,11 +70,11 @@ export default function SocialPlannerPage() {
     const [editingPost, setEditingPost] = useState<any>(null)
     const [view, setView] = useState<'queue' | 'calendar'>('queue')
 
-    const currentProject = projects.find(p => p.slug === slug)
+    const currentProject = projects.find(p => p.slug?.toLowerCase() === slug?.toLowerCase())
     const projectId = currentProject?.id
     
     // Default to the full suite if the project hasn't explicitly restricted its target platforms
-    const DEFAULT_PLATFORMS = ['twitter', 'linkedin', 'facebook', 'instagram', 'youtube', 'ghl']
+    const DEFAULT_PLATFORMS = ['twitter_x', 'linkedin', 'facebook', 'instagram', 'youtube', 'ghl']
     const allowedPlatforms = (currentProject?.settings?.features?.social_planner_platforms?.length || 0) > 0 
         ? currentProject?.settings?.features?.social_planner_platforms 
         : DEFAULT_PLATFORMS
@@ -143,6 +143,7 @@ export default function SocialPlannerPage() {
             case 'instagram': return <Instagram className="h-4 w-4 text-pink-500" />
             case 'facebook': return <Facebook className="h-4 w-4 text-blue-600" />
             case 'linkedin': return <Linkedin className="h-4 w-4 text-blue-500" />
+            case 'twitter_x': 
             case 'twitter': return <Twitter className="h-4 w-4 text-zinc-400" />
             case 'ghl': return <MessageSquare className="h-4 w-4 text-orange-500" />
             default: return <Globe className="h-4 w-4 text-primary" />
@@ -232,7 +233,13 @@ export default function SocialPlannerPage() {
                         </div>
 
                         <Button 
-                            onClick={() => setIsPostModalOpen(true)}
+                            onClick={() => {
+                                if (!projectId) {
+                                    toast.error("Project identity not found in active portfolio. Please refresh.")
+                                    return
+                                }
+                                setIsPostModalOpen(true)
+                            }}
                             className="rounded-xl flex items-center gap-2 font-black uppercase tracking-widest text-[10px] h-11 bg-primary text-primary-foreground px-6 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
                         >
                             <Plus className="h-4 w-4" />
@@ -370,6 +377,10 @@ export default function SocialPlannerPage() {
                                                         variant="ghost" 
                                                         className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all text-muted-foreground"
                                                         onClick={() => {
+                                                            if (!projectId) {
+                                                                toast.error("Project context not yet synchronized")
+                                                                return
+                                                            }
                                                             setEditingPost(post)
                                                             setIsPostModalOpen(true)
                                                         }}

@@ -21,7 +21,10 @@ import {
     Target,
     BookOpen,
     Globe,
-    Trash2
+    Trash2,
+    Sparkles,
+    Terminal,
+    Radio
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -30,6 +33,8 @@ import { PersonaModal } from "@/features/community/components/PersonaModal"
 import { ChannelModal } from "@/features/community/components/ChannelModal"
 
 import { DeploymentModal } from "@/features/community/components/DeploymentModal"
+import { EmojiForgeModal } from "@/features/community/components/EmojiForgeModal"
+import { BroadcastModal } from "@/features/community/components/BroadcastModal"
 
 interface CommunityAgent {
     id: string
@@ -60,6 +65,17 @@ interface CommunityDeployment {
     channel: { name: string, platform: string }
 }
 
+interface CommunityInteraction {
+    id: string
+    agent_id: string
+    agent: { name: string, role: string, avatar_url: string | null }
+    channel_id: string
+    channel: { name: string, platform: string }
+    content: string
+    message_type: string
+    created_at: string
+}
+
 export default function CommunityHubPage() {
     const params = useParams()
     const router = useRouter()
@@ -78,6 +94,10 @@ export default function CommunityHubPage() {
     const [isDeploymentModalOpen, setIsDeploymentModalOpen] = useState(false)
     const [editingPersona, setEditingPersona] = useState<CommunityAgent | null>(null)
     const [editingChannel, setEditingChannel] = useState<CommunityChannel | null>(null)
+    const [isEmojiForgeOpen, setIsEmojiForgeOpen] = useState(false)
+    const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false)
+    const [interactions, setInteractions] = useState<CommunityInteraction[]>([])
+    const [isFetchingInteractions, setIsFetchingInteractions] = useState(false)
 
     const load = async () => {
         try {
@@ -118,16 +138,26 @@ export default function CommunityHubPage() {
                     .order("created_at", { ascending: true })
             ]) as any
 
-            if (agentRes.data) setAgents(agentRes.data)
-            if (channelRes.data) setChannels(channelRes.data)
-            if (deploymentRes.data) {
-                // Filter deployments to only those belonging to the current project's agents
-                // This is a safety check as deployments table doesn't have project_id directly
-                const filtered = deploymentRes.data.filter((d: any) => 
-                    agentRes.data?.some((a: any) => a.id === d.agent_id)
-                )
-                setDeployments(filtered)
+            if (agentRes.data) {
+                const whitelist = project.settings?.features?.community_persona_whitelist || [];
+                
+                // Isolation Protocol: Agency-provided agents must be whitelisted.
+                // Portal-generated agents (is_agency_template = false) are always available to the creator project.
+                const filteredAgents = whitelist.length > 0 
+                    ? agentRes.data.filter((a: any) => !a.is_agency_template || whitelist.includes(a.id))
+                    : agentRes.data;
+                
+                setAgents(filteredAgents);
+                
+                if (deploymentRes.data) {
+                    // Filter deployments to only those belonging to the filtered agents
+                    const filteredDeployments = deploymentRes.data.filter((d: any) => 
+                        filteredAgents.some((a: any) => a.id === d.agent_id)
+                    );
+                    setDeployments(filteredDeployments);
+                }
             }
+            if (channelRes.data) setChannels(channelRes.data)
 
         } catch (err) {
             console.error("[CommunityHub] Load error:", err)
@@ -136,9 +166,36 @@ export default function CommunityHubPage() {
         }
     }
 
+    const fetchInteractions = async () => {
+        if (!projectId) return
+        setIsFetchingInteractions(true)
+        try {
+            const supabase = createBrowserClient()
+            const { data, error } = await supabase
+                .from("community_agent_interactions")
+                .select("*, agent:agent_id(name, role, avatar_url), channel:channel_id(name, platform)")
+                .eq("project_id", projectId)
+                .order("created_at", { ascending: false })
+                .limit(50) as any
+
+            if (error) throw error
+            setInteractions(data || [])
+        } catch (err) {
+            console.error("[CommunityHub] Fetch interactions error:", err)
+        } finally {
+            setIsFetchingInteractions(false)
+        }
+    }
+
     useEffect(() => {
         load()
     }, [slug])
+
+    useEffect(() => {
+        if (activeTab === 'monitor' && projectId) {
+            fetchInteractions()
+        }
+    }, [activeTab, projectId])
 
     const toggleAgentStatus = async (id: string, currentStatus: boolean) => {
         try {
@@ -206,6 +263,7 @@ export default function CommunityHubPage() {
         { id: 'roster', label: 'Tactical Roster', icon: Users },
         { id: 'channels', label: 'Operation Channels', icon: Plug },
         { id: 'deployments', label: 'Deployment Matrix', icon: LinkIcon },
+        { id: 'emoji', label: 'Emoji Forge', icon: Sparkles },
         { id: 'monitor', label: 'Interaction Monitor', icon: Activity },
     ]
 
@@ -508,54 +566,188 @@ export default function CommunityHubPage() {
                     {/* INTERACTION MONITOR TAB */}
                     {activeTab === 'monitor' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 flex items-center gap-2">
-                                    <Activity className="h-3 w-3" />
-                                    Live Interaction Audit Log
-                                </h2>
-                                <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-                                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                    Live Bridge Synchronized
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 flex items-center gap-2">
+                                        <Activity className="h-3 w-3" />
+                                        Live Interaction Audit Log
+                                    </h2>
+                                    <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2 w-fit">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        Live Bridge Synchronized
+                                    </div>
                                 </div>
+                                <Button 
+                                    onClick={() => setIsBroadcastModalOpen(true)}
+                                    disabled={deployments.length === 0}
+                                    className="rounded-xl flex items-center gap-2 font-bold uppercase tracking-widest text-[9px] h-10 bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-500/20 px-6"
+                                >
+                                    <Radio className="h-4 w-4" />
+                                    New Broadcast
+                                </Button>
                             </div>
+
                             <div className="rounded-3xl border border-border glass-panel overflow-hidden">
-                                <div className="divide-y divide-border/50">
-                                    {[1, 2, 3, 4, 5].map(i => (
-                                        <div key={i} className="p-6 hover:bg-primary/5 transition-all duration-300 group">
-                                            <div className="flex items-start gap-4">
-                                                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center border border-border shrink-0 group-hover:border-primary/30 transition-colors">
-                                                    <Brain className="h-5 w-5 text-muted-foreground" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="text-xs font-bold tracking-tight">Agent Scholar</span>
-                                                            <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-black uppercase tracking-widest italic">Book Reader</span>
-                                                        </div>
-                                                        <span className="text-[10px] text-muted-foreground/60 font-medium">12:34 PM · Today</span>
+                                {isFetchingInteractions ? (
+                                    <div className="p-20 flex flex-col items-center justify-center text-center">
+                                        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20 mb-4" />
+                                        <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">Polling neural bridge...</p>
+                                    </div>
+                                ) : interactions.length > 0 ? (
+                                    <div className="divide-y divide-border/50">
+                                        {interactions.map(interaction => (
+                                            <div key={interaction.id} className="p-6 hover:bg-primary/5 transition-all duration-300 group">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center border border-border shrink-0 group-hover:border-primary/30 transition-colors overflow-hidden">
+                                                        {interaction.agent?.avatar_url ? (
+                                                            <img src={interaction.agent.avatar_url} alt={interaction.agent.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <Brain className="h-5 w-5 text-muted-foreground" />
+                                                        )}
                                                     </div>
-                                                    <p className="text-xs text-muted-foreground leading-relaxed italic pr-12">
-                                                        "I've been analyzing the latest chapter on decentralized intelligence. It seems the protagonist's struggle with identity is a perfect metaphor for current blockchain consensus algorithms..."
-                                                    </p>
-                                                    <div className="flex items-center gap-4 mt-4">
-                                                        <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-500/80">
-                                                            <Shield className="h-3 w-3" />
-                                                            Verified Session
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="text-xs font-bold tracking-tight">{interaction.agent?.name || "Unknown Agent"}</span>
+                                                                <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest italic ${
+                                                                    interaction.message_type === 'broadcast' ? 'bg-orange-500/10 text-orange-500' : 'bg-primary/10 text-primary'
+                                                                }`}>
+                                                                    {interaction.message_type} • {interaction.channel?.name || interaction.platform}
+                                                                </span>
+                                                            </div>
+                                                            <span className="text-[10px] text-muted-foreground/60 font-medium">
+                                                                {new Date(interaction.created_at).toLocaleString()}
+                                                            </span>
                                                         </div>
-                                                        <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-blue-400">
-                                                            <Target className="h-3 w-3" />
-                                                            Objective: Education
+                                                        <p className={`text-xs leading-relaxed pr-12 ${interaction.message_type === 'broadcast' ? 'text-foreground font-medium' : 'text-muted-foreground italic'}`}>
+                                                            "{interaction.content}"
+                                                        </p>
+                                                        <div className="flex items-center gap-4 mt-4">
+                                                            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-500/80">
+                                                                <Shield className="h-3 w-3" />
+                                                                Verified Session
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-blue-400">
+                                                                <Target className="h-3 w-3" />
+                                                                Platform: {interaction.channel?.platform || interaction.platform}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="p-20 flex flex-col items-center justify-center border border-dashed border-border rounded-3xl bg-muted/5 text-center">
+                                        <div className="h-16 w-16 rounded-full bg-primary/5 flex items-center justify-center mb-4 text-primary opacity-20">
+                                            <Activity className="h-8 w-8" />
                                         </div>
-                                    ))}
-                                </div>
-                                <div className="p-6 bg-muted/20 border-t border-border flex justify-center">
-                                    <Button variant="ghost" className="text-[10px] font-black uppercase tracking-widest h-10 px-8 hover:bg-primary/5 text-primary">
-                                        Load Historical Interactions
-                                    </Button>
+                                        <h4 className="text-sm font-bold text-foreground uppercase tracking-tight">Intelligence Log Empty</h4>
+                                        <p className="text-xs text-muted-foreground max-w-[200px] mt-2 mb-6 opacity-60 italic">
+                                            No community interactions detected yet. Active deployments will appear here once throughput begins.
+                                        </p>
+                                    </div>
+                                )}
+                                
+                                {interactions.length > 0 && (
+                                    <div className="p-6 bg-muted/20 border-t border-border flex justify-center">
+                                        <Button 
+                                            onClick={fetchInteractions}
+                                            variant="ghost" 
+                                            className="text-[10px] font-black uppercase tracking-widest h-10 px-8 hover:bg-primary/5 text-primary"
+                                        >
+                                            Refresh Live Audit Log
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* EMOJI FORGE TAB */}
+                    {activeTab === "emoji" && (
+                        <div className="p-6 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4">
+                            <div className="rounded-3xl border border-indigo-500/20 bg-indigo-500/5 overflow-hidden">
+                                <div className="p-8">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4">
+                                                <Sparkles className="h-6 w-6 text-indigo-400" />
+                                            </div>
+                                            <h2 className="text-xl font-black uppercase tracking-tight">Neural Emoji Forge</h2>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-1 opacity-60 italic">
+                                                Deploy branded emojis to any connected Discord server.
+                                            </p>
+                                        </div>
+                                        <Button
+                                            onClick={() => setIsEmojiForgeOpen(true)}
+                                            disabled={channels.filter(c => c.platform === 'discord').length === 0}
+                                            className="h-14 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-indigo-500/20"
+                                        >
+                                            <Sparkles className="h-4 w-4 mr-2" />
+                                            Open Forge
+                                        </Button>
+                                    </div>
+
+                                    {channels.filter(c => c.platform === 'discord').length === 0 ? (
+                                        <div className="mt-8 p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 text-center">
+                                            <p className="text-sm font-bold italic">No Discord bridges active.</p>
+                                            <p className="text-[10px] text-muted-foreground mt-1">Establish a Neural Bridge first from the Operation Channels tab.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                                            {["innerg_fire","innerg_sync","innerg_check","innerg_neural","innerg_rocket"].map((name, i) => (
+                                                <div key={name} className="aspect-square rounded-2xl bg-background border border-border flex items-center justify-center overflow-hidden group hover:border-indigo-500/40 transition-all">
+                                                    <img
+                                                        src={`/emojis/${name}.png`}
+                                                        alt={name}
+                                                        className="w-16 h-16 object-contain group-hover:scale-110 transition-transform"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Slash Command Registration */}
+                                    {channels.filter(c => c.platform === 'discord').length > 0 && (
+                                        <div className="mt-8 pt-8 border-t border-indigo-500/10">
+                                            <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
+                                                <Terminal className="h-3 w-3" />
+                                                Slash Command Registration
+                                            </h3>
+                                            <div className="grid gap-3">
+                                                {channels.filter(c => c.platform === 'discord').map((ch: any) => (
+                                                    <div key={ch.id} className="flex items-center justify-between p-4 rounded-2xl bg-background border border-border">
+                                                        <div>
+                                                            <p className="text-[11px] font-black uppercase">{ch.name}</p>
+                                                            <p className="text-[9px] text-muted-foreground mt-0.5 font-mono">
+                                                                {ch.config?.commands_registered
+                                                                    ? `✅ /ask · /audit · /agent registered`
+                                                                    : "Commands not yet registered"}
+                                                            </p>
+                                                        </div>
+                                                        <Button
+                                                            size="sm"
+                                                            disabled={ch.config?.commands_registered}
+                                                            onClick={async () => {
+                                                                const { createBrowserClient: cbc } = await import("@/lib/supabase/browser")
+                                                                const sb = cbc()
+                                                                const { error } = await (sb.functions.invoke as any)("register-discord-commands", {
+                                                                    body: { channel_id: ch.id }
+                                                                })
+                                                                if (error) { toast.error("Command registration failed"); return }
+                                                                toast.success(`/ask, /audit, /agent registered on ${ch.name}!`)
+                                                                load()
+                                                            }}
+                                                            className="h-9 px-5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-violet-600 hover:bg-violet-500 text-white"
+                                                        >
+                                                            {ch.config?.commands_registered ? "Registered" : "Register Now"}
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -585,6 +777,19 @@ export default function CommunityHubPage() {
                 agents={agents}
                 channels={channels}
                 onSuccess={load}
+            />
+            <EmojiForgeModal
+                isOpen={isEmojiForgeOpen}
+                onClose={() => setIsEmojiForgeOpen(false)}
+                discordChannels={(channels as any[]).filter(c => c.platform === 'discord')}
+            />
+            <BroadcastModal
+                isOpen={isBroadcastModalOpen}
+                onClose={() => setIsBroadcastModalOpen(false)}
+                agents={agents}
+                deployments={deployments}
+                projectId={projectId || ""}
+                onSuccess={fetchInteractions}
             />
 
         </div>
