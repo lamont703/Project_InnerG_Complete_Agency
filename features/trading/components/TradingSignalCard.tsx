@@ -170,9 +170,9 @@ export const TradingSignalCard: React.FC<SignalProps> = ({ signal }) => {
                 }
 
                 // 2. Only update status IF broadcast was successful
-                const { error: updateError } = await supabase
-                    .from('crypto_signals')
-                    .update({ status: 'ACTIVE' } as any)
+                const { error: updateError } = await (supabase
+                    .from('crypto_signals') as any)
+                    .update({ status: 'ACTIVE' })
                     .eq('id', signal.id);
 
                 if (updateError) {
@@ -188,7 +188,7 @@ export const TradingSignalCard: React.FC<SignalProps> = ({ signal }) => {
             </button>
             <button 
               onClick={async () => {
-                await supabase.from('crypto_signals').update({ status: 'CANCELLED' }).eq('id', signal.id);
+                await (supabase.from('crypto_signals') as any).update({ status: 'CANCELLED' }).eq('id', signal.id);
                 toast.info("Signal Dismissed");
               }}
               className="flex items-center justify-center gap-2 bg-white/5 text-gray-400 text-[10px] font-black py-3 rounded-xl border border-white/5 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 transition-all active:scale-[0.95] uppercase tracking-widest"
