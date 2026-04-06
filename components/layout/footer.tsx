@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 
 const footerLinks = {
   Solutions: [
@@ -10,6 +11,7 @@ const footerLinks = {
   Social: [
     { label: "LinkedIn", href: "https://www.linkedin.com/in/lamont-evans-57ab4922a/" },
     { label: "YouTube", href: "https://www.youtube.com/@SchoolofFreelancerFreedom" },
+    { label: "Discussions", href: "/discussions" },
   ],
   Company: [
     { label: "About Us", href: "#" },
@@ -27,8 +29,14 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105">
-                <span className="text-xl font-bold">G</span>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105 overflow-hidden">
+                <Image 
+                  src="/icon-light-32x32.png" 
+                  alt="Inner G Logo" 
+                  width={32} 
+                  height={32}
+                  className="h-full w-full object-contain"
+                />
               </div>
               <span className="text-xl font-bold tracking-tight text-foreground">
                 Inner G Complete<span className="hidden lg:inline text-muted-foreground font-normal"> Agency</span>

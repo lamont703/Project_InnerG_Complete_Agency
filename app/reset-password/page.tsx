@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowRight, Lock, Sparkles, Loader2, CheckCircle2, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -98,8 +99,14 @@ export default function ResetPasswordPage() {
             <div className="w-full max-w-md relative z-10">
                 <div className="text-center mb-10">
                     <Link href="/" className="inline-flex items-center gap-2 mb-6 group">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105">
-                            <span className="text-xl font-bold">G</span>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105 overflow-hidden">
+                            <Image 
+                                src="/icon-light-32x32.png" 
+                                alt="Inner G Logo" 
+                                width={32} 
+                                height={32}
+                                className="h-full w-full object-contain"
+                            />
                         </div>
                         <span className="text-xl font-bold tracking-tight text-foreground">
                             Inner G Complete Agency

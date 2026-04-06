@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import {
     LayoutDashboard,
     Layout,
@@ -216,8 +217,14 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
             <aside className="hidden lg:flex w-72 flex-col glass-panel border-r border-border h-screen sticky top-0">
                 <div className="p-8 pb-10">
                     <Link href="/" className="flex items-center gap-2 group">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105">
-                            <span className="text-xl font-bold">G</span>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105 overflow-hidden">
+                            <Image 
+                                src="/icon-light-32x32.png" 
+                                alt="Inner G Logo" 
+                                width={32} 
+                                height={32}
+                                className="h-full w-full object-contain"
+                            />
                         </div>
                         <div>
                             <span className="text-xl font-bold tracking-tight text-foreground block leading-tight">
@@ -246,8 +253,14 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
             >
                 <div className="p-6 pb-10 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                            <span className="text-lg font-bold">G</span>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground overflow-hidden">
+                            <Image 
+                                src="/icon-light-32x32.png" 
+                                alt="Inner G Logo" 
+                                width={24} 
+                                height={24}
+                                className="h-full w-full object-contain"
+                            />
                         </div>
                         <span className="text-lg font-bold tracking-tight text-foreground">Inner G Complete</span>
                     </Link>
