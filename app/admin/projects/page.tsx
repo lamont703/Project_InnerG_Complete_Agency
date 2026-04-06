@@ -16,7 +16,9 @@ import {
     Brain,
     MessageSquare,
     Calendar,
-    TrendingUp
+    TrendingUp,
+    Briefcase,
+    Sparkles
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -198,18 +200,6 @@ export default function ProjectManagementPage() {
                                             <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                                         </Button>
                                     </Link>
-                                    <Link href={`/admin/projects/${project.slug}/metrics`}>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="w-full justify-between h-12 px-4 rounded-2xl bg-primary/5 hover:bg-primary/10 border border-primary/10 text-primary group/btn transition-all shadow-xl shadow-primary/5"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <BarChart3 className="h-4 w-4" />
-                                                <span className="text-[10px] font-black uppercase tracking-widest italic">Metrics & Ports</span>
-                                            </div>
-                                            <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
-                                        </Button>
-                                    </Link>
                                     <Link href={`/admin/projects/${project.slug}/crypto`}>
                                         <Button 
                                             variant="ghost" 
@@ -218,6 +208,33 @@ export default function ProjectManagementPage() {
                                             <div className="flex items-center gap-3">
                                                 <TrendingUp className="h-4 w-4" />
                                                 <span className="text-[10px] font-black uppercase tracking-widest italic">Crypto Strategy</span>
+                                            </div>
+                                            <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                                        </Button>
+                                    </Link>
+                                    <Link href={`/admin/projects/${project.slug}/cognitive-management`}>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="w-full justify-between h-12 px-4 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 group/btn transition-all shadow-lg shadow-rose-500/5 ring-1 ring-rose-500/20"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Briefcase className="h-4 w-4" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest italic">Cognitive Management</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Sparkles className="h-3 w-3 animate-pulse text-rose-400" />
+                                                <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                                            </div>
+                                        </Button>
+                                    </Link>
+                                    <Link href={`/admin/projects/${project.slug}/metrics`}>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="w-full justify-between h-12 px-4 rounded-2xl bg-primary/5 hover:bg-primary/10 border border-primary/10 text-primary group/btn transition-all shadow-xl shadow-primary/5"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <BarChart3 className="h-4 w-4" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest italic">Metrics & Ports</span>
                                             </div>
                                             <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                                         </Button>

@@ -15,6 +15,7 @@ import {
     Building2,
     BookOpen,
     Bot,
+    Brain,
     BarChart3,
     Plug,
     Zap,
@@ -44,6 +45,7 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
     const searchParams = useSearchParams()
     const currentTab = searchParams?.get("tab")
     const [userRole, setUserRole] = useState<UserRole | null>(null)
+    const [hasCognitiveBrief, setHasCognitiveBrief] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [features, setFeatures] = useState<{ 
         community_agents?: boolean; 
@@ -69,26 +71,39 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                         setUserRole(profile.role as UserRole)
                     }
 
-                    // 2. Fetch project features
+                    // 2. Fetch project details & features
                     const { data: project } = await supabase
                         .from("projects")
                         .select("id, settings")
                         .eq("slug", projectSlug)
                         .single() as any
                     
-                    if (project?.settings?.features) {
-                        setFeatures(prev => ({ ...prev, ...project.settings.features }))
-                    }
+                    if (project) {
+                        if (project.settings?.features) {
+                            setFeatures(prev => ({ ...prev, ...project.settings.features }))
+                        }
 
-                    // 3. Fetch crypto intelligence status
-                    const { data: cryptoConfig } = await supabase
-                        .from("crypto_intelligence_config")
-                        .select("is_active")
-                        .eq("project_id", project?.id)
-                        .single() as any
+                        // 3. Check for Cognitive PM Iterations
+                        const { data: iterations } = await supabase
+                            .from("pm_iterations")
+                            .select("id")
+                            .eq("project_id", project.id)
+                            .limit(1) as any
+                        
+                        if (iterations && iterations.length > 0) {
+                            setHasCognitiveBrief(true)
+                        }
 
-                    if (cryptoConfig?.is_active) {
-                        setFeatures(prev => ({ ...prev, crypto_intelligence: true }))
+                        // 4. Fetch crypto intelligence status
+                        const { data: cryptoConfig } = await supabase
+                            .from("crypto_intelligence_config")
+                            .select("is_active")
+                            .eq("project_id", project?.id)
+                            .single() as any
+
+                        if (cryptoConfig?.is_active) {
+                            setFeatures(prev => ({ ...prev, crypto_intelligence: true }))
+                        }
                     }
                 }
             } catch (err) {
@@ -115,6 +130,14 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
             label: "Intelligence Hub",
             active: pathname === `/dashboard/${projectSlug}`,
         },
+        ...(hasCognitiveBrief ? [
+            {
+                href: `/dashboard/${projectSlug}/cognitive-brief`,
+                icon: Brain,
+                label: "Cognitive Project Brief",
+                active: pathname === `/dashboard/${projectSlug}/cognitive-brief`,
+            }
+        ] : []),
         {
             href: `/dashboard/${projectSlug}/funnels`,
             icon: GitBranch,
