@@ -69,8 +69,9 @@ interface CommunityInteraction {
     id: string
     agent_id: string
     agent: { name: string, role: string, avatar_url: string | null }
-    channel_id: string
-    channel: { name: string, platform: string }
+    channel_id: string | null
+    channel?: { name: string, platform: string } | null
+    platform: string
     content: string
     message_type: string
     created_at: string
