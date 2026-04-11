@@ -51,7 +51,7 @@ export function HeroSection() {
 
         {/* Subheadline */}
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl text-balance">
-          We partner with Start-ups and Enterprises to architect,build, and scale custom AI and Blockchain solutions using certified Cognitive Project Management methods that drive real business innovation and lasting competitive advantage.
+          We partner with enterprises and mature startups to architect, build, and scale custom AI and Blockchain solutions using Cognitive Agile Project Management methods that drive real business innovation and lasting competitive advantage.
         </p>
 
         {/* CTAs */}

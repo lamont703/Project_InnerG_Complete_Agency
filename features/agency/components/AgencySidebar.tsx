@@ -18,7 +18,8 @@ import {
     Target,
     Users,
     Calendar,
-    TrendingUp
+    TrendingUp,
+    Brain
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -28,9 +29,6 @@ interface AgencySidebarProps {
     onClose: () => void
 }
 
-/**
- * Agency Sidebar - God Mode navigation for Super Admins.
- */
 export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
     const router = useRouter()
     const pathname = usePathname()
@@ -39,38 +37,76 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
         social_planner?: boolean;
         crypto_intelligence?: boolean;
     }>({})
+    
+    const [currentProjectSlug, setCurrentProjectSlug] = useState<string | null>(null)
+    const [hasCognitiveBrief, setHasCognitiveBrief] = useState(false)
 
+    // Consolidated Project & Iteration Sync
     useEffect(() => {
-        const fetchAgencyFeatures = async () => {
+        const syncNavigationState = async () => {
             try {
                 const supabase = createBrowserClient()
-                // The agency project typically has slug 'innergcomplete'
-                const { data: project } = await supabase
+                
+                // 1. Feature Sync (Agency Global)
+                const { data: globalProject } = await supabase
                     .from("projects")
                     .select("id, settings")
                     .eq("slug", "innergcomplete")
                     .single() as any
                 
-                if (project?.settings?.features) {
-                    setFeatures(prev => ({ ...prev, ...project.settings.features }))
+                if (globalProject?.settings?.features) {
+                    setFeatures(prev => ({ ...prev, ...globalProject.settings.features }))
                 }
 
-                // 2. Check crypto intelligence status
+                // 2. Slug Detection (Regex Engine)
+                const match = pathname.match(/^\/(?:admin\/projects|dashboard)\/([^\/\?]+)/)
+                let detectedSlug = null
+                
+                if (match && match[1] && match[1] !== 'new') {
+                    detectedSlug = match[1]
+                    setCurrentProjectSlug(detectedSlug)
+                } else {
+                    setCurrentProjectSlug(null)
+                }
+
+                // 3. Iteration Status Sync
+                if (detectedSlug) {
+                    const { data: proj } = await supabase
+                        .from("projects")
+                        .select("id")
+                        .eq("slug", detectedSlug)
+                        .single() as any
+
+                    if (proj) {
+                        const { data: iters } = await supabase
+                            .from("pm_iterations")
+                            .select("id")
+                            .eq("project_id", proj.id)
+                            .limit(1) as any
+                        setHasCognitiveBrief(iters && iters.length > 0)
+                    } else {
+                        setHasCognitiveBrief(false)
+                    }
+                } else {
+                    setHasCognitiveBrief(false)
+                }
+
+                // 4. Crypto Intelligence Awareness
                 const { data: cryptoConfig } = await supabase
                     .from("crypto_intelligence_config")
                     .select("is_active")
-                    .eq("project_id", project?.id)
+                    .eq("project_id", globalProject?.id)
                     .single() as any
-
                 if (cryptoConfig?.is_active) {
                     setFeatures(prev => ({ ...prev, crypto_intelligence: true }))
                 }
             } catch (err) {
-                console.error("[AgencySidebar] Feature fetch error:", err)
+                console.error("[AgencySidebar] Sync Error:", err)
             }
         }
-        fetchAgencyFeatures()
-    }, [])
+
+        syncNavigationState()
+    }, [pathname])
 
     const handleSignOut = async () => {
         const supabase = createBrowserClient()
@@ -92,6 +128,17 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
 
     const adminItems = [
         { href: "/admin/projects", icon: Building2, label: "Project Access Hub", active: pathname.startsWith("/admin/projects") },
+        
+        // Context-Aware Cognitive Brief Link
+        ...(hasCognitiveBrief && currentProjectSlug ? [
+            { 
+                href: `/dashboard/${currentProjectSlug}/cognitive-brief`, 
+                icon: Brain, 
+                label: "Cognitive Project Brief", 
+                active: pathname.includes("cognitive-brief") 
+            }
+        ] : []),
+
         ...(features.crypto_intelligence ? [
             { href: "/dashboard/innergcomplete/crypto", icon: TrendingUp, label: "Crypto Trading Intelligence", active: pathname === "/dashboard/innergcomplete/crypto" }
         ] : []),
@@ -106,7 +153,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
 
     const SidebarContent = () => (
         <>
-            <nav className="flex-1 px-4 space-y-2">
+            <nav className="flex-1 px-4 space-y-2 overflow-y-auto no-scrollbar">
                     {navItems.map((item) => (
                         <Link
                             key={item.label}
@@ -135,7 +182,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
                                     }`}
                             >
                                 <item.icon className="h-5 w-5" />
-                                {item.label}
+                                <span className="truncate">{item.label}</span>
                             </Link>
                         ))}
                     </div>
@@ -174,7 +221,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
                                 Inner G Complete
                             </span>
                             <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                                InnerG Chat Agent
+                                Agency Control
                             </span>
                         </div>
                     </Link>
@@ -205,7 +252,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
                                 className="h-full w-full object-contain"
                             />
                         </div>
-                        <span className="text-lg font-bold tracking-tight text-foreground">InnerG Chat Agent</span>
+                        <span className="text-lg font-bold tracking-tight text-foreground">Agency Control</span>
                     </Link>
                     <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-full glass-panel">
                         <X className="h-4 w-4" />

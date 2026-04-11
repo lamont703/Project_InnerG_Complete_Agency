@@ -7,11 +7,11 @@ import { Menu, X, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const navLinks = [
-  { label: "Capabilities", href: "#services" },
-  { label: "Process", href: "#process" },
-  { label: "Roadmap", href: "#maturity" },
-  { label: "Performance", href: "#results" },
-  { label: "Growth Audit", href: "#contact" },
+  { label: "Capabilities", href: "/#services" },
+  { label: "Process", href: "/#process" },
+  { label: "Roadmap", href: "/#maturity" },
+  { label: "Performance", href: "/#results" },
+  { label: "Growth Audit", href: "/#contact" },
 ]
 
 export function Navbar() {
@@ -66,7 +66,7 @@ export function Navbar() {
             className="text-muted-foreground hover:text-foreground"
             asChild
           >
-            <Link href="#contact">Book a Call</Link>
+            <Link href="/#contact">Book a Call</Link>
           </Button>
           <Button
             size="sm"

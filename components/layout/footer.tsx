@@ -15,7 +15,7 @@ const footerLinks = {
   ],
   Company: [
     { label: "About Us", href: "#" },
-    { label: "Careers", href: "https://members.innergcomplete.com/" },
+    { label: "Careers", href: "/careers" },
     { label: "Blog", href: "#" },
     { label: "Contact", href: "#contact" },
   ],
