@@ -14,6 +14,11 @@ const LeadSchema = z.object({
     email: z.string().email("Invalid email address"),
     phone: z.string().min(10, "Phone number must be at least 10 digits"),
     company_name: z.string().min(1, "Company name is required"),
+    project_url: z.string().optional().or(z.literal("")),
+    project_type: z.string().min(1),
+    budget_range: z.string().min(1),
+    project_stage: z.string().min(1),
+    industry: z.string().min(1),
     challenge: z.string().optional()
 })
 

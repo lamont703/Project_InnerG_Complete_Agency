@@ -16,6 +16,11 @@ export interface LeadInput {
     email: string
     phone: string
     company_name: string
+    project_url?: string
+    project_type: string
+    budget_range: string
+    project_stage: string
+    industry: string
     challenge?: string
 }
 
@@ -34,7 +39,7 @@ export class GrowthAuditService {
     ) { }
 
     async submit(input: LeadInput): Promise<LeadResult> {
-        const { full_name, email, phone, company_name, challenge } = input
+        const { full_name, email, phone, company_name, project_url, project_type, budget_range, project_stage, industry, challenge } = input
 
         // 1. Save lead locally first (always succeeds regardless of GHL)
         const { data: lead, error: insertError } = await this.adminClient
@@ -44,6 +49,11 @@ export class GrowthAuditService {
                 email,
                 phone,
                 company_name,
+                project_url: project_url ?? null,
+                project_type,
+                budget_range,
+                project_stage,
+                industry,
                 challenge: challenge ?? null,
                 status: "new",
                 source: "website_cta"

@@ -1,44 +1,44 @@
-import { ArrowRight, Check, X, TrendingUp, AlertCircle, Rocket } from "lucide-react"
+import { Target, Cpu, ShieldCheck, Rocket, Zap, Server } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-const maturityStages = [
+const sdlcStages = [
   {
-    stage: "The Breaking Point",
-    status: "Where Growth Stalls",
-    description: "The 'growing pains' that prevent 7-figure businesses from reaching 8 or 9 figures.",
+    stage: "Architecture & Viability",
+    status: "Phase 1",
+    description: "Deep-dive technical validations to map infrastructure constraints before writing code.",
     points: [
-      { label: "Manual Workflows", icon: X, text: "Your team is drowning in repetitive, error-prone tasks." },
-      { label: "Data Silos", icon: X, text: "Fragmented information leads to guessing instead of knowing." },
-      { label: "Fragile Architecture", icon: X, text: "Database bottlenecks cause frequent downtime and lag." },
-      { label: "Reactive Strategy", icon: X, text: "Constantly puting out fires instead of planning ahead." },
+      { label: "Technical Feasibility", icon: Target, text: "Ensure project scope is mathematically and practically sound." },
+      { label: "System Mapping", icon: Server, text: "Blueprint robust AI and Web3 infrastructure flow." },
+      { label: "Risk Mitigation", icon: ShieldCheck, text: "Identify deployment and security bottlenecks early." },
+      { label: "Stack Selection", icon: Target, text: "Lock in the exact enterprise tech stack required." },
     ],
-    accentClass: "text-destructive bg-destructive/10 border-destructive/20",
-    glowClass: "bg-destructive/5",
+    accentClass: "text-muted-foreground bg-muted border-border",
+    glowClass: "bg-muted/5",
   },
   {
-    stage: "The Inflection Point",
-    status: "The InnerG Intervention",
-    description: "We deploy the systems, automations, and data foundations required to scale.",
+    stage: "Cognitive Agile Sprints",
+    status: "Phase 2",
+    description: "Elite dedicated engineering squads building modular, testable components predictably.",
     points: [
-      { label: "AI Process Mapping", icon: TrendingUp, text: "Identifying and automating high-leverage workflows." },
-      { label: "Unified Data Lakes", icon: TrendingUp, text: "Consolidating all endpoints into a single source of truth." },
-      { label: "Scalable Database", icon: TrendingUp, text: "Re-architecting for performance and 10x throughput." },
-      { label: "Fractional Leadership", icon: TrendingUp, text: "Long-term partnership to guide your tech evolution." },
+      { label: "Dedicated Squads", icon: Cpu, text: "Specialized engineering and product management teams." },
+      { label: "Iterative Sprints", icon: Zap, text: "Rapid prototyping and continuous feature delivery." },
+      { label: "Modular Codebase", icon: Server, text: "Architecting scalable system components for future pivots." },
+      { label: "Transparent Execution", icon: Target, text: "Complete, direct visibility into weekly sprint progress." },
     ],
     accentClass: "text-primary bg-primary/10 border-primary/20",
     glowClass: "bg-primary/20",
     isHighlighted: true,
   },
   {
-    stage: "The Scaled State",
-    status: "Predictable Expansion",
-    description: "A business that operates like a machine, fueled by data and autonomous systems.",
+    stage: "Security & Deployment",
+    status: "Phase 3",
+    description: "Rigorous quality assurance, auditing, and white-glove launch into your ecosystem.",
     points: [
-      { label: "24/7 AI Operations", icon: Check, text: "Systems that work while your team focuses on strategy." },
-      { label: "Growth Intelligence", icon: Check, text: "Real-time visibility into every ROI lever." },
-      { label: "Invisible Scaling", icon: Check, text: "Infrastructure that handles spikes without manual effort." },
-      { label: "Strategic Moat", icon: Check, text: "Using tech as a competitive advantage, not a hurdle." },
+      { label: "Safety Benchmarking", icon: ShieldCheck, text: "Rigorous LLM hallucination and security logic testing." },
+      { label: "Contract Audits", icon: ShieldCheck, text: "Enterprise-grade Web3 smart contract security reviews." },
+      { label: "CI/CD Pipelines", icon: Target, text: "Automated testing and robust continuous integration." },
+      { label: "Production Handoff", icon: Rocket, text: "Flawless deployment into your live production environment." },
     ],
     accentClass: "text-accent bg-accent/10 border-accent/20",
     glowClass: "bg-accent/5",
@@ -47,7 +47,7 @@ const maturityStages = [
 
 export function SolutionsSection() {
   return (
-    <section id="maturity" className="relative py-32 overflow-hidden">
+    <section id="sdlc" className="relative py-32 overflow-hidden">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-1/2 bg-gradient-to-r from-transparent via-primary/30 to-transparent" aria-hidden="true" />
 
       {/* Background growth chart decoration */}
@@ -60,19 +60,18 @@ export function SolutionsSection() {
       <div className="mx-auto max-w-7xl px-6 relative z-10">
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">
-            The Growth Roadmap
+            The Cognitive Engineering Lifecycle
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            Transcend Your Current Plateaus
+            Architect. Build. Scale.
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            Most businesses stall because their systems can't keep up with their vision.
-            We provide the bridge from 'Good' to 'Scalable'.
+            Our enterprise-grade Software Development Life Cycle (SDLC) is battle-tested for deploying complex Artificial Intelligence and Web3 infrastructure securely and predictably.
           </p>
         </div>
 
         <div className="mt-20 grid gap-8 md:grid-cols-2 lg:grid-cols-3 items-stretch">
-          {maturityStages.map((stage) => (
+          {sdlcStages.map((stage) => (
             <div
               key={stage.stage}
               className={`group relative rounded-2xl glass-panel flex flex-col transition-all duration-500 ${stage.isHighlighted ? "ring-2 ring-primary/40 scale-[1.05] z-20 shadow-2xl shadow-primary/10" : "scale-[0.98] opacity-80"}`}
@@ -111,7 +110,7 @@ export function SolutionsSection() {
                     asChild
                   >
                     <Link href="#contact">
-                      Initiate Transformation
+                      Request Architecture Audit
                     </Link>
                   </Button>
                 ) : (

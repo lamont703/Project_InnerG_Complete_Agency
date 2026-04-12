@@ -159,7 +159,7 @@ function LoginContent() {
                         <p className="text-sm text-muted-foreground">
                             Don&apos;t have access yet?{" "}
                             <Link href="/#contact" className="text-primary font-semibold hover:underline">
-                                Request a Growth Audit
+                                Request a Viability Assessment
                             </Link>
                         </p>
                     </div>

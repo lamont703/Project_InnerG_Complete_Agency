@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowRight, Mail, Building2, User, Loader2, Phone } from "lucide-react"
+import { ArrowRight, Mail, Building2, User, Loader2, Phone, Globe, Coins, Activity, Briefcase } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -28,6 +28,11 @@ export function CtaSection() {
       email: "",
       phone: "",
       company_name: "",
+      project_url: "",
+      project_type: "",
+      budget_range: "",
+      project_stage: "",
+      industry: "",
       challenge: "",
     },
   })
@@ -49,7 +54,7 @@ export function CtaSection() {
 
 
       setSubmitted(true)
-      toast.success("Audit request received! We'll be in touch soon.")
+      toast.success("Assessment request received! We'll be in touch soon.")
       reset()
     } catch (err) {
       console.error("[CtaSection] Submission error:", err)
@@ -75,18 +80,17 @@ export function CtaSection() {
               Get Started
             </p>
             <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-              Let's Architect Your Scale.
+              Validate Your Architecture.
             </h2>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
-              Schedule a complimentary Growth Audit with our senior architects. We'll identify your
-              highest-leverage scaling bottlenecks and design a roadmap for automated, data-driven expansion.
+              Let our senior architects evaluate your project's feasibility, mitigate timeline risks, and determine if your concept is ready for production-grade engineering before committing capital.
             </p>
 
             <div className="mt-10 space-y-6">
               {[
-                { label: "Infrastructure Gap Analysis", desc: "Identify the technical debt holding you back" },
-                { label: "Automation ROI Assessment", desc: "Calculate the exact hours we can reclaim for your team" },
-                { label: "Fractional CTO Strategy", desc: "Long-term partnership to guide your evolution" },
+                { label: "Technical Feasibility Study", desc: "Ensure your AI or Web3 scope is mathematically and practically sound" },
+                { label: "Engineering Risk Assessment", desc: "Identify architectural bottlenecks and deployment risks early" },
+                { label: "Production-Readiness Audit", desc: "Get a clear verdict on if your project is ready to scale" },
               ].map((item) => (
                 <div key={item.label} className="flex items-start gap-4">
                   <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
@@ -106,9 +110,9 @@ export function CtaSection() {
                 <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <ArrowRight className="h-6 w-6" />
                 </div>
-                <h3 className="text-2xl font-bold text-foreground">Audit Requested</h3>
+                <h3 className="text-2xl font-bold text-foreground">Assessment Requested</h3>
                 <p className="mt-3 text-muted-foreground">
-                  Our team will reach out within 24 hours to schedule your strategy session.
+                  Our architecture team will reach out shortly to confirm your interest and send a brief business needs form to finalize your project's business case.
                 </p>
                 <Button
                   variant="link"
@@ -124,9 +128,9 @@ export function CtaSection() {
                 className="space-y-5"
               >
                 <div>
-                  <h3 className="text-xl font-semibold text-foreground">Schedule a Growth Audit</h3>
+                  <h3 className="text-xl font-semibold text-foreground">Request a Technical Viability Assessment</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Get a clear technical roadmap for your next phase of growth.
+                    Submit your project details to request a technical review.
                   </p>
                 </div>
 
@@ -184,10 +188,92 @@ export function CtaSection() {
                   {errors.company_name && <p className="text-[10px] text-destructive ml-1">{errors.company_name.message}</p>}
                 </div>
 
+                <div className="space-y-1">
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="url"
+                      {...register("project_url")}
+                      placeholder="Company/Project URL (Optional)"
+                      className={`bg-input/50 border-border pl-10 text-foreground placeholder:text-muted-foreground focus:border-primary ${errors.project_url ? "border-destructive focus:border-destructive" : ""}`}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {errors.project_url && <p className="text-[10px] text-destructive ml-1">{errors.project_url.message}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <div className="relative">
+                    <Activity className="absolute left-3 top-[22px] -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <select
+                      {...register("project_type")}
+                      className={`w-full h-10 rounded-md bg-input/50 border border-border pl-10 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary appearance-none ${errors.project_type ? "border-destructive" : ""}`}
+                      disabled={isSubmitting}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>Select Core Technology Focus...</option>
+                      <option value="AI / Machine Learning">AI / Machine Learning</option>
+                      <option value="Blockchain / Web3">Blockchain / Web3</option>
+                      <option value="Hybrid (AI & Blockchain)">Hybrid (AI & Blockchain)</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  {errors.project_type && <p className="text-[10px] text-destructive ml-1">{errors.project_type.message}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-1">
+                    <div className="relative">
+                      <Coins className="absolute left-3 top-[22px] -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <select
+                        {...register("budget_range")}
+                        className={`w-full h-10 rounded-md bg-input/50 border border-border pl-10 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary appearance-none ${errors.budget_range ? "border-destructive" : ""}`}
+                        disabled={isSubmitting}
+                        defaultValue=""
+                      >
+                        <option value="" disabled>Budget Range</option>
+                        <option value="Under $20k">Under $20k</option>
+                        <option value="$20k - $50k">$20k - $50k</option>
+                        <option value="$50k - $150k">$50k - $150k</option>
+                        <option value="$150k+">$150k+</option>
+                      </select>
+                    </div>
+                    {errors.budget_range && <p className="text-[10px] text-destructive ml-1">{errors.budget_range.message}</p>}
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="relative">
+                      <Briefcase className="absolute left-3 top-[22px] -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <select
+                        {...register("project_stage")}
+                        className={`w-full h-10 rounded-md bg-input/50 border border-border pl-10 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary appearance-none ${errors.project_stage ? "border-destructive" : ""}`}
+                        disabled={isSubmitting}
+                        defaultValue=""
+                      >
+                        <option value="" disabled>Project Stage</option>
+                        <option value="Ideation / Conceptual">Ideation / Conceptual</option>
+                        <option value="Funded & Ready">Funded & Ready to Build</option>
+                        <option value="Scaling Existing">Scaling Existing Product</option>
+                      </select>
+                    </div>
+                    {errors.project_stage && <p className="text-[10px] text-destructive ml-1">{errors.project_stage.message}</p>}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Input
+                    {...register("industry")}
+                    placeholder="Specific Industry (e.g. Fintech, Healthcare, Supply Chain)"
+                    className={`bg-input/50 border-border text-foreground placeholder:text-muted-foreground focus:border-primary ${errors.industry ? "border-destructive focus:border-destructive" : ""}`}
+                    disabled={isSubmitting}
+                  />
+                  {errors.industry && <p className="text-[10px] text-destructive ml-1">{errors.industry.message}</p>}
+                </div>
+
                 <div className="space-y-2">
                   <Textarea
                     {...register("challenge")}
-                    placeholder="What is your biggest scaling challenge right now?"
+                    placeholder="Briefly describe the core objective or problem you are solving..."
                     className="min-h-[120px] bg-input/50 border-border text-foreground placeholder:text-muted-foreground focus:border-primary"
                     rows={4}
                     disabled={isSubmitting}
@@ -207,7 +293,7 @@ export function CtaSection() {
                     </>
                   ) : (
                     <>
-                      Request Growth Audit
+                      Request Viability Assessment
                       <ArrowRight className="h-4 w-4" />
                     </>
                   )}

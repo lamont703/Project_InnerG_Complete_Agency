@@ -107,7 +107,7 @@ export default function DiscussionsPage() {
                     asChild
                 >
                     <Link href="/#contact">
-                        Schedule Growth Audit
+                        Request Viability Assessment
                         <ArrowRight className="h-4 w-4" />
                     </Link>
                 </Button>
@@ -131,7 +131,7 @@ export default function DiscussionsPage() {
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" className="bg-primary text-primary-foreground gap-2 px-8 py-6 text-base glow-primary" asChild>
                 <Link href="/#contact">
-                    Get Started with a Growth Audit
+                    Request Viability Assessment
                     <ArrowRight className="h-4 w-4" />
                 </Link>
             </Button>
