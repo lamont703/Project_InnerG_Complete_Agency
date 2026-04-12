@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button"
 const navLinks = [
   { label: "Capabilities", href: "/#services" },
   { label: "Process", href: "/#process" },
-  { label: "Roadmap", href: "/#maturity" },
+  { label: "Lifecycle", href: "/#sdlc" },
   { label: "Performance", href: "/#results" },
-  { label: "Growth Audit", href: "/#contact" },
+  { label: "Viability Audit", href: "/#contact" },
 ]
 
 export function Navbar() {
@@ -23,6 +23,19 @@ export function Navbar() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith('/#')) {
+      const id = href.replace('/#', '');
+      const el = document.getElementById(id);
+      if (el) {
+        e.preventDefault();
+        el.scrollIntoView({ behavior: 'smooth' });
+        window.history.pushState(null, '', href);
+      }
+    }
+    setIsMobileOpen(false);
+  };
 
   return (
     <header
@@ -52,6 +65,7 @@ export function Navbar() {
             <Link
               key={link.href}
               href={link.href}
+              onClick={(e) => handleNavClick(e, link.href)}
               className="rounded-lg px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
             >
               {link.label}
@@ -66,7 +80,7 @@ export function Navbar() {
             className="text-muted-foreground hover:text-foreground"
             asChild
           >
-            <Link href="/#contact">Book a Call</Link>
+            <Link href="/#contact" onClick={(e) => handleNavClick(e, '/#contact')}>Book a Call</Link>
           </Button>
           <Button
             size="sm"
@@ -96,7 +110,7 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                onClick={() => setIsMobileOpen(false)}
+                onClick={(e) => handleNavClick(e, link.href)}
                 className="rounded-lg px-4 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
               >
                 {link.label}

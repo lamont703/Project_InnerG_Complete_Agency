@@ -14,6 +14,18 @@ function GlowOrb({ className }: { className: string }) {
 }
 
 export function HeroSection() {
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith('#') || href.startsWith('/#')) {
+      const id = href.replace('/#', '').replace('#', '');
+      const el = document.getElementById(id);
+      if (el) {
+        e.preventDefault();
+        el.scrollIntoView({ behavior: 'smooth' });
+        window.history.pushState(null, '', `/#${id}`);
+      }
+    }
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
       {/* Background orbs */}
@@ -61,8 +73,8 @@ export function HeroSection() {
             className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 px-8 py-6 text-base glow-primary"
             asChild
           >
-            <Link href="#contact">
-              Schedule a Growth Audit
+            <Link href="#contact" onClick={(e) => handleNavClick(e, '#contact')}>
+              Request Viability Assessment
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
@@ -72,7 +84,7 @@ export function HeroSection() {
             className="border-border text-foreground hover:bg-secondary/50 gap-2 px-8 py-6 text-base"
             asChild
           >
-            <Link href="#maturity">View the Scaling Roadmap</Link>
+            <Link href="#sdlc" onClick={(e) => handleNavClick(e, '#sdlc')}>Explore the Engineering Lifecycle</Link>
           </Button>
         </div>
 
