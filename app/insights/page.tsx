@@ -27,11 +27,19 @@ const reports = [
     featured: true,
   },
   {
+    slug: "cognitive-architecture-blueprint",
+    title: "The Cognitive Architecture Blueprint: Delivering Institutional-Grade AI with CPMAI",
+    excerpt: "How Inner G Complete applies the PMI-certified CPMAI framework across all six phases to architect the Aesthetic Domain Intelligence model — governance-first, enterprise-ready.",
+    date: "April 13, 2026",
+    readingTime: "20 min read",
+    category: "Methodology",
+  },
+  {
     slug: "cognitive-feedstock-15-data-sources",
     title: "Cognitive Feedstock: 15 Data Sources for Aesthetic AI",
     excerpt: "Moving beyond simple booking lists to tap into high-fidelity data that captures the 'human' element of wellness and grooming.",
     date: "April 12, 2026",
-    readingTime: "12 min read",
+    readingTime: "15 min read",
     category: "Technical Brief",
   },
   {
@@ -52,7 +60,7 @@ const reports = [
   },
 ]
 
-const categories = ["All", "Industry Report", "Technical Brief", "Strategic View"]
+const categories = ["All", "Industry Report", "Technical Brief", "Strategic View", "Methodology"]
 
 export default function InsightsPage() {
   const [activeCategory, setActiveCategory] = useState("All")
