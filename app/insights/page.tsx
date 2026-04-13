@@ -18,13 +18,21 @@ function GlowOrb({ className }: { className: string }) {
 
 const reports = [
   {
+    slug: "the-sovereign-intelligence-layer",
+    title: "The Sovereign Intelligence Layer: Why ADI Wins",
+    excerpt: "The enterprise that builds a proprietary Artificial Domain Intelligence doesn't just win market share—it becomes the industry standard that everyone else licenses.",
+    date: "April 13, 2026",
+    readingTime: "14 min read",
+    category: "Strategic View",
+    featured: true,
+  },
+  {
     slug: "cognitive-feedstock-15-data-sources",
     title: "Cognitive Feedstock: 15 Data Sources for Aesthetic AI",
     excerpt: "Moving beyond simple booking lists to tap into high-fidelity data that captures the 'human' element of wellness and grooming.",
     date: "April 12, 2026",
     readingTime: "12 min read",
     category: "Technical Brief",
-    featured: true,
   },
   {
     slug: "the-feasibility-premium",
