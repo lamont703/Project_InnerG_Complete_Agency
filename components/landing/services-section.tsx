@@ -5,45 +5,45 @@ import { Brain, Blocks, Rocket, Shield, Cpu, BarChart3, Database, Zap, LineChart
 const services = [
   {
     icon: Database,
-    title: "Aesthetic Logic",
+    title: "Domain Intelligence (ADI)",
     description:
-      "Future-proof your wellness enterprise with robust database foundations and unified cloud infrastructure designed for global franchise scaling.",
-    highlights: ["Unified Franchise Data", "Cloud Scaling", "High Availability"],
+      "We architect a proprietary intelligence layer for your wellness enterprise. Unified data structures designed for global autonomous operations.",
+    highlights: ["Sovereign Data Lakes", "Model Foundations", "Franchise Scaling"],
   },
   {
     icon: Zap,
-    title: "Autonomous Concierge",
+    title: "Workflow Intelligence",
     description:
-      "Transform booking bottlenecks into automated workflows. We deploy AI agents that handle scheduling, upselling, and client nurturing 24/7.",
-    highlights: ["AI Booking Agents", "Process Mapping", "Operational ROI"],
+      "Automate high-fidelity workflows with custom agentic systems. We deploy AI intelligence that manages clinical intake and client nurturing.",
+    highlights: ["Agentic Systems", "Neural Workflows", "Institutional ROI"],
   },
   {
     icon: LineChart,
-    title: "Client Science",
+    title: "Cognitive Analytics",
     description:
-      "Turn fragmented skin, hair, and wellness data into growth intelligence. We build unified dashboards that predict client LTV and retention.",
-    highlights: ["LTV Modeling", "Predictive Recommendations", "Unified Data Lakes"],
+      "Transform fragmented client records into predictive growth intelligence. Build high-fidelity models that anticipate treatment paths.",
+    highlights: ["LTV Prediction", "Behavioral Modeling", "Growth Engines"],
   },
   {
     icon: Shield,
     title: "Supply Chain Authority",
     description:
       "Leverage Blockchain to verify the ethical provenance of professional-grade assets. Secure your brand's authority with on-chain verification.",
-    highlights: ["Asset Provenance", "Ethical Verification", "On-Chain Audit"],
+    highlights: ["Supply Chain Trust", "Ethical Verification", "On-Chain Audit"],
   },
   {
     icon: ChessKnight,
     title: "Fractional CTO & Strategy",
     description:
-      "Technical leadership for wellness brands. Navigate the complex intersection of personal services and institutional-grade technology.",
-    highlights: ["Technical Roadmap", "Team Mentorship", "Vendor Management"],
+      "High-agency fractional CTO leadership for wellness brands. We architect your technical future with institutional-grade strategy.",
+    highlights: ["Technical Roadmap", "IP Ownership", "Risk Mitigation"],
   },
   {
     icon: LayoutDashboard,
     title: "Performance Auditing",
     description:
-      "Real-time visibility into your digital-to-physical touchpoints. We ensure every system we build is measurable, transparent, and high-performing.",
-    highlights: ["KPI Tracking", "Service-Level Assurance", "Real-time Audits"],
+      "Total transparency into your digital-to-physical touchpoints. We ensure every system we architect is measurable and compliant.",
+    highlights: ["HIPAA Compliance", "Service Audits", "KPI Infrastructure"],
   },
 ]
 
@@ -53,15 +53,15 @@ export function ServicesSection() {
       <div className="mx-auto max-w-7xl px-6">
         {/* Header */}
         <div className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-primary">
+          <p className="text-sm font-black uppercase tracking-[0.3em] text-primary mb-4">
             Aesthetic Intelligence Suite
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
             Engineered for Luxury Wellness
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            We provide the technical bedrock and strategic foresight that 
-            high-end Beauty and Grooming enterprises need to dominate the marketplace.
+          <p className="mx-auto mt-8 max-w-3xl text-lg text-muted-foreground leading-relaxed font-medium">
+            We partner with a selective cohort of Beauty and Wellness enterprises to build 
+            the sovereign intelligence layers required for the next decade of market dominance.
           </p>
         </div>
 

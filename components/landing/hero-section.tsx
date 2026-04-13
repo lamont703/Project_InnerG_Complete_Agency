@@ -61,9 +61,8 @@ export function HeroSection() {
           </span>
         </h1>
 
-        {/* Subheadline */}
-        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl text-balance">
-          We partner with Beauty, Grooming, and Wellness enterprises to architect, build, and scale custom AI and Blockchain solutions that drive institutional-grade innovation and lasting market authority.
+        <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl text-balance">
+          We partner with Beauty, Grooming, and Wellness enterprises to architect, build, and scale custom AI and Blockchain intelligence that drive institutional-grade innovation and lasting market authority.
         </p>
 
         {/* CTAs */}
