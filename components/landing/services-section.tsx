@@ -5,45 +5,45 @@ import { Brain, Blocks, Rocket, Shield, Cpu, BarChart3, Database, Zap, LineChart
 const services = [
   {
     icon: Database,
-    title: "Scalable Architecture",
+    title: "Aesthetic Logic",
     description:
-      "Future-proof your business with robust database foundations and cloud infrastructure designed to handle 10x growth without crumbling.",
-    highlights: ["Database Optimization", "Cloud Scaling", "High Availability"],
+      "Future-proof your wellness enterprise with robust database foundations and unified cloud infrastructure designed for global franchise scaling.",
+    highlights: ["Unified Franchise Data", "Cloud Scaling", "High Availability"],
   },
   {
     icon: Zap,
-    title: "Advanced Automations",
+    title: "Autonomous Concierge",
     description:
-      "Transform manual bottlenecks into automated workflows. We deploy AI agents that work 24/7 to reclaim your team's most valuable hours.",
-    highlights: ["AI Workflows", "Process Mapping", "Operational ROI"],
+      "Transform booking bottlenecks into automated workflows. We deploy AI agents that handle scheduling, upselling, and client nurturing 24/7.",
+    highlights: ["AI Booking Agents", "Process Mapping", "Operational ROI"],
   },
   {
     icon: LineChart,
-    title: "Data Analytics",
+    title: "Client Science",
     description:
-      "Turn fragmented data into growth intelligence. We build unified dashboards that tell you exactly where to double down on your spend.",
-    highlights: ["Growth Intelligence", "Predictive Modeling", "Unified Data Lakes"],
+      "Turn fragmented skin, hair, and wellness data into growth intelligence. We build unified dashboards that predict client LTV and retention.",
+    highlights: ["LTV Modeling", "Predictive Recommendations", "Unified Data Lakes"],
   },
   {
-    icon: Users,
-    title: "Customer Personalization",
+    icon: Shield,
+    title: "Supply Chain Authority",
     description:
-      "Leverage AI to deliver hyper-personalized experiences. Increase LTV and retention by treating every customer like your only customer.",
-    highlights: ["Retention Strategy", "Dynamic Content", "Behavioral Tuning"],
+      "Leverage Blockchain to verify the ethical provenance of professional-grade assets. Secure your brand's authority with on-chain verification.",
+    highlights: ["Asset Provenance", "Ethical Verification", "On-Chain Audit"],
   },
   {
     icon: ChessKnight,
     title: "Fractional CTO & Strategy",
     description:
-      "A long-term strategic partnership focused on technical leadership and resource allocation without the full-time executive cost.",
+      "Technical leadership for wellness brands. Navigate the complex intersection of personal services and institutional-grade technology.",
     highlights: ["Technical Roadmap", "Team Mentorship", "Vendor Management"],
   },
   {
     icon: LayoutDashboard,
-    title: "Performance Monitoring",
+    title: "Performance Auditing",
     description:
-      "Real-time visibility into your new infrastructure. We ensure every system we build is measurable, transparent, and high-performing.",
-    highlights: ["KPI Tracking", "Uptime Assurance", "Real-time Audits"],
+      "Real-time visibility into your digital-to-physical touchpoints. We ensure every system we build is measurable, transparent, and high-performing.",
+    highlights: ["KPI Tracking", "Service-Level Assurance", "Real-time Audits"],
   },
 ]
 
@@ -54,14 +54,14 @@ export function ServicesSection() {
         {/* Header */}
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">
-            Our Capability Suite
+            Aesthetic Intelligence Suite
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            Engineered for Scaling Businesses
+            Engineered for Luxury Wellness
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            We provide the technical bedrock and strategic foresight that
-            growth-stage founders need to outpace the competition.
+            We provide the technical bedrock and strategic foresight that 
+            high-end Beauty and Grooming enterprises need to dominate the marketplace.
           </p>
         </div>
 
@@ -70,9 +70,9 @@ export function ServicesSection() {
           {services.map((service) => (
             <div
               key={service.title}
-              className={`group relative rounded-2xl glass-panel p-8 transition-all duration-300 hover:border-primary/30 hover:bg-secondary/30 ${service.title === "Scalable Architecture" ? "border-primary/40 ring-1 ring-primary/20 scale-[1.02] shadow-xl shadow-primary/5" : ""}`}
+              className={`group relative rounded-2xl glass-panel p-8 transition-all duration-300 hover:border-primary/30 hover:bg-secondary/30 ${service.title === "Aesthetic Logic" ? "border-primary/40 ring-1 ring-primary/20 scale-[1.02] shadow-xl shadow-primary/5" : ""}`}
             >
-              {service.title === "Scalable Architecture" && (
+              {service.title === "Aesthetic Logic" && (
                 <div className="absolute -top-3 left-8 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
                   Flagship Offering
                 </div>

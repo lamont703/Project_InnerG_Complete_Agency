@@ -7,24 +7,24 @@ import { Button } from "@/components/ui/button"
 const testimonials = [
   {
     quote:
-      "Inner G Complete transformed our approach to AI. They didn't just build a solution \u2014 they architected a competitive advantage that generated $48M in savings in the first year alone.",
-    name: "Sarah Chen",
-    role: "Chief Technology Officer",
-    company: "Global Financial Corp",
+      "Inner G Complete transformed our approach to AI. They didn't just build a solution — they architected a competitive advantage that revolutionized our per-client booking value by 34%.",
+    name: "Elena Rodriguez",
+    role: "Director of Operations",
+    company: "Lumina Wellness Collective",
   },
   {
     quote:
-      "Their blockchain expertise is unmatched. The tokenization platform they built for us opened entirely new revenue streams we never thought possible. True enterprise partners.",
-    name: "Marcus Rivera",
-    role: "VP of Innovation",
-    company: "Apex Logistics Group",
+      "Their blockchain expertise provided the transparency our clients demand. The ingredient provenance platform they built has become our most powerful marketing asset for ethical supply.",
+    name: "James Sterling",
+    role: "Founder",
+    company: "Sterling & Silk Grooming",
   },
   {
     quote:
-      "What sets Inner G Complete apart is their ability to translate complex technology into real business outcomes. Every recommendation was backed by data, every delivery on time.",
-    name: "Dr. Aisha Patel",
-    role: "Chief Digital Officer",
-    company: "MedTech Innovations",
+      "What sets Inner G Complete apart is their ability to translate complex technology into real physical-to-digital outcomes. Our franchise locations are now truly unified.",
+    name: "Dr. Julianne Voss",
+    role: "Chief Innovation Officer",
+    company: "Voss Medical Aesthetics",
   },
 ]
 

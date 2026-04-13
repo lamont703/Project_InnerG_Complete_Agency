@@ -4,25 +4,25 @@ const results = [
     metric: "84%",
     metricLabel: "Time Reclaimed",
     description:
-      "Automated manual data processing and customer support workflows for a growth-stage firm, reclaiming 1,200+ team hours monthly.",
-    tags: ["AI Automation", "Process Optimization", "ROI Focus"],
+      "Automated multi-location booking and membership workflows for a 50-unit MedSpa franchise, reclaiming 1,200+ team hours monthly.",
+    tags: ["AI Automation", "Franchise Scale", "ROI Focus"],
   },
   {
     category: "Infrastructure Scaling",
     metric: "10x",
     metricLabel: "Throughput Boost",
     description:
-      "Re-architected core database and cloud infrastructure to handle a massive surge in user demand without performance degradation.",
-    highlights: ["Database Scaling", "Cloud Architecture", "Zero Downtime"],
-    tags: ["Scalability", "Database Optimization", "Cloud Ops"],
+      "Re-architected patient records and supply chain tracking for a global dermo-cosmetics network to handle surge in digital diagnostics.",
+    highlights: ["HIPAA-Compliant", "Cloud Architecture", "Zero Downtime"],
+    tags: ["Scalability", "Clinical Data", "Cloud Ops"],
   },
   {
     category: "Revenue Expansion",
     metric: "42%",
     metricLabel: "LTV Increase",
     description:
-      "Deployed a personalization engine that boosted customer lifetime value and retention through AI-driven behavioral insights.",
-    tags: ["Personalization", "Retention AI", "Data Intelligence"],
+      "Deployed a skin-type analysis and product recommendation engine that boosted lifetime value for a Tier-1 luxury skincare brand.",
+    tags: ["Personalization", "Retention AI", "Beauty-Tech"],
   },
 ]
 
@@ -34,17 +34,18 @@ export function ResultsSection() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">
-            Results
+            Proven Outcomes
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            Proven Impact Across Industries
+            Realized Business Intelligence
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            Every engagement is measured by the tangible business value we create.
-            Here are a few examples of what we deliver.
+            Every engagement is measured by the tangible business value we create
+            for the world's most ambitious wellness enterprises.
           </p>
         </div>
 
+        {/* Results Grid */}
         <div className="mt-16 grid gap-8 lg:grid-cols-3">
           {results.map((result) => (
             <div
@@ -80,6 +81,30 @@ export function ResultsSection() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Industry Experience Logo Cloud */}
+        <div className="mt-32">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground/60">
+            Institutional Experience Across
+          </p>
+          <div className="mt-10 flex flex-wrap justify-center gap-x-12 gap-y-8 opacity-60">
+            {[
+              "Medical Aesthetics",
+              "Luxury Skincare",
+              "Global Franchises",
+              "Professional Grooming",
+              "Dermo-Cosmetics",
+              "Wellness Tech",
+            ].map((industry) => (
+              <div
+                key={industry}
+                className="text-lg font-bold tracking-tight text-foreground/80 hover:text-primary transition-colors cursor-default"
+              >
+                {industry}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

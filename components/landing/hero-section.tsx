@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRight, Sparkles } from "lucide-react"
+import { ArrowRight, Sparkles, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
@@ -54,16 +54,16 @@ export function HeroSection() {
         {/* Headline */}
         <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
           <span className="text-balance block text-foreground">
-            Architect Your Next
+            Architecting Your
           </span>
           <span className="text-balance block text-gradient mt-2">
-            Phase of Growth
+            Aesthetic Intelligence
           </span>
         </h1>
 
         {/* Subheadline */}
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl text-balance">
-          We partner with enterprises and mature startups to architect, build, and scale custom AI and Blockchain solutions using Cognitive Agile Project Management methods that drive real business innovation and lasting competitive advantage.
+          We partner with Beauty, Grooming, and Wellness enterprises to architect, build, and scale custom AI and Blockchain solutions that drive institutional-grade innovation and lasting market authority.
         </p>
 
         {/* CTAs */}
@@ -89,15 +89,26 @@ export function HeroSection() {
         </div>
 
         {/* Core Pillars */}
-        <div className="mt-20 glass-panel rounded-2xl p-6">
-          <p className="mb-6 text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Built for Scale
-          </p>
+        <div className="mt-20 glass-panel rounded-2xl p-6 sm:p-8">
+          <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-border/50 pb-6">
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+              Institutional-Grade Intelligence
+            </p>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
+                <Shield className="h-3 w-3" />
+                HIPAA Ready
+              </span>
+              <span className="rounded-full bg-secondary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-secondary-foreground">
+                AES-256 Encrypted
+              </span>
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
             {[
-              { title: "Scalability", label: "Architecture that grows with your revenue" },
-              { title: "Efficiency", label: "Automations that reclaim your team's time" },
-              { title: "Intelligence", label: "Data insights that drive predictable ROI" },
+              { title: "Personalization", label: "AI-driven client journeys at scale" },
+              { title: "Verification", label: "Blockchain-backed asset provenance" },
+              { title: "Security", label: "Audit-ready HIPAA architecture" },
             ].map((item) => (
               <div key={item.title} className="text-center sm:text-left px-4">
                 <div className="text-xl font-bold text-foreground">{item.title}</div>

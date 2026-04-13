@@ -24,11 +24,11 @@ export function FoundersVision() {
 
                     <div className="mt-8 space-y-6">
                         <p className="text-xl md:text-2xl leading-relaxed text-foreground font-medium italic">
-                            "At Inner G Complete Agency, we believe that advanced technology shouldn't be a luxury reserved for the world's largest corporations. Our mission is to bridge the gap between complex AI and Blockchain innovation and the practical needs of small to medium-sized businesses."
+                            "At Inner G Complete Agency, we believe that the intersection of technology and personal service is the next frontier of enterprise growth. Our mission is to bridge the gap between complex AI and Blockchain innovation and the aesthetic needs of the world's most elite wellness and grooming brands."
                         </p>
 
                         <p className="text-lg text-muted-foreground leading-relaxed">
-                            We focus on human-centric integration—ensuring that every line of code we write and every strategy we architect adds immediate, tangible value to your daily operations and long-term growth.
+                            We focus on service-centric integration—ensuring that every line of code we write and every strategy we architect enhances the human touch that defines your brand's market authority.
                         </p>
                     </div>
 

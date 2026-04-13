@@ -4,41 +4,41 @@ import Link from "next/link"
 
 const sdlcStages = [
   {
-    stage: "Architecture & Viability",
+    stage: "Aesthetic Mapping",
     status: "Phase 1",
-    description: "Deep-dive technical validations to map infrastructure constraints before writing code.",
+    description: "Deep-dive technical validations of the digital-to-physical client touchpoints.",
     points: [
-      { label: "Technical Feasibility", icon: Target, text: "Ensure project scope is mathematically and practically sound." },
-      { label: "System Mapping", icon: Server, text: "Blueprint robust AI and Web3 infrastructure flow." },
-      { label: "Risk Mitigation", icon: ShieldCheck, text: "Identify deployment and security bottlenecks early." },
-      { label: "Stack Selection", icon: Target, text: "Lock in the exact enterprise tech stack required." },
+      { label: "Journey Analysis", icon: Target, text: "Map every digital interaction from booking to treatment." },
+      { label: "Integrity Blueprint", icon: Server, text: "Design secure, HIPAA-compliant client data architecture." },
+      { label: "Technical Feasibility", icon: ShieldCheck, text: "Validate your AI skin analysis or Web3 loyalty concepts." },
+      { label: "Stack Performance", icon: Target, text: "Ensure 99.9% uptime for global service operations." },
     ],
     accentClass: "text-muted-foreground bg-muted border-border",
     glowClass: "bg-muted/5",
   },
   {
-    stage: "Cognitive Agile Sprints",
+    stage: "Cognitive Development",
     status: "Phase 2",
-    description: "Elite dedicated engineering squads building modular, testable components predictably.",
+    description: "Elite engineering squads building high-throughput personalized service engines.",
     points: [
-      { label: "Dedicated Squads", icon: Cpu, text: "Specialized engineering and product management teams." },
-      { label: "Iterative Sprints", icon: Zap, text: "Rapid prototyping and continuous feature delivery." },
-      { label: "Modular Codebase", icon: Server, text: "Architecting scalable system components for future pivots." },
-      { label: "Transparent Execution", icon: Target, text: "Complete, direct visibility into weekly sprint progress." },
+      { label: "Dedicated Pods", icon: Cpu, text: "Specialized teams focused on Beauty-Tech innovation." },
+      { label: "Personalized AI", icon: Zap, text: "Deploying custom recommendation and analysis engines." },
+      { label: "Modular Infrastructure", icon: Server, text: "Future-proof systems that grow with your franchise locations." },
+      { label: "Live Transparency", icon: Target, text: "Direct visibility into your technical build velocity." },
     ],
     accentClass: "text-primary bg-primary/10 border-primary/20",
     glowClass: "bg-primary/20",
     isHighlighted: true,
   },
   {
-    stage: "Security & Deployment",
+    stage: "Franchise Scale",
     status: "Phase 3",
-    description: "Rigorous quality assurance, auditing, and white-glove launch into your ecosystem.",
+    description: "Continuous integration and white-glove deployment across your global location network.",
     points: [
-      { label: "Safety Benchmarking", icon: ShieldCheck, text: "Rigorous LLM hallucination and security logic testing." },
-      { label: "Contract Audits", icon: ShieldCheck, text: "Enterprise-grade Web3 smart contract security reviews." },
-      { label: "CI/CD Pipelines", icon: Target, text: "Automated testing and robust continuous integration." },
-      { label: "Production Handoff", icon: Rocket, text: "Flawless deployment into your live production environment." },
+      { label: "Audit Readiness", icon: ShieldCheck, text: "Rigorous security and performance auditing for launch." },
+      { label: "Edge Deployment", icon: Rocket, text: "Low-latency system performance across all territories." },
+      { label: "Operational Handoff", icon: Target, text: "Comprehensive training and technical documentation." },
+      { label: "Brand Presence", icon: Rocket, text: "Launching a technical moat that defines your brand authority." },
     ],
     accentClass: "text-accent bg-accent/10 border-accent/20",
     glowClass: "bg-accent/5",
@@ -60,13 +60,13 @@ export function SolutionsSection() {
       <div className="mx-auto max-w-7xl px-6 relative z-10">
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">
-            The Cognitive Engineering Lifecycle
+            The Aesthetic Innovation Lifecycle
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            Architect. Build. Scale.
+            Design. Build. Dominate.
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            Our enterprise-grade Software Development Life Cycle (SDLC) is battle-tested for deploying complex Artificial Intelligence and Web3 infrastructure securely and predictably.
+            Our enterprise-grade Software Development Life Cycle (SDLC) is battle-tested for deploying complex Artificial Intelligence and Web3 infrastructure for the world's most elite wellness brands.
           </p>
         </div>
 

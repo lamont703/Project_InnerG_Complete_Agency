@@ -16,7 +16,7 @@ export default function PrivacyPolicyPage() {
         
         <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none space-y-8 text-muted-foreground">
           <section>
-            <p><strong>Last Updated:</strong> March 20, 2026</p>
+            <p><strong>Last Updated:</strong> April 12, 2026</p>
             <p className="mt-4">
               At Inner G Complete Agency, we value your privacy and are committed to protecting your personal information. 
               This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our 
@@ -25,7 +25,19 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-foreground">1. Information We Collect</h2>
+            <h2 className="text-2xl font-semibold text-foreground">1. HIPAA & Protected Health Information (PHI)</h2>
+            <p className="mt-4">
+              For clients in the healthcare, medical aesthetics, and wellness industries, we may handle Protected Health Information (PHI) as defined under the Health Insurance Portability and Accountability Act (HIPAA).
+            </p>
+            <ul className="list-disc pl-6 mt-4 space-y-2 text-sm sm:text-base">
+              <li><strong>Business Associate Status:</strong> When Inner G Complete Agency provides services to a "Covered Entity," we act as a "Business Associate." Our handling of PHI is governed by a formal Business Associate Agreement (BAA) which must be executed prior to the transmission of any sensitive health data.</li>
+              <li><strong>Technical Safeguards:</strong> For all HIPAA-governed environments, we implement rigorous safeguards including AES-256 data encryption at rest, TLS 1.2+ encryption in transit, Multi-Factor Authentication (MFA), and detailed audit logging.</li>
+              <li><strong>Purpose-Bound Discovery:</strong> We do not use PHI for any purpose other than those explicitly specified in the client engagement or BAA. We do not sell or monetize PHI.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-foreground">2. Information We Collect</h2>
             <p className="mt-4">
               We may collect information about you in a variety of ways. The information we may collect includes:
             </p>

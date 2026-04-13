@@ -16,7 +16,7 @@ export default function TermsOfServicePage() {
         
         <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none space-y-8 text-muted-foreground">
           <section>
-            <p><strong>Last Updated:</strong> March 20, 2026</p>
+            <p><strong>Last Updated:</strong> April 12, 2026</p>
             <p className="mt-4">
               Welcome to the <strong>Inner G Complete Agency App</strong>, a proprietary software developed and 
               managed by <strong>Inner G Complete Agency</strong> ("the Company"). These Terms of Service 
@@ -26,7 +26,19 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-foreground">1. Description of Service</h2>
+            <h2 className="text-2xl font-semibold text-foreground">1. HIPAA Compliance & Business Associate Agreements</h2>
+            <p className="mt-4">
+              If your use of the Services involves the processing of "Protected Health Information" (PHI) as defined under the Health Insurance Portability and Accountability Act (HIPAA), the following conditions apply:
+            </p>
+            <ul className="list-disc pl-6 mt-4 space-y-2">
+              <li><strong>BAA Requirement:</strong> You may not upload or transmit PHI to the Company’s platform or infrastructure until a Business Associate Agreement (BAA) has been executed between you and the Company.</li>
+              <li><strong>Liability:</strong> In the absence of a signed BAA, the Company assumes no liability for HIPAA compliance and prohibits the use of the Services for PHI processing.</li>
+              <li><strong>Security Cooperation:</strong> Clients are responsible for maintaining their own access controls and ensuring their workforce is trained on secure platform usage.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-foreground">2. Description of Service</h2>
             <p className="mt-4">
               Inner G Complete Agency App provides AI and Blockchain innovation services, consulting, and technological 
               solutions designed for small to medium businesses. Our Services include but are not limited to AI strategy, 
