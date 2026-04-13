@@ -80,17 +80,17 @@ export function CtaSection() {
               Get Started
             </p>
             <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-              Validate Your Architecture.
+              Validate Your Aesthetic Innovation.
             </h2>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
-              Let our senior architects evaluate your project's feasibility, mitigate timeline risks, and determine if your concept is ready for production-grade engineering before committing capital.
+              Let our senior architects evaluate your project's technical feasibility, mitigate franchise-scale risks, and determine if your concept is ready for institutional-grade engineering.
             </p>
 
             <div className="mt-10 space-y-6">
               {[
-                { label: "Technical Feasibility Study", desc: "Ensure your AI or Web3 scope is mathematically and practically sound" },
-                { label: "Engineering Risk Assessment", desc: "Identify architectural bottlenecks and deployment risks early" },
-                { label: "Production-Readiness Audit", desc: "Get a clear verdict on if your project is ready to scale" },
+                { label: "Client-Journey Mapping", desc: "Ensure your AI or Web3 touchpoints are technically and practically sound" },
+                { label: "Franchise Risk Assessment", desc: "Identify architectural bottlenecks for global location scaling" },
+                { label: "Institutional-Grade Audit", desc: "Get a clear verdict on if your project is ready for production release" },
               ].map((item) => (
                 <div key={item.label} className="flex items-start gap-4">
                   <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
@@ -131,6 +131,9 @@ export function CtaSection() {
                   <h3 className="text-xl font-semibold text-foreground">Request a Technical Viability Assessment</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Submit your project details to request a technical review.
+                  </p>
+                  <p className="mt-2 text-[10px] text-primary/70 font-medium uppercase tracking-wider">
+                    All submissions are protected under our HIPAA-compliant privacy framework.
                   </p>
                 </div>
 
@@ -263,7 +266,7 @@ export function CtaSection() {
                 <div className="space-y-1">
                   <Input
                     {...register("industry")}
-                    placeholder="Specific Industry (e.g. Fintech, Healthcare, Supply Chain)"
+                    placeholder="Niche (e.g. Med-Spa, High-End Grooming, Luxury Skincare)"
                     className={`bg-input/50 border-border text-foreground placeholder:text-muted-foreground focus:border-primary ${errors.industry ? "border-destructive focus:border-destructive" : ""}`}
                     disabled={isSubmitting}
                   />

@@ -5,27 +5,27 @@ import { TrendingUp, Lock, Zap, Globe } from "lucide-react"
 const features = [
   {
     icon: TrendingUp,
-    title: "Revenue Acceleration",
+    title: "Franchise Velocity",
     stat: "3.2x",
-    description: "Average revenue multiplier for clients who commercialize AI solutions with our team.",
+    description: "Average revenue multiplier for wellness clients commercializing AI solutions with our team.",
   },
   {
     icon: Lock,
-    title: "Business Security",
-    stat: "SOC 2",
-    description: "All solutions built with business-grade security, compliance, and audit-ready architecture.",
+    title: "Institutional Security",
+    stat: "HIPAA",
+    description: "All solutions built with medical-grade security, compliance, and audit-ready architecture.",
   },
   {
     icon: Zap,
-    title: "Rapid Deployment",
+    title: "Service Deployment",
     stat: "12 wk",
-    description: "Average time from strategy to production deployment for business AI solutions.",
+    description: "Average time from architecture to production for specialized autonomous service agents.",
   },
   {
     icon: Globe,
-    title: "Global Scale",
+    title: "Global Availability",
     stat: "24/7",
-    description: "Solutions engineered for global deployment with multi-region support and 99.99% uptime.",
+    description: "Solutions engineered for global franchise networks with 99.99% uptime assurance.",
   },
 ]
 
@@ -43,7 +43,7 @@ export function FeatureHighlight() {
             Why Inner G Complete Agency
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            Built for Business Scale
+            Built for Institutional Scale
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
             We combine deep technical expertise with business acumen to deliver solutions

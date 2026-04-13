@@ -3,20 +3,20 @@ import Image from "next/image"
 
 const footerLinks = {
   Solutions: [
-    { label: "AI Strategy", href: "#services" },
-    { label: "Retail Solutions", href: "#solutions" },
-    { label: "Financial Systems", href: "#solutions" },
-    { label: "Healthcare Efficiency", href: "#solutions" },
+    { label: "Med-Spa Strategy", href: "#services" },
+    { label: "Aesthetic Logic", href: "#services" },
+    { label: "Franchise Systems", href: "#sdlc" },
+    { label: "Personalized AI", href: "#services" },
   ],
   Social: [
-    { label: "LinkedIn", href: "https://www.linkedin.com/in/lamont-evans-57ab4922a/" },
-    { label: "YouTube", href: "https://www.youtube.com/@SchoolofFreelancerFreedom" },
-    { label: "Discussions", href: "/discussions" },
+    { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },
+    // { label: "YouTube", href: "https://www.youtube.com/@SchoolofFreelancerFreedom" },
+    // { label: "Discussions", href: "/discussions" },
   ],
   Company: [
+    { label: "Research & Insights", href: "/insights" },
     { label: "About Us", href: "#" },
     { label: "Careers", href: "/careers" },
-    { label: "Blog", href: "#" },
     { label: "Contact", href: "#contact" },
   ],
 }
@@ -43,7 +43,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
-              Bridging the gap between AI & Blockchain innovation and the practical needs of small to medium businesses.
+              Bridging the gap between AI & Blockchain innovation and the aesthetic needs of elite wellness and grooming brands.
             </p>
           </div>
 

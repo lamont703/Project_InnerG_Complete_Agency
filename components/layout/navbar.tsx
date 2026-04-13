@@ -7,10 +7,9 @@ import { Menu, X, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const navLinks = [
-  { label: "Capabilities", href: "/#services" },
-  { label: "Process", href: "/#process" },
+  { label: "Innovation", href: "/#services" },
   { label: "Lifecycle", href: "/#sdlc" },
-  { label: "Performance", href: "/#results" },
+  { label: "Impact", href: "/#results" },
   { label: "Viability Audit", href: "/#contact" },
 ]
 
