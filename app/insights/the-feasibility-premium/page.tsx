@@ -272,9 +272,9 @@ export default function FeasibilityPremiumArticle() {
               {verdictPillars.map((pillar) => (
                 <div
                   key={pillar.title}
-                  className="p-8 rounded-2xl bg-white border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300 group"
+                  className="p-6 sm:p-8 rounded-2xl bg-white border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300 group"
                 >
-                  <div className="flex items-start gap-6">
+                  <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
                     <div className="h-12 w-12 rounded-xl bg-secondary flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
                       <pillar.icon className="h-6 w-6 text-foreground group-hover:text-primary transition-colors" />
                     </div>
@@ -366,7 +366,7 @@ export default function FeasibilityPremiumArticle() {
           </div>
 
           {/* CTA */}
-          <div className="p-12 rounded-3xl bg-foreground text-background relative overflow-hidden">
+          <div className="p-8 sm:p-12 rounded-3xl bg-foreground text-background relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-5">
               <CheckCircle2 className="h-48 w-48" />
             </div>

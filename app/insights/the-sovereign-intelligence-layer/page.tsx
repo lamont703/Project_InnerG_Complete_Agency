@@ -178,7 +178,7 @@ export default function SovereignIntelligenceLayer() {
               {pillars.map((pillar) => (
                 <div
                   key={pillar.title}
-                  className="flex gap-6 p-8 rounded-2xl border border-border/50 bg-white hover:border-primary/30 hover:shadow-lg transition-all duration-300 group"
+                  className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-6 sm:p-8 rounded-2xl border border-border/50 bg-white hover:border-primary/30 hover:shadow-lg transition-all duration-300 group"
                 >
                   <div className="h-12 w-12 rounded-xl bg-secondary flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
                     <pillar.icon className="h-6 w-6 text-foreground group-hover:text-primary transition-colors" />
@@ -245,28 +245,29 @@ export default function SovereignIntelligenceLayer() {
           </div>
 
           {/* CTA */}
-          <div className="p-12 rounded-3xl bg-foreground text-background relative overflow-hidden">
+          <div className="p-8 sm:p-12 rounded-3xl bg-foreground text-background relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-5">
               <Brain className="h-48 w-48" />
             </div>
             <div className="relative z-10">
-              <div className="text-[10px] font-black uppercase tracking-[0.4em] text-primary mb-6">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] text-primary mb-4 sm:mb-6">
                 Architecture Assessment
               </div>
-              <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-tight mb-6">
+              <h2 className="text-2xl sm:text-3xl font-black uppercase italic tracking-tighter leading-tight mb-4 sm:mb-6">
                 Is Your Enterprise on the{" "}
                 <span className="text-primary">Sovereign Path?</span>
               </h2>
-              <p className="text-lg opacity-70 mb-10 max-w-xl font-medium leading-relaxed">
+              <p className="text-base sm:text-lg opacity-70 mb-8 sm:mb-10 max-w-xl font-medium leading-relaxed">
                 Our Viability Assessment determines whether your current data architecture and operational infrastructure can support the foundation of a proprietary ADI—and what it would take to get there.
               </p>
               <Button
-                className="bg-primary text-primary-foreground hover:bg-primary/90 px-10 py-7 text-xs font-black uppercase tracking-[0.3em] shadow-xl shadow-primary/20"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto px-6 sm:px-10 py-6 sm:py-7 text-xs font-black uppercase tracking-[0.15em] sm:tracking-[0.3em] shadow-xl shadow-primary/20"
                 asChild
               >
                 <Link href="/#contact">
-                  Request ADI Architecture Review
-                  <ArrowRight className="ml-3 h-4 w-4" />
+                  <span className="sm:hidden">Request Assessment</span>
+                  <span className="hidden sm:inline">Request ADI Architecture Review</span>
+                  <ArrowRight className="ml-2 sm:ml-3 h-4 w-4" />
                 </Link>
               </Button>
             </div>

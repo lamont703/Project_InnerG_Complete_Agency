@@ -197,7 +197,7 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
 
             {/* The Gap Table */}
             <div className="rounded-2xl border border-border overflow-hidden mb-10">
-              <div className="grid grid-cols-3 bg-secondary/30 border-b border-border">
+              <div className="hidden sm:grid grid-cols-3 bg-secondary/30 border-b border-border">
                 <div className="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Capability</div>
                 <div className="p-4 text-[10px] font-black uppercase tracking-widest text-foreground border-l border-border">ABC Fitness Today</div>
                 <div className="p-4 text-[10px] font-black uppercase tracking-widest text-primary border-l border-border">ADI Layer</div>
@@ -234,10 +234,16 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
                   adi: "The fine-tuned ADI is a franchise-owned asset. Every member interaction sharpens intellectual property that the franchise — not the vendor — controls.",
                 },
               ].map((row, i) => (
-                <div key={row.capability} className={`grid grid-cols-3 border-b border-border last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-secondary/5"}`}>
-                  <div className="p-4 text-xs font-black text-foreground uppercase tracking-wide">{row.capability}</div>
-                  <div className="p-4 text-xs text-muted-foreground leading-relaxed border-l border-border">{row.current}</div>
-                  <div className="p-4 text-xs text-foreground leading-relaxed border-l border-primary/20 font-medium">{row.adi}</div>
+                <div key={row.capability} className={`grid grid-cols-1 sm:grid-cols-3 border-b border-border last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-secondary/5"}`}>
+                  <div className="p-4 text-xs font-black text-foreground uppercase tracking-wide bg-secondary/10 sm:bg-transparent">{row.capability}</div>
+                  <div className="p-4 text-xs text-muted-foreground leading-relaxed border-t sm:border-t-0 sm:border-l border-border">
+                    <span className="sm:hidden block text-[9px] font-black uppercase text-muted-foreground/50 mb-1">Current Platform</span>
+                    {row.current}
+                  </div>
+                  <div className="p-4 text-xs text-foreground leading-relaxed border-t sm:border-t-0 sm:border-l border-primary/20 bg-primary/5 sm:bg-transparent font-medium">
+                    <span className="sm:hidden block text-[9px] font-black uppercase text-primary mb-1">Sovereign ADI</span>
+                    {row.adi}
+                  </div>
                 </div>
               ))}
             </div>
@@ -356,7 +362,7 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
                   tag: "Strategic Vision"
                 }
               ].map((pillar) => (
-                <div key={pillar.title} className="flex gap-6 p-8 rounded-2xl border border-border/50 bg-white hover:border-primary/30 hover:shadow-lg transition-all duration-300 group">
+                <div key={pillar.title} className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-6 sm:p-8 rounded-2xl border border-border/50 bg-white hover:border-primary/30 hover:shadow-lg transition-all duration-300 group">
                   <div className="h-12 w-12 rounded-xl bg-secondary flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
                     <pillar.icon className="h-6 w-6 text-foreground group-hover:text-primary transition-colors" />
                   </div>
@@ -451,14 +457,14 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
                   metricDesc: "the ADI becomes a revenue tier beyond operations"
                 }
               ].map((axis) => (
-                <div key={axis.axis} className="p-8 rounded-2xl border border-border/50 bg-white hover:border-primary/30 hover:shadow-lg transition-all duration-300 group">
-                  <div className="flex items-start gap-6">
-                    <div className="shrink-0">
-                      <div className="text-[9px] font-black uppercase tracking-widest text-primary mb-1">{axis.axis}</div>
+                <div key={axis.axis} className="p-6 sm:p-8 rounded-2xl border border-border/50 bg-white hover:border-primary/30 hover:shadow-lg transition-all duration-300 group">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6">
+                    <div className="shrink-0 flex sm:block items-center gap-3">
+                      <div className="text-[9px] font-black uppercase tracking-widest text-primary mb-0 sm:mb-1">{axis.axis}</div>
                       <div className="text-3xl font-black text-foreground italic leading-none">{axis.metric}</div>
-                      <div className="text-[9px] text-muted-foreground italic font-medium mt-1 max-w-[120px] leading-tight">{axis.metricDesc}</div>
+                      <div className="text-[9px] text-muted-foreground italic font-medium mt-0 sm:mt-1 max-w-[120px] leading-tight hidden sm:block">{axis.metricDesc}</div>
                     </div>
-                    <div className="flex-1 pl-6 border-l border-border">
+                    <div className="flex-1 pt-4 sm:pt-0 sm:pl-6 border-t sm:border-t-0 sm:border-l border-border">
                       <h3 className="text-base font-black uppercase tracking-widest text-foreground mb-3 group-hover:text-primary transition-colors">{axis.title}</h3>
                       <p className="text-sm text-muted-foreground leading-relaxed font-medium">{axis.body}</p>
                     </div>
@@ -502,7 +508,7 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
           </div>
 
           {/* CTA */}
-          <div className="p-12 rounded-3xl bg-foreground text-background relative overflow-hidden">
+          <div className="p-8 sm:p-12 rounded-3xl bg-foreground text-background relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-5">
               <Brain className="h-48 w-48 text-white" />
             </div>
