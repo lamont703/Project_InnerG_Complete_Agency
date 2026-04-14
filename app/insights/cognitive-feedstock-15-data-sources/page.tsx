@@ -562,7 +562,7 @@ export default function DataSourcesBrief() {
           </div>
 
           {/* CTA */}
-          <div className="p-12 rounded-3xl bg-primary text-primary-foreground relative overflow-hidden">
+          <div className="p-8 sm:p-12 rounded-3xl bg-primary text-primary-foreground relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-20">
               <Microscope className="h-48 w-48" />
             </div>

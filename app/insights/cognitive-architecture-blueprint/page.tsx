@@ -281,7 +281,7 @@ export default function CognitiveArchitectureBlueprint() {
             </p>
 
             {/* Phase overview rail */}
-            <div className="grid grid-cols-6 gap-2 mb-6">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-6">
               {phases.map((p) => (
                 <div key={p.number} className="flex flex-col items-center gap-2">
                   <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -324,7 +324,7 @@ export default function CognitiveArchitectureBlueprint() {
             {phases.map((phase, index) => (
               <div key={phase.number} className={`rounded-2xl border p-8 hover:shadow-lg transition-all duration-300 ${phase.color}`}>
                 {/* Phase Header */}
-                <div className="flex items-start gap-6 mb-6">
+                <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-6">
                   <div className="h-16 w-16 rounded-2xl bg-white border border-border flex items-center justify-center shrink-0 shadow-sm">
                     <span className="text-2xl font-black text-primary">{phase.number}</span>
                   </div>
@@ -471,7 +471,7 @@ export default function CognitiveArchitectureBlueprint() {
           </div>
 
           {/* CTA */}
-          <div className="p-12 rounded-3xl bg-foreground text-background relative overflow-hidden">
+          <div className="p-8 sm:p-12 rounded-3xl bg-foreground text-background relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-5">
               <Shield className="h-48 w-48" />
             </div>

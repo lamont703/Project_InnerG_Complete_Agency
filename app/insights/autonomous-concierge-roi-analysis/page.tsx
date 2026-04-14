@@ -402,7 +402,7 @@ export default function AutonomousConciergeROI() {
                   statDesc: "of front-desk time consumed by bookable tasks (pre-automation)",
                 },
               ].map((item) => (
-                <div key={item.title} className="flex gap-6 p-8 rounded-2xl bg-white border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300 group">
+                <div key={item.title} className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-6 sm:p-8 rounded-2xl bg-white border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300 group">
                   <div className="h-12 w-12 rounded-xl bg-secondary flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
                     <item.icon className="h-6 w-6 text-foreground group-hover:text-primary transition-colors" />
                   </div>
@@ -499,7 +499,7 @@ export default function AutonomousConciergeROI() {
           </div>
 
           {/* CTA */}
-          <div className="p-12 rounded-3xl bg-primary text-primary-foreground relative overflow-hidden">
+          <div className="p-8 sm:p-12 rounded-3xl bg-primary text-primary-foreground relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-20">
               <TrendingUp className="h-48 w-48" />
             </div>
