@@ -27,6 +27,22 @@ const reports = [
     featured: true,
   },
   {
+    slug: "mindbody-sovereign-intelligence-audit",
+    title: "MindBody's Intelligence Ceiling",
+    excerpt: "A platform audit of why MindBody's 700-integration architecture is generating data without generating intelligence — and how a sovereign AI layer changes everything.",
+    date: "April 14, 2026",
+    readingTime: "24 min read",
+    category: "Strategic View",
+  },
+  {
+    slug: "abc-fitness-sovereign-intelligence-audit",
+    title: "ABC Fitness's Intelligence Ceiling",
+    excerpt: "ABC Fitness built the operational backbone for enterprise gym networks. But managing members is not the same as understanding them. A strategic audit of the intelligence gap at the heart of the world's largest fitness platform.",
+    date: "April 14, 2026",
+    readingTime: "22 min read",
+    category: "Strategic View",
+  },
+  {
     slug: "cognitive-architecture-blueprint",
     title: "The Cognitive Architecture Blueprint: Delivering Institutional-Grade AI with CPMAI",
     excerpt: "How Inner G Complete applies the PMI-certified CPMAI framework across all six phases to architect the Aesthetic Domain Intelligence model — governance-first, enterprise-ready.",
