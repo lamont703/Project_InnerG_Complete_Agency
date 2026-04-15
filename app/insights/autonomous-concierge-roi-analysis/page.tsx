@@ -1,3 +1,5 @@
+"use client"
+
 import { TechnicalCitations } from "@/components/insights/technical-citations"
 import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
@@ -152,6 +154,7 @@ export default function AutonomousConciergeROI() {
           })
         }}
       />
+      <BreadcrumbSchema slug="autonomous-concierge-roi-analysis" title="Autonomous Concierge ROI Analysis | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">
@@ -218,10 +221,10 @@ export default function AutonomousConciergeROI() {
                 </div>
               </div>
               <div className="ml-auto flex gap-3">
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border">
+                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Share article">
                   <Share2 className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border">
+                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Print article">
                   <Printer className="h-4 w-4" />
                 </Button>
               </div>

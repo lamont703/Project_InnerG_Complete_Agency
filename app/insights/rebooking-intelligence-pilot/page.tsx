@@ -1,49 +1,13 @@
+"use client"
+
 import { TechnicalCitations } from "@/components/insights/technical-citations"
 import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
-import type { Metadata } from "next"
 
-export const metadata: Metadata = {
-  title: "Rebooking Intelligence Pilot | Barber Grooming ADI Architecture",
-  description: "A CPMAI-governed pilot architecture for deploying an ADI model that autonomously triggers client rebooking, eliminates no-shows, and maintains floor revenue.",
-  keywords: [
-    "Barber ADI pilot",
-    "rebooking AI model",
-    "theCut platform intelligence",
-    "Booksy barber automation",
-    "no-show prediction AI",
-    "predictive scheduling model",
-    "CPMAI blueprint",
-    "barbershop retention technology"
-  ],
-  openGraph: {
-    title: "Rebooking Appointment Intelligence | Barber Grooming ADI Pilot",
-    description: "A CPMAI-governed pilot architecture for deploying an ADI model that autonomously keeps a barber's calendar full.",
-    type: "article",
-    url: "https://innergcomplete.com/insights/rebooking-intelligence-pilot",
-    publishedTime: "2026-04-14T08:00:00Z",
-    authors: ["https://innergcomplete.com/about"],
-    siteName: 'Inner G Complete Agency',
-    images: [
-      {
-        url: '/rebooking_intelligence_pilot_brief.png',
-        width: 1200,
-        height: 630,
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Rebooking Appointment Intelligence | Barber Grooming ADI Pilot",
-    images: ['/rebooking_intelligence_pilot_brief.png'],
-  },
-  alternates: {
-    canonical: "https://innergcomplete.com/insights/rebooking-intelligence-pilot",
-  },
-}
+
 
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
@@ -262,6 +226,7 @@ export default function RebookingIntelligencePilot() {
           })
         }}
       />
+      <BreadcrumbSchema slug="rebooking-intelligence-pilot" title="Rebooking Intelligence Pilot | Barber Grooming ADI Architecture" />
       <Navbar />
       <article className="relative flex-1">
         <div className="fixed top-20 left-0 w-full h-1 bg-secondary z-50">
@@ -313,8 +278,8 @@ export default function RebookingIntelligencePilot() {
                 </div>
               </div>
               <div className="ml-auto flex gap-3">
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border"><Share2 className="h-4 w-4" /></Button>
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border"><Printer className="h-4 w-4" /></Button>
+                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Share article"><Share2 className="h-4 w-4" /></Button>
+                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Print article"><Printer className="h-4 w-4" /></Button>
               </div>
             </div>
           </div>

@@ -76,6 +76,7 @@ export default function BookSySovereignIntelligenceAudit() {
           })
         }}
       />
+      <BreadcrumbSchema slug="booksy-sovereign-intelligence-audit" title="Booksy's Intelligence Ceiling | Strategic View | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">
@@ -144,10 +145,10 @@ export default function BookSySovereignIntelligenceAudit() {
                 </div>
               </div>
               <div className="ml-auto flex gap-3">
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border">
+                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Share article">
                   <Share2 className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border">
+                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Print article">
                   <Printer className="h-4 w-4" />
                 </Button>
               </div>

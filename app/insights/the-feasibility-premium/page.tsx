@@ -1,36 +1,13 @@
+"use client"
+
 import { TechnicalCitations } from "@/components/insights/technical-citations"
 import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
-import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'The Feasibility Premium: Starting with "No" | Strategic View',
-  description: 'Why the most successful AI projects in wellness and grooming begin with a ruthless CPMAI viability audit, not a development sprint.',
-  openGraph: {
-    title: 'The Feasibility Premium: Starting with "No"',
-    type: 'article',
-    url: 'https://innergcomplete.com/insights/the-feasibility-premium',
-    siteName: 'Inner G Complete Agency',
-    images: [
-      {
-        url: '/the_feasibility_premium_cover_1776042291644.png',
-        width: 1200,
-        height: 630,
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "The Feasibility Premium",
-    images: ['/the_feasibility_premium_cover_1776042291644.png'],
-  },
-  alternates: {
-    canonical: "https://innergcomplete.com/insights/the-feasibility-premium",
-  },
-}
+
 
 
 import { Navbar } from "@/components/layout/navbar"
@@ -140,6 +117,7 @@ export default function FeasibilityPremiumArticle() {
           })
         }}
       />
+      <BreadcrumbSchema slug="the-feasibility-premium" title="The Feasibility Premium | Strategic View | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">
@@ -203,10 +181,10 @@ export default function FeasibilityPremiumArticle() {
                 </div>
               </div>
               <div className="ml-auto flex gap-3">
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border">
+                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Share article">
                   <Share2 className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border">
+                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Print article">
                   <Printer className="h-4 w-4" />
                 </Button>
               </div>
