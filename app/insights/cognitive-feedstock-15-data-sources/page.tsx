@@ -1,37 +1,13 @@
+"use client"
+
 import { TechnicalCitations } from "@/components/insights/technical-citations"
 import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
-import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'Cognitive Feedstock: 15 Data Sources for Aesthetic AI | Technical Brief',
-  description: 'Moving beyond simple booking lists to tap into high-fidelity data that captures the human element of wellness and grooming.',
-  keywords: ['AI data sources', 'wellness AI parameters', 'grooming data feedstock', 'ADI data landscape'],
-  openGraph: {
-    title: 'Cognitive Feedstock: 15 Data Sources for Aesthetic AI',
-    type: 'article',
-    url: 'https://innergcomplete.com/insights/cognitive-feedstock-15-data-sources',
-    siteName: 'Inner G Complete Agency',
-    images: [
-      {
-        url: '/cognitive_feedstock_brief_cover_1776041859371.png',
-        width: 1200,
-        height: 630,
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Cognitive Feedstock: The 15 Enterprise Data Sources",
-    images: ['/cognitive_feedstock_brief_cover_1776041859371.png'],
-  },
-  alternates: {
-    canonical: "https://innergcomplete.com/insights/cognitive-feedstock-15-data-sources",
-  },
-}
+
 
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
@@ -285,6 +261,7 @@ export default function DataSourcesBrief() {
           })
         }}
       />
+      <BreadcrumbSchema slug="cognitive-feedstock-15-data-sources" title="Cognitive Feedstock: The 15 Enterprise Data Sources | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">
@@ -349,10 +326,10 @@ export default function DataSourcesBrief() {
                 </div>
               </div>
               <div className="ml-auto flex gap-3">
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border">
+                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Share article">
                   <Share2 className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border">
+                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Print article">
                   <Printer className="h-4 w-4" />
                 </Button>
               </div>
