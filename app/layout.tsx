@@ -15,22 +15,38 @@ const _jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://innergcomplete.com'),
-  title: 'Inner G Complete Agency | AI Consulting & Blockchain for SMBs',
+  title: 'Inner G Complete Agency | Artificial Domain Intelligence for Grooming & Wellness',
   description:
-    'Expert AI and blockchain consulting for small to medium-sized businesses. Total customized solutions for retail, payment processing, and operational efficiency.',
-  keywords: ['AI consulting for retail', 'blockchain agency for SMBs', 'AI and blockchain consulting'],
-  generator: 'v0.app',
+    'Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed ADI models that eliminate no-shows, reduce churn, and build institutional intelligence.',
+  keywords: [
+    'Artificial Domain Intelligence',
+    'ADI grooming AI',
+    'barber AI scheduling',
+    'wellness AI consulting',
+    'beauty industry AI',
+    'CPMAI AI framework',
+    'sovereign intelligence layer',
+    'no-show prediction AI',
+    'medspa AI strategy',
+    'luxury salon intelligence',
+    'AI for barbershops',
+    'Inner G Complete Agency',
+  ],
+  authors: [{ name: 'Lamont Evans', url: 'https://innergcomplete.com/about' }],
+  creator: 'Inner G Complete Agency',
+  publisher: 'Inner G Complete Agency',
   openGraph: {
-    title: 'Inner G Complete Agency',
-    description: 'Expert AI and blockchain consulting for SMBs.',
-    url: 'https://innergcomplete.com', // Replace with your actual domain
-    siteName: 'Inner G Complete',
+    title: 'Inner G Complete Agency | Artificial Domain Intelligence',
+    description:
+      'We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed. Institutionally auditable. Built to own.',
+    url: 'https://innergcomplete.com',
+    siteName: 'Inner G Complete Agency',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Inner G Complete — AI & Blockchain Strategy',
+        alt: 'Inner G Complete — Artificial Domain Intelligence for Grooming & Wellness',
       },
     ],
     locale: 'en_US',
@@ -38,8 +54,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Inner G Complete Agency',
-    description: 'Expert AI and blockchain consulting for SMBs.',
+    title: 'Inner G Complete Agency | Artificial Domain Intelligence',
+    description:
+      'We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed.',
     images: ['/og-image.png'],
   },
   icons: {
@@ -99,6 +116,35 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={`${_inter.variable} ${_jetbrainsMono.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "Inner G Complete Agency",
+              "url": "https://innergcomplete.com",
+              "logo": "https://innergcomplete.com/icon-dark-32x32.png",
+              "sameAs": [
+                "https://www.linkedin.com/company/innergcomplete"
+              ],
+              "founder": {
+                "@type": "Person",
+                "name": "Lamont Evans",
+                "jobTitle": "Principal Architect"
+              },
+              "description": "Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises using CPMAI-governed ADI models.",
+              "address": {
+                "@type": "PostalAddress",
+                "addressLocality": "Atlanta",
+                "addressRegion": "GA",
+                "addressCountry": "US"
+              }
+            })
+          }}
+        />
+      </head>
       <body className="font-sans antialiased">
         <ThemeProvider
           attribute="class"

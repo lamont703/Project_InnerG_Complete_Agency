@@ -1,5 +1,11 @@
 "use client"
 
+import { TechnicalCitations } from "@/components/insights/technical-citations"
+import { StatisticalSignal } from "@/components/insights/statistical-signal"
+import { ExecutiveSummary } from "@/components/insights/executive-summary"
+import { FAQSection } from "@/components/insights/faq-section"
+import { AuthorBio } from "@/components/insights/author-bio"
+import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -42,6 +48,36 @@ function GlowOrb({ className }: { className: string }) {
 export default function AbcFitnessSovereignIntelligenceAudit() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">
+   
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": "https://innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit"
+            },
+            "headline": "ABC Fitness's Intelligence Ceiling | Strategic View | Inner G Complete",
+            "description": "A strategic audit of the intelligence gap at the heart of the world's largest fitness platform and how ADI bridges it.",
+            "author": {
+              "@type": "Person",
+              "name": "Lamont Evans",
+              "url": "https://innergcomplete.com/about"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Inner G Complete Agency",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+              }
+            },
+            "datePublished": "2026-04-12T08:00:00Z"
+          })
+        }}
+      />
       <Navbar />
 
       <article className="relative flex-1">
@@ -68,6 +104,7 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Strategic View</span>
             </div>
 
+            <ExecutiveSummary data={{"problem":"Undiscovered revenue leakage due to static, generic member booking platform limitations.","requirement":"Post-SaaS sovereign intelligence layer with direct operational feedstock access.","roi":"Targeting 12-18% increase in room/provider utilization via predictive backfilling.","solution":"A headless ADI architecture calibrated for ABC Fitness's specific data hierarchy."}} />
             <h1 className="text-4xl font-black tracking-tighter text-foreground sm:text-6xl md:text-7xl uppercase italic leading-[0.95] mb-8">
               ABC Fitness&apos;s{" "}
               <span className="text-primary">Intelligence</span>{" "}
@@ -140,6 +177,8 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
               This document is written with institutional respect for what ABC Fitness — and the broader ABC Fitness Group ecosystem including Glofox — has constructed. To serve as the operational backbone for brands like Planet Fitness, Crunch Fitness, and thousands of independent gym operators globally is an extraordinary infrastructure achievement. But this document is not about what has been built. It is about the <strong>category of capability that comes after management</strong> — and whether the fitness enterprise of 2026 is architecting toward it, or waiting for a platform to deliver it. Waiting, in this case, is a strategic error.
             </p>
           </div>
+
+          <StatisticalSignal signals={[{"label":"Utilization Gap","value":"18%","icon":"chart"},{"label":"Autonomous Throughput","value":"24/7","icon":"zap"},{"label":"Model Latency","value":"<500ms","icon":"activity"}]} />
 
           {/* Part I: The Franchise Infrastructure Empire */}
           <div className="mb-20">
@@ -550,6 +589,10 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
         </div>
       </article>
 
+      <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
+
+          <FAQSection faqs={[{"question":"What is the Intelligence Ceiling at ABC Fitness?","answer":"The intelligence ceiling refers to the structural point where a generic fitness management platform can no longer optimize for high-fidelity client retention without a custom domain-specific intelligence layer. ADI bridges this by creating a sovereign layer that interprets behavioral data ABC Fitness ignores."},{"question":"How does ADI integrate with ABC Fitness?","answer":"ADI acts as a 'Sovereign Intelligence Layer' that sits on top of existing ABC Fitness data streams, consuming operational feedstock to drive autonomous rebooking and no-show prediction without disrupting existing workflows."}]} />
+      <AuthorBio />
       <Footer />
     </main>
   )

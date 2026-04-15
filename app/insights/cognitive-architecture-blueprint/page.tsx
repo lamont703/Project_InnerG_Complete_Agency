@@ -1,3 +1,39 @@
+import { TechnicalCitations } from "@/components/insights/technical-citations"
+import { StatisticalSignal } from "@/components/insights/statistical-signal"
+import { ExecutiveSummary } from "@/components/insights/executive-summary"
+import { FAQSection } from "@/components/insights/faq-section"
+import { AuthorBio } from "@/components/insights/author-bio"
+import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'The Cognitive Architecture Blueprint | ADI Methodology',
+  description: 'How Inner G Complete applies the PMI-certified CPMAI framework to architect governance-first Aesthetic Domain Intelligence (ADI) models.',
+  keywords: ['CPMAI framework', 'cognitive architecture', 'ADI methodology', 'AI project management'],
+  openGraph: {
+    title: 'The Cognitive Architecture Blueprint | Inner G Complete',
+    type: 'article',
+    url: 'https://innergcomplete.com/insights/cognitive-architecture-blueprint',
+    siteName: 'Inner G Complete Agency',
+    images: [
+      {
+        url: '/cpmai_framework_cover.png',
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Cognitive Architecture Blueprint",
+    images: ['/cpmai_framework_cover.png'],
+  },
+  alternates: {
+    canonical: "https://innergcomplete.com/insights/cognitive-architecture-blueprint",
+  },
+}
+
+
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -162,6 +198,36 @@ const phases = [
 export default function CognitiveArchitectureBlueprint() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">
+   
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": "https://innergcomplete.com/insights/cognitive-architecture-blueprint"
+            },
+            "headline": "Cognitive Architecture Blueprint | Technical View | Inner G Complete",
+            "description": "The fundamental engineering blueprint for transitioning a wellness enterprise from traditional systems to advanced sovereign AI.",
+            "author": {
+              "@type": "Person",
+              "name": "Lamont Evans",
+              "url": "https://innergcomplete.com/about"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Inner G Complete Agency",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+              }
+            },
+            "datePublished": "2026-04-12T08:00:00Z"
+          })
+        }}
+      />
       <Navbar />
 
       <article className="relative flex-1">
@@ -188,6 +254,7 @@ export default function CognitiveArchitectureBlueprint() {
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Technical Brief</span>
             </div>
 
+            <ExecutiveSummary data={{"problem":"High failure rate (85%) of ad-hoc, un-governed AI deployments in enterprise wellness.","requirement":"Hierarchical blueprint following the PMI-CPMAI methodology across six phases.","roi":"Elimination of non-viable AI spend through strict Go/No-Go feasibility decision gates.","solution":"Tiered Foundation-Signal-Execution architecture providing institutional auditability."}} />
             <h1 className="text-4xl font-black tracking-tighter text-foreground sm:text-6xl md:text-7xl uppercase italic leading-[0.95] mb-8">
               The Cognitive{" "}
               <span className="text-primary">Architecture</span>{" "}
@@ -262,6 +329,8 @@ export default function CognitiveArchitectureBlueprint() {
               The differentiator between an AI system that survives enterprise procurement and one that gets cancelled in legal review is not the model architecture — it is the governance methodology behind it. Inner G Complete adopts the <strong>PMI Cognitive Project Management for AI (CPMAI)</strong> framework as the operational standard for every ADI engagement. This brief explains what CPMAI is, how we apply it across all six phases, and — critically — how it maps to the Aesthetic Domain Intelligence project currently in active development.
             </p>
           </div>
+
+          <StatisticalSignal signals={[{"label":"Project Risk Mitigation","value":"85%","icon":"shield"},{"label":"Governance Tiers","value":"3","icon":"layers"},{"label":"Decision Gates","value":"6","icon":"activity"}]} />
 
           {/* What is CPMAI */}
           <div>
@@ -500,6 +569,10 @@ export default function CognitiveArchitectureBlueprint() {
         </div>
       </article>
 
+      <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
+
+          <FAQSection faqs={[{"question":"What are the three tiers of the ADI architecture?","answer":"Tier 1 is the Operational Foundation (raw booking data); Tier 2 is the Signal Layer (behavioral and sentiment fingerprints); Tier 3 is the Intelligence Layer (autonomous decision-making and execution)."},{"question":"Is this architecture HIPAA compliant?","answer":"Yes. By following CPMAI governance, we architect PHI isolation protocols that ensure sensitive data is protected while still fueling the intelligence model."}]} />
+      <AuthorBio />
       <Footer />
     </main>
   )

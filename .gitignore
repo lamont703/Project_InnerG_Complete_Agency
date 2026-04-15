@@ -25,4 +25,8 @@ yarn-error.log*
 .DS_Store
 *.pem
 .vercel
-HIPAA_COMPLIANCE_BINDER.md
+# Markdown docs (all .md files excluded from repo)
+*.md
+
+
+

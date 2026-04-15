@@ -282,7 +282,12 @@ export default function InsightsPage() {
           {/* Pagination or Load More */}
           {displayedReports.length > 0 && (
             <div className="mt-24 text-center">
-              <Button variant="outline" size="lg" className="border-border text-foreground hover:bg-white hover:border-primary/30 px-12 py-7 font-black uppercase tracking-[0.3em] text-xs transition-all shadow-sm">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="border-border text-foreground hover:bg-white hover:border-primary/30 px-12 py-7 font-black uppercase tracking-[0.3em] text-xs transition-all shadow-sm"
+                onClick={() => alert("no archives available")}
+              >
                 Load Archive
               </Button>
             </div>

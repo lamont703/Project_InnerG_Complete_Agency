@@ -3,10 +3,10 @@ import Image from "next/image"
 
 const footerLinks = {
   Solutions: [
-    { label: "Med-Spa Strategy", href: "#services" },
-    { label: "Aesthetic Logic", href: "#services" },
-    { label: "Franchise Systems", href: "#sdlc" },
-    { label: "Personalized AI", href: "#services" },
+    { label: "Barber Grooming ADI", href: "#services" },
+    { label: "Wellness Spa Intelligence", href: "#services" },
+    { label: "Franchise Architectures", href: "#services" },
+    { label: "Luxury Beauty AI", href: "#services" },
   ],
   Social: [
     { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },
@@ -15,9 +15,10 @@ const footerLinks = {
   ],
   Company: [
     { label: "Research & Insights", href: "/insights" },
-    { label: "About Us", href: "#" },
+    { label: "Technical Glossary", href: "/glossary" },
+    { label: "About Us", href: "/about" },
     { label: "Careers", href: "/careers" },
-    { label: "Contact", href: "#contact" },
+    { label: "Contact", href: "/contact" },
   ],
 }
 
