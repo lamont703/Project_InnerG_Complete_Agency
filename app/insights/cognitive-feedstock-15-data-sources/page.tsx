@@ -1,3 +1,38 @@
+import { TechnicalCitations } from "@/components/insights/technical-citations"
+import { StatisticalSignal } from "@/components/insights/statistical-signal"
+import { ExecutiveSummary } from "@/components/insights/executive-summary"
+import { FAQSection } from "@/components/insights/faq-section"
+import { AuthorBio } from "@/components/insights/author-bio"
+import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Cognitive Feedstock: 15 Data Sources for Aesthetic AI | Technical Brief',
+  description: 'Moving beyond simple booking lists to tap into high-fidelity data that captures the human element of wellness and grooming.',
+  keywords: ['AI data sources', 'wellness AI parameters', 'grooming data feedstock', 'ADI data landscape'],
+  openGraph: {
+    title: 'Cognitive Feedstock: 15 Data Sources for Aesthetic AI',
+    type: 'article',
+    url: 'https://innergcomplete.com/insights/cognitive-feedstock-15-data-sources',
+    siteName: 'Inner G Complete Agency',
+    images: [
+      {
+        url: '/cognitive_feedstock_brief_cover_1776041859371.png',
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Cognitive Feedstock: The 15 Enterprise Data Sources",
+    images: ['/cognitive_feedstock_brief_cover_1776041859371.png'],
+  },
+  alternates: {
+    canonical: "https://innergcomplete.com/insights/cognitive-feedstock-15-data-sources",
+  },
+}
+
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -220,6 +255,36 @@ const tierColors: Record<Tier, { bg: string; border: string; text: string; badge
 export default function DataSourcesBrief() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">
+   
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": "https://innergcomplete.com/insights/cognitive-feedstock-15-data-sources"
+            },
+            "headline": "Cognitive Feedstock: The 15 Enterprise Data Sources | Inner G Complete",
+            "description": "A breakdown of the 15 critical data streams that fuel an enterprise Artificial Domain Intelligence model.",
+            "author": {
+              "@type": "Person",
+              "name": "Lamont Evans",
+              "url": "https://innergcomplete.com/about"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Inner G Complete Agency",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+              }
+            },
+            "datePublished": "2026-04-12T08:00:00Z"
+          })
+        }}
+      />
       <Navbar />
 
       <article className="relative flex-1">
@@ -246,6 +311,7 @@ export default function DataSourcesBrief() {
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Technical Brief</span>
             </div>
 
+            <ExecutiveSummary data={{"problem":"Superior model performance is blocked by training on generic, non-domain intelligence.","requirement":"A coordinated 15-source technical feedstock ingestion strategy for model training.","roi":"Targeting a 40% improvement in model domain competence over generic foundation models.","solution":"Comprehensive multi-touch ETL pipeline designed for high-signal aesthetic data ingestion."}} />
             <h1 className="text-4xl font-black tracking-tighter text-foreground sm:text-6xl md:text-7xl uppercase italic leading-[0.95] mb-8">
               Cognitive Feedstock:{" "}
               <span className="text-primary">15 Data Sources</span> for Aesthetic AI
@@ -316,6 +382,8 @@ export default function DataSourcesBrief() {
               An AI model is only as intelligent as the data it was trained on. In the wellness and grooming industry, the most common failure mode of AI projects is not insufficient technology — it is insufficient, fragmented, or compliance-compromised training data. This brief defines the 15 data sources required to architect a model that can deliver institutional-grade intelligence, and explains precisely what each source enables the AI to do.
             </p>
           </div>
+
+          <StatisticalSignal signals={[{"label":"Unique Data Sources","value":"15","icon":"data"},{"label":"Domain Competence","value":"+40%","icon":"chart"},{"label":"Normalization Rate","value":"99.9%","icon":"activity"}]} />
 
           {/* Tier Architecture Explainer */}
           <div>
@@ -590,6 +658,10 @@ export default function DataSourcesBrief() {
         </div>
       </article>
 
+      <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
+
+          <FAQSection faqs={[{"question":"What is 'Cognitive Feedstock'?","answer":"Feedstock consists of the 15+ specialized data streams (booking cycles, intake summaries, technical formulas, etc.) required to train a model that performs with domain competence in wellness."}]} />
+      <AuthorBio />
       <Footer />
     </main>
   )

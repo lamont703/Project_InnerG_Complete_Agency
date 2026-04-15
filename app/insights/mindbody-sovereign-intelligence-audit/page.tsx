@@ -1,5 +1,11 @@
 "use client"
 
+import { TechnicalCitations } from "@/components/insights/technical-citations"
+import { StatisticalSignal } from "@/components/insights/statistical-signal"
+import { ExecutiveSummary } from "@/components/insights/executive-summary"
+import { FAQSection } from "@/components/insights/faq-section"
+import { AuthorBio } from "@/components/insights/author-bio"
+import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -39,6 +45,36 @@ function GlowOrb({ className }: { className: string }) {
 export default function MindbodySovereignIntelligenceAudit() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">
+   
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": "https://innergcomplete.com/insights/mindbody-sovereign-intelligence-audit"
+            },
+            "headline": "MindBody's Intelligence Ceiling | Strategic View | Inner G Complete",
+            "description": "A strategic audit of MindBody's enterprise limits and why the top 1% of wellness brands must build intelligence layers on top of it.",
+            "author": {
+              "@type": "Person",
+              "name": "Lamont Evans",
+              "url": "https://innergcomplete.com/about"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Inner G Complete Agency",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+              }
+            },
+            "datePublished": "2026-04-12T08:00:00Z"
+          })
+        }}
+      />
       <Navbar />
 
       <article className="relative flex-1">
@@ -65,6 +101,7 @@ export default function MindbodySovereignIntelligenceAudit() {
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Strategic View</span>
             </div>
 
+            <ExecutiveSummary data={{"problem":"Fragmented datasets across franchise locations preventing unified institutional intelligence.","requirement":"Centralized ADI architecture sitting on top of multi-tenant MindBody environments.","roi":"Projected $900,000+ TCO consolidation potential for enterprise portfolios (50+ locations).","solution":"Enterprise ADI overlay that unifies reporting and rebooking logic across fragmented locales."}} />
             <h1 className="text-4xl font-black tracking-tighter text-foreground sm:text-6xl md:text-7xl uppercase italic leading-[0.95] mb-8">
               MindBody&apos;s{" "}
               <span className="text-primary">Intelligence</span>{" "}
@@ -138,6 +175,8 @@ export default function MindbodySovereignIntelligenceAudit() {
             </p>
           </div>
 
+          <StatisticalSignal signals={[{"label":"TCO Consolidation","value":"$900K","icon":"chart"},{"label":"Platform Ecosystem","value":"700+","icon":"data"},{"label":"Intelligence Potential","value":"Millions","icon":"zap"}]} />
+
           {/* Part I: The Architecture of Success */}
           <div className="mb-20">
             <div className="flex items-center gap-4 mb-6">
@@ -155,20 +194,7 @@ export default function MindbodySovereignIntelligenceAudit() {
               The result is a data infrastructure of enormous latent value. Across its client network, MindBody processes millions of appointments, transactions, and client interactions every single day. Each of those interactions is a data point. Each data point is a potential training signal. And the aggregate of those signals — across every visit type, demographic, geography, and wellness modality — represents one of the richest behavioral datasets in the consumer health industry.
             </p>
 
-            {/* Stat Rail */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
-              {[
-                { stat: "150K+", label: "Active Business Locations" },
-                { stat: "~$2.5B", label: "Platform Valuation (Est.)" },
-                { stat: "700+", label: "Ecosystem Integrations" },
-                { stat: "Millions", label: "Daily Behavioral Signals" },
-              ].map((m) => (
-                <div key={m.label} className="p-5 rounded-2xl border border-border bg-white text-center">
-                  <div className="text-2xl font-black text-foreground italic mb-1">{m.stat}</div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{m.label}</div>
-                </div>
-              ))}
-            </div>
+
 
             <p className="text-lg text-muted-foreground leading-relaxed font-medium">
               The question this report asks is not whether MindBody has been successful. The question is: <strong className="text-foreground">what is the ceiling of a management platform, and what happens when the ceiling is reached?</strong>
@@ -538,6 +564,10 @@ export default function MindbodySovereignIntelligenceAudit() {
         </div>
       </article>
 
+      <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"},{"source":"HHS","label":"HIPAA Security Rule & HITECH Act Compliance","url":"https://www.hhs.gov/hipaa"}]} />
+
+          <FAQSection faqs={[{"question":"Why is a sovereign intelligence layer necessary for MindBody users?","answer":"Because enterprise-scale wellness brands require deep-domain logic that generic tools cannot provide. A sovereign layer allows a brand to own its data intelligence while using MindBody purely for operational plumbing."}]} />
+      <AuthorBio />
       <Footer />
     </main>
   )

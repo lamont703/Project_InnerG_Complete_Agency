@@ -1,3 +1,50 @@
+import { TechnicalCitations } from "@/components/insights/technical-citations"
+import { StatisticalSignal } from "@/components/insights/statistical-signal"
+import { ExecutiveSummary } from "@/components/insights/executive-summary"
+import { FAQSection } from "@/components/insights/faq-section"
+import { AuthorBio } from "@/components/insights/author-bio"
+import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Rebooking Intelligence Pilot | Barber Grooming ADI Architecture",
+  description: "A CPMAI-governed pilot architecture for deploying an ADI model that autonomously triggers client rebooking, eliminates no-shows, and maintains floor revenue.",
+  keywords: [
+    "Barber ADI pilot",
+    "rebooking AI model",
+    "theCut platform intelligence",
+    "Booksy barber automation",
+    "no-show prediction AI",
+    "predictive scheduling model",
+    "CPMAI blueprint",
+    "barbershop retention technology"
+  ],
+  openGraph: {
+    title: "Rebooking Appointment Intelligence | Barber Grooming ADI Pilot",
+    description: "A CPMAI-governed pilot architecture for deploying an ADI model that autonomously keeps a barber's calendar full.",
+    type: "article",
+    url: "https://innergcomplete.com/insights/rebooking-intelligence-pilot",
+    publishedTime: "2026-04-14T08:00:00Z",
+    authors: ["https://innergcomplete.com/about"],
+    siteName: 'Inner G Complete Agency',
+    images: [
+      {
+        url: '/rebooking_intelligence_pilot_brief.png',
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Rebooking Appointment Intelligence | Barber Grooming ADI Pilot",
+    images: ['/rebooking_intelligence_pilot_brief.png'],
+  },
+  alternates: {
+    canonical: "https://innergcomplete.com/insights/rebooking-intelligence-pilot",
+  },
+}
+
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -186,6 +233,35 @@ const phases = [
 export default function RebookingIntelligencePilot() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": "https://innergcomplete.com/insights/rebooking-intelligence-pilot"
+            },
+            "headline": "Rebooking Intelligence Pilot | Barber Grooming ADI Architecture",
+            "description": "A CPMAI-governed pilot architecture for deploying an ADI model that autonomously triggers client rebooking, eliminates no-shows, and maintains floor revenue.",
+            "author": {
+              "@type": "Person",
+              "name": "Lamont Evans",
+              "url": "https://innergcomplete.com/about"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Inner G Complete Agency",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+              }
+            },
+            "datePublished": "2026-04-14T08:00:00Z"
+          })
+        }}
+      />
       <Navbar />
       <article className="relative flex-1">
         <div className="fixed top-20 left-0 w-full h-1 bg-secondary z-50">
@@ -204,6 +280,7 @@ export default function RebookingIntelligencePilot() {
               <span className="text-border">|</span>
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Technical Brief</span>
             </div>
+            <ExecutiveSummary data={{"problem":"Passive revenue loss through un-managed client churn in the barber grooming sector.","requirement":"Predictive behavioral rebooking triggers based on historical fingerprinting.","roi":"Targeted 15% improvement in rebooking rates over baseline within the initial pilot phase.","solution":"CPMAI-governed rebooking model fine-tuned on grooming-specific behavioral data."}} />
             <h1 className="text-4xl font-black tracking-tighter text-foreground sm:text-6xl md:text-7xl uppercase italic leading-[0.95] mb-8">
               Rebooking{" "}
               <span className="text-primary">Appointment</span>{" "}
@@ -263,6 +340,8 @@ export default function RebookingIntelligencePilot() {
               This technical brief defines the architecture, data infrastructure, and CPMAI-governed methodology for a Rebooking Appointment Intelligence pilot in the barber grooming sector. The target platforms are <strong>theCut</strong> and <strong>Booksy</strong> — two closed-platform ecosystems that collectively process billions of dollars in barber transactions annually and hold the behavioral data required to train a domain-specific rebooking intelligence model. Neither platform has yet activated this data as a sovereign intelligence asset. This pilot is the first step toward doing so.
             </p>
           </div>
+
+          <StatisticalSignal signals={[{"label":"Rebooking Improvement","value":"+15%","icon":"chart"},{"label":"Labor Reduction","value":"-24%","icon":"zap"},{"label":"Intent Accuracy","value":"95%","icon":"activity"}]} />
 
           {/* Pilot Context */}
           <div>
@@ -638,6 +717,10 @@ export default function RebookingIntelligencePilot() {
 
         </div>
       </article>
+      <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
+
+          <FAQSection faqs={[{"question":"How does the rebooking ADI model work?","answer":"The model identifies the exact 'behavioral fingerprint' of a client likely to churn and triggers an autonomous invitation to rebook at the precise moment their interest is highest, maintaining a full book of business without manual outreach."}]} />
+      <AuthorBio />
       <Footer />
     </main>
   )

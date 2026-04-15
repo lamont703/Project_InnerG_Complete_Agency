@@ -1,3 +1,9 @@
+import { TechnicalCitations } from "@/components/insights/technical-citations"
+import { StatisticalSignal } from "@/components/insights/statistical-signal"
+import { ExecutiveSummary } from "@/components/insights/executive-summary"
+import { FAQSection } from "@/components/insights/faq-section"
+import { AuthorBio } from "@/components/insights/author-bio"
+import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -116,6 +122,36 @@ const metrics = [
 export default function AutonomousConciergeROI() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">
+   
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": "https://innergcomplete.com/insights/autonomous-concierge-roi-analysis"
+            },
+            "headline": "Autonomous Concierge ROI Analysis | Inner G Complete",
+            "description": "A quantitative breakdown of the revenue recovered through ADI-driven scheduling automations.",
+            "author": {
+              "@type": "Person",
+              "name": "Lamont Evans",
+              "url": "https://innergcomplete.com/about"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Inner G Complete Agency",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+              }
+            },
+            "datePublished": "2026-04-12T08:00:00Z"
+          })
+        }}
+      />
       <Navbar />
 
       <article className="relative flex-1">
@@ -142,6 +178,7 @@ export default function AutonomousConciergeROI() {
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Industry Report</span>
             </div>
 
+            <ExecutiveSummary data={{"problem":"Operational friction in clinic intake and manual client re-engagement pipelines.","requirement":"Agentic, HIPAA-compliant autonomous concierge workflows integrated with EMR.","roi":"Estimated 14-22% recovery of formerly lost floor revenue within 90 days of deployment.","solution":"Three-tier ADI Concierge architecture bridging the gap between clinical data and engagement."}} />
             <h1 className="text-4xl font-black tracking-tighter text-foreground sm:text-6xl md:text-7xl uppercase italic leading-[0.95] mb-8">
               The Autonomous{" "}
               <span className="text-primary">Concierge</span>: A 2026 ROI Analysis
@@ -150,6 +187,8 @@ export default function AutonomousConciergeROI() {
             <p className="text-xl text-muted-foreground leading-relaxed font-medium text-balance mb-6">
               A research-grounded economic analysis of deploying institutional-grade AI concierge systems in luxury wellness and medical-aesthetic environments — quantifying the measurable delta between operational legacy and autonomous intelligence.
             </p>
+
+          <StatisticalSignal signals={[{"label":"No-Show Reduction","value":"22%","icon":"chart"},{"label":"Staff Multiplier","value":"3.5x","icon":"zap"},{"label":"Revenue Recovery","value":"+14%","icon":"activity"}]} />
 
             <div className="flex flex-wrap items-center gap-4 mb-8">
               <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-[10px] font-black text-primary uppercase tracking-[0.2em]">
@@ -527,6 +566,10 @@ export default function AutonomousConciergeROI() {
         </div>
       </article>
 
+      <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"},{"source":"HHS","label":"HIPAA Security Rule & HITECH Act Compliance","url":"https://www.hhs.gov/hipaa"}]} />
+
+          <FAQSection faqs={[{"question":"How does an AI Concierge provide a measurable ROI?","answer":"The ROI is calculated by measuring the recovery of revenue formerly lost to un-captured no-shows and silent churn. Our analysis shows ADI-driven concierges can recover 14-22% of previously lost floor revenue."},{"question":"What is the primary difference between a chatbot and an AI Concierge?","answer":"A chatbot responds to queries; an ADI Concierge proactively predicts needs using the full clinical and operational feedstock of the enterprise to trigger high-probability rebookings."}]} />
+      <AuthorBio />
       <Footer />
     </main>
   )

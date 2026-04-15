@@ -1,3 +1,39 @@
+import { TechnicalCitations } from "@/components/insights/technical-citations"
+import { StatisticalSignal } from "@/components/insights/statistical-signal"
+import { ExecutiveSummary } from "@/components/insights/executive-summary"
+import { FAQSection } from "@/components/insights/faq-section"
+import { AuthorBio } from "@/components/insights/author-bio"
+import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'The Sovereign Intelligence Layer | Core Vision',
+  description: 'Why the enterprise that builds a proprietary Artificial Domain Intelligence creates an unassailable competitive moat.',
+  keywords: ['sovereign intelligence layer', 'Artificial Domain Intelligence vision', 'enterprise grooming AI moat'],
+  openGraph: {
+    title: 'The Sovereign Intelligence Layer: Why ADI Wins',
+    type: 'article',
+    url: 'https://innergcomplete.com/insights/the-sovereign-intelligence-layer',
+    siteName: 'Inner G Complete Agency',
+    images: [
+      {
+        url: '/adi_sovereign_layer_cover_1776108008232.png',
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "The Sovereign Intelligence Layer",
+    images: ['/adi_sovereign_layer_cover_1776108008232.png'],
+  },
+  alternates: {
+    canonical: "https://innergcomplete.com/insights/the-sovereign-intelligence-layer",
+  },
+}
+
+
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -56,6 +92,35 @@ const pillars = [
 export default function SovereignIntelligenceLayer() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": "https://innergcomplete.com/insights/the-sovereign-intelligence-layer"
+            },
+            "headline": "The Sovereign Intelligence Layer | Core Vision",
+            "description": "Why the enterprise that builds a proprietary Artificial Domain Intelligence creates an unassailable competitive moat.",
+            "author": {
+              "@type": "Person",
+              "name": "Lamont Evans",
+              "url": "https://innergcomplete.com/about"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Inner G Complete Agency",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+              }
+            },
+            "datePublished": "2026-04-13T08:00:00Z"
+          })
+        }}
+      />
       <Navbar />
 
       <article className="relative flex-1">
@@ -84,6 +149,7 @@ export default function SovereignIntelligenceLayer() {
               </span>
             </div>
 
+            <ExecutiveSummary data={{"problem":"Institutional intelligence trapped inside third-party 'Black Box' platform algorithms.","requirement":"Model weights, parameters, and behavioral fingerprints owned entirely by the enterprise.","roi":"Long-term institutional longevity and the creation of a portable intelligence asset.","solution":"Sovereign Proprietary ADI architecture ensuring platform-agnostic intelligence."}} />
             <h1 className="text-4xl font-black tracking-tighter text-foreground sm:text-6xl md:text-7xl uppercase italic leading-[0.95] mb-8">
               The Sovereign{" "}
               <span className="text-primary">Intelligence</span> Layer
@@ -145,6 +211,8 @@ export default function SovereignIntelligenceLayer() {
               There is a pattern that repeats across every major industry disruption: one company quietly builds the foundational layer while everyone else competes on the surface. In computing, it was the OS. In mobile, it was the app store. In wellness and grooming, the foundational layer is the <strong>Artificial Domain Intelligence (ADI)</strong>—and the window to claim it is closing.
             </p>
           </div>
+
+          <StatisticalSignal signals={[{"label":"Parameter Sovereignty","value":"100%","icon":"shield"},{"label":"Operational Uptime","value":"99.99%","icon":"zap"},{"label":"Institutional Learning","value":"Persistent","icon":"data"}]} />
 
           {/* Section: What is ADI */}
           <div className="mb-16">
@@ -275,6 +343,10 @@ export default function SovereignIntelligenceLayer() {
         </div>
       </article>
 
+      <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
+
+          <FAQSection faqs={[{"question":"What defines a 'Sovereign' AI layer?","answer":"Sovereignty is defined by data ownership, model portability, and the ability to operate across different booking platforms without losing institutional intelligence."}]} />
+      <AuthorBio />
       <Footer />
     </main>
   )

@@ -1,5 +1,11 @@
 "use client"
 
+import { TechnicalCitations } from "@/components/insights/technical-citations"
+import { StatisticalSignal } from "@/components/insights/statistical-signal"
+import { ExecutiveSummary } from "@/components/insights/executive-summary"
+import { FAQSection } from "@/components/insights/faq-section"
+import { AuthorBio } from "@/components/insights/author-bio"
+import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -40,6 +46,36 @@ function GlowOrb({ className }: { className: string }) {
 export default function TheCutSovereignIntelligenceAudit() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">
+   
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": "https://innergcomplete.com/insights/thecut-sovereign-intelligence-audit"
+            },
+            "headline": "theCut's Intelligence Ceiling | Strategic View | Inner G Complete",
+            "description": "An architectural review of theCut's platform dynamics and the necessity for sovereign AI layers for top grooming franchises.",
+            "author": {
+              "@type": "Person",
+              "name": "Lamont Evans",
+              "url": "https://innergcomplete.com/about"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Inner G Complete Agency",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+              }
+            },
+            "datePublished": "2026-04-12T08:00:00Z"
+          })
+        }}
+      />
       <Navbar />
 
       <article className="relative flex-1">
@@ -66,6 +102,7 @@ export default function TheCutSovereignIntelligenceAudit() {
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Strategic View</span>
             </div>
 
+            <ExecutiveSummary data={{"problem":"Low-fidelity retention signals in the mobile-first barber booking environment.","requirement":"Behavioral fingerprinting logic injected via a sovereign API-to-Platform interface.","roi":"Consolidated franchise scaling via automated client retention and utilization logic.","solution":"Franchise-calibrated ADI designed to optimize retention across multi-chair locations."}} />
             <h1 className="text-4xl font-black tracking-tighter text-foreground sm:text-6xl md:text-7xl uppercase italic leading-[0.95] mb-8">
               theCut&apos;s{" "}
               <span className="text-primary">Intelligence</span>{" "}
@@ -138,6 +175,8 @@ export default function TheCutSovereignIntelligenceAudit() {
               This document is written with genuine respect for what theCut has accomplished. Founded in 2016 by Obi Omile Jr. and Kush Patel — two engineers who understood the barbershop as both a business challenge and a cultural institution — theCut built something rare: a technology platform that earned trust inside one of the most relationship-driven, cash-forward, tech-resistant industries in America. Processing over <strong>$2 billion in barber transactions</strong> across a network of tens of thousands of professionals and millions of clients is not a product launch. It is a movement. But this document is not about the movement that has been built. It is about the <strong>intelligence layer that the movement is ready for</strong> — and what theCut is uniquely positioned to do about it.
             </p>
           </div>
+
+          <StatisticalSignal signals={[{"label":"Retention Scaling","value":"3x","icon":"chart"},{"label":"Re-Engagement Trigger","value":"<2min","icon":"zap"},{"label":"Booking Frequency","value":"+20%","icon":"activity"}]} />
 
           {/* Part I: What theCut Built */}
           <div className="mb-20">
@@ -561,6 +600,10 @@ export default function TheCutSovereignIntelligenceAudit() {
         </div>
       </article>
 
+      <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
+
+          <FAQSection faqs={[{"question":"How does ADI help barbershops on theCut?","answer":"It transforms the platform from a simple booking drawer into a retention engine, using ADI to handle client re-engagement and no-show mitigation autonomously for high-volume franchises."}]} />
+      <AuthorBio />
       <Footer />
     </main>
   )

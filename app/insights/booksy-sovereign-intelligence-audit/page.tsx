@@ -1,5 +1,11 @@
 "use client"
 
+import { TechnicalCitations } from "@/components/insights/technical-citations"
+import { StatisticalSignal } from "@/components/insights/statistical-signal"
+import { ExecutiveSummary } from "@/components/insights/executive-summary"
+import { FAQSection } from "@/components/insights/faq-section"
+import { AuthorBio } from "@/components/insights/author-bio"
+import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -40,6 +46,36 @@ function GlowOrb({ className }: { className: string }) {
 export default function BookSySovereignIntelligenceAudit() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">
+   
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": "https://innergcomplete.com/insights/booksy-sovereign-intelligence-audit"
+            },
+            "headline": "Booksy's Intelligence Ceiling | Strategic View | Inner G Complete",
+            "description": "A platform audit of Booksy's architecture, and why its enterprise clients face an intelligence ceiling they must solve themselves.",
+            "author": {
+              "@type": "Person",
+              "name": "Lamont Evans",
+              "url": "https://innergcomplete.com/about"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Inner G Complete Agency",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+              }
+            },
+            "datePublished": "2026-04-12T08:00:00Z"
+          })
+        }}
+      />
       <Navbar />
 
       <article className="relative flex-1">
@@ -66,6 +102,7 @@ export default function BookSySovereignIntelligenceAudit() {
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Strategic View</span>
             </div>
 
+            <ExecutiveSummary data={{"problem":"High platform dependency and lack of granular data ownership for large barber franchises.","requirement":"Sovereign data ownership layer to de-risk platform-level shifts and model churn.","roi":"Measurable growth in institutional asset value and independence from platform monopolies.","solution":"Headless ADI overlay that manages client rebooking logic independent of Booksy's UI."}} />
             <h1 className="text-4xl font-black tracking-tighter text-foreground sm:text-6xl md:text-7xl uppercase italic leading-[0.95] mb-8">
               Booksy&apos;s{" "}
               <span className="text-primary">Intelligence</span>{" "}
@@ -138,6 +175,8 @@ export default function BookSySovereignIntelligenceAudit() {
               This document is written with genuine respect for what Booksy and its CEO Stefan Batory have built since 2014. What began as a Polish startup — a solution to the frustration of booking beauty appointments by phone — grew into the world&apos;s most scaled marketplace for grooming and beauty professionals. Processing over <strong>150 million appointments</strong> annually and facilitating more than <strong>$10 billion in Gross Merchandise Volume</strong> across 140,000 global businesses is not a product achievement. It is a market infrastructure achievement. But this document is not about what has been built. It is about <strong>the intelligence layer that the infrastructure is ready to support</strong> — and why the platform that acts on this first will not just win market share, it will define the category that comes after booking.
             </p>
           </div>
+
+          <StatisticalSignal signals={[{"label":"Data Ownership Ratio","value":"15:1","icon":"data"},{"label":"Portability Score","value":"100%","icon":"zap"},{"label":"Asset Valuation","value":"+$1.2M","icon":"chart"}]} />
 
           {/* Part I */}
           <div className="mb-20">
@@ -561,6 +600,10 @@ export default function BookSySovereignIntelligenceAudit() {
         </div>
       </article>
 
+      <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
+
+          <FAQSection faqs={[{"question":"Why should large Booksy franchises build a sovereign layer?","answer":"To avoid platform lock-in and ensure that the intelligence gathered about their personal clients is owned by the franchise, not the platform. This increases the institutional value of the company and protects its primary revenue streams."}]} />
+      <AuthorBio />
       <Footer />
     </main>
   )
