@@ -1,5 +1,4 @@
-"use client"
-
+import { ArticleActions } from "@/components/insights/article-actions"
 import { TechnicalCitations } from "@/components/insights/technical-citations"
 import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
@@ -10,8 +9,6 @@ import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
   ArrowLeft,
-  Share2,
-  Printer,
   Brain,
   Clock,
   AlertTriangle,
@@ -146,14 +143,7 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
                   </div>
                 </div>
               </div>
-              <div className="ml-auto flex gap-3">
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Share article">
-                  <Share2 className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Print article">
-                  <Printer className="h-4 w-4" />
-                </Button>
-              </div>
+              <ArticleActions />
             </div>
           </div>
         </header>
@@ -277,7 +267,7 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
                 <div key={row.capability} className={`grid grid-cols-1 sm:grid-cols-3 border-b border-border last:border-0 ${i % 2 === 0 ? "bg-white" : "bg-secondary/5"}`}>
                   <div className="p-4 text-xs font-black text-foreground uppercase tracking-wide bg-secondary/10 sm:bg-transparent">{row.capability}</div>
                   <div className="p-4 text-xs text-muted-foreground leading-relaxed border-t sm:border-t-0 sm:border-l border-border">
-                    <span className="sm:hidden block text-[9px] font-black uppercase text-muted-foreground/50 mb-1">Current Platform</span>
+                    <span className="sm:hidden block text-[9px] font-black uppercase text-muted-foreground mb-1">Current Platform</span>
                     {row.current}
                   </div>
                   <div className="p-4 text-xs text-foreground leading-relaxed border-t sm:border-t-0 sm:border-l border-primary/20 bg-primary/5 sm:bg-transparent font-medium">

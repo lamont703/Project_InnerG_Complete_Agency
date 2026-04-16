@@ -3,7 +3,16 @@ import { Footer } from "@/components/layout/footer"
 
 export const metadata = {
   title: "Cookie Policy | Inner G Complete Agency",
-  description: "Cookie Policy for Inner G Complete Agency services and platform.",
+  description: "Official institutional policy and governance documentation for Inner G Complete Agency.",
+  openGraph: {
+    title: "Cookie Policy | Inner G Complete Agency",
+    description: "Official institutional policy and governance documentation.",
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Inner G Complete Agency' }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ['/og-image.png'],
+  },
 }
 
 export default function CookiePolicyPage() {

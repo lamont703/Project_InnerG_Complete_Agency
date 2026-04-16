@@ -1,5 +1,4 @@
-"use client"
-
+import { ArticleActions } from "@/components/insights/article-actions"
 import { TechnicalCitations } from "@/components/insights/technical-citations"
 import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
@@ -14,8 +13,6 @@ import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
   ArrowLeft,
-  Share2,
-  Printer,
   Brain,
   Layers,
   Cpu,
@@ -155,14 +152,7 @@ export default function SovereignIntelligenceLayer() {
                 <span>·</span>
                 <span>14 min read</span>
               </div>
-              <div className="flex gap-3">
-                <Button variant="outline" size="icon" className="rounded-full h-9 w-9 border-border">
-                  <Share2 className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon" className="rounded-full h-9 w-9 border-border">
-                  <Printer className="h-4 w-4" />
-                </Button>
-              </div>
+              <ArticleActions />
             </div>
           </div>
         </header>

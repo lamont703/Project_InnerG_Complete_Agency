@@ -3,8 +3,17 @@ import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 
 export const metadata = {
-  title: "Data Deletion Instructions | Inner G Complete Agency",
-  description: "Instructions on how to request the deletion of your data from Inner G Complete Agency.",
+  title: "Data Deletion Policy | Inner G Complete Agency",
+  description: "Official institutional policy and governance documentation for Inner G Complete Agency.",
+  openGraph: {
+    title: "Data Deletion Policy | Inner G Complete Agency",
+    description: "Official institutional policy and governance documentation.",
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Inner G Complete Agency' }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ['/og-image.png'],
+  },
 }
 
 export default function DataDeletionPage() {
