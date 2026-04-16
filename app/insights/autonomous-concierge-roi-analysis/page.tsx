@@ -1,5 +1,4 @@
-"use client"
-
+import { ArticleActions } from "@/components/insights/article-actions"
 import { TechnicalCitations } from "@/components/insights/technical-citations"
 import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
@@ -10,8 +9,6 @@ import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
   ArrowLeft,
-  Share2,
-  Printer,
   TrendingUp,
   BarChart3,
   Users,
@@ -220,14 +217,7 @@ export default function AutonomousConciergeROI() {
                   </div>
                 </div>
               </div>
-              <div className="ml-auto flex gap-3">
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Share article">
-                  <Share2 className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-border" aria-label="Print article">
-                  <Printer className="h-4 w-4" />
-                </Button>
-              </div>
+              <ArticleActions />
             </div>
           </div>
         </header>

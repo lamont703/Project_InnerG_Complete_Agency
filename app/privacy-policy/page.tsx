@@ -2,8 +2,17 @@ import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 
 export const metadata = {
-  title: "Privacy Policy | Inner G Complete Agency App",
-  description: "Privacy Policy for Inner G Complete Agency App services and platform.",
+  title: "Privacy Policy | Inner G Complete Agency",
+  description: "Official institutional policy and governance documentation for Inner G Complete Agency.",
+  openGraph: {
+    title: "Privacy Policy | Inner G Complete Agency",
+    description: "Official institutional policy and governance documentation.",
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Inner G Complete Agency' }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ['/og-image.png'],
+  },
 }
 
 export default function PrivacyPolicyPage() {

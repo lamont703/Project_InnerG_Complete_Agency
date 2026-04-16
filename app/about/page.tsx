@@ -40,12 +40,14 @@ export const metadata: Metadata = {
       "We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises — CPMAI-governed, institutionally auditable, built to own.",
     url: "https://innergcomplete.com/about",
     type: "website",
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Inner G Complete Agency' }],
   },
   twitter: {
     card: "summary_large_image",
     title: "About Inner G Complete Agency | Artificial Domain Intelligence",
     description:
       "We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises — CPMAI-governed, institutionally auditable, built to own.",
+    images: ["/og-image.png"],
   },
   alternates: {
     canonical: "https://innergcomplete.com/about",
