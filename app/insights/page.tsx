@@ -19,6 +19,15 @@ function GlowOrb({ className }: { className: string }) {
 
 const reports = [
   {
+    slug: "barber-education-intelligence-roi",
+    title: "Overcoming the Blockade: Barber Education Intelligence",
+    excerpt: "Barber students invest $16,800+ into an education that prepares them physically but repeatedly fails them theoretically. A definitive ROI analysis on the Cognitive RAG solution to guarantee licensure velocity.",
+    date: "April 19, 2026",
+    readingTime: "16 min read",
+    category: "Industry Report",
+    featured: true,
+  },
+  {
     slug: "the-sovereign-intelligence-layer",
     title: "The Sovereign Intelligence Layer: Why ADI Wins",
     excerpt: "The enterprise that builds a proprietary Artificial Domain Intelligence doesn't just win market share—it becomes the industry standard that everyone else licenses.",
