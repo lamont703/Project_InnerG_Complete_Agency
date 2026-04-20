@@ -19,6 +19,15 @@ function GlowOrb({ className }: { className: string }) {
 
 const reports = [
   {
+    slug: "texas-barber-licensure-crisis",
+    title: "The Texas Barber Licensure Crisis: A $15M Institutional Risk Analysis",
+    excerpt: "Texas barber schools are facing a 'Licensure Cliff' with written fail rates exceeding 45% in major metros. An audit of why school accreditation is at risk and how the Texas ADI Pilot is architected to defend it.",
+    date: "April 20, 2026",
+    readingTime: "18 min read",
+    category: "Industry Report",
+    featured: true,
+  },
+  {
     slug: "barber-education-intelligence-roi",
     title: "Overcoming the Blockade: Barber Education Intelligence",
     excerpt: "Barber students invest $16,800+ into an education that prepares them physically but repeatedly fails them theoretically. A definitive ROI analysis on the Cognitive RAG solution to guarantee licensure velocity.",
@@ -133,7 +142,7 @@ export default function InsightsPage() {
             </h1>
             <p className="mt-8 text-xl text-muted-foreground leading-relaxed text-balance font-medium">
               We architect the cognitive infrastructures of the future. Our research maps the 
-              strategic intersection of Aesthetic Intelligence, AI, and Blockchain.
+              strategic intersection of Aesthetic Intelligence™, AI, and Blockchain.
             </p>
           </div>
         </div>

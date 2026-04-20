@@ -53,8 +53,9 @@ export function ServicesSection() {
       <div className="mx-auto max-w-7xl px-6">
         {/* Header */}
         <div className="text-center">
-          <p className="text-sm font-black uppercase tracking-[0.3em] text-primary mb-4">
-            Aesthetic Intelligence Suite
+          <p className="text-sm font-black uppercase tracking-[0.3em] text-primary mb-4 flex items-center justify-center gap-2">
+            Aesthetic Intelligence™ Suite
+            <span className="text-[8px] opacity-70">[Patent Pending]</span>
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
             Engineered for Luxury Wellness

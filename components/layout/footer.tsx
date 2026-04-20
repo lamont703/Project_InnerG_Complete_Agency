@@ -3,7 +3,7 @@ import Image from "next/image"
 
 const footerLinks = {
   Solutions: [
-    { label: "Barber Grooming ADI", href: "#services" },
+    { label: "Texas Barber Exam Intelligence Prep", href: "/texas-barber-exam-intelligence-prep" },
     { label: "Wellness Spa Intelligence", href: "#services" },
     { label: "Franchise Architectures", href: "#services" },
     { label: "Luxury Beauty AI", href: "#services" },
