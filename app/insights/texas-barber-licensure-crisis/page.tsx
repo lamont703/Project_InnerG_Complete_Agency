@@ -331,7 +331,7 @@ export default function TexasBarberCrisis() {
               </h2>
             </div>
             <p className="text-lg text-muted-foreground leading-relaxed font-medium mb-10">
-              The Texas pilot transforms institutional outcomes by establishing an **Accreditation-First Intelligence** layer. By bridging the gap between classroom instruction and the actual PSI Examination logic, we secure your Title IV eligibility while accelerating student workforce entry.
+              The Texas pilot transforms institutional outcomes by establishing the **Accreditation-First Texas Barber Exam Intelligence Prep™**. By bridging the gap between classroom instruction and the actual PSI Examination logic, we secure your Title IV eligibility while accelerating student workforce entry.
             </p>
 
             <div className="space-y-6">
