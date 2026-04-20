@@ -56,8 +56,9 @@ export function HeroSection() {
           <span className="text-balance block text-foreground">
             Architecting Your
           </span>
-          <span className="text-balance block text-gradient mt-2">
-            Aesthetic Intelligence
+          <span className="text-balance block text-gradient mt-2 relative inline-flex items-center justify-center gap-2">
+            Aesthetic Intelligence™
+            <span className="text-[10px] uppercase tracking-widest font-black text-primary/60 align-top mb-8">Patent Pending</span>
           </span>
         </h1>
 

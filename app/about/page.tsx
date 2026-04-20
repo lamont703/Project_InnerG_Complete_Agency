@@ -287,7 +287,8 @@ export default function AboutPage() {
           <div className="text-center mb-16">
             <span className="text-xs font-black uppercase tracking-[0.3em] text-primary">What We Deliver</span>
             <h2 className="mt-4 text-4xl font-black uppercase italic tracking-tighter text-foreground sm:text-5xl">
-              The Aesthetic Intelligence Suite
+              The Aesthetic Intelligence™ Suite
+              <span className="ml-3 text-[10px] uppercase font-black tracking-widest text-primary/60">[Patent Pending]</span>
             </h2>
             <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto font-medium leading-relaxed">
               Six capability domains engineered for luxury wellness and grooming enterprises ready to own their
