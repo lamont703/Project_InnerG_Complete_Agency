@@ -85,7 +85,7 @@ export default function TexasBarberExamPrep() {
               className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50 gap-3 px-12 py-8 text-sm font-black uppercase tracking-[0.3em] transition-all hover:scale-105 border-2 shadow-sm"
               asChild
             >
-              <Link href="/insights/texas-barber-licensure-crisis">View Strategic Audit</Link>
+              <Link href="/tools/texas-barber-exam-practice-deck">View Strategic Audit</Link>
             </Button>
           </div>
         </div>
