@@ -23,7 +23,7 @@ function ClientDashboardLayoutContent({ children }: { children: React.ReactNode 
         if (!isAgencyPortal) {
             const supabase = createBrowserClient()
             supabase.from("projects").select("type").eq("slug", slug).maybeSingle()
-                .then(({ data }) => {
+                .then(({ data }: { data: any }) => {
                     if (data?.type) setProjectType(data.type)
                 })
         }
