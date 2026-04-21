@@ -21,37 +21,44 @@ import {
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-export const metadata: Metadata = {
-  title: "About Us | Inner G Complete Agency — ADI Architecture Firm",
-  description:
-    "Inner G Complete Agency architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. Learn our mission, vision, and CPMAI-governed ADI methodology.",
-  keywords: [
-    "ADI architecture firm",
-    "Artificial Domain Intelligence agency",
-    "sovereign intelligence layer",
-    "AI for wellness enterprises",
-    "CPMAI methodology",
-    "grooming beauty wellness AI",
-    "Inner G Complete about",
-  ],
-  openGraph: {
-    title: "About Inner G Complete Agency | Artificial Domain Intelligence",
-    description:
-      "We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises — CPMAI-governed, institutionally auditable, built to own.",
-    url: "https://innergcomplete.com/about",
-    type: "website",
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Inner G Complete Agency' }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "About Inner G Complete Agency | Artificial Domain Intelligence",
-    description:
-      "We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises — CPMAI-governed, institutionally auditable, built to own.",
-    images: ["/og-image.png"],
-  },
-  alternates: {
-    canonical: "https://innergcomplete.com/about",
-  },
+import { headers } from 'next/headers'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const headersList = await headers()
+  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const isTexasBarbering = host.includes('texasbarbering')
+  const tenantName = isTexasBarbering ? 'Texas Barbering Intelligence' : 'Inner G Complete Agency'
+  const domainUrl = `https://${host}`
+
+  return {
+    title: `About Us | ${tenantName} — ADI Architecture Firm`,
+    description: `${tenantName} architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. Learn our mission, vision, and CPMAI-governed ADI methodology.`,
+    keywords: [
+      "ADI architecture firm",
+      "Artificial Domain Intelligence agency",
+      "sovereign intelligence layer",
+      "AI for wellness enterprises",
+      "CPMAI methodology",
+      "grooming beauty wellness AI",
+      `${tenantName} about`,
+    ],
+    openGraph: {
+      title: `About ${tenantName} | Artificial Domain Intelligence`,
+      description: `We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises — CPMAI-governed, institutionally auditable, built to own.`,
+      url: `${domainUrl}/about`,
+      type: "website",
+      images: [{ url: '/og-image.png', width: 1200, height: 630, alt: tenantName }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `About ${tenantName} | Artificial Domain Intelligence`,
+      description: `We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises — CPMAI-governed, institutionally auditable, built to own.`,
+      images: ["/og-image.png"],
+    },
+    alternates: {
+      canonical: `${domainUrl}/about`,
+    },
+  }
 }
 
 function GlowOrb({ className }: { className: string }) {
@@ -110,7 +117,12 @@ const stats = [
   { value: "≥15%", label: "Minimum rebooking uplift target in active pilot" },
 ]
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const headersList = await headers()
+  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const isTexasBarbering = host.includes('texasbarbering')
+  const tenantName = isTexasBarbering ? 'Texas Barbering Intelligence' : 'Inner G Complete Agency'
+
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">
       <Navbar />
@@ -122,17 +134,15 @@ export default function AboutPage() {
         <div className="relative z-10 mx-auto max-w-5xl px-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 mb-6 sm:mb-8">
             <Brain className="h-3.5 w-3.5 text-primary" />
-            <span className="text-[10px] font-bold text-primary tracking-[0.2em] uppercase">Inner G Complete Agency</span>
+            <span className="text-[10px] font-bold text-primary tracking-[0.2em] uppercase">{tenantName}</span>
           </div>
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tighter text-foreground uppercase italic leading-[0.9] mb-6 sm:mb-8">
-            We Build the <span className="text-primary">Sovereign</span>{" "}
-            Intelligence Layer
+            {isTexasBarbering ? "Solving the Barbering" : "We Build the"} <span className="text-primary">{isTexasBarbering ? "Licensure Gap" : "Sovereign"}</span>{" "}
+            {isTexasBarbering ? "with ADI" : "Intelligence Layer"}
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed font-medium max-w-3xl">
-            Inner G Complete Agency is an AI architecture firm specializing in{" "}
-            <strong className="text-foreground">Artificial Domain Intelligence (ADI)</strong> for the grooming, beauty,
-            and wellness industry. We architect the cognitive infrastructures that turn operational data into a
-            proprietary, continuously-learning institutional intelligence asset.
+            {tenantName} is an AI architecture firm specializing in{" "}
+            <strong className="text-foreground">Artificial Domain Intelligence (ADI)</strong> for {isTexasBarbering ? "Texas licensure and professional excellence" : "the grooming, beauty, and wellness industry"}.
           </p>
         </div>
       </header>
@@ -191,7 +201,7 @@ export default function AboutPage() {
                   <div>
                     <div className="text-sm font-black uppercase tracking-tight text-foreground">Lamont Evans</div>
                     <div className="text-[10px] text-primary font-bold uppercase tracking-widest">
-                      Principal Architect · Inner G Complete Agency
+                      Principal Architect · {tenantName}
                     </div>
                   </div>
                 </div>

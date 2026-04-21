@@ -1,21 +1,38 @@
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 
-export const metadata = {
-  title: "Terms of Service | Inner G Complete Agency",
-  description: "Official institutional policy and governance documentation for Inner G Complete Agency.",
-  openGraph: {
-    title: "Terms of Service | Inner G Complete Agency",
-    description: "Official institutional policy and governance documentation.",
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Inner G Complete Agency' }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    images: ['/og-image.png'],
-  },
+import { headers } from 'next/headers'
+import Link from 'next/link'
+import type { Metadata } from 'next'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const headersList = await headers()
+  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const isTexasBarbering = host.includes('texasbarbering')
+  const tenantName = isTexasBarbering ? 'Texas Barbering Intelligence' : 'Inner G Complete Agency'
+
+  return {
+    title: `Terms of Service | ${tenantName}`,
+    description: `Official institutional policy and governance documentation for ${tenantName}.`,
+    openGraph: {
+      title: `Terms of Service | ${tenantName}`,
+      description: `Official institutional policy and governance documentation.`,
+      images: [{ url: '/og-image.png', width: 1200, height: 630, alt: tenantName }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      images: ['/og-image.png'],
+    },
+  }
 }
 
-export default function TermsOfServicePage() {
+export default async function TermsOfServicePage() {
+  const headersList = await headers()
+  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const isTexasBarbering = host.includes('texasbarbering')
+  const tenantName = isTexasBarbering ? 'Texas Barbering Intelligence' : 'Inner G Complete Agency'
+  const supportEmail = isTexasBarbering ? 'support@texasbarbering.innergcomplete.com' : 'support@agency.innergcomplete.com'
+
   return (
     <main className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -27,10 +44,10 @@ export default function TermsOfServicePage() {
           <section>
             <p><strong>Last Updated:</strong> April 12, 2026</p>
             <p className="mt-4">
-              Welcome to the <strong>Inner G Complete Agency App</strong>, a proprietary software developed and 
+              Welcome to the <strong>{tenantName} Platform</strong>, a proprietary software developed and 
               managed by <strong>Inner G Complete Agency</strong> ("the Company"). These Terms of Service 
               ("Terms") govern your access to and use of our website, products, and services ("Services"), 
-              including the Inner G Complete Agency App software.
+              including the {tenantName} Platform software.
             </p>
           </section>
 
@@ -134,8 +151,8 @@ export default function TermsOfServicePage() {
               If you have any questions about these Terms, please contact us at:
             </p>
             <p className="mt-2">
-              <strong>Inner G Complete Agency App</strong><br />
-              Email: support@lamont.innergcomplete.com
+              <strong>{tenantName}</strong><br />
+              Email: {supportEmail}
             </p>
           </section>
         </div>

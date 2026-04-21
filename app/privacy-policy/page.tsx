@@ -1,21 +1,37 @@
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
+import { headers } from 'next/headers'
+import Link from 'next/link'
+import type { Metadata } from 'next'
 
-export const metadata = {
-  title: "Privacy Policy | Inner G Complete Agency",
-  description: "Official institutional policy and governance documentation for Inner G Complete Agency.",
-  openGraph: {
-    title: "Privacy Policy | Inner G Complete Agency",
-    description: "Official institutional policy and governance documentation.",
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Inner G Complete Agency' }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    images: ['/og-image.png'],
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const headersList = await headers()
+  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const isTexasBarbering = host.includes('texasbarbering')
+  const tenantName = isTexasBarbering ? 'Texas Barbering Intelligence' : 'Inner G Complete Agency'
+
+  return {
+    title: `Privacy Policy | ${tenantName}`,
+    description: `Official institutional policy and governance documentation for ${tenantName}.`,
+    openGraph: {
+      title: `Privacy Policy | ${tenantName}`,
+      description: `Official institutional policy and governance documentation.`,
+      images: [{ url: '/og-image.png', width: 1200, height: 630, alt: tenantName }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      images: ['/og-image.png'],
+    },
+  }
 }
 
-export default function PrivacyPolicyPage() {
+export default async function PrivacyPolicyPage() {
+  const headersList = await headers()
+  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const isTexasBarbering = host.includes('texasbarbering')
+  const tenantName = isTexasBarbering ? 'Texas Barbering Intelligence' : 'Inner G Complete Agency'
+  const supportEmail = isTexasBarbering ? 'support@texasbarbering.innergcomplete.com' : 'support@agency.innergcomplete.com'
+
   return (
     <main className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -27,9 +43,9 @@ export default function PrivacyPolicyPage() {
           <section>
             <p><strong>Last Updated:</strong> April 12, 2026</p>
             <p className="mt-4">
-              At Inner G Complete Agency, we value your privacy and are committed to protecting your personal information. 
+              At {tenantName}, we value your privacy and are committed to protecting your personal information. 
               This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our 
-              website or use the <strong>Inner G Complete Agency App</strong>, a proprietary software built and managed by Inner G Complete Agency.
+              website or use the <strong>{tenantName} Platform</strong>, a proprietary software built and managed by Inner G Complete Agency.
             </p>
           </section>
 
@@ -107,8 +123,8 @@ export default function PrivacyPolicyPage() {
               If you have questions or comments about this Privacy Policy, please contact us at:
             </p>
             <p className="mt-2">
-              <strong>Inner G Complete Agency App</strong><br />
-              Email: support@lamont.innergcomplete.com
+              <strong>{tenantName}</strong><br />
+              Email: {supportEmail}
             </p>
           </section>
         </div>
