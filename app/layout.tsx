@@ -13,68 +13,80 @@ const _jetbrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains',
 })
 
-export const metadata: Metadata = {
-  metadataBase: new URL('https://innergcomplete.com'),
-  title: 'Inner G Complete Agency | Artificial Domain Intelligence for Grooming & Wellness',
-  description:
-    'Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed ADI models that eliminate no-shows, reduce churn, and build institutional intelligence.',
-  keywords: [
-    'Artificial Domain Intelligence',
-    'ADI grooming AI',
-    'barber AI scheduling',
-    'wellness AI consulting',
-    'beauty industry AI',
-    'CPMAI AI framework',
-    'sovereign intelligence layer',
-    'no-show prediction AI',
-    'medspa AI strategy',
-    'luxury salon intelligence',
-    'AI for barbershops',
-    'Inner G Complete Agency',
-  ],
-  authors: [{ name: 'Lamont Evans', url: 'https://innergcomplete.com/about' }],
-  creator: 'Inner G Complete Agency',
-  publisher: 'Inner G Complete Agency',
-  openGraph: {
-    title: 'Inner G Complete Agency | Artificial Domain Intelligence',
+import { headers } from 'next/headers'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const headersList = await headers()
+  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const protocol = host.includes('localhost') ? 'http' : 'https'
+  const domainUrl = `${protocol}://${host}`
+
+  return {
+    metadataBase: new URL(domainUrl),
+    alternates: {
+      canonical: '/',
+    },
+    title: 'Inner G Complete Agency | Artificial Domain Intelligence for Grooming & Wellness',
     description:
-      'We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed. Institutionally auditable. Built to own.',
-    url: 'https://innergcomplete.com',
-    siteName: 'Inner G Complete Agency',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Inner G Complete — Artificial Domain Intelligence for Grooming & Wellness',
-      },
+      'Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed ADI models that eliminate no-shows, reduce churn, and build institutional intelligence.',
+    keywords: [
+      'Artificial Domain Intelligence',
+      'ADI grooming AI',
+      'barber AI scheduling',
+      'wellness AI consulting',
+      'beauty industry AI',
+      'CPMAI AI framework',
+      'sovereign intelligence layer',
+      'no-show prediction AI',
+      'medspa AI strategy',
+      'luxury salon intelligence',
+      'AI for barbershops',
+      'Inner G Complete Agency',
     ],
-    locale: 'en_US',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Inner G Complete Agency | Artificial Domain Intelligence',
-    description:
-      'We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed.',
-    images: ['/og-image.png'],
-  },
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/favicon.ico',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
+    authors: [{ name: 'Lamont Evans', url: '/about' }],
+    creator: 'Inner G Complete Agency',
+    publisher: 'Inner G Complete Agency',
+    openGraph: {
+      title: 'Inner G Complete Agency | Artificial Domain Intelligence',
+      description:
+        'We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed. Institutionally auditable. Built to own.',
+      url: '/',
+      siteName: 'Inner G Complete Agency',
+      images: [
+        {
+          url: '/og-image.png',
+          width: 1200,
+          height: 630,
+          alt: 'Inner G Complete — Artificial Domain Intelligence for Grooming & Wellness',
+        },
+      ],
+      locale: 'en_US',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'Inner G Complete Agency | Artificial Domain Intelligence',
+      description:
+        'We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed.',
+      images: ['/og-image.png'],
+    },
+    icons: {
+      icon: [
+        {
+          url: '/icon-light-32x32.png',
+          media: '(prefers-color-scheme: light)',
+        },
+        {
+          url: '/icon-dark-32x32.png',
+          media: '(prefers-color-scheme: dark)',
+        },
+        {
+          url: '/favicon.ico',
+        },
+      ],
+      apple: '/apple-icon.png',
+    },
+  }
 }
 
 export const viewport: Viewport = {
@@ -124,10 +136,10 @@ export default async function RootLayout({
               "@context": "https://schema.org",
               "@type": "Organization",
               "name": "Inner G Complete Agency",
-              "url": "https://innergcomplete.com",
-              "logo": "https://innergcomplete.com/icon-dark-32x32.png",
+              "url": "https://agency.innergcomplete.com",
+              "logo": "https://agency.innergcomplete.com/icon-dark-32x32.png",
               "sameAs": [
-                "https://www.linkedin.com/company/innergcomplete"
+                "https://www.linkedin.com/company/inner-g-complete-agency/"
               ],
               "founder": {
                 "@type": "Person",
