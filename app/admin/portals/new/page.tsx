@@ -45,7 +45,7 @@ export default function CreatePortalPage() {
             primaryContactEmail: "",
             projectName: "",
             slug: "",
-            projectType: "ecommerce",
+            projectType: "agency_view",
         },
     })
 
@@ -261,17 +261,17 @@ export default function CreatePortalPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium ml-1">Architecture Type</label>
+                                    <label className="text-sm font-medium ml-1">Deployment Blueprint</label>
                                     <select
                                         {...register("projectType")}
                                         className="w-full bg-background border border-border h-12 rounded-xl px-4 text-sm focus:ring-1 focus:ring-primary focus:border-primary appearance-none"
                                     >
-                                        <option value="ecommerce">Ecommerce Hub</option>
-                                        <option value="retail">Retail Infrastructure</option>
-                                        <option value="dating">Relationship Dynamics</option>
-                                        <option value="community">Social community</option>
-                                        <option value="general">General Agency Portal</option>
+                                        <option value="agency_view">Agency View (Standard)</option>
+                                        <option value="barber_student">Barber Student Architecture</option>
+                                        <option value="barber_instructor">Barber Instructor Architecture</option>
+                                        <option value="barber_owner">Barber School Owner Architecture</option>
                                     </select>
+                                    <p className="text-[10px] text-muted-foreground ml-1">Sets the primary UI layout and intelligence persona</p>
                                 </div>
                             </div>
                         </div>
