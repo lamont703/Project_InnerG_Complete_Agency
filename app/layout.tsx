@@ -15,6 +15,9 @@ const _jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://agency.innergcomplete.com'),
+  alternates: {
+    canonical: '/',
+  },
   title: 'Inner G Complete Agency | Artificial Domain Intelligence for Grooming & Wellness',
   description:
     'Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed ADI models that eliminate no-shows, reduce churn, and build institutional intelligence.',
