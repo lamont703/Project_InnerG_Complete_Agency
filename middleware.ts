@@ -16,7 +16,15 @@ const PROTECTED_ROUTES = ["/select-portal", "/dashboard"]
 const AUTH_ROUTES = ["/login"]
 
 export default async function proxy(request: NextRequest) {
-    console.log('--- Proxy Intercept:', request.nextUrl.pathname)
+    const host = request.headers.get("host") || ""
+    const { pathname } = request.nextUrl
+    console.log('--- Proxy Intercept:', { host, pathname })
+
+    // Institutional Stealth Routing
+    if (host === 'texasbarbering.innergcomplete.com' && pathname === '/') {
+        console.log('--- Proxy Rewrite: Serving Texas Barber Intelligence Portal')
+        return NextResponse.rewrite(new URL('/texas-barber-exam-intelligence-prep', request.url))
+    }
 
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
