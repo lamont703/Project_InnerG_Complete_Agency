@@ -18,6 +18,7 @@ import {
     Target,
     Users,
     Calendar,
+    Smartphone,
     TrendingUp,
     Brain
 } from "lucide-react"
@@ -147,6 +148,7 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
         { href: "/admin/token-usage", icon: Layout, label: "Token Usage", active: pathname === "/admin/token-usage" },
         { href: "/admin/connectors", icon: Plug, label: "Connectors", active: pathname === "/admin/connectors" },
         { href: "/admin/pixel", icon: Zap, label: "Agency Pixel", active: pathname === "/admin/pixel" },
+        { href: "/admin/swipe-deck", icon: Smartphone, label: "TX Barber Swipe Deck", active: pathname === "/admin/swipe-deck" },
         { href: "/admin/knowledge", icon: BookOpen, label: "Knowledge CMS", active: pathname === "/admin/knowledge" },
         { href: "/admin/settings", icon: Settings, label: "Agency Settings", active: pathname === "/admin/settings" },
     ]

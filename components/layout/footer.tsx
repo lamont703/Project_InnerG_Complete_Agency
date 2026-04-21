@@ -13,6 +13,11 @@ const footerLinks = {
     // { label: "YouTube", href: "https://www.youtube.com/@SchoolofFreelancerFreedom" },
     // { label: "Discussions", href: "/discussions" },
   ],
+  Tools: [
+    { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },
+    { label: "Accreditation Risk Calculator", href: "#" },
+    { label: "Workforce Velocity Auditor", href: "#" },
+  ],
   Company: [
     { label: "Research & Insights", href: "/insights" },
     { label: "Technical Glossary", href: "/glossary" },
