@@ -37,6 +37,7 @@ const ICON_MAP: Record<string, any> = {
 }
 
 export default function SelectPortalPage() {
+    const [statusFilter, setStatusFilter] = useState("Active")
     const [searchQuery, setSearchQuery] = useState("")
     const [projects, setProjects] = useState<PortalCard[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -130,10 +131,12 @@ export default function SelectPortalPage() {
         }
     }
 
-    const filteredProjects = projects.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.client.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const filteredProjects = projects.filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            p.client.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesStatus = p.status.toLowerCase() === statusFilter.toLowerCase()
+        return matchesSearch && matchesStatus
+    })
 
     if (isLoading) {
         return (
@@ -187,31 +190,41 @@ export default function SelectPortalPage() {
                 </div>
 
                 {/* Filters and Search */}
-                <div className="flex flex-col gap-4 mb-10">
+                <div className="flex flex-col gap-6 mb-10">
                     <div className="relative w-full">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input
                             id="search-projects"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search active portals..."
+                            placeholder={`Search ${statusFilter.toLowerCase()} portals...`}
                             className="bg-muted/10 border-border pl-12 h-14 text-base md:text-lg rounded-2xl focus:border-primary transition-all w-full"
                         />
                     </div>
-                    <div className="flex flex-wrap lg:flex-nowrap gap-4">
-                        <Button
-                            id="btn-filter-status"
-                            variant="outline"
-                            className="flex-1 md:flex-none h-14 px-6 border-border rounded-2xl gap-2 hover:bg-muted/10 order-2 md:order-1"
-                        >
-                            <Filter className="h-5 w-5" />
-                            Status: Active
-                        </Button>
+                    
+                    <div className="flex flex-col xl:flex-row gap-6 justify-between lg:items-center">
+                        <div className="flex p-1.5 bg-muted/10 rounded-2xl border border-border w-full xl:w-auto overflow-x-auto no-scrollbar">
+                            {["Active", "Building", "Paused", "Archived"].map((status) => (
+                                <button
+                                    key={status}
+                                    onClick={() => setStatusFilter(status)}
+                                    className={cn(
+                                        "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-200 whitespace-nowrap flex-1 lg:flex-none",
+                                        statusFilter === status 
+                                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                                            : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    {status}
+                                </button>
+                            ))}
+                        </div>
+
                         {userData?.role === "SUPER ADMIN" && (
-                            <div className="flex flex-col md:flex-row gap-4 flex-1 md:flex-auto order-1 md:order-2">
+                            <div className="flex flex-col md:flex-row gap-4">
                                 <Button
                                     id="btn-deploy-portal"
-                                    className="flex-1 h-14 px-8 bg-accent hover:bg-accent/90 text-accent-foreground rounded-2xl gap-2 glow-accent"
+                                    className="h-14 px-8 bg-accent hover:bg-accent/90 text-accent-foreground rounded-2xl gap-3 glow-accent w-full md:w-auto text-xs font-black uppercase tracking-widest"
                                     asChild
                                 >
                                     <Link href="/admin/portals/new">
@@ -222,12 +235,12 @@ export default function SelectPortalPage() {
                                 <Button
                                     id="btn-request-portal"
                                     variant="outline"
-                                    className="flex-1 h-14 px-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary rounded-2xl gap-2"
+                                    className="h-14 px-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary rounded-2xl gap-3 w-full md:w-auto text-xs font-black uppercase tracking-widest"
                                     asChild
                                 >
                                     <Link href="/admin/invites">
                                         <Users className="h-5 w-5" />
-                                        Generate New Portal Invite
+                                        Generate New Invite
                                     </Link>
                                 </Button>
                             </div>

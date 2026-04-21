@@ -10,9 +10,13 @@ interface DashboardMobileNavProps {
     onTabChange: (tab: MobileTab) => void
     onOpenSidebar: () => void
     className?: string
+    projectType?: string
 }
 
-export function DashboardMobileNav({ activeTab, onTabChange, onOpenSidebar, className = "" }: DashboardMobileNavProps) {
+export function DashboardMobileNav({ activeTab, onTabChange, onOpenSidebar, className = "", projectType }: DashboardMobileNavProps) {
+    const isStudent = projectType?.toLowerCase() === 'barber_student'
+    const chatLabel = isStudent ? "Prep Hub" : "Chat"
+
     return (
         <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 glass-panel-strong border-t border-border px-6 flex items-center justify-around pb-safe ${className}`}>
             <button
@@ -36,7 +40,7 @@ export function DashboardMobileNav({ activeTab, onTabChange, onOpenSidebar, clas
                 }`}>
                     <MessageSquare className="h-6 w-6" />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest">Chat</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">{chatLabel}</span>
             </button>
 
             <button

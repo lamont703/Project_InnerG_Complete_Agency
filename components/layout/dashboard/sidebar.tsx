@@ -48,9 +48,16 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
     const [hasCognitiveBrief, setHasCognitiveBrief] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [features, setFeatures] = useState<{ 
-        community_agents?: boolean; 
-        social_planner?: boolean;
-        crypto_intelligence?: boolean;
+        agent_enabled?: boolean;
+        community_enabled?: boolean;
+        social_enabled?: boolean;
+        crypto_enabled?: boolean;
+        funnel_enabled?: boolean;
+        knowledge_enabled?: boolean;
+        pixel_enabled?: boolean;
+        connectors_enabled?: boolean;
+        metrics_enabled?: boolean;
+        cognitive_enabled?: boolean;
     }>({})
 
     useEffect(() => {
@@ -72,13 +79,32 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                     }
 
                     // 2. Fetch project details & features
-                    const { data: project } = await supabase
-                        .from("projects")
-                        .select("id, settings")
+                    const { data: project } = await (supabase
+                        .from("projects") as any)
+                        .select(`
+                            id, settings, 
+                            funnel_enabled, knowledge_enabled, pixel_enabled, connectors_enabled,
+                            agent_enabled, community_enabled, social_enabled, crypto_enabled,
+                            cognitive_enabled, metrics_enabled
+                        `)
                         .eq("slug", projectSlug)
-                        .single() as any
+                        .single()
                     
                     if (project) {
+                        setFeatures(prev => ({ 
+                            ...prev, 
+                            funnel_enabled: project.funnel_enabled ?? true,
+                            knowledge_enabled: project.knowledge_enabled ?? true,
+                            pixel_enabled: project.pixel_enabled ?? true,
+                            connectors_enabled: project.connectors_enabled ?? true,
+                            agent_enabled: project.agent_enabled ?? true,
+                            community_enabled: project.community_enabled ?? true,
+                            social_enabled: project.social_enabled ?? true,
+                            crypto_enabled: project.crypto_enabled ?? true,
+                            cognitive_enabled: project.cognitive_enabled ?? true,
+                            metrics_enabled: project.metrics_enabled ?? true
+                        }))
+
                         if (project.settings?.features) {
                             setFeatures(prev => ({ ...prev, ...project.settings.features }))
                         }
@@ -130,7 +156,7 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
             label: "Intelligence Hub",
             active: pathname === `/dashboard/${projectSlug}`,
         },
-        ...(hasCognitiveBrief ? [
+        ...(hasCognitiveBrief && features.cognitive_enabled ? [
             {
                 href: `/dashboard/${projectSlug}/cognitive-brief`,
                 icon: Brain,
@@ -138,19 +164,23 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                 active: pathname === `/dashboard/${projectSlug}/cognitive-brief`,
             }
         ] : []),
-        {
-            href: `/dashboard/${projectSlug}/funnels`,
-            icon: GitBranch,
-            label: "Funnels & Conversions",
-            active: pathname === `/dashboard/${projectSlug}/funnels`,
-        },
-        {
-            href: `/dashboard/${projectSlug}/metrics`,
-            icon: BarChart3,
-            label: "Metrics & Intelligence",
-            active: pathname === `/dashboard/${projectSlug}/metrics`,
-        },
-        ...(features.community_agents ? [
+        ...(features.funnel_enabled ? [
+            {
+                href: `/dashboard/${projectSlug}/funnels`,
+                icon: GitBranch,
+                label: "Funnels & Conversions",
+                active: pathname === `/dashboard/${projectSlug}/funnels`,
+            }
+        ] : []),
+        ...(features.metrics_enabled ? [
+            {
+                href: `/dashboard/${projectSlug}/metrics`,
+                icon: BarChart3,
+                label: "Metrics & Intelligence",
+                active: pathname === `/dashboard/${projectSlug}/metrics`,
+            }
+        ] : []),
+        ...(features.community_enabled ? [
             {
                 href: `/dashboard/${projectSlug}/community`,
                 icon: Users,
@@ -158,7 +188,7 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                 active: pathname === `/dashboard/${projectSlug}/community`,
             }
         ] : []),
-        ...(features.social_planner ? [
+        ...(features.social_enabled ? [
             {
                 href: `/dashboard/${projectSlug}/social-planner`,
                 icon: Calendar,
@@ -166,7 +196,7 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                 active: pathname === `/dashboard/${projectSlug}/social-planner`,
             }
         ] : []),
-        ...(features.crypto_intelligence ? [
+        ...(features.crypto_enabled ? [
             {
                 href: `/dashboard/${projectSlug}/crypto`,
                 icon: TrendingUp,
@@ -174,24 +204,30 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                 active: pathname === `/dashboard/${projectSlug}/crypto`,
             }
         ] : []),
-        {
-            href: `/dashboard/${projectSlug}/connectors`,
-            icon: Plug,
-            label: "Connectors",
-            active: pathname === `/dashboard/${projectSlug}/connectors`,
-        },
-        {
-            href: `/dashboard/${projectSlug}/knowledge`,
-            icon: BookOpen,
-            label: "Knowledge Base",
-            active: pathname === `/dashboard/${projectSlug}/knowledge`,
-        },
-        {
-            href: `/dashboard/${projectSlug}/pixel`,
-            icon: Zap,
-            label: "Connect Website",
-            active: pathname === `/dashboard/${projectSlug}/pixel`,
-        },
+        ...(features.connectors_enabled ? [
+            {
+                href: `/dashboard/${projectSlug}/connectors`,
+                icon: Plug,
+                label: "Connectors",
+                active: pathname === `/dashboard/${projectSlug}/connectors`,
+            }
+        ] : []),
+        ...(features.knowledge_enabled ? [
+            {
+                href: `/dashboard/${projectSlug}/knowledge`,
+                icon: BookOpen,
+                label: "Knowledge Base",
+                active: pathname === `/dashboard/${projectSlug}/knowledge`,
+            }
+        ] : []),
+        ...(features.pixel_enabled ? [
+            {
+                href: `/dashboard/${projectSlug}/pixel`,
+                icon: Zap,
+                label: "Connect Website",
+                active: pathname === `/dashboard/${projectSlug}/pixel`,
+            }
+        ] : []),
         {
             href: "/select-portal",
             icon: Layout,

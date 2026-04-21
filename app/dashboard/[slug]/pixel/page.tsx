@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react"
 import { useParams } from "next/navigation"
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, Zap } from "lucide-react"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { PixelSetup } from "@/features/pixel/components/PixelSetup"
 
@@ -10,7 +10,7 @@ function PixelPageContent() {
     const params = useParams()
     const slug = (params?.slug as string) ?? "agency-global"
     
-    const [projectData, setProjectData] = useState<{ id: string; name: string } | null>(null)
+    const [projectData, setProjectData] = useState<{ id: string; name: string; pixel_enabled: boolean } | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
@@ -19,16 +19,17 @@ function PixelPageContent() {
                 const supabase = createBrowserClient()
                 
                 // Fetch project details by slug
-                const { data: project, error } = await supabase
-                    .from("projects")
-                    .select("id, name")
+                const { data: project, error } = await (supabase
+                    .from("projects") as any)
+                    .select("id, name, pixel_enabled")
                     .eq("slug", slug)
-                    .maybeSingle() as any
+                    .maybeSingle()
 
                 if (project) {
                     setProjectData({
                         id: project.id,
-                        name: project.name
+                        name: project.name,
+                        pixel_enabled: project.pixel_enabled ?? true
                     })
                 }
             } catch (err) {
@@ -61,6 +62,25 @@ function PixelPageContent() {
                         Unable to connect to the intelligence grid. The project slug <code className="bg-secondary px-1 rounded">{slug}</code> may be invalid or restricted.
                     </p>
                 </div>
+            </div>
+        )
+    }
+
+    if (!projectData.pixel_enabled) {
+        return (
+            <div className="flex-1 flex flex-col min-h-0 relative h-full overflow-hidden">
+                <main className="flex-1 flex items-center justify-center p-6 text-center lg:pb-32 h-[80vh]">
+                    <div className="max-w-md space-y-6">
+                        <div className="h-20 w-20 rounded-3xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mx-auto">
+                            <Zap className="h-10 w-10 text-yellow-500 opacity-50" />
+                        </div>
+                        <h2 className="text-2xl font-black uppercase tracking-widest italic text-foreground">Telemetry Masked</h2>
+                        <p className="text-muted-foreground text-sm leading-relaxed font-medium">
+                            The requested Website Connection architecture has been de-provisioned for this instance. 
+                            Contact your <span className="text-primary font-bold italic uppercase tracking-widest">Inner G Prime</span> to restore pixel tracking.
+                        </p>
+                    </div>
+                </main>
             </div>
         )
     }

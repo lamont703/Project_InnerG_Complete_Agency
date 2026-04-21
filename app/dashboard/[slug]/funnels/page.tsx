@@ -15,6 +15,7 @@ export default function ClientFunnelPage() {
     // User & Project State
     const [userData, setUserData] = useState<{ name: string; role: string } | null>(null)
     const [projectName, setProjectName] = useState("")
+    const [funnelEnabled, setFunnelEnabled] = useState(true)
     const [isLoading, setIsLoading] = useState(true)
     const [currentTime, setCurrentTime] = useState(new Date())
     const [mounted, setMounted] = useState(false)
@@ -39,14 +40,15 @@ export default function ClientFunnelPage() {
                     setUserData({ name, role })
                 }
 
-                const { data: project } = await supabase
-                    .from("projects")
-                    .select("name")
+                const { data: project } = await (supabase
+                    .from("projects") as any)
+                    .select("name, funnel_enabled")
                     .eq("slug", slug)
-                    .maybeSingle() as any
+                    .maybeSingle()
 
                 if (project) {
                     setProjectName(project.name)
+                    setFunnelEnabled(project.funnel_enabled ?? true)
                 }
             } catch (err) {
                 console.error("[FunnelPage] Error fetching data:", err)
@@ -64,6 +66,33 @@ export default function ClientFunnelPage() {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        )
+    }
+
+    if (!funnelEnabled) {
+        return (
+            <div className="flex-1 flex flex-col min-h-0 relative h-full overflow-hidden">
+                <DashboardHeader
+                    userName={userData?.name || "User"}
+                    userRole={userData?.role || "CLIENT"}
+                    currentTime={currentTime}
+                    mounted={mounted}
+                    onMenuOpen={() => {}}
+                    projectName={projectName}
+                />
+                <main className="flex-1 flex items-center justify-center p-6 text-center">
+                    <div className="max-w-md space-y-6">
+                        <div className="h-20 w-20 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto">
+                            <Filter className="h-10 w-10 text-amber-500 opacity-50" />
+                        </div>
+                        <h2 className="text-2xl font-black uppercase tracking-widest italic text-foreground">Blueprint Masked</h2>
+                        <p className="text-muted-foreground text-sm leading-relaxed">
+                            The requested Funnel Architecture has been deactivated for this instance. 
+                            Contact your <span className="text-primary font-bold italic">Inner G Agent</span> to provision these insights.
+                        </p>
+                    </div>
+                </main>
             </div>
         )
     }

@@ -7,6 +7,8 @@ import { MobileNavProvider, useMobileNav } from "@/features/agency/context/Mobil
 import { DashboardMobileNav } from "@/components/layout/dashboard/MobileNav"
 import { DashboardSidebar } from "@/components/layout/dashboard/sidebar"
 import { AgencySidebar } from "@/features/agency/components/AgencySidebar"
+import { createBrowserClient } from "@/lib/supabase/browser"
+import { useState, useEffect } from "react"
 
 function ClientDashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const params = useParams()
@@ -15,6 +17,17 @@ function ClientDashboardLayoutContent({ children }: { children: React.ReactNode 
     const { activeTab, setActiveTab } = useMobileNav()
 
     const isAgencyPortal = slug === "innergcomplete"
+    const [projectType, setProjectType] = useState<string>("general")
+
+    useEffect(() => {
+        if (!isAgencyPortal) {
+            const supabase = createBrowserClient()
+            supabase.from("projects").select("type").eq("slug", slug).maybeSingle()
+                .then(({ data }) => {
+                    if (data?.type) setProjectType(data.type)
+                })
+        }
+    }, [slug, isAgencyPortal])
 
     return (
         <div className="min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden w-full text-foreground text-foreground">
@@ -39,6 +52,7 @@ function ClientDashboardLayoutContent({ children }: { children: React.ReactNode 
                     onTabChange={setActiveTab} 
                     onOpenSidebar={toggleSidebar}
                     className="fixed bottom-0 z-[101]"
+                    projectType={projectType}
                 />
             </main>
         </div>

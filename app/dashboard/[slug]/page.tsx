@@ -1,5 +1,6 @@
 "use client"
 
+// RECOMPILE SIGNAL: 2026-04-21T19:28:00
 import { useState, useEffect, Suspense } from "react"
 import { useParams } from "next/navigation"
 import {
@@ -13,6 +14,7 @@ import { MetricsGrid } from "@/features/metrics/MetricsGrid"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { SlotProvider } from "@/features/metrics/SlotContext"
 import { DashboardMobileNav, type MobileTab } from "@/components/layout/dashboard/MobileNav"
+import { EnhancedTexasBarberExamDeck } from "@/features/student/components/EnhancedTexasBarberExamDeck"
 
 import { MobileNavProvider, useMobileNav } from "@/features/agency/context/MobileNavContext"
 
@@ -36,6 +38,7 @@ function DashboardPageContent() {
     // User & Project State
     const [userData, setUserData] = useState<{ name: string; role: string } | null>(null)
     const [projectName, setProjectName] = useState("")
+    const [projectType, setProjectType] = useState<string>("general")
     const [isLoading, setIsLoading] = useState(true)
 
     const [currentTime, setCurrentTime] = useState(new Date())
@@ -68,15 +71,20 @@ function DashboardPageContent() {
                     })
                 }
 
-                // 2. Fetch Project Name
+                // 2. Fetch Project Details
                 const { data: project } = await supabase
                     .from("projects")
-                    .select("name")
+                    .select("name, type")
                     .eq("slug", slug)
                     .maybeSingle() as any
 
                 if (project) {
+                    console.log('>>> [Dashboard] IDENTITY SIGNAL:', { slug, name: project.name, type: project.type })
                     setProjectName(project.name)
+                    // Hardcoded fallback for test portal to ensure it works even if DB fetch is slow
+                    const resolvedType = project.type || (slug === 'test-barber-student' ? 'barber_student' : 'general')
+                    console.log('>>> [Dashboard] RESOLVED PERSONA:', resolvedType)
+                    setProjectType(resolvedType)
                 }
 
             } catch (err) {
@@ -123,9 +131,13 @@ function DashboardPageContent() {
             {/* Main Content Area - Tabbed for Mobile, Side-by-Side for Desktop */}
             <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full overflow-hidden h-full">
                 
-                {/* 1. Intelligence Hub (Chat) - Primary Center */}
+                {/* 1. Intelligence Hub (Chat/Deck) - Primary Center */}
                 <div className={`flex-1 min-w-0 flex flex-col overflow-hidden ${activeTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
-                    <ChatInterface projectSlug={slug} isFlush={true} />
+                    {projectType?.toLowerCase() === 'barber_student' || slug === 'test-barber-student' ? (
+                        <EnhancedTexasBarberExamDeck projectSlug={slug} />
+                    ) : (
+                        <ChatInterface projectSlug={slug} isFlush={true} />
+                    )}
                 </div>
 
                 {/* 2. Operational Signals & Stream - Flush to the right edge */}
