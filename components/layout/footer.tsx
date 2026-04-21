@@ -8,15 +8,13 @@ const footerLinks = {
     { label: "Franchise Architectures", href: "#services" },
     { label: "Luxury Beauty AI", href: "#services" },
   ],
-  Social: [
-    { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },
-    // { label: "YouTube", href: "https://www.youtube.com/@SchoolofFreelancerFreedom" },
-    // { label: "Discussions", href: "/discussions" },
-  ],
   Tools: [
     { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },
     { label: "Texas Barber Instructor Intelligence Dashboard", href: "/tools/texas-barber-instructor-intelligence-dashboard" },
     { label: "Texas Barber School Accreditation Relationship Auditor", href: "/tools/texas-barber-school-accreditation-relationship-auditor" },
+  ],
+  Social: [
+    { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },
   ],
   Company: [
     { label: "Research & Insights", href: "/insights" },
@@ -31,9 +29,9 @@ export function Footer() {
   return (
     <footer className="relative border-t border-border bg-secondary/20">
       <div className="mx-auto max-w-7xl px-6 py-16">
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-          {/* Brand */}
-          <div className="lg:col-span-1">
+        {/* Brand - Top Row */}
+        <div className="mb-16 pb-8 border-b border-border/50">
+          <div className="max-w-2xl">
             <Link href="/" className="flex items-center gap-2 group" aria-label="Inner G Complete Home">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105 overflow-hidden">
                 <Image 
@@ -48,11 +46,13 @@ export function Footer() {
                 Inner G Complete<span className="hidden lg:inline text-muted-foreground font-normal"> Agency</span>
               </span>
             </Link>
-            <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
               Bridging the gap between AI & Blockchain innovation and the aesthetic needs of elite wellness and grooming brands.
             </p>
           </div>
+        </div>
 
+        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {/* Links */}
           {Object.entries(footerLinks).map(([heading, links]) => (
             <div key={heading}>
