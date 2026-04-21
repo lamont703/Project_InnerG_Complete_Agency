@@ -18,46 +18,48 @@ import { headers } from 'next/headers'
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = await headers()
   const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const isTexasBarbering = host.includes('texasbarbering')
   const protocol = host.includes('localhost') ? 'http' : 'https'
   const domainUrl = `${protocol}://${host}`
 
+  const tenantName = isTexasBarbering ? 'Texas Barbering Intelligence' : 'Inner G Complete Agency'
+  
   return {
     metadataBase: new URL(domainUrl),
     alternates: {
       canonical: '/',
     },
-    title: 'Inner G Complete Agency | Artificial Domain Intelligence for Grooming & Wellness',
-    description:
-      'Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed ADI models that eliminate no-shows, reduce churn, and build institutional intelligence.',
+    title: isTexasBarbering 
+      ? 'Texas Barber Exam Intelligence | AI Enhanced Practice Questions'
+      : 'Inner G Complete Agency | Artificial Domain Intelligence for Grooming & Wellness',
+    description: isTexasBarbering
+      ? 'Institutional-grade licensure prep for Texas Barber students. AI-enhanced practice questions and aesthetic intelligence pathways designed to maximize first-time pass rates.'
+      : 'Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed ADI models.',
     keywords: [
       'Artificial Domain Intelligence',
-      'ADI grooming AI',
-      'barber AI scheduling',
-      'wellness AI consulting',
-      'beauty industry AI',
-      'CPMAI AI framework',
-      'sovereign intelligence layer',
-      'no-show prediction AI',
-      'medspa AI strategy',
-      'luxury salon intelligence',
-      'AI for barbershops',
+      'Texas Barber Exam',
+      'TDLR Barber Test',
+      'PSI Barber Exam Prep',
+      'Barber School AI',
+      'Aesthetic Intelligence',
       'Inner G Complete Agency',
     ],
     authors: [{ name: 'Lamont Evans', url: '/about' }],
-    creator: 'Inner G Complete Agency',
-    publisher: 'Inner G Complete Agency',
+    creator: tenantName,
+    publisher: tenantName,
     openGraph: {
-      title: 'Inner G Complete Agency | Artificial Domain Intelligence',
-      description:
-        'We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed. Institutionally auditable. Built to own.',
+      title: isTexasBarbering ? 'Texas Barber Exam Intelligence' : 'Inner G Complete Agency | Artificial Domain Intelligence',
+      description: isTexasBarbering 
+        ? 'AI-enhanced practice questions and aesthetic intelligence pathways for Texas Barber licensure.' 
+        : 'Sovereign AI intelligence layers for grooming enterprises. institutionally auditable.',
       url: '/',
-      siteName: 'Inner G Complete Agency',
+      siteName: tenantName,
       images: [
         {
           url: '/og-image.png',
           width: 1200,
           height: 630,
-          alt: 'Inner G Complete — Artificial Domain Intelligence for Grooming & Wellness',
+          alt: `${tenantName} — Artificial Domain Intelligence`,
         },
       ],
       locale: 'en_US',
@@ -65,9 +67,8 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'Inner G Complete Agency | Artificial Domain Intelligence',
-      description:
-        'We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed.',
+      title: tenantName,
+      description: isTexasBarbering ? 'AI-enhanced Texas Barber licensure prep.' : 'Sovereign AI intelligence layers for grooming enterprises.',
       images: ['/og-image.png'],
     },
     icons: {
@@ -108,6 +109,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const headersList = await headers()
+  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const isTexasBarbering = host.includes('texasbarbering')
+  const protocol = host.includes('localhost') ? 'http' : 'https'
+  const domainUrl = `${protocol}://${host}`
+  const tenantName = isTexasBarbering ? 'Texas Barbering Intelligence' : 'Inner G Complete Agency'
+
   let agencyTheme = 'dark'
   
   try {
@@ -135,9 +143,9 @@ export default async function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              "name": "Inner G Complete Agency",
-              "url": "https://agency.innergcomplete.com",
-              "logo": "https://agency.innergcomplete.com/icon-dark-32x32.png",
+              "name": tenantName,
+              "url": domainUrl,
+              "logo": `${domainUrl}/icon-dark-32x32.png`,
               "sameAs": [
                 "https://www.linkedin.com/company/inner-g-complete-agency/"
               ],
@@ -146,7 +154,9 @@ export default async function RootLayout({
                 "name": "Lamont Evans",
                 "jobTitle": "Principal Architect"
               },
-              "description": "Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises using CPMAI-governed ADI models.",
+              "description": isTexasBarbering 
+                ? "Institutional-grade licensure prep for Texas Barber students using AI-enhanced pathways."
+                : "Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises.",
               "address": {
                 "@type": "PostalAddress",
                 "addressLocality": "Atlanta",
