@@ -69,10 +69,10 @@ export default function TexasBarberExamPrep() {
             Inner G Complete Agency is leading an elite research and development pilot to resolve the structural fail rates in the Texas barbering market. We architect proprietary Artificial Domain Intelligence (ADI) to secure your NACCAS accreditation.
           </p>
 
-          <div className="mt-14 flex flex-col items-center justify-center gap-6">
+          <div className="mt-10 lg:mt-14 flex flex-col items-center justify-center gap-4 lg:gap-6 px-6">
             <Button
               size="lg"
-              className="bg-primary text-white hover:bg-slate-900 gap-3 px-12 py-8 text-sm font-black uppercase tracking-[0.3em] shadow-xl transition-all hover:-translate-y-1 w-full max-w-lg"
+              className="bg-primary text-white hover:bg-slate-900 gap-3 h-auto py-6 lg:py-8 px-6 lg:px-12 text-xs lg:text-sm font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] shadow-2xl transition-all hover:-translate-y-1 w-full max-w-lg rounded-2xl"
               asChild
             >
               <Link href="#pilot-application">
@@ -83,7 +83,7 @@ export default function TexasBarberExamPrep() {
             <Button
               variant="outline"
               size="lg"
-              className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50 gap-3 px-12 py-8 text-sm font-black uppercase tracking-[0.3em] transition-all hover:scale-105 border-2 shadow-sm w-full max-w-lg"
+              className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50 gap-3 h-auto py-6 lg:py-8 px-6 lg:px-12 text-xs lg:text-sm font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] transition-all hover:scale-[1.02] border-2 shadow-sm w-full max-w-lg rounded-2xl"
               asChild
             >
               <Link href="/tools/texas-barber-exam-practice-deck">Launch Barber Practice Questions</Link>
