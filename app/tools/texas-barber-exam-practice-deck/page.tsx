@@ -178,6 +178,9 @@ export default function PublicSwipeDeckPage() {
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [gameState, setGameState] = useState<"active" | "feedback" | "finished">("active")
   const [score, setScore] = useState(0)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isLoginView, setIsLoginView] = useState(false)
+  const [hasTriggeredMidway, setHasTriggeredMidway] = useState(false)
 
   const currentQuestion = practiceQuestions[currentIndex]
   const isCorrect = currentQuestion?.options.find(o => o.id === selectedOptionId)?.isCorrect
@@ -194,6 +197,12 @@ export default function PublicSwipeDeckPage() {
   }
 
   const handleNext = () => {
+    // Early Onboarding Trigger at Question 5
+    if (currentIndex === 4 && !hasTriggeredMidway) {
+      setIsModalOpen(true)
+      setHasTriggeredMidway(true)
+    }
+
     if (currentIndex < practiceQuestions.length - 1) {
       setCurrentIndex(prev => prev + 1)
       setSelectedOptionId(null)
@@ -208,6 +217,7 @@ export default function PublicSwipeDeckPage() {
     setSelectedOptionId(null)
     setGameState("active")
     setScore(0)
+    setHasTriggeredMidway(false)
   }
 
   return (
@@ -252,14 +262,15 @@ export default function PublicSwipeDeckPage() {
                 exit={{ opacity: 0, scale: 1.1 }}
                 className="bg-white rounded-[3rem] p-8 lg:p-16 border-2 border-slate-100 shadow-2xl flex flex-col items-center justify-center text-center space-y-8"
               >
-                <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center shadow-inner">
+                <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center shadow-inner relative">
                   <ShieldCheck className="h-12 w-12 text-primary" />
+                  <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
                 </div>
                 <div className="space-y-4">
-                    <h2 className="text-4xl font-black uppercase italic tracking-tighter text-slate-950">Study Complete</h2>
-                    <p className="text-slate-600 font-bold leading-relaxed px-4 max-w-md">
+                    <h2 className="text-4xl font-black uppercase italic tracking-tighter text-slate-950 leading-none">Baseline Audit Complete</h2>
+                    <p className="text-slate-600 font-bold leading-relaxed px-4 max-w-sm mx-auto">
                       You scored <span className="text-primary text-2xl px-1">{score} / {practiceQuestions.length}</span>. 
-                      This practice session aligns your cognitive patterns with the official PSI exam syntax standards.
+                      Our <strong>Aesthetic Intelligence</strong> has identified specific knowledge gaps in your profile. Access the Enhanced Prep to resolve these gaps.
                     </p>
                 </div>
                 
@@ -267,14 +278,14 @@ export default function PublicSwipeDeckPage() {
                     <Button onClick={handleReset} variant="outline" className="border-2 border-slate-200 py-8 text-sm font-black uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all">
                         Retake Practice
                     </Button>
-                    <Button asChild className="bg-primary text-white hover:bg-slate-950 py-8 text-sm font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-primary/10">
-                        <Link href="/texas-barber-exam-intelligence-prep#pilot-application">
-                            Apply for Pilot
-                        </Link>
+                    <Button onClick={() => setIsModalOpen(true)} className="bg-primary text-white hover:bg-slate-950 py-8 text-xs font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-primary/10 gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        Login For AI Enhanced Prep
                     </Button>
                 </div>
               </motion.div>
             ) : (
+// ... existing swipe logic ...
               <motion.div
                 key={currentIndex}
                 initial={{ opacity: 0, x: 100, rotate: 5 }}
@@ -390,6 +401,142 @@ export default function PublicSwipeDeckPage() {
             )}
           </AnimatePresence>
 
+          {/* Onboarding Modal */}
+          <AnimatePresence>
+            {isModalOpen && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsModalOpen(false)}
+                  className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  className="relative w-full max-w-xl bg-white rounded-[2.5rem] p-8 lg:p-12 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] border border-slate-100 overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 h-32 w-32 bg-primary/5 rounded-bl-full pointer-events-none" />
+                  
+                  <div className="flex flex-col items-center text-center space-y-6 mb-8 lg:mb-10">
+                    <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                       <Sparkles className="h-8 w-8 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-950 leading-none mb-2">
+                        {isLoginView ? "Welcome Back" : "AI Enhanced Access"}
+                      </h2>
+                      <p className="text-slate-500 font-bold text-sm tracking-tight px-4 mx-auto max-w-xs">
+                        {isLoginView 
+                          ? "Login to resume your personalized Aesthetic Intelligence training." 
+                          : "Complete your profile to unlock Aesthetic Intelligence training loops."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                    <AnimatePresence mode="wait">
+                      {!isLoginView ? (
+                        <motion.div 
+                          key="register"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          className="space-y-4"
+                        >
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</label>
+                              <input type="text" required minLength={2} placeholder="Lamont" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</label>
+                              <input type="text" required minLength={2} placeholder="Evans" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Texas Barber School Name</label>
+                            <input type="text" required minLength={3} placeholder="e.g. Dallas Barber College" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</label>
+                            <input type="email" required placeholder="lamont@example.com" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Phone Number</label>
+                            <input 
+                              type="tel" 
+                              required 
+                              pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}|\([0-9]{3}\) [0-9]{3}-[0-9]{4}|[0-9]{10}"
+                              title="Please enter a valid US phone number"
+                              placeholder="(555) 000-0000" 
+                              className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" 
+                            />
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div 
+                          key="login"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          className="space-y-4"
+                        >
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</label>
+                            <input type="email" required placeholder="lamont@example.com" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-4 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Password</label>
+                            <input type="password" required placeholder="••••••••" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-4 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div className="pt-4 space-y-4">
+                      {!isLoginView && (
+                        <label className="flex items-start gap-3 cursor-pointer group">
+                          <input type="checkbox" className="mt-1 h-4 w-4 rounded border-slate-200 text-primary focus:ring-primary" required />
+                          <span className="text-[10px] text-slate-500 font-bold leading-relaxed group-hover:text-slate-900 transition-colors cursor-pointer">
+                            I agree to the <Link href="/terms-of-service" className="text-primary underline">Terms of Service</Link> and <Link href="/privacy-policy" className="text-primary underline">Privacy Policy</Link>. I consent to receive SMS updates regarding my test prep performance.
+                          </span>
+                        </label>
+                      )}
+
+                      <Button className="w-full bg-slate-950 text-white hover:bg-primary py-7 lg:py-8 text-sm font-black uppercase tracking-[0.3em] rounded-xl lg:rounded-2xl transition-all shadow-xl">
+                        {isLoginView ? "Login to Dashboard" : "Unlock AI Enhanced Prep"}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                      
+                      <div className="flex flex-col items-center gap-4">
+                        <button 
+                          type="button"
+                          onClick={() => setIsLoginView(!isLoginView)}
+                          className="text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:underline transition-colors"
+                        >
+                          {isLoginView ? "Need an account? Register" : "Already have an account? Login"}
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => setIsModalOpen(false)}
+                          className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                          Maybe Later
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
           <style jsx global>{`
             @keyframes bounce-x {
               0%, 100% { transform: translateX(0); }
@@ -397,6 +544,13 @@ export default function PublicSwipeDeckPage() {
             }
             .animate-bounce-x {
               animation: bounce-x 1s infinite;
+            }
+            .no-scrollbar::-webkit-scrollbar {
+              display: none;
+            }
+            .no-scrollbar {
+              -ms-overflow-style: none;
+              scrollbar-width: none;
             }
           `}</style>
 
@@ -406,9 +560,19 @@ export default function PublicSwipeDeckPage() {
                   <ShieldCheck className="h-4 w-4" />
                   <span className="text-[10px] font-black uppercase tracking-[0.4em]">Accreditation-First Intelligent Prep™</span>
               </div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-relaxed max-w-sm mx-auto">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-relaxed max-w-sm mx-auto italic">
                   Disclaimer: This tool is for institutional alignment pilot purposes. Permanent state barbers exam success requires full theoretical immersion.
               </p>
+              <div className="pt-4">
+                  <Button 
+                    onClick={() => setIsModalOpen(true)}
+                    variant="link" 
+                    className="text-primary font-black uppercase tracking-widest text-[10px] gap-2 hover:no-underline hover:scale-105 transition-all"
+                  >
+                    Register / Login for AI Enhanced Prep
+                    <ArrowRight className="h-3 w-3" />
+                  </Button>
+              </div>
           </div>
         </div>
       </div>

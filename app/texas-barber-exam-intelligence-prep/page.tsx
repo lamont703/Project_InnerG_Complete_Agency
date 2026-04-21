@@ -19,7 +19,8 @@ import {
   Map,
   Clock,
   ExternalLink,
-  BookOpen
+  BookOpen,
+  FileText
 } from "lucide-react"
 import Image from "next/image"
 
@@ -68,24 +69,24 @@ export default function TexasBarberExamPrep() {
             Inner G Complete Agency is leading an elite research and development pilot to resolve the structural fail rates in the Texas barbering market. We architect proprietary Artificial Domain Intelligence (ADI) to secure your NACCAS accreditation.
           </p>
 
-          <div className="mt-14 flex flex-col items-center justify-center gap-6 sm:flex-row">
+          <div className="mt-14 flex flex-col items-center justify-center gap-6">
             <Button
               size="lg"
-              className="bg-primary text-white hover:bg-slate-900 gap-3 px-12 py-8 text-sm font-black uppercase tracking-[0.3em] shadow-xl transition-all hover:-translate-y-1"
+              className="bg-primary text-white hover:bg-slate-900 gap-3 px-12 py-8 text-sm font-black uppercase tracking-[0.3em] shadow-xl transition-all hover:-translate-y-1 w-full max-w-lg"
               asChild
             >
               <Link href="#pilot-application">
-                Apply for Pilot Program
+                Apply For Barber School Pilot
                 <ArrowRight className="h-5 w-5" />
               </Link>
             </Button>
             <Button
               variant="outline"
               size="lg"
-              className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50 gap-3 px-12 py-8 text-sm font-black uppercase tracking-[0.3em] transition-all hover:scale-105 border-2 shadow-sm"
+              className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50 gap-3 px-12 py-8 text-sm font-black uppercase tracking-[0.3em] transition-all hover:scale-105 border-2 shadow-sm w-full max-w-lg"
               asChild
             >
-              <Link href="/insights/texas-barber-licensure-crisis">View Strategic Audit</Link>
+              <Link href="/tools/texas-barber-exam-practice-deck">Launch Barber Practice Questions</Link>
             </Button>
           </div>
         </div>
@@ -213,6 +214,96 @@ export default function TexasBarberExamPrep() {
           </div>
         </div>
       </section>
+
+       {/* Institutional Intelligence Brief: THE EMBEDDED REPORT */}
+       <section className="py-20 lg:py-32 bg-white border-b border-slate-100 relative">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="flex flex-col lg:flex-row gap-16 lg:gap-24">
+              {/* Left Column: The Narrative Evidence */}
+              <div className="lg:w-1/2">
+                <div className="inline-flex items-center gap-2 rounded-xl bg-primary/5 px-4 py-2 text-xs font-black uppercase tracking-widest text-primary mb-8 border border-primary/10">
+                   <FileText className="h-4 w-4" />
+                   Embedded Industry Report: Sector Audit 01
+                </div>
+                
+                <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-950 sm:text-6xl mb-10 leading-[0.9]">
+                  Institutional <br />Evidence: <span className="text-primary underline">Industry Report</span>
+                </h2>
+                
+                <div className="space-y-8 text-lg text-slate-800 font-medium leading-relaxed">
+                  <p>
+                    Inner G Complete research division has identified a fatal divergence in the Texas market: while students exhibit 89.80% mastery of technical barbering skills, the written theory exam remains a 37.25% pass-rate bottleneck.
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4 py-8 border-y border-slate-100">
+                    <div>
+                        <div className="text-4xl font-black text-red-600 mb-1 tracking-tighter">37.25%</div>
+                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Written Pass Rate</div>
+                    </div>
+                    <div>
+                        <div className="text-4xl font-black text-primary mb-1 tracking-tighter">$15M</div>
+                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Annual Wage Leak</div>
+                    </div>
+                  </div>
+
+                  <p className="italic text-slate-600 border-l-4 border-primary pl-6 py-2">
+                    "This is not a failure of student capability; it is a Failure of Informational Alignment. The PSI examination syntax often contradicts local Texas academy focusing."
+                  </p>
+                  
+                  <Button variant="link" className="px-0 text-primary font-black uppercase tracking-widest gap-2" asChild>
+                    <Link href="/insights/texas-barber-licensure-crisis">
+                      Read Full Industry Report
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Right Column: The Data ROI Table */}
+              <div className="lg:w-1/2">
+                <div className="rounded-[2.5rem] bg-slate-950 p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-8 opacity-10">
+                      <BarChart3 className="h-48 w-48 text-primary" />
+                   </div>
+                   
+                   <div className="relative z-10">
+                      <h3 className="text-xl lg:text-2xl font-black uppercase italic tracking-tight text-white mb-8 border-b border-white/20 pb-4">
+                        Texas ROI Scenario Case Study
+                      </h3>
+                      
+                      <div className="space-y-6">
+                        {[
+                          { scenario: "Standard Academy", path: "48% Fail Rate (90d Delay)", outcome: "Probationary Risk", recovery: "$0" },
+                          { scenario: "Legacy Study Apps", path: "Inconsistent Decoding", outcome: "Marginal Safety", recovery: "Baseline" },
+                          { scenario: "Sovereign Texas Pilot", path: "92%+ Pass rate target", outcome: "Secure Title IV Buffer", recovery: "+ $5,000+" },
+                        ].map((row, idx) => (
+                          <div key={idx} className={`p-6 rounded-2xl border transition-all duration-300 ${idx === 2 ? "bg-primary border-white/30 shadow-lg scale-105" : "bg-white/5 border-white/10"}`}>
+                             <div className="flex justify-between items-start mb-4">
+                                <div>
+                                   <div className={`text-xs font-black uppercase tracking-widest mb-1 ${idx === 2 ? "text-white" : "text-white/40"}`}>Scenario</div>
+                                   <div className="text-lg font-black uppercase italic">{row.scenario}</div>
+                                </div>
+                                <div className="text-right">
+                                   <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${idx === 2 ? "text-white" : "text-white/40"}`}>Recovered Wage</div>
+                                   <div className={`text-xl font-black ${idx === 2 ? "text-white animate-pulse" : "text-primary"}`}>{row.recovery}</div>
+                                </div>
+                             </div>
+                             <div className={`text-sm font-bold leading-none ${idx === 2 ? "text-white/90" : "text-white/60"}`}>
+                                Outcome: <span className={idx === 2 ? "text-white font-black" : "text-white"}>{row.outcome}</span>
+                             </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-10 p-6 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold leading-relaxed text-white/70 italic">
+                         Modeling based on September 2025 Consolidated Program Rules and TDLR Quarterly statistics (Reference: Inner G Strategy Division).
+                      </div>
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+       </section>
 
       {/* Institutional ROI: Section 03 */}
       <section className="py-16 lg:py-32 bg-white">
