@@ -40,7 +40,7 @@ export default function CreatePortalPage() {
         resolver: zodResolver(portalSchema),
         defaultValues: {
             clientName: "",
-            industry: "other",
+            industry: "barbering",
             primaryContactName: "",
             primaryContactEmail: "",
             projectName: "",
@@ -186,14 +186,9 @@ export default function CreatePortalPage() {
                                     {...register("industry")}
                                     className="w-full bg-background border border-border h-12 rounded-xl px-4 text-sm focus:ring-1 focus:ring-primary focus:border-primary appearance-none"
                                 >
-                                    <option value="ecommerce">E-Commerce</option>
-                                    <option value="retail">Retail</option>
-                                    <option value="ebook_publishing">Ebook Publishing</option>
-                                    <option value="social_community">Social Community</option>
-                                    <option value="dating">Dating</option>
-                                    <option value="hospitality">Hospitality</option>
-                                    <option value="technology">Technology</option>
-                                    <option value="healthcare">Healthcare</option>
+                                    <option value="barbering">Barbering</option>
+                                    <option value="cosmetology">Cosmetology</option>
+                                    <option value="wellness">Wellness</option>
                                     <option value="other">Other</option>
                                 </select>
                             </div>
