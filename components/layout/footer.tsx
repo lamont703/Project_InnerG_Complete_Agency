@@ -15,8 +15,8 @@ const footerLinks = {
   ],
   Tools: [
     { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },
-    { label: "Accreditation Risk Calculator", href: "#" },
-    { label: "Workforce Velocity Auditor", href: "#" },
+    { label: "Texas Barber Instructor Intelligence Dashboard", href: "/tools/texas-barber-instructor-intelligence-dashboard" },
+    { label: "Texas Barber School Accreditation Relationship Auditor", href: "/tools/texas-barber-school-accreditation-relationship-auditor" },
   ],
   Company: [
     { label: "Research & Insights", href: "/insights" },
