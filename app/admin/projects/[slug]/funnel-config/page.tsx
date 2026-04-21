@@ -151,6 +151,8 @@ export default function FunnelConfigPage() {
     const [projectName, setProjectName] = useState("")
     const [configId, setConfigId] = useState<string | null>(null)
     const [config, setConfig] = useState<FunnelConfig>(DEFAULT_CONFIG)
+    const [funnelEnabled, setFunnelEnabled] = useState(true)
+    const [isTogglingMaster, setIsTogglingMaster] = useState(false)
 
     useEffect(() => {
         const load = async () => {
@@ -170,14 +172,15 @@ export default function FunnelConfigPage() {
                     return
                 }
 
-                const { data: project } = await supabase
-                    .from("projects")
-                    .select("id, name")
+                const { data: project } = await (supabase
+                    .from("projects") as any)
+                    .select("id, name, funnel_enabled")
                     .eq("slug", slug)
-                    .single() as any
+                    .single()
 
                 if (!project) { router.push("/select-portal"); return }
                 setProjectName(project.name)
+                setFunnelEnabled(project.funnel_enabled)
 
                 const { data: agentConfig } = await supabase
                     .from("project_agent_config")
@@ -203,6 +206,26 @@ export default function FunnelConfigPage() {
         }
         load()
     }, [slug, router])
+
+    const handleToggleMaster = async () => {
+        setIsTogglingMaster(true)
+        const newState = !funnelEnabled
+        
+        try {
+            const supabase = createBrowserClient()
+            const { error } = await (supabase
+                .from("projects") as any)
+                .update({ funnel_enabled: newState })
+                .eq("slug", slug)
+
+            if (error) throw error
+            setFunnelEnabled(newState)
+        } catch (err) {
+            console.error("[FunnelConfig] Toggle error:", err)
+        } finally {
+            setIsTogglingMaster(false)
+        }
+    }
 
     const handleSave = async () => {
         if (!configId) return
@@ -334,14 +357,32 @@ export default function FunnelConfigPage() {
                                 Customize labels, toggle data sources, and map conversion events to define how the Omni-Channel Funnel visualizes progress for this client.
                             </p>
                         </div>
-                        <Button 
-                            onClick={handleSave}
-                            disabled={isSaving}
-                            className="bg-amber-500 hover:bg-amber-600 text-white font-black uppercase text-[10px] tracking-widest h-12 px-8 rounded-2xl shadow-xl shadow-amber-500/10 transition-all"
-                        >
-                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : saveSuccess ? <Check className="h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                            {isSaving ? "Syncing..." : saveSuccess ? "Blueprint Synced" : "Pulse Update"}
-                        </Button>
+                        <div className="flex items-center gap-4">
+                            <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl border transition-all duration-300 ${funnelEnabled ? 'bg-amber-500/10 border-amber-500/20 shadow-xl shadow-amber-500/5' : 'bg-muted/10 border-border opacity-60'}`}>
+                                <div className="flex flex-col items-end">
+                                    <span className={`text-[8px] font-black uppercase tracking-[0.2em] ${funnelEnabled ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                                        Global Visibility
+                                    </span>
+                                    <span className="text-[10px] font-bold text-foreground">
+                                        {funnelEnabled ? 'ARCH. ACTIVE' : 'ARCH. MASKED'}
+                                    </span>
+                                </div>
+                                <ToggleSwitch 
+                                    enabled={funnelEnabled} 
+                                    onChange={handleToggleMaster} 
+                                    disabled={isTogglingMaster} 
+                                />
+                            </div>
+
+                            <Button 
+                                onClick={handleSave}
+                                disabled={isSaving}
+                                className="bg-amber-500 hover:bg-amber-600 text-white font-black uppercase text-[10px] tracking-widest h-14 px-10 rounded-2xl shadow-xl shadow-amber-500/10 transition-all border border-amber-400/20"
+                            >
+                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : saveSuccess ? <Check className="h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                                {isSaving ? "Syncing..." : saveSuccess ? "Blueprint Synced" : "Pulse Update"}
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Section: Intake Sources */}

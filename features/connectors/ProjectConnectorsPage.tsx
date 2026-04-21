@@ -88,6 +88,7 @@ export function ProjectConnectorsPage() {
     const [userData, setUserData] = useState<{ name: string; role: string; id: string } | null>(null)
     const [projectName, setProjectName] = useState("")
     const [projectId, setProjectId] = useState<string | null>(null)
+    const [connectorsEnabled, setConnectorsEnabled] = useState(true)
     const [connections, setConnections] = useState<any[]>([])
     const [connectorTypes, setConnectorTypes] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -143,15 +144,16 @@ export function ProjectConnectorsPage() {
                 }
 
                 // 2. Fetch Project Data
-                const { data: project } = await supabase
-                    .from("projects")
-                    .select("id, name")
+                const { data: project } = await (supabase
+                    .from("projects") as any)
+                    .select("id, name, connectors_enabled")
                     .eq("slug", slug)
-                    .maybeSingle() as any
+                    .maybeSingle()
 
                 if (project) {
                     setProjectName(project.name)
                     setProjectId(project.id)
+                    setConnectorsEnabled(project.connectors_enabled ?? true)
 
                     // 3. Fetch Connections & Types
                     const [connsRes, typesRes] = await Promise.all([
@@ -398,6 +400,33 @@ export function ProjectConnectorsPage() {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        )
+    }
+
+    if (!connectorsEnabled) {
+        return (
+            <div className="flex-1 flex flex-col min-h-0 relative h-full overflow-hidden">
+                <DashboardHeader
+                    userName={userData?.name || "User"}
+                    userRole={userData?.role || "CLIENT"}
+                    currentTime={currentTime}
+                    mounted={mounted}
+                    onMenuOpen={() => setIsSidebarOpen(true)}
+                    projectName={projectName}
+                />
+                <main className="flex-1 flex items-center justify-center p-6 text-center lg:pb-32">
+                    <div className="max-w-md space-y-6">
+                        <div className="h-20 w-20 rounded-3xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mx-auto">
+                            <Plug className="h-10 w-10 text-orange-500 opacity-50" />
+                        </div>
+                        <h2 className="text-2xl font-black uppercase tracking-widest italic text-foreground">Connectors Redacted</h2>
+                        <p className="text-muted-foreground text-sm leading-relaxed font-medium">
+                            The requested Data Connector Architecture has been de-provisioned for this instance. 
+                            Contact your <span className="text-primary font-bold italic uppercase tracking-widest">Inner G Prime</span> to re-establish these sync bridges.
+                        </p>
+                    </div>
+                </main>
             </div>
         )
     }

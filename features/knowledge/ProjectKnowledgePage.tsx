@@ -68,6 +68,7 @@ export function ProjectKnowledgePage() {
     const [projectName, setProjectName] = useState("")
     const [projectId, setProjectId] = useState<string | null>(null)
     const [entries, setEntries] = useState<KnowledgeEntry[]>([])
+    const [knowledgeEnabled, setKnowledgeEnabled] = useState(true)
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
     const [searchQuery, setSearchQuery] = useState("")
@@ -111,15 +112,16 @@ export function ProjectKnowledgePage() {
                 })
 
                 // Fetch Project
-                const { data: project } = await supabase
-                    .from("projects")
-                    .select("id, name")
+                const { data: project } = await (supabase
+                    .from("projects") as any)
+                    .select("id, name, knowledge_enabled")
                     .eq("slug", slug)
-                    .maybeSingle() as any
+                    .maybeSingle()
 
                 if (project) {
                     setProjectName(project.name)
                     setProjectId(project.id)
+                    setKnowledgeEnabled(project.knowledge_enabled ?? true)
                     await fetchEntries(project.id)
                 }
 
@@ -240,6 +242,33 @@ export function ProjectKnowledgePage() {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        )
+    }
+
+    if (!knowledgeEnabled) {
+        return (
+            <div className="flex-1 flex flex-col min-h-0 relative h-full overflow-hidden">
+                <DashboardHeader
+                    userName={userData?.name || "User"}
+                    userRole={userData?.role || "CLIENT"}
+                    currentTime={currentTime}
+                    mounted={mounted}
+                    onMenuOpen={() => setIsSidebarOpen(true)}
+                    projectName={projectName}
+                />
+                <main className="flex-1 flex items-center justify-center p-6 text-center lg:pb-32">
+                    <div className="max-w-md space-y-6">
+                        <div className="h-20 w-20 rounded-3xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mx-auto">
+                            <BookOpen className="h-10 w-10 text-sky-500 opacity-50" />
+                        </div>
+                        <h2 className="text-2xl font-black uppercase tracking-widest italic text-foreground">Context Redacted</h2>
+                        <p className="text-muted-foreground text-sm leading-relaxed font-medium">
+                            The requested Knowledge Base architecture has been de-provisioned for this instance. 
+                            Contact your <span className="text-primary font-bold italic uppercase tracking-widest">Inner G Prime</span> to restore neural context.
+                        </p>
+                    </div>
+                </main>
             </div>
         )
     }
