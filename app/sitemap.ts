@@ -1,7 +1,11 @@
 import { MetadataRoute } from 'next'
+import { headers } from 'next/headers'
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://innergcomplete.com'
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const headersList = await headers()
+  const host = headersList.get('host')
+  const protocol = host?.includes('localhost') ? 'http' : 'https'
+  const baseUrl = `${protocol}://${host || 'agency.innergcomplete.com'}`
 
   // Dynamic routes (Insights)
   const insights = [

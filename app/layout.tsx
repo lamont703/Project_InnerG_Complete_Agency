@@ -14,7 +14,7 @@ const _jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://innergcomplete.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://agency.innergcomplete.com'),
   title: 'Inner G Complete Agency | Artificial Domain Intelligence for Grooming & Wellness',
   description:
     'Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed ADI models that eliminate no-shows, reduce churn, and build institutional intelligence.',
@@ -32,14 +32,14 @@ export const metadata: Metadata = {
     'AI for barbershops',
     'Inner G Complete Agency',
   ],
-  authors: [{ name: 'Lamont Evans', url: 'https://innergcomplete.com/about' }],
+  authors: [{ name: 'Lamont Evans', url: '/about' }],
   creator: 'Inner G Complete Agency',
   publisher: 'Inner G Complete Agency',
   openGraph: {
     title: 'Inner G Complete Agency | Artificial Domain Intelligence',
     description:
       'We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed. Institutionally auditable. Built to own.',
-    url: 'https://innergcomplete.com',
+    url: '/',
     siteName: 'Inner G Complete Agency',
     images: [
       {
@@ -124,10 +124,10 @@ export default async function RootLayout({
               "@context": "https://schema.org",
               "@type": "Organization",
               "name": "Inner G Complete Agency",
-              "url": "https://innergcomplete.com",
-              "logo": "https://innergcomplete.com/icon-dark-32x32.png",
+              "url": "https://agency.innergcomplete.com",
+              "logo": "https://agency.innergcomplete.com/icon-dark-32x32.png",
               "sameAs": [
-                "https://www.linkedin.com/company/innergcomplete"
+                "https://www.linkedin.com/company/inner-g-complete-agency/"
               ],
               "founder": {
                 "@type": "Person",

@@ -1,6 +1,12 @@
 import { MetadataRoute } from 'next'
+import { headers } from 'next/headers'
 
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const headersList = await headers()
+  const host = headersList.get('host')
+  const protocol = host?.includes('localhost') ? 'http' : 'https'
+  const domain = host || 'agency.innergcomplete.com'
+
   return {
     rules: {
       userAgent: '*',
@@ -14,6 +20,6 @@ export default function robots(): MetadataRoute.Robots {
         '/auth/'
       ],
     },
-    sitemap: 'https://innergcomplete.com/sitemap.xml',
+    sitemap: `${protocol}://${domain}/sitemap.xml`,
   }
 }
