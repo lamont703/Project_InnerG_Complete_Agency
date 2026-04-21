@@ -7,7 +7,12 @@ export async function createServerClient() {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error("@supabase/ssr: Your project's URL and API key are required to create a Supabase client!")
+        // Return a dummy client during build to avoid crashing static generation
+        return createSupabaseServerClient<Database>(
+            "https://placeholder.supabase.co",
+            "placeholder",
+            { cookies: { get: () => undefined, setBy: () => {}, set: () => {}, remove: () => {} } } as any
+        )
     }
 
     const cookieStore = await cookies()
