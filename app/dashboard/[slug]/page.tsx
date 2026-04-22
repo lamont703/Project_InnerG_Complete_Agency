@@ -15,6 +15,7 @@ import { createBrowserClient } from "@/lib/supabase/browser"
 import { SlotProvider } from "@/features/metrics/SlotContext"
 import { DashboardMobileNav, type MobileTab } from "@/components/layout/dashboard/MobileNav"
 import { EnhancedTexasBarberExamDeck } from "@/features/student/components/EnhancedTexasBarberExamDeck"
+import InstructorIntelligenceDashboard from "@/components/dashboard/InstructorIntelligenceDashboard"
 
 import { MobileNavProvider, useMobileNav } from "@/features/agency/context/MobileNavContext"
 
@@ -133,7 +134,9 @@ function DashboardPageContent() {
                 
                 {/* 1. Intelligence Hub (Chat/Deck) - Primary Center */}
                 <div className={`flex-1 min-w-0 flex flex-col overflow-hidden ${activeTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
-                    {projectType?.toLowerCase() === 'barber_student' || slug === 'test-barber-student' ? (
+                    {projectType?.toLowerCase() === 'barber_instructor' ? (
+                        <InstructorIntelligenceDashboard projectSlug={slug} />
+                    ) : ['barber_student', 'barber_school_owner'].includes(projectType?.toLowerCase() || '') || slug === 'test-barber-student' || slug === 'test-barber-student-v2' ? (
                         <EnhancedTexasBarberExamDeck projectSlug={slug} />
                     ) : (
                         <ChatInterface projectSlug={slug} isFlush={true} />
