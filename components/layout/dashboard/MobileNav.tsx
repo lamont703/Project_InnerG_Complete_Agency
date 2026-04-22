@@ -14,8 +14,8 @@ interface DashboardMobileNavProps {
 }
 
 export function DashboardMobileNav({ activeTab, onTabChange, onOpenSidebar, className = "", projectType }: DashboardMobileNavProps) {
-    const isStudent = projectType?.toLowerCase() === 'barber_student'
-    const chatLabel = isStudent ? "Prep Hub" : "Chat"
+    const isEducational = ['barber_student', 'barber_instructor', 'barber_school_owner'].includes(projectType?.toLowerCase() || '')
+    const chatLabel = isEducational ? "Prep Hub" : "Chat"
 
     return (
         <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 glass-panel-strong border-t border-border px-6 flex items-center justify-around pb-safe ${className}`}>

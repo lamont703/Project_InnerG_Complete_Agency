@@ -133,7 +133,7 @@ function DashboardPageContent() {
                 
                 {/* 1. Intelligence Hub (Chat/Deck) - Primary Center */}
                 <div className={`flex-1 min-w-0 flex flex-col overflow-hidden ${activeTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
-                    {projectType?.toLowerCase() === 'barber_student' || slug === 'test-barber-student' ? (
+                    {['barber_student', 'barber_instructor', 'barber_school_owner'].includes(projectType?.toLowerCase() || '') || slug === 'test-barber-student' || slug === 'test-barber-student-v2' ? (
                         <EnhancedTexasBarberExamDeck projectSlug={slug} />
                     ) : (
                         <ChatInterface projectSlug={slug} isFlush={true} />
