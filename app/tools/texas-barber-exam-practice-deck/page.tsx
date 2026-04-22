@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
+import { cn } from "@/lib/utils"
 
 const practiceQuestions = [
   {
@@ -181,6 +182,7 @@ export default function PublicSwipeDeckPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoginView, setIsLoginView] = useState(false)
   const [hasTriggeredMidway, setHasTriggeredMidway] = useState(false)
+  const [userRole, setUserRole] = useState<"student" | "instructor" | "owner" | null>("student")
 
   const currentQuestion = practiceQuestions[currentIndex]
   const isCorrect = currentQuestion?.options.find(o => o.id === selectedOptionId)?.isCorrect
@@ -465,6 +467,32 @@ export default function PublicSwipeDeckPage() {
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</label>
                             <input type="email" required placeholder="lamont@example.com" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Professional Role</label>
+                            <div className="grid grid-cols-1 gap-2">
+                                {[
+                                    { id: "student", label: "Barber Student", sub: "I'm training for licensure" },
+                                    { id: "instructor", label: "Barber Instructor", sub: "I manage a training cohort" },
+                                    { id: "owner", label: "Barber School Owner", sub: "I manage institutional nodes" }
+                                ].map((role) => (
+                                    <button
+                                        key={role.id}
+                                        type="button"
+                                        onClick={() => setUserRole(role.id as any)}
+                                        className={cn(
+                                            "flex flex-col items-start p-3 rounded-xl border-2 transition-all text-left",
+                                            userRole === role.id 
+                                                ? "border-primary bg-primary/5 ring-2 ring-primary/5" 
+                                                : "border-slate-100 bg-slate-50 hover:border-slate-200"
+                                        )}
+                                    >
+                                        <span className="text-xs font-black uppercase tracking-tight text-slate-950">{role.label}</span>
+                                        <span className="text-[10px] font-bold text-slate-400">{role.sub}</span>
+                                    </button>
+                                ))}
+                            </div>
                           </div>
 
                           <div className="space-y-1.5">
