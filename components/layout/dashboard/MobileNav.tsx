@@ -18,43 +18,43 @@ export function DashboardMobileNav({ activeTab, onTabChange, onOpenSidebar, clas
     const chatLabel = isEducational ? "Prep Hub" : "Chat"
 
     return (
-        <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-[100] h-20 glass-panel-strong border-t border-border px-6 flex items-center justify-around pb-safe ${className}`}>
+        <div className={`lg:hidden fixed bottom-4 left-[20%] right-[20%] z-[100] h-10 glass-panel-strong border border-border rounded-full px-2 flex items-center justify-around pb-0 ${className} shadow-2xl`}>
             <button
                 onClick={onOpenSidebar}
-                className="flex flex-col items-center gap-1 text-muted-foreground/60 active:text-primary transition-all duration-300"
+                className="flex flex-col items-center gap-0 text-muted-foreground/60 active:text-primary transition-all duration-300"
             >
-                <div className="p-2 rounded-xl bg-transparent">
-                    <BarChart3 className="h-6 w-6" />
+                <div className="p-0.5 rounded-lg bg-transparent">
+                    <BarChart3 className="h-3 w-3" />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest">Metrics</span>
+                <span className="text-[6px] font-black uppercase tracking-[0.2em] leading-none">Metrics</span>
             </button>
 
             <button
                 onClick={() => onTabChange("chat")}
-                className={`flex flex-col items-center gap-1 transition-all duration-300 ${
+                className={`flex flex-col items-center gap-0 transition-all duration-300 ${
                     activeTab === "chat" ? "text-primary scale-110" : "text-muted-foreground/60"
                 }`}
             >
-                <div className={`p-2 rounded-xl transition-colors ${
+                <div className={`p-0.5 rounded-lg transition-colors ${
                     activeTab === "chat" ? "bg-primary/10" : "bg-transparent"
                 }`}>
-                    <MessageSquare className="h-6 w-6" />
+                    <MessageSquare className="h-3 w-3" />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest">{chatLabel}</span>
+                <span className="text-[6px] font-black uppercase tracking-[0.2em] leading-none">{chatLabel}</span>
             </button>
 
             <button
                 onClick={() => onTabChange("signals")}
-                className={`flex flex-col items-center gap-1 transition-all duration-300 ${
+                className={`flex flex-col items-center gap-0 transition-all duration-300 ${
                     activeTab === "signals" ? "text-primary scale-110" : "text-muted-foreground/60"
                 }`}
             >
-                <div className={`p-2 rounded-xl transition-colors ${
+                <div className={`p-0.5 rounded-lg transition-colors ${
                     activeTab === "signals" ? "bg-primary/10" : "bg-transparent"
                 }`}>
-                    <Zap className="h-6 w-6" />
+                    <Zap className="h-3 w-3" />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest">Signals</span>
+                <span className="text-[6px] font-black uppercase tracking-[0.2em] leading-none">Signals</span>
             </button>
         </div>
     )
