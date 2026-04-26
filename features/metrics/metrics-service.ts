@@ -25,7 +25,14 @@ import {
     TrendingUp,
     DollarSign,
     UserPlus,
-    Twitter
+    Twitter,
+    Compass,
+    ShieldCheck,
+    Braces,
+    FlaskConical,
+    ShieldAlert,
+    Stethoscope,
+    Gavel
 } from "lucide-react"
 
 
@@ -683,6 +690,84 @@ export class MetricsService {
             }
         }
 
+        // --- BARBER STUDENT SPECIFIC DATA (PILOT MODE) ---
+        if (project?.slug === 'test-barber-student' || project?.slug === 'test-barber-student-v2') {
+            metrics.push(
+                {
+                    id: "board_readiness_index",
+                    label: "Board Readiness Index",
+                    value: "88.2%",
+                    growth: "+2.4%",
+                    icon: Compass,
+                    color: "text-primary bg-primary/10",
+                },
+                {
+                    id: "pass_probability",
+                    label: "Pass Probability",
+                    value: "92%",
+                    growth: "+5.1%",
+                    icon: Target,
+                    color: "text-emerald-500 bg-emerald-500/10",
+                },
+                {
+                    id: "protected_career_wages",
+                    label: "Protected Wages",
+                    value: "$10,000",
+                    growth: "Securing",
+                    icon: ShieldCheck,
+                    color: "text-blue-500 bg-blue-500/10",
+                },
+                {
+                    id: "syntax_mastery_accuracy",
+                    label: "Syntax Mastery",
+                    value: "90%",
+                    growth: "+12%",
+                    icon: Braces,
+                    color: "text-indigo-500 bg-indigo-500/10",
+                },
+                {
+                    id: "naccas_compliance_buffer",
+                    label: "NACCAS Buffer",
+                    value: "18.2%",
+                    growth: "Safe",
+                    icon: Zap,
+                    color: "text-orange-500 bg-orange-500/10",
+                },
+                {
+                    id: "chemical_services_mastery",
+                    label: "Chemical Logic",
+                    value: "84%",
+                    growth: "+6%",
+                    icon: FlaskConical,
+                    color: "text-violet-500 bg-violet-500/10",
+                },
+                {
+                    id: "infection_control_mastery",
+                    label: "Infection Control",
+                    value: "96%",
+                    growth: "Mastered",
+                    icon: ShieldAlert,
+                    color: "text-emerald-400 bg-emerald-400/10",
+                },
+                {
+                    id: "anatomy_physiology_mastery",
+                    label: "Anatomy Theory",
+                    value: "78%",
+                    growth: "+10%",
+                    icon: Stethoscope,
+                    color: "text-blue-400 bg-blue-400/10",
+                },
+                {
+                    id: "state_law_regulation_mastery",
+                    label: "State Law Index",
+                    value: "92%",
+                    growth: "Finalized",
+                    icon: Gavel,
+                    color: "text-amber-500 bg-amber-500/10",
+                }
+            )
+        }
+
         // Fetch Pipeline Specific Stats
         const { data: freelancerPipe } = await this.supabase
             .from("ghl_pipelines")
@@ -1158,6 +1243,88 @@ export class MetricsService {
                     }
                 )
             }
+        }
+
+
+        // --- BARBER STUDENT SPECIFIC DATA (PILOT MODE) ---
+
+        // --- BARBER STUDENT SPECIFIC DATA (PILOT MODE) ---
+
+        if (project?.slug === 'test-barber-student' || project?.slug === 'test-barber-student-v2') {
+            metrics.push(
+                {
+                    id: "board_readiness_index",
+                    label: "Board Readiness Index",
+                    value: "88.2%",
+                    growth: "+2.4%",
+                    icon: Compass,
+                    color: "text-primary bg-primary/10",
+                },
+                {
+                    id: "pass_probability",
+                    label: "Pass Probability",
+                    value: "92%",
+                    growth: "+5.1%",
+                    icon: Target,
+                    color: "text-emerald-500 bg-emerald-500/10",
+                },
+                {
+                    id: "protected_career_wages",
+                    label: "Protected Wages",
+                    value: "$10,000",
+                    growth: "Securing",
+                    icon: ShieldCheck,
+                    color: "text-blue-500 bg-blue-500/10",
+                },
+                {
+                    id: "syntax_mastery_accuracy",
+                    label: "Syntax Mastery",
+                    value: "90%",
+                    growth: "+12%",
+                    icon: Braces,
+                    color: "text-indigo-500 bg-indigo-500/10",
+                },
+                {
+                    id: "naccas_compliance_buffer",
+                    label: "NACCAS Buffer",
+                    value: "18.2%",
+                    growth: "Safe",
+                    icon: Zap,
+                    color: "text-orange-500 bg-orange-500/10",
+                },
+                {
+                    id: "chemical_services_mastery",
+                    label: "Chemical Logic",
+                    value: "84%",
+                    growth: "+6%",
+                    icon: FlaskConical,
+                    color: "text-violet-500 bg-violet-500/10",
+                },
+                {
+                    id: "infection_control_mastery",
+                    label: "Infection Control",
+                    value: "96%",
+                    growth: "Mastered",
+                    icon: ShieldAlert,
+                    color: "text-emerald-400 bg-emerald-400/10",
+                },
+                {
+                    id: "anatomy_physiology_mastery",
+                    label: "Anatomy Theory",
+                    value: "78%",
+                    growth: "+10%",
+                    icon: Stethoscope,
+                    color: "text-blue-400 bg-blue-400/10",
+                },
+                {
+                    id: "state_law_regulation_mastery",
+                    label: "State Law Index",
+                    value: "92%",
+                    growth: "Finalized",
+                    icon: Gavel,
+                    color: "text-amber-500 bg-amber-500/10",
+                }
+            )
         }
 
         return metrics

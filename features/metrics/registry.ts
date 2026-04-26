@@ -536,6 +536,91 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         type: 'kpi',
         permissions: ['client-admin', 'client-viewer', 'super-admin'],
         iconName: "Calculator"
+    },
+
+    // --- BARBER STUDENT STRATEGIC SLOTS ---
+    {
+        id: "board_readiness_index",
+        label: "Board Readiness Index",
+        description: "Weighted mastery score based on Texas PSI Candidate Information Bulletin (CIB) weighting.",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Compass"
+    },
+    {
+        id: "pass_probability",
+        label: "Pass Probability",
+        description: "AI-predicted likelihood of passing the randomized state board exam on the first attempt.",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Target"
+    },
+    {
+        id: "protected_career_wages",
+        label: "Protected Wages",
+        description: "Estimated career earnings secured by avoiding re-testing delays ($10k lost wage gap analysis).",
+        category: 'finance',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "ShieldCheck"
+    },
+    {
+        id: "syntax_mastery_accuracy",
+        label: "Syntax Mastery",
+        description: "Success rate on complex exam distractor patterns (double-negatives, 'except' clauses).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Braces"
+    },
+    {
+        id: "naccas_compliance_buffer",
+        label: "NACCAS Buffer",
+        description: "Current mastery safety margin above the 70% institutional accreditation threshold.",
+        category: 'operations',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Zap"
+    },
+
+    // --- BARBER SUBJECT MATTER MASTER SLOTS ---
+    {
+        id: "chemical_services_mastery",
+        label: "Chemical Logic",
+        description: "Mastery of pH, bonds, and chemical reaction theory for perms, relaxers, and color.",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "FlaskConical"
+    },
+    {
+        id: "infection_control_mastery",
+        label: "Infection Control",
+        description: "Knowledge of sterilization protocols, bacteriology, and shop health standards.",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "ShieldAlert"
+    },
+    {
+        id: "anatomy_physiology_mastery",
+        label: "Anatomy Theory",
+        description: "Theoretical mastery of the bones, muscles, nerves, and skin of the head/neck.",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Stethoscope"
+    },
+    {
+        id: "state_law_regulation_mastery",
+        label: "State Law Index",
+        description: "Knowledge of Administrative Codes, Health & Safety laws, and licensure regulations.",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Gavel"
     }
 ]
 

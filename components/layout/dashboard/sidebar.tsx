@@ -47,6 +47,10 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
     const [userRole, setUserRole] = useState<UserRole | null>(null)
     const [hasCognitiveBrief, setHasCognitiveBrief] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
+    const isIntelligenceProject = projectSlug.includes('intelligence') || 
+                                 projectSlug.includes('student') || 
+                                 projectSlug.includes('barber');
+
     const [features, setFeatures] = useState<{ 
         agent_enabled?: boolean;
         community_enabled?: boolean;
@@ -58,7 +62,16 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
         connectors_enabled?: boolean;
         metrics_enabled?: boolean;
         cognitive_enabled?: boolean;
-    }>({})
+    }>({
+        metrics_enabled: isIntelligenceProject ? true : false,
+        knowledge_enabled: false,
+        connectors_enabled: false,
+        cognitive_enabled: false,
+        social_enabled: false,
+        crypto_enabled: false,
+        community_enabled: false,
+        funnel_enabled: false
+    })
 
     useEffect(() => {
         const fetchUserRoleAndFeatures = async () => {
@@ -93,14 +106,14 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                     if (project) {
                         setFeatures(prev => ({ 
                             ...prev, 
-                            funnel_enabled: project.funnel_enabled ?? true,
+                            funnel_enabled: project.funnel_enabled ?? false,
                             knowledge_enabled: project.knowledge_enabled ?? true,
-                            pixel_enabled: project.pixel_enabled ?? true,
-                            connectors_enabled: project.connectors_enabled ?? true,
-                            agent_enabled: project.agent_enabled ?? true,
-                            community_enabled: project.community_enabled ?? true,
-                            social_enabled: project.social_enabled ?? true,
-                            crypto_enabled: project.crypto_enabled ?? true,
+                            pixel_enabled: project.pixel_enabled ?? false,
+                            connectors_enabled: project.connectors_enabled ?? false,
+                            agent_enabled: project.agent_enabled ?? false,
+                            community_enabled: project.community_enabled ?? false,
+                            social_enabled: project.social_enabled ?? false,
+                            crypto_enabled: project.crypto_enabled ?? false,
                             cognitive_enabled: project.cognitive_enabled ?? true,
                             metrics_enabled: project.metrics_enabled ?? true
                         }))

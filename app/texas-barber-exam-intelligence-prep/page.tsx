@@ -215,6 +215,99 @@ export default function TexasBarberExamPrep() {
         </div>
       </section>
 
+      {/* Section 02b: The Intelligence Hub Terminal - App UI Reveal */}
+      <section className="py-20 lg:py-40 bg-white relative overflow-hidden border-b border-slate-100">
+        <div className="mx-auto max-w-7xl px-6">
+          {/* Section Header */}
+          <div className="flex flex-col items-center text-center mb-12 lg:mb-20">
+            <span className="text-[10px] lg:text-xs font-black uppercase tracking-[0.4em] lg:tracking-[0.6em] text-primary mb-4">Live Intelligence Terminal</span>
+            <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-950 sm:text-7xl leading-[0.9]">
+              The Intelligence <br className="lg:hidden" />Hub™ Terminal
+            </h2>
+            <p className="mt-6 lg:mt-8 text-base lg:text-xl text-slate-700 max-w-3xl font-bold leading-relaxed text-balance">
+              This is what the 90-Day Licensure Sprint™ looks like in deployment — a unified intelligence command center built specifically for the Texas PSI Board exam.
+            </p>
+          </div>
+
+          {/* Desktop: Callouts flanking the image */}
+          <div className="hidden lg:grid lg:grid-cols-[1fr_3fr_1fr] gap-8 items-center">
+            {/* Left Callouts */}
+            <div className="space-y-8 text-right">
+              <div className="p-5 rounded-2xl bg-slate-50 border-2 border-slate-100 shadow-sm">
+                <div className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">AI-Synthesized</div>
+                <div className="text-base font-black text-slate-950 leading-tight">State Exam Questions</div>
+                <p className="text-xs text-slate-500 font-medium mt-2 leading-relaxed">Aligned to TDLR Chapter 82 — updated each exam cycle</p>
+              </div>
+              <div className="p-5 rounded-2xl bg-red-50 border-2 border-red-100 shadow-sm">
+                <div className="text-[10px] font-black uppercase tracking-widest text-red-600 mb-2">Real-Time Alert</div>
+                <div className="text-base font-black text-slate-950 leading-tight">Technical Divergence Audit</div>
+                <p className="text-xs text-slate-500 font-medium mt-2 leading-relaxed">AI flags incorrect answers with chapter citations — instantly</p>
+              </div>
+            </div>
+
+            {/* Center: The App Screenshot */}
+            <div className="relative group">
+              <div className="absolute -inset-4 bg-gradient-to-r from-primary/10 via-transparent to-primary/10 rounded-[3rem] blur-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-700" />
+              <div className="relative rounded-[2rem] overflow-hidden shadow-[0_40px_80px_-10px_rgba(0,0,0,0.2)] border border-white/40">
+                <Image
+                  src="/BarberExamAppUI.png"
+                  alt="Texas Barber Exam Intelligence Hub Terminal — Decoding Mechanism"
+                  width={1024}
+                  height={640}
+                  className="w-full h-auto object-cover"
+                  priority
+                />
+              </div>
+            </div>
+
+            {/* Right Callouts */}
+            <div className="space-y-8">
+              <div className="p-5 rounded-2xl bg-slate-50 border-2 border-slate-100 shadow-sm">
+                <div className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">AI-Driven</div>
+                <div className="text-base font-black text-slate-950 leading-tight">Performance Analysis</div>
+                <p className="text-xs text-slate-500 font-medium mt-2 leading-relaxed">Pass Probability Delta tracked live — updated per question</p>
+              </div>
+              <div className="p-5 rounded-2xl bg-primary/5 border-2 border-primary/20 shadow-sm">
+                <div className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Real-Time</div>
+                <div className="text-base font-black text-slate-950 leading-tight">Mastery Tokens</div>
+                <p className="text-xs text-slate-500 font-medium mt-2 leading-relaxed">CIB Alignment Pulse + Syntax Mastery tracked in the signal stream</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile: Stacked image then callout cards */}
+          <div className="lg:hidden space-y-8">
+            <div className="relative">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+                <Image
+                  src="/BarberExamAppUI.png"
+                  alt="Texas Barber Exam Intelligence Hub Terminal — Decoding Mechanism"
+                  width={1024}
+                  height={640}
+                  className="w-full h-auto object-cover"
+                  priority
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { tag: "AI-Synthesized", title: "State Exam Questions", desc: "TDLR Ch. 82 aligned", color: "bg-slate-50 border-slate-100" },
+                { tag: "AI-Driven", title: "Performance Analysis", desc: "Live Pass Probability", color: "bg-slate-50 border-slate-100" },
+                { tag: "Real-Time Alert", title: "Technical Divergence", desc: "Ch. citations on wrong answers", color: "bg-red-50 border-red-100" },
+                { tag: "Real-Time", title: "Mastery Tokens", desc: "CIB + Syntax signals", color: "bg-primary/5 border-primary/20" },
+              ].map((c, i) => (
+                <div key={i} className={`p-4 rounded-2xl border-2 shadow-sm ${c.color}`}>
+                  <div className="text-[9px] font-black uppercase tracking-widest text-primary mb-1">{c.tag}</div>
+                  <div className="text-sm font-black text-slate-950 leading-tight">{c.title}</div>
+                  <p className="text-[10px] text-slate-500 font-medium mt-1 leading-relaxed">{c.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
        {/* Institutional Intelligence Brief: THE EMBEDDED REPORT */}
        <section className="py-20 lg:py-32 bg-white border-b border-slate-100 relative">
           <div className="mx-auto max-w-7xl px-6">
@@ -259,46 +352,39 @@ export default function TexasBarberExamPrep() {
                 </div>
               </div>
 
-              {/* Right Column: The Data ROI Table */}
+              {/* Right Column: The Decoding Mechanism Screenshot */}
               <div className="lg:w-1/2">
-                <div className="rounded-[2.5rem] bg-slate-950 p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden">
-                   <div className="absolute top-0 right-0 p-8 opacity-10">
-                      <BarChart3 className="h-48 w-48 text-primary" />
-                   </div>
-                   
-                   <div className="relative z-10">
-                      <h3 className="text-xl lg:text-2xl font-black uppercase italic tracking-tight text-white mb-8 border-b border-white/20 pb-4">
-                        Texas ROI Scenario Case Study
-                      </h3>
-                      
-                      <div className="space-y-6">
-                        {[
-                          { scenario: "Standard Academy", path: "48% Fail Rate (90d Delay)", outcome: "Probationary Risk", recovery: "$0" },
-                          { scenario: "Legacy Study Apps", path: "Inconsistent Decoding", outcome: "Marginal Safety", recovery: "Baseline" },
-                          { scenario: "Sovereign Texas Pilot", path: "92%+ Pass rate target", outcome: "Secure Title IV Buffer", recovery: "+ $5,000+" },
-                        ].map((row, idx) => (
-                          <div key={idx} className={`p-6 rounded-2xl border transition-all duration-300 ${idx === 2 ? "bg-primary border-white/30 shadow-lg scale-105" : "bg-white/5 border-white/10"}`}>
-                             <div className="flex justify-between items-start mb-4">
-                                <div>
-                                   <div className={`text-xs font-black uppercase tracking-widest mb-1 ${idx === 2 ? "text-white" : "text-white/40"}`}>Scenario</div>
-                                   <div className="text-lg font-black uppercase italic">{row.scenario}</div>
-                                </div>
-                                <div className="text-right">
-                                   <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${idx === 2 ? "text-white" : "text-white/40"}`}>Recovered Wage</div>
-                                   <div className={`text-xl font-black ${idx === 2 ? "text-white animate-pulse" : "text-primary"}`}>{row.recovery}</div>
-                                </div>
-                             </div>
-                             <div className={`text-sm font-bold leading-none ${idx === 2 ? "text-white/90" : "text-white/60"}`}>
-                                Outcome: <span className={idx === 2 ? "text-white font-black" : "text-white"}>{row.outcome}</span>
-                             </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="mt-10 p-6 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold leading-relaxed text-white/70 italic">
-                         Modeling based on September 2025 Consolidated Program Rules and TDLR Quarterly statistics (Reference: Inner G Strategy Division).
-                      </div>
-                   </div>
+                <div className="mb-5 inline-flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-red-600 border border-red-200">
+                  <Zap className="h-4 w-4" />
+                  Live Decoding Mechanism
+                </div>
+                <h3 className="text-xl lg:text-2xl font-black uppercase italic tracking-tight text-slate-950 mb-6">
+                  AI Audits the Exam — Not Just the Student
+                </h3>
+                <div className="relative group">
+                  {/* Glow effect */}
+                  <div className="absolute -inset-3 bg-gradient-to-br from-red-100 to-primary/10 rounded-[2.5rem] blur-xl opacity-50 group-hover:opacity-80 transition-opacity duration-700" />
+                  <div className="relative rounded-[2rem] overflow-hidden shadow-[0_30px_60px_-8px_rgba(0,0,0,0.15)] border-2 border-slate-100">
+                    <Image
+                      src="/BarberExamAppUI2.png"
+                      alt="AI Performance Analysis Hub"
+                      width={1020}
+                      height={630}
+                      className="w-full h-auto object-cover"
+                    />
+                    {/* Live Pulse Overlay Badge migrated with the image */}
+                    <div className="absolute top-4 right-4 flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-full px-4 py-2 shadow-lg z-20">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">Intelligence Pipeline Active</span>
+                    </div>
+                  </div>
+                  {/* Caption */}
+                  <div className="mt-5 flex items-start gap-3 px-1">
+                    <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                    <p className="text-sm font-bold text-slate-600 leading-relaxed italic">
+                      "Adaptive Feedback Loop: Our ADI doesn&apos;t just grade students — it audits the State Board&apos;s question logic to prevent technical failure."
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
