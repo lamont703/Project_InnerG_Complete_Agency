@@ -25,7 +25,7 @@ export interface MetricSlot {
     id: string
     label: string
     description: string
-    category: 'agency' | 'marketing' | 'operations' | 'finance'
+    category: 'agency' | 'marketing' | 'operations' | 'finance' | 'education'
     type: 'kpi' | 'chart' | 'list'
     permissions: ('client-admin' | 'client-viewer' | 'super-admin')[]
     iconName: string // Lucide icon name as string for serializable registry
