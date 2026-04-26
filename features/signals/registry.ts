@@ -63,6 +63,15 @@ export const SIGNAL_REGISTRY: SignalSlot[] = [
         permissions: ['super-admin'],
         iconName: "Bug",
         defaultLimit: 10
+    },
+    {
+        id: "student_intelligence",
+        label: "Student Intelligence",
+        description: "Live AI-driven signals regarding exam probability, cognitive fatigue, and state board alignment.",
+        category: 'education',
+        permissions: ['client', 'admin', 'super-admin'],
+        iconName: "Brain",
+        defaultLimit: 5
     }
 ]
 
