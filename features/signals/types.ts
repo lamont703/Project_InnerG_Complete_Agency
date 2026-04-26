@@ -36,7 +36,7 @@ export interface SignalSlot {
     id: string
     label: string
     description: string
-    category: 'agency' | 'marketing' | 'operations'
+    category: 'agency' | 'marketing' | 'operations' | 'education'
     permissions: ('client' | 'admin' | 'super-admin')[]
     iconName: string
     defaultLimit: number
