@@ -49,9 +49,10 @@ export function MetricSlotGrid({
                                 id: id,
                                 label: config.label,
                                 value: "---",
-                                trend: "Analyzing...",
-                                trendUp: true,
-                                icon: Icon
+                                growth: "Analyzing...",
+                                trend: "neutral",
+                                icon: Icon,
+                                color: "text-muted-foreground bg-muted/10"
                             }}
                             isAgency={isAgency}
                         />
