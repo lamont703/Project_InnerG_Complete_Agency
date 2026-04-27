@@ -89,15 +89,15 @@ export class MetricsService {
         return `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`
     }
 
-    async getProjectData(projectSlug: string): Promise<{ id: string } | undefined> {
+    async getProjectData(projectSlug: string): Promise<{ id: string; slug: string; type: string } | undefined> {
         const { data, error } = await this.supabase
             .from("projects")
-            .select("id")
+            .select("id, slug, type")
             .eq("slug", projectSlug)
             .maybeSingle()
 
         if (error) return undefined
-        return data as { id: string } | undefined
+        return data as { id: string; slug: string; type: string } | undefined
     }
 
     async getActiveCampaign(projectId: string): Promise<{ id: string; name: string } | undefined> {
@@ -1185,7 +1185,7 @@ export class MetricsService {
         // --- KANE'S BOOKSTORE SPECIFIC DATA ---
         const { data: project } = await this.supabase
             .from("projects")
-            .select("slug, name")
+            .select("slug, name, type")
             .eq("id", projectId)
             .single()
 
@@ -1249,8 +1249,8 @@ export class MetricsService {
         // --- BARBER STUDENT SPECIFIC DATA (PILOT MODE) ---
 
         // --- BARBER STUDENT SPECIFIC DATA (PILOT MODE) ---
-
-        if (project?.slug === 'test-barber-student' || project?.slug === 'test-barber-student-v2') {
+        // Serves high-fidelity diagnostic data to all barber students during the institutional pilot.
+        if (project?.slug?.includes('student') || (project as any)?.type === 'barber_student') {
             metrics.push(
                 {
                     id: "board_readiness_index",

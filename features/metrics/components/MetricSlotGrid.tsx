@@ -37,13 +37,26 @@ export function MetricSlotGrid({
                 // Match fetched data to registry config
                 const stat = metrics.find(m => m.id === id || m.label === config.label)
 
-                if (!stat) {
-                    // If no data yet, we can show a skeleton or placeholder
-                    return null
-                }
-
-                // Resolve icon from registry string or keep original
+                // Resolve icon from registry string
                 const Icon = getIcon(config.iconName)
+
+                if (!stat) {
+                    // Show a high-fidelity placeholder if no data yet
+                    return (
+                        <MetricCard
+                            key={id}
+                            stat={{
+                                id: id,
+                                label: config.label,
+                                value: "---",
+                                trend: "Analyzing...",
+                                trendUp: true,
+                                icon: Icon
+                            }}
+                            isAgency={isAgency}
+                        />
+                    )
+                }
 
                 return (
                     <MetricCard
