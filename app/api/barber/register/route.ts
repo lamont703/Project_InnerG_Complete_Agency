@@ -98,7 +98,9 @@ export async function POST(req: Request) {
             name: dashboardDisplayName,
             slug: instanceSlug,
             type: deploymentBlueprint,
-            status: "building"
+            status: "building",
+            metrics_enabled: true,
+            cognitive_enabled: true
         })
         .select()
         .single();
@@ -117,8 +119,33 @@ export async function POST(req: Request) {
         });
 
     if (accessError) throw accessError;
+    
+    // 6. Provision Diagnostic Slot Entitlements (Deep Dive Bundle)
+    const STUDENT_DIAGNOSTIC_SLOTS = [
+        'board_readiness_index',
+        'pass_probability',
+        'protected_career_wages',
+        'syntax_mastery_accuracy',
+        'naccas_compliance_buffer',
+        'chemical_services_mastery',
+        'infection_control_mastery',
+        'anatomy_physiology_mastery',
+        'state_law_regulation_mastery'
+    ];
 
-    // 6. Update Registration with Project ID
+    const { error: entitlementError } = await (adminSupabase
+        .from("project_slot_entitlements") as any)
+        .insert(STUDENT_DIAGNOSTIC_SLOTS.map(slotId => ({
+            project_id: project.id,
+            slot_id: slotId
+        })));
+
+    if (entitlementError) {
+        console.error('[BarberRegister] Slot Provisioning Warning:', entitlementError);
+        // Non-blocking but logged
+    }
+
+    // 7. Update Registration with Project ID
     await (adminSupabase
       .from("barber_registrations") as any)
       .update({ 

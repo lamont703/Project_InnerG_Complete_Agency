@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useRouter } from "next/navigation"
 import { 
   CheckCircle2, 
   XCircle, 
@@ -173,6 +174,7 @@ interface EnhancedTexasBarberExamDeckProps {
 }
 
 export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarberExamDeckProps) {
+  const router = useRouter()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [gameState, setGameState] = useState<"active" | "feedback" | "finished">("active")
@@ -246,25 +248,34 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 1.05 }}
-                    className="flex-1 glass-panel rounded-[2rem] lg:rounded-[3rem] p-6 lg:p-20 flex flex-col items-center justify-center text-center space-y-8 lg:space-y-10 border border-primary/10"
+                    className="flex-1 glass-panel rounded-[2rem] md:rounded-[2.5rem] lg:rounded-[3rem] xl:rounded-[4rem] p-6 md:p-14 lg:p-20 xl:p-32 flex flex-col items-center justify-center text-center space-y-8 md:space-y-12 lg:space-y-10 xl:space-y-16 border border-primary/10"
                 >
-                    <div className="h-16 w-16 lg:h-24 lg:w-24 rounded-full bg-primary/10 flex items-center justify-center shadow-inner relative">
-                    <ShieldCheck className="h-8 w-8 lg:h-12 lg:w-12 text-primary" />
+                    <div className="h-16 w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 xl:h-32 xl:w-32 rounded-full bg-primary/10 flex items-center justify-center shadow-inner relative">
+                    <ShieldCheck className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 xl:h-16 xl:w-16 text-primary" />
                     <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
                     </div>
-                    <div className="space-y-4 lg:space-y-6">
-                        <h2 className="text-3xl lg:text-5xl font-black uppercase italic tracking-tighter text-foreground leading-none">Audit Cycle Complete</h2>
-                        <p className="text-muted-foreground font-medium text-base lg:text-lg leading-relaxed max-w-md mx-auto">
-                        Performance identified at <span className="text-primary font-black text-2xl lg:text-3xl px-2">{Math.round((score / practiceQuestions.length) * 100)}%</span> strategy compliance.
+                     <div className="space-y-4 md:space-y-6 lg:space-y-8">
+                        <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black uppercase italic tracking-tighter text-foreground leading-none">
+                            Audit Cycle Complete
+                        </h2>
+                        <p className="text-muted-foreground font-medium text-sm md:text-base lg:text-lg xl:text-xl leading-relaxed max-w-sm md:max-w-md lg:max-w-lg mx-auto">
+                            Performance identified at <span className="text-primary font-black text-2xl md:text-3xl lg:text-4xl px-2">{Math.round((score / practiceQuestions.length) * 100)}%</span> strategy compliance.
                         </p>
                     </div>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 w-full max-w-md">
-                        <Button onClick={handleReset} variant="outline" className="h-14 lg:h-16 text-[10px] lg:text-sm font-black uppercase tracking-widest rounded-2xl border-2 hover:bg-muted/50 transition-all">
-                            Retake Audit
+                    <div className="flex flex-col gap-4 md:gap-5 w-full max-w-[280px] sm:max-w-xs md:max-w-sm lg:max-w-md px-4 md:px-0">
+                        <Button 
+                            onClick={handleReset} 
+                            variant="outline" 
+                            className="h-14 md:h-16 lg:h-18 w-full text-[10px] sm:text-xs md:text-sm lg:text-base font-black uppercase tracking-wider md:tracking-widest rounded-2xl border-2 hover:bg-muted/50 transition-all px-4 md:px-8 whitespace-normal leading-tight flex items-center justify-center text-center"
+                        >
+                            Synthesize Next Cycle
                         </Button>
-                        <Button className="h-14 lg:h-16 bg-primary text-white hover:bg-primary/90 text-[10px] lg:text-sm font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-primary/20">
-                            Download Metrics
+                        <Button 
+                            onClick={() => router.push(`/dashboard/${projectSlug}/metrics`)}
+                            className="h-14 md:h-16 lg:h-18 w-full bg-primary text-white hover:bg-primary/90 text-[10px] sm:text-xs md:text-sm lg:text-base font-black uppercase tracking-wider md:tracking-widest rounded-2xl transition-all shadow-xl shadow-primary/20 px-4 md:px-8 whitespace-normal leading-tight flex items-center justify-center text-center"
+                        >
+                            Analyze Learning Gaps
                         </Button>
                     </div>
                 </motion.div>
