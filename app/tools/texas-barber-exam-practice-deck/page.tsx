@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { createBrowserClient } from "@/lib/supabase/browser"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   CheckCircle2, 
@@ -251,7 +252,24 @@ export default function PublicSwipeDeckPage() {
 
       const data = await response.json();
       if (data.success) {
-        toast.success("Architecture deployed! Redirecting...");
+        toast.success("Architecture deployed! Finalizing secure session...");
+        
+        // Shadow Authentication Handshake:
+        // Establish the browser session immediately so the user doesn't hit the login wall.
+        const supabase = createBrowserClient();
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password
+        });
+
+        if (signInError) {
+          console.error("[Register] Shadow Auth Failed:", signInError);
+          // Fallback to manual login if shadow auth fails
+          window.location.href = "/login?redirect=" + data.redirect;
+          return;
+        }
+
+        console.log("[Register] Shadow Auth Successful. Redirecting directly to architecture.");
         window.location.href = data.redirect;
       } else {
         throw new Error(data.error || "Deployment failed");
