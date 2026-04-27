@@ -34,6 +34,9 @@ const ICON_MAP: Record<string, any> = {
     dating: Heart,
     social: Music2,
     general: Layout,
+    barber_student: Heart,
+    barber_instructor: Layout,
+    barber_owner: Building2
 }
 
 export default function SelectPortalPage() {
@@ -50,27 +53,40 @@ export default function SelectPortalPage() {
             try {
                 const supabase = createBrowserClient()
 
-                // 1. Fetch User Data for Header
+                // CHECKPOINT 1: Auth Session
                 const { data: { user } } = await supabase.auth.getUser()
+                if (!user) {
+                    console.log("[SelectPortal] Checkpoint 1: No active session. Redirecting to login.")
+                    router.push("/login")
+                    return
+                }
+                console.log("[SelectPortal] Checkpoint 1: User found:", user.email)
                 let currentUserRole = ""
 
-                if (user) {
-                    const { data: profile } = await supabase
-                        .from("users")
-                        .select("full_name, role")
-                        .eq("id", user.id)
-                        .single() as any
+                // CHECKPOINT 2: User Profile
+                const { data: profile, error: profileError } = await supabase
+                    .from("users")
+                    .select("full_name, role")
+                    .eq("id", user.id)
+                    .maybeSingle() as any
 
-                    if (profile) {
-                        currentUserRole = profile.role
-                        setUserData({
-                            name: profile.full_name || "User",
-                            role: profile.role.replace("_", " ").toUpperCase()
-                        })
-                    }
+                if (profileError) {
+                    console.warn("[SelectPortal] Checkpoint 2: Profile retrieval warning:", profileError)
                 }
 
-                // 2. Fetch Projects (Joined with Clients)
+                if (profile) {
+                    currentUserRole = profile.role || ""
+                    setUserData({
+                        name: profile.full_name || user.email || "User",
+                        role: (profile.role || "client").replace("_", " ").toUpperCase()
+                    })
+                    console.log("[SelectPortal] Checkpoint 2: Profile resolved. Role:", currentUserRole)
+                } else {
+                    console.log("[SelectPortal] Checkpoint 2: No public profile found yet. Initializing default view.")
+                    setUserData({ name: user.email || "User", role: "CLIENT" })
+                }
+
+                // CHECKPOINT 3: Projects Query
                 let query = supabase
                     .from("projects")
                     .select(`
@@ -85,33 +101,56 @@ export default function SelectPortalPage() {
                         )
                     `)
 
-                // Super admins and developers see all projects, others see non-archived ones
                 if (currentUserRole !== "super_admin" && currentUserRole !== "developer") {
                     query = query.neq("status", "archived")
                 }
 
                 const { data: projectData, error: projectError } = await query as any
 
-                if (projectError) throw projectError
+                if (projectError) {
+                    console.error("[SelectPortal] Checkpoint 3: Projects Query Error:", projectError)
+                    throw projectError
+                }
+                console.log(`[SelectPortal] Checkpoint 3: Retrieved ${projectData?.length || 0} projects.`)
 
-                // 3. Map to PortalCard interface
-                const mappedProjects: PortalCard[] = projectData.map((p: any) => ({
-                    id: p.slug,
-                    name: `Project ${p.name}`,
-                    client: p.clients?.name || "Unknown Client",
-                    status: p.status.charAt(0).toUpperCase() + p.status.slice(1),
-                    type: p.type.charAt(0).toUpperCase() + p.type.slice(1),
-                    campaign: p.active_campaign_name || "N/A",
-                    lastActivity: "Live Now", // Placeholder until activity_log wiring
-                    metrics: "Data Streaming", // Placeholder until snapshot wiring
-                    icon: ICON_MAP[p.type.toLowerCase()] || Layout,
-                    href: `/dashboard/${p.slug}`,
-                }))
+                // CHECKPOINT 4: Data Mapping
+                const mappedProjects: PortalCard[] = (projectData || []).map((p: any) => {
+                    const clientName = Array.isArray(p.clients) 
+                        ? p.clients[0]?.name 
+                        : p.clients?.name;
+
+                    const rawType = p.type || "general";
+                    const formattedType = rawType
+                        .split(/[_-]/)
+                        .map((w: string) => w ? (w.charAt(0).toUpperCase() + w.slice(1)) : "")
+                        .filter(Boolean)
+                        .join(' ');
+
+                    return {
+                        id: p.slug,
+                        name: p.name || "Unnamed Architecture",
+                        client: clientName || "Private Institutional Node",
+                        status: (p.status || "active").charAt(0).toUpperCase() + (p.status || "active").slice(1),
+                        type: formattedType,
+                        campaign: p.active_campaign_name || "Autonomous Stream",
+                        lastActivity: "Live Now",
+                        metrics: "Data Streaming",
+                        icon: ICON_MAP[p.type?.toLowerCase()] || Layout,
+                        href: `/dashboard/${p.slug}`,
+                    };
+                })
+
+                // AUTO-REDIRECT: If user only has one project, take them there directly
+                if (mappedProjects.length === 1 && !error) {
+                    console.log(`[SelectPortal] Single architecture detected: ${mappedProjects[0].id}. Redirecting...`)
+                    router.push(mappedProjects[0].href)
+                    return
+                }
 
                 setProjects(mappedProjects)
             } catch (err: any) {
-                console.error("[SelectPortal] Error:", err)
-                setError("Unable to load client portals. Please try again.")
+                console.error("[SelectPortal] Dashboard resolution failure:", err)
+                setError("Unable to resolve project architectures. System may be syncing.")
             } finally {
                 setIsLoading(false)
             }
@@ -140,11 +179,13 @@ export default function SelectPortalPage() {
 
     if (isLoading) {
         return (
-            <main className="min-h-screen bg-background flex items-center justify-center">
-                <div className="text-center">
-                    <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-muted-foreground">Initializing growth architectures...</p>
+            <main className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] opacity-20 pointer-events-none" />
+                <div className="h-20 w-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-8 shadow-2xl">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
                 </div>
+                <h1 className="text-xl font-bold tracking-tight mb-2 uppercase italic tracking-tighter">Secure Bridge Interface v2.4</h1>
+                <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest opacity-50">Resolving Project Architectures...</p>
             </main>
         )
     }

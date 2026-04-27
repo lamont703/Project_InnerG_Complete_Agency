@@ -20,13 +20,17 @@ import {
   XCircle,
   X,
   Smartphone,
-  Sparkles
+  Sparkles,
+  Loader2,
+  ShieldCheck
 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import { cn } from "@/lib/utils"
+import { BarberSchoolSelector } from "@/components/forms/BarberSchoolSelector"
 
 const topicMastery = [
   { name: "Health and Safety (Sanitation & Disinfection)", score: 42, color: "bg-red-500", items: 25 },
@@ -87,6 +91,9 @@ export default function InstructorDashboard() {
   const [isLoginView, setIsLoginView] = React.useState(false)
   const [regUserRole, setRegUserRole] = React.useState<'student' | 'instructor' | 'owner'>('instructor')
   const [isAIResponseOpen, setIsAIResponseOpen] = React.useState(false)
+  const [schoolData, setSchoolData] = React.useState({ name: "", city: "", state: "TX", isOther: false })
+  const [formData, setFormData] = React.useState({ firstName: "", lastName: "", email: "", phone: "", password: "", confirmPassword: "" })
+  const [isRegistering, setIsRegistering] = React.useState(false)
 
   const tabs = [
     { id: "overview", label: "Overview", icon: Target },
@@ -95,6 +102,51 @@ export default function InstructorDashboard() {
     { id: "risk", label: "Attrition Risk", icon: Users },
     { id: "tactical", label: "Tactical Brief", icon: Zap },
   ]
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoginView) {
+      toast.success("Login simulated");
+      setIsRegisterModalOpen(false);
+      return;
+    }
+
+    if (!schoolData.name || !regUserRole) {
+      toast.error("Please select a school and professional role.");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+
+    setIsRegistering(true);
+    try {
+      const response = await fetch("/api/barber/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          schoolData,
+          role: regUserRole
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success("Architecture deployed! Redirecting...");
+        window.location.href = data.redirect;
+      } else {
+        throw new Error(data.error || "Deployment failed");
+      }
+    } catch (err: any) {
+      console.error("[Register] Error:", err);
+      toast.error(err.message || "Failed to initialize architecture.");
+    } finally {
+      setIsRegistering(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-white light text-slate-950 flex flex-col pt-20 selection:bg-primary/20">
@@ -651,7 +703,7 @@ export default function InstructorDashboard() {
                   </button>
                 </div>
 
-                <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+                <form className="space-y-6" onSubmit={handleRegister}>
                   <AnimatePresence mode="wait">
                     {!isLoginView ? (
                       <motion.div 
@@ -664,18 +716,17 @@ export default function InstructorDashboard() {
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</label>
-                            <input type="text" required placeholder="Instructor" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-4 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
+                            <input type="text" required placeholder="First" value={formData.firstName} onChange={(e) => setFormData({...formData, firstName: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-4 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</label>
-                            <input type="text" required placeholder="Name" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-4 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
+                            <input type="text" required placeholder="Last" value={formData.lastName} onChange={(e) => setFormData({...formData, lastName: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-4 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
                           </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Institutional Entity / School</label>
-                          <input type="text" required placeholder="e.g. Dallas Barber College" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-4 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
-                        </div>
+                        <BarberSchoolSelector 
+                          onSelect={(data) => setSchoolData(data)} 
+                        />
 
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Official Email Address</label>
@@ -715,6 +766,40 @@ export default function InstructorDashboard() {
                               type="tel" 
                               required 
                               placeholder="(555) 000-0000" 
+                              value={formData.phone}
+                              onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                              className="w-full bg-transparent text-sm font-bold focus:ring-0 transition-all outline-none" 
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Create Secure Password</label>
+                          <div className="flex gap-3 px-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl">
+                            <ShieldCheck className="h-5 w-5 text-slate-400 shrink-0" />
+                            <input 
+                              type="password" 
+                              required 
+                              minLength={6}
+                              placeholder="••••••••" 
+                              value={formData.password}
+                              onChange={(e) => setFormData({...formData, password: e.target.value})}
+                              className="w-full bg-transparent text-sm font-bold focus:ring-0 transition-all outline-none" 
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirm Secure Password</label>
+                          <div className="flex gap-3 px-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl">
+                            <ShieldCheck className="h-5 w-5 text-slate-400 shrink-0" />
+                            <input 
+                              type="password" 
+                              required 
+                              minLength={6}
+                              placeholder="••••••••" 
+                              value={formData.confirmPassword}
+                              onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
                               className="w-full bg-transparent text-sm font-bold focus:ring-0 transition-all outline-none" 
                             />
                           </div>
@@ -750,9 +835,21 @@ export default function InstructorDashboard() {
                       </label>
                     )}
 
-                    <Button className="w-full bg-slate-950 text-white hover:bg-primary py-8 text-sm font-black uppercase tracking-[0.3em] rounded-2xl transition-all shadow-2xl shadow-slate-200">
-                      {isLoginView ? "Initialize Dashboard" : "Claim Your Student Portals"}
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                    <Button 
+                      disabled={isRegistering}
+                      className="w-full bg-slate-950 text-white hover:bg-primary py-8 text-sm font-black uppercase tracking-[0.3em] rounded-2xl transition-all shadow-2xl shadow-slate-200"
+                    >
+                      {isRegistering ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Initializing Architecture...
+                        </>
+                      ) : (
+                        <>
+                          {isLoginView ? "Initialize Dashboard" : "Claim Your Student Portals"}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
                     </Button>
                     
                     <div className="flex flex-col items-center gap-4">
