@@ -10,16 +10,17 @@ import {
   ShieldCheck,
   ChevronRight,
   Sparkles,
-  Smartphone,
-  Info,
   Clock,
-  ArrowLeft
+  ArrowLeft,
+  Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import { cn } from "@/lib/utils"
+import { BarberSchoolSelector } from "@/components/forms/BarberSchoolSelector"
+import { toast } from "sonner"
 
 const practiceQuestions = [
   {
@@ -183,6 +184,9 @@ export default function PublicSwipeDeckPage() {
   const [isLoginView, setIsLoginView] = useState(false)
   const [hasTriggeredMidway, setHasTriggeredMidway] = useState(false)
   const [userRole, setUserRole] = useState<"student" | "instructor" | "owner" | null>("student")
+  const [schoolData, setSchoolData] = useState({ name: "", city: "", state: "TX", isOther: false })
+  const [formData, setFormData] = useState({ firstName: "", lastName: "", email: "", phone: "", password: "", confirmPassword: "" })
+  const [isRegistering, setIsRegistering] = useState(false)
 
   const currentQuestion = practiceQuestions[currentIndex]
   const isCorrect = currentQuestion?.options.find(o => o.id === selectedOptionId)?.isCorrect
@@ -211,6 +215,52 @@ export default function PublicSwipeDeckPage() {
       setGameState("active")
     } else {
       setGameState("finished")
+    }
+  }
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoginView) {
+      // Mock login for now
+      toast.success("Login simulated");
+      setIsModalOpen(false);
+      return;
+    }
+
+    if (!schoolData.name || !userRole) {
+      toast.error("Please select a school and professional role.");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+
+    setIsRegistering(true);
+    try {
+      const response = await fetch("/api/barber/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          schoolData,
+          role: userRole
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success("Architecture deployed! Redirecting...");
+        window.location.href = data.redirect;
+      } else {
+        throw new Error(data.error || "Deployment failed");
+      }
+    } catch (err: any) {
+      console.error("[Register] Error:", err);
+      toast.error(err.message || "Failed to initialize architecture.");
+    } finally {
+      setIsRegistering(false);
     }
   }
 
@@ -438,7 +488,7 @@ export default function PublicSwipeDeckPage() {
                     </div>
                   </div>
 
-                  <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                  <form className="space-y-4" onSubmit={handleRegister}>
                     <AnimatePresence mode="wait">
                       {!isLoginView ? (
                         <motion.div 
@@ -451,22 +501,21 @@ export default function PublicSwipeDeckPage() {
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</label>
-                              <input type="text" required minLength={2} placeholder="Lamont" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
+                              <input type="text" required minLength={2} placeholder="Lamont" value={formData.firstName} onChange={(e) => setFormData({...formData, firstName: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
                             </div>
                             <div className="space-y-1.5">
                               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</label>
-                              <input type="text" required minLength={2} placeholder="Evans" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
+                              <input type="text" required minLength={2} placeholder="Evans" value={formData.lastName} onChange={(e) => setFormData({...formData, lastName: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
                             </div>
                           </div>
 
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Texas Barber School Name</label>
-                            <input type="text" required minLength={3} placeholder="e.g. Dallas Barber College" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
-                          </div>
+                          <BarberSchoolSelector 
+                            onSelect={(data) => setSchoolData(data)} 
+                          />
 
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</label>
-                            <input type="email" required placeholder="lamont@example.com" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
+                            <input type="email" required placeholder="lamont@example.com" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" />
                           </div>
 
                           <div className="space-y-1.5">
@@ -500,9 +549,35 @@ export default function PublicSwipeDeckPage() {
                             <input 
                               type="tel" 
                               required 
-                              pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}|\([0-9]{3}\) [0-9]{3}-[0-9]{4}|[0-9]{10}"
-                              title="Please enter a valid US phone number"
                               placeholder="(555) 000-0000" 
+                              value={formData.phone}
+                              onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                              className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" 
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Create Password</label>
+                            <input 
+                              type="password" 
+                              required 
+                              minLength={6}
+                              placeholder="••••••••" 
+                              value={formData.password}
+                              onChange={(e) => setFormData({...formData, password: e.target.value})}
+                              className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" 
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirm Password</label>
+                            <input 
+                              type="password" 
+                              required 
+                              minLength={6}
+                              placeholder="••••••••" 
+                              value={formData.confirmPassword}
+                              onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
                               className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" 
                             />
                           </div>
@@ -537,9 +612,21 @@ export default function PublicSwipeDeckPage() {
                         </label>
                       )}
 
-                      <Button className="w-full bg-slate-950 text-white hover:bg-primary py-7 lg:py-8 text-sm font-black uppercase tracking-[0.3em] rounded-xl lg:rounded-2xl transition-all shadow-xl">
-                        {isLoginView ? "Login to Dashboard" : "Unlock AI Enhanced Prep"}
-                        <ArrowRight className="ml-2 h-4 w-4" />
+                      <Button 
+                        disabled={isRegistering}
+                        className="w-full bg-slate-950 text-white hover:bg-primary py-7 lg:py-8 text-sm font-black uppercase tracking-[0.3em] rounded-xl lg:rounded-2xl transition-all shadow-xl"
+                      >
+                        {isRegistering ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Initializing Architecture...
+                          </>
+                        ) : (
+                          <>
+                            {isLoginView ? "Login to Dashboard" : "Unlock AI Enhanced Prep"}
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </>
+                        )}
                       </Button>
                       
                       <div className="flex flex-col items-center gap-4">

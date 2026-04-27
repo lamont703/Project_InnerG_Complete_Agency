@@ -104,7 +104,7 @@ export default async function proxy(request: NextRequest) {
 
         // 2. Redirect authenticated users away from auth pages
         if (AUTH_ROUTES.includes(pathname) && isAuthenticated) {
-            return NextResponse.redirect(new URL("/select-portal", request.url))
+            return NextResponse.redirect(new URL("/api/auth/provision", request.url))
         }
 
         return response
@@ -121,8 +121,9 @@ export const config = {
          * - _next/static (static files)
          * - _next/image (image optimization files)
          * - favicon.ico (favicon file)
-         * - public assets
+         * - public assets (images, fonts, etc.)
+         * - Common asset extensions
          */
-        "/((?!_next/static|_next/image|favicon.ico|icon.*\\.png|icon\\.svg|apple-icon\\.png).*)",
+        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|js|css|map|json|woff2?|ttf|otf)$).*)",
     ],
 }

@@ -18,7 +18,7 @@ function LoginContent() {
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()
     const searchParams = useSearchParams()
-    const redirectTo = searchParams.get("redirect") || "/select-portal"
+    const redirectTo = searchParams.get("redirect") || "/api/auth/provision"
 
     const {
         register,
