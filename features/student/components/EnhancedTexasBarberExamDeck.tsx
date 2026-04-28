@@ -147,7 +147,16 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
     if (correct) setScore(prev => prev + 1)
     setGameState("feedback")
 
+    if (!userId) {
+        console.warn("TELEMETRY BLOCKED: No authenticated user session found. Cannot track anonymous data.");
+    } else if (!currentQuestion?.rawDomain) {
+        console.warn("TELEMETRY BLOCKED: Question is missing a rawDomain mapping.");
+    } else if (!projectSlug) {
+        console.warn("TELEMETRY BLOCKED: Missing projectSlug in portal instance.");
+    }
+
     if (userId && currentQuestion?.rawDomain && projectSlug) {
+        console.log(`Firing telemetry signal for User: ${userId} | Domain: ${currentQuestion.rawDomain}`);
         const supabase = createBrowserClient();
         (supabase.from("barber_exam_telemetry") as any).insert({
             student_id: userId,
@@ -159,8 +168,12 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
             changed_answer: hasChangedAnswer,
             session_id: sessionId
         }).then(({error}: any) => {
-            if (error) console.error("Telemetry error:", error)
-        })
+            if (error) {
+                console.error("Supabase RLS or Insert Error:", error);
+            } else {
+                console.log("Telemetry securely recorded.");
+            }
+        }).catch((err: any) => console.error("Telemetry Exception:", err));
     }
   }
 
