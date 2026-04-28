@@ -71,7 +71,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
       const shuffledData = [...data].sort(() => 0.5 - Math.random())
       const selected = shuffledData.slice(0, 10) // exactly 10
 
-      const mapped: Question[] = selected.map(q => {
+      const mapped: Question[] = selected.map((q: any) => {
         let opts = q.options
         if (typeof opts === 'string') {
            try { opts = JSON.parse(opts) } catch(e){}
