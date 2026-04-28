@@ -696,7 +696,7 @@ export class MetricsService {
 
         // --- BARBER STUDENT SPECIFIC DATA (PILOT MODE) ---
         // --- BARBER STUDENT ARCHITECTURE (High-Fidelity Diagnostics) ---
-        if (project?.slug === 'test-barber-student' || project?.slug === 'test-barber-student-v2' || (project as any).type === 'barber_student') {
+        if (project && (project.slug === 'test-barber-student' || project.slug === 'test-barber-student-v2' || (project as any).type === 'barber_student')) {
             const barberMetrics = await this._injectBarberStudentMetrics(project.slug);
             metrics.push(...barberMetrics);
         }
@@ -1182,7 +1182,7 @@ export class MetricsService {
         // --- BARBER STUDENT SPECIFIC DATA (PILOT MODE) ---
 
         // --- BARBER STUDENT SPECIFIC DATA (PILOT MODE) ---
-        if (project?.slug?.includes('student') || (project as any)?.type === 'barber_student') {
+        if (project && (project.slug?.includes('student') || (project as any)?.type === 'barber_student')) {
             const barberMetrics = await this._injectBarberStudentMetrics(project.slug);
             metrics.push(...barberMetrics);
         }
