@@ -32,7 +32,11 @@ import {
     FlaskConical,
     ShieldAlert,
     Stethoscope,
-    Gavel
+    Gavel,
+    Scissors,
+    Palette,
+    Sparkles,
+    User
 } from "lucide-react"
 
 
@@ -691,81 +695,10 @@ export class MetricsService {
         }
 
         // --- BARBER STUDENT SPECIFIC DATA (PILOT MODE) ---
-        if (project?.slug === 'test-barber-student' || project?.slug === 'test-barber-student-v2') {
-            metrics.push(
-                {
-                    id: "board_readiness_index",
-                    label: "Board Readiness Index",
-                    value: "88.2%",
-                    growth: "+2.4%",
-                    icon: Compass,
-                    color: "text-primary bg-primary/10",
-                },
-                {
-                    id: "pass_probability",
-                    label: "Pass Probability",
-                    value: "92%",
-                    growth: "+5.1%",
-                    icon: Target,
-                    color: "text-emerald-500 bg-emerald-500/10",
-                },
-                {
-                    id: "protected_career_wages",
-                    label: "Protected Wages",
-                    value: "$10,000",
-                    growth: "Securing",
-                    icon: ShieldCheck,
-                    color: "text-blue-500 bg-blue-500/10",
-                },
-                {
-                    id: "syntax_mastery_accuracy",
-                    label: "Syntax Mastery",
-                    value: "90%",
-                    growth: "+12%",
-                    icon: Braces,
-                    color: "text-indigo-500 bg-indigo-500/10",
-                },
-                {
-                    id: "naccas_compliance_buffer",
-                    label: "NACCAS Buffer",
-                    value: "18.2%",
-                    growth: "Safe",
-                    icon: Zap,
-                    color: "text-orange-500 bg-orange-500/10",
-                },
-                {
-                    id: "chemical_services_mastery",
-                    label: "Chemical Logic",
-                    value: "84%",
-                    growth: "+6%",
-                    icon: FlaskConical,
-                    color: "text-violet-500 bg-violet-500/10",
-                },
-                {
-                    id: "infection_control_mastery",
-                    label: "Infection Control",
-                    value: "96%",
-                    growth: "Mastered",
-                    icon: ShieldAlert,
-                    color: "text-emerald-400 bg-emerald-400/10",
-                },
-                {
-                    id: "anatomy_physiology_mastery",
-                    label: "Anatomy Theory",
-                    value: "78%",
-                    growth: "+10%",
-                    icon: Stethoscope,
-                    color: "text-blue-400 bg-blue-400/10",
-                },
-                {
-                    id: "state_law_regulation_mastery",
-                    label: "State Law Index",
-                    value: "92%",
-                    growth: "Finalized",
-                    icon: Gavel,
-                    color: "text-amber-500 bg-amber-500/10",
-                }
-            )
+        // --- BARBER STUDENT ARCHITECTURE (High-Fidelity Diagnostics) ---
+        if (project?.slug === 'test-barber-student' || project?.slug === 'test-barber-student-v2' || (project as any).type === 'barber_student') {
+            const barberMetrics = await this._injectBarberStudentMetrics(project.slug);
+            metrics.push(...barberMetrics);
         }
 
         // Fetch Pipeline Specific Stats
@@ -1249,85 +1182,117 @@ export class MetricsService {
         // --- BARBER STUDENT SPECIFIC DATA (PILOT MODE) ---
 
         // --- BARBER STUDENT SPECIFIC DATA (PILOT MODE) ---
-        // Serves high-fidelity diagnostic data to all barber students during the institutional pilot.
         if (project?.slug?.includes('student') || (project as any)?.type === 'barber_student') {
-            metrics.push(
-                {
-                    id: "board_readiness_index",
-                    label: "Board Readiness Index",
-                    value: "88.2%",
-                    growth: "+2.4%",
-                    icon: Compass,
-                    color: "text-primary bg-primary/10",
-                },
-                {
-                    id: "pass_probability",
-                    label: "Pass Probability",
-                    value: "92%",
-                    growth: "+5.1%",
-                    icon: Target,
-                    color: "text-emerald-500 bg-emerald-500/10",
-                },
-                {
-                    id: "protected_career_wages",
-                    label: "Protected Wages",
-                    value: "$10,000",
-                    growth: "Securing",
-                    icon: ShieldCheck,
-                    color: "text-blue-500 bg-blue-500/10",
-                },
-                {
-                    id: "syntax_mastery_accuracy",
-                    label: "Syntax Mastery",
-                    value: "90%",
-                    growth: "+12%",
-                    icon: Braces,
-                    color: "text-indigo-500 bg-indigo-500/10",
-                },
-                {
-                    id: "naccas_compliance_buffer",
-                    label: "NACCAS Buffer",
-                    value: "18.2%",
-                    growth: "Safe",
-                    icon: Zap,
-                    color: "text-orange-500 bg-orange-500/10",
-                },
-                {
-                    id: "chemical_services_mastery",
-                    label: "Chemical Logic",
-                    value: "84%",
-                    growth: "+6%",
-                    icon: FlaskConical,
-                    color: "text-violet-500 bg-violet-500/10",
-                },
-                {
-                    id: "infection_control_mastery",
-                    label: "Infection Control",
-                    value: "96%",
-                    growth: "Mastered",
-                    icon: ShieldAlert,
-                    color: "text-emerald-400 bg-emerald-400/10",
-                },
-                {
-                    id: "anatomy_physiology_mastery",
-                    label: "Anatomy Theory",
-                    value: "78%",
-                    growth: "+10%",
-                    icon: Stethoscope,
-                    color: "text-blue-400 bg-blue-400/10",
-                },
-                {
-                    id: "state_law_regulation_mastery",
-                    label: "State Law Index",
-                    value: "92%",
-                    growth: "Finalized",
-                    icon: Gavel,
-                    color: "text-amber-500 bg-amber-500/10",
-                }
-            )
+            const barberMetrics = await this._injectBarberStudentMetrics(project.slug);
+            metrics.push(...barberMetrics);
         }
 
         return metrics
+    }
+
+    /**
+     * Internal helper to inject real-time performance mastery metrics
+     * for Barber Student architectures based on examination telemetry.
+     */
+    private async _injectBarberStudentMetrics(portalSlug: string): Promise<Metric[]> {
+        // 1. Fetch real performance telemetry for this architecture
+        const { data: telemetry } = await this.supabase
+            .from("barber_exam_telemetry")
+            .select("domain, is_correct")
+            .eq("portal_slug", portalSlug);
+
+        // 2. Aggregate telemetry counts by domain
+        const statsByDomain = (telemetry || []).reduce((acc: any, curr: any) => {
+            const domain = curr.domain;
+            if (!acc[domain]) acc[domain] = { total: 0, correct: 0 };
+            acc[domain].total++;
+            if (curr.is_correct) acc[domain].correct++;
+            return acc;
+        }, {});
+
+        // Helper to resolve real values or show placeholders
+        const getMasteryValue = (domain: string) => {
+            const s = statsByDomain[domain];
+            if (!s || s.total === 0) return "---";
+            return `${Math.round((s.correct / s.total) * 100)}%`;
+        };
+
+        const getMasteryGrowth = (domain: string) => {
+            const s = statsByDomain[domain];
+            if (!s || s.total === 0) return "Pending Synthesis";
+            const pct = s.correct / s.total;
+            if (pct >= 0.95) return "Elite Mastery";
+            if (pct >= 0.85) return "Exam Ready";
+            if (pct >= 0.70) return "Stable";
+            return `Focus Needed (${s.total} items)`;
+        };
+
+        return [
+            {
+                id: "barber_licensing_mastery",
+                label: "Licensing and Regulation",
+                value: getMasteryValue("licensing_regulation"),
+                growth: getMasteryGrowth("licensing_regulation"),
+                icon: Gavel,
+                color: "text-amber-500 bg-amber-500/10",
+            },
+            {
+                id: "barber_health_safety_mastery",
+                label: "Health and Safety",
+                value: getMasteryValue("sanitation_disinfection_safety"),
+                growth: getMasteryGrowth("sanitation_disinfection_safety"),
+                icon: ShieldAlert,
+                color: "text-emerald-400 bg-emerald-400/10",
+            },
+            {
+                id: "barber_hair_scalp_care_mastery",
+                label: "Hair and Scalp Care",
+                value: getMasteryValue("hair_scalp_care"),
+                growth: getMasteryGrowth("hair_scalp_care"),
+                icon: User,
+                color: "text-blue-400 bg-blue-400/10",
+            },
+            {
+                id: "barber_haircutting_styling_mastery",
+                label: "Haircutting and Hairstyling",
+                value: getMasteryValue("haircutting_hairstyling"),
+                growth: getMasteryGrowth("haircutting_hairstyling"),
+                icon: Scissors,
+                color: "text-rose-400 bg-rose-400/10",
+            },
+            {
+                id: "barber_haircoloring_mastery",
+                label: "Haircoloring",
+                value: getMasteryValue("haircoloring"),
+                growth: getMasteryGrowth("haircoloring"),
+                icon: Palette,
+                color: "text-pink-400 bg-pink-400/10",
+            },
+            {
+                id: "barber_chemical_texture_mastery",
+                label: "Chemical Texture Services",
+                value: getMasteryValue("chemical_texture_services"),
+                growth: getMasteryGrowth("chemical_texture_services"),
+                icon: FlaskConical,
+                color: "text-violet-500 bg-violet-500/10",
+            },
+            {
+                id: "barber_nail_skin_care_mastery",
+                label: "Nail and Skin Care",
+                value: getMasteryValue("nail_skin_care"),
+                growth: getMasteryGrowth("nail_skin_care"),
+                icon: Sparkles,
+                color: "text-cyan-400 bg-cyan-400/10",
+            },
+            {
+                id: "barber_shaving_mastery",
+                label: "Shaving",
+                value: getMasteryValue("shaving"),
+                growth: getMasteryGrowth("shaving"),
+                icon: Zap,
+                color: "text-orange-400 bg-orange-400/10",
+            }
+        ];
     }
 }
 

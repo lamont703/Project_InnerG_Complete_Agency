@@ -53,7 +53,7 @@ export function SlotProvider({
                 // 1. Resolve Project ID
                 const { data: project } = await supabase
                     .from("projects")
-                    .select("id")
+                    .select("id, type")
                     .eq("slug", projectSlug || "innergcomplete")
                     .maybeSingle() as any
                 
@@ -67,10 +67,51 @@ export function SlotProvider({
                         .select("slot_id")
                         .eq("project_id", project.id)
 
-                    const allowedSlotIds = (entitlements || []).map((e: any) => e.slot_id)
+                    let allowedSlotIds = (entitlements || []).map((e: any) => e.slot_id)
+
+                    // --- SELF-HEALING PROVISIONING GATE (Barber Intelligence Hardening) ---
+                    // If this is a barber student project, we ensure the 13 official slots are active.
+                    // This fixes cases where legacy projects or manual registrations are missing ports.
+                    const BARBER_STUDENT_BLUEPRINT = [
+                        'board_readiness_index',
+                        'pass_probability',
+                        'protected_career_wages',
+                        'syntax_mastery_accuracy',
+                        'naccas_compliance_buffer',
+                        'barber_licensing_mastery',
+                        'barber_health_safety_mastery',
+                        'barber_hair_scalp_care_mastery',
+                        'barber_haircutting_styling_mastery',
+                        'barber_haircoloring_mastery',
+                        'barber_chemical_texture_mastery',
+                        'barber_nail_skin_care_mastery',
+                        'barber_shaving_mastery'
+                    ];
+
+                    const isBarberStudent = projectSlug?.includes('barber-student') || 
+                                          projectSlug?.includes('barber-school') ||
+                                          (project as any).type === 'barber_student';
+
+                    if (isBarberStudent) {
+                        const missingSlots = BARBER_STUDENT_BLUEPRINT.filter(id => !allowedSlotIds.includes(id));
+                        if (missingSlots.length > 0) {
+                            console.log("[SlotContext] Hardening architecture: Provisioning missing slots:", missingSlots);
+                            
+                            // Auto-provision in DB for persistence
+                            const provisioningPayload = missingSlots.map(slotId => ({
+                                project_id: project.id,
+                                slot_id: slotId
+                            }));
+                            
+                            await (supabase.from("project_slot_entitlements") as any).insert(provisioningPayload);
+                            
+                            // Update local state immediately
+                            allowedSlotIds = [...allowedSlotIds, ...missingSlots];
+                        }
+                    }
+                    // --- END PROVISIONING GATE ---
 
                     // 3. Mirror the Exactly Enabled Architecture (Source of Truth: Agency Hub)
-                    // This creates unity across all roles as requested.
                     setActiveSlotIds(allowedSlotIds)
                     
                     if (userRole !== 'super-admin') {
