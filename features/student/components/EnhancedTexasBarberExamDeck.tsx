@@ -27,6 +27,7 @@ type QuestionOption = {
 type Question = {
   id: string
   category: string
+  rawDomain: string
   question: string
   options: QuestionOption[]
   metadata: {
@@ -46,11 +47,20 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
   const router = useRouter()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
-  const [gameState, setGameState] = useState<"active" | "feedback" | "finished">("active")
+  const [gameState, setGameState] = useState<"intro" | "active" | "feedback" | "finished">("intro")
   const [score, setScore] = useState(0)
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  const [userId, setUserId] = useState<string | null>(null)
+  const [sessionId, setSessionId] = useState<string>("")
+  const [questionStartTime, setQuestionStartTime] = useState<number>(0)
+  const [hasChangedAnswer, setHasChangedAnswer] = useState(false)
+
+  useEffect(() => {
+     setSessionId(crypto.randomUUID())
+  }, [])
 
   const fetchQuestions = async () => {
     setIsLoading(true)
@@ -60,6 +70,11 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
         .from("question_bank")
         .select("*")
         .eq("is_active", true)
+
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+         setUserId(session.user.id)
+      }
 
       if (error || !data) {
         console.error("Error fetching questions:", error)
@@ -91,6 +106,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
         return {
           id: q.id,
           category: cat,
+          rawDomain: q.domain,
           question: q.question,
           options: mappedOptions,
           metadata: {
@@ -117,19 +133,56 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
 
   const handleOptionSelect = (optionId: string) => {
     if (gameState === "feedback") return
+    if (selectedOptionId && selectedOptionId !== optionId) {
+        setHasChangedAnswer(true)
+    }
     setSelectedOptionId(optionId)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedOptionId) return
-    if (isCorrect) setScore(prev => prev + 1)
+    const timeSpentMs = Date.now() - questionStartTime
+    const correct = isCorrect || false
+
+    if (correct) setScore(prev => prev + 1)
     setGameState("feedback")
+
+    if (!userId) {
+        console.warn("TELEMETRY BLOCKED: No authenticated user session found. Cannot track anonymous data.");
+    } else if (!currentQuestion?.rawDomain) {
+        console.warn("TELEMETRY BLOCKED: Question is missing a rawDomain mapping.");
+    } else if (!projectSlug) {
+        console.warn("TELEMETRY BLOCKED: Missing projectSlug in portal instance.");
+    }
+
+    if (userId && currentQuestion?.rawDomain && projectSlug) {
+        console.log(`Firing telemetry signal for User: ${userId} | Domain: ${currentQuestion.rawDomain}`);
+        const supabase = createBrowserClient();
+        (supabase.from("barber_exam_telemetry") as any).insert({
+            student_id: userId,
+            portal_slug: projectSlug,
+            question_id: currentQuestion.id,
+            domain: currentQuestion.rawDomain,
+            is_correct: correct,
+            time_spent_ms: timeSpentMs,
+            changed_answer: hasChangedAnswer,
+            session_id: sessionId
+        }).then(({error}: any) => {
+            if (error) {
+                console.error("Supabase RLS or Insert Error:", error);
+            } else {
+                console.log("Telemetry securely recorded.");
+            }
+        }).catch((err: any) => console.error("Telemetry Exception:", err));
+    }
   }
 
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(prev => prev + 1)
       setSelectedOptionId(null)
+      setHasChangedAnswer(false)
+      setQuestionStartTime(Date.now())
       setGameState("active")
     } else {
       setGameState("finished")
@@ -139,9 +192,17 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
   const handleReset = () => {
     setCurrentIndex(0)
     setSelectedOptionId(null)
-    setGameState("active")
+    setGameState("intro")
     setScore(0)
+    setHasChangedAnswer(false)
+    setSessionId(crypto.randomUUID())
     fetchQuestions()
+  }
+
+  const handleStart = () => {
+    setGameState("active")
+    setQuestionStartTime(Date.now())
+    setHasChangedAnswer(false)
   }
 
   if (isLoading || questions.length === 0) {
@@ -172,6 +233,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
                         Barber Prep Hub
                     </h1>
                 </div>
+                {gameState !== "intro" && (
                 <div className="flex items-center gap-3 lg:gap-6 w-full sm:w-auto">
                     <div className="glass-panel px-4 lg:px-6 py-2 lg:py-3 rounded-2xl flex-1 sm:flex-none text-center">
                         <span className="text-[10px] block font-black uppercase text-muted-foreground mb-1">Progress</span>
@@ -182,10 +244,40 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
                         <span className="text-sm lg:text-lg font-black">{score}</span>
                     </div>
                 </div>
+                )}
             </div>
 
             <AnimatePresence mode="wait">
-                {gameState === "finished" ? (
+                {gameState === "intro" ? (
+                  <motion.div
+                      key="intro"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="flex-1 glass-panel rounded-[2rem] md:rounded-[2.5rem] lg:rounded-[3rem] p-6 md:p-14 lg:p-20 flex flex-col items-center justify-center text-center space-y-8 border border-primary/10 relative overflow-hidden"
+                  >
+                      <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
+                      <div className="h-20 w-20 md:h-24 md:w-24 rounded-full bg-primary/10 flex items-center justify-center shadow-inner relative">
+                        <Sparkles className="h-10 w-10 md:h-12 md:w-12 text-primary" />
+                      </div>
+                      <div className="space-y-4 md:space-y-6 max-w-2xl mx-auto">
+                         <h2 className="text-3xl md:text-5xl lg:text-6xl font-black uppercase italic tracking-tighter leading-none text-foreground">
+                             Intelligence <span className="text-primary">Audit</span>
+                         </h2>
+                         <p className="text-muted-foreground font-medium text-sm md:text-base lg:text-lg leading-relaxed">
+                            This 10-cycle audit analyzes your domain mastery and decision latency across the Texas Board framework. 
+                            Your response time and behavioral pivots are recorded securely to build your predictive mastery profile.
+                         </p>
+                      </div>
+                      <Button 
+                          onClick={handleStart}
+                          className="mt-8 h-16 md:h-20 px-8 md:px-12 bg-primary text-white hover:bg-primary/90 text-sm md:text-lg font-black uppercase tracking-[0.2em] md:tracking-[0.4em] rounded-[1.5rem] md:rounded-[2rem] transition-all shadow-2xl shadow-primary/30 flex items-center"
+                      >
+                          Begin Knowledge Audit
+                          <ArrowRight className="ml-3 h-5 w-5 md:h-6 md:w-6" />
+                      </Button>
+                  </motion.div>
+                ) : gameState === "finished" ? (
                 <motion.div
                     key="finished"
                     initial={{ opacity: 0, scale: 0.95 }}
