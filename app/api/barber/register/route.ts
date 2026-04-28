@@ -127,10 +127,14 @@ export async function POST(req: Request) {
         'protected_career_wages',
         'syntax_mastery_accuracy',
         'naccas_compliance_buffer',
-        'chemical_services_mastery',
-        'infection_control_mastery',
-        'anatomy_physiology_mastery',
-        'state_law_regulation_mastery'
+        'barber_licensing_mastery',
+        'barber_health_safety_mastery',
+        'barber_hair_scalp_care_mastery',
+        'barber_haircutting_styling_mastery',
+        'barber_haircoloring_mastery',
+        'barber_chemical_texture_mastery',
+        'barber_nail_skin_care_mastery',
+        'barber_shaving_mastery'
     ];
 
     const { error: entitlementError } = await (adminSupabase

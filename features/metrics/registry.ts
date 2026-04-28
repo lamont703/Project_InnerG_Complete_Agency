@@ -585,42 +585,78 @@ export const METRIC_REGISTRY: MetricSlot[] = [
         iconName: "Zap"
     },
 
-    // --- BARBER SUBJECT MATTER MASTER SLOTS ---
+    // --- BARBER SUBJECT MATTER MASTER SLOTS (Aligned with Exam Outline) ---
     {
-        id: "chemical_services_mastery",
-        label: "Chemical Logic",
-        description: "Mastery of pH, bonds, and chemical reaction theory for perms, relaxers, and color.",
+        id: "barber_licensing_mastery",
+        label: "Licensing and Regulation",
+        description: "Knowledge of Administrative Codes, Health & Safety laws, and licensure regulations (13 items).",
         category: 'education',
         type: 'kpi',
         permissions: ['client-admin', 'client-viewer', 'super-admin'],
-        iconName: "FlaskConical"
+        iconName: "Gavel"
     },
     {
-        id: "infection_control_mastery",
-        label: "Infection Control",
-        description: "Knowledge of sterilization protocols, bacteriology, and shop health standards.",
+        id: "barber_health_safety_mastery",
+        label: "Health and Safety",
+        description: "Sanitation, disinfection, and safety protocols for practitioners and work environments (25 items).",
         category: 'education',
         type: 'kpi',
         permissions: ['client-admin', 'client-viewer', 'super-admin'],
         iconName: "ShieldAlert"
     },
     {
-        id: "anatomy_physiology_mastery",
-        label: "Anatomy Theory",
-        description: "Theoretical mastery of the bones, muscles, nerves, and skin of the head/neck.",
+        id: "barber_hair_scalp_care_mastery",
+        label: "Hair and Scalp Care",
+        description: "Mastery of hair and scalp physiology, product knowledge, and chemical processing (4 items).",
         category: 'education',
         type: 'kpi',
         permissions: ['client-admin', 'client-viewer', 'super-admin'],
-        iconName: "Stethoscope"
+        iconName: "User"
     },
     {
-        id: "state_law_regulation_mastery",
-        label: "State Law Index",
-        description: "Knowledge of Administrative Codes, Health & Safety laws, and licensure regulations.",
+        id: "barber_haircutting_styling_mastery",
+        label: "Haircutting and Hairstyling",
+        description: "Theory and application of consultation, cutting, and styling techniques (12 items).",
         category: 'education',
         type: 'kpi',
         permissions: ['client-admin', 'client-viewer', 'super-admin'],
-        iconName: "Gavel"
+        iconName: "Scissors"
+    },
+    {
+        id: "barber_haircoloring_mastery",
+        label: "Haircoloring",
+        description: "Knowledge of haircoloring products, procedures, and client consultation (6 items).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Palette"
+    },
+    {
+        id: "barber_chemical_texture_mastery",
+        label: "Chemical Texture Services",
+        description: "Mastery of permanent waving, relaxing, and chemical texture products (6 items).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "FlaskConical"
+    },
+    {
+        id: "barber_nail_skin_care_mastery",
+        label: "Nail and Skin Care",
+        description: "Knowledge of nail and skin physiology, manicuring, and facial treatments (4 items).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Sparkles"
+    },
+    {
+        id: "barber_shaving_mastery",
+        label: "Shaving",
+        description: "Mastery of preparation, techniques, client protection, and razor safety (15 items).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Zap"
     }
 ]
 

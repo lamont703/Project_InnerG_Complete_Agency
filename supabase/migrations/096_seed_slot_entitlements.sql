@@ -83,8 +83,45 @@ BEGIN
         ON CONFLICT (project_id, slot_id) DO NOTHING;
     END IF;
 
-    -- 4. Cleanup any stray entitlements for projects NOT in our explicit whitelist
+    -- 4. Barber Industry Architectures (Auto-Provisioned for all instances)
+    FOR all_projects IN 
+        SELECT id, type FROM public.projects 
+        WHERE type IN ('barber_student', 'barber_instructor', 'barber_owner')
+    LOOP
+        -- Provision the appropriate bundle based on role
+        IF all_projects.type = 'barber_student' THEN
+            INSERT INTO public.project_slot_entitlements (project_id, slot_id)
+            VALUES
+                (all_projects.id, 'board_readiness_index'),
+                (all_projects.id, 'pass_probability'),
+                (all_projects.id, 'protected_career_wages'),
+                (all_projects.id, 'syntax_mastery_accuracy'),
+                (all_projects.id, 'naccas_compliance_buffer'),
+                (all_projects.id, 'barber_licensing_mastery'),
+                (all_projects.id, 'barber_health_safety_mastery'),
+                (all_projects.id, 'barber_hair_scalp_care_mastery'),
+                (all_projects.id, 'barber_haircutting_styling_mastery'),
+                (all_projects.id, 'barber_haircoloring_mastery'),
+                (all_projects.id, 'barber_chemical_texture_mastery'),
+                (all_projects.id, 'barber_nail_skin_care_mastery'),
+                (all_projects.id, 'barber_shaving_mastery')
+            ON CONFLICT (project_id, slot_id) DO NOTHING;
+        END IF;
+        
+        -- (Add instructor/owner logic here if needed in future)
+    END LOOP;
+
+    -- 5. Cleanup any stray entitlements for projects NOT in our explicit whitelist
+    -- IMPORTANT: We exclude Barber Industry architectures from this cleanup
     DELETE FROM public.project_slot_entitlements 
-    WHERE project_id NOT IN (agency_id, COALESCE(bookstore_id, '00000000-0000-0000-0000-000000000000'), COALESCE(crypto_id, '00000000-0000-0000-0000-000000000000'));
+    WHERE project_id NOT IN (
+        agency_id, 
+        COALESCE(bookstore_id, '00000000-0000-0000-0000-000000000000'), 
+        COALESCE(crypto_id, '00000000-0000-0000-0000-000000000000')
+    )
+    AND project_id NOT IN (
+        SELECT id FROM public.projects 
+        WHERE type IN ('barber_student', 'barber_instructor', 'barber_owner')
+    );
 
 END $$;
