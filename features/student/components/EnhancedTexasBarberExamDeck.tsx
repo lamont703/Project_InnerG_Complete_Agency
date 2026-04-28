@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { 
@@ -11,163 +11,32 @@ import {
   ShieldCheck,
   ChevronRight,
   Sparkles,
-  ArrowLeft
+  ArrowLeft,
+  Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { createBrowserClient } from "@/lib/supabase/browser"
 
-const practiceQuestions = [
-  {
-    id: 1,
-    category: "Sanitation & Safety",
-    question: "According to TDLR Chapter 82, how must a barber handle a porous item that has come into contact with blood or body fluids?",
-    options: [
-      { id: "a", text: "Disinfect with 10% bleach solution for 10 minutes", isCorrect: false },
-      { id: "b", text: "Double-bag and discard immediately in a closed trash container", isCorrect: true },
-      { id: "c", text: "Wash with hot soapy water and reuse", isCorrect: false },
-      { id: "d", text: "Sterilize in an autoclave for 24 hours", isCorrect: false }
-    ],
-    metadata: {
-      source: "TDLR Chapter 82.71(h)",
-      reasoning: "Porous items cannot be disinfected once contaminated. Standard safety protocol requires immediate disposal to prevent cross-contamination."
-    }
-  },
-  {
-    id: 2,
-    category: "Anatomy & Physiology",
-    question: "The 'Tri-Geminal' nerve is also known as which cranial nerve?",
-    options: [
-      { id: "a", text: "Third Cranial Nerve", isCorrect: false },
-      { id: "b", text: "Fifth Cranial Nerve", isCorrect: true },
-      { id: "c", text: "Seventh Cranial Nerve", isCorrect: false },
-      { id: "d", text: "Tenth Cranial Nerve", isCorrect: false }
-    ],
-    metadata: {
-      source: "Milady Standard Barbering, Ch. 5",
-      reasoning: "The Fifth Cranial Nerve is the largest cranial nerve and serves as the primary sensory nerve of the face."
-    }
-  },
-  {
-    id: 3,
-    category: "Chemical Services",
-    question: "A solution with a pH of 3.5 is considered to be:",
-    options: [
-      { id: "a", text: "Highly Alkaline", isCorrect: false },
-      { id: "b", text: "Acidic", isCorrect: true },
-      { id: "c", text: "Neutral", isCorrect: false },
-      { id: "d", text: "Slightly Alkaline", isCorrect: false }
-    ],
-    metadata: {
-      source: "Pivot Point Fundamentals",
-      reasoning: "The pH scale ranges from 0 to 14. Anything below 7 is acidic. 3.5 is significantly on the acidic side of the scale."
-    }
-  },
-  {
-    id: 4,
-    category: "Hair Coloring",
-    question: "What is the primary factor that determines the processing time for a permanent hair color application?",
-    options: [
-      { id: "a", text: "The length of the hair", isCorrect: false },
-      { id: "b", text: "The client's age", isCorrect: false },
-      { id: "c", text: "The texture and porosity of the hair", isCorrect: true },
-      { id: "d", text: "The type of shampoo used previously", isCorrect: false }
-    ],
-    metadata: {
-      source: "Milady Standard Barbering, Ch. 11",
-      reasoning: "Porosity (the hair's ability to absorb moisture) and texture (the diameter of the hair strand) directly affect how quickly color phentrates and processes."
-    }
-  },
-  {
-    id: 5,
-    category: "State Laws & Licensing",
-    question: "In Texas, how often must a Barber Shop license be renewed?",
-    options: [
-      { id: "a", text: "Every year", isCorrect: false },
-      { id: "b", text: "Every 2 years", isCorrect: true },
-      { id: "c", text: "Every 4 years", isCorrect: false },
-      { id: "d", text: "Only upon ownership change", isCorrect: false }
-    ],
-    metadata: {
-      source: "TDLR Occupations Code 1601.401",
-      reasoning: "TDLR requires a biennial renewal (every 2 years) for shop licenses to ensure consistent compliance with state safety and operational standards."
-    }
-  },
-  {
-    id: 6,
-    category: "Shaving Procedures",
-    question: "Which of the following is the first step in a professional facial shave?",
-    options: [
-        { id: "a", text: "Lathering the face", isCorrect: false },
-        { id: "b", text: "Applying a warm towel", isCorrect: true },
-        { id: "c", text: "Testing the blade sharpness", isCorrect: false },
-        { id: "d", text: "Applying aftershave lotion", isCorrect: false }
-    ],
-    metadata: {
-        source: "Milady Standard Barbering, Ch. 14",
-        reasoning: "Steam/Warm towels soften the hair and open the pores, preparing the skin for a smooth, irritation-free shaving surface."
-    }
-  },
-  {
-      id: 7,
-      category: "Skin Care & Facials",
-      question: "Which skin type is characterized by an overproduction of sebum/oil?",
-      options: [
-          { id: "a", text: "Dry", isCorrect: false },
-          { id: "b", text: "Sensitive", isCorrect: false },
-          { id: "c", text: "Oily", isCorrect: true },
-          { id: "d", text: "Normal", isCorrect: false }
-      ],
-      metadata: {
-          source: "Pivot Point Fundamentals, Skin 1",
-          reasoning: "Sebum is the natural oil produced by sebaceous glands. Excessive production leads to what is professionally termed 'Oily' skin."
-      }
-  },
-  {
-      id: 8,
-      category: "Tool Safety & Maintenance",
-      question: "What is the proper method for cleaning the blades of electric clippers between clients?",
-      options: [
-          { id: "a", text: "Dip the entire clipper in water", isCorrect: false },
-          { id: "b", text: "Wipe with a dry cloth only", isCorrect: false },
-          { id: "c", text: "Remove hair with a brush and apply EPA-registered disinfectant spray", isCorrect: true },
-          { id: "d", text: "Apply oil without cleaning hair", isCorrect: false }
-      ],
-      metadata: {
-          source: "Texas Administrative Code 82.72",
-          reasoning: "Barbers must use EPA-registered disinfectants on non-porous tools like clipper blades to prevent the transmission of bloodborne pathogens."
-      }
-  },
-  {
-      id: 9,
-      category: "Nail Care",
-      question: "The whitish, half-moon shape at the base of the nail is called the:",
-      options: [
-          { id: "a", text: "Eponychium", isCorrect: false },
-          { id: "b", text: "Lunula", isCorrect: true },
-          { id: "c", text: "Matrix", isCorrect: false },
-          { id: "d", text: "Hyponychium", isCorrect: false }
-      ],
-      metadata: {
-          source: "Milady Standard Barbering, Ch. 6",
-          reasoning: "The lunula is the visible part of the matrix where the nail bed and matrix meet, often appearing as a white crescent."
-      }
-  },
-  {
-      id: 10,
-      category: "Hair Treatment",
-      question: "In a permanent wave service, which bond is broken and rearranged to create the new curl pattern?",
-      options: [
-          { id: "a", text: "Hydrogen Bonds", isCorrect: false },
-          { id: "b", text: "Salt Bonds", isCorrect: false },
-          { id: "c", text: "Disulfide Bonds", isCorrect: true },
-          { id: "d", text: "Peptide Bonds", isCorrect: false }
-      ],
-      metadata: {
-          source: "Pivot Point Science, Ch. 3",
-          reasoning: "Chemical waving solutions (reducers) specifically target the strong disulfide bonds, allowing the hair to be reshaped on the rod."
-      }
+type QuestionOption = {
+  id: string
+  text: string
+  isCorrect: boolean
+}
+
+type Question = {
+  id: string
+  category: string
+  question: string
+  options: QuestionOption[]
+  metadata: {
+    source: string
+    reasoning: string
   }
-]
+}
+
+
+
 
 interface EnhancedTexasBarberExamDeckProps {
     projectSlug: string;
@@ -180,7 +49,70 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
   const [gameState, setGameState] = useState<"active" | "feedback" | "finished">("active")
   const [score, setScore] = useState(0)
 
-  const currentQuestion = practiceQuestions[currentIndex]
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const fetchQuestions = async () => {
+    setIsLoading(true)
+    try {
+      const supabase = createBrowserClient()
+      const { data, error } = await supabase
+        .from("question_bank")
+        .select("*")
+        .eq("is_active", true)
+
+      if (error || !data) {
+        console.error("Error fetching questions:", error)
+        setQuestions([])
+        return
+      }
+
+      // Shuffle logic
+      const shuffledData = [...data].sort(() => 0.5 - Math.random())
+      const selected = shuffledData.slice(0, 10) // exactly 10
+
+      const mapped: Question[] = selected.map(q => {
+        let opts = q.options
+        if (typeof opts === 'string') {
+           try { opts = JSON.parse(opts) } catch(e){}
+        }
+        if (typeof opts === 'string') {
+           try { opts = JSON.parse(opts) } catch(e){}
+        }
+        
+        const mappedOptions = (Array.isArray(opts) ? opts : []).map((optText: string, idx: number) => ({
+          id: String.fromCharCode(97 + idx),
+          text: optText,
+          isCorrect: idx === q.correct_index
+        }))
+
+        const cat = q.domain.split('_').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+
+        return {
+          id: q.id,
+          category: cat,
+          question: q.question,
+          options: mappedOptions,
+          metadata: {
+            source: q.source_ref,
+            reasoning: q.explanation
+          }
+        }
+      })
+
+      setQuestions(mapped)
+    } catch (err) {
+      console.error("Unexpected error fetching questions", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchQuestions()
+  }, [])
+
+  const currentQuestion = questions[currentIndex]
   const isCorrect = currentQuestion?.options.find(o => o.id === selectedOptionId)?.isCorrect
 
   const handleOptionSelect = (optionId: string) => {
@@ -195,7 +127,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
   }
 
   const handleNext = () => {
-    if (currentIndex < practiceQuestions.length - 1) {
+    if (currentIndex < questions.length - 1) {
       setCurrentIndex(prev => prev + 1)
       setSelectedOptionId(null)
       setGameState("active")
@@ -209,7 +141,18 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
     setSelectedOptionId(null)
     setGameState("active")
     setScore(0)
+    fetchQuestions()
   }
+
+  if (isLoading || questions.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center h-full bg-background/50 space-y-4 relative overflow-hidden">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Synthesizing Exam Intelligence...</p>
+      </div>
+    )
+  }
+
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background/50 relative overflow-hidden">
@@ -232,7 +175,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
                 <div className="flex items-center gap-3 lg:gap-6 w-full sm:w-auto">
                     <div className="glass-panel px-4 lg:px-6 py-2 lg:py-3 rounded-2xl flex-1 sm:flex-none text-center">
                         <span className="text-[10px] block font-black uppercase text-muted-foreground mb-1">Progress</span>
-                        <span className="text-sm lg:text-lg font-black text-foreground">{currentIndex + 1} / {practiceQuestions.length}</span>
+                        <span className="text-sm lg:text-lg font-black text-foreground">{currentIndex + 1} / {questions.length}</span>
                     </div>
                     <div className="bg-primary text-white px-4 lg:px-6 py-2 lg:py-3 rounded-2xl shadow-lg shadow-primary/20 flex-1 sm:flex-none text-center">
                         <span className="text-[10px] block font-black uppercase text-white/60 mb-1">Score</span>
@@ -259,7 +202,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
                             Audit Cycle Complete
                         </h2>
                         <p className="text-muted-foreground font-medium text-sm md:text-base lg:text-lg xl:text-xl leading-relaxed max-w-sm md:max-w-md lg:max-w-lg mx-auto">
-                            Performance identified at <span className="text-primary font-black text-2xl md:text-3xl lg:text-4xl px-2">{Math.round((score / practiceQuestions.length) * 100)}%</span> strategy compliance.
+                            Performance identified at <span className="text-primary font-black text-2xl md:text-3xl lg:text-4xl px-2">{Math.round((score / questions.length) * 100)}%</span> strategy compliance.
                         </p>
                     </div>
                     
