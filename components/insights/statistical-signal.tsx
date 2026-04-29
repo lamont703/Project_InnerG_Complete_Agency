@@ -1,5 +1,5 @@
 import React from "react"
-import { BarChart, Zap, Activity, Database, Shield, Layers } from "lucide-react"
+import { BarChart3, Zap, Activity, Database, Shield, Layers } from "lucide-react"
 
 interface Signal {
   label: string
@@ -12,7 +12,7 @@ interface StatisticalSignalProps {
 }
 
 const iconMap = {
-  chart: BarChart,
+  chart: BarChart3,
   zap: Zap,
   activity: Activity,
   data: Database,

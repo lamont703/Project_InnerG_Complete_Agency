@@ -85,7 +85,7 @@ export default function ScholarshipFundPage() {
                   </div>
                 </div>
                 
-                <h1 className="text-3xl md:text-6xl lg:text-7xl font-black italic uppercase tracking-tighter leading-[0.95] md:leading-[0.9] text-slate-950">
+                <h1 className="text-4xl md:text-6xl lg:text-7xl font-black italic uppercase tracking-tighter leading-[1.1] md:leading-[0.9] text-slate-950">
                   Your Students <span className="text-primary">Deserve</span> To Pass Their Board Exam
                 </h1>
                 
@@ -132,15 +132,15 @@ export default function ScholarshipFundPage() {
 
                 {/* Urgency Meter */}
                 <div className="p-5 md:p-10 rounded-[1.5rem] md:rounded-[2rem] bg-white border-2 border-slate-100 shadow-2xl shadow-slate-200/50 space-y-4 md:space-y-5 relative overflow-hidden group">
-                   <div className="absolute top-0 right-0 p-4 md:p-6 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
-                      <Globe className="h-20 w-20 md:h-32 md:w-32 text-slate-950" />
-                   </div>
+                    <div className="absolute -top-4 -right-4 p-4 md:p-6 opacity-[0.02] md:opacity-[0.03] group-hover:opacity-[0.06] transition-opacity pointer-events-none">
+                       <Globe className="h-24 w-24 md:h-32 md:w-32 text-slate-950" />
+                    </div>
                    <div className="flex justify-between items-end relative z-10">
-                      <div>
-                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.4em] text-slate-400 mb-1 block whitespace-nowrap">Free Scholarship Spots Remaining</span>
-                        <span className="text-2xl md:text-4xl font-black text-primary tracking-tighter italic">{spotsRemaining} / 500</span>
-                      </div>
-                      <span className="text-[8px] md:text-xs font-black text-slate-400 uppercase tracking-widest mb-1 shrink-0">Nationwide</span>
+                       <div>
+                         <span className="text-[7px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.4em] text-slate-400 mb-1 block whitespace-nowrap">Free Scholarship Spots Remaining</span>
+                         <span className="text-xl md:text-4xl font-black text-primary tracking-tighter italic">{spotsRemaining} / 500</span>
+                       </div>
+                       <span className="text-[7px] md:text-xs font-black text-slate-400 uppercase tracking-widest mb-1 shrink-0">Nationwide</span>
                    </div>
                    <div className="h-2 md:h-3 w-full bg-slate-100 rounded-full overflow-hidden relative z-10 shadow-inner">
                        <motion.div 
@@ -162,14 +162,14 @@ export default function ScholarshipFundPage() {
                 {/* Data-backed cross-links */}
                 <div className="pt-4 border-t border-slate-100">
                   <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3">The Data Behind This Scholarship</p>
-                  <div className="space-y-2">
-                    <Link href="/insights/el-paso-barber-market-rescue-report" className="flex items-center gap-2 text-[9px] md:text-[11px] font-black text-primary hover:underline uppercase tracking-wider group">
-                      <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                      El Paso Barber Market Rescue Report
+                  <div className="space-y-4">
+                    <Link href="/insights/el-paso-barber-market-rescue-report" className="flex items-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest text-primary hover:translate-x-1 transition-transform group/link">
+                      <ArrowRight className="h-3 w-3 shrink-0" />
+                      <span>El Paso Barber Market Rescue Report</span>
                     </Link>
-                    <Link href="/insights/texas-barber-licensure-crisis" className="flex items-center gap-2 text-[9px] md:text-[11px] font-black text-primary hover:underline uppercase tracking-wider group">
-                      <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                      Texas Barber Licensure Crisis: $15M Risk Analysis
+                    <Link href="/insights/texas-barber-licensure-crisis" className="flex items-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest text-primary hover:translate-x-1 transition-transform group/link">
+                      <ArrowRight className="h-3 w-3 shrink-0" />
+                      <span>Texas Barber Licensure Crisis: $15M Risk Analysis</span>
                     </Link>
                   </div>
                 </div>
@@ -183,8 +183,8 @@ export default function ScholarshipFundPage() {
                     <div className="h-10 w-10 md:h-20 md:w-20 bg-primary/5 rounded-xl md:rounded-3xl flex items-center justify-center mx-auto mb-2 md:mb-6 border-2 border-primary/10 shadow-inner">
                       <Building2 className="h-5 w-5 md:h-10 md:w-10 text-primary" />
                     </div>
-                    <h2 className="text-xl md:text-4xl font-black uppercase italic tracking-tighter text-slate-950 leading-none">Institutional <br />Enrollment</h2>
-                    <p className="text-slate-400 text-[8px] md:text-[11px] font-black uppercase tracking-[0.2em] md:tracking-[0.4em]">Pilot Program Application (Phase 01)</p>
+                    <h2 className="text-2xl md:text-4xl font-black uppercase italic tracking-tighter text-slate-950 leading-none">Institutional <br />Enrollment</h2>
+                    <p className="text-slate-400 text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] md:tracking-[0.4em]">Pilot Program Application (Phase 01)</p>
                   </div>
 
                   <BarberRegisterForm />
@@ -216,7 +216,7 @@ export default function ScholarshipFundPage() {
                   { step: "03", title: "See Results", desc: "Track which students are ready to test and which need more prep — in real time." },
                   { step: "04", title: "Pass Rate Rises", desc: "Students go into the board exam prepared. Your school's numbers improve." }
                 ].map((s, i) => (
-                  <div key={i} className="space-y-3 md:space-y-4 p-5 md:p-6 rounded-xl md:rounded-2xl bg-slate-50 border-2 border-slate-100 hover:border-primary/20 transition-all">
+                  <div key={i} className="space-y-3 md:space-y-4 p-6 md:p-6 rounded-xl md:rounded-2xl bg-slate-50 border-2 border-slate-100 hover:border-primary/20 transition-all">
                     <span className="text-3xl md:text-5xl font-black text-primary/20 italic tracking-tighter leading-none">{s.step}</span>
                     <h3 className="text-sm md:text-lg font-black uppercase italic tracking-tight text-slate-950">{s.title}</h3>
                     <p className="text-xs md:text-sm text-slate-600 font-bold leading-relaxed">{s.desc}</p>

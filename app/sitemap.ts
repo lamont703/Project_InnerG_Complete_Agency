@@ -49,6 +49,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1,
     },
     {
+      url: `${baseUrl}/el-paso-barber-exam-intelligence-prep`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 1,
+    },
+    {
       url: `${baseUrl}/tools/texas-barber-exam-practice-deck`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
