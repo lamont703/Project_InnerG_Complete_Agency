@@ -19,6 +19,15 @@ function GlowOrb({ className }: { className: string }) {
 
 const reports = [
   {
+    slug: "el-paso-barber-market-rescue-report",
+    title: "El Paso Barber Market Rescue Report: A Strategic Recovery Audit",
+    excerpt: "El Paso exhibits a critical 58.0% aggregate fail rate, driven by high-volume institutions like Socorro HS. An industry rescue report mapping the path to licensure stabilization.",
+    date: "April 28, 2026",
+    readingTime: "15 min read",
+    category: "Industry Report",
+    featured: true,
+  },
+  {
     slug: "texas-barber-licensure-crisis",
     title: "The Texas Barber Licensure Crisis: A $15M Institutional Risk Analysis",
     excerpt: "Texas barber schools are facing a 'Licensure Cliff' with written fail rates exceeding 45% in major metros. An audit of why school accreditation is at risk and how the Texas ADI Pilot is architected to defend it.",

@@ -86,9 +86,9 @@ export function BarberSchoolSelector({ onSelect }: BarberSchoolSelectorProps) {
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[400px] p-0 rounded-2xl border-2 border-slate-100 shadow-2xl" align="start">
-            <Command className="rounded-2xl">
-              <CommandInput placeholder="Search schools..." className="h-12 text-sm font-bold border-none focus:ring-0" />
+          <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[400px] p-0 rounded-2xl border-2 border-slate-100 shadow-2xl bg-white" align="start">
+            <Command className="rounded-2xl bg-white">
+              <CommandInput placeholder="Search schools..." className="h-12 text-sm font-bold border-none focus:ring-0 text-slate-900" />
               <CommandList className="max-h-[300px] no-scrollbar">
                 <CommandEmpty className="py-6 text-center">
                   <p className="text-sm font-bold text-slate-400">No school found.</p>
