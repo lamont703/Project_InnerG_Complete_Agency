@@ -80,8 +80,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
          setUserId(session.user.id)
          
          // Fetch the school_id associated with this project architecture
-         const { data: projectData } = await supabase
-            .from("projects")
+         const { data: projectData } = await (supabase.from("projects") as any)
             .select("school_id")
             .eq("slug", projectSlug)
             .single()
