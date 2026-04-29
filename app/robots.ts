@@ -16,8 +16,6 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       disallow: [
         '/login/',
         '/select-portal/',
-        '/privacy-policy/',
-        '/terms-of-service/',
         '/api/',
         '/auth/'
       ],
