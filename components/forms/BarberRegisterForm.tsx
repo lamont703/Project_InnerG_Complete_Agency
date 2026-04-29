@@ -95,7 +95,7 @@ export function BarberRegisterForm({ onSuccess }: BarberRegisterFormProps) {
 
     return (
         <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 font-bold">First Name</label>
                     <input 

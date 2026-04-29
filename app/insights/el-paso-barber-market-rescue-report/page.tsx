@@ -382,7 +382,7 @@ export default function ElPasoRescueReport() {
               </h2>
             </div>
             <p className="text-lg text-muted-foreground leading-relaxed font-medium mb-10">
-              The primary solution to this data-proven crisis is the <Link href="/barber-school-pilot-scholarship-fund" className="font-black uppercase tracking-widest text-primary hover:underline">Barber Exam Prep Pilot Scholarship</Link>. By providing students and schools with AI-Enhanced, board-aligned practice decks, we bridge the cognitive gap that is currently costing El Paso's workforce millions in delayed wages.
+              The primary solution to this data-proven crisis is the <Link href="/barber-school-pilot-scholarship-fund" className="font-black uppercase tracking-widest text-primary hover:underline">Barber Exam Prep Pilot Scholarship</Link>. By providing students and schools with <Link href="/el-paso-barber-exam-intelligence-prep" className="font-black text-primary hover:underline underline-offset-4 decoration-2">El Paso Barber Exam Intelligence Prep™</Link>—a localized, ADI-powered practice deck—we bridge the cognitive gap that is currently costing El Paso's workforce millions in delayed wages.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -401,27 +401,27 @@ export default function ElPasoRescueReport() {
           </div>
 
           {/* Section 4: The Direct Link to Funding */}
-          <div className="p-12 rounded-3xl bg-foreground text-background relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-8 opacity-10">
-              <Shield className="h-48 w-48" />
+          <div className="p-6 md:p-12 rounded-[2rem] md:rounded-3xl bg-foreground text-background relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+              <Shield className="h-32 w-32 md:h-48 md:w-48" />
             </div>
             <div className="relative z-10">
-              <div className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground mb-6">
+              <div className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground mb-4 md:mb-6">
                 Funding Opportunity
               </div>
-              <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-tight mb-6">
-                Apply for the <br /><span className="text-primary">Pilot Scholarship</span> Fund
+              <h2 className="text-2xl md:text-4xl font-black uppercase italic tracking-tighter leading-[1.1] mb-6">
+                Apply for the <span className="text-primary">Pilot Scholarship</span> Fund
               </h2>
-              <p className="text-lg opacity-80 mb-10 max-w-xl font-medium leading-relaxed">
+              <p className="text-base md:text-lg opacity-80 mb-8 md:mb-10 max-w-xl font-medium leading-relaxed">
                 We are prioritizing El Paso-based students and schools for the initial scholarship cohort. Protect your licensure status and your school's reputation with board-aligned theory intelligence.
               </p>
               <Button
-                className="bg-primary text-primary-foreground hover:bg-primary/90 px-10 py-7 text-xs font-black uppercase tracking-[0.3em] shadow-xl"
+                className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 h-14 md:h-16 px-8 md:px-10 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] shadow-xl"
                 asChild
               >
                 <Link href="/barber-school-pilot-scholarship-fund">
                   View Scholarship Details
-                  <ArrowRight className="ml-3 h-4 w-4" />
+                  <ArrowRight className="ml-3 h-4 w-4 shrink-0" />
                 </Link>
               </Button>
             </div>
