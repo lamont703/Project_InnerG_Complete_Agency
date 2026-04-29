@@ -54,6 +54,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
   const [isLoading, setIsLoading] = useState(true)
 
   const [userId, setUserId] = useState<string | null>(null)
+  const [schoolId, setSchoolId] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string>("")
   const [questionStartTime, setQuestionStartTime] = useState<number>(0)
   const [hasChangedAnswer, setHasChangedAnswer] = useState(false)
@@ -66,14 +67,28 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
     setIsLoading(true)
     try {
       const supabase = createBrowserClient()
+      
+      // 1. Fetch Questions
       const { data, error } = await supabase
         .from("question_bank")
         .select("*")
         .eq("is_active", true)
 
+      // 2. Fetch User & School Association
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
          setUserId(session.user.id)
+         
+         // Fetch the school_id associated with this project architecture
+         const { data: projectData } = await supabase
+            .from("projects")
+            .select("school_id")
+            .eq("slug", projectSlug)
+            .single()
+         
+         if (projectData?.school_id) {
+            setSchoolId(projectData.school_id)
+         }
       }
 
       if (error || !data) {
@@ -160,6 +175,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
         const supabase = createBrowserClient();
         (supabase.from("barber_exam_telemetry") as any).insert({
             student_id: userId,
+            school_id: schoolId,
             portal_slug: projectSlug,
             question_id: currentQuestion.id,
             domain: currentQuestion.rawDomain,

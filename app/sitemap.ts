@@ -16,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     'booksy-sovereign-intelligence-audit',
     'cognitive-architecture-blueprint',
     'cognitive-feedstock-15-data-sources',
+    'el-paso-barber-market-rescue-report',
     'mindbody-sovereign-intelligence-audit',
     'rebooking-intelligence-pilot',
     'the-feasibility-premium',
@@ -37,6 +38,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${baseUrl}/texas-barber-exam-intelligence-prep`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 1,
+    },
+    {
+      url: `${baseUrl}/barber-school-pilot-scholarship-fund`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 1,

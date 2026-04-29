@@ -28,152 +28,152 @@ const practiceQuestions = [
   {
     id: 1,
     category: "Sanitation & Safety",
-    question: "According to TDLR Chapter 82, how must a barber handle a porous item that has come into contact with blood or body fluids?",
+    question: "Which of the following is a type of pathogenic bacteria that grows in clusters like bunches of grapes and causes abscesses, pustules, and boils?",
     options: [
-      { id: "a", text: "Disinfect with 10% bleach solution for 10 minutes", isCorrect: false },
-      { id: "b", text: "Double-bag and discard immediately in a closed trash container", isCorrect: true },
-      { id: "c", text: "Wash with hot soapy water and reuse", isCorrect: false },
-      { id: "d", text: "Sterilize in an autoclave for 24 hours", isCorrect: false }
+      { id: "a", text: "Bacilli", isCorrect: false },
+      { id: "b", text: "Spirilla", isCorrect: false },
+      { id: "c", text: "Staphylococci", isCorrect: true },
+      { id: "d", text: "Diplococci", isCorrect: false }
     ],
     metadata: {
-      source: "TDLR Chapter 82.71(h)",
-      reasoning: "Porous items cannot be disinfected once contaminated. Standard safety protocol requires immediate disposal to prevent cross-contamination."
+      source: "Milady 6th Ed, Chapter 5, Page 74",
+      reasoning: "Staphylococci are pus-forming bacteria that grow in clusters like bunches of grapes. They cause abscesses, pustules, and boils."
     }
   },
   {
     id: 2,
-    category: "Anatomy & Physiology",
-    question: "The 'Tri-Geminal' nerve is also known as which cranial nerve?",
+    category: "Sanitation & Safety",
+    question: "Which type of bacteria are round-shaped and appear singly or in groups?",
     options: [
-      { id: "a", text: "Third Cranial Nerve", isCorrect: false },
-      { id: "b", text: "Fifth Cranial Nerve", isCorrect: true },
-      { id: "c", text: "Seventh Cranial Nerve", isCorrect: false },
-      { id: "d", text: "Tenth Cranial Nerve", isCorrect: false }
+      { id: "a", text: "Cocci", isCorrect: true },
+      { id: "b", text: "Bacilli", isCorrect: false },
+      { id: "c", text: "Spirilla", isCorrect: false },
+      { id: "d", text: "Flagella", isCorrect: false }
     ],
     metadata: {
-      source: "Milady Standard Barbering, Ch. 5",
-      reasoning: "The Fifth Cranial Nerve is the largest cranial nerve and serves as the primary sensory nerve of the face."
+      source: "Milady 6th Ed, Chapter 5, Page 74",
+      reasoning: "Cocci are spherical bacteria. Subtypes include Staphylococci (clusters), Streptococci (chains), and Diplococci (pairs)."
     }
   },
   {
     id: 3,
-    category: "Chemical Services",
-    question: "A solution with a pH of 3.5 is considered to be:",
+    category: "Sanitation & Safety",
+    question: "Which bacteria are short, rod-shaped and produce diseases such as tetanus and tuberculosis?",
     options: [
-      { id: "a", text: "Highly Alkaline", isCorrect: false },
-      { id: "b", text: "Acidic", isCorrect: true },
-      { id: "c", text: "Neutral", isCorrect: false },
-      { id: "d", text: "Slightly Alkaline", isCorrect: false }
+      { id: "a", text: "Cocci", isCorrect: false },
+      { id: "b", text: "Bacilli", isCorrect: true },
+      { id: "c", text: "Spirilla", isCorrect: false },
+      { id: "d", text: "Cilia", isCorrect: false }
     ],
     metadata: {
-      source: "Pivot Point Fundamentals",
-      reasoning: "The pH scale ranges from 0 to 14. Anything below 7 is acidic. 3.5 is significantly on the acidic side of the scale."
+      source: "Milady 6th Ed, Chapter 5, Page 75",
+      reasoning: "Bacilli are the most common type of bacteria and are rod-shaped. They produce diseases such as tetanus, typhoid fever, and tuberculosis."
     }
   },
   {
     id: 4,
-    category: "Hair Coloring",
-    question: "What is the primary factor that determines the processing time for a permanent hair color application?",
+    category: "Sanitation & Safety",
+    question: "The process that destroys all microbial life, including spores, is called:",
     options: [
-      { id: "a", text: "The length of the hair", isCorrect: false },
-      { id: "b", text: "The client's age", isCorrect: false },
-      { id: "c", text: "The texture and porosity of the hair", isCorrect: true },
-      { id: "d", text: "The type of shampoo used previously", isCorrect: false }
+      { id: "a", text: "Sanitation", isCorrect: false },
+      { id: "b", text: "Disinfection", isCorrect: false },
+      { id: "c", text: "Sterilization", isCorrect: true },
+      { id: "d", text: "Decontamination", isCorrect: false }
     ],
     metadata: {
-      source: "Milady Standard Barbering, Ch. 11",
-      reasoning: "Porosity (the hair's ability to absorb moisture) and texture (the diameter of the hair strand) directly affect how quickly color phentrates and processes."
+      source: "Milady 6th Ed, Chapter 5, Page 82",
+      reasoning: "Sterilization is the process that destroys all microbial life, including spores. Disinfection does not destroy spores."
     }
   },
   {
     id: 5,
-    category: "State Laws & Licensing",
-    question: "In Texas, how often must a Barber Shop license be renewed?",
+    category: "Sanitation & Safety",
+    question: "What is the term for the ability of a disinfectant to produce the intended effect as listed on the label?",
     options: [
-      { id: "a", text: "Every year", isCorrect: false },
-      { id: "b", text: "Every 2 years", isCorrect: true },
-      { id: "c", text: "Every 4 years", isCorrect: false },
-      { id: "d", text: "Only upon ownership change", isCorrect: false }
+      { id: "a", text: "Porosity", isCorrect: false },
+      { id: "b", text: "Efficacy", isCorrect: true },
+      { id: "c", text: "Solubility", isCorrect: false },
+      { id: "d", text: "Toxicity", isCorrect: false }
     ],
     metadata: {
-      source: "TDLR Occupations Code 1601.401",
-      reasoning: "TDLR requires a biennial renewal (every 2 years) for shop licenses to ensure consistent compliance with state safety and operational standards."
+      source: "Milady 6th Ed, Chapter 5, Page 84",
+      reasoning: "Efficacy claims on a label indicate the specific pathogens a disinfectant is proven to destroy when used according to instructions."
     }
   },
   {
     id: 6,
-    category: "Shaving Procedures",
-    question: "Which of the following is the first step in a professional facial shave?",
+    category: "Sanitation & Safety",
+    question: "Cleaning is defined as the mechanical method of using soap and water to remove:",
     options: [
-        { id: "a", text: "Lathering the face", isCorrect: false },
-        { id: "b", text: "Applying a warm towel", isCorrect: true },
-        { id: "c", text: "Testing the blade sharpness", isCorrect: false },
-        { id: "d", text: "Applying aftershave lotion", isCorrect: false }
+      { id: "a", text: "Spores", isCorrect: false },
+      { id: "b", text: "Visible dirt, debris, and many germs", isCorrect: true },
+      { id: "c", text: "All bacteria", isCorrect: false },
+      { id: "d", text: "Viruses only", isCorrect: false }
     ],
     metadata: {
-        source: "Milady Standard Barbering, Ch. 14",
-        reasoning: "Steam/Warm towels soften the hair and open the pores, preparing the skin for a smooth, irritation-free shaving surface."
+      source: "Milady 6th Ed, Chapter 5, Page 82",
+      reasoning: "Cleaning is the mechanical removal of visible debris and is the required first step in infection control."
     }
   },
   {
-      id: 7,
-      category: "Skin Care & Facials",
-      question: "Which skin type is characterized by an overproduction of sebum/oil?",
-      options: [
-          { id: "a", text: "Dry", isCorrect: false },
-          { id: "b", text: "Sensitive", isCorrect: false },
-          { id: "c", text: "Oily", isCorrect: true },
-          { id: "d", text: "Normal", isCorrect: false }
-      ],
-      metadata: {
-          source: "Pivot Point Fundamentals, Skin 1",
-          reasoning: "Sebum is the natural oil produced by sebaceous glands. Excessive production leads to what is professionally termed 'Oily' skin."
-      }
+    id: 7,
+    category: "Sanitation & Safety",
+    question: "The chemical process for reducing the number of disease-causing germs on cleaned surfaces to a safe level is:",
+    options: [
+      { id: "a", text: "Sanitizing", isCorrect: true },
+      { id: "b", text: "Disinfecting", isCorrect: false },
+      { id: "c", text: "Sterilizing", isCorrect: false },
+      { id: "d", text: "Decontaminating", isCorrect: false }
+    ],
+    metadata: {
+      source: "Milady 6th Ed, Chapter 5, Page 82",
+      reasoning: "Sanitizing reduces germs to a level deemed safe by public health standards."
+    }
   },
   {
-      id: 8,
-      category: "Tool Safety & Maintenance",
-      question: "What is the proper method for cleaning the blades of electric clippers between clients?",
-      options: [
-          { id: "a", text: "Dip the entire clipper in water", isCorrect: false },
-          { id: "b", text: "Wipe with a dry cloth only", isCorrect: false },
-          { id: "c", text: "Remove hair with a brush and apply EPA-registered disinfectant spray", isCorrect: true },
-          { id: "d", text: "Apply oil without cleaning hair", isCorrect: false }
-      ],
-      metadata: {
-          source: "Texas Administrative Code 82.72",
-          reasoning: "Barbers must use EPA-registered disinfectants on non-porous tools like clipper blades to prevent the transmission of bloodborne pathogens."
-      }
+    id: 8,
+    category: "Sanitation & Safety",
+    question: "Before disinfecting or sterilizing any tool, what must be done first?",
+    options: [
+      { id: "a", text: "Soak in alcohol", isCorrect: false },
+      { id: "b", text: "Rinse with cold water", isCorrect: false },
+      { id: "c", text: "Clean with soap and warm water to remove all visible debris", isCorrect: true },
+      { id: "d", text: "Spray with quats", isCorrect: false }
+    ],
+    metadata: {
+      source: "Milady 6th Ed, Chapter 5, Page 83",
+      reasoning: "Cleaning (removing all visible debris) is the required first step before disinfection can be effective."
+    }
   },
   {
-      id: 9,
-      category: "Nail Care",
-      question: "The whitish, half-moon shape at the base of the nail is called the:",
-      options: [
-          { id: "a", text: "Eponychium", isCorrect: false },
-          { id: "b", text: "Lunula", isCorrect: true },
-          { id: "c", text: "Matrix", isCorrect: false },
-          { id: "d", text: "Hyponychium", isCorrect: false }
-      ],
-      metadata: {
-          source: "Milady Standard Barbering, Ch. 6",
-          reasoning: "The lunula is the visible part of the matrix where the nail bed and matrix meet, often appearing as a white crescent."
-      }
+    id: 9,
+    category: "Sanitation & Safety",
+    question: "Quaternary ammonium compounds, also known as 'quats', are:",
+    options: [
+      { id: "a", text: "Always dangerous to humans", isCorrect: false },
+      { id: "b", text: "Infectious pathogens", isCorrect: false },
+      { id: "c", text: "Standard hospital disinfectants", isCorrect: true },
+      { id: "d", text: "Type of antiseptic", isCorrect: false }
+    ],
+    metadata: {
+      source: "Milady 6th Ed, Chapter 5, Page 85",
+      reasoning: "Quats are very effective disinfectants when used properly in a barber shop setting."
+    }
   },
   {
-      id: 10,
-      category: "Hair Treatment",
-      question: "In a permanent wave service, which bond is broken and rearranged to create the new curl pattern?",
-      options: [
-          { id: "a", text: "Hydrogen Bonds", isCorrect: false },
-          { id: "b", text: "Salt Bonds", isCorrect: false },
-          { id: "c", text: "Disulfide Bonds", isCorrect: true },
-          { id: "d", text: "Peptide Bonds", isCorrect: false }
-      ],
-      metadata: {
-          source: "Pivot Point Science, Ch. 3",
-          reasoning: "Chemical waving solutions (reducers) specifically target the strong disulfide bonds, allowing the hair to be reshaped on the rod."
-      }
+    id: 10,
+    category: "Sanitation & Safety",
+    question: "Items that are nonporous and can be used on more than one person are called:",
+    options: [
+      { id: "a", text: "Single-use items", isCorrect: false },
+      { id: "b", text: "Multi-use items", isCorrect: true },
+      { id: "c", text: "Porous items", isCorrect: false },
+      { id: "d", text: "Disposable items", isCorrect: false }
+    ],
+    metadata: {
+      source: "Milady 6th Ed, Chapter 5, Page 86",
+      reasoning: "Multi-use items must be cleaned and disinfected between each client use."
+    }
   }
 ]
 
@@ -295,7 +295,6 @@ export default function PublicSwipeDeckPage() {
                 </div>
               </motion.div>
             ) : (
-// ... existing swipe logic ...
               <motion.div
                 key={currentIndex}
                 initial={{ opacity: 0, x: 100, rotate: 5 }}
@@ -336,10 +335,10 @@ export default function PublicSwipeDeckPage() {
 
                            return (
                              <button
-                               key={option.id}
-                               onClick={() => handleOptionSelect(option.id)}
-                               disabled={gameState === "feedback"}
-                               className={`w-full text-left p-5 lg:p-6 rounded-2xl lg:rounded-3xl border-2 transition-all duration-500 flex items-start gap-4 lg:gap-6 ${stateStyles}`}
+                                key={option.id}
+                                onClick={() => handleOptionSelect(option.id)}
+                                disabled={gameState === "feedback"}
+                                className={`w-full text-left p-5 lg:p-6 rounded-2xl lg:rounded-3xl border-2 transition-all duration-500 flex items-start gap-4 lg:gap-6 ${stateStyles}`}
                              >
                                 <div className={`mt-1.5 h-6 w-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all duration-300 ${isSelected ? "border-primary bg-primary rotate-90" : "border-slate-200"}`}>
                                    {isSelected && <div className="h-2 w-2 bg-white rounded-full animate-ping" />}
