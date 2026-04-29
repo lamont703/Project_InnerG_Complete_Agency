@@ -13,6 +13,12 @@ import { createBrowserClient } from "@/lib/supabase/browser"
 import { toast } from "sonner"
 import { BarberSchoolSelector } from "./BarberSchoolSelector"
 import { cn } from "@/lib/utils"
+import {
+    trackScholarshipRegistration,
+    trackScholarshipFormError,
+    trackRoleSelected,
+    trackSchoolSelected,
+} from "@/lib/analytics"
 
 interface BarberRegisterFormProps {
     onSuccess?: (redirect: string) => void;
@@ -63,6 +69,7 @@ export function BarberRegisterForm({ onSuccess }: BarberRegisterFormProps) {
             
             if (data.success) {
                 toast.success("Account created! Finalizing your professional portal...")
+                trackScholarshipRegistration({ role: userRole, school: schoolData?.name || schoolData?.school_name || 'Unknown' })
                 
                 // 2. Perform Shadow Authentication Handshake
                 const supabase = createBrowserClient()
@@ -88,6 +95,7 @@ export function BarberRegisterForm({ onSuccess }: BarberRegisterFormProps) {
         } catch (err: any) {
             console.error("[Register] Error:", err)
             toast.error(err.message || "Failed to join program.")
+            trackScholarshipFormError(err.message || 'Unknown error')
         } finally {
             setIsRegistering(false)
         }
@@ -147,7 +155,7 @@ export function BarberRegisterForm({ onSuccess }: BarberRegisterFormProps) {
                         <button
                             key={role.id}
                             type="button"
-                            onClick={() => setUserRole(role.id as any)}
+                            onClick={() => { setUserRole(role.id as any); trackRoleSelected(role.id as any) }}
                             className={cn(
                                 "flex flex-col items-start p-3 rounded-xl border-2 transition-all text-left",
                                 userRole === role.id 
