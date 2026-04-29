@@ -23,6 +23,12 @@ import { cn } from "@/lib/utils"
 import { BarberSchoolSelector } from "@/components/forms/BarberSchoolSelector"
 import { BarberRegisterForm } from "@/components/forms/BarberRegisterForm"
 import { toast } from "sonner"
+import {
+  trackExamSessionStart,
+  trackExamAnswerSubmitted,
+  trackExamSessionComplete,
+  trackExamRetake
+} from "@/lib/analytics"
 
 const practiceQuestions = [
   {
@@ -185,6 +191,12 @@ export default function PublicSwipeDeckPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoginView, setIsLoginView] = useState(false)
   const [hasTriggeredMidway, setHasTriggeredMidway] = useState(false)
+  const [sessionStartTime, setSessionStartTime] = useState(0)
+
+  useEffect(() => {
+    trackExamSessionStart({ deck_type: 'public', question_count: practiceQuestions.length })
+    setSessionStartTime(Date.now())
+  }, [])
 
   const currentQuestion = practiceQuestions[currentIndex]
   const isCorrect = currentQuestion?.options.find(o => o.id === selectedOptionId)?.isCorrect
@@ -202,8 +214,17 @@ export default function PublicSwipeDeckPage() {
 
   const handleSubmit = () => {
     if (!selectedOptionId) return
-    if (isCorrect) setScore(prev => prev + 1)
+    const isAnsCorrect = !!isCorrect
+    if (isAnsCorrect) setScore(prev => prev + 1)
     setGameState("feedback")
+
+    trackExamAnswerSubmitted({
+      question_index: currentIndex,
+      domain: currentQuestion.category,
+      is_correct: isAnsCorrect,
+      time_spent_ms: Date.now() - sessionStartTime,
+      changed_answer: false
+    })
   }
 
   const handleNext = () => {
@@ -217,8 +238,16 @@ export default function PublicSwipeDeckPage() {
       setCurrentIndex(prev => prev + 1)
       setSelectedOptionId(null)
       setGameState("active")
+      setSessionStartTime(Date.now())
     } else {
       setGameState("finished")
+      const finalScore = isCorrect ? score + 1 : score
+      trackExamSessionComplete({
+        deck_type: 'public',
+        score: finalScore,
+        total: practiceQuestions.length,
+        pass_rate: finalScore / practiceQuestions.length
+      })
     }
   }
 
@@ -228,6 +257,8 @@ export default function PublicSwipeDeckPage() {
     setGameState("active")
     setScore(0)
     setHasTriggeredMidway(false)
+    setSessionStartTime(Date.now())
+    trackExamRetake('public')
   }
 
   return (

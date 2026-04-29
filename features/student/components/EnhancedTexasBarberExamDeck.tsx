@@ -17,6 +17,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import {
+  trackExamSessionStart,
+  trackExamAnswerSubmitted,
+  trackExamSessionComplete,
+  trackExamRetake
+} from "@/lib/analytics"
 
 type QuestionOption = {
   id: string
@@ -161,6 +167,14 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
     if (correct) setScore(prev => prev + 1)
     setGameState("feedback")
 
+    trackExamAnswerSubmitted({
+      question_index: currentIndex,
+      domain: currentQuestion?.rawDomain || "Unknown",
+      is_correct: correct,
+      time_spent_ms: timeSpentMs,
+      changed_answer: hasChangedAnswer
+    })
+
     if (!userId) {
         console.warn("TELEMETRY BLOCKED: No authenticated user session found. Cannot track anonymous data.");
     } else if (!currentQuestion?.rawDomain) {
@@ -201,6 +215,13 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
       setGameState("active")
     } else {
       setGameState("finished")
+      const finalScore = isCorrect ? score + 1 : score
+      trackExamSessionComplete({
+        deck_type: 'enhanced',
+        score: finalScore,
+        total: questions.length,
+        pass_rate: finalScore / questions.length
+      })
     }
   }
 
@@ -211,6 +232,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
     setScore(0)
     setHasChangedAnswer(false)
     setSessionId(crypto.randomUUID())
+    trackExamRetake('enhanced')
     fetchQuestions()
   }
 
@@ -218,6 +240,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
     setGameState("active")
     setQuestionStartTime(Date.now())
     setHasChangedAnswer(false)
+    trackExamSessionStart({ deck_type: 'enhanced', question_count: questions.length })
   }
 
   if (isLoading || questions.length === 0) {

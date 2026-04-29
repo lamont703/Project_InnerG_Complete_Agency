@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/popover"
 import { TEXAS_BARBER_SCHOOLS } from "@/lib/schools"
 import { motion, AnimatePresence } from "framer-motion"
+import { trackSchoolSelected } from "@/lib/analytics"
 
 interface BarberSchoolSelectorProps {
   onSelect: (value: { name: string; city: string; state: string; isOther: boolean }) => void
@@ -37,11 +38,13 @@ export function BarberSchoolSelector({ onSelect }: BarberSchoolSelectorProps) {
       setIsOther(true)
       setValue("other")
       setOpen(false)
+      trackSchoolSelected('Other / Not Listed')
       onSelect({ name: "", city: "", state: "TX", isOther: true })
     } else {
       setIsOther(false)
       setValue(currentValue)
       setOpen(false)
+      trackSchoolSelected(currentValue)
       onSelect({ name: currentValue, city: "", state: "TX", isOther: false })
     }
   }
