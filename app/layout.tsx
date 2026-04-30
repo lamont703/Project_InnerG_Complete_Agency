@@ -14,6 +14,7 @@ const _jetbrainsMono = JetBrains_Mono({
 })
 
 import { headers } from 'next/headers'
+import { AnalyticsProvider } from '@/components/providers/analytics-provider'
 
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = await headers()
@@ -200,14 +201,16 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Analytics />
-          <FacebookSDK>
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }`,
-              }}
-            />
-            {children}
-          </FacebookSDK>
+          <AnalyticsProvider>
+            <FacebookSDK>
+              <script
+                dangerouslySetInnerHTML={{
+                  __html: `if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }`,
+                }}
+              />
+              {children}
+            </FacebookSDK>
+          </AnalyticsProvider>
 
           {/* Inner G Complete Agency Pixel */}
           <Script 

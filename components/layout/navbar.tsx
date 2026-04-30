@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Menu, X, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { trackNavClick, trackCTAClick } from "@/lib/analytics"
 
 const navLinks = [
   { label: "Innovation", href: "/#services" },
@@ -33,6 +34,7 @@ export function Navbar() {
         window.history.pushState(null, '', href);
       }
     }
+    trackNavClick(e.currentTarget.textContent || href, href);
     setIsMobileOpen(false);
   };
 
@@ -86,7 +88,10 @@ export function Navbar() {
             className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1 lg:gap-2"
             asChild
           >
-            <Link href="/login">
+            <Link 
+              href="/login" 
+              onClick={() => trackCTAClick({ cta_label: 'Get Started', page: 'Navbar', destination: '/login' })}
+            >
               Get Started
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -117,7 +122,13 @@ export function Navbar() {
             ))}
             <div className="mt-3 border-t border-border pt-3">
               <Button className="w-full bg-primary text-primary-foreground gap-2" asChild>
-                <Link href="/login" onClick={() => setIsMobileOpen(false)}>
+                <Link 
+                  href="/login" 
+                  onClick={() => {
+                    setIsMobileOpen(false);
+                    trackCTAClick({ cta_label: 'Get Started (Mobile)', page: 'Navbar', destination: '/login' });
+                  }}
+                >
                   Get Started
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>

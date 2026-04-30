@@ -36,10 +36,17 @@ export const metadata: Metadata = {
   },
 }
 
+import { ScrollTracker } from '@/components/insights/scroll-tracker'
+
 export default function InsightsLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <>{children}</>
+  return (
+    <>
+      <ScrollTracker />
+      {children}
+    </>
+  )
 }
