@@ -18,6 +18,7 @@ import {
     trackScholarshipFormError,
     trackRoleSelected,
     trackSchoolSelected,
+    trackFormFieldFocus,
 } from "@/lib/analytics"
 
 interface BarberRegisterFormProps {
@@ -113,6 +114,7 @@ export function BarberRegisterForm({ onSuccess }: BarberRegisterFormProps) {
                         placeholder="Lamont" 
                         value={formData.firstName} 
                         onChange={(e) => setFormData({...formData, firstName: e.target.value})} 
+                        onFocus={() => trackFormFieldFocus('First Name')}
                         className="w-full bg-background border-2 border-slate-100 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" 
                     />
                 </div>
@@ -125,6 +127,7 @@ export function BarberRegisterForm({ onSuccess }: BarberRegisterFormProps) {
                         placeholder="Evans" 
                         value={formData.lastName} 
                         onChange={(e) => setFormData({...formData, lastName: e.target.value})} 
+                        onFocus={() => trackFormFieldFocus('Last Name')}
                         className="w-full bg-background border-2 border-slate-100 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" 
                     />
                 </div>
@@ -140,6 +143,7 @@ export function BarberRegisterForm({ onSuccess }: BarberRegisterFormProps) {
                     placeholder="lamont@example.com" 
                     value={formData.email} 
                     onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                    onFocus={() => trackFormFieldFocus('Email Address')}
                     className="w-full bg-background border-2 border-slate-100 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" 
                 />
             </div>
@@ -178,6 +182,7 @@ export function BarberRegisterForm({ onSuccess }: BarberRegisterFormProps) {
                     placeholder="(555) 000-0000" 
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    onFocus={() => trackFormFieldFocus('Phone Number')}
                     className="w-full bg-background border-2 border-slate-100 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" 
                 />
             </div>
@@ -191,6 +196,7 @@ export function BarberRegisterForm({ onSuccess }: BarberRegisterFormProps) {
                     placeholder="••••••••" 
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    onFocus={() => trackFormFieldFocus('Create Password')}
                     className="w-full bg-background border-2 border-slate-100 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none" 
                 />
             </div>

@@ -31,6 +31,16 @@ function gtagEvent(eventName: string, params: Record<string, any> = {}) {
   })
 }
 
+/**
+ * Pushes the authenticated user's ID to GA4 to stitch cross-device sessions.
+ */
+export function setUserId(userId: string) {
+  if (typeof window === 'undefined' || typeof window.gtag !== 'function') return
+  window.gtag('config', GA_ID, {
+    user_id: userId,
+  })
+}
+
 // ─────────────────────────────────────────────────────────────
 // 🎓 SCHOLARSHIP FUND FUNNEL EVENTS
 // ─────────────────────────────────────────────────────────────
@@ -86,6 +96,14 @@ export function trackScholarshipRegistration(params: {
     event_category: 'Scholarship Funnel',
     role: params.role,
     school: params.school,
+  })
+}
+
+/** User focuses on or abandons a specific form field */
+export function trackFormFieldFocus(fieldName: string) {
+  gtagEvent('scholarship_form_field_focus', {
+    event_category: 'Scholarship Funnel',
+    event_label: fieldName,
   })
 }
 
