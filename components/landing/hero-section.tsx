@@ -30,19 +30,33 @@ export function HeroSection() {
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
       {/* Video Background */}
       <div className="absolute inset-0 z-0 overflow-hidden bg-background">
+        {/* Desktop Video - Optimized for Landscape */}
         <video
           autoPlay
           loop
           muted
           playsInline
-          className="h-full w-full object-cover object-center opacity-60 md:opacity-50"
+          className="hidden md:block h-full w-full object-cover opacity-50"
         >
           <source src="/barber_hero_section_video.mp4" type="video/mp4" />
         </video>
+
+        {/* Mobile Video - Optimized for Portrait/Phone View */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="block md:hidden h-full w-full object-cover object-center opacity-60"
+        >
+          <source src="/barber_hero_mobile_phone_view.mp4" type="video/mp4" />
+        </video>
+
         {/* Dynamic Overlay for Depth and Readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/60 to-background" />
         <div className="absolute inset-0 bg-black/30 md:bg-black/20" />
       </div>
+
 
 
 
