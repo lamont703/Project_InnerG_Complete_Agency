@@ -28,21 +28,23 @@ export function HeroSection() {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-      {/* Background orbs */}
-      <GlowOrb className="top-1/4 -left-32 h-96 w-96 bg-primary/15 animate-float" />
-      <GlowOrb className="bottom-1/4 -right-32 h-80 w-80 bg-accent/12 animate-float-delayed" />
-      <GlowOrb className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] bg-primary/5" />
+      {/* Video Background */}
+      <div className="absolute inset-0 z-0 overflow-hidden bg-background">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="h-full w-full object-cover object-center opacity-60 md:opacity-50"
+        >
+          <source src="/barber_hero_section_video.mp4" type="video/mp4" />
+        </video>
+        {/* Dynamic Overlay for Depth and Readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/60 to-background" />
+        <div className="absolute inset-0 bg-black/30 md:bg-black/20" />
+      </div>
 
-      {/* Grid pattern */}
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            "linear-gradient(oklch(0.7 0.15 220 / 0.3) 1px, transparent 1px), linear-gradient(90deg, oklch(0.7 0.15 220 / 0.3) 1px, transparent 1px)",
-          backgroundSize: "80px 80px",
-        }}
-        aria-hidden="true"
-      />
+
 
       <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
         {/* Badge */}
@@ -61,9 +63,11 @@ export function HeroSection() {
           </span>
         </h1>
 
-        <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl text-balance">
-          We partner with Beauty, Grooming, and Wellness enterprises to architect, build, and scale custom AI and Blockchain intelligence that drive institutional-grade innovation and lasting market authority.
+        <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-white sm:text-xl text-balance">
+          Architecting custom AI and Blockchain for Beauty, Grooming, and Wellness leaders to drive institutional-grade innovation.
         </p>
+
+
 
         {/* CTAs */}
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">

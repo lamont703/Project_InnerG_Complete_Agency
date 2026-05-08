@@ -22,6 +22,7 @@ const footerLinks = {
     { label: "About Us", href: "/about" },
     { label: "Careers", href: "/careers" },
     { label: "Contact", href: "/contact" },
+    { label: "Sitemap", href: "/sitemap.xml" },
   ],
 }
 
