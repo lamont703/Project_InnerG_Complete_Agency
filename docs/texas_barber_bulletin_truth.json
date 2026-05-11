@@ -1,0 +1,230 @@
+{
+  "exam_blueprint": [
+    {
+      "topic_name": "Licensing and Regulation",
+      "question_count": 13,
+      "percentage": null
+    },
+    {
+      "topic_name": "Health and Safety Responsibilities of the Practitioner",
+      "sub_topics": [
+        "Sanitation, Disinfection, and Safety",
+        "Cleaning and Disinfecting of Implements, Equipment, and Work Environment",
+        "Sanitary and Safety Procedures",
+        "Pathogens and Bacteria",
+        "Hair, Skin, and Scalp Disorders",
+        "Exposure Incidents"
+      ],
+      "question_count": 25,
+      "percentage": null
+    },
+    {
+      "topic_name": "Hair and Scalp Care",
+      "sub_topics": [
+        "Chemical Processing and Procedures",
+        "Product Knowledge",
+        "Hair and Scalp Physiology"
+      ],
+      "question_count": 4,
+      "percentage": null
+    },
+    {
+      "topic_name": "Haircutting and Hairstyling",
+      "sub_topics": [
+        "Consultation and Analysis",
+        "Cutting Hair",
+        "Styling Hair"
+      ],
+      "question_count": 12,
+      "percentage": null
+    },
+    {
+      "topic_name": "Haircoloring",
+      "sub_topics": [
+        "Consultation and Analysis",
+        "Haircoloring Procedures",
+        "Haircoloring Products"
+      ],
+      "question_count": 6,
+      "percentage": null
+    },
+    {
+      "topic_name": "Chemical Texture Services",
+      "sub_topics": [
+        "Consultation and Analysis",
+        "Permanent Waving",
+        "Relaxing",
+        "Chemical Texture Products"
+      ],
+      "question_count": 6,
+      "percentage": null
+    },
+    {
+      "topic_name": "Nail and Skin Care",
+      "sub_topics": [
+        "Nail and Skin Physiology",
+        "Manicure",
+        "Facial Treatments"
+      ],
+      "question_count": 4,
+      "percentage": null
+    },
+    {
+      "topic_name": "Shaving",
+      "sub_topics": [
+        "Preparation",
+        "Shaving Areas",
+        "Techniques",
+        "Client Protection",
+        "Razor Safety"
+      ],
+      "question_count": 15,
+      "percentage": null
+    }
+  ],
+  "regulatory_codes": [
+    {
+      "code": "Texas Administrative Code, Chapter 83",
+      "description": "Reference material for written examination questions."
+    },
+    {
+      "code": "Texas Occupations Code, Chapter 1603",
+      "description": "Reference material for written examination questions."
+    }
+  ],
+  "sanitation_standards": [],
+  "licensing_requirements": {
+    "eligibility_duration": "5 years",
+    "retake_policy": "Unlimited number of times within eligibility period; must wait 24 hours after failure before rescheduling; cannot retake on the same day as failed attempt.",
+    "fees": {
+      "written_examination": "$55 USD",
+      "practical_examination": "$76 USD",
+      "refund_policy": "Fees are not refundable or transferable.",
+      "forfeiture_policy": "Examination fee will be forfeited if not tested within 1 year of receipt by PSI."
+    }
+  },
+  "exam_logistics": {
+    "identification_requirements": {
+      "type": "1 form of valid government-issued ID",
+      "examples": [
+        "Passport book",
+        "Foreign passport book",
+        "Driver's license",
+        "State ID"
+      ],
+      "required_biographical_information": [
+        "Printed name",
+        "Photograph",
+        "Signature or fingerprint",
+        "Date of birth",
+        "Expiration date"
+      ],
+      "unacceptable_ids": [
+        "Passport cards"
+      ],
+      "special_conditions": {
+        "temporary_licenses": "Accepted only if accompanied by expired/invalid license or another photo ID.",
+        "public_high_school_ids": "Current IDs are valid when accompanied by a TDLR student permit photocopy. Post-graduation IDs are valid until August 31 of that year.",
+        "community_college_ids": "Current IDs are valid government-issued IDs and require only printed name, photograph, and date of birth.",
+        "name_matching": "Identification provided must match all information provided by TDLR to PSI upon eligibility. Test taker responsibility to ensure name correctness with TDLR."
+      },
+      "digital_copy": "A digital copy of ID documentation will be taken upon check-in and stored."
+    },
+    "dress_code": {
+      "practical_exam": "Must be appropriately dressed. Failure to do so results in forfeiture of fee.",
+      "general": "Bulky or loose clothing or coats are prohibited, including open sweaters, cardigans, shawls, scarves, vests, jackets, and coats. Appropriate attire should be worn underneath if asked to remove outerwear."
+    },
+    "psi_test_center_rules": {
+      "arrival_time": "Arrive 30 minutes prior to scheduled appointment time for check-in, ID verification, and familiarization.",
+      "communication": "No conversing or other forms of communication among candidates permitted once entering the examination area.",
+      "late_arrival": "Not admitted and fee forfeited.",
+      "appropriate_attire": "Must be dressed appropriately for the Practical Examination; otherwise, not admitted and fee forfeited.",
+      "accompanying_persons": "Person(s) accompanying a candidate may not wait in the examination center, building, or on the building's property.",
+      "leaving_room": "May only leave the examination room to use the restroom with proctor permission. No extra time will be given.",
+      "prohibited_items": [
+        "Reference materials of any kind.",
+        "Electronic devices (cellular phones, cameras, computers, earbuds, electronic games, electronic watches, handheld calculators, headsets, mobile devices, music players, pagers, radios, recording devices, smart watches, televisions, etc.).",
+        "Hats or headgear not worn for religious reasons or as religious apparel (e.g., hats, baseball caps, visors).",
+        "Bulky or loose clothing or coats.",
+        "Backpacks, briefcases, chewing gum, drinks, food, good luck items, notebooks, paper or other materials on which to write, pens, pencils or other writing devices, purses, reading material, smoking or chewing products, wallets, etc."
+      ],
+      "prohibited_behavior": [
+        "Giving or receiving assistance on an examination.",
+        "Copying or communicating examination content.",
+        "Using outside references or resources (browsing local resources, browsing the internet, using unapproved computer programs or telephones/mobile devices, using notepad on computer, using unapproved applications).",
+        "Disruptive behavior (inappropriate manner, abusive language, speaking aloud, causing unrelated noise).",
+        "Reading questions out loud.",
+        "Leaving the room without proctor approval.",
+        "Using instant messaging or other electronic communication.",
+        "Capturing a picture or video of exam items.",
+        "Attempting to use telephone or mobile device.",
+        "Obstructing the proctor's view.",
+        "Having inappropriate materials on desktop.",
+        "Changing spaces during the exam without proctor approval.",
+        "Not focusing eyes on the screen."
+      ],
+      "check_in_procedures": [
+        "Candidates will be asked if they possess any prohibited items.",
+        "May be asked to empty pockets.",
+        "May be asked to lift sleeves and pant legs.",
+        "Eyeglass frames, tie tacks, or apparel that could harbor a recording device will be inspected.",
+        "Items will be stored securely or returned to vehicle for test center exams.",
+        "PSI is not responsible for security of personal belongings or prohibited items.",
+        "Examination terminated if prohibited items or behavior is found."
+      ],
+      "security_violations": "May result in disqualification of results, prohibition from future exams, and legal action."
+    },
+    "remote_proctored_exam_rules": {
+      "computer_compatibility": "Candidate must check compatibility of computer (Audio/Video Check, Webcam Check, System Check) prior to testing.",
+      "launch_window": "May launch the test within 30 minutes of booked test time.",
+      "forfeiture_policy": "Forfeits test fee or eligibility if test is not started within 15 minutes after booked time.",
+      "prohibited_items": [
+        "Earbuds, earphones, hats, caps, hood, shades, or anything that can be placed on the head or face.",
+        "Food and Drinks.",
+        "All personal items must be removed from the work area."
+      ],
+      "prohibited_behavior": [
+        "Leaving the station during the exam.",
+        "Covering mouth for the whole duration of exam.",
+        "Talking/whispering/mouthing.",
+        "Keeping hands away from face.",
+        "Taking a screenshot or photo of the exam or exam results.",
+        "Temporarily moving out of the camera's line of sight.",
+        "Changing computers during the exam.",
+        "Changing spaces during the exam.",
+        "Not following proctor instructions (e.g., keeping hands on desktop, keeping eyes on screen, not fidgeting, keeping hands away from face)."
+      ],
+      "requirements": [
+        "Adequate lighting for proctor to see candidate's activity.",
+        "Sufficient internet service.",
+        "Web camera placed for ideal viewing by proctor."
+      ],
+      "breaks": "Breaks are NOT allowed. If a break is needed, do not register for remote online proctored examinations."
+    },
+    "foreign_language_options": {
+      "available_languages": [
+        "Spanish",
+        "Vietnamese",
+        "Korean",
+        "Simplified Chinese"
+      ],
+      "cost": "No additional cost for Spanish, Vietnamese, Korean, and Simplified Chinese. Additional cost for other languages, determined by PSI.",
+      "translation_dictionary": "Bound word-to-word translation dictionary permitted, cannot contain pictures or definitions. No additional papers allowed. Highlighting, underlining, indexing, or marking is prohibited and will result in forfeiture and reporting to TDLR."
+    },
+    "exam_review_policy": "Written examination comments can be provided via a 'Comments' link. Comments are analyzed by PSI, but PSI does not respond to individuals. If discrepancies are found, PSI and TDLR may re-evaluate results. No review of the Practical examination available.",
+    "rescheduling_policy": "May reschedule without forfeiting fee if notice is received 2 days before the scheduled examination date. Rescheduling can be done via website or by calling PSI. Voicemail is not an acceptable form of cancellation.",
+    "fees_lost_policy": "Registration invalidated, examination cannot be taken, and fee forfeited if: not rescheduling at least 2 days before; not appearing for appointment; arriving after start time; not presenting proper identification; not dressed appropriately for Practical Examination.",
+    "scheduling_eligibility": "Must be approved by TDLR. Examination eligibilities are good for 5 years. May test an unlimited number of times during this period. A separate fee is required for each attempt."
+  },
+  "technical_glossary": {
+    "pathogens": null,
+    "bacteria": null,
+    "disinfection": null,
+    "sanitation": null,
+    "mannequin": "Used for performing practical examination procedures.",
+    "proctor": "An individual who monitors candidates during an examination.",
+    "remote_proctoring": "Supervision of an examination via a remote connection, typically using a computer with webcam and microphone.",
+    "e-exams": "Electronic examinations, often taken remotely.",
+    "diagnostic_report": "A report provided to candidates who fail an exam, indicating strengths and weaknesses by examination type."
+  }
+}

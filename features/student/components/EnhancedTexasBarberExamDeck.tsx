@@ -12,7 +12,9 @@ import {
   ChevronRight,
   Sparkles,
   ArrowLeft,
-  Loader2
+  Loader2,
+  Lock,
+  Unlock
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -35,15 +37,13 @@ type Question = {
   category: string
   rawDomain: string
   question: string
+  psiQuestion?: string
   options: QuestionOption[]
   metadata: {
     source: string
     reasoning: string
   }
 }
-
-
-
 
 interface EnhancedTexasBarberExamDeckProps {
     projectSlug: string;
@@ -55,6 +55,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [gameState, setGameState] = useState<"intro" | "active" | "feedback" | "finished">("intro")
   const [score, setScore] = useState(0)
+  const [isPsiMode, setIsPsiMode] = useState(false)
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -74,10 +75,10 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
     try {
       const supabase = createBrowserClient()
       
-      // 1. Fetch Questions
+      // 1. Fetch Questions (Now including psi_syntax_text)
       const { data, error } = await supabase
         .from("question_bank")
-        .select("*")
+        .select("id, domain, question, options, correct_index, explanation, source_ref, difficulty_level, psi_syntax_text")
         .eq("is_active", true)
 
       // 2. Fetch User & School Association
@@ -85,7 +86,6 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
       if (session?.user) {
          setUserId(session.user.id)
          
-         // Fetch the school_id associated with this project architecture
          const { data: projectData } = await (supabase.from("projects") as any)
             .select("school_id")
             .eq("slug", projectSlug)
@@ -102,15 +102,12 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
         return
       }
 
-      // Shuffle logic
+      // Shuffle and select exactly 10
       const shuffledData = [...data].sort(() => 0.5 - Math.random())
-      const selected = shuffledData.slice(0, 10) // exactly 10
+      const selected = shuffledData.slice(0, 10)
 
       const mapped: Question[] = selected.map((q: any) => {
         let opts = q.options
-        if (typeof opts === 'string') {
-           try { opts = JSON.parse(opts) } catch(e){}
-        }
         if (typeof opts === 'string') {
            try { opts = JSON.parse(opts) } catch(e){}
         }
@@ -128,6 +125,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
           category: cat,
           rawDomain: q.domain,
           question: q.question,
+          psiQuestion: q.psi_syntax_text,
           options: mappedOptions,
           metadata: {
             source: q.source_ref,
@@ -172,19 +170,11 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
       domain: currentQuestion?.rawDomain || "Unknown",
       is_correct: correct,
       time_spent_ms: timeSpentMs,
-      changed_answer: hasChangedAnswer
+      changed_answer: hasChangedAnswer,
+      exam_mode: isPsiMode ? 'psi_simulation' : 'standard'
     })
 
-    if (!userId) {
-        console.warn("TELEMETRY BLOCKED: No authenticated user session found. Cannot track anonymous data.");
-    } else if (!currentQuestion?.rawDomain) {
-        console.warn("TELEMETRY BLOCKED: Question is missing a rawDomain mapping.");
-    } else if (!projectSlug) {
-        console.warn("TELEMETRY BLOCKED: Missing projectSlug in portal instance.");
-    }
-
     if (userId && currentQuestion?.rawDomain && projectSlug) {
-        console.log(`Firing telemetry signal for User: ${userId} | Domain: ${currentQuestion.rawDomain}`);
         const supabase = createBrowserClient();
         (supabase.from("barber_exam_telemetry") as any).insert({
             student_id: userId,
@@ -195,14 +185,12 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
             is_correct: correct,
             time_spent_ms: timeSpentMs,
             changed_answer: hasChangedAnswer,
-            session_id: sessionId
-        }).then(({error}: any) => {
-            if (error) {
-                console.error("Supabase RLS or Insert Error:", error);
-            } else {
-                console.log("Telemetry securely recorded.");
+            session_id: sessionId,
+            metadata: {
+                mode: isPsiMode ? 'psi_simulation' : 'standard',
+                syntax_used: isPsiMode ? 'PSI' : 'Milady'
             }
-        }).catch((err: any) => console.error("Telemetry Exception:", err));
+        });
     }
   }
 
@@ -220,7 +208,8 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
         deck_type: 'enhanced',
         score: finalScore,
         total: questions.length,
-        pass_rate: finalScore / questions.length
+        pass_rate: finalScore / questions.length,
+        mode: isPsiMode ? 'psi_simulation' : 'standard'
       })
     }
   }
@@ -240,7 +229,11 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
     setGameState("active")
     setQuestionStartTime(Date.now())
     setHasChangedAnswer(false)
-    trackExamSessionStart({ deck_type: 'enhanced', question_count: questions.length })
+    trackExamSessionStart({ 
+        deck_type: 'enhanced', 
+        question_count: questions.length,
+        mode: isPsiMode ? 'psi_simulation' : 'standard'
+    })
   }
 
   if (isLoading || questions.length === 0) {
@@ -252,15 +245,12 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
     )
   }
 
-
   return (
     <div className="flex-1 flex flex-col h-full bg-background/50 relative overflow-hidden">
-        {/* Background ambient depth */}
         <div className="absolute inset-0 bg-gradient-to-br from-violet-500/[0.02] via-transparent to-primary/[0.02] pointer-events-none" />
         
         <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full p-4 lg:p-12 relative z-10 overflow-y-auto no-scrollbar">
             
-            {/* Header Stats */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-12 px-2 gap-6">
                 <div className="flex flex-col">
                     <div className="flex items-center gap-2 mb-2">
@@ -277,9 +267,12 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
                         <span className="text-[10px] block font-black uppercase text-muted-foreground mb-1">Progress</span>
                         <span className="text-sm lg:text-lg font-black text-foreground">{currentIndex + 1} / {questions.length}</span>
                     </div>
-                    <div className="bg-primary text-white px-4 lg:px-6 py-2 lg:py-3 rounded-2xl shadow-lg shadow-primary/20 flex-1 sm:flex-none text-center">
+                    <div className={cn(
+                        "px-4 lg:px-6 py-2 lg:py-3 rounded-2xl shadow-lg flex-1 sm:flex-none text-center transition-colors duration-500",
+                        isPsiMode ? "bg-rose-600 shadow-rose-600/20" : "bg-primary shadow-primary/20"
+                    )}>
                         <span className="text-[10px] block font-black uppercase text-white/60 mb-1">Score</span>
-                        <span className="text-sm lg:text-lg font-black">{score}</span>
+                        <span className="text-sm lg:text-lg font-black text-white">{score}</span>
                     </div>
                 </div>
                 )}
@@ -303,15 +296,46 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
                              Intelligence <span className="text-primary">Audit</span>
                          </h2>
                          <p className="text-muted-foreground font-medium text-sm md:text-base lg:text-lg leading-relaxed">
-                            This 10-cycle audit analyzes your domain mastery and decision latency across the Texas Board framework. 
+                            Analyze your domain mastery across the Texas Board framework. 
                             Your response time and behavioral pivots are recorded securely to build your predictive mastery profile.
                          </p>
                       </div>
+
+                      {/* PSI Mode Toggle */}
+                      <div className="w-full max-w-sm glass-panel p-4 rounded-3xl border border-primary/10 flex items-center justify-between group cursor-pointer hover:border-primary/30 transition-all" onClick={() => setIsPsiMode(!isPsiMode)}>
+                        <div className="flex items-center gap-3">
+                            <div className={cn(
+                                "h-10 w-10 rounded-2xl flex items-center justify-center transition-colors",
+                                isPsiMode ? "bg-rose-500/10 text-rose-500" : "bg-primary/10 text-primary"
+                            )}>
+                                {isPsiMode ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Simulation Mode</span>
+                                <span className={cn("text-xs font-black uppercase tracking-tighter", isPsiMode ? "text-rose-500" : "text-primary")}>
+                                    {isPsiMode ? "Linguistic Stress Test Active" : "Standard Learning Mode"}
+                                </span>
+                            </div>
+                        </div>
+                        <div className={cn(
+                            "w-12 h-6 rounded-full p-1 transition-colors duration-300",
+                            isPsiMode ? "bg-rose-500" : "bg-muted"
+                        )}>
+                            <div className={cn(
+                                "h-4 w-4 bg-white rounded-full transition-transform duration-300",
+                                isPsiMode ? "translate-x-6" : "translate-x-0"
+                            )} />
+                        </div>
+                      </div>
+
                       <Button 
                           onClick={handleStart}
-                          className="mt-8 h-16 md:h-20 px-8 md:px-12 bg-primary text-white hover:bg-primary/90 text-sm md:text-lg font-black uppercase tracking-[0.2em] md:tracking-[0.4em] rounded-[1.5rem] md:rounded-[2rem] transition-all shadow-2xl shadow-primary/30 flex items-center"
+                          className={cn(
+                            "mt-8 h-16 md:h-20 px-8 md:px-12 text-white text-sm md:text-lg font-black uppercase tracking-[0.2em] md:tracking-[0.4em] rounded-[1.5rem] md:rounded-[2rem] transition-all shadow-2xl flex items-center",
+                            isPsiMode ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/30" : "bg-primary hover:bg-primary/90 shadow-primary/30"
+                          )}
                       >
-                          Begin Knowledge Audit
+                          {isPsiMode ? "Initiate PSI Stress Test" : "Begin Knowledge Audit"}
                           <ArrowRight className="ml-3 h-5 w-5 md:h-6 md:w-6" />
                       </Button>
                   </motion.div>
@@ -362,18 +386,34 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
                     className="flex-1 flex flex-col"
                 >
                     <div className="flex-1 glass-panel rounded-[2rem] lg:rounded-[4rem] p-5 lg:p-14 border border-primary/5 flex flex-col relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 h-32 lg:h-64 w-32 lg:w-64 bg-primary/5 rounded-bl-[5rem] lg:rounded-bl-[10rem] -mr-10 lg:-mr-20 -mt-10 lg:-mt-20 group-hover:bg-primary/10 transition-all duration-700" />
+                    <div className={cn(
+                        "absolute top-0 right-0 h-32 lg:h-64 w-32 lg:w-64 rounded-bl-[5rem] lg:rounded-bl-[10rem] -mr-10 lg:-mr-20 -mt-10 lg:-mt-20 transition-all duration-700",
+                        isPsiMode ? "bg-rose-500/10" : "bg-primary/5 group-hover:bg-primary/10"
+                    )} />
                     
                     <div className="relative z-10 flex flex-col h-full">
-                        <div className="flex items-center gap-3 mb-6 lg:mb-10">
-                            <div className="h-8 lg:h-10 w-8 lg:w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                                <BookOpen className="h-4 lg:h-5 w-4 lg:w-5 text-primary" />
+                        <div className="flex items-center justify-between mb-6 lg:mb-10">
+                            <div className="flex items-center gap-3">
+                                <div className={cn(
+                                    "h-8 lg:h-10 w-8 lg:w-10 rounded-xl flex items-center justify-center",
+                                    isPsiMode ? "bg-rose-500/10" : "bg-primary/10"
+                                )}>
+                                    <BookOpen className={cn("h-4 lg:h-5 w-4 lg:w-5", isPsiMode ? "text-rose-500" : "text-primary")} />
+                                </div>
+                                <span className={cn("text-[10px] lg:text-xs font-black uppercase tracking-[0.4em]", isPsiMode ? "text-rose-500" : "text-primary")}>
+                                    {currentQuestion.category}
+                                </span>
                             </div>
-                            <span className="text-[10px] lg:text-xs font-black uppercase tracking-[0.4em] text-primary">{currentQuestion.category}</span>
+                            {isPsiMode && (
+                                <div className="bg-rose-600 text-white px-3 py-1 rounded-lg flex items-center gap-2 shadow-lg shadow-rose-600/20">
+                                    <Lock className="h-3 w-3" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">PSI Stress Test</span>
+                                </div>
+                            )}
                         </div>
 
                         <h3 className="text-xl lg:text-4xl font-black text-foreground leading-[1.1] lg:leading-[1.05] tracking-tight mb-8 lg:mb-12">
-                            {currentQuestion.question}
+                            {isPsiMode && currentQuestion.psiQuestion ? currentQuestion.psiQuestion : currentQuestion.question}
                         </h3>
 
                         <div className="space-y-3 lg:space-y-4 flex-1">
@@ -388,7 +428,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
                                 disabled={gameState === "feedback"}
                                 className={cn(
                                     "w-full text-left p-4 lg:p-8 rounded-[1.5rem] lg:rounded-[2rem] border-2 transition-all duration-500 flex items-start gap-4 lg:gap-6",
-                                    isSelected && !isShownFeedback ? "border-primary bg-primary/5 translate-x-1 ring-2 ring-primary/5" : "border-border hover:border-primary/50 bg-background/50 hover:translate-x-1",
+                                    isSelected && !isShownFeedback ? (isPsiMode ? "border-rose-500 bg-rose-500/5 translate-x-1 ring-2 ring-rose-500/5" : "border-primary bg-primary/5 translate-x-1 ring-2 ring-primary/5") : "border-border hover:border-primary/50 bg-background/50 hover:translate-x-1",
                                     isShownFeedback && option.isCorrect && "border-emerald-500 bg-emerald-500/10 translate-x-2 shadow-lg shadow-emerald-500/10",
                                     isShownFeedback && isSelected && !option.isCorrect && "border-rose-500 bg-rose-500/10 opacity-100",
                                     isShownFeedback && !option.isCorrect && !isSelected && "opacity-40 grayscale scale-[0.98]"
@@ -396,7 +436,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
                                 >
                                     <div className={cn(
                                         "mt-1 h-5 lg:h-7 w-5 lg:w-7 rounded-lg lg:rounded-xl border-2 flex items-center justify-center shrink-0 transition-all duration-300",
-                                        isSelected ? "border-primary bg-primary scale-110 shadow-lg shadow-primary/50" : "border-border"
+                                        isSelected ? (isPsiMode ? "border-rose-500 bg-rose-500 scale-110 shadow-lg shadow-rose-500/50" : "border-primary bg-primary scale-110 shadow-lg shadow-primary/50") : "border-border"
                                     )}>
                                         {isSelected && <div className="h-1.5 lg:h-2 w-1.5 lg:w-2 bg-white rounded-full" />}
                                     </div>
@@ -413,9 +453,12 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
                             <Button
                                 onClick={handleSubmit}
                                 disabled={!selectedOptionId}
-                                className="w-full bg-foreground text-background hover:bg-primary hover:text-white h-16 lg:h-24 text-sm lg:text-lg font-black uppercase tracking-[0.4em] rounded-[1.5rem] lg:rounded-[2rem] transition-all shadow-2xl disabled:opacity-30"
+                                className={cn(
+                                    "w-full h-16 lg:h-24 text-sm lg:text-lg font-black uppercase tracking-[0.4em] rounded-[1.5rem] lg:rounded-[2rem] transition-all shadow-2xl disabled:opacity-30",
+                                    isPsiMode ? "bg-rose-600 text-white hover:bg-rose-700" : "bg-foreground text-background hover:bg-primary hover:text-white"
+                                )}
                             >
-                                Submit Signal
+                                {isPsiMode ? "Verify Simulation Signal" : "Submit Signal"}
                                 <ChevronRight className="ml-2 h-5 lg:h-6 w-5 lg:w-6" />
                             </Button>
                             ) : (
@@ -453,7 +496,10 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
 
                                 <Button
                                     onClick={handleNext}
-                                    className="w-full bg-primary text-white hover:bg-primary/90 h-16 lg:h-24 text-sm lg:text-lg font-black uppercase tracking-[0.4em] rounded-[1.5rem] lg:rounded-[2rem] transition-all shadow-2xl shadow-primary/20"
+                                    className={cn(
+                                        "w-full h-16 lg:h-24 text-sm lg:text-lg font-black uppercase tracking-[0.4em] rounded-[1.5rem] lg:rounded-[2rem] transition-all shadow-2xl",
+                                        isPsiMode ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/30" : "bg-primary hover:bg-primary/90 shadow-primary/30"
+                                    )}
                                 >
                                     Next Signal
                                     <ArrowRight className="ml-2 h-5 lg:h-6 w-5 lg:w-6" />
