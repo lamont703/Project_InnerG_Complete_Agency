@@ -16,10 +16,12 @@ import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
 import { BarberRegisterForm } from "@/components/forms/BarberRegisterForm"
+import HCaptcha from "@hcaptcha/react-hcaptcha"
 
 function LoginContent() {
     const [isLoading, setIsLoading] = useState(false)
     const [isRegisterView, setIsRegisterView] = useState(false)
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null)
     const router = useRouter()
     const searchParams = useSearchParams()
     const redirectTo = searchParams.get("redirect") || "/api/auth/provision"
@@ -37,6 +39,11 @@ function LoginContent() {
     })
 
     const onLoginSubmit = async (values: LoginInput) => {
+        if (!captchaToken) {
+            toast.error("Please complete the captcha challenge.")
+            return
+        }
+
         setIsLoading(true)
 
         try {
@@ -44,6 +51,9 @@ function LoginContent() {
             const { error: authError } = await supabase.auth.signInWithPassword({
                 email: values.email,
                 password: values.password,
+                options: {
+                    captchaToken: captchaToken,
+                }
             })
 
             if (authError) {
@@ -147,6 +157,14 @@ function LoginContent() {
                                 {errors.password && (
                                     <p className="text-xs text-destructive mt-1 ml-1 font-bold">{errors.password.message}</p>
                                 )}
+                            </div>
+
+                            <div className="flex justify-center py-2">
+                                <HCaptcha
+                                    sitekey="6a986108-9b66-4076-8b9c-99a00a743d20"
+                                    onVerify={(token) => setCaptchaToken(token)}
+                                    theme="dark"
+                                />
                             </div>
 
                             <Button
