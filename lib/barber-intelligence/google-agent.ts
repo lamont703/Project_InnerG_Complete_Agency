@@ -1,6 +1,8 @@
 import { GoogleAuth } from "google-auth-library";
 import { GoogleGenAI } from "@google/genai";
 import * as dotenv from "dotenv";
+import * as fs from "fs";
+import * as path from "path";
 
 dotenv.config({ path: ".env.local" });
 
@@ -30,22 +32,25 @@ export async function askBarberAgent(message: string, sessionId: string, telemet
 
   console.log(`[Google GenAI] Unified SDK Bridge called for session: ${sessionId}`);
 
-  const clientConfig: any = {
-    vertex: true,
-    project: projectId,
-    location: location,
-  };
-
-  if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
+  // 1. Force the SDK to stop searching for Metadata server by using a physical file
+  const credsJson = process.env.GOOGLE_CLOUD_CREDENTIALS;
+  if (credsJson) {
     try {
-      clientConfig.credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
+      const tempPath = path.join("/tmp", "google-creds.json");
+      fs.writeFileSync(tempPath, credsJson);
+      process.env.GOOGLE_APPLICATION_CREDENTIALS = tempPath;
+      console.log("[Google GenAI] Credentials file-pinned at /tmp/google-creds.json");
     } catch (e) {
-      console.error("[Google GenAI] Credential parse error");
+      console.error("[Google GenAI] Failed to write temp credentials:", e);
     }
   }
 
-  // 1. Initialize modern client
-  const genAI = new GoogleGenAI(clientConfig);
+  // 2. Initialize with explicit project/location
+  const genAI = new GoogleGenAI({
+    vertex: true,
+    project: projectId,
+    location: location,
+  });
 
   // Build the student context string
   const domainBreakdown = telemetryContext?.performance_telemetry_snapshot?.domain_breakdown || [];
@@ -63,20 +68,16 @@ Domain Breakdown: ${JSON.stringify(domainBreakdown)}
 
   try {
     // ─────────────────────────────────────────────────────────
-    // STEP 1: DIRECT DATA STORE QUERY
+    // STEP 1: DIRECT DATA STORE QUERY (Discovery Engine)
     // ─────────────────────────────────────────────────────────
     console.log("🔍 [BRAIN SIGNAL] Step 1: Querying Data Stores...");
     
     let groundedFacts = "";
 
     try {
-      const authConfig: any = {
+      const auth = new GoogleAuth({
         scopes: "https://www.googleapis.com/auth/cloud-platform",
-      };
-      if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
-        authConfig.credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
-      }
-      const auth = new GoogleAuth(authConfig);
+      });
       const accessToken = await auth.getAccessToken();
 
       const [res1, res2] = await Promise.all([
@@ -99,7 +100,7 @@ Source A (Exam Prep): ${JSON.stringify(data1.results || [])}
 Source B (Question Bank Examples): ${JSON.stringify(data2.documents?.slice(0, 10) || [])}
       `;
     } catch (err) {
-      console.warn("[Google GenAI] Grounding failed, using base knowledge:", err);
+      console.warn("[Google GenAI] Grounding failed:", err);
     }
 
     // ─────────────────────────────────────────────────────────
@@ -107,18 +108,6 @@ Source B (Question Bank Examples): ${JSON.stringify(data2.documents?.slice(0, 10
     // ─────────────────────────────────────────────────────────
     console.log("🧠 [BRAIN SIGNAL] Step 2: Generating adaptive deck...");
 
-    const systemPrompt = `
-      You are the Texas Barber Intelligence Diagnostic Engine.
-      Generate a 10-question diagnostic deck for the Texas Class A Barber exam.
-      
-      CONTEXT: ${studentContext}
-      ${psiMode ? "STRESS TEST MODE: Active." : "STANDARD MODE: Active."}
-      GROUNDING: ${groundedFacts}
-
-      Return ONLY JSON with "diagnostic_report" containing "student_id", "focus_areas", and "question_deck".
-    `;
-
-    // Modern 2026 Unified Call Pattern
     const response = await genAI.models.generateContent({
       model: modelName,
       contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
