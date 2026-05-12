@@ -26,11 +26,10 @@ const VALID_DOMAINS = [
 export async function askBarberAgent(message: string, sessionId: string, telemetryContext?: any, psiMode: boolean = false) {
   const projectId = "gen-lang-client-0027817397";
   const location = "us-central1";
-  const modelName = "gemini-1.5-flash-002"; // Stable fallback for first successful build
+  const modelName = "gemini-1.5-flash-002"; 
 
   console.log(`[Google GenAI] Unified SDK Bridge called for session: ${sessionId}`);
 
-  // 1. Initialize modern client via constructor
   const clientConfig: any = {
     projectId: projectId,
     location: location,
@@ -44,6 +43,7 @@ export async function askBarberAgent(message: string, sessionId: string, telemet
     }
   }
 
+  // 1. Initialize modern client
   const genAI = new GoogleGenAI(clientConfig);
 
   // Build the student context string
@@ -62,7 +62,7 @@ Domain Breakdown: ${JSON.stringify(domainBreakdown)}
 
   try {
     // ─────────────────────────────────────────────────────────
-    // STEP 1: DIRECT DATA STORE QUERY (Discovery Engine)
+    // STEP 1: DIRECT DATA STORE QUERY
     // ─────────────────────────────────────────────────────────
     console.log("🔍 [BRAIN SIGNAL] Step 1: Querying Data Stores...");
     
@@ -106,8 +106,6 @@ Source B (Question Bank Examples): ${JSON.stringify(data2.documents?.slice(0, 10
     // ─────────────────────────────────────────────────────────
     console.log("🧠 [BRAIN SIGNAL] Step 2: Generating adaptive deck...");
 
-    const model = genAI.getGenerativeModel({ model: modelName });
-    
     const systemPrompt = `
       You are the Texas Barber Intelligence Diagnostic Engine.
       Generate a 10-question diagnostic deck for the Texas Class A Barber exam.
@@ -119,9 +117,14 @@ Source B (Question Bank Examples): ${JSON.stringify(data2.documents?.slice(0, 10
       Return ONLY JSON with "diagnostic_report" containing "student_id", "focus_areas", and "question_deck".
     `;
 
-    const result = await model.generateContent(systemPrompt);
-    const response = await result.response;
-    const rawText = response.text();
+    // Modern 2026 Unified Call Pattern
+    const response = await genAI.models.generateContent({
+      model: modelName,
+      contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
+      config: { responseMimeType: "application/json" }
+    });
+
+    const rawText = response.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     const cleanedJson = rawText.replace(/```json|```/g, "").trim();
     
     return JSON.parse(cleanedJson);
