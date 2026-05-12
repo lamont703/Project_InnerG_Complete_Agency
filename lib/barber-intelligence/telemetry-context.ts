@@ -10,11 +10,12 @@ export async function getRichTelemetryContext(studentId: string) {
   const supabase = createAdminClient();
 
   // 1. Fetch User Profile
-  const { data: user } = await supabase
+  const { data: rawUser } = await supabase
     .from('users')
     .select('full_name, email')
     .eq('id', studentId)
     .single();
+  const user = rawUser as { full_name?: string; email?: string } | null;
 
   // 2. Fetch Aggregated Telemetry
   const { data: telemetry } = await supabase
