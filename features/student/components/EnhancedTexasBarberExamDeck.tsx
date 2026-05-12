@@ -79,7 +79,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
       // 1. Fetch Questions (Now including psi_syntax_text)
       const { data, error } = await supabase
         .from("question_bank")
-        .select("id, domain, question, options, correct_index, explanation, source_ref, difficulty_level, psi_syntax_text")
+        .select("*")
         .eq("is_active", true)
 
       // 2. Fetch User & School Association
@@ -113,10 +113,11 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
            try { opts = JSON.parse(opts) } catch(e){}
         }
         
+        const correctIdx = q.correct_answer_index !== undefined ? q.correct_answer_index : q.correct_index;
         const mappedOptions = (Array.isArray(opts) ? opts : []).map((optText: string, idx: number) => ({
           id: String.fromCharCode(97 + idx),
           text: optText,
-          isCorrect: idx === q.correct_index
+          isCorrect: idx === correctIdx
         }))
 
         const cat = q.domain.split('_').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
