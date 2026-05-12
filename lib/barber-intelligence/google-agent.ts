@@ -156,7 +156,7 @@ Domain Breakdown: ${JSON.stringify(domainBreakdown)}
           const matchedDocs = targetDomains
             ? allDocs.filter((doc: any) => {
                 const domain = doc.structData?.texas_domain || doc.jsonData?.texas_domain || "";
-                return targetDomains.some(d => domain.includes(d));
+                return targetDomains.some((d: string) => domain.includes(d));
               })
             : allDocs;
 
