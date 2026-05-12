@@ -3,27 +3,27 @@ import { askBarberAgent } from "@/lib/barber-intelligence/google-agent";
 
 export async function POST(req: NextRequest) {
   try {
-    const { query, telemetry, psiMode } = await req.json();
+    const body = await req.json();
+    const { query, telemetry, psiMode, telemetryContext } = body;
 
-    if (!query) {
-      return NextResponse.json({ error: "No query provided" }, { status: 400 });
-    }
+    const finalTelemetry = telemetry || telemetryContext;
 
-    // Call our new Gemini 3 bridge directly
-    const result = await askBarberAgent(query, "diagnostic-session-" + Date.now(), telemetry, psiMode);
+    console.log(`[Diagnostic API] Requesting deck for student: ${finalTelemetry?.user_context?.username || 'Unknown'}`);
+    
+    const result = await askBarberAgent(
+      query || `Generate a 10-question adaptive diagnostic deck for this student.`,
+      `diagnostic-${Date.now()}`,
+      finalTelemetry,
+      !!psiMode
+    );
 
-    // If result.reply is already the diagnostic_report object, return it directly
-    if (result.reply && typeof result.reply === 'object') {
-      return NextResponse.json(result.reply);
-    }
-
-    return NextResponse.json({
-      reply: result.reply,
-      telemetry_applied: !!telemetry
-    });
-
-  } catch (err: any) {
-    console.error("API Bridge Error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json(result);
+  } catch (error: any) {
+    console.error("[Diagnostic API Error]:", error);
+    return NextResponse.json({ 
+      error: error.message || "Internal Server Error",
+      details: error.stack,
+      phase: "API_ROUTE_HANDLER"
+    }, { status: 500 });
   }
 }
