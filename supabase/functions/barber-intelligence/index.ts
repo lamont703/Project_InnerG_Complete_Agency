@@ -1,79 +1,101 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const GOOGLE_CLOUD_PROJECT = "gen-lang-client-0027817397"
-const LOCATION = "us-central1"
-const MODEL_ID = "gemini-1.5-flash-002"
-
+const MODEL_ID = "gemini-3.1-flash-lite" 
 const DATASTORE_EXAM_PREP = "projects/gen-lang-client-0027817397/locations/global/collections/default_collection/dataStores/texas-state-barber-exam-prep_1778535345360"
-const DATASTORE_QUESTION_BANK = "projects/gen-lang-client-0027817397/locations/global/collections/default_collection/dataStores/barber-question-bank-data-store_1778538120096"
 
 serve(async (req) => {
-  // 1. CORS Pre-flight check
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' } })
   }
 
   try {
-    const { telemetryContext, psiMode } = await req.json()
-    console.log(`[Barber Brain] Initializing mastery loop for: ${telemetryContext?.user_context?.username || 'unknown'}`)
-
-    // 2. Fetch Google Access Token
-    // In Supabase, we set GOOGLE_CLOUD_CREDENTIALS as a secret
-    const creds = JSON.parse(Deno.env.get("GOOGLE_CLOUD_CREDENTIALS") || "{}")
+    const { telemetryContext } = await req.json().catch(() => ({}));
+    const accessToken = Deno.env.get("GOOGLE_ACCESS_TOKEN");
     
-    // Simple JWT signer for Google OAuth (Deno version)
-    // For now, we assume the user has set the GOOGLE_ACCESS_TOKEN secret or we use a helper
-    const accessToken = Deno.env.get("GOOGLE_ACCESS_TOKEN") 
-    
-    if (!accessToken) {
-      throw new Error("Missing GOOGLE_ACCESS_TOKEN secret in Supabase")
-    }
-
-    // 3. STEP 1: Grounding (Discovery Engine)
-    console.log("🔍 [Barber Brain] Step 1: Grounding Facts...")
     const searchRes = await fetch(`https://discoveryengine.googleapis.com/v1/${DATASTORE_EXAM_PREP}/servingConfigs/default_config:search`, {
       method: "POST",
       headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query: "Texas barber exam regulations and sanitation", pageSize: 5 })
-    })
-    const searchData = await searchRes.json()
-    const groundedFacts = JSON.stringify(searchData.results || [])
+      body: JSON.stringify({ query: "Texas barber exam regulations", pageSize: 5 })
+    });
+    const searchData = await searchRes.json().catch(() => ({}));
+    const groundedFacts = JSON.stringify(searchData.results || []);
 
-    // 4. STEP 2: Generation (Vertex AI)
-    console.log("🧠 [Barber Brain] Step 2: Generating Adaptive Deck...")
     const systemPrompt = `
-      You are the Texas Barber Intelligence Diagnostic Engine.
-      Generate a 10-question diagnostic deck for the Texas Class A Barber exam.
-      
-      CONTEXT: ${JSON.stringify(telemetryContext)}
-      ${psiMode ? "STRESS TEST MODE: Active." : "STANDARD MODE: Active."}
+      Generate 10 adaptive questions for student: ${telemetryContext?.user_context?.username || 'Candidate'}.
       GROUNDING: ${groundedFacts}
+      
+      DOMAINS TO USE (MUST MATCH DATABASE EXACTLY): 
+      - sanitation_disinfection_safety
+      - hair_scalp_care
+      - shaving
+      - licensing_regulation
+      - chemical_texture_services
+      - haircoloring
+      - nail_skin_care
+      - haircutting_hairstyling
 
-      Return ONLY JSON with "diagnostic_report" containing "student_id", "focus_areas", and "question_deck".
-    `
+      STRICT JSON FORMAT:
+      {
+        "diagnostic_report": {
+          "question_deck": [
+            { 
+              "id": "ai_q_" + random_number,
+              "domain": "one_from_list_above", 
+              "question": "...",
+              "options": { "a": "...", "b": "...", "c": "...", "d": "..." },
+              "correct_answer": "a", 
+              "rationale": "..."
+            }
+          ]
+        }
+      }
+    `;
 
-    const generateRes = await fetch(`https://us-central1-aiplatform.googleapis.com/v1/projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/publishers/google/models/${MODEL_ID}:generateContent`, {
+    const generateRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent`, {
       method: "POST",
       headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
-        generationConfig: { responseMimeType: "application/json" }
+        generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
       })
-    })
+    });
 
-    const generateData = await generateRes.json()
-    const rawText = generateData.candidates?.[0]?.content?.parts?.[0]?.text || "{}"
-    const finalReport = JSON.parse(rawText.replace(/```json|```/g, "").trim())
+    const generateData = await generateRes.json();
+    let rawText = generateData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    rawText = rawText.replace(/```json|```/g, "").trim();
 
-    return new Response(JSON.stringify(finalReport), {
+    let payload = JSON.parse(rawText);
+    let questions = payload.diagnostic_report?.question_deck || payload.question_deck || [];
+
+    const audited = questions.map((q: any) => {
+      q.ai_generated = true;
+      // Default to sanitation if domain is missing or wrong
+      const validDomains = ["sanitation_disinfection_safety", "hair_scalp_care", "shaving", "licensing_regulation", "chemical_texture_services", "haircoloring", "nail_skin_care", "haircutting_hairstyling"];
+      if (!validDomains.includes(q.domain)) q.domain = "sanitation_disinfection_safety";
+      
+      if (Array.isArray(q.options)) {
+        const obj: any = {};
+        q.options.slice(0, 4).forEach((opt: string, i: number) => {
+          obj[String.fromCharCode(97 + i)] = opt;
+        });
+        q.options = obj;
+      }
+      return q;
+    });
+
+    return new Response(JSON.stringify({
+      diagnostic_report: {
+        student_id: telemetryContext?.user_context?.id || "unknown",
+        question_deck: audited
+      }
+    }), {
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-    })
+    });
 
   } catch (error) {
-    console.error("[Barber Brain] FATAL:", error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-    })
+    });
   }
 })
