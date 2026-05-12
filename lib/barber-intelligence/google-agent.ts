@@ -14,63 +14,42 @@ dotenv.config({ path: ".env.local" });
 const DATASTORE_EXAM_PREP = "projects/gen-lang-client-0027817397/locations/global/collections/default_collection/dataStores/texas-state-barber-exam-prep_1778535345360";
 const DATASTORE_QUESTION_BANK = "projects/gen-lang-client-0027817397/locations/global/collections/default_collection/dataStores/barber-question-bank-data-store_1778538120096";
 
-const VALID_DOMAINS = [
-  "sanitation_disinfection_safety",
-  "hair_scalp_care",
-  "nail_skin_care",
-  "shaving",
-  "licensing_regulation",
-  "haircutting_hairstyling",
-  "chemical_texture_services",
-  "haircoloring"
-];
-
 export async function askBarberAgent(message: string, sessionId: string, telemetryContext?: any, psiMode: boolean = false) {
   const projectId = "gen-lang-client-0027817397";
   const location = "us-central1";
   const modelName = "gemini-1.5-flash-002"; 
 
-  console.log(`[Google GenAI] Unified SDK Bridge called for session: ${sessionId}`);
+  console.log(`[Google GenAI] Bridge called for session: ${sessionId}`);
 
-  // 1. Force the SDK to stop searching for Metadata server by using a physical file
-  const credsJson = process.env.GOOGLE_CLOUD_CREDENTIALS;
-  if (credsJson) {
+  // 1. Resolve and Decode Credentials (Base64 Support)
+  let rawCreds = process.env.GOOGLE_CLOUD_CREDENTIALS;
+  if (rawCreds) {
     try {
+      // If it looks like Base64 (doesn't start with {), decode it
+      if (!rawCreds.trim().startsWith("{")) {
+        console.log("[Google GenAI] Base64 credentials detected. Decoding...");
+        rawCreds = Buffer.from(rawCreds, "base64").toString("utf-8");
+      }
+
       const tempPath = path.join("/tmp", `google-creds-${Date.now()}.json`);
-      fs.writeFileSync(tempPath, credsJson);
+      fs.writeFileSync(tempPath, rawCreds);
       process.env.GOOGLE_APPLICATION_CREDENTIALS = tempPath;
       console.log(`[Google GenAI] Credentials file-pinned at ${tempPath}`);
     } catch (e) {
-      console.error("[Google GenAI] CRITICAL: Failed to write temp credentials:", e);
+      console.error("[Google GenAI] CRITICAL AUTH ERROR:", e);
     }
-  } else {
-    console.warn("[Google GenAI] WARNING: GOOGLE_CLOUD_CREDENTIALS not found in environment.");
   }
 
-  // 2. Initialize with explicit project/location
+  // 2. Initialize modern client
   const genAI = new GoogleGenAI({
     vertexai: true,
     project: projectId,
     location: location,
   });
 
-  // Build the student context string
-  const domainBreakdown = telemetryContext?.performance_telemetry_snapshot?.domain_breakdown || [];
-  const weakDomains = domainBreakdown
-    .filter((d: any) => d.accuracy < 0.5)
-    .map((d: any) => d.domain)
-    .join(", ") || "All domains (baseline)";
-
-  const studentContext = `
-Student: ${telemetryContext?.user_context?.username || "Student"}
-Pass Probability: ${telemetryContext?.performance_telemetry_snapshot?.estimated_pass_probability || "0%"}
-Weak Domains: ${weakDomains}
-Domain Breakdown: ${JSON.stringify(domainBreakdown)}
-  `.trim();
-
   try {
     // ─────────────────────────────────────────────────────────
-    // STEP 1: DIRECT DATA STORE QUERY (Discovery Engine)
+    // STEP 1: DIRECT DATA STORE QUERY
     // ─────────────────────────────────────────────────────────
     console.log("🔍 [BRAIN SIGNAL] Step 1: Querying Data Stores...");
     
@@ -86,7 +65,7 @@ Domain Breakdown: ${JSON.stringify(domainBreakdown)}
         fetch(`https://discoveryengine.googleapis.com/v1/${DATASTORE_EXAM_PREP}/servingConfigs/default_config:search`, {
           method: "POST",
           headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ query: `Texas barber exam ${weakDomains} regulations`, pageSize: 5 })
+          body: JSON.stringify({ query: `Texas barber exam regulations`, pageSize: 5 })
         }),
         fetch(`https://discoveryengine.googleapis.com/v1/${DATASTORE_QUESTION_BANK}/branches/default_branch/documents`, {
           method: "GET",
@@ -106,25 +85,13 @@ Source B (Question Bank Examples): ${JSON.stringify(data2.documents?.slice(0, 10
     }
 
     // ─────────────────────────────────────────────────────────
-    // STEP 2: GENERATION WITH NEW SDK
+    // STEP 2: GENERATION
     // ─────────────────────────────────────────────────────────
     console.log("🧠 [BRAIN SIGNAL] Step 2: Generating adaptive deck...");
 
-    const systemPrompt = `
-      You are the Texas Barber Intelligence Diagnostic Engine.
-      Generate a 10-question diagnostic deck for the Texas Class A Barber exam.
-      
-      CONTEXT: ${studentContext}
-      ${psiMode ? "STRESS TEST MODE: Active." : "STANDARD MODE: Active."}
-      GROUNDING: ${groundedFacts}
-
-      Return ONLY JSON with "diagnostic_report" containing "student_id", "focus_areas", and "question_deck".
-    `;
-
-    // Modern 2026 Unified Call Pattern
     const response = await genAI.models.generateContent({
       model: modelName,
-      contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
+      contents: [{ role: "user", parts: [{ text: "Generate a 10-question Texas barber exam deck based on this context: " + JSON.stringify(telemetryContext) + "\nGrounding: " + groundedFacts }] }],
       config: { responseMimeType: "application/json" }
     });
 
