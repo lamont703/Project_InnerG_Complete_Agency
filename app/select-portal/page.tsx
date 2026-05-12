@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import {
     ArrowRight,
     BookOpen,
@@ -33,9 +34,13 @@ const ICON_MAP: Record<string, any> = {
     dating: Heart,
     social: Music2,
     general: Layout,
+    barber_student: Heart,
+    barber_instructor: Layout,
+    barber_owner: Building2
 }
 
 export default function SelectPortalPage() {
+    const [statusFilter, setStatusFilter] = useState("Active")
     const [searchQuery, setSearchQuery] = useState("")
     const [projects, setProjects] = useState<PortalCard[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -48,27 +53,40 @@ export default function SelectPortalPage() {
             try {
                 const supabase = createBrowserClient()
 
-                // 1. Fetch User Data for Header
+                // CHECKPOINT 1: Auth Session
                 const { data: { user } } = await supabase.auth.getUser()
+                if (!user) {
+                    console.log("[SelectPortal] Checkpoint 1: No active session. Redirecting to login.")
+                    router.push("/login")
+                    return
+                }
+                console.log("[SelectPortal] Checkpoint 1: User found:", user.email)
                 let currentUserRole = ""
 
-                if (user) {
-                    const { data: profile } = await supabase
-                        .from("users")
-                        .select("full_name, role")
-                        .eq("id", user.id)
-                        .single() as any
+                // CHECKPOINT 2: User Profile
+                const { data: profile, error: profileError } = await supabase
+                    .from("users")
+                    .select("full_name, role")
+                    .eq("id", user.id)
+                    .maybeSingle() as any
 
-                    if (profile) {
-                        currentUserRole = profile.role
-                        setUserData({
-                            name: profile.full_name || "User",
-                            role: profile.role.replace("_", " ").toUpperCase()
-                        })
-                    }
+                if (profileError) {
+                    console.warn("[SelectPortal] Checkpoint 2: Profile retrieval warning:", profileError)
                 }
 
-                // 2. Fetch Projects (Joined with Clients)
+                if (profile) {
+                    currentUserRole = profile.role || ""
+                    setUserData({
+                        name: profile.full_name || user.email || "User",
+                        role: (profile.role || "client").replace("_", " ").toUpperCase()
+                    })
+                    console.log("[SelectPortal] Checkpoint 2: Profile resolved. Role:", currentUserRole)
+                } else {
+                    console.log("[SelectPortal] Checkpoint 2: No public profile found yet. Initializing default view.")
+                    setUserData({ name: user.email || "User", role: "CLIENT" })
+                }
+
+                // CHECKPOINT 3: Projects Query
                 let query = supabase
                     .from("projects")
                     .select(`
@@ -83,33 +101,56 @@ export default function SelectPortalPage() {
                         )
                     `)
 
-                // Super admins and developers see all projects, others see non-archived ones
                 if (currentUserRole !== "super_admin" && currentUserRole !== "developer") {
                     query = query.neq("status", "archived")
                 }
 
                 const { data: projectData, error: projectError } = await query as any
 
-                if (projectError) throw projectError
+                if (projectError) {
+                    console.error("[SelectPortal] Checkpoint 3: Projects Query Error:", projectError)
+                    throw projectError
+                }
+                console.log(`[SelectPortal] Checkpoint 3: Retrieved ${projectData?.length || 0} projects.`)
 
-                // 3. Map to PortalCard interface
-                const mappedProjects: PortalCard[] = projectData.map((p: any) => ({
-                    id: p.slug,
-                    name: `Project ${p.name}`,
-                    client: p.clients?.name || "Unknown Client",
-                    status: p.status.charAt(0).toUpperCase() + p.status.slice(1),
-                    type: p.type.charAt(0).toUpperCase() + p.type.slice(1),
-                    campaign: p.active_campaign_name || "N/A",
-                    lastActivity: "Live Now", // Placeholder until activity_log wiring
-                    metrics: "Data Streaming", // Placeholder until snapshot wiring
-                    icon: ICON_MAP[p.type.toLowerCase()] || Layout,
-                    href: `/dashboard/${p.slug}`,
-                }))
+                // CHECKPOINT 4: Data Mapping
+                const mappedProjects: PortalCard[] = (projectData || []).map((p: any) => {
+                    const clientName = Array.isArray(p.clients) 
+                        ? p.clients[0]?.name 
+                        : p.clients?.name;
+
+                    const rawType = p.type || "general";
+                    const formattedType = rawType
+                        .split(/[_-]/)
+                        .map((w: string) => w ? (w.charAt(0).toUpperCase() + w.slice(1)) : "")
+                        .filter(Boolean)
+                        .join(' ');
+
+                    return {
+                        id: p.slug,
+                        name: p.name || "Unnamed Architecture",
+                        client: clientName || "Private Institutional Node",
+                        status: (p.status || "active").charAt(0).toUpperCase() + (p.status || "active").slice(1),
+                        type: formattedType,
+                        campaign: p.active_campaign_name || "Autonomous Stream",
+                        lastActivity: "Live Now",
+                        metrics: "Data Streaming",
+                        icon: ICON_MAP[p.type?.toLowerCase()] || Layout,
+                        href: `/dashboard/${p.slug}`,
+                    };
+                })
+
+                // AUTO-REDIRECT: If user only has one project, take them there directly
+                if (mappedProjects.length === 1 && !error) {
+                    console.log(`[SelectPortal] Single architecture detected: ${mappedProjects[0].id}. Redirecting...`)
+                    router.push(mappedProjects[0].href)
+                    return
+                }
 
                 setProjects(mappedProjects)
             } catch (err: any) {
-                console.error("[SelectPortal] Error:", err)
-                setError("Unable to load client portals. Please try again.")
+                console.error("[SelectPortal] Dashboard resolution failure:", err)
+                setError("Unable to resolve project architectures. System may be syncing.")
             } finally {
                 setIsLoading(false)
             }
@@ -129,34 +170,44 @@ export default function SelectPortalPage() {
         }
     }
 
-    const filteredProjects = projects.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.client.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const filteredProjects = projects.filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            p.client.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesStatus = p.status.toLowerCase() === statusFilter.toLowerCase()
+        return matchesSearch && matchesStatus
+    })
 
     if (isLoading) {
         return (
-            <main className="min-h-screen bg-[#020617] flex items-center justify-center">
-                <div className="text-center">
-                    <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-muted-foreground">Initializing growth architectures...</p>
+            <main className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] opacity-20 pointer-events-none" />
+                <div className="h-20 w-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-8 shadow-2xl">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
                 </div>
+                <h1 className="text-xl font-bold tracking-tight mb-2 uppercase italic tracking-tighter">Secure Bridge Interface v2.4</h1>
+                <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest opacity-50">Resolving Project Architectures...</p>
             </main>
         )
     }
 
     return (
-        <main className="min-h-screen bg-[#020617] text-foreground relative w-full">
+        <div className="h-full bg-background text-foreground relative">
             <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[160px] opacity-20 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/10 rounded-full blur-[140px] opacity-10 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/5 rounded-full blur-[140px] opacity-10 pointer-events-none" />
 
-            <div className="relative z-10 max-w-6xl mx-auto px-6 py-12 md:py-20 flex flex-col min-h-screen">
+            <div className="relative z-10 max-w-6xl mx-auto px-6 py-12 md:py-20 flex flex-col min-h-screen pb-24 md:pb-20">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-16 gap-8">
                     <div className="flex flex-col">
                         <Link href="/" className="inline-flex items-center gap-2 mb-8 group">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105">
-                                <span className="text-xl font-bold">G</span>
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105 overflow-hidden">
+                                <Image 
+                                    src="/icon-light-32x32.png" 
+                                    alt="Inner G Logo" 
+                                    width={32} 
+                                    height={32}
+                                    className="h-full w-full object-contain"
+                                />
                             </div>
                             <span className="text-xl font-bold tracking-tight text-foreground">
                                 Inner G Complete
@@ -180,31 +231,41 @@ export default function SelectPortalPage() {
                 </div>
 
                 {/* Filters and Search */}
-                <div className="flex flex-col gap-4 mb-10">
+                <div className="flex flex-col gap-6 mb-10">
                     <div className="relative w-full">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input
                             id="search-projects"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search active portals..."
-                            className="bg-white/5 border-white/10 pl-12 h-14 text-base md:text-lg rounded-2xl focus:border-primary transition-all w-full"
+                            placeholder={`Search ${statusFilter.toLowerCase()} portals...`}
+                            className="bg-muted/10 border-border pl-12 h-14 text-base md:text-lg rounded-2xl focus:border-primary transition-all w-full"
                         />
                     </div>
-                    <div className="flex flex-wrap lg:flex-nowrap gap-4">
-                        <Button
-                            id="btn-filter-status"
-                            variant="outline"
-                            className="flex-1 md:flex-none h-14 px-6 border-white/10 rounded-2xl gap-2 hover:bg-white/5 order-2 md:order-1"
-                        >
-                            <Filter className="h-5 w-5" />
-                            Status: Active
-                        </Button>
+                    
+                    <div className="flex flex-col xl:flex-row gap-6 justify-between lg:items-center">
+                        <div className="flex p-1.5 bg-muted/10 rounded-2xl border border-border w-full xl:w-auto overflow-x-auto no-scrollbar">
+                            {["Active", "Building", "Paused", "Archived"].map((status) => (
+                                <button
+                                    key={status}
+                                    onClick={() => setStatusFilter(status)}
+                                    className={cn(
+                                        "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-200 whitespace-nowrap flex-1 lg:flex-none",
+                                        statusFilter === status 
+                                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                                            : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    {status}
+                                </button>
+                            ))}
+                        </div>
+
                         {userData?.role === "SUPER ADMIN" && (
-                            <div className="flex flex-col md:flex-row gap-4 flex-1 md:flex-auto order-1 md:order-2">
+                            <div className="flex flex-col md:flex-row gap-4">
                                 <Button
                                     id="btn-deploy-portal"
-                                    className="flex-1 h-14 px-8 bg-accent hover:bg-accent/90 text-accent-foreground rounded-2xl gap-2 glow-accent"
+                                    className="h-14 px-8 bg-accent hover:bg-accent/90 text-accent-foreground rounded-2xl gap-3 glow-accent w-full md:w-auto text-xs font-black uppercase tracking-widest"
                                     asChild
                                 >
                                     <Link href="/admin/portals/new">
@@ -215,12 +276,12 @@ export default function SelectPortalPage() {
                                 <Button
                                     id="btn-request-portal"
                                     variant="outline"
-                                    className="flex-1 h-14 px-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary rounded-2xl gap-2"
+                                    className="h-14 px-8 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary rounded-2xl gap-3 w-full md:w-auto text-xs font-black uppercase tracking-widest"
                                     asChild
                                 >
                                     <Link href="/admin/invites">
                                         <Users className="h-5 w-5" />
-                                        Generate New Portal Invite
+                                        Generate New Invite
                                     </Link>
                                 </Button>
                             </div>
@@ -311,7 +372,7 @@ export default function SelectPortalPage() {
                 </div>
 
                 {/* Footer */}
-                <div className="mt-20 py-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="mt-20 py-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-6">
                     <p className="text-sm text-muted-foreground font-medium">
                         Securely managed by <span className="text-foreground">Inner G Complete Infrastructure</span>
                     </p>
@@ -325,6 +386,6 @@ export default function SelectPortalPage() {
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
     )
 }

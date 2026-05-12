@@ -1,0 +1,682 @@
+import { MetricSlot } from "./types"
+
+/**
+ * METRIC_REGISTRY
+ * 
+ * The master list of all available "Slots" in the Inner G Complete ecosystem.
+ * This registry allows the AI and the Slot System to dynamically compose
+ * dashboards based on the user's role and project status.
+ */
+export const METRIC_REGISTRY: MetricSlot[] = [
+    // --- MARKETING SLOTS (Client Facing) ---
+    {
+        id: "total_signups",
+        label: "Total Signups",
+        description: "Cumulative signups across all active GHL pipelines and funnels.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "UserPlus"
+    },
+    {
+        id: "app_installs",
+        label: "Reader App Installs",
+        description: "Total downloads and active installs of the client's proprietary reader app.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Download"
+    },
+    {
+        id: "funnel_conversion",
+        label: "Funnel Conversion",
+        description: "Real-time conversion rate from lead generation to paid acquisition.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Zap"
+    },
+    {
+        id: "social_reach",
+        label: "Omni-Channel Reach",
+        description: "Aggregated reach across Instagram, Facebook, LinkedIn, and TikTok content architectures.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Instagram"
+    },
+    {
+        id: "youtube_subscribers",
+        label: "YT Subscribers",
+        description: "Total subscriber count across connected YouTube channels.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Youtube"
+    },
+    {
+        id: "youtube_views",
+        label: "YouTube Views",
+        description: "Total cumulative views from connected YouTube channel analytics.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Play"
+    },
+    {
+        id: "youtube_video_count",
+        label: "YouTube Videos",
+        description: "Total number of videos published on the connected YouTube channels.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Video"
+    },
+    {
+        id: "freelancer_registrations",
+        label: "Freelancer Freedom",
+        description: "Live tracking of registrations specifically for the School of Freelancer Freedom Pipeline.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "UserCheck"
+    },
+
+    // --- PIXEL SLOTS (Website Intelligence) ---
+    {
+        id: "pixel_total_pings",
+        label: "Website Hits",
+        description: "Total page views and interactions tracked by the Inner G Pixel.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Activity"
+    },
+    {
+        id: "pixel_unique_visitors",
+        label: "Unique Visitors",
+        description: "Total unique browsers identified by the tracking pixel.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Users"
+    },
+    {
+        id: "pixel_identified_count",
+        label: "Identified Leads",
+        description: "Total visitors successfully stitched to a social identity or email address.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "UserSearch"
+    },
+    {
+        id: "pixel_click_signin",
+        label: "Sign In Clicks",
+        description: "Total clicks on the 'Sign In' button tracked via the Inner G Pixel.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "LogIn"
+    },
+    {
+        id: "pixel_click_buy_xrp",
+        label: "Buy XRP Clicks",
+        description: "Total clicks on the 'Buy XRP' link tracked via the Inner G Pixel.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "DollarSign"
+    },
+    {
+        id: "pixel_click_join_revolution",
+        label: "Join Revolution Clicks",
+        description: "Total clicks on 'Join The Revolution' tracked via the Inner G Pixel.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Users"
+    },
+    {
+        id: "pixel_click_become_trader",
+        label: "Become a Trader Clicks",
+        description: "Total clicks on 'Become a Trader' tracked via the Inner G Pixel.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "TrendingUp"
+    },
+    {
+        id: "pixel_click_login",
+        label: "Login Clicks",
+        description: "Number of users who clicked the Login button.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "LogIn"
+    },
+    {
+        id: "pixel_click_create_account",
+        label: "Create Account Clicks",
+        description: "Number of users who clicked the Create Account button.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "UserPlus"
+    },
+    {
+        id: "pixel_click_claim_free",
+        label: "Claim Free Month Clicks",
+        description: "Number of users who clicked the Claim My Free Month — Join Now button.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Zap"
+    },
+
+    // --- AGENCY SLOTS (Super Admin Only) ---
+    {
+        id: "active_architectures",
+        label: "Active Architectures",
+        description: "The total number of live client deployments currently managed by the agency.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['super-admin'],
+        iconName: "Building2"
+    },
+    {
+        id: "system_health",
+        label: "Portfolio Health",
+        description: "Real-time counter of unresolved critical/warning signals across the entire agency portfolio.",
+        category: 'operations',
+        type: 'kpi',
+        permissions: ['super-admin'],
+        iconName: "AlertTriangle"
+    },
+    {
+        id: "agency_intelligence",
+        label: "God Mode Insights",
+        description: "High-level strategic patterns and private intelligence signals generated by the Agency AI.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['super-admin'],
+        iconName: "Sparkles"
+    },
+    {
+        id: "linkedin_followers",
+        label: "LinkedIn Followers",
+        description: "Total follower count for the connected LinkedIn organization page.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Linkedin"
+    },
+    {
+        id: "linkedin_impressions",
+        label: "LinkedIn Reach",
+        description: "Total impressions across all posts on the LinkedIn page.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "BarChart3"
+    },
+    {
+        id: "linkedin_engagement",
+        label: "LinkedIn Engagement",
+        description: "Aggregated engagement rate across LinkedIn content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Zap"
+    },
+    {
+        id: "linkedin_clicks",
+        label: "LinkedIn Clicks",
+        description: "Total clicks on links and content within LinkedIn posts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Target"
+    },
+    {
+        id: "linkedin_likes",
+        label: "LinkedIn Likes",
+        description: "Total likes aggregated across all posts in the LinkedIn content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "ThumbsUp"
+    },
+    {
+        id: "linkedin_comments",
+        label: "LinkedIn Comments",
+        description: "Total comments aggregated across all posts in the LinkedIn content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "MessageSquare"
+    },
+    {
+        id: "linkedin_shares",
+        label: "LinkedIn Shares",
+        description: "Total shares aggregated across all posts in the LinkedIn content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Share2"
+    },
+    {
+        id: "linkedin_post_views",
+        label: "LinkedIn Post Views",
+        description: "Cumulative view count aggregated across all individual LinkedIn posts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Eye"
+    },
+
+    // --- TIKTOK ARCHITECTURE STUBS ---
+    {
+        id: "tiktok_followers",
+        label: "TikTok Followers",
+        description: "Total follower count across connected TikTok profiles.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Music"
+    },
+    {
+        id: "tiktok_views",
+        label: "TikTok Views",
+        description: "Total video views across TikTok content architecture.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Play"
+    },
+    {
+        id: "tiktok_likes",
+        label: "TikTok Likes",
+        description: "Aggregated heart count across all TikTok publications.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "ThumbsUp"
+    },
+
+    // --- FACEBOOK ARCHITECTURE STUBS ---
+    {
+        id: "facebook_page_likes",
+        label: "Facebook Page Likes",
+        description: "Total community size for connected Facebook Organization Pages.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Facebook"
+    },
+    {
+        id: "facebook_reach",
+        label: "Facebook Reach",
+        description: "Total unique users who saw Facebook content in their feed.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "BarChart3"
+    },
+    {
+        id: "facebook_engagement",
+        label: "Facebook Engagement",
+        description: "Total interactions (likes, shares, comments) on Facebook posts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Zap"
+    },
+
+    // --- INSTAGRAM ARCHITECTURE (AGENCY LEVEL) ---
+    {
+        id: "instagram_followers",
+        label: "Instagram Followers",
+        description: "Total follower count for Agency-managed Instagram profiles.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Instagram"
+    },
+    {
+        id: "instagram_reach",
+        label: "Instagram Reach",
+        description: "Total unique accounts reached across Instagram feed and stories.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "BarChart3"
+    },
+    {
+        id: "instagram_impressions",
+        label: "Instagram Impressions",
+        description: "The total number of times your content was on-screen.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Eye"
+    },
+    {
+        id: "instagram_engagement",
+        label: "Instagram Engagement",
+        description: "Aggregated interactions including likes, comments, and saves.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Zap"
+    },
+    {
+        id: "instagram_profile_views",
+        label: "IG Profile Views",
+        description: "Total number of accounts that visited your Instagram profile.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "UserSquare2"
+    },
+    {
+        id: "instagram_website_clicks",
+        label: "IG Website Clicks",
+        description: "Total taps on the link in your Instagram bio.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "ExternalLink"
+    },
+    {
+        id: "instagram_post_views",
+        label: "IG Video Views",
+        description: "Cumulative view count aggregated across all Instagram Reels and Videos.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Eye"
+    },
+    {
+        id: "instagram_interactions",
+        label: "IG Interactions",
+        description: "Total likes, comments, and saves aggregated across all Instagram media.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Zap"
+    },
+    {
+        id: "instagram_post_success",
+        label: "Automation Status",
+        description: "Verifies the current AI write-access and publishing health for Instagram.",
+        category: 'operations',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "CheckCircle2"
+    },
+
+    // --- THREADS ARCHITECTURE STUBS ---
+    {
+        id: "threads_followers",
+        label: "Threads Followers",
+        description: "Total follower count across connected Threads accounts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "AtSign"
+    },
+    {
+        id: "threads_likes",
+        label: "Threads Likes",
+        description: "Total likes aggregated across all Threads posts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "ThumbsUp"
+    },
+
+    // --- X (TWITTER) ARCHITECTURE STUBS ---
+    {
+        id: "twitter_followers",
+        label: "X (Twitter) Followers",
+        description: "Total follower count across connected X/Twitter accounts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Twitter"
+    },
+    {
+        id: "twitter_impressions",
+        label: "X (Twitter) Impressions",
+        description: "Total number of times X/Twitter posts were seen.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "BarChart3"
+    },
+    {
+        id: "twitter_likes",
+        label: "X (Twitter) Likes",
+        description: "Total likes aggregated across all X/Twitter publications.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "ThumbsUp"
+    },
+    {
+        id: "twitter_retweets",
+        label: "X (Twitter) Retweets",
+        description: "Total retweets recorded across the X content archive.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Share2"
+    },
+    {
+        id: "twitter_engagement",
+        label: "X (Twitter) Engagement",
+        description: "Total interactions (likes, retweets, replies) on X posts.",
+        category: 'agency',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Zap"
+    },
+
+    {
+        id: "bookstore_inventory_value",
+        label: "Inventory Asset Value",
+        description: "Total real-time value of all physical and digital assets in the bookstore inventory.",
+        category: 'finance',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "HardDrive"
+    },
+    {
+        id: "active_readers",
+        label: "Active Reader Base",
+        description: "Total number of users currently engaged with the Reader App ecosystem.",
+        category: 'marketing',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "BookOpen"
+    },
+    {
+        id: "monthly_book_sales",
+        label: "Monthly Sales Velocity",
+        description: "Total book sales volume recorded in the current billing cycle.",
+        category: 'finance',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "TrendingUp"
+    },
+    {
+        id: "bookstore_total_orders",
+        label: "Total Orders",
+        description: "Cumulative order count synced from external store database.",
+        category: 'finance',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "ShoppingBag"
+    },
+    {
+        id: "bookstore_total_sales_value",
+        label: "Total Order Value",
+        description: "Gross revenue generated from all synced order records.",
+        category: 'finance',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "DollarSign"
+    },
+    {
+        id: "bookstore_avg_order_value",
+        label: "Average Order Value",
+        description: "Calculated average transaction value across all synced sales.",
+        category: 'finance',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Calculator"
+    },
+
+    // --- BARBER STUDENT STRATEGIC SLOTS ---
+    {
+        id: "board_readiness_index",
+        label: "Board Readiness Index",
+        description: "Weighted mastery score based on Texas PSI Candidate Information Bulletin (CIB) weighting.",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Compass"
+    },
+    {
+        id: "pass_probability",
+        label: "Pass Probability",
+        description: "AI-predicted likelihood of passing the randomized state board exam on the first attempt.",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Target"
+    },
+    {
+        id: "protected_career_wages",
+        label: "Protected Wages",
+        description: "Estimated career earnings secured by avoiding re-testing delays ($10k lost wage gap analysis).",
+        category: 'finance',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "ShieldCheck"
+    },
+    {
+        id: "syntax_mastery_accuracy",
+        label: "Syntax Mastery",
+        description: "Success rate on complex exam distractor patterns (double-negatives, 'except' clauses).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Braces"
+    },
+    {
+        id: "naccas_compliance_buffer",
+        label: "NACCAS Buffer",
+        description: "Current mastery safety margin above the 70% institutional accreditation threshold.",
+        category: 'operations',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Zap"
+    },
+
+    // --- BARBER SUBJECT MATTER MASTER SLOTS (Aligned with Exam Outline) ---
+    {
+        id: "barber_licensing_mastery",
+        label: "Licensing and Regulation",
+        description: "Knowledge of Administrative Codes, Health & Safety laws, and licensure regulations (13 items).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Gavel"
+    },
+    {
+        id: "barber_health_safety_mastery",
+        label: "Health and Safety",
+        description: "Sanitation, disinfection, and safety protocols for practitioners and work environments (25 items).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "ShieldAlert"
+    },
+    {
+        id: "barber_hair_scalp_care_mastery",
+        label: "Hair and Scalp Care",
+        description: "Mastery of hair and scalp physiology, product knowledge, and chemical processing (4 items).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "User"
+    },
+    {
+        id: "barber_haircutting_styling_mastery",
+        label: "Haircutting and Hairstyling",
+        description: "Theory and application of consultation, cutting, and styling techniques (12 items).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Scissors"
+    },
+    {
+        id: "barber_haircoloring_mastery",
+        label: "Haircoloring",
+        description: "Knowledge of haircoloring products, procedures, and client consultation (6 items).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Palette"
+    },
+    {
+        id: "barber_chemical_texture_mastery",
+        label: "Chemical Texture Services",
+        description: "Mastery of permanent waving, relaxing, and chemical texture products (6 items).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "FlaskConical"
+    },
+    {
+        id: "barber_nail_skin_care_mastery",
+        label: "Nail and Skin Care",
+        description: "Knowledge of nail and skin physiology, manicuring, and facial treatments (4 items).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Sparkles"
+    },
+    {
+        id: "barber_shaving_mastery",
+        label: "Shaving",
+        description: "Mastery of preparation, techniques, client protection, and razor safety (15 items).",
+        category: 'education',
+        type: 'kpi',
+        permissions: ['client-admin', 'client-viewer', 'super-admin'],
+        iconName: "Zap"
+    }
+]
+
+/**
+ * Returns available slots based on the user's highest permission level.
+ * Project-specific filtering is now handled dynamically by the database-backed SlotProvider.
+ */
+export function getAvailableSlots(
+    userRole: 'client-admin' | 'client-viewer' | 'super-admin',
+    _projectSlug?: string
+): MetricSlot[] {
+    return METRIC_REGISTRY.filter(slot => {
+        // Check Permissions
+        return slot.permissions.includes(userRole)
+    })
+}
+
+/**
+ * Returns a specific slot by its ID.
+ */
+export function getSlotById(id: string): MetricSlot | undefined {
+    return METRIC_REGISTRY.find(slot => slot.id === id)
+}

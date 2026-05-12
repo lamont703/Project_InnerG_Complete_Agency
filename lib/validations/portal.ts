@@ -4,14 +4,9 @@ export const portalSchema = z.object({
     // Client Details
     clientName: z.string().min(2, "Client name must be at least 2 characters"),
     industry: z.enum([
-        "retail",
-        "ebook_publishing",
-        "social_community",
-        "dating",
-        "hospitality",
-        "ecommerce",
-        "technology",
-        "healthcare",
+        "barbering",
+        "cosmetology",
+        "wellness",
         "other"
     ], {
         required_error: "Please select an industry",

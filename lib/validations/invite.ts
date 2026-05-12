@@ -6,7 +6,18 @@ export const inviteSchema = z.object({
         errorMap: () => ({ message: "Please select a valid intended role." }),
     }),
     client_id: z.string().uuid().optional().nullable(),
-})
+}).refine(
+    (data) => {
+        if (["client_admin", "client_viewer"].includes(data.intended_role)) {
+            return !!data.client_id
+        }
+        return true
+    },
+    {
+        message: "Please select a client for this role.",
+        path: ["client_id"],
+    }
+)
 
 export type InviteInput = z.infer<typeof inviteSchema>
 

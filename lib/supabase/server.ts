@@ -2,10 +2,19 @@ import { createServerClient as createSupabaseServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import type { Database } from "@/types/database"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
 export async function createServerClient() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+        // Return a dummy client during build to avoid crashing static generation
+        return createSupabaseServerClient<Database>(
+            "https://placeholder.supabase.co",
+            "placeholder",
+            { cookies: { get: () => undefined, setBy: () => {}, set: () => {}, remove: () => {} } } as any
+        )
+    }
+
     const cookieStore = await cookies()
 
     return createSupabaseServerClient<Database>(

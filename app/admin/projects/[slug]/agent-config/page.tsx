@@ -19,9 +19,21 @@ import {
     ArrowLeft,
     Info,
     Shield,
+    Youtube,
+    Linkedin,
+    Instagram,
+    Facebook,
+    Twitter,
+    FileText,
+    Globe,
+    Search,
+    PieChart,
+    Users2,
+    Database,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { AdminHeader } from "@/features/agency/components/AdminHeader"
 
 // ─────────────────────────────────────────────
 // DATA SOURCE DEFINITIONS
@@ -110,6 +122,114 @@ const DATA_SOURCES: DataSourceDef[] = [
         icon: MessageSquare,
         color: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
     },
+    {
+        key: "youtube_data",
+        dbColumn: "youtube_data_enabled",
+        label: "YouTube Analytics",
+        description: "YouTube channel statistics and video performance metrics.",
+        exampleQuestion: "Which video got the most likes last month?",
+        icon: Youtube,
+        color: "text-red-500 bg-red-500/10 border-red-500/20",
+    },
+    {
+        key: "linkedin_data",
+        dbColumn: "linkedin_data_enabled",
+        label: "LinkedIn Analytics",
+        description: "LinkedIn company page activity, post reach, and follower insights.",
+        exampleQuestion: "How many impressions did our last LinkedIn post get?",
+        icon: Linkedin,
+        color: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+    },
+    {
+        key: "linkedin_engagement",
+        dbColumn: "linkedin_engagement_enabled",
+        label: "LinkedIn Engagement",
+        description: "Syncs comments and allows AI-driven replies for LinkedIn posts.",
+        exampleQuestion: "Who commented on our LinkedIn post yesterday?",
+        icon: Users2,
+        color: "text-blue-600 bg-blue-600/10 border-blue-600/20",
+    },
+    {
+        key: "instagram_data",
+        dbColumn: "instagram_data_enabled",
+        label: "Instagram Analytics",
+        description: "Instagram business account performance and media statistics.",
+        exampleQuestion: "What is our reach on Instagram this week?",
+        icon: Instagram,
+        color: "text-pink-500 bg-pink-500/10 border-pink-500/20",
+    },
+    {
+        key: "facebook_data",
+        dbColumn: "facebook_data_enabled",
+        label: "Facebook Analytics",
+        description: "Facebook Page reach and engagement data.",
+        exampleQuestion: "Show me Facebook performance from last month.",
+        icon: Facebook,
+        color: "text-blue-800 bg-blue-800/10 border-blue-800/20",
+    },
+    {
+        key: "twitter_data",
+        dbColumn: "twitter_data_enabled",
+        label: "Twitter Data",
+        description: "Twitter / X channel activity and tweet performance.",
+        exampleQuestion: "How many retweets did we get today?",
+        icon: Twitter,
+        color: "text-zinc-400 bg-zinc-500/10 border-zinc-500/20",
+    },
+    {
+        key: "notion_data",
+        dbColumn: "notion_data_enabled",
+        label: "Notion Knowledge",
+        description: "Content synced from project Notion workspaces and databases.",
+        exampleQuestion: "What are the project requirements in Notion?",
+        icon: FileText,
+        color: "text-zinc-200 bg-zinc-100/10 border-zinc-100/20",
+    },
+    {
+        key: "project_knowledge",
+        dbColumn: "project_knowledge_enabled",
+        label: "Project Knowledge Base",
+        description: "Local uploads, PDFs, and documentation specific to this client.",
+        exampleQuestion: "Summarize the client's brand guidelines.",
+        icon: Database,
+        color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+    },
+    {
+        key: "tiktok_data",
+        dbColumn: "tiktok_data_enabled",
+        label: "TikTok Analytics",
+        description: "TikTok business account statistics and video performance.",
+        exampleQuestion: "Which TikTok video had the most reach?",
+        icon: Search,
+        color: "text-pink-400 bg-pink-500/10 border-pink-500/20",
+    },
+    {
+        key: "instagram_engagement",
+        dbColumn: "instagram_engagement_enabled",
+        label: "Instagram Engagement",
+        description: "Syncs Instagram comments and enables AI-automated community interaction.",
+        exampleQuestion: "What are people saying about our last Reel?",
+        icon: Users2,
+        color: "text-purple-400 bg-purple-500/10 border-purple-500/20",
+    },
+    {
+        key: "project_metrics",
+        dbColumn: "project_metrics_enabled",
+        label: "Internal Project Metrics",
+        description: "Custom internal performance indicators and operational health metrics.",
+        exampleQuestion: "What is the health score of this project?",
+        icon: PieChart,
+        color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
+    },
+    {
+        key: "news_intelligence",
+        dbColumn: "news_intelligence_enabled",
+        label: "News Intelligence",
+        description: "Industry-specific news and trend monitoring for strategic RAG context.",
+        exampleQuestion: "What are the latest trends in Digital Marketing?",
+        icon: Globe,
+        color: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+    },
 ]
 
 // ─────────────────────────────────────────────
@@ -130,7 +250,7 @@ function ToggleSwitch({
             type="button"
             disabled={disabled}
             onClick={() => onChange(!enabled)}
-            className={`relative h-7 w-12 rounded-full transition-all duration-300 ${enabled ? "bg-primary shadow-lg shadow-primary/30" : "bg-white/10"
+            className={`relative h-7 w-12 rounded-full transition-all duration-300 ${enabled ? "bg-primary shadow-lg shadow-primary/30" : "bg-muted"
                 } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
         >
             <span
@@ -166,6 +286,18 @@ export default function AgentConfigPage() {
         integration_sync_enabled: true,
         system_connections_enabled: true,
         chat_history_enabled: true,
+        youtube_data_enabled: true,
+        linkedin_data_enabled: true,
+        notion_data_enabled: true,
+        tiktok_data_enabled: true,
+        news_intelligence_enabled: true,
+        project_knowledge_enabled: true,
+        linkedin_engagement_enabled: true,
+        instagram_data_enabled: true,
+        project_metrics_enabled: true,
+        facebook_data_enabled: true,
+        instagram_engagement_enabled: true,
+        twitter_data_enabled: true,
     })
 
     // Count enabled/disabled
@@ -220,6 +352,18 @@ export default function AgentConfigPage() {
                         integration_sync_enabled: agentConfig.integration_sync_enabled ?? true,
                         system_connections_enabled: agentConfig.system_connections_enabled ?? true,
                         chat_history_enabled: agentConfig.chat_history_enabled ?? true,
+                        youtube_data_enabled: agentConfig.youtube_data_enabled ?? true,
+                        linkedin_data_enabled: agentConfig.linkedin_data_enabled ?? true,
+                        notion_data_enabled: agentConfig.notion_data_enabled ?? true,
+                        tiktok_data_enabled: agentConfig.tiktok_data_enabled ?? true,
+                        news_intelligence_enabled: agentConfig.news_intelligence_enabled ?? true,
+                        project_knowledge_enabled: agentConfig.project_knowledge_enabled ?? true,
+                        linkedin_engagement_enabled: agentConfig.linkedin_engagement_enabled ?? true,
+                        instagram_data_enabled: agentConfig.instagram_data_enabled ?? true,
+                        project_metrics_enabled: agentConfig.project_metrics_enabled ?? true,
+                        facebook_data_enabled: agentConfig.facebook_data_enabled ?? true,
+                        instagram_engagement_enabled: agentConfig.instagram_engagement_enabled ?? true,
+                        twitter_data_enabled: agentConfig.twitter_data_enabled ?? true,
                     })
                 }
             } catch (err) {
@@ -276,7 +420,7 @@ export default function AgentConfigPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">Loading Agent Configuration...</p>
@@ -286,44 +430,33 @@ export default function AgentConfigPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#020617] relative">
-            {/* Background ambient effects */}
-            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/15 rounded-full blur-[120px] opacity-20 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-violet-500/10 rounded-full blur-[100px] opacity-15 pointer-events-none" />
+        <>
+            <AdminHeader 
+                title="AI Agent Intelligence" 
+                subtitle={`${projectName} • Neural Configuration`}
+            />
 
-            <div className="relative z-10 max-w-4xl mx-auto px-4 py-8 md:py-12">
-                {/* Back Navigation */}
-                <Link
-                    href={`/dashboard/${slug}`}
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
-                >
-                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-                    Back to {projectName} Dashboard
-                </Link>
+            <div className="flex-1 p-6 md:p-10 relative z-10 max-w-4xl mx-auto w-full">
+                {/* Back Link */}
+                <div className="mb-8">
+                    <Link
+                        href={`/dashboard/${slug}`}
+                        className="flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-primary transition-all uppercase tracking-widest group"
+                    >
+                        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                        Back to Portal
+                    </Link>
+                </div>
 
-                {/* Header */}
-                <div className="mb-10">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/30 to-violet-500/30 flex items-center justify-center border border-primary/20">
-                            <Settings className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                                AI Agent Configuration
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                {projectName}
-                            </p>
-                        </div>
-                    </div>
-                    <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl mt-4">
+                <div className="mb-10 text-center md:text-left">
+                    <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl">
                         Control which data sources feed the Growth Assistant for this project.
                         Disabled sources will not be searched during RAG queries — the agent won't reference them.
                     </p>
                 </div>
 
                 {/* Summary Bar */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 p-4 rounded-2xl glass-panel border border-white/5">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 p-4 rounded-2xl glass-panel border border-border">
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-2">
                             <div className="h-3 w-3 rounded-full bg-primary" />
@@ -331,7 +464,7 @@ export default function AgentConfigPage() {
                         </div>
                         {disabledCount > 0 && (
                             <div className="flex items-center gap-2">
-                                <div className="h-3 w-3 rounded-full bg-white/20" />
+                                <div className="h-3 w-3 rounded-full bg-muted" />
                                 <span className="text-sm text-muted-foreground">{disabledCount} disabled</span>
                             </div>
                         )}
@@ -345,7 +478,7 @@ export default function AgentConfigPage() {
                         >
                             Enable All
                         </Button>
-                        <span className="text-white/10">|</span>
+                        <span className="text-border">|</span>
                         <Button
                             variant="ghost"
                             size="sm"
@@ -365,13 +498,13 @@ export default function AgentConfigPage() {
                             <div
                                 key={ds.key}
                                 className={`p-5 rounded-2xl border transition-all duration-300 ${isEnabled
-                                    ? "glass-panel border-white/10 hover:border-white/15"
-                                    : "bg-white/[0.01] border-white/5 opacity-60 hover:opacity-80"
+                                    ? "glass-panel border-border hover:border-border/80"
+                                    : "bg-muted/5 border-border/50 opacity-60 hover:opacity-80"
                                     }`}
                             >
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex items-start gap-4 flex-1 min-w-0">
-                                        <div className={`h-10 w-10 rounded-xl flex items-center justify-center border shrink-0 transition-all ${isEnabled ? ds.color : "bg-white/5 text-muted-foreground border-white/10"
+                                        <div className={`h-10 w-10 rounded-xl flex items-center justify-center border shrink-0 transition-all ${isEnabled ? ds.color : "bg-muted text-muted-foreground border-border"
                                             }`}>
                                             <ds.icon className="h-5 w-5" />
                                         </div>
@@ -450,6 +583,6 @@ export default function AgentConfigPage() {
                     )}
                 </div>
             </div>
-        </div>
+        </>
     )
 }

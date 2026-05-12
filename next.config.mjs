@@ -40,7 +40,7 @@ const nextConfig = {
     return [
       {
         source: "/dashboard",
-        destination: "/dashboard/kanes-bookstore",
+        destination: "/dashboard/innergcomplete",
         permanent: false,
       },
     ]

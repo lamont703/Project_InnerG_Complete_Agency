@@ -19,10 +19,29 @@ import {
     EyeOff,
     Save,
     Zap,
+    Github,
+    Trash2,
+    Edit2,
+    Youtube,
+    Linkedin,
+    Play,
+    BookOpen,
+    Newspaper,
+    Instagram,
+    Facebook,
+    Twitter,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createBrowserClient, supabaseAnonKey } from "@/lib/supabase/browser"
+import { AdminHeader } from "@/features/agency/components/AdminHeader"
+import { MetaLoginButton } from "@/components/social/meta-login-button"
+import { TikTokLoginButton } from "@/components/social/tiktok-login-button"
+import { InstagramLoginButton } from "@/components/social/instagram-login-button"
+import { TwitterLoginButton } from "@/components/social/twitter-login-button"
+import { LinkedInLoginButton } from "@/components/social/linkedin-login-button"
+import { YouTubeLoginButton } from "@/components/social/youtube-login-button"
+import { AlpacaLoginButton } from "@/components/social/alpaca-login-button"
 
 // ─────────────────────────────────────────────
 // TYPES
@@ -67,8 +86,19 @@ interface Project {
 const providerMeta: Record<string, { color: string; bgColor: string; label: string }> = {
     supabase: { color: "text-emerald-400", bgColor: "bg-emerald-500/10 border-emerald-500/20", label: "Supabase" },
     ghl: { color: "text-orange-400", bgColor: "bg-orange-500/10 border-orange-500/20", label: "GoHighLevel" },
+    github: { color: "text-violet-400", bgColor: "bg-violet-500/10 border-violet-500/20", label: "GitHub" },
     postgres: { color: "text-blue-400", bgColor: "bg-blue-500/10 border-blue-500/20", label: "PostgreSQL" },
     mysql: { color: "text-cyan-400", bgColor: "bg-cyan-500/10 border-cyan-500/20", label: "MySQL" },
+    youtube: { color: "text-red-500", bgColor: "bg-red-500/10 border-red-500/20", label: "YouTube" },
+    linkedin: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "LinkedIn" },
+    notion: { color: "text-slate-200", bgColor: "bg-slate-500/10 border-slate-500/20", label: "Notion" },
+    tiktok: { color: "text-pink-500", bgColor: "bg-pink-500/10 border-pink-500/20", label: "TikTok" },
+    newsapi: { color: "text-amber-500", bgColor: "bg-amber-500/10 border-amber-500/20", label: "NewsAPI" },
+    instagram: { color: "text-white", bgColor: "bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] border-pink-500/20", label: "Instagram" },
+    facebook: { color: "text-blue-500", bgColor: "bg-blue-600/10 border-blue-600/20", label: "Facebook Meta" },
+    twitter: { color: "text-zinc-100", bgColor: "bg-black border-white/20", label: "X (Twitter)" },
+    alpaca: { color: "text-cyan-400", bgColor: "bg-cyan-500/10 border-cyan-500/20", label: "Alpaca Brokerage" },
+    alpaca_keys: { color: "text-cyan-200", bgColor: "bg-cyan-600/10 border-cyan-600/20", label: "Alpaca (Manual API Keys)" },
 }
 
 const statusMeta: Record<string, { icon: any; color: string; label: string }> = {
@@ -113,6 +143,19 @@ export default function ConnectorAdminPage() {
     const [isCreating, setIsCreating] = useState(false)
     const [showSensitive, setShowSensitive] = useState<Record<string, boolean>>({})
 
+    // Edit connection state
+    const [editingConfigId, setEditingConfigId] = useState<string | null>(null)
+    const [editConfig, setEditConfig] = useState<Record<string, any>>({})
+    const [isUpdating, setIsUpdating] = useState(false)
+
+    // GitHub Repo Selection
+    const [fetchedRepos, setFetchedRepos] = useState<string[]>([])
+    const [isFetchingRepos, setIsFetchingRepos] = useState(false)
+
+    // Supabase Table Discovery
+    const [availableTables, setAvailableTables] = useState<string[]>([])
+    const [isDiscoveringTables, setIsDiscoveringTables] = useState(false)
+
     useEffect(() => {
         loadData()
     }, [])
@@ -154,19 +197,40 @@ export default function ConnectorAdminPage() {
             const { data: { session } } = await supabase.auth.getSession()
             if (!session) return
 
-            const { data, error } = await supabase.functions.invoke("connector-sync", {
-                body: { connection_id: connectionId },
-                headers: {
-                    Authorization: `Bearer ${session.access_token}`,
-                    apikey: supabaseAnonKey,
-                },
-            })
+            const conn = connections.find(c => c.id === connectionId)
+            const provider = conn?.connector_types?.provider || conn?.db_type
 
-            if (error) {
-                console.error("[Connectors] Sync error:", error)
-            } else {
-                console.log("[Connectors] Sync result:", data)
+            const syncPromises = [
+                supabase.functions.invoke("connector-sync", {
+                    body: { connection_id: connectionId },
+                    headers: {
+                        Authorization: `Bearer ${session.access_token}`,
+                        apikey: supabaseAnonKey,
+                    },
+                })
+            ]
+
+            if (provider === "ghl") {
+                syncPromises.push(
+                    supabase.functions.invoke("ghl-social-sync", {
+                        body: { connection_id: connectionId },
+                        headers: {
+                            Authorization: `Bearer ${session.access_token}`,
+                            apikey: supabaseAnonKey,
+                        },
+                    })
+                )
             }
+
+            const results = await Promise.all(syncPromises)
+            
+            results.forEach((res, index) => {
+                if (res.error) {
+                    console.error(`[Connectors] Sync error (Task ${index}):`, res.error)
+                } else {
+                    console.log(`[Connectors] Sync result (Task ${index}):`, res.data)
+                }
+            })
 
             // Reload to get updated status
             await loadData()
@@ -205,6 +269,7 @@ export default function ConnectorAdminPage() {
                 setNewType("")
                 setNewProject("")
                 setNewConfig({})
+                setFetchedRepos([])
                 await loadData()
             }
         } catch (err) {
@@ -214,11 +279,140 @@ export default function ConnectorAdminPage() {
         }
     }
 
-    const selectedTypeSchema = connectorTypes.find(t => t.id === newType)?.config_schema
+    const handleFetchRepos = async () => {
+        const token = newConfig.github_token
+        if (!token) return
+        setIsFetchingRepos(true)
+        try {
+            const res = await fetch("https://api.github.com/user/repos?per_page=100&sort=updated", {
+                headers: { "Authorization": `token ${token}` }
+            })
+            if (!res.ok) throw new Error("Failed to fetch repos")
+            const data = await res.json()
+            setFetchedRepos(data.map((r: any) => r.full_name))
+        } catch (err) {
+            console.error("[Connectors] Fetch repos failed:", err)
+            alert("Failed to fetch repositories. Check your token permissions (repo scope required).")
+        } finally {
+            setIsFetchingRepos(false)
+        }
+    }
+
+    const handleDiscoverSupabaseTables = async (isEdit = false, connectionId?: string) => {
+        const config = isEdit ? editConfig : newConfig
+        const url = config.supabase_url
+        const key = config.supabase_service_role_key
+
+        if (!url || !key) {
+            alert("Please provide both Supabase URL and Service Role Key first.")
+            return
+        }
+
+        setIsDiscoveringTables(true)
+        try {
+            const supabase = createBrowserClient()
+            const { data, error } = await supabase.functions.invoke("discover-external-tables", {
+                body: {
+                    provider: "supabase",
+                    config: { supabase_url: url, supabase_service_role_key: key }
+                }
+            })
+
+            if (error) throw error
+            const result = data?.data
+            if (result && result.success) {
+                setAvailableTables(result.tables)
+            } else {
+                throw new Error(result?.error || "Discovery failed")
+            }
+        } catch (err: any) {
+            console.error("[Connectors] Discovery failed:", err)
+            alert(`Failed to discover tables: ${err.message}`)
+        } finally {
+            setIsDiscoveringTables(false)
+        }
+    }
+
+    const toggleTableSelection = (table: string, isEdit = false) => {
+        if (isEdit) {
+            const current = editConfig.tables_to_sync || []
+            const next = current.includes(table)
+                ? current.filter((t: string) => t !== table)
+                : [...current, table]
+            setEditConfig(prev => ({ ...prev, tables_to_sync: next }))
+        } else {
+            const current = newConfig.tables_to_sync || []
+            const next = current.includes(table)
+                ? current.filter((t: string) => t !== table)
+                : [...current, table]
+            setNewConfig(prev => ({ ...prev, tables_to_sync: next }))
+        }
+    }
+
+    const handleDelete = async (connectionId: string) => {
+        if (!confirm("Are you sure you want to delete this connection? All synced data and history will be permanently removed.")) return
+        
+        try {
+            const supabase = createBrowserClient()
+            
+            // 1. Get connection info for specific cleanup if needed
+            const { data: conn } = await (supabase as any)
+                .from("client_db_connections")
+                .select("project_id, db_type")
+                .eq("id", connectionId)
+                .single()
+
+            // 2. Delete the connection (cascades to logs)
+            const { error: deleteError } = await (supabase as any)
+                .from("client_db_connections")
+                .delete()
+                .eq("id", connectionId)
+
+            if (deleteError) throw deleteError
+
+            // 3. GitHub-specific data cleanup if applicable
+            if (conn && "db_type" in conn && conn.db_type === "github" && conn.project_id) {
+                // Delete GitHub repos linked to this project
+                await (supabase as any)
+                    .from("github_repos")
+                    .delete()
+                    .eq("project_id", conn.project_id)
+            }
+
+            await loadData()
+        } catch (err) {
+            console.error("[Connectors] Delete failed:", err)
+            alert("Failed to delete connection.")
+        }
+    }
+
+    const handleUpdateConfig = async (connectionId: string) => {
+        setIsUpdating(true)
+        try {
+            const supabase = createBrowserClient()
+            const { error: updateError } = await (supabase as any)
+                .from("client_db_connections")
+                .update({ sync_config: editConfig })
+                .eq("id", connectionId)
+            
+            if (updateError) throw updateError
+            
+            setEditingConfigId(null)
+            await loadData()
+        } catch (err) {
+            console.error("[Connectors] Update failed:", err)
+            alert("Failed to update connection config.")
+        } finally {
+            setIsUpdating(false)
+        }
+    }
+
+    const selectedType = connectorTypes.find(t => t.id === newType)
+    const selectedTypeSchema = selectedType?.config_schema
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">Loading connectors...</p>
@@ -228,296 +422,632 @@ export default function ConnectorAdminPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#020617] relative">
-            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/15 rounded-full blur-[120px] opacity-20 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-emerald-500/10 rounded-full blur-[100px] opacity-15 pointer-events-none" />
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden h-full">
+            <AdminHeader 
+                title="External Connectors" 
+                subtitle="Data Bridges & Sync Pipelines"
+            />
 
-            <div className="relative z-10 max-w-5xl mx-auto px-4 py-8 md:py-12">
-                <Link
-                    href="/dashboard/innergcomplete"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
-                >
-                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-                    Back to Agency Dashboard
-                </Link>
+            <div className="flex-1 overflow-y-auto custom-scrollbar pb-24 lg:pb-10">
+                <div className="p-6 md:p-10 relative z-10 max-w-5xl mx-auto w-full">
+                    {/* Header Actions */}
+                    <div className="flex items-center justify-end mb-10">
+                        <Button
+                            onClick={() => setShowNewForm(!showNewForm)}
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl h-11 px-6 shadow-lg shadow-primary/20"
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span className="text-xs font-black uppercase tracking-widest">New Connection</span>
+                        </Button>
+                    </div>
 
-                {/* Header */}
-                <div className="flex items-start justify-between mb-10">
-                    <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500/30 to-primary/30 flex items-center justify-center border border-emerald-500/20">
-                            <Plug className="h-6 w-6 text-emerald-400" />
+                    {/* ─── New Connection Form ─── */}
+                    {showNewForm && (
+                        <div className="mb-8 p-6 rounded-2xl glass-panel border border-primary/20 animate-in slide-in-from-top-4">
+                            <h3 className="text-sm font-bold text-foreground mb-5 flex items-center gap-2">
+                                <Zap className="h-4 w-4 text-primary" />
+                                New Connection
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                                <div>
+                                    <label className="text-xs text-muted-foreground mb-1.5 block">Connection Label</label>
+                                    <Input
+                                        value={newLabel}
+                                        onChange={(e) => setNewLabel(e.target.value)}
+                                        placeholder="e.g. Kane's Supabase DB"
+                                        className="bg-background border-border rounded-xl"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-muted-foreground mb-1.5 block">Connector Type</label>
+                                    <select
+                                        value={newType}
+                                        onChange={(e) => { setNewType(e.target.value); setNewConfig({}); setFetchedRepos([]) }}
+                                        className="w-full h-10 px-3 rounded-xl bg-background border border-border text-sm text-foreground"
+                                    >
+                                        <option value="">Select type...</option>
+                                        {connectorTypes.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-muted-foreground mb-1.5 block">Assign to Project</label>
+                                    <select
+                                        value={newProject}
+                                        onChange={(e) => setNewProject(e.target.value)}
+                                        className="w-full h-10 px-3 rounded-xl bg-background border border-border text-sm text-foreground"
+                                    >
+                                        <option value="">Select project...</option>
+                                        {projects.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Dynamic Config Fields */}
+                            {selectedType?.provider === "facebook" ? (
+                                <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center px-6">
+                                        Meta uses Business Login for secure access to Pages and accounts.
+                                    </p>
+                                    <MetaLoginButton 
+                                        size="large"
+                                        projectId={newProject}
+                                        configId="1304420384838040"
+                                    />
+                                    <p className="text-[8px] text-muted-foreground italic">
+                                        You will be redirected back here after authorizing via Facebook.
+                                    </p>
+                                </div>
+                            ) : selectedType?.provider === "instagram" ? (
+                                <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                    <p className="text-[10px] font-black text-pink-500 uppercase tracking-widest text-center px-6">
+                                        Connect your Instagram Business account directly.
+                                    </p>
+                                    <InstagramLoginButton 
+                                        size="large"
+                                        projectId={newProject}
+                                    />
+                                    <p className="text-[8px] text-muted-foreground italic">
+                                        Authorized via the native Instagram Login flow.
+                                    </p>
+                                </div>
+                            ) : selectedType?.provider === "tiktok" ? (
+                                <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                    <p className="text-[10px] font-black text-pink-500 uppercase tracking-widest text-center px-6">
+                                        Connect TikTok to sync your videos and content insights.
+                                    </p>
+                                    <TikTokLoginButton 
+                                        projectId={newProject}
+                                    />
+                                    <p className="text-[8px] text-muted-foreground italic">
+                                        OAuth connection requires access to video.list and profile info.
+                                    </p>
+                                </div>
+                            ) : selectedType?.provider === "twitter" ? (
+                                <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest text-center px-6">
+                                        Connect X (Twitter) via OAuth 2.0 PKCE.
+                                    </p>
+                                    <TwitterLoginButton 
+                                        projectId={newProject}
+                                    />
+                                    <p className="text-[8px] text-muted-foreground italic">
+                                        Includes access to follow counts and recent performance signals.
+                                    </p>
+                                </div>
+                            ) : selectedType?.provider === "linkedin" ? (
+                                <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest text-center px-6">
+                                        Connect your LinkedIn Profile or Page via OAuth.
+                                    </p>
+                                    <LinkedInLoginButton 
+                                        projectId={newProject}
+                                    />
+                                    <p className="text-[8px] text-muted-foreground italic">
+                                        Authorizes personal posts and organization page access.
+                                    </p>
+                                </div>
+                            ) : selectedType?.provider === "youtube" ? (
+                                <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                    <p className="text-[10px] font-black text-red-500 uppercase tracking-widest text-center px-6">
+                                        Connect your YouTube Channel via Google OAuth.
+                                    </p>
+                                    <YouTubeLoginButton 
+                                        projectId={newProject}
+                                        disabled={!newProject}
+                                    />
+                                    {(!newProject || !newLabel) && (
+                                        <p className="text-[10px] text-destructive font-bold animate-pulse">
+                                            Please enter a label and select a project first.
+                                        </p>
+                                    )}
+                                    <p className="text-[8px] text-muted-foreground italic">
+                                        Authorizes analytics and channel content discovery.
+                                    </p>
+                                </div>
+                            ) : (selectedType?.provider?.toLowerCase() === "alpaca" || selectedType?.name === "Alpaca Brokerage") ? (
+                                <div className="py-6 flex flex-col items-center gap-4 bg-background/50 rounded-2xl border border-dashed border-border w-full">
+                                    <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest text-center px-6">
+                                        Connect Alpaca Brokerage for Automated Trading.
+                                    </p>
+                                    
+                                    <div className="px-12 text-center flex flex-col gap-3">
+                                        <p className="text-[9px] text-muted-foreground leading-relaxed">
+                                            <span className="font-bold text-foreground">Authorize Inner G Complete Agency App:</span> By allowing Inner G Complete Agency App to access your Alpaca account, you are granting access to your account information and authorization to place transactions in your account at your direction. Alpaca does not warrant or guarantee that Inner G Complete Agency App will work as advertised or expected.
+                                        </p>
+                                    </div>
+
+                                    <AlpacaLoginButton 
+                                        projectId={newProject}
+                                    />
+                                    
+                                    <p className="text-[8px] text-muted-foreground italic flex items-center gap-2">
+                                        <Database size={10} />
+                                        Authorizes accounts, trading, and real-time market data.
+                                    </p>
+                                </div>
+                            ) : selectedTypeSchema?.properties && (
+                                <div className="space-y-3 mb-5 p-4 rounded-xl bg-muted/5 border border-border">
+                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Configuration</p>
+                                    {Object.entries(selectedTypeSchema.properties).map(([key, schema]: [string, any]) => {
+                                        if (schema.type === "boolean") {
+                                            return (
+                                                <label key={key} className="flex items-center gap-3 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={newConfig[key] ?? schema.default ?? false}
+                                                        onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.checked }))}
+                                                        className="rounded border-white/20"
+                                                    />
+                                                    <span className="text-xs text-foreground">{schema.label || key}</span>
+                                                </label>
+                                            )
+                                        }
+                                        const isSensitive = schema.sensitive === true
+                                        const isVisible = showSensitive[key] ?? false
+                                        return (
+                                            <div key={key}>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <label className="text-xs text-muted-foreground block">{schema.label || key}</label>
+                                                    {key === "repository" && selectedType?.provider === "github" && (
+                                                        <button 
+                                                            onClick={handleFetchRepos}
+                                                            disabled={!newConfig.github_token || isFetchingRepos}
+                                                            className="text-[10px] font-bold text-primary hover:text-primary/80 disabled:opacity-50 flex items-center gap-1"
+                                                        >
+                                                            {isFetchingRepos && <Loader2 className="h-2 w-2 animate-spin" />}
+                                                            Fetch My Repositories
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="relative">
+                                                    {key === "repository" && fetchedRepos.length > 0 ? (
+                                                        <select
+                                                            value={newConfig[key] || ""}
+                                                            onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.value }))}
+                                                            className="w-full h-10 px-3 rounded-xl bg-background border border-border text-sm text-foreground"
+                                                        >
+                                                            <option value="">Select a repository...</option>
+                                                            {fetchedRepos.map(repo => (
+                                                                <option key={repo} value={repo}>{repo}</option>
+                                                            ))}
+                                                        </select>
+                                                    ) : key === "tables_to_sync" && selectedType?.provider === "supabase" ? (
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-center justify-between gap-4">
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    disabled={isDiscoveringTables || !newConfig.supabase_url || !newConfig.supabase_service_role_key}
+                                                                    onClick={() => handleDiscoverSupabaseTables(false)}
+                                                                    className="h-8 text-[10px] font-black uppercase tracking-widest gap-2 bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                                                                >
+                                                                    {isDiscoveringTables ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCcw className="h-3 w-3" />}
+                                                                    {availableTables.length > 0 ? "Refresh Tables" : "Discover Tables"}
+                                                                </Button>
+                                                                {availableTables.length > 0 && (
+                                                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                                                                        {availableTables.length} Found
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            {availableTables.length > 0 && (
+                                                                <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 max-h-40 overflow-y-auto custom-scrollbar">
+                                                                    {availableTables.map(table => {
+                                                                        const isSelected = (newConfig.tables_to_sync || []).includes(table)
+                                                                        return (
+                                                                            <label 
+                                                                                key={table} 
+                                                                                className={`flex items-center gap-2 group cursor-pointer p-2 rounded-lg transition-colors ${isSelected ? 'bg-emerald-500/20' : 'hover:bg-white/5'}`}
+                                                                            >
+                                                                                <input 
+                                                                                    type="checkbox" 
+                                                                                    className="hidden" 
+                                                                                    checked={isSelected}
+                                                                                    onChange={() => toggleTableSelection(table, false)}
+                                                                                />
+                                                                                <div className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-white/20'}`}>
+                                                                                    {isSelected && <CheckCircle2 className="h-3 w-3" />}
+                                                                                </div>
+                                                                                <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-emerald-400' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                                                                                    {table}
+                                                                                </span>
+                                                                            </label>
+                                                                        )
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                            {(newConfig.tables_to_sync || []).length > 0 && (
+                                                                <div className="flex flex-wrap gap-1.5">
+                                                                    {(newConfig.tables_to_sync || []).map((t: string) => (
+                                                                        <span key={t} className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-bold text-emerald-400">
+                                                                            {t}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <Input
+                                                                type={isSensitive && !isVisible ? "password" : "text"}
+                                                                value={newConfig[key] || ""}
+                                                                onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.value }))}
+                                                                placeholder={schema.placeholder || ""}
+                                                                className="bg-background border-border rounded-xl pr-10"
+                                                            />
+                                                            {isSensitive && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setShowSensitive(prev => ({ ...prev, [key]: !isVisible }))}
+                                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                                                >
+                                                                    {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                                                </button>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
+
+                            <div className="flex gap-3">
+                                <Button
+                                    onClick={handleCreateConnection}
+                                    disabled={!newLabel || !newType || !newProject || isCreating}
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl"
+                                >
+                                    {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                    Create Connection
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => { setShowNewForm(false); setFetchedRepos([]) }}
+                                    className="rounded-xl"
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-bold text-foreground">External Connectors</h1>
-                            <p className="text-sm text-muted-foreground">
-                                {connections.length} connection{connections.length !== 1 ? "s" : ""} configured
-                            </p>
+                    )}
+
+                    {/* ─── Connector Library ─── */}
+                    <div className="mb-8">
+                        <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 px-1">Available Connectors</h2>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {connectorTypes.map((ct) => {
+                                const meta = providerMeta[ct.provider] || providerMeta.postgres
+                                const connectionCount = connections.filter(c =>
+                                    c.connector_type_id === ct.id || c.db_type === ct.provider
+                                ).length
+                                return (
+                                    <div
+                                        key={ct.id}
+                                        className={`p-4 rounded-xl border ${meta.bgColor} hover:scale-[1.02] transition-transform cursor-default`}
+                                    >
+                                        <div className="flex items-center gap-2 mb-2">
+                                            {ct.provider === "github" ? (
+                                                <Github className={`h-4 w-4 ${meta.color}`} />
+                                            ) : ct.provider === "youtube" ? (
+                                                <Youtube className={`h-4 w-4 ${meta.color}`} />
+                                            ) : ct.provider === "linkedin" ? (
+                                                <Linkedin className={`h-4 w-4 ${meta.color}`} />
+                                            ) : ct.provider === "notion" ? (
+                                                <BookOpen className={`h-4 w-4 ${meta.color}`} />
+                                            ) : ct.provider === "tiktok" ? (
+                                                <Zap className={`h-4 w-4 ${meta.color}`} />
+                                            ) : ct.provider === "newsapi" ? (
+                                                <Newspaper className={`h-4 w-4 ${meta.color}`} />
+                                            ) : ct.provider === "alpaca" ? (
+                                                <Plug className={`h-4 w-4 ${meta.color}`} />
+                                            ) : (
+                                                <Database className={`h-4 w-4 ${meta.color}`} />
+                                            )}
+                                            <span className={`text-xs font-bold ${meta.color}`}>{meta.label}</span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground leading-relaxed">{ct.description}</p>
+                                        <p className="text-[10px] text-muted-foreground/60 mt-2">
+                                            {connectionCount > 0 ? `${connectionCount} active` : "No connections"}
+                                        </p>
+                                    </div>
+                                )
+                            })}
                         </div>
                     </div>
-                    <Button
-                        onClick={() => setShowNewForm(!showNewForm)}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl"
-                    >
-                        <Plus className="h-4 w-4" />
-                        New Connection
-                    </Button>
-                </div>
 
-                {/* ─── New Connection Form ─── */}
-                {showNewForm && (
-                    <div className="mb-8 p-6 rounded-2xl glass-panel border border-primary/20 animate-in slide-in-from-top-4">
-                        <h3 className="text-sm font-bold text-foreground mb-5 flex items-center gap-2">
-                            <Zap className="h-4 w-4 text-primary" />
-                            New Connection
-                        </h3>
+                    {/* ─── Active Connections ─── */}
+                    <div>
+                        <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 px-1">Active Connections</h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-                            <div>
-                                <label className="text-xs text-muted-foreground mb-1.5 block">Connection Label</label>
-                                <Input
-                                    value={newLabel}
-                                    onChange={(e) => setNewLabel(e.target.value)}
-                                    placeholder="e.g. Kane's Supabase DB"
-                                    className="bg-background/50 border-white/10 rounded-xl"
-                                />
+                        {connections.length === 0 ? (
+                            <div className="text-center py-12 glass-panel rounded-2xl border border-border">
+                                <Plug className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                                <p className="text-sm text-muted-foreground">No connections configured</p>
+                                <p className="text-xs text-muted-foreground/60 mt-1">Click &ldquo;New Connection&rdquo; to connect a data source.</p>
                             </div>
-                            <div>
-                                <label className="text-xs text-muted-foreground mb-1.5 block">Connector Type</label>
-                                <select
-                                    value={newType}
-                                    onChange={(e) => { setNewType(e.target.value); setNewConfig({}) }}
-                                    className="w-full h-10 px-3 rounded-xl bg-background/50 border border-white/10 text-sm text-foreground"
-                                >
-                                    <option value="">Select type...</option>
-                                    {connectorTypes.map(t => (
-                                        <option key={t.id} value={t.id}>{t.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs text-muted-foreground mb-1.5 block">Assign to Project</label>
-                                <select
-                                    value={newProject}
-                                    onChange={(e) => setNewProject(e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl bg-background/50 border border-white/10 text-sm text-foreground"
-                                >
-                                    <option value="">Select project...</option>
-                                    {projects.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {connections.map((conn) => {
+                                    const provider = conn.connector_types?.provider || conn.db_type
+                                    const meta = providerMeta[provider] || providerMeta.postgres
+                                    const status = statusMeta[conn.sync_status] || statusMeta.pending
+                                    const StatusIcon = status.icon
+                                    const isExpanded = expandedId === conn.id
+                                    const isSyncing = syncingId === conn.id
 
-                        {/* Dynamic Config Fields */}
-                        {selectedTypeSchema?.properties && (
-                            <div className="space-y-3 mb-5 p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Configuration</p>
-                                {Object.entries(selectedTypeSchema.properties).map(([key, schema]: [string, any]) => {
-                                    if (schema.type === "boolean") {
-                                        return (
-                                            <label key={key} className="flex items-center gap-3 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={newConfig[key] ?? schema.default ?? false}
-                                                    onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.checked }))}
-                                                    className="rounded border-white/20"
-                                                />
-                                                <span className="text-xs text-foreground">{schema.label || key}</span>
-                                            </label>
-                                        )
-                                    }
-                                    const isSensitive = schema.sensitive === true
-                                    const isVisible = showSensitive[key] ?? false
                                     return (
-                                        <div key={key}>
-                                            <label className="text-xs text-muted-foreground mb-1 block">{schema.label || key}</label>
-                                            <div className="relative">
-                                                <Input
-                                                    type={isSensitive && !isVisible ? "password" : "text"}
-                                                    value={newConfig[key] || ""}
-                                                    onChange={(e) => setNewConfig(prev => ({ ...prev, [key]: e.target.value }))}
-                                                    placeholder={schema.placeholder || ""}
-                                                    className="bg-background/50 border-white/10 rounded-xl pr-10"
-                                                />
-                                                {isSensitive && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowSensitive(prev => ({ ...prev, [key]: !isVisible }))}
-                                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                        <div
+                                            key={conn.id}
+                                            className={`rounded-2xl border transition-all duration-300 ${isExpanded
+                                                ? "glass-panel border-border shadow-sm shadow-primary/5"
+                                                : "glass-panel border-border/50 hover:border-border"
+                                                }`}
+                                        >
+                                            <div className="p-5 flex items-center justify-between">
+                                                <div className="flex items-center gap-4 min-w-0">
+                                                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center border shrink-0 ${meta.bgColor}`}>
+                                                        {provider === "github" ? (
+                                                            <Github className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "youtube" ? (
+                                                            <Youtube className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "linkedin" ? (
+                                                            <Linkedin className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "notion" ? (
+                                                            <BookOpen className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "tiktok" ? (
+                                                            <Zap className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "newsapi" ? (
+                                                            <Newspaper className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "instagram" ? (
+                                                            <Instagram className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "facebook" ? (
+                                                            <Facebook className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "twitter" ? (
+                                                            <Twitter className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : provider === "alpaca" ? (
+                                                            <Plug className={`h-5 w-5 ${meta.color}`} />
+                                                        ) : (
+                                                            <Database className={`h-5 w-5 ${meta.color}`} />
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <h3 className="text-sm font-bold text-foreground truncate">{conn.label}</h3>
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <span className={`text-[10px] font-bold ${meta.color}`}>{meta.label}</span>
+                                                            <span className="text-muted-foreground/30">•</span>
+                                                            <span className="text-[10px] text-muted-foreground">
+                                                                {conn.projects?.name || "Unassigned"}
+                                                            </span>
+                                                            <span className="text-muted-foreground/30">•</span>
+                                                            <StatusIcon className={`h-3 w-3 ${status.color} ${isSyncing ? "animate-spin" : ""}`} />
+                                                            <span className={`text-[10px] ${status.color}`}>{isSyncing ? "Syncing..." : status.label}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <span className="text-[10px] text-muted-foreground hidden sm:block">
+                                                        Last sync: {formatDate(conn.last_synced_at)}
+                                                    </span>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        disabled={isSyncing}
+                                                        onClick={() => handleSync(conn.id)}
+                                                        className="h-8 px-3 rounded-lg gap-1.5 text-xs"
                                                     >
-                                                        {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                                        <RefreshCcw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+                                                        Sync
+                                                    </Button>
+                                                    <button
+                                                        onClick={() => setExpandedId(isExpanded ? null : conn.id)}
+                                                        className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground"
+                                                    >
+                                                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                                     </button>
-                                                )}
+                                                </div>
                                             </div>
+
+                                            {isExpanded && (
+                                                <div className="px-5 pb-5 border-t border-border pt-4">
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                                                        <div>
+                                                            <p className="text-muted-foreground/60 mb-1">Schedule</p>
+                                                            <p className="text-foreground font-medium capitalize">{conn.sync_schedule || "manual"}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-muted-foreground/60 mb-1">Shared</p>
+                                                            <p className="text-foreground font-medium">{conn.is_shared ? "Yes" : "No"}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-muted-foreground/60 mb-1">Active</p>
+                                                            <p className={`font-medium ${conn.is_active ? "text-emerald-400" : "text-red-400"}`}>
+                                                                {conn.is_active ? "Yes" : "Disabled"}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-muted-foreground/60 mb-1">Last Synced</p>
+                                                            <p className="text-foreground font-medium">{formatDate(conn.last_synced_at)}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    {conn.sync_config && Object.keys(conn.sync_config).length > 0 && editingConfigId !== conn.id && (
+                                                        <div className="mt-4 p-3 rounded-xl bg-muted/5 border border-border relative">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-foreground"
+                                                                onClick={() => { setEditingConfigId(conn.id); setEditConfig({ ...conn.sync_config }) }}
+                                                            >
+                                                                <Edit2 className="h-3 w-3" />
+                                                            </Button>
+                                                            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-2">Config</p>
+                                                            {Object.entries(conn.sync_config).map(([k, v]) => (
+                                                                <div key={k} className="flex items-center gap-2 text-[10px]">
+                                                                     <span className="text-muted-foreground">{k}:</span>
+                                                                     <span className="text-foreground font-mono">
+                                                                         {typeof v === "string" && v.length > 20 ? `${v.slice(0, 8)}...${v.slice(-4)}` : String(v)}
+                                                                     </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {editingConfigId === conn.id && (
+                                                        <div className="mt-4 p-4 rounded-xl bg-muted/5 border border-primary/20">
+                                                            <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-3">Edit Configuration</p>
+                                                            
+                                                            {Object.keys(editConfig).map((key) => {
+                                                                const schemaField = conn.connector_types?.config_schema?.properties?.[key]
+                                                                const isSensitive = schemaField?.sensitive === true
+                                                                return (
+                                                                <div key={key} className="mb-3">
+                                                                    <label className="text-[10px] text-muted-foreground block mb-1">{key}</label>
+                                                                    {typeof editConfig[key] === "boolean" ? (
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={editConfig[key]}
+                                                                            onChange={(e) => setEditConfig(p => ({ ...p, [key]: e.target.checked }))}
+                                                                            className="rounded border-white/20"
+                                                                        />
+                                                                    ) : key === "tables_to_sync" && conn.db_type === "supabase" ? (
+                                                                        <div className="space-y-3">
+                                                                            <div className="flex items-center justify-between gap-4">
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    size="sm"
+                                                                                    variant="outline"
+                                                                                    disabled={isDiscoveringTables || !editConfig.supabase_url || !editConfig.supabase_service_role_key}
+                                                                                    onClick={() => handleDiscoverSupabaseTables(true)}
+                                                                                    className="h-7 text-[10px] font-black uppercase tracking-widest gap-2 bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                                                                                >
+                                                                                    {isDiscoveringTables ? <Loader2 className="h-2 w-2 animate-spin" /> : <RefreshCcw className="h-2 w-2" />}
+                                                                                    {availableTables.length > 0 ? "Refresh Tables" : "Discover Tables"}
+                                                                                </Button>
+                                                                                {availableTables.length > 0 && (
+                                                                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                                                                                        {availableTables.length} Found
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+
+                                                                            {availableTables.length > 0 && (
+                                                                                <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 max-h-40 overflow-y-auto custom-scrollbar">
+                                                                                    {availableTables.map(table => {
+                                                                                        const isSelected = (editConfig.tables_to_sync || []).includes(table)
+                                                                                        return (
+                                                                                            <label 
+                                                                                                key={table} 
+                                                                                                className={`flex items-center gap-2 group cursor-pointer p-2 rounded-lg transition-colors ${isSelected ? 'bg-emerald-500/20' : 'hover:bg-white/5'}`}
+                                                                                            >
+                                                                                                <input 
+                                                                                                    type="checkbox" 
+                                                                                                    className="hidden" 
+                                                                                                    checked={isSelected}
+                                                                                                    onChange={() => toggleTableSelection(table, true)}
+                                                                                                />
+                                                                                                <div className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-white/20'}`}>
+                                                                                                    {isSelected && <CheckCircle2 className="h-3 w-3" />}
+                                                                                                </div>
+                                                                                                <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-emerald-400' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                                                                                                    {table}
+                                                                                                </span>
+                                                                                            </label>
+                                                                                        )
+                                                                                    })}
+                                                                                </div>
+                                                                            )}
+                                                                            {(editConfig.tables_to_sync || []).length > 0 && (
+                                                                                <div className="flex flex-wrap gap-1.5">
+                                                                                    {(editConfig.tables_to_sync || []).map((t: string) => (
+                                                                                        <span key={t} className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-bold text-emerald-400">
+                                                                                            {t}
+                                                                                        </span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <Input
+                                                                            type={isSensitive ? "password" : "text"}
+                                                                            value={editConfig[key] || ""}
+                                                                            onChange={(e) => setEditConfig(p => ({ ...p, [key]: e.target.value }))}
+                                                                            className="h-8 text-xs bg-background border-border rounded-lg"
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                            )})}
+
+                                                            <div className="flex justify-end gap-2 mt-4">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => setEditingConfigId(null)}
+                                                                    className="h-7 px-2 text-[10px]"
+                                                                >
+                                                                    Cancel
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    disabled={isUpdating}
+                                                                    onClick={() => handleUpdateConfig(conn.id)}
+                                                                    className="h-7 px-2 text-[10px] bg-primary text-primary-foreground hover:bg-primary/90"
+                                                                >
+                                                                    {isUpdating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
+                                                                    Save
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="mt-6 flex justify-end">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleDelete(conn.id)}
+                                                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-3 rounded-lg gap-2"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                            Delete Connection
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 })}
                             </div>
                         )}
-
-                        <div className="flex gap-3">
-                            <Button
-                                onClick={handleCreateConnection}
-                                disabled={!newLabel || !newType || !newProject || isCreating}
-                                className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl"
-                            >
-                                {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                                Create Connection
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                onClick={() => setShowNewForm(false)}
-                                className="rounded-xl"
-                            >
-                                Cancel
-                            </Button>
-                        </div>
                     </div>
-                )}
-
-                {/* ─── Connector Library ─── */}
-                <div className="mb-8">
-                    <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 px-1">Available Connectors</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {connectorTypes.map((ct) => {
-                            const meta = providerMeta[ct.provider] || providerMeta.postgres
-                            const connectionCount = connections.filter(c =>
-                                c.connector_type_id === ct.id || c.db_type === ct.provider
-                            ).length
-                            return (
-                                <div
-                                    key={ct.id}
-                                    className={`p-4 rounded-xl border ${meta.bgColor} hover:scale-[1.02] transition-transform cursor-default`}
-                                >
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Database className={`h-4 w-4 ${meta.color}`} />
-                                        <span className={`text-xs font-bold ${meta.color}`}>{meta.label}</span>
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground leading-relaxed">{ct.description}</p>
-                                    <p className="text-[10px] text-muted-foreground/60 mt-2">
-                                        {connectionCount > 0 ? `${connectionCount} active` : "No connections"}
-                                    </p>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-
-                {/* ─── Active Connections ─── */}
-                <div>
-                    <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 px-1">Active Connections</h2>
-
-                    {connections.length === 0 ? (
-                        <div className="text-center py-12 glass-panel rounded-2xl border border-white/5">
-                            <Plug className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                            <p className="text-sm text-muted-foreground">No connections configured</p>
-                            <p className="text-xs text-muted-foreground/60 mt-1">Click &ldquo;New Connection&rdquo; to connect a data source.</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {connections.map((conn) => {
-                                const provider = conn.connector_types?.provider || conn.db_type
-                                const meta = providerMeta[provider] || providerMeta.postgres
-                                const status = statusMeta[conn.sync_status] || statusMeta.pending
-                                const StatusIcon = status.icon
-                                const isExpanded = expandedId === conn.id
-                                const isSyncing = syncingId === conn.id
-
-                                return (
-                                    <div
-                                        key={conn.id}
-                                        className={`rounded-2xl border transition-all duration-300 ${isExpanded
-                                            ? "glass-panel border-white/10"
-                                            : "glass-panel border-white/5 hover:border-white/10"
-                                            }`}
-                                    >
-                                        <div className="p-5 flex items-center justify-between">
-                                            <div className="flex items-center gap-4 min-w-0">
-                                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center border shrink-0 ${meta.bgColor}`}>
-                                                    <Database className={`h-5 w-5 ${meta.color}`} />
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <h3 className="text-sm font-bold text-foreground truncate">{conn.label}</h3>
-                                                    <div className="flex items-center gap-2 mt-0.5">
-                                                        <span className={`text-[10px] font-bold ${meta.color}`}>{meta.label}</span>
-                                                        <span className="text-muted-foreground/30">•</span>
-                                                        <span className="text-[10px] text-muted-foreground">
-                                                            {conn.projects?.name || "Unassigned"}
-                                                        </span>
-                                                        <span className="text-muted-foreground/30">•</span>
-                                                        <StatusIcon className={`h-3 w-3 ${status.color} ${isSyncing ? "animate-spin" : ""}`} />
-                                                        <span className={`text-[10px] ${status.color}`}>{isSyncing ? "Syncing..." : status.label}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                <span className="text-[10px] text-muted-foreground hidden sm:block">
-                                                    Last sync: {formatDate(conn.last_synced_at)}
-                                                </span>
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    disabled={isSyncing}
-                                                    onClick={() => handleSync(conn.id)}
-                                                    className="h-8 px-3 rounded-lg gap-1.5 text-xs"
-                                                >
-                                                    <RefreshCcw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-                                                    Sync
-                                                </Button>
-                                                <button
-                                                    onClick={() => setExpandedId(isExpanded ? null : conn.id)}
-                                                    className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground"
-                                                >
-                                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {isExpanded && (
-                                            <div className="px-5 pb-5 border-t border-white/5 pt-4">
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                                                    <div>
-                                                        <p className="text-muted-foreground/60 mb-1">Schedule</p>
-                                                        <p className="text-foreground font-medium capitalize">{conn.sync_schedule || "manual"}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-muted-foreground/60 mb-1">Shared</p>
-                                                        <p className="text-foreground font-medium">{conn.is_shared ? "Yes" : "No"}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-muted-foreground/60 mb-1">Active</p>
-                                                        <p className={`font-medium ${conn.is_active ? "text-emerald-400" : "text-red-400"}`}>
-                                                            {conn.is_active ? "Yes" : "Disabled"}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-muted-foreground/60 mb-1">Last Synced</p>
-                                                        <p className="text-foreground font-medium">{formatDate(conn.last_synced_at)}</p>
-                                                    </div>
-                                                </div>
-
-                                                {conn.sync_config && Object.keys(conn.sync_config).length > 0 && (
-                                                    <div className="mt-4 p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                                                        <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-2">Config</p>
-                                                        {Object.entries(conn.sync_config).map(([k, v]) => (
-                                                            <div key={k} className="flex items-center gap-2 text-[10px]">
-                                                                <span className="text-muted-foreground">{k}:</span>
-                                                                <span className="text-foreground font-mono">
-                                                                    {typeof v === "string" && v.length > 20 ? `${v.slice(0, 8)}...${v.slice(-4)}` : String(v)}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

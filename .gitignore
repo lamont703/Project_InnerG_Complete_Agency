@@ -25,3 +25,9 @@ yarn-error.log*
 .DS_Store
 *.pem
 .vercel
+# Markdown docs (all .md files excluded from repo)
+*.md
+
+
+
+public/Milady Barber Book 6th Edition.pdf

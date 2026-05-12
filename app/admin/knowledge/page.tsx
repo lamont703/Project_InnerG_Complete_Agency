@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import type { AgencyKnowledge } from "@/types"
+import { AdminHeader } from "@/features/agency/components/AdminHeader"
 
 // Available tags for the knowledge CMS
 const AVAILABLE_TAGS = [
@@ -62,7 +63,7 @@ const TAG_COLORS: Record<string, string> = {
 // ─────────────────────────────────────────────
 
 function TagBadge({ tag, onRemove, clickable }: { tag: string; onRemove?: () => void; clickable?: boolean }) {
-    const colorClasses = TAG_COLORS[tag] || "bg-white/5 text-muted-foreground border-white/10"
+    const colorClasses = TAG_COLORS[tag] || "bg-muted/10 text-muted-foreground border-border"
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${colorClasses} ${clickable ? "cursor-pointer hover:opacity-80" : ""}`}>
             {tag}
@@ -127,7 +128,7 @@ function KnowledgeEditor({ entry, onSave, onCancel, isSaving }: KnowledgeEditorP
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g., Inner G Complete Growth Methodology"
-                    className="bg-background/50 border-white/10 h-12 text-base"
+                    className="bg-background border-border h-12 text-base"
                     required
                 />
             </div>
@@ -139,7 +140,7 @@ function KnowledgeEditor({ entry, onSave, onCancel, isSaving }: KnowledgeEditorP
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     placeholder="Write the knowledge content here. Supports plain text and markdown formatting..."
-                    className="w-full min-h-[300px] p-4 rounded-xl bg-background/50 border border-white/10 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+                    className="w-full min-h-[300px] p-4 rounded-xl bg-background border border-border text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary resize-y"
                     required
                 />
             </div>
@@ -158,7 +159,7 @@ function KnowledgeEditor({ entry, onSave, onCancel, isSaving }: KnowledgeEditorP
                                 onClick={() => toggleTag(tag)}
                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition-all ${tags.includes(tag)
                                     ? TAG_COLORS[tag]
-                                    : "bg-white/[0.02] text-muted-foreground/50 border-white/5 hover:border-white/10"
+                                    : "bg-muted/5 text-muted-foreground/50 border-border/50 hover:border-border"
                                     }`}
                             >
                                 {tags.includes(tag) && <Check className="h-3 w-3" />}
@@ -191,7 +192,7 @@ function KnowledgeEditor({ entry, onSave, onCancel, isSaving }: KnowledgeEditorP
                             onChange={(e) => setCustomTagInput(e.target.value)}
                             onKeyDown={addCustomTag}
                             placeholder="Add custom tag (Press Enter)..."
-                            className="bg-background/30 border-white/5 pl-9 h-9 text-xs"
+                            className="bg-muted/10 border-border pl-9 h-9 text-xs"
                         />
                     </div>
                 </div>
@@ -202,7 +203,7 @@ function KnowledgeEditor({ entry, onSave, onCancel, isSaving }: KnowledgeEditorP
                 <button
                     type="button"
                     onClick={() => setIsPublished(!isPublished)}
-                    className={`relative h-6 w-11 rounded-full transition-colors ${isPublished ? "bg-primary" : "bg-white/10"}`}
+                    className={`relative h-6 w-11 rounded-full transition-colors ${isPublished ? "bg-primary" : "bg-muted"}`}
                 >
                     <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${isPublished ? "translate-x-5" : ""}`} />
                 </button>
@@ -213,7 +214,7 @@ function KnowledgeEditor({ entry, onSave, onCancel, isSaving }: KnowledgeEditorP
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+            <div className="flex items-center gap-3 pt-4 border-t border-border">
                 <Button
                     type="submit"
                     disabled={isSaving || !title.trim() || !body.trim()}
@@ -372,7 +373,7 @@ export default function KnowledgeCMSPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         )
@@ -381,28 +382,26 @@ export default function KnowledgeCMSPage() {
     // Show the editor form
     if (isCreating || editingEntry) {
         return (
-            <div className="min-h-screen bg-[#020617] p-4 md:p-8">
-                <div className="max-w-3xl mx-auto">
-                    {/* Header */}
-                    <div className="flex items-center gap-4 mb-8">
+            <>
+                <AdminHeader 
+                    title={editingEntry ? "Edit Knowledge Entry" : "New Knowledge Entry"} 
+                    subtitle="Neural Indexing & Training Data"
+                />
+
+                <div className="flex-1 p-6 md:p-10 relative z-10 max-w-4xl mx-auto w-full">
+                    {/* Header Actions */}
+                    <div className="mb-8">
                         <button
                             onClick={() => { setIsCreating(false); setEditingEntry(null) }}
-                            className="h-10 w-10 rounded-lg glass-panel flex items-center justify-center hover:bg-white/5 transition-colors"
+                            className="flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-primary transition-all uppercase tracking-widest group"
                         >
-                            <ArrowLeft className="h-5 w-5 text-muted-foreground" />
+                            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                            Back to Knowledge Repository
                         </button>
-                        <div>
-                            <h1 className="text-xl font-bold text-foreground">
-                                {editingEntry ? "Edit Knowledge Entry" : "New Knowledge Entry"}
-                            </h1>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                This content will be indexed by the Agency AI Agent.
-                            </p>
-                        </div>
                     </div>
 
                     {/* Editor */}
-                    <div className="glass-panel rounded-2xl p-6 md:p-8 border border-white/5">
+                    <div className="glass-panel-strong rounded-2xl p-6 md:p-8 border border-border">
                         <KnowledgeEditor
                             entry={editingEntry || undefined}
                             onSave={editingEntry ? handleUpdate : handleCreate}
@@ -411,36 +410,32 @@ export default function KnowledgeCMSPage() {
                         />
                     </div>
                 </div>
-            </div>
+            </>
         )
     }
 
     // Main list view
     return (
-        <div className="min-h-screen bg-[#020617] p-4 md:p-8">
-            <div className="max-w-5xl mx-auto">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-8">
-                    <div className="flex items-center gap-4">
-                        <Link
-                            href="/dashboard/innergcomplete"
-                            className="h-10 w-10 rounded-lg glass-panel flex items-center justify-center hover:bg-white/5 transition-colors"
-                        >
-                            <ArrowLeft className="h-5 w-5 text-muted-foreground" />
-                        </Link>
-                        <div>
-                            <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
-                                <BookOpen className="h-6 w-6 text-primary" />
-                                Agency Knowledge
-                            </h1>
-                            <p className="text-sm text-muted-foreground mt-1">
-                                Teach the Agency Agent about Inner G's services, methodology, and best practices.
-                            </p>
-                        </div>
+        <>
+            <AdminHeader 
+                title="Agency Knowledge Repository" 
+                subtitle="Neuromorphic Training & Core Intelligence"
+            />
+
+            <div className="flex-1 p-6 md:p-10 relative z-10 max-w-6xl mx-auto w-full">
+                {/* Header Actions */}
+                <div className="flex items-start justify-between mb-10">
+                    <div>
+                        <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
+                            Teach the Agency Agent about Inner G's services, methodology, and best practices.
+                        </p>
                     </div>
-                    <Button onClick={() => setIsCreating(true)} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Add Entry
+                    <Button 
+                        onClick={() => setIsCreating(true)} 
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground gap-3 rounded-xl h-12 px-6 shadow-xl shadow-primary/20"
+                    >
+                        <Plus className="h-5 w-5" />
+                        <span className="text-xs font-black uppercase tracking-widest">Add Index Entry</span>
                     </Button>
                 </div>
 
@@ -452,7 +447,7 @@ export default function KnowledgeCMSPage() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search knowledge entries..."
-                            className="pl-10 bg-background/50 border-white/10 h-10"
+                            className="pl-10 bg-background border-border h-10"
                         />
                     </div>
                 </div>
@@ -463,7 +458,7 @@ export default function KnowledgeCMSPage() {
                         onClick={() => setSelectedTag(null)}
                         className={`px-3 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition-all ${!selectedTag
                             ? "bg-primary/10 text-primary border-primary/20"
-                            : "bg-white/[0.02] text-muted-foreground border-white/5 hover:border-white/10"
+                            : "bg-muted/5 text-muted-foreground border-border/50 hover:border-border"
                             }`}
                     >
                         All ({entries.length})
@@ -477,7 +472,7 @@ export default function KnowledgeCMSPage() {
                                 onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
                                 className={`px-3 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition-all ${selectedTag === tag
                                     ? TAG_COLORS[tag]
-                                    : "bg-white/[0.02] text-muted-foreground border-white/5 hover:border-white/10"
+                                    : "bg-muted/5 text-muted-foreground border-border/50 hover:border-border"
                                     }`}
                             >
                                 {tag} ({count})
@@ -488,7 +483,7 @@ export default function KnowledgeCMSPage() {
 
                 {/* Entries */}
                 {filteredEntries.length === 0 ? (
-                    <div className="glass-panel rounded-2xl p-12 border border-white/5 text-center">
+                    <div className="glass-panel rounded-2xl p-12 border border-border text-center">
                         <BookOpen className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-foreground mb-2">
                             {entries.length === 0 ? "No Knowledge Entries Yet" : "No Matching Entries"}
@@ -511,14 +506,14 @@ export default function KnowledgeCMSPage() {
                         {filteredEntries.map(entry => (
                             <div
                                 key={entry.id}
-                                className="glass-panel rounded-2xl p-6 border border-white/5 hover:border-white/10 transition-all group"
+                                className="glass-panel rounded-2xl p-6 border border-border hover:border-border transition-all group"
                             >
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-2">
                                             <h3 className="text-base font-bold text-foreground truncate">{entry.title}</h3>
                                             {!entry.is_published && (
-                                                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/5 text-muted-foreground border border-white/10">
+                                                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-muted/10 text-muted-foreground border border-border">
                                                     Draft
                                                 </span>
                                             )}
@@ -534,7 +529,7 @@ export default function KnowledgeCMSPage() {
                                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                         <button
                                             onClick={() => setEditingEntry(entry)}
-                                            className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
+                                            className="h-8 w-8 rounded-lg bg-muted/5 flex items-center justify-center hover:bg-muted/10 transition-colors"
                                         >
                                             <Edit3 className="h-3.5 w-3.5 text-muted-foreground" />
                                         </button>
@@ -548,7 +543,7 @@ export default function KnowledgeCMSPage() {
                                                 </button>
                                                 <button
                                                     onClick={() => setDeleteConfirmId(null)}
-                                                    className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
+                                                    className="h-8 w-8 rounded-lg bg-muted/5 flex items-center justify-center hover:bg-muted/10 transition-colors"
                                                 >
                                                     <X className="h-3.5 w-3.5 text-muted-foreground" />
                                                 </button>
@@ -556,7 +551,7 @@ export default function KnowledgeCMSPage() {
                                         ) : (
                                             <button
                                                 onClick={() => setDeleteConfirmId(entry.id)}
-                                                className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center hover:bg-red-500/10 transition-colors"
+                                                className="h-8 w-8 rounded-lg bg-muted/5 flex items-center justify-center hover:bg-red-500/10 transition-colors"
                                             >
                                                 <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-red-400" />
                                             </button>
@@ -564,7 +559,7 @@ export default function KnowledgeCMSPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3 mt-4 pt-3 border-t border-white/5 text-[10px] text-muted-foreground">
+                                <div className="flex items-center gap-3 mt-4 pt-3 border-t border-border text-[10px] text-muted-foreground">
                                     <span>Updated {new Date(entry.updated_at).toLocaleDateString()}</span>
                                     <span>•</span>
                                     <span>Created {new Date(entry.created_at).toLocaleDateString()}</span>
@@ -574,6 +569,6 @@ export default function KnowledgeCMSPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </>
     )
 }

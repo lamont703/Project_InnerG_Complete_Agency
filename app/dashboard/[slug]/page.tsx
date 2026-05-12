@@ -1,30 +1,45 @@
 "use client"
 
+// RECOMPILE SIGNAL: 2026-04-21T19:28:00
 import { useState, useEffect, Suspense } from "react"
 import { useParams } from "next/navigation"
 import {
     Loader2
 } from "lucide-react"
-import { ChatInterface } from "@/components/dashboard/chat-interface"
-import { SessionHistoryBrowser } from "@/components/dashboard/session-history-browser"
-import { DashboardSidebar } from "@/components/dashboard/sidebar"
-import { DashboardHeader } from "@/components/dashboard/header"
-import { ConnectionStatusGrid } from "@/components/dashboard/connection-status-grid"
-import { KpiMetricsGrid } from "@/components/dashboard/kpi-metrics-grid"
-import { SocialAnalyticsPanel, AcquisitionFunnel, KANES_MOCK_FUNNEL_ROWS } from "@/components/dashboard/analytics-panels"
-import { AiSignalCards } from "@/components/dashboard/ai-signal-cards"
-import { ActivityFeed } from "@/components/dashboard/activity-feed"
-import { PlentyOfHeartsBanner } from "@/components/dashboard/plenty-of-hearts-banner"
+import { ChatInterface } from "@/features/chat/ChatInterface"
+import { DashboardSidebar } from "@/components/layout/dashboard/sidebar"
+import { DashboardHeader } from "@/components/layout/dashboard/header"
+import { SignalGrid as AiSignalCards } from "@/features/signals/SignalGrid"
+import { MetricsGrid } from "@/features/metrics/MetricsGrid"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { SlotProvider } from "@/features/metrics/SlotContext"
+import { DashboardMobileNav, type MobileTab } from "@/components/layout/dashboard/MobileNav"
+import { EnhancedTexasBarberExamDeck } from "@/features/student/components/EnhancedTexasBarberExamDeck"
+import InstructorIntelligenceDashboard from "@/components/dashboard/InstructorIntelligenceDashboard"
+
+import { MobileNavProvider, useMobileNav } from "@/features/agency/context/MobileNavContext"
+
 
 function DashboardContent() {
     const params = useParams()
-    const slug = (params?.slug as string) ?? "kanes-bookstore"
-    const isPlentyOfHearts = slug === "plenty-of-hearts"
+    const slug = (params?.slug as string) ?? "agency-global"
+
+    return (
+        <SlotProvider userRole="client-admin" projectSlug={slug}>
+            <DashboardPageContent />
+        </SlotProvider>
+    )
+}
+
+function DashboardPageContent() {
+    const params = useParams()
+    const slug = (params?.slug as string) ?? "agency-global"
+
 
     // User & Project State
     const [userData, setUserData] = useState<{ name: string; role: string } | null>(null)
     const [projectName, setProjectName] = useState("")
+    const [projectType, setProjectType] = useState<string>("general")
     const [isLoading, setIsLoading] = useState(true)
 
     const [currentTime, setCurrentTime] = useState(new Date())
@@ -45,25 +60,32 @@ function DashboardContent() {
                         .from("users")
                         .select("full_name, role")
                         .eq("id", user.id)
-                        .single() as any
+                        .maybeSingle() as any
 
-                    if (profile) {
-                        setUserData({
-                            name: profile.full_name || "User",
-                            role: profile.role.replace("_", " ").toUpperCase()
-                        })
-                    }
+                    const meta = user.user_metadata || {}
+                    const name = profile?.full_name || meta.full_name || meta.name || meta.display_name || "User"
+                    const role = profile?.role?.replace("_", " ").toUpperCase() || "CLIENT"
+
+                    setUserData({
+                        name,
+                        role
+                    })
                 }
 
-                // 2. Fetch Project Name
+                // 2. Fetch Project Details
                 const { data: project } = await supabase
                     .from("projects")
-                    .select("name")
+                    .select("name, type")
                     .eq("slug", slug)
                     .maybeSingle() as any
 
                 if (project) {
+                    console.log('>>> [Dashboard] IDENTITY SIGNAL:', { slug, name: project.name, type: project.type })
                     setProjectName(project.name)
+                    // Hardcoded fallback for test portal to ensure it works even if DB fetch is slow
+                    const resolvedType = project.type || (slug === 'test-barber-student' ? 'barber_student' : 'general')
+                    console.log('>>> [Dashboard] RESOLVED PERSONA:', resolvedType)
+                    setProjectType(resolvedType)
                 }
 
             } catch (err) {
@@ -79,92 +101,60 @@ function DashboardContent() {
         return () => clearInterval(timer)
     }, [slug])
 
+    const { activeTab } = useMobileNav()
+
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <div className="min-h-screen bg-background flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-background flex flex-col lg:flex-row">
-            <DashboardSidebar
-                projectSlug={slug}
-                isSidebarOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
+        <>
+            {/* Background ambient gradients - Strategic placement for depth */}
+            <div className="absolute top-0 right-[10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[140px] opacity-20 animate-pulse pointer-events-none" />
+            <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-10 pointer-events-none" />
+            <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[100px] opacity-10 pointer-events-none" />
 
-            <main className="flex-1 flex flex-col min-h-screen bg-[#020617] relative w-full">
-                {/* Background ambient gradients */}
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] opacity-20 pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-accent/20 rounded-full blur-[100px] opacity-10 pointer-events-none" />
-
+            <div className="hidden lg:block">
                 <DashboardHeader
                     userName={userData?.name || "User"}
                     userRole={userData?.role || "CLIENT"}
                     currentTime={currentTime}
                     mounted={mounted}
                     onMenuOpen={() => setIsSidebarOpen(true)}
+                    projectName={projectName}
                 />
+            </div>
 
-                {/* Content Area */}
-                <div className="flex-1 p-4 md:p-8 relative z-10 max-w-7xl mx-auto w-full overflow-x-hidden">
-                    {/* Welcome */}
-                    <div className="mb-8 md:mb-10">
-                        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                            Welcome Back, {userData?.name.split(" ")[0] || "User"}
-                        </h1>
-                        <p className="text-muted-foreground text-sm md:text-base mt-2 max-w-2xl leading-relaxed text-balance">
-                            The <span className="text-foreground font-medium">{projectName || "Project"}</span> growth systems are
-                            performing at optimal levels. All external bridges and retail API handshakes are
-                            stable as of{" "}
-                            <span className="text-foreground font-medium">
-                                {mounted && currentTime.toLocaleTimeString()}
-                            </span>
-                            .
-                        </p>
-                    </div>
-
-                    <ConnectionStatusGrid projectSlug={slug} />
-
-                    {isPlentyOfHearts ? (
-                        <PlentyOfHeartsBanner />
+            {/* Main Content Area - Tabbed for Mobile, Side-by-Side for Desktop */}
+            <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full overflow-hidden h-full">
+                
+                {/* 1. Intelligence Hub (Chat/Deck) - Primary Center */}
+                <div className={`flex-1 min-w-0 flex flex-col overflow-hidden ${activeTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
+                    {projectType?.toLowerCase() === 'barber_instructor' ? (
+                        <InstructorIntelligenceDashboard projectSlug={slug} />
+                    ) : ['barber_student', 'barber_school_owner'].includes(projectType?.toLowerCase() || '') || slug === 'test-barber-student' || slug === 'test-barber-student-v2' ? (
+                        <EnhancedTexasBarberExamDeck projectSlug={slug} />
                     ) : (
-                        <KpiMetricsGrid projectSlug={slug} />
+                        <ChatInterface projectSlug={slug} isFlush={true} />
                     )}
-
-                    <div className={`grid grid-cols-1 ${!isPlentyOfHearts ? "lg:grid-cols-2" : ""} gap-8 mb-12`}>
-                        <div className="rounded-2xl border border-white/5 overflow-hidden flex flex-col min-h-0">
-                            <ChatInterface projectSlug={slug} />
-                        </div>
-
-                        {!isPlentyOfHearts && (
-                            <div className="space-y-8 flex flex-col">
-                                <SessionHistoryBrowser projectSlug={slug} />
-                                <SocialAnalyticsPanel />
-                                <AcquisitionFunnel
-                                    rows={KANES_MOCK_FUNNEL_ROWS}
-                                    aiNote="Activation rates are 22% higher for users who engaged with the 'Sneak Peek' carousel on Instagram."
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    {!isPlentyOfHearts && (
-                        <AiSignalCards projectSlug={slug} />
-                    )}
-
-                    {!isPlentyOfHearts && <ActivityFeed projectSlug={slug} />}
                 </div>
-            </main>
-        </div>
+
+                {/* 2. Operational Signals & Stream - Flush to the right edge */}
+                <div className={`w-full lg:w-[450px] flex-1 lg:flex-none lg:shrink-0 flex flex-col bg-card/50 backdrop-blur-xl border-l border-border ${activeTab === 'signals' ? 'flex' : 'hidden lg:flex'}`}>
+                    <AiSignalCards projectSlug={slug} isFlush={true} />
+                </div>
+            </div>
+        </>
     )
 }
 
 export default function DashboardPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-[#020617]" />}>
+        <Suspense fallback={<div className="min-h-screen bg-background" />}>
             <DashboardContent />
         </Suspense>
     )
