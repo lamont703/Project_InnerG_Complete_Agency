@@ -54,10 +54,23 @@ export async function askBarberAgent(message: string, sessionId: string, telemet
 
   console.log(`[Google GenAI] Bridge called for session: ${sessionId}`);
 
-  const vertexAI = new VertexAI({
+  const authOptions: any = {
     project: projectId,
     location: location,
-  });
+  };
+
+  // Support for production credentials via environment variable
+  if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
+    try {
+      authOptions.googleAuthOptions = {
+        credentials: JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS)
+      };
+    } catch (err) {
+      console.error("[Google GenAI] Error parsing GOOGLE_CLOUD_CREDENTIALS:", err);
+    }
+  }
+
+  const vertexAI = new VertexAI(authOptions);
 
   const model = vertexAI.getGenerativeModel({
     model: modelName,
@@ -97,9 +110,19 @@ Domain Breakdown: ${JSON.stringify(domainBreakdown)}
 
     try {
       // Query BOTH data stores in parallel for maximum grounding depth
-      const auth = new GoogleAuth({
-        scopes: ["https://www.googleapis.com/auth/cloud-platform"]
-      });
+      const authConfig: any = {
+        scopes: "https://www.googleapis.com/auth/cloud-platform",
+      };
+
+      if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
+        try {
+          authConfig.credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
+        } catch (err) {
+          console.error("[Google GenAI] Error parsing GOOGLE_CLOUD_CREDENTIALS for Discovery Engine:", err);
+        }
+      }
+
+      const auth = new GoogleAuth(authConfig);
       const accessToken = await auth.getAccessToken();
       const searchQuery = `Texas barber exam ${weakDomains} TDLR regulations Milady`;
       console.log(`[Google GenAI] REST search query: "${searchQuery}"`);
