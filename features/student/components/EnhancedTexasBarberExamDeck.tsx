@@ -38,6 +38,7 @@ type Question = {
   rawDomain: string
   question: string
   psiQuestion?: string
+  aiGenerated?: boolean
   options: QuestionOption[]
   metadata: {
     source: string
@@ -175,22 +176,40 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
     })
 
     if (userId && currentQuestion?.rawDomain && projectSlug) {
+        console.log(`📊 [BRAIN SIGNAL] Attempting to log Telemetry for Domain: ${currentQuestion.rawDomain} (Question ID: ${currentQuestion.id})`);
         const supabase = createBrowserClient();
-        (supabase.from("barber_exam_telemetry") as any).insert({
+        
+        // Execute the insert and wait for result/error
+        // Note: question_id is omitted for AI-generated questions since they 
+        // don't have a corresponding row in the question_bank table (foreign key constraint)
+        const insertPayload: any = {
             student_id: userId,
             school_id: schoolId,
             portal_slug: projectSlug,
-            question_id: currentQuestion.id,
             domain: currentQuestion.rawDomain,
             is_correct: correct,
             time_spent_ms: timeSpentMs,
             changed_answer: hasChangedAnswer,
-            session_id: sessionId,
-            metadata: {
-                mode: isPsiMode ? 'psi_simulation' : 'standard',
-                syntax_used: isPsiMode ? 'PSI' : 'Milady'
-            }
-        });
+            session_id: sessionId
+        };
+
+        // Only include question_id for static question_bank questions.
+        // AI-generated questions are explicitly flagged and must skip this FK-constrained field.
+        const isFromQuestionBank = !currentQuestion.aiGenerated;
+        
+        if (isFromQuestionBank) {
+            insertPayload.question_id = currentQuestion.id;
+        }
+
+        const { error } = await (supabase.from("barber_exam_telemetry") as any).insert(insertPayload);
+
+        if (error) {
+            console.error("❌ [BRAIN SIGNAL] Telemetry Sync Failed:", error.message);
+        } else {
+            console.log("✅ [BRAIN SIGNAL] Telemetry Persisted Successfully.");
+        }
+    } else {
+        console.warn("⚠️ [BRAIN SIGNAL] Telemetry skipped: Missing User Identity or Domain Data.");
     }
   }
 
@@ -225,10 +244,83 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
     fetchQuestions()
   }
 
-  const handleStart = () => {
+  const handleStart = async () => {
+    console.log("📡 [BRAIN SIGNAL] Initializing Mastery Loop for:", projectSlug);
     setGameState("active")
     setQuestionStartTime(Date.now())
     setHasChangedAnswer(false)
+    setIsLoading(true)
+
+    try {
+      // STEP 1: Fetch the student's REAL telemetry from barber_exam_telemetry
+      console.log("📊 [BRAIN SIGNAL] Fetching real student telemetry from database...");
+      let richTelemetry = null;
+      try {
+        const telemetryRes = await fetch('/api/barber/telemetry-context');
+        if (telemetryRes.ok) {
+          richTelemetry = await telemetryRes.json();
+          console.log("✅ [BRAIN SIGNAL] Real telemetry loaded:", {
+            username: richTelemetry?.user_context?.username,
+            passProbability: richTelemetry?.performance_telemetry_snapshot?.estimated_pass_probability,
+            domainBreakdown: richTelemetry?.performance_telemetry_snapshot?.domain_breakdown
+          });
+        } else {
+          console.warn("⚠️ [BRAIN SIGNAL] Telemetry fetch failed — AI will use baseline mode.");
+        }
+      } catch (err) {
+        console.warn("⚠️ [BRAIN SIGNAL] Telemetry unavailable:", err);
+      }
+
+      // STEP 2: Send REAL telemetry to Gemini so it can generate adaptive questions
+      console.log("🧠 [BRAIN SIGNAL] Requesting Adaptive Deck from Gemini 3...");
+      const response = await fetch('/api/diagnostic', {
+        method: "POST",
+        body: JSON.stringify({ 
+            query: "USER_CHOICE: \"keep_answering\"",
+            telemetry: richTelemetry,
+            psiMode: isPsiMode  // ← PSI mode flag now flows to the AI
+        }),
+        headers: { "Content-Type": "application/json" }
+      });
+      const data = await response.json();
+      console.log("🔬 [BRAIN SIGNAL] Raw API Response:", JSON.stringify(data).slice(0, 500));
+      
+      // Handle both response formats: {diagnostic_report: {question_deck}} or {question_deck} directly
+      const report = data.diagnostic_report || data;
+
+      
+      if (report && report.question_deck) {
+        console.log(`✅ [BRAIN SIGNAL] Received ${report.question_deck.length} Adaptive Questions. Signals:`, report.signals);
+        const mapped: Question[] = report.question_deck.map((q: any) => ({
+          id: q.id,
+          category: q.domain,
+          rawDomain: q.domain,
+          question: q.question,
+          psiQuestion: q.psi_question || q.psi_syntax_text || undefined,  // ← AI now returns PSI version
+          aiGenerated: q.ai_generated === true,
+          options: Object.entries(q.options).map(([id, text]) => ({
+            id,
+            text: text as string,
+            isCorrect: id === q.correct_answer
+          })),
+          metadata: {
+            source: "Milady 6th Ed / TDLR",
+            reasoning: q.rationale
+          }
+        }));
+        setQuestions(mapped);
+        setCurrentIndex(0);
+      } else {
+        console.warn("⚠️ [BRAIN SIGNAL] AI responded but no deck was found. Fallback engaged.");
+      }
+    } catch (err) {
+      console.error("❌ [BRAIN SIGNAL] Bridge connection failure:", err);
+      console.log("🛡️ [BRAIN SIGNAL] Safety Protocol: Engaging static Supabase question bank.");
+    } finally {
+      setIsLoading(false)
+    }
+
+    // 2. Track traditional analytics
     trackExamSessionStart({ 
         deck_type: 'enhanced', 
         question_count: questions.length,
