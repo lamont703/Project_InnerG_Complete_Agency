@@ -31,7 +31,8 @@ export async function askBarberAgent(message: string, sessionId: string, telemet
   console.log(`[Google GenAI] Unified SDK Bridge called for session: ${sessionId}`);
 
   const clientConfig: any = {
-    projectId: projectId,
+    vertex: true,
+    project: projectId,
     location: location,
   };
 
