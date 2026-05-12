@@ -47,7 +47,7 @@ export async function askBarberAgent(message: string, sessionId: string, telemet
 
   // 2. Initialize with explicit project/location
   const genAI = new GoogleGenAI({
-    vertex: true,
+    vertexai: true,
     project: projectId,
     location: location,
   });
@@ -107,6 +107,19 @@ Source B (Question Bank Examples): ${JSON.stringify(data2.documents?.slice(0, 10
     // STEP 2: GENERATION WITH NEW SDK
     // ─────────────────────────────────────────────────────────
     console.log("🧠 [BRAIN SIGNAL] Step 2: Generating adaptive deck...");
+
+    const systemPrompt = `
+      You are the Texas Barber Intelligence Diagnostic Engine.
+      Generate a 10-question diagnostic deck for the Texas Class A Barber exam.
+      
+      CONTEXT: ${studentContext}
+      ${psiMode ? "STRESS TEST MODE: Active." : "STANDARD MODE: Active."}
+      GROUNDING: ${groundedFacts}
+
+      Return ONLY JSON with "diagnostic_report" containing "student_id", "focus_areas", and "question_deck".
+    `;
+
+    // Modern 2026 Unified Call Pattern
 
     const response = await genAI.models.generateContent({
       model: modelName,
