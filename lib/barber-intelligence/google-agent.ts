@@ -272,7 +272,8 @@ ${VALID_DOMAINS.map(d => `- ${d}`).join("\n")}
       contents: [{ role: "user", parts: [{ text: generationInstructions }] }]
     });
 
-    let rawText = generationResponse.candidates?.[0]?.content?.parts?.[0]?.text ||
+    let rawText = generationResponse.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
+                  generationResponse.response?.text?.() ||
                   JSON.stringify(generationResponse);
 
     // Strip markdown fences if present
