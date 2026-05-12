@@ -1,5 +1,5 @@
 import { GoogleAuth } from "google-auth-library";
-import { createClient } from "@google/genai/server";
+import { createClient } from "@google/genai";
 import * as dotenv from "dotenv";
 
 dotenv.config({ path: ".env.local" });
