@@ -123,11 +123,13 @@ export function trackScholarshipFormError(errorMessage: string) {
 export function trackExamSessionStart(params: {
   deck_type: 'public' | 'enhanced'
   question_count: number
+  mode?: 'standard' | 'psi_simulation'
 }) {
   gtagEvent('exam_session_start', {
     event_category: 'Exam Intelligence',
     deck_type: params.deck_type,
     question_count: params.question_count,
+    mode: params.mode || 'standard',
   })
 }
 
@@ -138,6 +140,7 @@ export function trackExamAnswerSubmitted(params: {
   is_correct: boolean
   time_spent_ms: number
   changed_answer: boolean
+  exam_mode?: 'standard' | 'psi_simulation'
 }) {
   gtagEvent('exam_answer_submitted', {
     event_category: 'Exam Intelligence',
@@ -146,6 +149,7 @@ export function trackExamAnswerSubmitted(params: {
     time_spent_ms: params.time_spent_ms,
     changed_answer: params.changed_answer,
     question_index: params.question_index,
+    exam_mode: params.exam_mode || 'standard',
   })
 }
 
@@ -155,6 +159,7 @@ export function trackExamSessionComplete(params: {
   score: number
   total: number
   pass_rate: number
+  mode?: 'standard' | 'psi_simulation'
 }) {
   gtagEvent('exam_session_complete', {
     event_category: 'Exam Intelligence',
@@ -162,6 +167,7 @@ export function trackExamSessionComplete(params: {
     score: params.score,
     total: params.total,
     pass_rate: params.pass_rate,
+    mode: params.mode || 'standard',
     value: params.score, // maps to 'value' in GA4 for scoring
   })
 }
