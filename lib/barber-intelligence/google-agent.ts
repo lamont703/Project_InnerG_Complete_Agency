@@ -273,7 +273,6 @@ ${VALID_DOMAINS.map(d => `- ${d}`).join("\n")}
     });
 
     let rawText = generationResponse.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
-                  generationResponse.response?.text?.() ||
                   JSON.stringify(generationResponse);
 
     // Strip markdown fences if present
