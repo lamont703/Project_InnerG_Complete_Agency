@@ -28,7 +28,7 @@ const VALID_DOMAINS = [
 export async function askBarberAgent(message: string, sessionId: string, telemetryContext?: any, psiMode: boolean = false) {
   const projectId = "gen-lang-client-0027817397";
   const location = "us-central1";
-  const modelName = "gemini-3.1-flash-lite"; 
+  const modelName = "gemini-1.5-flash-002"; 
 
   console.log(`[Google GenAI] Unified SDK Bridge called for session: ${sessionId}`);
 
@@ -36,13 +36,15 @@ export async function askBarberAgent(message: string, sessionId: string, telemet
   const credsJson = process.env.GOOGLE_CLOUD_CREDENTIALS;
   if (credsJson) {
     try {
-      const tempPath = path.join("/tmp", "google-creds.json");
+      const tempPath = path.join("/tmp", `google-creds-${Date.now()}.json`);
       fs.writeFileSync(tempPath, credsJson);
       process.env.GOOGLE_APPLICATION_CREDENTIALS = tempPath;
-      console.log("[Google GenAI] Credentials file-pinned at /tmp/google-creds.json");
+      console.log(`[Google GenAI] Credentials file-pinned at ${tempPath}`);
     } catch (e) {
-      console.error("[Google GenAI] Failed to write temp credentials:", e);
+      console.error("[Google GenAI] CRITICAL: Failed to write temp credentials:", e);
     }
+  } else {
+    console.warn("[Google GenAI] WARNING: GOOGLE_CLOUD_CREDENTIALS not found in environment.");
   }
 
   // 2. Initialize with explicit project/location
@@ -100,7 +102,7 @@ Source A (Exam Prep): ${JSON.stringify(data1.results || [])}
 Source B (Question Bank Examples): ${JSON.stringify(data2.documents?.slice(0, 10) || [])}
       `;
     } catch (err) {
-      console.warn("[Google GenAI] Grounding failed:", err);
+      console.warn("[Google GenAI] Grounding failed (continuing without facts):", err);
     }
 
     // ─────────────────────────────────────────────────────────
@@ -120,7 +122,6 @@ Source B (Question Bank Examples): ${JSON.stringify(data2.documents?.slice(0, 10
     `;
 
     // Modern 2026 Unified Call Pattern
-
     const response = await genAI.models.generateContent({
       model: modelName,
       contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
@@ -133,7 +134,7 @@ Source B (Question Bank Examples): ${JSON.stringify(data2.documents?.slice(0, 10
     return JSON.parse(cleanedJson);
 
   } catch (error: any) {
-    console.error("[Google GenAI] Fatal Error:", error);
+    console.error("[Google GenAI] FATAL GENERATION ERROR:", error);
     throw error;
   }
 }
