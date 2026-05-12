@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { VertexAI } from "@google-cloud/vertexai";
 import { GoogleAuth } from "google-auth-library";
 import * as dotenv from "dotenv";
 
@@ -54,10 +54,14 @@ export async function askBarberAgent(message: string, sessionId: string, telemet
 
   console.log(`[Google GenAI] Bridge called for session: ${sessionId}`);
 
-  const client = new GoogleGenAI({
+  const vertexAI = new VertexAI({
     project: projectId,
     location: location,
-    apiKey: undefined,
+  });
+
+  const model = vertexAI.getGenerativeModel({
+    model: modelName,
+    generationConfig: { responseMimeType: "application/json" }
   });
 
   // Build the student context string
@@ -264,10 +268,8 @@ ${VALID_DOMAINS.map(d => `- ${d}`).join("\n")}
   }
 }`;
 
-    const generationResponse = await client.models.generateContent({
-      model: modelName,
-      contents: [{ role: "user", parts: [{ text: generationInstructions }] }],
-      generationConfig: { responseMimeType: "application/json" }
+    const generationResponse = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: generationInstructions }] }]
     });
 
     let rawText = generationResponse.candidates?.[0]?.content?.parts?.[0]?.text ||
