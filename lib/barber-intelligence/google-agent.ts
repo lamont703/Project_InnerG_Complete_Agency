@@ -49,7 +49,7 @@ const VALID_DOMAINS = [
 
 export async function askBarberAgent(message: string, sessionId: string, telemetryContext?: any, psiMode: boolean = false) {
   const projectId = process.env.GOOGLE_CLOUD_PROJECT_NUMBER || "1022222320701";
-  const location = process.env.GOOGLE_CLOUD_LOCATION || "us-west1";
+  const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
   const modelName = "gemini-3.1-flash-lite";
 
   console.log(`[Google GenAI] Bridge called for session: ${sessionId}`);
