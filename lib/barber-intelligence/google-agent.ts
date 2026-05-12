@@ -28,7 +28,7 @@ const VALID_DOMAINS = [
 export async function askBarberAgent(message: string, sessionId: string, telemetryContext?: any, psiMode: boolean = false) {
   const projectId = "gen-lang-client-0027817397";
   const location = "us-central1";
-  const modelName = "gemini-1.5-flash-002"; 
+  const modelName = "gemini-3.1-flash-lite"; 
 
   console.log(`[Google GenAI] Unified SDK Bridge called for session: ${sessionId}`);
 
