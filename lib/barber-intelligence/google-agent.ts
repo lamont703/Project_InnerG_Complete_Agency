@@ -57,7 +57,7 @@ export async function askBarberAgent(message: string, sessionId: string, telemet
   const client = new GoogleGenAI({
     project: projectId,
     location: location,
-    apiKey: null,
+    apiKey: undefined,
   });
 
   // Build the student context string
