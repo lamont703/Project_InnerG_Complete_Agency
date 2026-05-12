@@ -18,10 +18,19 @@ export async function getRichTelemetryContext(studentId: string) {
   const user = rawUser as { full_name?: string; email?: string } | null;
 
   // 2. Fetch Aggregated Telemetry
-  const { data: telemetry } = await supabase
+  interface TelemetryRecord {
+    domain: string;
+    is_correct: boolean;
+    time_spent_ms: number;
+    changed_answer: boolean;
+  }
+
+  const { data: rawTelemetry } = await supabase
     .from('barber_exam_telemetry')
     .select('domain, is_correct, time_spent_ms, changed_answer')
     .eq('student_id', studentId);
+
+  const telemetry = (rawTelemetry as any[]) as TelemetryRecord[] | null;
 
   if (!telemetry || telemetry.length === 0) {
     return {
