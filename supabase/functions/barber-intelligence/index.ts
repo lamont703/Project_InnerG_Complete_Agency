@@ -82,16 +82,21 @@ serve(async (req) => {
     debugSignals.push(`[COGNITIVE] Balanced Mix: ${weakDomains.join(", ")}`);
 
     // 2. Parallel Pre-fetch (Filtered DB + Auth)
-    const dbQuery = supabase.from('question_bank').select('*').eq('is_active', true);
-    if (weakDomains.length > 0) dbQuery.in('domain', weakDomains);
-
+    // We call the student-aware RPC to get our preselected bank
+    const studentId = telemetry.user_context?.student_id || body.studentId;
+    
     const [dbResult, token] = await Promise.all([
-        dbQuery.limit(40), // Pull a wider pool for variability
+        supabase.rpc('get_preselected_question_bank', { p_student_id: studentId }),
         saJsonRaw ? getAccessToken(JSON.parse(saJsonRaw)) : Promise.resolve("")
     ]);
     
+    // Apply 70/20/10 Domain Filtering to the Preselected Pool
+    let pool = dbResult.data || [];
+    if (weakDomains.length > 0) {
+        pool = pool.filter((q: any) => weakDomains.includes(q.domain));
+    }
+
     // Randomized Selection for Tactical Deck
-    const pool = dbResult.data || [];
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
     tacticalQuestions = shuffled.slice(0, 10);
     
