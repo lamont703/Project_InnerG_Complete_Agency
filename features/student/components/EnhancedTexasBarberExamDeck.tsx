@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { 
@@ -59,13 +59,17 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
   const [isPsiMode, setIsPsiMode] = useState(false)
 
   const [questions, setQuestions] = useState<Question[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isProcessingAI, setIsProcessingAI] = useState(false)
 
   const [userId, setUserId] = useState<string | null>(null)
   const [schoolId, setSchoolId] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string>("")
   const [questionStartTime, setQuestionStartTime] = useState<number>(0)
   const [hasChangedAnswer, setHasChangedAnswer] = useState(false)
+  const [cognitiveInsight, setCognitiveInsight] = useState<string | null>(null)
+  const activeRequestRef = useRef<boolean>(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
      setSessionId(crypto.randomUUID())
@@ -240,24 +244,36 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
     setGameState("intro")
     setScore(0)
     setHasChangedAnswer(false)
+    setCognitiveInsight(null)
     setSessionId(crypto.randomUUID())
     trackExamRetake('enhanced')
     fetchQuestions()
   }
 
   const handleStart = async () => {
+    if (activeRequestRef.current) {
+      console.warn("⚠️ [BRAIN SIGNAL] Synthesis already in progress. Ignoring redundant request.");
+      return;
+    }
+
     console.log("📡 [BRAIN SIGNAL] Initializing Mastery Loop for:", projectSlug);
-    setGameState("active")
-    setQuestionStartTime(Date.now())
-    setHasChangedAnswer(false)
-    setIsLoading(true)
+    activeRequestRef.current = true;
+    setIsProcessingAI(true);
+    setQuestionStartTime(Date.now());
+    setHasChangedAnswer(false);
+
+    // Cancel any previous hung requests
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
 
     try {
-      // STEP 1: Fetch the student's REAL telemetry from barber_exam_telemetry
+      // STEP 1: Fetch telemetry
       console.log("📊 [BRAIN SIGNAL] Fetching real student telemetry from database...");
       let richTelemetry = null;
       try {
-        const telemetryRes = await fetch('/api/barber/telemetry-context');
+        const telemetryRes = await fetch('/api/barber/telemetry-context', { 
+          signal: abortControllerRef.current.signal 
+        });
         if (telemetryRes.ok) {
           richTelemetry = await telemetryRes.json();
           console.log("✅ [BRAIN SIGNAL] Real telemetry loaded:", {
@@ -265,71 +281,95 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
             passProbability: richTelemetry?.performance_telemetry_snapshot?.estimated_pass_probability,
             domainBreakdown: richTelemetry?.performance_telemetry_snapshot?.domain_breakdown
           });
-        } else {
-          console.warn("⚠️ [BRAIN SIGNAL] Telemetry fetch failed — AI will use baseline mode.");
         }
-      } catch (err) {
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
         console.warn("⚠️ [BRAIN SIGNAL] Telemetry unavailable:", err);
       }
 
-      // STEP 2: Send REAL telemetry to Gemini so it can generate adaptive questions
+      // STEP 2: Adaptive Deck Handshake
       console.log("🧠 [BRAIN SIGNAL] Requesting Adaptive Deck from Gemini 3...");
       const response = await fetch('/api/diagnostic', {
         method: "POST",
+        signal: abortControllerRef.current.signal,
         body: JSON.stringify({ 
             query: "USER_CHOICE: \"keep_answering\"",
             telemetry: richTelemetry,
-            psiMode: isPsiMode  // ← PSI mode flag now flows to the AI
+            psiMode: isPsiMode
         }),
         headers: { "Content-Type": "application/json" }
       });
-      const data = await response.json();
-      console.log("🔬 [BRAIN SIGNAL] Raw API Response:", JSON.stringify(data).slice(0, 500));
       
-      // Handle both response formats: {diagnostic_report: {question_deck}} or {question_deck} directly
+      if (!response.ok) throw new Error(`Diagnostic API failed: ${response.status}`);
+      
+      const data = await response.json();
       const report = data.diagnostic_report || data;
 
+      // Surface Internal AI Monologue
+      if (report.debug_signals && Array.isArray(report.debug_signals)) {
+        report.debug_signals.forEach((signal: string) => {
+           console.log(`🧠 [BRAIN TRACE] ${signal}`);
+        });
+      }
+
+      console.log("🔬 [BRAIN SIGNAL] Raw API Response:", JSON.stringify(data).slice(0, 500));
       
-      if (report && report.question_deck) {
-        console.log(`✅ [BRAIN SIGNAL] Received ${report.question_deck.length} Adaptive Questions. Signals:`, report.signals);
+      if (report && report.question_deck && report.question_deck.length > 0) {
+        console.log(`✅ [BRAIN SIGNAL] Received ${report.question_deck.length} Adaptive Questions.`);
         const mapped: Question[] = report.question_deck.map((q: any) => ({
           id: q.id,
           category: q.domain,
           rawDomain: q.domain,
           question: q.question,
-          psiQuestion: q.psi_question || q.psi_syntax_text || undefined,  // ← AI now returns PSI version
+          psiQuestion: q.psi_question || q.psi_syntax_text || undefined,
           aiGenerated: q.ai_generated === true,
-          options: Object.entries(q.options).map(([id, text]) => ({
-            id,
-            text: text as string,
-            isCorrect: id === q.correct_answer
-          })),
+          options: Array.isArray(q.options) 
+            ? q.options.map((opt: any, idx: number) => ({
+                id: idx.toString(),
+                text: typeof opt === 'string' ? opt : (opt.text || ""),
+                isCorrect: idx === q.correct_index
+              }))
+            : Object.entries(q.options).map(([id, text]) => ({
+                id,
+                text: text as string,
+                isCorrect: id === q.correct_answer
+              })),
           metadata: {
             source: "Milady 6th Ed / TDLR",
-            reasoning: q.rationale
+            reasoning: q.explanation || q.rationale
           }
         }));
         setQuestions(mapped);
+        setCognitiveInsight(report.cognitive_insight || "Diagnostic loop synchronized.");
         setCurrentIndex(0);
       } else {
-        console.warn("⚠️ [BRAIN SIGNAL] AI responded but no deck was found. Fallback engaged.");
+        throw new Error("No deck returned from AI");
       }
-    } catch (err) {
-      console.error("❌ [BRAIN SIGNAL] Bridge connection failure:", err);
-      console.log("🛡️ [BRAIN SIGNAL] Safety Protocol: Engaging static Supabase question bank.");
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.log("🛑 [BRAIN SIGNAL] Request cancelled by user or hot-reload.");
+        return;
+      }
+      console.error("❌ [BRAIN SIGNAL] Mastery Loop Error:", err);
+      setCognitiveInsight("System operating in High-Fidelity Diagnostic Baseline (AI Handshake Refined).");
     } finally {
-      setIsLoading(false)
+      setIsProcessingAI(false);
+      activeRequestRef.current = false;
+      console.log("🏁 [BRAIN SIGNAL] Mastery Loop Complete. Ready for Simulation.");
+      trackExamSessionStart({ 
+          deck_type: 'enhanced', 
+          question_count: questions.length,
+          mode: isPsiMode ? 'psi_simulation' : 'standard'
+      });
     }
-
-    // 2. Track traditional analytics
-    trackExamSessionStart({ 
-        deck_type: 'enhanced', 
-        question_count: questions.length,
-        mode: isPsiMode ? 'psi_simulation' : 'standard'
-    })
   }
 
-  if (isLoading || questions.length === 0) {
+  const handleProceedToExam = () => {
+    setGameState("active")
+    setQuestionStartTime(Date.now())
+  }
+
+  if (isLoading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center h-full bg-background/50 space-y-4 relative overflow-hidden">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -423,14 +463,57 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
 
                       <Button 
                           onClick={handleStart}
+                          disabled={isProcessingAI}
                           className={cn(
                             "mt-8 h-16 md:h-20 px-8 md:px-12 text-white text-sm md:text-lg font-black uppercase tracking-[0.2em] md:tracking-[0.4em] rounded-[1.5rem] md:rounded-[2rem] transition-all shadow-2xl flex items-center",
-                            isPsiMode ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/30" : "bg-primary hover:bg-primary/90 shadow-primary/30"
+                            isPsiMode ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/30" : "bg-primary hover:bg-primary/90 shadow-primary/30",
+                            isProcessingAI && "opacity-50 cursor-not-allowed"
                           )}
                       >
-                          {isPsiMode ? "Initiate PSI Stress Test" : "Begin Knowledge Audit"}
-                          <ArrowRight className="ml-3 h-5 w-5 md:h-6 md:w-6" />
+                          {isProcessingAI ? (
+                            <div className="flex items-center gap-3">
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                                <span>Synthesizing...</span>
+                            </div>
+                          ) : (
+                            <>
+                                {isPsiMode ? "Initiate PSI Stress Test" : "Begin Knowledge Audit"}
+                                <ArrowRight className="ml-3 h-5 w-5 md:h-6 md:w-6" />
+                            </>
+                          )}
                       </Button>
+
+                      {/* AI INSIGHT REVEAL & PROCEED GATE */}
+                      <AnimatePresence>
+                          {cognitiveInsight && (
+                              <motion.div
+                                  initial={{ opacity: 0, y: 20 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className="w-full max-w-2xl space-y-6 mt-12"
+                              >
+                                  <div className="glass-panel p-6 lg:p-8 rounded-[2rem] border-l-8 border-l-primary bg-primary/[0.03] text-left relative overflow-hidden">
+                                      <div className="absolute top-0 right-0 p-4 opacity-10">
+                                          <Sparkles className="h-12 w-12 text-primary" />
+                                      </div>
+                                      <div className="flex items-center gap-3 mb-4">
+                                          <Sparkles className="h-5 w-5 text-primary" />
+                                          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Mastery Loop Insight</span>
+                                      </div>
+                                      <p className="text-sm lg:text-lg font-bold text-foreground leading-relaxed italic">
+                                          "{cognitiveInsight}"
+                                      </p>
+                                  </div>
+
+                                  <Button 
+                                      onClick={handleProceedToExam}
+                                      className="w-full h-16 lg:h-20 bg-foreground text-background hover:bg-primary hover:text-white text-sm lg:text-lg font-black uppercase tracking-[0.3em] rounded-3xl transition-all shadow-2xl group"
+                                  >
+                                      Enter Simulation Environment
+                                      <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                                  </Button>
+                              </motion.div>
+                          )}
+                      </AnimatePresence>
                   </motion.div>
                 ) : gameState === "finished" ? (
                 <motion.div
@@ -476,8 +559,23 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ type: "spring", damping: 30, stiffness: 200 }}
-                    className="flex-1 flex flex-col"
                 >
+                    {cognitiveInsight && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mb-6 glass-panel p-4 rounded-2xl border-l-4 border-l-primary bg-primary/5 flex items-start gap-4"
+                        >
+                            <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">AI Cognitive Insight</span>
+                                <p className="text-sm font-bold text-foreground/80 leading-relaxed italic">
+                                    "{cognitiveInsight}"
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+
                     <div className="flex-1 glass-panel rounded-[2rem] lg:rounded-[4rem] p-5 lg:p-14 border border-primary/5 flex flex-col relative overflow-hidden group">
                     <div className={cn(
                         "absolute top-0 right-0 h-32 lg:h-64 w-32 lg:w-64 rounded-bl-[5rem] lg:rounded-bl-[10rem] -mr-10 lg:-mr-20 -mt-10 lg:-mt-20 transition-all duration-700",
