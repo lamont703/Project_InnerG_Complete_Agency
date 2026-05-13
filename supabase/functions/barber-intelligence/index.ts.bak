@@ -1,0 +1,96 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+
+const STORE_UNSTRUCTURED = "projects/gen-lang-client-0027817397/locations/global/collections/default_collection/dataStores/texas-state-barber-exam-prep_1778535345360"
+const STORE_STRUCTURED = "projects/gen-lang-client-0027817397/locations/global/collections/default_collection/dataStores/barber-question-bank-data-store_1778538120096"
+
+const MODEL_ID = "gemini-3.1-flash-lite" 
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' } })
+  }
+
+  try {
+    const body = await req.json().catch(() => ({}));
+    const telemetry = body.telemetryContext || {};
+    const accessToken = Deno.env.get("GOOGLE_ACCESS_TOKEN");
+    
+    // UNLOCK STRATEGY:
+    // A: For Unstructured, use the most common word
+    // B: For Structured, use an empty query (Official way to get all docs)
+    
+    const [resA, resB] = await Promise.all([
+      fetch(`https://discoveryengine.googleapis.com/v1/${STORE_UNSTRUCTURED}/servingConfigs/default_config:search`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ query: "Texas", pageSize: 10 })
+      }),
+      fetch(`https://discoveryengine.googleapis.com/v1/${STORE_STRUCTURED}/servingConfigs/default_config:search`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ query: "", pageSize: 10 }) 
+      })
+    ]);
+
+    const [dataA, dataB] = await Promise.all([resA.json(), resB.json()]);
+
+    // EXTRACT
+    const snippets = [
+      ...(dataA.results || []).map((r: any) => r.document?.derivedStructData?.snippets?.[0]?.snippet || ""),
+      ...(dataB.results || []).map((r: any) => JSON.stringify(r.document?.structData || ""))
+    ].filter(s => s.length > 5);
+
+    if (snippets.length === 0) {
+      return new Response(JSON.stringify({ 
+        error: "Zero Documents Retrieved",
+        signals: ["Unstructured: 0", "Structured: 0"]
+      }), { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+    }
+
+    const systemPrompt = `
+      You are the Texas Barber Intelligence Engine.
+      Student: ${telemetry.user_context?.username || 'Candidate'}.
+      
+      Grounded Sources:
+      ${snippets.join("\n---\n")}
+
+      TASK:
+      Generate 10 adaptive questions ONLY from the sources above.
+    `;
+
+    const generateRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
+        generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
+      })
+    });
+
+    const generateData = await generateRes.json();
+    let rawText = generateData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    rawText = rawText.replace(/```json|```/g, "").trim();
+    
+    let payload = JSON.parse(rawText);
+    let questions = payload.diagnostic_report?.question_deck || payload.question_deck || [];
+
+    return new Response(JSON.stringify({
+      diagnostic_report: {
+        student_id: telemetry.user_context?.id || "unknown",
+        signals: [`Unstructured: ${dataA.results?.length || 0}`, `Structured: ${dataB.results?.length || 0}`],
+        question_deck: questions.map((q: any) => {
+            q.ai_generated = true;
+            return q;
+        })
+      }
+    }), {
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    });
+
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    });
+  }
+})
