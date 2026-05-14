@@ -45,6 +45,7 @@ interface Project {
     crypto_enabled: boolean
     cognitive_enabled: boolean
     metrics_enabled: boolean
+    mock_exam_enabled: boolean
 }
 
 export default function ProjectManagementPage() {
@@ -510,6 +511,38 @@ export default function ProjectManagementPage() {
                                             )}
                                         >
                                             <BarChart3 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1">
+                                            <Button 
+                                                variant="ghost" 
+                                                disabled={!(project.mock_exam_enabled ?? false)}
+                                                className={cn(
+                                                    "w-full justify-between h-12 px-4 rounded-2xl transition-all shadow-xl shadow-cyan-500/5",
+                                                    (project.mock_exam_enabled ?? false) 
+                                                        ? "bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/20" 
+                                                        : "bg-muted/5 border-dashed border-border text-muted-foreground opacity-50 cursor-not-allowed"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <Shield className="h-4 w-4" />
+                                                    <span className="text-[10px] font-black uppercase tracking-widest italic">Barber Student Mock Exam</span>
+                                                </div>
+                                                <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                                            </Button>
+                                        </div>
+                                        <button
+                                            onClick={() => handleToggleFeature(project.id, 'mock_exam_enabled', project.mock_exam_enabled ?? false)}
+                                            className={cn(
+                                                "h-12 w-12 rounded-2xl border transition-all flex items-center justify-center shrink-0",
+                                                (project.mock_exam_enabled ?? false) 
+                                                    ? "bg-cyan-500 border-cyan-400 text-white shadow-lg shadow-cyan-500/20" 
+                                                    : "bg-muted/10 border-border text-muted-foreground grayscale"
+                                            )}
+                                        >
+                                            <Shield className="h-4 w-4" />
                                         </button>
                                     </div>
                                 </div>

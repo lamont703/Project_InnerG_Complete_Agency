@@ -312,7 +312,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
         });
       }
 
-      console.log("🔬 [BRAIN SIGNAL] Raw API Response:", JSON.stringify(data).slice(0, 500));
+      console.log("🔬 [BRAIN SIGNAL] Raw API Response:", data);
       
       if (report && report.question_deck && report.question_deck.length > 0) {
         console.log(`✅ [BRAIN SIGNAL] Received ${report.question_deck.length} Adaptive Questions.`);
