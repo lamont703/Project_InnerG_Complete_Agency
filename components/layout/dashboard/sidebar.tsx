@@ -62,8 +62,10 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
         connectors_enabled?: boolean;
         metrics_enabled?: boolean;
         cognitive_enabled?: boolean;
+        mock_exam_enabled?: boolean;
     }>({
         metrics_enabled: isIntelligenceProject ? true : false,
+        mock_exam_enabled: isIntelligenceProject ? true : false,
         knowledge_enabled: false,
         connectors_enabled: false,
         cognitive_enabled: false,
@@ -98,7 +100,7 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                             id, settings, 
                             funnel_enabled, knowledge_enabled, pixel_enabled, connectors_enabled,
                             agent_enabled, community_enabled, social_enabled, crypto_enabled,
-                            cognitive_enabled, metrics_enabled
+                            cognitive_enabled, metrics_enabled, mock_exam_enabled
                         `)
                         .eq("slug", projectSlug)
                         .single()
@@ -115,7 +117,8 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                             social_enabled: project.social_enabled ?? false,
                             crypto_enabled: project.crypto_enabled ?? false,
                             cognitive_enabled: project.cognitive_enabled ?? true,
-                            metrics_enabled: project.metrics_enabled ?? true
+                            metrics_enabled: project.metrics_enabled ?? true,
+                            mock_exam_enabled: project.mock_exam_enabled ?? false
                         }))
 
                         if (project.settings?.features) {
@@ -191,6 +194,14 @@ export function DashboardSidebar({ projectSlug, isSidebarOpen, onClose }: Dashbo
                 icon: BarChart3,
                 label: "Metrics & Intelligence",
                 active: pathname === `/dashboard/${projectSlug}/metrics`,
+            }
+        ] : []),
+        ...(features.mock_exam_enabled ? [
+            {
+                href: `/dashboard/${projectSlug}/mock-exam`,
+                icon: ShieldCheck,
+                label: "Barber Student Mock Exam",
+                active: pathname === `/dashboard/${projectSlug}/mock-exam`,
             }
         ] : []),
         ...(features.community_enabled ? [
