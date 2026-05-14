@@ -159,7 +159,7 @@ export default function MockExamPage() {
     if (mode === 'results') {
         const isPass = (results?.score || 0) >= 70
         return (
-            <div className="min-h-screen bg-background p-4 md:p-12 lg:p-24 flex flex-col items-center max-w-6xl mx-auto pb-32">
+            <div className="min-h-screen bg-background p-4 md:p-12 lg:p-24 flex flex-col items-center max-w-6xl mx-auto pb-40 md:pb-32">
                 {/* Result Header */}
                 <div className="flex flex-col items-center mb-8 md:mb-16 text-center">
                     <div className={cn(
@@ -271,7 +271,7 @@ export default function MockExamPage() {
     }
 
     return (
-        <div className="min-h-screen bg-background p-4 md:p-12 lg:p-24 flex flex-col items-center max-w-5xl mx-auto pb-24">
+        <div className="min-h-screen bg-background p-4 md:p-12 lg:p-24 flex flex-col items-center max-w-5xl mx-auto pb-40 md:pb-24">
             {/* Header Area */}
             <div className="w-full mb-8 md:mb-12 text-center">
                 <div className="inline-flex h-12 w-12 md:h-16 md:w-16 items-center justify-center rounded-xl md:rounded-2xl bg-primary/10 border border-primary/20 mb-6">

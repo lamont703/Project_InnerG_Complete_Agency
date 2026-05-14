@@ -44,7 +44,7 @@ function ClientDashboardLayoutContent({ children }: { children: React.ReactNode 
                 />
             )}
             <main className="flex-1 flex flex-col h-screen bg-background relative w-full selection:bg-primary/30 overflow-hidden">
-                <div className="flex-1 flex flex-col min-h-0">
+                <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar">
                     {children}
                 </div>
                 <DashboardMobileNav 
