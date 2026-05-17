@@ -42,7 +42,7 @@ export function getTexasSchoolRankings(): SchoolRanking[] {
         if (testName !== testFilter || studentName === "NO DATA" || schoolCode === "N/A") continue;
 
         if (!studentHistory.has(studentName)) studentHistory.set(studentName, []);
-        studentHistory.get(studentName).push({
+        studentHistory.get(studentName)!.push({
             schoolCode: values[0],
             schoolName: values[3] !== "N/A" ? values[3] : values[2],
             licenseType: values[4],
@@ -90,7 +90,7 @@ export function getTexasSchoolRankings(): SchoolRanking[] {
             });
         }
 
-        const s = schoolStats.get(schoolCode);
+        const s = schoolStats.get(schoolCode)!;
         s.totalExams++;
         if (result === "PASS") s.passes++;
 
