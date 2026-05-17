@@ -80,13 +80,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
     try {
       const supabase = createBrowserClient()
       
-      // 1. Fetch Questions (Now including psi_syntax_text)
-      const { data, error } = await supabase
-        .from("question_bank")
-        .select("*")
-        .eq("is_active", true)
-
-      // 2. Fetch User & School Association
+      // Fetch User & School Association for telemetry
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
          setUserId(session.user.id)
@@ -94,21 +88,129 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
          const { data: projectData } = await (supabase.from("projects") as any)
             .select("school_id")
             .eq("slug", projectSlug)
-            .single()
+            .maybeSingle()
          
          if (projectData?.school_id) {
             setSchoolId(projectData.school_id)
          }
       }
 
-      if (error || !data) {
-        console.error("Error fetching questions:", error)
-        setQuestions([])
-        return
-      }
+      // Hardcoded mock questions from the question_bank table
+      const hardcodedData = [
+        {
+          "id": "23d9a89d-e72b-4b0a-a4cb-ee0212a15694",
+          "question": "What is the primary benefit of using a steamer or hot towels during a professional facial treatment?",
+          "options": ["To tighten the skin and close the pores", "To soften the skin and open pores for easier cleaning", "To apply antiseptic deep into the dermis", "To reduce the appearance of fine lines and wrinkles"],
+          "correct_answer_index": 1,
+          "explanation": "Steamers and hot towels are utilized to soften the skin tissues and open the pores, which facilitates the removal of impurities during cleansing.",
+          "source_reference": "Milady 6th Ed, Chapter 15",
+          "difficulty": 2,
+          "domain": "Nail and Skin Care",
+          "psi_syntax_text": "When using a steamer during a facial, what is the expected result?"
+        },
+        {
+          "id": "130bb54c-9fc0-469b-9a62-9a8cbe03e71d",
+          "question": "During a shampoo service, which type of cape is specifically used, and what is its primary purpose?",
+          "options": ["A nylon cape; to allow for maximum breathability", "A cloth cape; to absorb excess water", "A vinyl (waterproof) cape; to protect the client's clothing from water and shampoo/chemical solutions", "A paper cape; for one-time disposable use"],
+          "correct_answer_index": 2,
+          "explanation": "A waterproof vinyl cape is essential for wet services like shampooing to keep the client dry and protect their clothing.",
+          "source_reference": "Milady 6th Ed, Chapter 11, Page 277",
+          "difficulty": 3,
+          "domain": "Hair and Scalp Care",
+          "psi_syntax_text": "Which drape must be used for a chemical service?"
+        },
+        {
+          "id": "b16f1ffc-d31a-4b10-ae48-9c317df0e836",
+          "question": "According to the FDA, what are the only two treatments that have been scientifically proven to increase hair growth and are used in the treatment of alopecia?",
+          "options": ["Shampooing daily and using essential oils", "Scalp massage and regular haircuts", "Vitamin supplements and cold water rinses", "Minoxidil and Finasteride"],
+          "correct_answer_index": 3,
+          "explanation": "The FDA only recognizes Minoxidil (topical) and Finasteride (oral) as scientifically proven treatments for hair loss.",
+          "source_reference": "Milady 6th Ed, Chapter 11, Page 255",
+          "difficulty": 5,
+          "domain": "Hair and Scalp Care",
+          "psi_syntax_text": "Which of the following treatments is FDA approved for hair loss?"
+        },
+        {
+          "id": "6766d295-1217-471c-974b-ad7cc1597329",
+          "question": "Why is it important for a barber to use a \"pH-balanced\" shampoo (typically ranging from 4.5 to 5.5) on a client's hair?",
+          "options": ["To open the cuticle layer as wide as possible for cleaning", "To match the natural pH of the hair and skin, which helps to keep the hair cuticle closed and healthy", "To increase the alkalinity of the hair for better shine", "To ensure the shampoo lathers more than a high-pH shampoo"],
+          "correct_answer_index": 1,
+          "explanation": "Shampoos with a pH of 4.5 to 5.5 match the hair's natural acidity, preventing excessive swelling of the hair shaft and keeping the cuticle layer smooth and closed.",
+          "source_reference": "Milady 6th Ed, Chapter 11, Page 192, 200",
+          "difficulty": 4,
+          "domain": "Hair and Scalp Care",
+          "psi_syntax_text": "A pH balanced shampoo has a pH in the range of:"
+        },
+        {
+          "id": "afcbbe7b-8d73-44fa-a009-e33d1c854c39",
+          "question": "What is the typical pH range of alkaline (cold) waves, which use ammonium thioglycolate (ATG) as the active ingredient?",
+          "options": ["4.5 to 7.0", "7.8 to 8.2", "9.0 to 9.6", "12.5 to 13.5"],
+          "correct_answer_index": 2,
+          "explanation": "Alkaline waves, or cold waves, process at room temperature and typically have a pH between 9.0 and 9.6.",
+          "source_reference": "Milady 6th Ed, Chapter 17, Table 17-2",
+          "difficulty": 4,
+          "domain": "Chemical Texture Services",
+          "psi_syntax_text": "The pH of an alkaline permanent wave is generally:"
+        },
+        {
+          "id": "024823f8-aa16-4255-950d-938ccc408123",
+          "question": "What is the primary purpose of applying a base cream during a \"base relaxer\" service?",
+          "options": ["To help the relaxer penetrate the cuticle", "To protect the scalp from potential irritation or burns", "To speed up the chemical reaction", "To add moisture to the hair shaft"],
+          "correct_answer_index": 1,
+          "explanation": "Protective base cream is an oily cream used specifically to protect the client's scalp during a hydroxide relaxer service.",
+          "source_reference": "Milady 6th Ed, Chapter 17, Relaxing section",
+          "difficulty": 3,
+          "domain": "Chemical Texture Services",
+          "psi_syntax_text": "What is applied to protect the scalp before a hydroxide relaxer?"
+        },
+        {
+          "id": "aa0704a3-f5a6-4418-bc0e-892ca3f53981",
+          "question": "Before proceeding with any chemical texture service, the barber must examine the client's scalp and should NOT perform the service if they find:",
+          "options": ["Excessive oiliness", "Fine hair texture", "Cuts or abrasions", "Natural cowlicks"],
+          "correct_answer_index": 2,
+          "explanation": "A chemical service should never be performed if the scalp shows signs of cuts, abrasions, scratches, or open sores.",
+          "source_reference": "Milady 6th Ed, Chapter 17, Page 580",
+          "difficulty": 3,
+          "domain": "Chemical Texture Services",
+          "psi_syntax_text": "A chemical service should not be given if the scalp has:"
+        },
+        {
+          "id": "605a14c7-945d-4b66-a4e3-7a92eedc2349",
+          "question": "Colors positioned directly opposite each other on the color wheel that neutralize each other when mixed are known as:",
+          "options": ["Primary colors", "Tertiary colors", "Analogous colors", "Complementary colors"],
+          "correct_answer_index": 3,
+          "explanation": "Complementary colors neutralize or \"cancel\" each other out when mixed.",
+          "source_reference": "Milady 6th Ed, Chapter 18, Page 643",
+          "difficulty": 3,
+          "domain": "Haircoloring",
+          "psi_syntax_text": "Colors opposite each other on the color wheel are:"
+        },
+        {
+          "id": "46ea8058-dce0-442c-8c91-1aeb2b5e1f5a",
+          "question": "What type of haircolor contains color molecules small enough to partially penetrate the hair shaft and last through 4–8 shampoos?",
+          "options": ["Temporary", "Semi-permanent", "Permanent", "Metallic"],
+          "correct_answer_index": 1,
+          "explanation": "Semi-permanent haircolor is a non-oxidation color with smaller pigment molecules that partially penetrate the hair shaft.",
+          "source_reference": "Milady 6th Ed, Chapter 18, Page 649",
+          "difficulty": 4,
+          "domain": "Haircoloring",
+          "psi_syntax_text": "Which haircolor partially penetrates the hair shaft and stains the cuticle?"
+        },
+        {
+          "id": "6afcd246-f3be-438b-ae3a-1f23993548fa",
+          "question": "To identify a possible allergy, the U.S. Food, Drug, and Cosmetic Act requires a patch test be performed how many hours prior to an aniline derivative haircolor?",
+          "options": ["1 to 2 hours", "12 to 24 hours", "24 to 48 hours", "72 to 96 hours"],
+          "correct_answer_index": 2,
+          "explanation": "A patch test (predisposition test) must be performed 24 to 48 hours before the application of aniline derivative haircolor.",
+          "source_reference": "Milady 6th Ed, Chapter 18, Page 664",
+          "difficulty": 5,
+          "domain": "Haircoloring",
+          "psi_syntax_text": "A patch test should be given how many hours before an aniline derivative tint?"
+        }
+      ];
 
       // Shuffle and select exactly 10
-      const shuffledData = [...data].sort(() => 0.5 - Math.random())
+      const shuffledData = [...hardcodedData].sort(() => 0.5 - Math.random())
       const selected = shuffledData.slice(0, 10)
 
       const mapped: Question[] = selected.map((q: any) => {
@@ -134,7 +236,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
           psiQuestion: q.psi_syntax_text,
           options: mappedOptions,
           metadata: {
-            source: q.source_ref,
+            source: q.source_reference,
             reasoning: q.explanation
           }
         }
@@ -142,7 +244,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
 
       setQuestions(mapped)
     } catch (err) {
-      console.error("Unexpected error fetching questions", err)
+      console.error("Unexpected error loading questions", err)
     } finally {
       setIsLoading(false)
     }

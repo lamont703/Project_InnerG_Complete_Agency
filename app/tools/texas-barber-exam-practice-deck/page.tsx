@@ -33,152 +33,152 @@ import {
 const practiceQuestions = [
   {
     id: 1,
-    category: "Sanitation & Safety",
-    question: "Which of the following is a type of pathogenic bacteria that grows in clusters like bunches of grapes and causes abscesses, pustules, and boils?",
+    category: "Nail and Skin Care",
+    question: "What is the primary benefit of using a steamer or hot towels during a professional facial treatment?",
     options: [
-      { id: "a", text: "Bacilli", isCorrect: false },
-      { id: "b", text: "Spirilla", isCorrect: false },
-      { id: "c", text: "Staphylococci", isCorrect: true },
-      { id: "d", text: "Diplococci", isCorrect: false }
+      { id: "a", text: "To tighten the skin and close the pores", isCorrect: false },
+      { id: "b", text: "To soften the skin and open pores for easier cleaning", isCorrect: true },
+      { id: "c", text: "To apply antiseptic deep into the dermis", isCorrect: false },
+      { id: "d", text: "To reduce the appearance of fine lines and wrinkles", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 5, Page 74",
-      reasoning: "Staphylococci are pus-forming bacteria that grow in clusters like bunches of grapes. They cause abscesses, pustules, and boils."
+      source: "Milady 6th Ed, Chapter 15",
+      reasoning: "Steamers and hot towels are utilized to soften the skin tissues and open the pores, which facilitates the removal of impurities during cleansing."
     }
   },
   {
     id: 2,
-    category: "Sanitation & Safety",
-    question: "Which type of bacteria are round-shaped and appear singly or in groups?",
+    category: "Hair and Scalp Care",
+    question: "During a shampoo service, which type of cape is specifically used, and what is its primary purpose?",
     options: [
-      { id: "a", text: "Cocci", isCorrect: true },
-      { id: "b", text: "Bacilli", isCorrect: false },
-      { id: "c", text: "Spirilla", isCorrect: false },
-      { id: "d", text: "Flagella", isCorrect: false }
+      { id: "a", text: "A nylon cape; to allow for maximum breathability", isCorrect: false },
+      { id: "b", text: "A cloth cape; to absorb excess water", isCorrect: false },
+      { id: "c", text: "A vinyl (waterproof) cape; to protect the client's clothing from water and shampoo/chemical solutions", isCorrect: true },
+      { id: "d", text: "A paper cape; for one-time disposable use", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 5, Page 74",
-      reasoning: "Cocci are spherical bacteria. Subtypes include Staphylococci (clusters), Streptococci (chains), and Diplococci (pairs)."
+      source: "Milady 6th Ed, Chapter 11, Page 277",
+      reasoning: "A waterproof vinyl cape is essential for wet services like shampooing to keep the client dry and protect their clothing."
     }
   },
   {
     id: 3,
-    category: "Sanitation & Safety",
-    question: "Which bacteria are short, rod-shaped and produce diseases such as tetanus and tuberculosis?",
+    category: "Hair and Scalp Care",
+    question: "According to the FDA, what are the only two treatments that have been scientifically proven to increase hair growth and are used in the treatment of alopecia?",
     options: [
-      { id: "a", text: "Cocci", isCorrect: false },
-      { id: "b", text: "Bacilli", isCorrect: true },
-      { id: "c", text: "Spirilla", isCorrect: false },
-      { id: "d", text: "Cilia", isCorrect: false }
+      { id: "a", text: "Shampooing daily and using essential oils", isCorrect: false },
+      { id: "b", text: "Scalp massage and regular haircuts", isCorrect: false },
+      { id: "c", text: "Vitamin supplements and cold water rinses", isCorrect: false },
+      { id: "d", text: "Minoxidil and Finasteride", isCorrect: true }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 5, Page 75",
-      reasoning: "Bacilli are the most common type of bacteria and are rod-shaped. They produce diseases such as tetanus, typhoid fever, and tuberculosis."
+      source: "Milady 6th Ed, Chapter 11, Page 255",
+      reasoning: "The FDA only recognizes Minoxidil (topical) and Finasteride (oral) as scientifically proven treatments for hair loss."
     }
   },
   {
     id: 4,
-    category: "Sanitation & Safety",
-    question: "The process that destroys all microbial life, including spores, is called:",
+    category: "Hair and Scalp Care",
+    question: "Why is it important for a barber to use a \"pH-balanced\" shampoo (typically ranging from 4.5 to 5.5) on a client's hair?",
     options: [
-      { id: "a", text: "Sanitation", isCorrect: false },
-      { id: "b", text: "Disinfection", isCorrect: false },
-      { id: "c", text: "Sterilization", isCorrect: true },
-      { id: "d", text: "Decontamination", isCorrect: false }
+      { id: "a", text: "To open the cuticle layer as wide as possible for cleaning", isCorrect: false },
+      { id: "b", text: "To match the natural pH of the hair and skin, which helps to keep the hair cuticle closed and healthy", isCorrect: true },
+      { id: "c", text: "To increase the alkalinity of the hair for better shine", isCorrect: false },
+      { id: "d", text: "To ensure the shampoo lathers more than a high-pH shampoo", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 5, Page 82",
-      reasoning: "Sterilization is the process that destroys all microbial life, including spores. Disinfection does not destroy spores."
+      source: "Milady 6th Ed, Chapter 11, Page 192, 200",
+      reasoning: "Shampoos with a pH of 4.5 to 5.5 match the hair's natural acidity, preventing excessive swelling of the hair shaft and keeping the cuticle layer smooth and closed."
     }
   },
   {
     id: 5,
-    category: "Sanitation & Safety",
-    question: "What is the term for the ability of a disinfectant to produce the intended effect as listed on the label?",
+    category: "Chemical Texture Services",
+    question: "What is the typical pH range of alkaline (cold) waves, which use ammonium thioglycolate (ATG) as the active ingredient?",
     options: [
-      { id: "a", text: "Porosity", isCorrect: false },
-      { id: "b", text: "Efficacy", isCorrect: true },
-      { id: "c", text: "Solubility", isCorrect: false },
-      { id: "d", text: "Toxicity", isCorrect: false }
+      { id: "a", text: "4.5 to 7.0", isCorrect: false },
+      { id: "b", text: "7.8 to 8.2", isCorrect: false },
+      { id: "c", text: "9.0 to 9.6", isCorrect: true },
+      { id: "d", text: "12.5 to 13.5", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 5, Page 84",
-      reasoning: "Efficacy claims on a label indicate the specific pathogens a disinfectant is proven to destroy when used according to instructions."
+      source: "Milady 6th Ed, Chapter 17, Table 17-2",
+      reasoning: "Alkaline waves, or cold waves, process at room temperature and typically have a pH between 9.0 and 9.6."
     }
   },
   {
     id: 6,
-    category: "Sanitation & Safety",
-    question: "Cleaning is defined as the mechanical method of using soap and water to remove:",
+    category: "Chemical Texture Services",
+    question: "What is the primary purpose of applying a base cream during a \"base relaxer\" service?",
     options: [
-      { id: "a", text: "Spores", isCorrect: false },
-      { id: "b", text: "Visible dirt, debris, and many germs", isCorrect: true },
-      { id: "c", text: "All bacteria", isCorrect: false },
-      { id: "d", text: "Viruses only", isCorrect: false }
+      { id: "a", text: "To help the relaxer penetrate the cuticle", isCorrect: false },
+      { id: "b", text: "To protect the scalp from potential irritation or burns", isCorrect: true },
+      { id: "c", text: "To speed up the chemical reaction", isCorrect: false },
+      { id: "d", text: "To add moisture to the hair shaft", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 5, Page 82",
-      reasoning: "Cleaning is the mechanical removal of visible debris and is the required first step in infection control."
+      source: "Milady 6th Ed, Chapter 17, Relaxing section",
+      reasoning: "Protective base cream is an oily cream used specifically to protect the client's scalp during a hydroxide relaxer service."
     }
   },
   {
     id: 7,
-    category: "Sanitation & Safety",
-    question: "The chemical process for reducing the number of disease-causing germs on cleaned surfaces to a safe level is:",
+    category: "Chemical Texture Services",
+    question: "Before proceeding with any chemical texture service, the barber must examine the client's scalp and should NOT perform the service if they find:",
     options: [
-      { id: "a", text: "Sanitizing", isCorrect: true },
-      { id: "b", text: "Disinfecting", isCorrect: false },
-      { id: "c", text: "Sterilizing", isCorrect: false },
-      { id: "d", text: "Decontaminating", isCorrect: false }
+      { id: "a", text: "Excessive oiliness", isCorrect: false },
+      { id: "b", text: "Fine hair texture", isCorrect: false },
+      { id: "c", text: "Cuts or abrasions", isCorrect: true },
+      { id: "d", text: "Natural cowlicks", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 5, Page 82",
-      reasoning: "Sanitizing reduces germs to a level deemed safe by public health standards."
+      source: "Milady 6th Ed, Chapter 17, Page 580",
+      reasoning: "A chemical service should never be performed if the scalp shows signs of cuts, abrasions, scratches, or open sores."
     }
   },
   {
     id: 8,
-    category: "Sanitation & Safety",
-    question: "Before disinfecting or sterilizing any tool, what must be done first?",
+    category: "Haircoloring",
+    question: "Colors positioned directly opposite each other on the color wheel that neutralize each other when mixed are known as:",
     options: [
-      { id: "a", text: "Soak in alcohol", isCorrect: false },
-      { id: "b", text: "Rinse with cold water", isCorrect: false },
-      { id: "c", text: "Clean with soap and warm water to remove all visible debris", isCorrect: true },
-      { id: "d", text: "Spray with quats", isCorrect: false }
+      { id: "a", text: "Primary colors", isCorrect: false },
+      { id: "b", text: "Tertiary colors", isCorrect: false },
+      { id: "c", text: "Analogous colors", isCorrect: false },
+      { id: "d", text: "Complementary colors", isCorrect: true }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 5, Page 83",
-      reasoning: "Cleaning (removing all visible debris) is the required first step before disinfection can be effective."
+      source: "Milady 6th Ed, Chapter 18, Page 643",
+      reasoning: "Complementary colors neutralize or \"cancel\" each other out when mixed."
     }
   },
   {
     id: 9,
-    category: "Sanitation & Safety",
-    question: "Quaternary ammonium compounds, also known as 'quats', are:",
+    category: "Haircoloring",
+    question: "What type of haircolor contains color molecules small enough to partially penetrate the hair shaft and last through 4–8 shampoos?",
     options: [
-      { id: "a", text: "Always dangerous to humans", isCorrect: false },
-      { id: "b", text: "Infectious pathogens", isCorrect: false },
-      { id: "c", text: "Standard hospital disinfectants", isCorrect: true },
-      { id: "d", text: "Type of antiseptic", isCorrect: false }
+      { id: "a", text: "Temporary", isCorrect: false },
+      { id: "b", text: "Semi-permanent", isCorrect: true },
+      { id: "c", text: "Permanent", isCorrect: false },
+      { id: "d", text: "Metallic", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 5, Page 85",
-      reasoning: "Quats are very effective disinfectants when used properly in a barber shop setting."
+      source: "Milady 6th Ed, Chapter 18, Page 649",
+      reasoning: "Semi-permanent haircolor is a non-oxidation color with smaller pigment molecules that partially penetrate the hair shaft."
     }
   },
   {
     id: 10,
-    category: "Sanitation & Safety",
-    question: "Items that are nonporous and can be used on more than one person are called:",
+    category: "Haircoloring",
+    question: "To identify a possible allergy, the U.S. Food, Drug, and Cosmetic Act requires a patch test be performed how many hours prior to an aniline derivative haircolor?",
     options: [
-      { id: "a", text: "Single-use items", isCorrect: false },
-      { id: "b", text: "Multi-use items", isCorrect: true },
-      { id: "c", text: "Porous items", isCorrect: false },
-      { id: "d", text: "Disposable items", isCorrect: false }
+      { id: "a", text: "1 to 2 hours", isCorrect: false },
+      { id: "b", text: "12 to 24 hours", isCorrect: false },
+      { id: "c", text: "24 to 48 hours", isCorrect: true },
+      { id: "d", text: "72 to 96 hours", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 5, Page 86",
-      reasoning: "Multi-use items must be cleaned and disinfected between each client use."
+      source: "Milady 6th Ed, Chapter 18, Page 664",
+      reasoning: "A patch test (predisposition test) must be performed 24 to 48 hours before the application of aniline derivative haircolor."
     }
   }
 ]
@@ -190,7 +190,6 @@ export default function PublicSwipeDeckPage() {
   const [score, setScore] = useState(0)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoginView, setIsLoginView] = useState(false)
-  const [hasTriggeredMidway, setHasTriggeredMidway] = useState(false)
   const [sessionStartTime, setSessionStartTime] = useState(0)
 
   useEffect(() => {
@@ -228,10 +227,9 @@ export default function PublicSwipeDeckPage() {
   }
 
   const handleNext = () => {
-    // Early Onboarding Trigger at Question 5
-    if (currentIndex === 4 && !hasTriggeredMidway) {
+    // Early Onboarding Triggers after Question 3 (index 2) and Question 6 (index 5)
+    if (currentIndex === 2 || currentIndex === 5) {
       setIsModalOpen(true)
-      setHasTriggeredMidway(true)
     }
 
     if (currentIndex < practiceQuestions.length - 1) {
@@ -241,6 +239,7 @@ export default function PublicSwipeDeckPage() {
       setSessionStartTime(Date.now())
     } else {
       setGameState("finished")
+      setIsModalOpen(true) // Auto-open modal upon completion
       const finalScore = isCorrect ? score + 1 : score
       trackExamSessionComplete({
         deck_type: 'public',
@@ -256,7 +255,6 @@ export default function PublicSwipeDeckPage() {
     setSelectedOptionId(null)
     setGameState("active")
     setScore(0)
-    setHasTriggeredMidway(false)
     setSessionStartTime(Date.now())
     trackExamRetake('public')
   }
@@ -444,7 +442,7 @@ export default function PublicSwipeDeckPage() {
           {/* Onboarding Modal */}
           <AnimatePresence>
             {isModalOpen && (
-              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -456,19 +454,19 @@ export default function PublicSwipeDeckPage() {
                   initial={{ opacity: 0, scale: 0.9, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                  className="relative w-full max-w-xl bg-white rounded-[2.5rem] p-8 lg:p-12 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] border border-slate-100 overflow-hidden"
+                  className="relative w-full max-w-xl max-h-[95vh] overflow-y-auto overflow-x-hidden no-scrollbar bg-white rounded-[2rem] lg:rounded-[2.5rem] p-6 sm:p-8 lg:p-12 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] border border-slate-100"
                 >
                   <div className="absolute top-0 right-0 h-32 w-32 bg-primary/5 rounded-bl-full pointer-events-none" />
                   
-                  <div className="flex flex-col items-center text-center space-y-6 mb-8 lg:mb-10">
-                    <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-                       <Sparkles className="h-8 w-8 text-primary" />
+                  <div className="flex flex-col items-center text-center space-y-4 lg:space-y-6 mb-6 lg:mb-10">
+                    <div className="h-12 w-12 lg:h-16 lg:w-16 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                       <Sparkles className="h-6 w-6 lg:h-8 lg:w-8 text-primary" />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-950 leading-none mb-2">
+                      <h2 className="text-2xl lg:text-3xl font-black uppercase italic tracking-tighter text-slate-950 leading-tight mb-2">
                         {isLoginView ? "Welcome Back" : "AI Enhanced Access"}
                       </h2>
-                      <p className="text-slate-500 font-bold text-sm tracking-tight px-4 mx-auto max-w-xs">
+                      <p className="text-slate-500 font-bold text-xs lg:text-sm tracking-tight px-2 lg:px-4 mx-auto max-w-xs">
                         {isLoginView 
                           ? "Login to resume your personalized Aesthetic Intelligence training." 
                           : "Complete your profile to unlock Aesthetic Intelligence training loops."}
