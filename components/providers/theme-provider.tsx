@@ -74,10 +74,16 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   // If the current path doesn't start with a gated prefix, force dark mode
   const isGated = gatedPrefixes.some(prefix => pathname?.startsWith(prefix))
 
+  // Determine forced theme
+  let forcedTheme: string | undefined = isGated ? undefined : 'dark';
+  if (pathname === '/texas-school-benchmarking') {
+    forcedTheme = 'light';
+  }
+
   return (
     <NextThemesProvider 
       {...props} 
-      forcedTheme={isGated ? undefined : 'dark'}
+      forcedTheme={forcedTheme}
     >
       <ThemeSyncGuard isGated={isGated}>
         {children}
