@@ -120,7 +120,7 @@ export function BarberRegisterForm({ onSuccess }: BarberRegisterFormProps) {
                         type="text" 
                         required 
                         minLength={2} 
-                        placeholder="Lamont" 
+                        placeholder="John" 
                         value={formData.firstName} 
                         onChange={(e) => setFormData({...formData, firstName: e.target.value})} 
                         onFocus={() => trackFormFieldFocus('First Name')}
@@ -133,7 +133,7 @@ export function BarberRegisterForm({ onSuccess }: BarberRegisterFormProps) {
                         type="text" 
                         required 
                         minLength={2} 
-                        placeholder="Evans" 
+                        placeholder="Doe" 
                         value={formData.lastName} 
                         onChange={(e) => setFormData({...formData, lastName: e.target.value})} 
                         onFocus={() => trackFormFieldFocus('Last Name')}
@@ -149,7 +149,7 @@ export function BarberRegisterForm({ onSuccess }: BarberRegisterFormProps) {
                 <input 
                     type="email" 
                     required 
-                    placeholder="lamont@example.com" 
+                    placeholder="barber@example.com" 
                     value={formData.email} 
                     onChange={(e) => setFormData({...formData, email: e.target.value})} 
                     onFocus={() => trackFormFieldFocus('Email Address')}

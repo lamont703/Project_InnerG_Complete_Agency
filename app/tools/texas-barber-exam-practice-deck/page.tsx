@@ -492,7 +492,7 @@ export default function PublicSwipeDeckPage() {
                             <input 
                                 type="email" 
                                 required 
-                                placeholder="lamont@example.com" 
+                                placeholder="barber@example.com" 
                                 className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-4 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none text-slate-900" 
                             />
                           </div>
