@@ -242,3 +242,118 @@
         gap: 0.5rem;
     }
 }
+
+.comparison-row {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.comparison-bar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.comparison-item {
+    display: grid;
+    grid-template-columns: 80px 1fr 50px;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.7rem;
+}
+
+.comparison-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.comparison-value {
+    font-weight: 800;
+    text-align: right;
+    color: var(--text-main);
+}
+
+.comparison-track {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.comparison-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s ease;
+}
+
+.fill-school { background: var(--primary); }
+.fill-county { background: #94a3b8; }
+.fill-state { background: #cbd5e1; }
+
+.breakdown-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.breakdown-box {
+    background: #f8fafc;
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    text-align: center;
+    border: 1px solid #f1f5f9;
+}
+
+.breakdown-title {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.breakdown-value {
+    font-size: 1.125rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.breakdown-subtext {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.state-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto 3rem auto;
+}
+
+.overview-card {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 1.25rem;
+    border: 1px solid #e2e8f0;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.overview-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.overview-value {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--primary);
+}

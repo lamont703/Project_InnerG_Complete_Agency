@@ -15,6 +15,12 @@ interface SchoolRanking {
     passes: number;
     fails: number;
     passRate: number;
+    firstTimePassRate: number;
+    repeaterPassRate: number;
+    firstTimeCount: number;
+    repeaterCount: number;
+    countyAvgPassRate: number;
+    stateAvgPassRate: number;
     status: string;
 }
 
@@ -108,6 +114,25 @@ export default function TexasSchoolBenchmarkingPage() {
                 </p>
             </header>
 
+            {allRankings.length > 0 && (
+                <div className="state-overview">
+                    <div className="overview-card">
+                        <div className="overview-label">State Pass Rate</div>
+                        <div className="overview-value">{allRankings[0].stateAvgPassRate.toFixed(1)}%</div>
+                    </div>
+                    <div className="overview-card">
+                        <div className="overview-label">Total Accredited Schools</div>
+                        <div className="overview-value">{allRankings.length}</div>
+                    </div>
+                    <div className="overview-card">
+                        <div className="overview-label">Market Leader</div>
+                        <div className="overview-value" style={{ fontSize: '1rem', marginTop: '0.5rem' }}>
+                            {allRankings[0].schoolName}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-8 max-w-[1200px] mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
                     <div className="flex flex-col gap-2">
@@ -139,7 +164,7 @@ export default function TexasSchoolBenchmarkingPage() {
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
                         >
-                            <option value="passRate">Pass Rate</option>
+                            <option value="passRate">Overall Success</option>
                             <option value="totalExams">Exam Volume</option>
                             <option value="name">School Name</option>
                         </select>
@@ -224,8 +249,47 @@ export default function TexasSchoolBenchmarkingPage() {
                                         <span className="stat-label">Passes</span>
                                     </div>
                                     <div className="stat-item">
-                                        <span className="stat-value text-red-600">{school.fails}</span>
+                                        <span className="stat-value text-red-600">{school.totalExams - school.passes}</span>
                                         <span className="stat-label">Failures</span>
+                                    </div>
+                                </div>
+
+                                <div className="breakdown-grid">
+                                    <div className="breakdown-box">
+                                        <div className="breakdown-title">First-Time</div>
+                                        <div className="breakdown-value text-blue-600">{school.firstTimePassRate.toFixed(1)}%</div>
+                                        <div className="breakdown-subtext">{school.firstTimeCount} students</div>
+                                    </div>
+                                    <div className="breakdown-box">
+                                        <div className="breakdown-title">Repeaters</div>
+                                        <div className="breakdown-value text-purple-600">{school.repeaterPassRate.toFixed(1)}%</div>
+                                        <div className="breakdown-subtext">{school.repeaterCount} students</div>
+                                    </div>
+                                </div>
+
+                                <div className="comparison-row">
+                                    <div className="comparison-bar-group">
+                                        <div className="comparison-item">
+                                            <div className="comparison-label">School</div>
+                                            <div className="comparison-track">
+                                                <div className="comparison-fill fill-school" style={{ width: `${school.passRate}%` }}></div>
+                                            </div>
+                                            <div className="comparison-value">{school.passRate.toFixed(0)}%</div>
+                                        </div>
+                                        <div className="comparison-item">
+                                            <div className="comparison-label">County</div>
+                                            <div className="comparison-track">
+                                                <div className="comparison-fill fill-county" style={{ width: `${school.countyAvgPassRate}%` }}></div>
+                                            </div>
+                                            <div className="comparison-value">{school.countyAvgPassRate.toFixed(0)}%</div>
+                                        </div>
+                                        <div className="comparison-item">
+                                            <div className="comparison-label">State</div>
+                                            <div className="comparison-track">
+                                                <div className="comparison-fill fill-state" style={{ width: `${school.stateAvgPassRate}%` }}></div>
+                                            </div>
+                                            <div className="comparison-value">{school.stateAvgPassRate.toFixed(0)}%</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -234,7 +298,7 @@ export default function TexasSchoolBenchmarkingPage() {
                                 <div className="pass-rate-big">
                                     {school.passRate.toFixed(1)}%
                                 </div>
-                                <div className="pass-rate-label">Pass Rate</div>
+                                <div className="pass-rate-label">Overall Success</div>
                                 <div className="progress-bar-container">
                                     <div 
                                         className="progress-bar-fill" 
@@ -259,7 +323,6 @@ export default function TexasSchoolBenchmarkingPage() {
                     
                     {[...Array(totalPages)].map((_, i) => {
                         const p = i + 1;
-                        // Only show current, first, last, and neighbors
                         if (p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1) {
                             return (
                                 <button 
