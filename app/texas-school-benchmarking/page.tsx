@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './benchmarking.css';
 import { Award, MapPin, Building2, TrendingUp, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
 
 interface SchoolRanking {
     schoolCode: string;
@@ -99,7 +101,9 @@ export default function TexasSchoolBenchmarkingPage() {
     }
 
     return (
-        <div className="benchmarking-container">
+        <main className="min-h-screen bg-background">
+            <Navbar />
+            <div className="benchmarking-container">
             <header className="hero-section">
                 <div className="flex justify-center mb-6">
                     <div className="bg-blue-500/10 text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold border border-blue-500/20 flex items-center gap-2">
@@ -358,5 +362,7 @@ export default function TexasSchoolBenchmarkingPage() {
                 </div>
             </footer>
         </div>
+        <Footer />
+        </main>
     );
 }
