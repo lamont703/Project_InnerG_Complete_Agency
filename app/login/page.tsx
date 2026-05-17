@@ -39,10 +39,12 @@ function LoginContent() {
     })
 
     const onLoginSubmit = async (values: LoginInput) => {
+        /* Commented out for local development bypass
         if (!captchaToken) {
             toast.error("Please complete the captcha challenge.")
             return
         }
+        */
 
         setIsLoading(true)
 
@@ -52,7 +54,7 @@ function LoginContent() {
                 email: values.email,
                 password: values.password,
                 options: {
-                    captchaToken: captchaToken,
+                    captchaToken: captchaToken || "development-mock-token",
                 }
             })
 
@@ -159,6 +161,7 @@ function LoginContent() {
                                 )}
                             </div>
 
+                            {/* Commented out for local development bypass
                             <div className="flex justify-center py-2">
                                 <HCaptcha
                                     sitekey="6a986108-9b66-4076-8b9c-99a00a743d20"
@@ -166,6 +169,7 @@ function LoginContent() {
                                     theme="dark"
                                 />
                             </div>
+                            */}
 
                             <Button
                                 id="btn-sign-in"
