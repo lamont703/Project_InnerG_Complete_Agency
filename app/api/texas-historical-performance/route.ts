@@ -85,7 +85,7 @@ export async function GET(req: Request) {
         // 1. Gather the union of all schools from all CSVs to build the selector index
         const schoolsMap = new Map<string, string>();
         for (const fileInfo of files) {
-            const csvPath = path.join(process.cwd(), 'public', fileInfo.filename);
+            const csvPath = path.join(process.cwd(), 'public', 'Texas Pass Fail Scores', fileInfo.filename);
             if (!fs.existsSync(csvPath)) continue;
 
             const fileContent = fs.readFileSync(csvPath, 'utf8');
@@ -121,7 +121,7 @@ export async function GET(req: Request) {
 
         // 2. Identify the maximum month in the 2026 CSV file to make months fully dynamic
         let maxMonth2026 = 4; // Default to April
-        const path2026 = path.join(process.cwd(), 'public', '2026 Texas Barber Written Exam Pass-Fail Scores Both First Time and Repeat.csv');
+        const path2026 = path.join(process.cwd(), 'public', 'Texas Pass Fail Scores', '2026 Texas Barber Written Exam Pass-Fail Scores Both First Time and Repeat.csv');
         if (fs.existsSync(path2026)) {
             const content2026 = fs.readFileSync(path2026, 'utf8');
             const lines2026 = content2026.split('\n');
@@ -179,7 +179,7 @@ export async function GET(req: Request) {
         for (const fileInfo of files) {
             if (!yearsToLoad.includes(fileInfo.year)) continue;
 
-            const csvPath = path.join(process.cwd(), 'public', fileInfo.filename);
+            const csvPath = path.join(process.cwd(), 'public', 'Texas Pass Fail Scores', fileInfo.filename);
             if (!fs.existsSync(csvPath)) continue;
 
             const fileContent = fs.readFileSync(csvPath, 'utf8');
