@@ -469,7 +469,7 @@ export default function PublicSwipeDeckPage() {
                       <p className="text-slate-500 font-bold text-xs lg:text-sm tracking-tight px-2 lg:px-4 mx-auto max-w-xs">
                         {isLoginView 
                           ? "Login to resume your personalized Aesthetic Intelligence training." 
-                          : "Complete your profile to unlock Aesthetic Intelligence training loops."}
+                          : "Complete your profile and let AI train you with Aesthetic Intelligence."}
                       </p>
                     </div>
                   </div>

@@ -12,37 +12,8 @@ export async function POST(req: Request) {
       phone, 
       password,
       schoolData, 
-      role,
-      captchaToken
+      role
     } = body;
-
-    // --- hCaptcha Verification ---
-    const isMockToken = captchaToken === "development-mock-token";
-
-    if (!isMockToken) {
-      if (!captchaToken) {
-        return NextResponse.json({ success: false, error: "Captcha token is missing" }, { status: 400 });
-      }
-
-      const secretKey = process.env.HCAPTCHA_SECRET;
-      if (!secretKey) {
-          console.error("HCAPTCHA_SECRET is not set in environment variables");
-          // In dev, we might want to skip, but for security, we should fail
-      }
-
-      const verifyResponse = await fetch("https://api.hcaptcha.com/siteverify", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `secret=${secretKey}&response=${captchaToken}`,
-      });
-
-      const verifyData = await verifyResponse.json();
-      if (!verifyData.success) {
-        console.error("[hCaptcha] Verification Failed:", verifyData);
-        return NextResponse.json({ success: false, error: "Invalid captcha. Please try again." }, { status: 403 });
-      }
-    }
-    // ----------------------------
 
     const adminSupabase = createAdminClient();
 

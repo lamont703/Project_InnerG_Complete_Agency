@@ -5,6 +5,7 @@ import './benchmarking.css';
 import { Award, MapPin, Building2, TrendingUp, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { useTheme } from 'next-themes';
 
 interface SchoolRanking {
     schoolCode: string;
@@ -27,10 +28,16 @@ interface SchoolRanking {
 }
 
 export default function TexasSchoolBenchmarkingPage() {
+    const { setTheme } = useTheme();
     const [allRankings, setAllRankings] = useState<SchoolRanking[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [loading, setLoading] = useState(true);
+
+    // Force light theme for this B2B school page
+    useEffect(() => {
+        setTheme("light");
+    }, [setTheme]);
 
     // Filter and Sort State
     const [selectedCounty, setSelectedCounty] = useState<string>("All");
