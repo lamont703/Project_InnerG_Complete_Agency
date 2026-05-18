@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import './benchmarking.css';
-import { Award, MapPin, Building2, TrendingUp, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Award, MapPin, Building2, TrendingUp, Users, ChevronLeft, ChevronRight, Calendar, Sparkles } from 'lucide-react';
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useTheme } from 'next-themes';
@@ -25,6 +25,7 @@ interface SchoolRanking {
     countyAvgPassRate: number;
     stateAvgPassRate: number;
     status: string;
+    isAccredited: boolean;
 }
 
 export default function TexasSchoolBenchmarkingPage() {
@@ -33,22 +34,25 @@ export default function TexasSchoolBenchmarkingPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [loading, setLoading] = useState(true);
+    
+    const [year, setYear] = useState<string>("all"); // 'all', '2026', '2025', '2024', '2023'
+    const [selectedAccreditation, setSelectedAccreditation] = useState<string>("All"); // 'All', 'Accredited', 'Non-Accredited'
+    const [selectedCounty, setSelectedCounty] = useState<string>("All");
+    const [minPassRate, setMinPassRate] = useState<number>(0);
+    const [sortBy, setSortBy] = useState<string>("passRate");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
     // Force light theme for this B2B school page
     useEffect(() => {
         setTheme("light");
     }, [setTheme]);
 
-    // Filter and Sort State
-    const [selectedCounty, setSelectedCounty] = useState<string>("All");
-    const [minPassRate, setMinPassRate] = useState<number>(0);
-    const [sortBy, setSortBy] = useState<string>("passRate");
-    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-
+    // Load rankings dynamically when the year changes
     useEffect(() => {
         async function loadData() {
+            setLoading(true);
             try {
-                const response = await fetch('/api/texas-rankings');
+                const response = await fetch(`/api/texas-rankings?year=${year}`);
                 const data = await response.json();
                 setAllRankings(data);
             } catch (err) {
@@ -58,9 +62,9 @@ export default function TexasSchoolBenchmarkingPage() {
             }
         }
         loadData();
-    }, []);
+    }, [year]);
 
-    // Get unique counties for the filter
+    // Get unique counties based on active dataset
     const counties = useMemo(() => {
         const c = new Set(allRankings.map(r => r.county).filter(Boolean));
         return ["All", ...Array.from(c).sort()];
@@ -72,7 +76,11 @@ export default function TexasSchoolBenchmarkingPage() {
             .filter(school => {
                 const matchesCounty = selectedCounty === "All" || school.county === selectedCounty;
                 const matchesPassRate = school.passRate >= minPassRate;
-                return matchesCounty && matchesPassRate;
+                const matchesAccreditation = 
+                    selectedAccreditation === "All" || 
+                    (selectedAccreditation === "Accredited" && school.isAccredited) ||
+                    (selectedAccreditation === "Non-Accredited" && !school.isAccredited);
+                return matchesCounty && matchesPassRate && matchesAccreditation;
             })
             .sort((a, b) => {
                 let comparison = 0;
@@ -85,7 +93,7 @@ export default function TexasSchoolBenchmarkingPage() {
                 }
                 return sortOrder === "desc" ? -comparison : comparison;
             });
-    }, [allRankings, selectedCounty, minPassRate, sortBy, sortOrder]);
+    }, [allRankings, selectedCounty, minPassRate, selectedAccreditation, sortBy, sortOrder]);
 
     const totalPages = Math.ceil(filteredAndSortedRankings.length / pageSize);
     
@@ -99,16 +107,26 @@ export default function TexasSchoolBenchmarkingPage() {
         setCurrentPage(1);
     };
 
+    // Calculate Market Leader based on filtered view
+    const marketLeaderName = useMemo(() => {
+        const activeRankings = filteredAndSortedRankings;
+        if (activeRankings.length === 0) return "N/A";
+        return activeRankings[0].schoolName;
+    }, [filteredAndSortedRankings]);
+
     if (loading) {
         return (
-            <div className="benchmarking-container flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
+            <main className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                    <p className="text-sm font-semibold text-slate-500">Recalculating Leaderboard Matrices...</p>
+                </div>
+            </main>
         );
     }
 
     return (
-        <main className="min-h-screen bg-background">
+        <main className="min-h-screen bg-slate-50">
             <Navbar />
             <div className="benchmarking-container">
             <header className="hero-section">
@@ -120,8 +138,9 @@ export default function TexasSchoolBenchmarkingPage() {
                 </div>
                 <h1 className="hero-title">Texas Barber School <br />Competitor Benchmarking</h1>
                 <p className="hero-subtitle">
-                    Institutional-grade performance analysis ranking every accredited school by cumulative 
-                    first-time pass rates for the <strong>Class A Barber Written English</strong> exam.
+                    Institutional-grade performance analysis ranking every board-reporting school by cumulative 
+                    first-time pass rates for the <strong>Class A Barber Written English</strong> exam. 
+                    Currently viewing {year === 'all' ? 'All-Time (2023 - 2026) telemetry' : `${year} calendar year telemetry`}.
                 </p>
             </header>
 
@@ -132,22 +151,56 @@ export default function TexasSchoolBenchmarkingPage() {
                         <div className="overview-value">{allRankings[0].stateAvgPassRate.toFixed(1)}%</div>
                     </div>
                     <div className="overview-card">
-                        <div className="overview-label">Total Accredited Schools</div>
+                        <div className="overview-label">Total Barber Schools</div>
                         <div className="overview-value">{allRankings.length}</div>
                     </div>
                     <div className="overview-card">
-                        <div className="overview-label">Market Leader</div>
-                        <div className="overview-value" style={{ fontSize: '1rem', marginTop: '0.5rem' }}>
-                            {allRankings[0].schoolName}
+                        <div className="overview-label">Accredited Schools</div>
+                        <div className="overview-value">
+                            {allRankings.filter(r => r.isAccredited).length}
                         </div>
                     </div>
                 </div>
             )}
 
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-8 max-w-[1200px] mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
                     <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Filter by County</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                            <Calendar size={12} className="text-blue-500" /> Time Period
+                        </label>
+                        <select 
+                            className="page-size-selector w-full"
+                            value={year}
+                            onChange={(e) => { setYear(e.target.value); setCurrentPage(1); }}
+                        >
+                            <option value="all">All-Time (4-Year)</option>
+                            <option value="2026">2026</option>
+                            <option value="2025">2025</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                        </select>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                            <Building2 size={12} className="text-blue-500" /> Accreditation
+                        </label>
+                        <select 
+                            className="page-size-selector w-full"
+                            value={selectedAccreditation}
+                            onChange={(e) => { setSelectedAccreditation(e.target.value); setCurrentPage(1); }}
+                        >
+                            <option value="All">All Schools</option>
+                            <option value="Accredited">Accredited Only</option>
+                            <option value="Non-Accredited">Non-Accredited Only</option>
+                        </select>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                            <MapPin size={12} className="text-blue-500" /> Filter by County
+                        </label>
                         <select 
                             className="page-size-selector w-full"
                             value={selectedCounty}
@@ -155,17 +208,6 @@ export default function TexasSchoolBenchmarkingPage() {
                         >
                             {counties.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Min. Pass Rate ({minPassRate}%)</label>
-                        <input 
-                            type="range" 
-                            min="0" max="100" step="5"
-                            className="h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                            value={minPassRate}
-                            onChange={(e) => { setMinPassRate(Number(e.target.value)); setCurrentPage(1); }}
-                        />
                     </div>
 
                     <div className="flex flex-col gap-2">
@@ -180,8 +222,21 @@ export default function TexasSchoolBenchmarkingPage() {
                             <option value="name">School Name</option>
                         </select>
                     </div>
+                </div>
 
-                    <div className="flex justify-between items-center bg-gray-50 p-2 rounded-xl border border-gray-100">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center mt-6 border-t border-gray-100 pt-6">
+                    <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Min. Pass Rate ({minPassRate}%)</label>
+                        <input 
+                            type="range" 
+                            min="0" max="100" step="5"
+                            className="h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 w-full"
+                            value={minPassRate}
+                            onChange={(e) => { setMinPassRate(Number(e.target.value)); setCurrentPage(1); }}
+                        />
+                    </div>
+
+                    <div className="flex justify-between items-center bg-gray-50 p-2.5 rounded-xl border border-gray-100 max-w-md ml-auto w-full">
                         <div className="flex items-center gap-2">
                             <label className="text-xs font-bold text-gray-500">Show:</label>
                             <select 
@@ -189,9 +244,9 @@ export default function TexasSchoolBenchmarkingPage() {
                                 value={pageSize}
                                 onChange={handlePageSizeChange}
                             >
-                                <option value={10}>10</option>
-                                <option value={25}>25</option>
-                                <option value={50}>50</option>
+                                <option value={10}>10 per page</option>
+                                <option value={25}>25 per page</option>
+                                <option value={50}>50 per page</option>
                             </select>
                         </div>
                         <div className="flex gap-1">
@@ -228,9 +283,14 @@ export default function TexasSchoolBenchmarkingPage() {
                             <div className="school-info">
                                 <div className="flex items-center gap-3 mb-1">
                                     <h2 className="school-name">{school.schoolName}</h2>
-                                    <span className={`status-indicator ${school.status === 'ACTIVE' ? 'status-active' : 'status-expired'}`}>
-                                        {school.status}
+                                    <span className={`status-indicator ${school.isAccredited ? 'status-active' : 'status-expired'}`} style={{ fontWeight: 800 }}>
+                                        {school.isAccredited ? 'ACCREDITED' : 'NON-ACCREDITED'}
                                     </span>
+                                    {school.status === 'EXPIRED' && (
+                                        <span className="status-indicator status-expired">
+                                            LIC. EXPIRED
+                                        </span>
+                                    )}
                                 </div>
                                 
                                 <div className="school-meta">
@@ -260,7 +320,7 @@ export default function TexasSchoolBenchmarkingPage() {
                                         <span className="stat-label">Passes</span>
                                     </div>
                                     <div className="stat-item">
-                                        <span className="stat-value text-red-600">{school.totalExams - school.passes}</span>
+                                        <span className="stat-value text-red-600">{school.fails}</span>
                                         <span className="stat-label">Failures</span>
                                     </div>
                                 </div>
@@ -281,7 +341,7 @@ export default function TexasSchoolBenchmarkingPage() {
                                 <div className="comparison-row">
                                     <div className="comparison-bar-group">
                                         <div className="comparison-item">
-                                            <div className="comparison-label">School</div>
+                                            <div className="comparison-label flex items-center gap-1">School</div>
                                             <div className="comparison-track">
                                                 <div className="comparison-fill fill-school" style={{ width: `${school.passRate}%` }}></div>
                                             </div>
