@@ -359,3 +359,55 @@
     font-weight: 900;
     color: var(--primary);
 }
+
+/* Force light styles on global Navbar and global Footer specifically for this route */
+header.fixed {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(40px) saturate(1.6) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(1.6) !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+header.fixed a {
+    color: #475569 !important;
+}
+
+header.fixed a:hover {
+    color: #0f172a !important;
+    background-color: #f1f5f9 !important;
+}
+
+header.fixed span {
+    color: #0f172a !important;
+}
+
+header.fixed button {
+    color: #475569 !important;
+}
+
+/* Footer overrides */
+footer.relative {
+    background: #f8fafc !important;
+    border-top: 1px solid #e2e8f0 !important;
+    color: #475569 !important;
+}
+
+footer.relative h4 {
+    color: #0f172a !important;
+}
+
+footer.relative a {
+    color: #64748b !important;
+}
+
+footer.relative a:hover {
+    color: #0f172a !important;
+}
+
+footer.relative span {
+    color: #0f172a !important;
+}
+
+footer.relative p {
+    color: #64748b !important;
+}

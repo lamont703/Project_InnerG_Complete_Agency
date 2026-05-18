@@ -13,6 +13,7 @@ const footerLinks = {
     { label: "Texas Barber Instructor Intelligence Dashboard", href: "/tools/texas-barber-instructor-intelligence-dashboard" },
     { label: "Texas Barber School Accreditation Relationship Auditor", href: "/tools/texas-barber-school-accreditation-relationship-auditor" },
     { label: "Texas Barber School Benchmarking Intelligence", href: "/texas-school-benchmarking" },
+    { label: "Texas Barber School Historical Performance Tracker", href: "/texas-barber-school-historical-performance" },
   ],
   Social: [
     { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },
