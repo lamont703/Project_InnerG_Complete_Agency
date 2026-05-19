@@ -1,0 +1,30 @@
+{
+  "representative_barbershop_metadata": {
+    "license_type": "Barber School",
+    "license_number": "415",
+    "license_subtype": "PS",
+    "establishment_name": "IMPACT BARBER ACADEMY",
+    "owner_registered_name": "IMPACT BARBER ACADEMY",
+    "contact_phone": "5124582620",
+    "county_jurisdiction": "TRAVIS",
+    "expiration_date": "12/01/2025",
+    "physical_address": "5339 BURNET RD",
+    "city_state_zip": "AUSTIN TX 78756-2002",
+    "continuing_education_exempt": "N",
+    "geodetic_coordinates": [
+      -97.74299,
+      30.26759
+    ]
+  },
+  "representative_practitioner_metadata": {
+    "license_type": "Class A Barber",
+    "license_number": "2007854",
+    "license_subtype": "BA",
+    "practitioner_name": "HEAD, AUNDRA",
+    "contact_phone": "N/A",
+    "county_jurisdiction": "DALLAS",
+    "expiration_date": "03/24/2027",
+    "continuing_education_exempt": "Y",
+    "geodetic_coordinates": null
+  }
+}

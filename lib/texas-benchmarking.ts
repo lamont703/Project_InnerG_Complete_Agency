@@ -1,6 +1,21 @@
 import fs from 'fs';
 import path from 'path';
 
+export interface GooglePlacesData {
+    placeId: string;
+    name: string;
+    address: string;
+    lat: string;
+    lng: string;
+    telephone: string;
+    website: string;
+    rating: string;
+    totalReviews: string;
+    types: string;
+    businessStatus: string;
+    openingHours: string;
+}
+
 export interface SchoolRanking {
     schoolCode: string;
     schoolName: string;
@@ -20,6 +35,7 @@ export interface SchoolRanking {
     stateAvgPassRate: number;
     status: string;
     isAccredited: boolean;
+    googleData: GooglePlacesData | null;
 }
 
 interface CSVFileConfig {
@@ -81,6 +97,36 @@ export function getTexasSchoolRankings(year: string = 'all'): SchoolRanking[] {
         }
     }
 
+    // Load Google Places Premium Data
+    const googleDataMap = new Map<string, GooglePlacesData>();
+    const googlePath = path.join(process.cwd(), 'public', '2026 Texas Accredited Schools Plus Google Places Data.csv');
+    if (fs.existsSync(googlePath)) {
+        const content = fs.readFileSync(googlePath, 'utf8');
+        const lines = content.split('\n');
+        for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            const values = parseCSVLine(lines[i]).map(v => v.trim());
+            if (values.length < 16) continue;
+            const schoolName = values[0];
+            if (schoolName && schoolName !== "School") {
+                googleDataMap.set(cleanName(schoolName), {
+                    placeId: values[4],
+                    name: values[5],
+                    address: values[6],
+                    lat: values[7],
+                    lng: values[8],
+                    telephone: values[9],
+                    website: values[10],
+                    rating: values[11],
+                    totalReviews: values[12],
+                    types: values[13],
+                    businessStatus: values[14],
+                    openingHours: values[15]
+                });
+            }
+        }
+    }
+
     function checkAccreditation(name: string): boolean {
         const c = cleanName(name);
         for (const acc of accreditedSet) {
@@ -89,6 +135,16 @@ export function getTexasSchoolRankings(year: string = 'all'): SchoolRanking[] {
             }
         }
         return false;
+    }
+
+    function getGoogleData(name: string): GooglePlacesData | null {
+        const c = cleanName(name);
+        for (const [key, data] of googleDataMap.entries()) {
+            if (c === key || c.includes(key) || key.includes(c)) {
+                return data;
+            }
+        }
+        return null;
     }
 
     // 2. Gather rich metadata for schools (city, county, license status, type) from historical roster
@@ -218,7 +274,8 @@ export function getTexasSchoolRankings(year: string = 'all'): SchoolRanking[] {
             countyAvgPassRate: countyAvg,
             stateAvgPassRate: stateAvg,
             licenseNumber: "",
-            isAccredited: checkAccreditation(s.schoolName)
+            isAccredited: checkAccreditation(s.schoolName),
+            googleData: getGoogleData(s.schoolName)
         };
     });
 

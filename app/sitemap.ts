@@ -1,7 +1,39 @@
 import { MetadataRoute } from 'next'
 import { headers } from 'next/headers'
+import fs from 'fs'
+import path from 'path'
 
 export const dynamic = 'force-dynamic'
+
+// Recursive File-System crawler to autonomously map all active routes
+function getRoutes(dir: string, baseRoute: string = ''): string[] {
+  let routes: string[] = []
+  
+  if (!fs.existsSync(dir)) return routes
+
+  const files = fs.readdirSync(dir)
+
+  for (const file of files) {
+    // Ignore backend APIs, Next.js hidden folders, and dynamic brackets
+    if (file === 'api' || file.startsWith('_') || file.startsWith('.') || file.startsWith('[')) continue
+
+    const fullPath = path.join(dir, file)
+    const stat = fs.statSync(fullPath)
+
+    if (stat.isDirectory()) {
+      // If it's a route group like (auth), ignore the parenthesis folder name in the URL
+      const nextBaseRoute = file.startsWith('(') && file.endsWith(')') 
+        ? baseRoute 
+        : `${baseRoute}/${file}`
+        
+      routes = routes.concat(getRoutes(fullPath, nextBaseRoute))
+    } else if (file === 'page.tsx' || file === 'page.js') {
+      routes.push(baseRoute === '' ? '/' : baseRoute)
+    }
+  }
+
+  return routes
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const headersList = await headers()
@@ -9,99 +41,54 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const protocol = host?.includes('localhost') ? 'http' : 'https'
   const baseUrl = `${protocol}://${host || 'agency.innergcomplete.com'}`
 
-  // Dynamic routes (Insights)
-  const insights = [
-    'abc-fitness-sovereign-intelligence-audit',
-    'autonomous-concierge-roi-analysis',
-    'booksy-sovereign-intelligence-audit',
-    'cognitive-architecture-blueprint',
-    'cognitive-feedstock-15-data-sources',
-    'el-paso-barber-market-rescue-report',
-    'mindbody-sovereign-intelligence-audit',
-    'rebooking-intelligence-pilot',
-    'the-feasibility-premium',
-    'the-sovereign-intelligence-layer',
-    'thecut-sovereign-intelligence-audit',
-  ].map((slug) => ({
-    url: `${baseUrl}/insights/${slug}`,
-    lastModified: new Date('2026-04-12T08:00:00Z'),
-    changeFrequency: 'monthly' as const,
-    priority: 0.9,
-  }))
+  try {
+    const appDir = path.join(process.cwd(), 'app')
+    const rawRoutes = getRoutes(appDir)
+    
+    // Deduplicate and filter out redundant trailing slashes
+    const uniqueRoutes = Array.from(new Set(rawRoutes))
 
-  return [
-    {
-      url: baseUrl,
+    return uniqueRoutes.map((route) => {
+      // Dynamic SEO Prioritization Algorithm based on directory depth
+      const depth = route.split('/').filter(Boolean).length
+      let priority = 0.8
+      let changeFrequency: "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never" = 'weekly'
+
+      if (route === '/') {
+        priority = 1.0
+        changeFrequency = 'daily'
+      } else if (depth === 1) {
+        priority = 0.9
+        changeFrequency = 'weekly'
+      } else if (depth >= 2) {
+        priority = 0.7
+        changeFrequency = 'monthly'
+      }
+
+      return {
+        url: `${baseUrl}${route === '/' ? '' : route}`,
+        lastModified: new Date(),
+        changeFrequency,
+        priority,
+      }
+    })
+  } catch (error) {
+    // Fallback static array just in case the production serverless environment strips the source folder
+    console.warn("Autonomous sitemap crawler failed. Falling back to static route map.", error)
+    
+    const fallbackRoutes = [
+      '', '/texas-barber-exam-intelligence-prep', '/barber-school-pilot-scholarship-fund',
+      '/el-paso-barber-exam-intelligence-prep', '/tools/texas-barber-exam-practice-deck',
+      '/texas-barbershop-placement-matcher', '/barber-cos-continuing-education',
+      '/insights', '/about', '/glossary', '/privacy-policy', '/terms-of-service',
+      '/contact', '/careers', '/cookie-policy'
+    ]
+
+    return fallbackRoutes.map((route) => ({
+      url: `${baseUrl}${route}`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/texas-barber-exam-intelligence-prep`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/barber-school-pilot-scholarship-fund`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/el-paso-barber-exam-intelligence-prep`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/tools/texas-barber-exam-practice-deck`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/texas-barbershop-placement-matcher`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/insights`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/insights/texas-barber-licensure-crisis`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/about`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/glossary`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/privacy-policy`,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
-    {
-      url: `${baseUrl}/terms-of-service`,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
-    ...insights,
-  ]
+      priority: route === '' ? 1 : 0.8,
+    }))
+  }
 }

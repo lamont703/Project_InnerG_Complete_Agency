@@ -236,6 +236,19 @@ export default function ContactPage() {
         </div>
       </section>
 
+      {/* Institutional Architecture Context (SEO Enrichment) */}
+      <section className="py-16 bg-white border-t border-border/50">
+        <div className="mx-auto max-w-4xl px-6 text-center space-y-6">
+          <h2 className="text-2xl font-black uppercase italic tracking-tighter text-foreground">Enterprise Discovery Protocol</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed text-balance">
+            When you initiate contact with Inner G Complete Agency, you are not simply submitting a ticket—you are engaging with a specialized architectural task force. Our initial consultation process, defined by our proprietary CPMAI (Cognitive Project Management for AI) methodology, ensures that every Barber Intelligence integration, blockchain smart contract, and student mastery portal we develop is strictly aligned with your institutional goals. 
+          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed text-balance">
+            From the Texas Barbershop Placement Matcher to full-scale enterprise LLM deployments, our team in Atlanta requires rigorous data mapping before writing a single line of code. We prioritize high-fidelity communication, guaranteeing a response within 12 business hours to establish your secure discovery environment.
+          </p>
+        </div>
+      </section>
+
       <Footer />
     </main>
   )

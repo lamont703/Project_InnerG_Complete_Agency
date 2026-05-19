@@ -233,6 +233,37 @@ export default function CareersPage() {
         </div>
       </section>
 
+      {/* Hiring Methodology (SEO Enrichment) */}
+      <section className="py-24 bg-white border-t border-border">
+        <div className="mx-auto max-w-4xl px-6 space-y-12">
+          <div className="text-center">
+            <h2 className="text-3xl font-black uppercase italic tracking-tighter text-foreground">Our Recruitment Architecture</h2>
+            <p className="mt-4 text-muted-foreground text-sm">Frequently asked questions regarding our sovereign hiring protocols and engineering standards.</p>
+          </div>
+          
+          <div className="space-y-8">
+            <div>
+              <h3 className="text-lg font-bold text-foreground">What is the interview loop for AI & Blockchain engineering roles?</h3>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                Inner G Complete Agency operates a high-velocity, asynchronous interview protocol. Instead of algorithmic whiteboard tests, we require candidates to review a sanitized architectural schematic (such as our Barber Intelligence student telemetry engine) and submit a structural analysis. We evaluate for systemic thinking, probabilistic design patterns, and deployment autonomy.
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-foreground">Are these positions strictly remote?</h3>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                Yes. Our digital headquarters is anchored in Atlanta, Georgia, but our entire engineering and product workforce operates as a global, asynchronous collective. We utilize advanced project tracking and zero-trust security environments to allow our builders to deploy Next.js, Python, and Solidity infrastructure from anywhere in the world.
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-foreground">What does "Cognitive Architecture" mean in the context of Inner G?</h3>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                We don't build standard CRUD applications. Our products, like the Texas State Board Mastery Simulators, utilize deep cognitive telemetry to adapt to user behavior in real-time. Joining our team means you are transitioning from traditional software development into the realm of true AI agentic orchestration.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </main>
   )

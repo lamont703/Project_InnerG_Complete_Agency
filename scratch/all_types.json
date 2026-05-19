@@ -1,0 +1,341 @@
+[
+  {
+    "license_type": "Apprentice Electrician",
+    "total": "237764"
+  },
+  {
+    "license_type": "Cosmetology Operator",
+    "total": "195038"
+  },
+  {
+    "license_type": "Cosmetology Manicurist",
+    "total": "69737"
+  },
+  {
+    "license_type": "A/C Technician",
+    "total": "58095"
+  },
+  {
+    "total": "57714"
+  },
+  {
+    "license_type": "Cosmetology Esthetician",
+    "total": "47111"
+  },
+  {
+    "license_type": "Journeyman Electrician",
+    "total": "44155"
+  },
+  {
+    "license_type": "Full Service Establishment",
+    "total": "35399"
+  },
+  {
+    "license_type": "Class A Barber",
+    "total": "29940"
+  },
+  {
+    "license_type": "Mini Establishment",
+    "total": "21883"
+  },
+  {
+    "license_type": "A/C Contractor",
+    "total": "20167"
+  },
+  {
+    "license_type": "Master Electrician",
+    "total": "19572"
+  },
+  {
+    "license_type": "Electrical Contractor",
+    "total": "13820"
+  },
+  {
+    "license_type": "Devices",
+    "total": "13392"
+  },
+  {
+    "license_type": "Cosmetology Manicurist/Esthetician",
+    "total": "12054"
+  },
+  {
+    "license_type": "Tow Truck Operator (Incident Management)",
+    "total": "11916"
+  },
+  {
+    "license_type": "Behavior Analyst",
+    "total": "7785"
+  },
+  {
+    "license_type": "Manicurist/Esthetician Establishment",
+    "total": "7726"
+  },
+  {
+    "license_type": "Tow Truck Operator (Consent Tow)",
+    "total": "7001"
+  },
+  {
+    "license_type": "Cosmetology Eyelash Extension Specialist",
+    "total": "5428"
+  },
+  {
+    "license_type": "Apprentice Sign Electrician",
+    "total": "5122"
+  },
+  {
+    "license_type": "Esthetician Establishment",
+    "total": "4685"
+  },
+  {
+    "license_type": "Property Tax Appraiser",
+    "total": "3974"
+  },
+  {
+    "license_type": "VSF Employee",
+    "total": "3514"
+  },
+  {
+    "license_type": "Property Tax Consultant",
+    "total": "2620"
+  },
+  {
+    "license_type": "Appliance Installer",
+    "total": "2502"
+  },
+  {
+    "license_type": "Residential Wireman",
+    "total": "2498"
+  },
+  {
+    "license_type": "CS CONTESTANT",
+    "total": "2070"
+  },
+  {
+    "license_type": "Auctioneer",
+    "total": "1851"
+  },
+  {
+    "license_type": "Water Well Driller/Pump Installer",
+    "total": "1740"
+  },
+  {
+    "license_type": "Water Well Driller/Pump Installer Apprentice",
+    "total": "982"
+  },
+  {
+    "license_type": "Manicurist Establishment",
+    "total": "869"
+  },
+  {
+    "license_type": "Appliance Installation Contractor",
+    "total": "833"
+  },
+  {
+    "license_type": "Journeyman Industrial Electrician",
+    "total": "753"
+  },
+  {
+    "license_type": "Used Auto Parts Recycler",
+    "total": "731"
+  },
+  {
+    "license_type": "Maintenance Electrician",
+    "total": "687"
+  },
+  {
+    "license_type": "Property Tax Assessor/Collector",
+    "total": "685"
+  },
+  {
+    "license_type": "Eyelash Extension Establishment",
+    "total": "668"
+  },
+  {
+    "license_type": "Service Technician",
+    "total": "657"
+  },
+  {
+    "license_type": "Cosmetology Private School",
+    "total": "652"
+  },
+  {
+    "license_type": "Electrical Sign Contractor",
+    "total": "647"
+  },
+  {
+    "license_type": "Registered Accessibility Specialist",
+    "total": "637"
+  },
+  {
+    "license_type": "Elevator Responsible Party",
+    "total": "621"
+  },
+  {
+    "license_type": "Service Contract Provider",
+    "total": "574"
+  },
+  {
+    "license_type": "Master Sign Electrician",
+    "total": "552"
+  },
+  {
+    "license_type": "Professional Employer Organization",
+    "total": "428"
+  },
+  {
+    "license_type": "Tow Truck Operator (Private Property)",
+    "total": "401"
+  },
+  {
+    "license_type": "Elevator Contractor",
+    "total": "362"
+  },
+  {
+    "license_type": "Distributor/Wholesaler",
+    "total": "326"
+  },
+  {
+    "license_type": "Behavior Analyst Assistant",
+    "total": "322"
+  },
+  {
+    "license_type": "Journeyman Sign Electrician",
+    "total": "318"
+  },
+  {
+    "license_type": "Boiler Inspectors",
+    "total": "284"
+  },
+  {
+    "license_type": "Cosmetology Vocational/High School",
+    "total": "256"
+  },
+  {
+    "license_type": "Cosmetology CE Provider",
+    "total": "221"
+  },
+  {
+    "license_type": "Qualified Elevator Inspector",
+    "total": "207"
+  },
+  {
+    "license_type": "Cosmetology Hair Weaving Specialist",
+    "total": "183"
+  },
+  {
+    "license_type": "Licensed Breeder",
+    "total": "183"
+  },
+  {
+    "license_type": "Property Tax Collector",
+    "total": "183"
+  },
+  {
+    "license_type": "Mobile Establishment",
+    "total": "172"
+  },
+  {
+    "license_type": "Electrician CE Provider",
+    "total": "168"
+  },
+  {
+    "license_type": "Barber School",
+    "total": "141"
+  },
+  {
+    "license_type": "Property Tax Professional CE Provider",
+    "total": "114"
+  },
+  {
+    "license_type": "CS JUDGE",
+    "total": "106"
+  },
+  {
+    "license_type": "Associate Auctioneer",
+    "total": "101"
+  },
+  {
+    "license_type": "Service Company",
+    "total": "99"
+  },
+  {
+    "license_type": "CS PROMOTER (Business)",
+    "total": "90"
+  },
+  {
+    "license_type": "CS REFEREE",
+    "total": "90"
+  },
+  {
+    "license_type": "Hair Weaving  Establishment",
+    "total": "84"
+  },
+  {
+    "license_type": "Supplier",
+    "total": "84"
+  },
+  {
+    "license_type": "A/C CE Provider",
+    "total": "78"
+  },
+  {
+    "license_type": "Property Tax Professional Core Education Provider",
+    "total": "77"
+  },
+  {
+    "license_type": "CS MANAGER",
+    "total": "76"
+  },
+  {
+    "license_type": "Journeyman Lineman Electrician",
+    "total": "73"
+  },
+  {
+    "license_type": "Professional Employer Organization (Limited license)",
+    "total": "71"
+  },
+  {
+    "license_type": "Electrician Apprenticeship Program",
+    "total": "68"
+  },
+  {
+    "license_type": "Cosmetology Junior College",
+    "total": "66"
+  },
+  {
+    "license_type": "Tow Operator CE Provider",
+    "total": "43"
+  },
+  {
+    "license_type": "Auctioneer CE Provider",
+    "total": "27"
+  },
+  {
+    "license_type": "Boiler Authorized Inspection Agency",
+    "total": "25"
+  },
+  {
+    "license_type": "Property Tax Consultant CE Provider",
+    "total": "25"
+  },
+  {
+    "license_type": "Water Well Driller/Pump Installer CE Provider",
+    "total": "25"
+  },
+  {
+    "license_type": "CS AMATEUR PROMOTER (Business)",
+    "total": "24"
+  },
+  {
+    "license_type": "Elevator Responsible Party CE Provider",
+    "total": "11"
+  },
+  {
+    "license_type": "Cosmetology Hair Weaving Specialist/Esthetician",
+    "total": "6"
+  },
+  {
+    "license_type": "Registered Accessibility Specialist CE Provider",
+    "total": "6"
+  }
+]
