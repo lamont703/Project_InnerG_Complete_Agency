@@ -1,3 +1,7 @@
+"use client";
+
+import React, { useEffect } from 'react';
+import { useTheme } from 'next-themes';
 import { Navbar } from "@/components/layout/navbar"
 import { HeroSection } from "@/components/landing/hero-section"
 import { ServicesSection } from "@/components/landing/services-section"
@@ -11,6 +15,12 @@ import { CtaSection } from "@/components/landing/cta-section"
 import { Footer } from "@/components/layout/footer"
 
 export default function Home() {
+  const { setTheme } = useTheme();
+
+  useEffect(() => {
+    setTheme("dark");
+  }, [setTheme]);
+
   return (
     <main className="min-h-screen bg-background">
       <Navbar />
