@@ -11,10 +11,11 @@ const footerLinks = {
   Tools: [
     { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },
     { label: "Texas Barber Instructor Intelligence Dashboard", href: "/tools/texas-barber-instructor-intelligence-dashboard" },
-    { label: "Texas Barber School Accreditation Relationship Auditor", href: "/tools/texas-barber-school-accreditation-relationship-auditor" },
+    // { label: "Texas Barber School Accreditation Relationship Auditor", href: "/tools/texas-barber-school-accreditation-relationship-auditor" },
     { label: "Texas Barber School Benchmarking Intelligence", href: "/texas-school-benchmarking" },
     { label: "Texas Barber School Historical Performance Tracker", href: "/texas-barber-school-historical-performance" },
     { label: "Texas Barbershop Placement Matcher & Agent", href: "/texas-barbershop-placement-matcher" },
+    { label: "Texas Barber & Cosmetology Continuing Education Portal", href: "/barber-cos-continuing-education" },
   ],
   Social: [
     { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },

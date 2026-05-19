@@ -2,10 +2,25 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import './benchmarking.css';
-import { Award, MapPin, Building2, TrendingUp, Users, ChevronLeft, ChevronRight, Calendar, Sparkles } from 'lucide-react';
+import { Award, MapPin, Building2, TrendingUp, Users, ChevronLeft, ChevronRight, Calendar, Star, Globe, Phone, Clock } from 'lucide-react';
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useTheme } from 'next-themes';
+
+export interface GooglePlacesData {
+    placeId: string;
+    name: string;
+    address: string;
+    lat: string;
+    lng: string;
+    telephone: string;
+    website: string;
+    rating: string;
+    totalReviews: string;
+    types: string;
+    businessStatus: string;
+    openingHours: string;
+}
 
 interface SchoolRanking {
     schoolCode: string;
@@ -26,6 +41,7 @@ interface SchoolRanking {
     stateAvgPassRate: number;
     status: string;
     isAccredited: boolean;
+    googleData: GooglePlacesData | null;
 }
 
 export default function TexasSchoolBenchmarkingPage() {
@@ -35,19 +51,17 @@ export default function TexasSchoolBenchmarkingPage() {
     const [pageSize, setPageSize] = useState(10);
     const [loading, setLoading] = useState(true);
     
-    const [year, setYear] = useState<string>("all"); // 'all', '2026', '2025', '2024', '2023'
-    const [selectedAccreditation, setSelectedAccreditation] = useState<string>("All"); // 'All', 'Accredited', 'Non-Accredited'
+    const [year, setYear] = useState<string>("all");
+    const [selectedAccreditation, setSelectedAccreditation] = useState<string>("All");
     const [selectedCounty, setSelectedCounty] = useState<string>("All");
     const [minPassRate, setMinPassRate] = useState<number>(0);
     const [sortBy, setSortBy] = useState<string>("passRate");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-    // Force light theme for this B2B school page
     useEffect(() => {
         setTheme("light");
     }, [setTheme]);
 
-    // Load rankings dynamically when the year changes
     useEffect(() => {
         async function loadData() {
             setLoading(true);
@@ -64,13 +78,11 @@ export default function TexasSchoolBenchmarkingPage() {
         loadData();
     }, [year]);
 
-    // Get unique counties based on active dataset
     const counties = useMemo(() => {
         const c = new Set(allRankings.map(r => r.county).filter(Boolean));
         return ["All", ...Array.from(c).sort()];
     }, [allRankings]);
 
-    // Apply Filters and Sorting
     const filteredAndSortedRankings = useMemo(() => {
         return allRankings
             .filter(school => {
@@ -90,6 +102,10 @@ export default function TexasSchoolBenchmarkingPage() {
                     comparison = a.totalExams - b.totalExams;
                 } else if (sortBy === "name") {
                     comparison = a.schoolName.localeCompare(b.schoolName);
+                } else if (sortBy === "googleRating") {
+                    const ratingA = a.googleData && a.googleData.rating !== 'N/A' ? parseFloat(a.googleData.rating) : 0;
+                    const ratingB = b.googleData && b.googleData.rating !== 'N/A' ? parseFloat(b.googleData.rating) : 0;
+                    comparison = ratingA - ratingB;
                 }
                 return sortOrder === "desc" ? -comparison : comparison;
             });
@@ -107,19 +123,12 @@ export default function TexasSchoolBenchmarkingPage() {
         setCurrentPage(1);
     };
 
-    // Calculate Market Leader based on filtered view
-    const marketLeaderName = useMemo(() => {
-        const activeRankings = filteredAndSortedRankings;
-        if (activeRankings.length === 0) return "N/A";
-        return activeRankings[0].schoolName;
-    }, [filteredAndSortedRankings]);
-
     if (loading) {
         return (
             <main className="min-h-screen bg-slate-50 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                    <p className="text-sm font-semibold text-slate-500">Recalculating Leaderboard Matrices...</p>
+                    <p className="text-sm font-semibold text-slate-500">Fusing Academic Telemetry with Google Places Matrix...</p>
                 </div>
             </main>
         );
@@ -133,13 +142,12 @@ export default function TexasSchoolBenchmarkingPage() {
                 <div className="flex justify-center mb-6">
                     <div className="bg-blue-500/10 text-blue-600 px-4 py-1.5 rounded-full text-sm font-semibold border border-blue-500/20 flex items-center gap-2">
                         <TrendingUp size={16} />
-                        Live Industry Intelligence
+                        Omnichannel Industry Intelligence
                     </div>
                 </div>
-                <h1 className="hero-title">Texas Barber School <br />Competitor Benchmarking</h1>
+                <h1 className="hero-title">Texas Barber School <br />Command Center</h1>
                 <p className="hero-subtitle">
-                    Institutional-grade performance analysis ranking every board-reporting school by cumulative 
-                    first-time pass rates for the <strong>Class A Barber Written English</strong> exam. 
+                    Cross-referencing institutional TDLR Board Pass Rates against live Google consumer reputation, geographical density, and digital authority. 
                     Currently viewing {year === 'all' ? 'All-Time (2023 - 2026) telemetry' : `${year} calendar year telemetry`}.
                 </p>
             </header>
@@ -151,13 +159,13 @@ export default function TexasSchoolBenchmarkingPage() {
                         <div className="overview-value">{allRankings[0].stateAvgPassRate.toFixed(1)}%</div>
                     </div>
                     <div className="overview-card">
-                        <div className="overview-label">Total Barber Schools</div>
+                        <div className="overview-label">Monitored Schools</div>
                         <div className="overview-value">{allRankings.length}</div>
                     </div>
-                    <div className="overview-card">
-                        <div className="overview-label">Accredited Schools</div>
-                        <div className="overview-value">
-                            {allRankings.filter(r => r.isAccredited).length}
+                    <div className="overview-card bg-gradient-to-br from-indigo-50 to-white border-indigo-100">
+                        <div className="overview-label text-indigo-700 flex items-center gap-1.5"><Star size={16} fill="currentColor"/> Verified Google Data</div>
+                        <div className="overview-value text-indigo-900">
+                            {allRankings.filter(r => r.googleData && r.googleData.rating !== 'N/A').length}
                         </div>
                     </div>
                 </div>
@@ -217,7 +225,8 @@ export default function TexasSchoolBenchmarkingPage() {
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
                         >
-                            <option value="passRate">Overall Success</option>
+                            <option value="passRate">Academic Success Rate</option>
+                            <option value="googleRating">Consumer Google Rating</option>
                             <option value="totalExams">Exam Volume</option>
                             <option value="name">School Name</option>
                         </select>
@@ -226,7 +235,7 @@ export default function TexasSchoolBenchmarkingPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center mt-6 border-t border-gray-100 pt-6">
                     <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Min. Pass Rate ({minPassRate}%)</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Min. Academic Pass Rate ({minPassRate}%)</label>
                         <input 
                             type="range" 
                             min="0" max="100" step="5"
@@ -274,26 +283,31 @@ export default function TexasSchoolBenchmarkingPage() {
             <main className="ranking-grid">
                 {paginatedRankings.map((school, index) => {
                     const globalIndex = (currentPage - 1) * pageSize + index;
+                    
+                    // Identify pedagogical misalignment (e.g. low pass rate but high reviews, or vice versa)
+                    const gData = school.googleData;
+                    const hasGoogle = gData && gData.rating !== 'N/A';
+                    const ratingNum = hasGoogle ? parseFloat(gData.rating) : 0;
+                    
+                    const isMarketingStrong = ratingNum >= 4.5;
+                    const isAcademicWeak = school.passRate < 60;
+                    const misalignmentFlag = hasGoogle && isMarketingStrong && isAcademicWeak;
+
                     return (
-                        <div key={school.schoolCode} className={`ranking-card rank-${globalIndex + 1}`}>
+                        <div key={school.schoolCode} className={`ranking-card flex flex-col rank-${globalIndex + 1}`}>
                             <div className="rank-badge">
                                 {globalIndex + 1}
                             </div>
                             
-                            <div className="school-info">
+                            <div className="school-info flex-1">
                                 <div className="flex items-center gap-3 mb-1">
                                     <h2 className="school-name">{school.schoolName}</h2>
                                     <span className={`status-indicator ${school.isAccredited ? 'status-active' : 'status-expired'}`} style={{ fontWeight: 800 }}>
                                         {school.isAccredited ? 'ACCREDITED' : 'NON-ACCREDITED'}
                                     </span>
-                                    {school.status === 'EXPIRED' && (
-                                        <span className="status-indicator status-expired">
-                                            LIC. EXPIRED
-                                        </span>
-                                    )}
                                 </div>
                                 
-                                <div className="school-meta">
+                                <div className="school-meta mb-4">
                                     <div className="flex items-center gap-1.5">
                                         <MapPin size={14} className="text-blue-500" />
                                         {school.city}, {school.county} County
@@ -304,49 +318,81 @@ export default function TexasSchoolBenchmarkingPage() {
                                     </div>
                                     <div className="flex items-center gap-1.5">
                                         <Award size={14} className="text-gray-400" />
-                                        ID: {school.schoolCode}
+                                        TDLR ID: {school.schoolCode}
                                     </div>
                                 </div>
 
-                                <div className="stats-grid">
-                                    <div className="stat-item">
-                                        <span className="stat-value">{school.totalExams}</span>
-                                        <span className="stat-label flex items-center gap-1">
-                                            <Users size={12} /> Total Exams
-                                        </span>
+                                {/* PREMIUM MODULE: Reputation vs Rigor Matrix */}
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex flex-col justify-between">
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Academic Rigor</div>
+                                        <div className="flex items-end justify-between">
+                                            <div className={`text-2xl font-black ${school.passRate >= 70 ? 'text-green-600' : 'text-red-500'}`}>
+                                                {school.passRate.toFixed(1)}%
+                                            </div>
+                                            <div className="text-xs text-slate-500 pb-1">{school.totalExams} Exams</div>
+                                        </div>
                                     </div>
-                                    <div className="stat-item">
-                                        <span className="stat-value text-green-600">{school.passes}</span>
-                                        <span className="stat-label">Passes</span>
-                                    </div>
-                                    <div className="stat-item">
-                                        <span className="stat-value text-red-600">{school.fails}</span>
-                                        <span className="stat-label">Failures</span>
+
+                                    <div className="bg-indigo-50/50 rounded-xl p-3 border border-indigo-50 flex flex-col justify-between">
+                                        <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                            <Star size={10} fill="currentColor" /> Consumer Reputation
+                                        </div>
+                                        {hasGoogle ? (
+                                            <div className="flex items-end justify-between">
+                                                <div className="text-2xl font-black text-indigo-700 flex items-center gap-1">
+                                                    {ratingNum.toFixed(1)}
+                                                </div>
+                                                <div className="text-xs text-indigo-500 pb-1 font-semibold">{gData.totalReviews} Reviews</div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-xs text-slate-400 italic">Unclaimed on Google</div>
+                                        )}
                                     </div>
                                 </div>
 
-                                <div className="breakdown-grid">
-                                    <div className="breakdown-box">
-                                        <div className="breakdown-title">First-Time</div>
-                                        <div className="breakdown-value text-blue-600">{school.firstTimePassRate.toFixed(1)}%</div>
-                                        <div className="breakdown-subtext">{school.firstTimeCount} students</div>
+                                {misalignmentFlag && (
+                                    <div className="bg-amber-50 text-amber-800 text-xs p-2.5 rounded-lg border border-amber-200 font-medium mb-4 flex items-start gap-2">
+                                        <div className="mt-0.5">⚠️</div>
+                                        <div>
+                                            <strong>Pedagogical Misalignment:</strong> High consumer ratings ({ratingNum}) but critically low board pass rates ({school.passRate.toFixed(1)}%). Indicates strong marketing but failing curriculum structure.
+                                        </div>
                                     </div>
-                                    <div className="breakdown-box">
-                                        <div className="breakdown-title">Repeaters</div>
-                                        <div className="breakdown-value text-purple-600">{school.repeaterPassRate.toFixed(1)}%</div>
-                                        <div className="breakdown-subtext">{school.repeaterCount} students</div>
-                                    </div>
-                                </div>
+                                )}
 
+                                {/* PREMIUM MODULE: Digital Authority & Operations */}
+                                {hasGoogle && (
+                                    <div className="flex flex-col gap-2 bg-gray-50 rounded-lg p-3 text-xs mb-4 border border-gray-100">
+                                        {gData.telephone !== 'N/A' && (
+                                            <div className="flex items-center gap-2 text-gray-600">
+                                                <Phone size={12} className="text-gray-400" />
+                                                <a href={`tel:${gData.telephone}`} className="hover:text-blue-600">{gData.telephone}</a>
+                                            </div>
+                                        )}
+                                        {gData.website !== 'N/A' && (
+                                            <div className="flex items-center gap-2 text-gray-600 truncate">
+                                                <Globe size={12} className="text-gray-400 shrink-0" />
+                                                <a href={gData.website} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline truncate">
+                                                    {gData.website.replace(/^https?:\/\/(www\.)?/, '')}
+                                                </a>
+                                            </div>
+                                        )}
+                                        {gData.openingHours !== 'N/A' && (
+                                            <div className="flex gap-2 text-gray-500 mt-1 pt-2 border-t border-gray-200">
+                                                <Clock size={12} className="shrink-0 mt-0.5" />
+                                                <span className="line-clamp-2" title={gData.openingHours}>
+                                                    {gData.openingHours}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-auto border-t border-gray-100 pt-4">
+                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Regional Benchmark</div>
                                 <div className="comparison-row">
                                     <div className="comparison-bar-group">
-                                        <div className="comparison-item">
-                                            <div className="comparison-label flex items-center gap-1">School</div>
-                                            <div className="comparison-track">
-                                                <div className="comparison-fill fill-school" style={{ width: `${school.passRate}%` }}></div>
-                                            </div>
-                                            <div className="comparison-value">{school.passRate.toFixed(0)}%</div>
-                                        </div>
                                         <div className="comparison-item">
                                             <div className="comparison-label">County</div>
                                             <div className="comparison-track">
@@ -362,19 +408,6 @@ export default function TexasSchoolBenchmarkingPage() {
                                             <div className="comparison-value">{school.stateAvgPassRate.toFixed(0)}%</div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div className="performance-stats">
-                                <div className="pass-rate-big">
-                                    {school.passRate.toFixed(1)}%
-                                </div>
-                                <div className="pass-rate-label">Overall Success</div>
-                                <div className="progress-bar-container">
-                                    <div 
-                                        className="progress-bar-fill" 
-                                        style={{ width: `${school.passRate}%` }}
-                                    ></div>
                                 </div>
                             </div>
                         </div>
@@ -404,7 +437,7 @@ export default function TexasSchoolBenchmarkingPage() {
                                     {p}
                                 </button>
                             );
-                        } else if (p === currentPage - 2 || p === currentPage + 2) {
+                        } else if (p === currentPage - 2 || p || currentPage + 2) {
                             return <span key={p} className="text-gray-400 px-2">...</span>;
                         }
                         return null;
@@ -420,13 +453,9 @@ export default function TexasSchoolBenchmarkingPage() {
                 </div>
             )}
 
-            <footer className="max-w-[1200px] mx-auto mt-20 pb-10 border-t border-gray-200 pt-10 flex justify-between items-center text-sm text-gray-400">
-                <div>
-                    Source: Texas Department of Licensing and Regulation (TDLR) & PSI Official State Board Roster
-                </div>
-                <div>
-                    Data synchronized: {new Date().toLocaleDateString()}
-                </div>
+            <footer className="max-w-[1200px] mx-auto mt-20 pb-10 border-t border-gray-200 pt-10 flex flex-col gap-2 justify-center items-center text-xs text-gray-400">
+                <div>Source: Texas Department of Licensing and Regulation (TDLR) & Google Places Intelligence API</div>
+                <div>Data synchronized: {new Date().toLocaleDateString()}</div>
             </footer>
         </div>
         <Footer />

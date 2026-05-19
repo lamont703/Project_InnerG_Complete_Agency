@@ -26,10 +26,8 @@ export default function CookiePolicyPage() {
         <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none space-y-8 text-muted-foreground">
           <section>
             <p><strong>Last Updated:</strong> {new Date().toLocaleDateString()}</p>
-            <p className="mt-4">
-              This Cookie Policy explains how Inner G Complete Agency ("we", "us", and "our") uses cookies and similar 
-              technologies to recognize you when you visit our website. It explains what these technologies are and 
-              why we use them, as well as your rights to control our use of them.
+            <p className="mt-4 text-balance">
+              This Institutional Cookie Policy explains how Inner G Complete Agency ("we", "us", and "our") utilizes cryptographic session state, cognitive telemetry trackers, and traditional cookies to maintain secure connections across our Barber Intelligence portals and AI-driven placement matchers. Because we operate high-fidelity enterprise applications, these technologies are critical for authenticating users, protecting student data under strict compliance frameworks, and delivering real-time geospatial analytics.
             </p>
           </section>
 
@@ -53,11 +51,11 @@ export default function CookiePolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-foreground">3. Types of Cookies we use</h2>
-            <ul className="list-disc pl-6 mt-4 space-y-2">
-              <li><strong>Essential Cookies:</strong> These cookies are strictly necessary to provide you with services available through our website and to use some of its features, such as access to secure areas.</li>
-              <li><strong>Analytics and Customization Cookies:</strong> These cookies collect information that is used either in aggregate form to help us understand how our website is being used or how effective our marketing campaigns are.</li>
-              <li><strong>Functionality Cookies:</strong> These are used to recognize you when you return to our website. This enables us to personalize our content for you and remember your preferences.</li>
+            <h2 className="text-2xl font-semibold text-foreground">3. Categories of Telemetry & State Management</h2>
+            <ul className="list-disc pl-6 mt-4 space-y-4">
+              <li><strong>Zero-Trust Authentication (Essential):</strong> These cryptographic cookies are strictly necessary to maintain your secure session state when accessing the Instructor Intelligence Dashboard or submitting sensitive examination data.</li>
+              <li><strong>Cognitive Telemetry (Analytics):</strong> Deployed within our State Board Mastery simulators, these trackers map user decision latency and cognitive gaps to dynamically adjust the AI difficulty curve. This data is strictly anonymized.</li>
+              <li><strong>Geospatial Caching (Functionality):</strong> Utilized exclusively by the Texas Barbershop Placement Matcher to cache your custom map coordinates and radius preferences, reducing API latency during rapid re-renders.</li>
             </ul>
           </section>
 

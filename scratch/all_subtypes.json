@@ -1,0 +1,593 @@
+[
+  {
+    "license_subtype": "AE",
+    "total": "241975"
+  },
+  {
+    "license_subtype": "OP",
+    "total": "195038"
+  },
+  {
+    "license_subtype": "MA",
+    "total": "69737"
+  },
+  {
+    "license_subtype": "BA",
+    "total": "59880"
+  },
+  {
+    "license_subtype": "REG",
+    "total": "54353"
+  },
+  {
+    "license_subtype": "ME",
+    "total": "53509"
+  },
+  {
+    "license_subtype": "FA",
+    "total": "47111"
+  },
+  {
+    "license_subtype": "JE",
+    "total": "44155"
+  },
+  {
+    "license_subtype": "CS",
+    "total": "35571"
+  },
+  {
+    "total": "32074"
+  },
+  {
+    "license_subtype": "EC",
+    "total": "13820"
+  },
+  {
+    "license_subtype": "Device",
+    "total": "13392"
+  },
+  {
+    "license_subtype": "IM",
+    "total": "11916"
+  },
+  {
+    "license_subtype": "BVA",
+    "total": "7785"
+  },
+  {
+    "license_subtype": "FM",
+    "total": "7728"
+  },
+  {
+    "license_subtype": "BE",
+    "total": "7189"
+  },
+  {
+    "license_subtype": "CT",
+    "total": "7001"
+  },
+  {
+    "license_subtype": "AC",
+    "total": "5607"
+  },
+  {
+    "license_subtype": "EE",
+    "total": "5428"
+  },
+  {
+    "license_subtype": "SA",
+    "total": "5122"
+  },
+  {
+    "license_subtype": "FS",
+    "total": "4690"
+  },
+  {
+    "license_subtype": "APPRAISER",
+    "total": "3974"
+  },
+  {
+    "license_subtype": "CER",
+    "total": "3742"
+  },
+  {
+    "license_subtype": "RAI",
+    "total": "2502"
+  },
+  {
+    "license_subtype": "RW",
+    "total": "2498"
+  },
+  {
+    "license_subtype": "BS",
+    "total": "2320"
+  },
+  {
+    "license_subtype": "BC",
+    "total": "2215"
+  },
+  {
+    "license_subtype": "CS CONTESTANT",
+    "total": "2070"
+  },
+  {
+    "license_subtype": "P",
+    "total": "1820"
+  },
+  {
+    "license_subtype": "MS",
+    "total": "1438"
+  },
+  {
+    "license_subtype": "S",
+    "total": "847"
+  },
+  {
+    "license_subtype": "RAIC",
+    "total": "833"
+  },
+  {
+    "license_subtype": "PS",
+    "total": "773"
+  },
+  {
+    "license_subtype": "JI",
+    "total": "753"
+  },
+  {
+    "license_subtype": "RECYCLER",
+    "total": "731"
+  },
+  {
+    "license_subtype": "MN",
+    "total": "688"
+  },
+  {
+    "license_subtype": "ASSESSOR",
+    "total": "685"
+  },
+  {
+    "license_subtype": "EL",
+    "total": "668"
+  },
+  {
+    "license_subtype": "Service Technician",
+    "total": "657"
+  },
+  {
+    "license_subtype": "SC",
+    "total": "647"
+  },
+  {
+    "license_subtype": "Elevator Responsible Party",
+    "total": "632"
+  },
+  {
+    "license_subtype": "Barber Mini Shop",
+    "total": "629"
+  },
+  {
+    "license_subtype": "AR",
+    "total": "435"
+  },
+  {
+    "license_subtype": "REGULAR",
+    "total": "428"
+  },
+  {
+    "license_subtype": "PP",
+    "total": "401"
+  },
+  {
+    "license_subtype": "PROVIDER",
+    "total": "374"
+  },
+  {
+    "license_subtype": "Mini-Dual Shop/Salon",
+    "total": "344"
+  },
+  {
+    "license_subtype": "Distrib/Wholesaler",
+    "total": "326"
+  },
+  {
+    "license_subtype": "BAA",
+    "total": "322"
+  },
+  {
+    "license_subtype": "JS",
+    "total": "318"
+  },
+  {
+    "license_subtype": "Boiler Inspector",
+    "total": "284"
+  },
+  {
+    "license_subtype": "VS",
+    "total": "272"
+  },
+  {
+    "license_subtype": "BR",
+    "total": "269"
+  },
+  {
+    "license_subtype": "Cosmetologist",
+    "total": "221"
+  },
+  {
+    "license_subtype": "ADMIN",
+    "total": "200"
+  },
+  {
+    "license_subtype": "HW",
+    "total": "198"
+  },
+  {
+    "license_subtype": "COLLECTOR",
+    "total": "183"
+  },
+  {
+    "license_subtype": "LICENSED BREEDER",
+    "total": "183"
+  },
+  {
+    "license_subtype": "Electrician",
+    "total": "168"
+  },
+  {
+    "license_subtype": "KP",
+    "total": "165"
+  },
+  {
+    "license_subtype": "M",
+    "total": "143"
+  },
+  {
+    "license_subtype": "AEBR",
+    "total": "142"
+  },
+  {
+    "license_subtype": "W",
+    "total": "142"
+  },
+  {
+    "license_subtype": "KLPT",
+    "total": "135"
+  },
+  {
+    "license_subtype": "KLP",
+    "total": "134"
+  },
+  {
+    "license_subtype": "Property Tax Professional",
+    "total": "114"
+  },
+  {
+    "license_subtype": "KPW",
+    "total": "108"
+  },
+  {
+    "license_subtype": "CS JUDGE",
+    "total": "106"
+  },
+  {
+    "license_subtype": "Service Company",
+    "total": "99"
+  },
+  {
+    "license_subtype": "ARBE",
+    "total": "96"
+  },
+  {
+    "license_subtype": "KPT",
+    "total": "92"
+  },
+  {
+    "license_subtype": "CKLMPTW",
+    "total": "91"
+  },
+  {
+    "license_subtype": "CS PROMOTER (Business)",
+    "total": "90"
+  },
+  {
+    "license_subtype": "CS REFEREE",
+    "total": "90"
+  },
+  {
+    "license_subtype": "HS",
+    "total": "84"
+  },
+  {
+    "license_subtype": "Suppliers",
+    "total": "84"
+  },
+  {
+    "license_subtype": "PW",
+    "total": "80"
+  },
+  {
+    "license_subtype": "A/C Contractor",
+    "total": "78"
+  },
+  {
+    "license_subtype": "CKMPW",
+    "total": "78"
+  },
+  {
+    "license_subtype": "PTP Core Education Providers",
+    "total": "77"
+  },
+  {
+    "license_subtype": "CS MANAGER",
+    "total": "76"
+  },
+  {
+    "license_subtype": "JL",
+    "total": "73"
+  },
+  {
+    "license_subtype": "LIMITED",
+    "total": "71"
+  },
+  {
+    "license_subtype": "JC",
+    "total": "70"
+  },
+  {
+    "license_subtype": "Electrician Apprenticeship Programs",
+    "total": "68"
+  },
+  {
+    "license_subtype": "CDKLMNPTW",
+    "total": "56"
+  },
+  {
+    "license_subtype": "CKLMPW",
+    "total": "51"
+  },
+  {
+    "license_subtype": "KLPTW",
+    "total": "44"
+  },
+  {
+    "license_subtype": "Tow Operator",
+    "total": "43"
+  },
+  {
+    "license_subtype": "CMW",
+    "total": "40"
+  },
+  {
+    "license_subtype": "KLPW",
+    "total": "40"
+  },
+  {
+    "license_subtype": "CDMNW",
+    "total": "29"
+  },
+  {
+    "license_subtype": "KPTW",
+    "total": "28"
+  },
+  {
+    "license_subtype": "Auctioneer",
+    "total": "27"
+  },
+  {
+    "license_subtype": "CDKLMNPW",
+    "total": "27"
+  },
+  {
+    "license_subtype": "Boiler Authorized Inspection Agency",
+    "total": "25"
+  },
+  {
+    "license_subtype": "Property Tax Consultant",
+    "total": "25"
+  },
+  {
+    "license_subtype": "Water Well Driller/Pump Installer",
+    "total": "25"
+  },
+  {
+    "license_subtype": "CS AMATEUR PROMOTER (Business)",
+    "total": "24"
+  },
+  {
+    "license_subtype": "LP",
+    "total": "23"
+  },
+  {
+    "license_subtype": "CDKMNPW",
+    "total": "22"
+  },
+  {
+    "license_subtype": "LPW",
+    "total": "15"
+  },
+  {
+    "license_subtype": "K",
+    "total": "13"
+  },
+  {
+    "license_subtype": "I",
+    "total": "12"
+  },
+  {
+    "license_subtype": "CDKMNPTW",
+    "total": "11"
+  },
+  {
+    "license_subtype": "CKMPTW",
+    "total": "11"
+  },
+  {
+    "license_subtype": "KT",
+    "total": "11"
+  },
+  {
+    "license_subtype": "R",
+    "total": "11"
+  },
+  {
+    "license_subtype": "MW",
+    "total": "10"
+  },
+  {
+    "license_subtype": "C",
+    "total": "8"
+  },
+  {
+    "license_subtype": "D",
+    "total": "8"
+  },
+  {
+    "license_subtype": "CW",
+    "total": "7"
+  },
+  {
+    "license_subtype": "KMPW",
+    "total": "7"
+  },
+  {
+    "license_subtype": "CDMNPW",
+    "total": "6"
+  },
+  {
+    "license_subtype": "HE",
+    "total": "6"
+  },
+  {
+    "license_subtype": "Registered Accessibility Specialist",
+    "total": "6"
+  },
+  {
+    "license_subtype": "KW",
+    "total": "5"
+  },
+  {
+    "license_subtype": "T",
+    "total": "5"
+  },
+  {
+    "license_subtype": "L",
+    "total": "4"
+  },
+  {
+    "license_subtype": "CKPW",
+    "total": "3"
+  },
+  {
+    "license_subtype": "CPW",
+    "total": "3"
+  },
+  {
+    "license_subtype": "KMPTW",
+    "total": "3"
+  },
+  {
+    "license_subtype": "KTW",
+    "total": "3"
+  },
+  {
+    "license_subtype": "MPW",
+    "total": "3"
+  },
+  {
+    "license_subtype": "AEBE",
+    "total": "2"
+  },
+  {
+    "license_subtype": "CMPW",
+    "total": "2"
+  },
+  {
+    "license_subtype": "DM",
+    "total": "2"
+  },
+  {
+    "license_subtype": "DMNW",
+    "total": "2"
+  },
+  {
+    "license_subtype": "KMNPW",
+    "total": "2"
+  },
+  {
+    "license_subtype": "TW",
+    "total": "2"
+  },
+  {
+    "license_subtype": "ARBR",
+    "total": "1"
+  },
+  {
+    "license_subtype": "Barber",
+    "total": "1"
+  },
+  {
+    "license_subtype": "CDKLPTW",
+    "total": "1"
+  },
+  {
+    "license_subtype": "CDKMNW",
+    "total": "1"
+  },
+  {
+    "license_subtype": "CDMN",
+    "total": "1"
+  },
+  {
+    "license_subtype": "CKMNPTW",
+    "total": "1"
+  },
+  {
+    "license_subtype": "CLMPW",
+    "total": "1"
+  },
+  {
+    "license_subtype": "DI",
+    "total": "1"
+  },
+  {
+    "license_subtype": "DKMNPTW",
+    "total": "1"
+  },
+  {
+    "license_subtype": "DKMPW",
+    "total": "1"
+  },
+  {
+    "license_subtype": "DKPW",
+    "total": "1"
+  },
+  {
+    "license_subtype": "DMN",
+    "total": "1"
+  },
+  {
+    "license_subtype": "DMW",
+    "total": "1"
+  },
+  {
+    "license_subtype": "DN",
+    "total": "1"
+  },
+  {
+    "license_subtype": "KLMPTW",
+    "total": "1"
+  },
+  {
+    "license_subtype": "KLW",
+    "total": "1"
+  },
+  {
+    "license_subtype": "MNW",
+    "total": "1"
+  },
+  {
+    "license_subtype": "N",
+    "total": "1"
+  }
+]

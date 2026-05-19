@@ -6,14 +6,17 @@ import BarberPlacementMatcherClient from './BarberPlacementMatcherClient';
 export const dynamic = 'force-dynamic';
 
 interface RawShop {
+  licenseType: string;
   licenseNumber: string;
   businessCounty: string;
   businessName: string;
   addressLine1: string;
   cityStateZip: string;
   telephone: string;
+  expirationDate: string;
   ownerName: string;
   subtype: string;
+  continuingEducation: string;
   longitude: number;
   latitude: number;
 }
@@ -59,14 +62,17 @@ export default async function TexasBarbershopPlacementMatcher() {
           if (!isNaN(lon) && !isNaN(lat) && lon !== 0 && lat !== 0) {
             // High-fidelity light optimization: only select essential fields needed by the interactive client
             allShops.push({
+              licenseType: row[0],
               licenseNumber: row[1],
               businessCounty: row[2],
               businessName: row[3],
               addressLine1: row[4],
               cityStateZip: row[6],
               telephone: row[7],
+              expirationDate: row[8],
               ownerName: row[9],
               subtype: row[15],
+              continuingEducation: row[16],
               longitude: lon,
               latitude: lat,
             });
@@ -95,14 +101,13 @@ export default async function TexasBarbershopPlacementMatcher() {
         }
       }
 
-      // Sample a massive, high-fidelity data catalog (up to 1,000 shops per major metro)
-      // to yield an extremely rich search index for graduates!
+      // Pass the entire, unfiltered dataset to the frontend client to map all 35,000+ shops
       cities.forEach(city => {
-        sampledShops = sampledShops.concat(groups[city].slice(0, 1000));
+        sampledShops = sampledShops.concat(groups[city]);
       });
 
-      // Sample other locations to cover municipal areas across Texas
-      sampledShops = sampledShops.concat(groups.OTHER.slice(0, 2000));
+      // Include all remaining non-major municipal areas across Texas
+      sampledShops = sampledShops.concat(groups.OTHER);
 
       console.log(`Parsed CSV dataset. Built rich Sovereign geospace index of ${sampledShops.length} active storefronts.`);
     } else {

@@ -84,6 +84,31 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
   const [radius, setRadius] = useState(15);
   const [selectedSubtype, setSelectedSubtype] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [customAddress, setCustomAddress] = useState("");
+  const [customCoords, setCustomCoords] = useState<{lat: number, lon: number} | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  const handleGeocodeCustomAddress = async () => {
+    if (!customAddress.trim()) return;
+    setIsGeocoding(true);
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(customAddress + ", Texas")}`);
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const result = data[0];
+        setCustomCoords({ lat: parseFloat(result.lat), lon: parseFloat(result.lon) });
+        setSelectedMetro("CUSTOM");
+      } else {
+        alert("Could not locate that exact address in Texas. Please try a valid street or city name.");
+      }
+    } catch (err) {
+      console.error("Geocoding failed", err);
+      alert("Geocoding service unavailable.");
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
 
   // UI Selection States
   const [selectedShops, setSelectedShops] = useState<string[]>([]);
@@ -153,26 +178,13 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
 
   // Compute distances and filter shops in real-time, applying deterministic geodetic jittering
   const filteredShops = useMemo(() => {
-    const center = METRO_COORDINATES[selectedMetro];
+    const center = selectedMetro === "CUSTOM" && customCoords ? customCoords : METRO_COORDINATES[selectedMetro];
     if (!center) return [];
 
     return initialShops
       .map(shop => {
-        // Deterministic Geodetic Jittering / Coordinate Spreading:
-        // Many records in the CSV share the exact same geocoded city coordinates down to 5 decimals.
-        // We apply a deterministic geodetic spread based on their license number to avoid overlaps.
-        let hash = 0;
-        const lic = shop.licenseNumber || "";
-        for (let i = 0; i < lic.length; i++) {
-          hash = lic.charCodeAt(i) + ((hash << 5) - hash);
-        }
-
-        // Generate deterministic offset coordinates (roughly within a 1.2-mile radius bounds)
-        const latJitter = ((hash & 0xFF) / 255 - 0.5) * 0.024;
-        const lonJitter = (((hash >> 8) & 0xFF) / 255 - 0.5) * 0.024;
-
-        const finalLat = shop.latitude + latJitter;
-        const finalLon = shop.longitude + lonJitter;
+        const finalLat = shop.latitude;
+        const finalLon = shop.longitude;
 
         const dist = getDistanceInMiles(center.lat, center.lon, finalLat, finalLon);
         return { 
@@ -186,9 +198,10 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
         // Radius filter
         if (shop.distance > radius) return false;
 
-        // Subtype filter
-        if (selectedSubtype === "BS" && shop.subtype !== "BS" && !shop.businessName.toUpperCase().includes("BARBER")) return false;
-        if (selectedSubtype === "CS" && shop.subtype === "BS") return false;
+        // Strict Subtype filter
+        const isBarber = shop.subtype === "BS" || shop.businessName.toUpperCase().includes("BARBER") || (shop.licenseType && shop.licenseType.toUpperCase().includes("BARBER"));
+        if (selectedSubtype === "BS" && !isBarber) return false;
+        if (selectedSubtype === "CS" && isBarber) return false;
 
         // Search Query filter
         if (searchQuery) {
@@ -202,7 +215,7 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
         return true;
       })
       .sort((a, b) => a.distance - b.distance);
-  }, [initialShops, selectedMetro, radius, selectedSubtype, searchQuery]);
+  }, [initialShops, selectedMetro, customCoords, radius, selectedSubtype, searchQuery]);
 
   // Initialize and update Live Leaflet Map dynamically
   useEffect(() => {
@@ -210,7 +223,7 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
     const L = (window as any).L;
     if (!L) return;
 
-    const center = METRO_COORDINATES[selectedMetro];
+    const center = selectedMetro === "CUSTOM" && customCoords ? customCoords : METRO_COORDINATES[selectedMetro];
     if (!center) return;
 
     // A. Create Map instance if not initialized
@@ -276,22 +289,14 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
       let selectedShop = filteredShops.find(s => s.licenseNumber === licenseNum);
       
       if (!selectedShop) {
-        // Fallback to initialShops with exact identical deterministic jitter logic
+        // Fallback to initialShops using raw Mapbox rooftop coordinates
         const rawShop = initialShops.find(s => s.licenseNumber === licenseNum);
         if (rawShop) {
-          let hash = 0;
-          const lic = rawShop.licenseNumber || "";
-          for (let i = 0; i < lic.length; i++) {
-            hash = lic.charCodeAt(i) + ((hash << 5) - hash);
-          }
-          const latJitter = ((hash & 0xFF) / 255 - 0.5) * 0.024;
-          const lonJitter = (((hash >> 8) & 0xFF) / 255 - 0.5) * 0.024;
-          
           selectedShop = {
             ...rawShop,
-            latitude: rawShop.latitude + latJitter,
-            longitude: rawShop.longitude + lonJitter,
-            distance: getDistanceInMiles(center.lat, center.lon, rawShop.latitude + latJitter, rawShop.longitude + lonJitter)
+            latitude: rawShop.latitude,
+            longitude: rawShop.longitude,
+            distance: getDistanceInMiles(center.lat, center.lon, rawShop.latitude, rawShop.longitude)
           };
         }
       }
@@ -302,7 +307,7 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
     });
 
     plottedShops.forEach(shop => {
-      const isBarber = shop.subtype === "BS" || shop.businessName.toUpperCase().includes("BARBER");
+      const isBarber = shop.subtype === "BS" || shop.businessName.toUpperCase().includes("BARBER") || (shop.licenseType && shop.licenseType.toUpperCase().includes("BARBER"));
       const isSelected = selectedShops.includes(shop.licenseNumber);
       
       let pinIcon;
@@ -342,7 +347,7 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
       markerRefs.current[shop.licenseNumber] = marker;
     });
 
-  }, [leafletLoaded, selectedMetro, radius, filteredShops, selectedShops, initialShops]);
+  }, [leafletLoaded, selectedMetro, customCoords, radius, filteredShops, selectedShops, initialShops]);
 
   // Handle Multi-Select checkbox toggles
   const handleSelectShop = (shop: Shop) => {
@@ -421,7 +426,7 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
     ).filter(Boolean) as Shop[];
 
     targetShops.forEach((shop, index) => {
-      const isBarber = shop.subtype === "BS" || shop.businessName.toUpperCase().includes("BARBER");
+      const isBarber = shop.subtype === "BS" || shop.businessName.toUpperCase().includes("BARBER") || (shop.licenseType && shop.licenseType.toUpperCase().includes("BARBER"));
       logs.push(`[AGENT] Dispatching custom SMS outreach to: "${shop.businessName.toUpperCase()}"`);
       logs.push(`[SYS] GPS Coordinate Target: [${shop.latitude.toFixed(5)}, ${shop.longitude.toFixed(5)}]`);
       logs.push(`[SMS] Sending direct packet to owner telephone: ${shop.telephone || "972-555-0144"}...`);
@@ -475,10 +480,10 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
               Sovereign Career Tools
             </div>
             <h1 className="text-3xl sm:text-5xl font-black italic uppercase tracking-tighter text-slate-950 leading-tight">
-              Barbershop Placement <br />Matcher & Agent™
+              Barbershop & Cosmetology <br />Placement Matcher & Agent™
             </h1>
             <p className="text-sm font-bold text-slate-600 max-w-xl leading-relaxed">
-              Explore your Texas job placement index. Using 35,399 real active state board licenses, select your commute boundaries, and let our autonomous AI Recruiter dispatch applications to shop owners instantly.
+              Explore your Texas job placement index for both barbershops and cosmetology salons. Using 35,399 real active state board licenses, select your commute boundaries, and let our autonomous AI Recruiter dispatch applications to shop owners instantly.
             </p>
           </div>
           
@@ -529,6 +534,36 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
                 </div>
               </div>
 
+              {/* Custom Address Geocoder */}
+              <div className="space-y-2 pt-2 border-t border-slate-200/60">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center justify-between">
+                  <span>Or Enter Custom Address</span>
+                  {isGeocoding && <span className="text-primary animate-pulse">Geocoding...</span>}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="e.g. 123 Main St, TX..."
+                    value={customAddress}
+                    onChange={(e) => setCustomAddress(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-[10px] font-bold tracking-widest text-slate-900 uppercase placeholder-slate-400 focus:outline-none focus:border-primary"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleGeocodeCustomAddress();
+                      }
+                    }}
+                  />
+                  <button 
+                    onClick={handleGeocodeCustomAddress}
+                    disabled={!customAddress || isGeocoding}
+                    className="bg-primary text-slate-950 px-3 rounded-xl flex items-center justify-center hover:bg-slate-950 hover:text-white transition-colors disabled:opacity-50"
+                  >
+                    <Navigation className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
               {/* Radius Slider */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
@@ -537,17 +572,17 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
                 </div>
                 <input
                   type="range"
-                  min="5"
-                  max="25"
+                  min="0"
+                  max="15"
                   step="1"
                   value={radius}
                   onChange={(e) => setRadius(parseInt(e.target.value))}
                   className="w-full accent-primary h-1 bg-slate-200 rounded-full appearance-none cursor-pointer"
                 />
                 <div className="flex justify-between text-[8px] font-bold text-slate-400">
-                  <span>5 MI (LOCAL)</span>
-                  <span>15 MI (COMMUTE)</span>
-                  <span>25 MI (REGIONAL)</span>
+                  <span>0 MI (LOCAL)</span>
+                  <span>7.5 MI (COMMUTE)</span>
+                  <span>15 MI (REGIONAL)</span>
                 </div>
               </div>
 
@@ -650,7 +685,7 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredShops.length > 0 ? (
               filteredShops.slice(0, 15).map(shop => {
-                const isBarber = shop.subtype === "BS" || shop.businessName.toUpperCase().includes("BARBER");
+                const isBarber = shop.subtype === "BS" || shop.businessName.toUpperCase().includes("BARBER") || (shop.licenseType && shop.licenseType.toUpperCase().includes("BARBER"));
                 const isSelected = selectedShops.includes(shop.licenseNumber);
 
                 return (
@@ -692,6 +727,21 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
                       <p className="line-clamp-1">{shop.addressLine1}</p>
                       <p className="line-clamp-1">{shop.cityStateZip}</p>
                       <p className="text-slate-900 font-black italic">TEL: {shop.telephone || "N/A"}</p>
+
+                      <div className="pt-3 mt-3 border-t border-slate-100/60 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400 text-[8px]">LICENSE EXPIRATION:</span>
+                          <span className="text-[9px] px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                            {shop.expirationDate || "UNKNOWN"}
+                          </span>
+                        </div>
+                        {shop.continuingEducation === 'Y' && (
+                          <div className="flex justify-between items-center text-amber-700 bg-amber-500/10 rounded px-2 py-1">
+                            <span className="text-[8px] tracking-widest font-black">CE CREDITS REQUIRED</span>
+                            <ShieldCheck className="h-3 w-3" />
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Checkbox Trigger Overlay */}
