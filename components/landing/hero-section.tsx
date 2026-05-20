@@ -90,18 +90,10 @@ export function HeroSection() {
             className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 px-8 py-6 text-base glow-primary"
             asChild
           >
-            <Link href="#contact" onClick={(e) => handleNavClick(e, '#contact')}>
-              Request Viability Assessment
+            <Link href="/ai-solutions">
+              Explore AI Agent Solutions
               <ArrowRight className="h-4 w-4" />
             </Link>
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="border-border text-foreground hover:bg-secondary/50 gap-2 px-8 py-6 text-base"
-            asChild
-          >
-            <Link href="#sdlc" onClick={(e) => handleNavClick(e, '#sdlc')}>Explore the Engineering Lifecycle</Link>
           </Button>
         </div>
 
