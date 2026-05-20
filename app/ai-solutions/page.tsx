@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
-import { Brain, MapPin, BarChart3, GraduationCap, LayoutDashboard, Target, ArrowRight } from "lucide-react"
+import { Brain, MapPin, BarChart3, GraduationCap, LayoutDashboard, Target, ArrowRight, Shield } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -56,6 +56,14 @@ const solutions = [
     icon: GraduationCap,
     href: "/barber-cos-continuing-education",
     roles: ["School Students", "School Instructors"]
+  },
+  {
+    title: "Accreditation Advisory Committee Toolkit",
+    label: "Compliance Presenter & Minutes Tool",
+    description: "Prepare and de-risk your AI integration proposal for your next Program Advisory Committee (PAC) meeting. Run digital agendas and generate audit-ready resolution minutes instantly.",
+    icon: Shield,
+    href: "/program-advisory-committee-kit",
+    roles: ["School Administrators"]
   },
 ]
 
