@@ -7,6 +7,15 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { useTheme } from 'next-themes';
 
+export interface FinancialData {
+    costOfAttendance: string;
+    completionRate: string;
+    medianEarnings: string;
+    defaultRate: string;
+    pellGrantRate: string;
+    federalLoanRate: string;
+}
+
 export interface GooglePlacesData {
     placeId: string;
     name: string;
@@ -42,6 +51,7 @@ interface SchoolRanking {
     status: string;
     isAccredited: boolean;
     googleData: GooglePlacesData | null;
+    financialData: FinancialData | null;
 }
 
 export default function TexasSchoolBenchmarkingPage() {
@@ -106,6 +116,10 @@ export default function TexasSchoolBenchmarkingPage() {
                     const ratingA = a.googleData && a.googleData.rating !== 'N/A' ? parseFloat(a.googleData.rating) : 0;
                     const ratingB = b.googleData && b.googleData.rating !== 'N/A' ? parseFloat(b.googleData.rating) : 0;
                     comparison = ratingA - ratingB;
+                } else if (sortBy === "roi") {
+                    const earnA = a.financialData && a.financialData.medianEarnings !== 'N/A' ? parseFloat(a.financialData.medianEarnings) : 0;
+                    const earnB = b.financialData && b.financialData.medianEarnings !== 'N/A' ? parseFloat(b.financialData.medianEarnings) : 0;
+                    comparison = earnA - earnB;
                 }
                 return sortOrder === "desc" ? -comparison : comparison;
             });
@@ -229,6 +243,7 @@ export default function TexasSchoolBenchmarkingPage() {
                             <option value="googleRating">Consumer Google Rating</option>
                             <option value="totalExams">Exam Volume</option>
                             <option value="name">School Name</option>
+                            <option value="roi">Graduate ROI (Earnings)</option>
                         </select>
                     </div>
                 </div>
@@ -357,6 +372,46 @@ export default function TexasSchoolBenchmarkingPage() {
                                         <div>
                                             <strong>Pedagogical Misalignment:</strong> High consumer ratings ({ratingNum}) but critically low board pass rates ({school.passRate.toFixed(1)}%). Indicates strong marketing but failing curriculum structure.
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* PREMIUM MODULE: Federal Economic Telemetry */}
+                                {school.financialData && (
+                                    <div className="bg-emerald-50/50 rounded-xl p-3 border border-emerald-100 mb-4 flex flex-col gap-2">
+                                        <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                            <TrendingUp size={10} strokeWidth={3} /> Economic Intelligence & Federal ROI
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <div className="text-[10px] text-emerald-600/70 uppercase font-bold mb-0.5">Program Cost</div>
+                                                <div className="text-sm font-black text-emerald-900">
+                                                    {school.financialData.costOfAttendance !== 'N/A' && school.financialData.costOfAttendance !== 'null' ? `$${Number(school.financialData.costOfAttendance).toLocaleString()}` : 'N/A'}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-[10px] text-emerald-600/70 uppercase font-bold mb-0.5">1-Yr Median Earnings</div>
+                                                <div className="text-sm font-black text-emerald-900">
+                                                    {school.financialData.medianEarnings !== 'N/A' && school.financialData.medianEarnings !== 'null' ? `$${Number(school.financialData.medianEarnings).toLocaleString()}` : 'N/A'}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-[10px] text-emerald-600/70 uppercase font-bold mb-0.5">3-Yr Default Rate</div>
+                                                <div className={`text-sm font-black ${parseFloat(school.financialData.defaultRate) > 0.15 ? 'text-red-500' : 'text-emerald-900'}`}>
+                                                    {school.financialData.defaultRate !== 'N/A' && school.financialData.defaultRate !== 'null' ? `${(parseFloat(school.financialData.defaultRate) * 100).toFixed(1)}%` : 'N/A'}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-[10px] text-emerald-600/70 uppercase font-bold mb-0.5">Federal Dependency</div>
+                                                <div className="text-sm font-black text-emerald-900">
+                                                    {school.financialData.pellGrantRate !== 'N/A' && school.financialData.pellGrantRate !== 'null' ? `${(parseFloat(school.financialData.pellGrantRate) * 100).toFixed(0)}% Pell` : 'N/A'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {school.financialData.defaultRate !== 'N/A' && parseFloat(school.financialData.defaultRate) > 0.15 && (
+                                            <div className="mt-1 bg-red-50 text-red-800 text-xs p-2 rounded-lg border border-red-200 font-medium flex gap-2">
+                                                <span className="mt-0.5">⚠️</span> <span>High Default Risk: Critical percentage of graduates failing to repay loans.</span>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 

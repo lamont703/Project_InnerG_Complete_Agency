@@ -1,0 +1,92 @@
+Institution ID,School Name,City,Zip,Website,Student Body Size,Cost of Attendance,Completion Rate,1-Year Median Earnings,3-Year Default Rate,Pell Grant Rate,Federal Loan Rate,Median Student Debt,% Male,% Female,% Black,% Hispanic,% White
+223056,Baldwin Beauty School-South Austin,Austin,78704-4785,baldwinbeautyschools.com/,31,13900,0.4,22130,0,0.5,0.5541,6980,0.0645,0.9355,0.0968,0.4194,0.4194
+223852,Charles and Sues School of Hair Design,Bryan,77802,www.charlesandsues.com/,69,18000,0.8793,23316,0,0.5437,0.6214,9500,0.0145,0.9855,0.0435,0.1594,0.7101
+224013,BK Cosmo College of Cosmetology,Kerrville,78028-4312,www.bkcosmo.com/,55,13500,0.7114,19089,0,0.5556,0.5833,N/A,0.0182,0.9818,0,0.5091,0.4545
+224758,Exposito School of Hair Design,Amarillo,79109-3208,expositoschoolofhair.com/,14,13020,0.1613,20397,N/A,0.6429,0.4762,N/A,0,1,0,0.2857,0.6429
+225043,Graham's Barber College,DALLAS,75215-1701,grahamsbarbercollege.com/,8,10000,N/A,N/A,N/A,1,0,N/A,0.75,0.25,0.625,0.375,0
+227058,Tint School of Makeup & Cosmetology,Irving,75061-4235,https://tintcosmetologyschools.com/,44,15750,0.5738,23288,0,0.4756,0.4512,6333,0.0227,0.9773,0.2955,0.3864,0.1136
+227313,Ogle School Hair Skin Nails-Arlington,Arlington,76013,ogleschool.edu/,374,15700,0.6289,19689,0,0.6936,0.6046,7917,0.0241,0.9759,0.4465,0.2647,0.1684
+227322,Ogle School Hair Skin Nails-Ft Worth,Fort Worth,76132-3638,www.ogleschool.edu/,500,15700,0.7373,19872,0,0.6536,0.563,7917,0.028,0.972,0.24,0.284,0.402
+228088,Seguin Beauty School-Seguin,Seguin,78155,seguinbeautyschool.net/,38,15500,0.625,19465,0,0.64,0.66,9995,0,1,0.0526,0.3947,0.4737
+228185,South Texas Barber College Inc,Corpus Christi,78415,www.southtexasbarbercollege.net/,23,8300,0.8572,11071,N/A,0.8276,0,N/A,0.7826,0.2174,0,0,0
+229425,UCAS University of Cosmetology Arts & Sciences-McAllen,McAllen,78504,www.ucastx.com/,53,12650,0.7353,13830,0,0.4779,0.3673,6447,0,1,0,1,0
+229522,Victoria Beauty & Barber College,Victoria,77901-6233,www.victoriabeautyandbarbercollege.com/,73,17500,0.2981,14978,0,0.549,0.549,9500,0.1918,0.8082,0.1507,0.7397,0.0959
+229656,Vogue College of Cosmetology-McAllen,McAllen,78501-1945,https://vogue.edu/,344,15250,0.5714,14983,0,0.8093,0.743,7917,0.0058,0.9942,0.0291,0.8459,0.0901
+246415,UCAS University of Cosmetology Arts & Sciences-San Antonio 410,San Antonio,78201,www.ucastx.com/,39,12650,N/A,16150,0,0.4516,0.2688,6333,0,1,0.0513,0.8974,0.0513
+246460,Central Texas Beauty College-Round Rock,Round Rock,78664-4604,www.centraltexasbeautycollege.com/,122,8675,0.7211,14985,N/A,0.8893,0,N/A,0.082,0.918,0.1885,0.3525,0.2869
+248703,Ogle School Hair Skin Nails-Hurst,Hurst,76053-4650,www.ogleschool.edu/,273,15700,0.7259,18860,0,0.6336,0.6159,7917,0.0147,0.9853,0.3004,0.2637,0.3114
+377193,UCAS University of Cosmetology Arts & Sciences,San Antonio,78214,www.ucastx.com/,24,12650,N/A,19146,0,0.4348,0.3913,5417,0,1,0,1,0
+377315,Texas College of Cosmetology-Abilene,Abilene,79605,www.texascollegecosmetology.com/,40,13250,0.6495,17331,0,0.614,0.6082,6333,0,1,0.025,0.175,0.65
+381404,Ogle School Hair Skin Nails-Dallas,Dallas,75214-2389,www.ogleschool.edu/,415,15710,0.6105,19872,0,0.717,0.5645,7917,0.041,0.959,0.4699,0.3687,0.1012
+383464,Central Texas Beauty College-Temple,Temple,76504-6948,www.centraltexasbeautycollege.com/,32,8675,0.6115,14985,N/A,0.7725,0,N/A,0.0625,0.9375,0.25,0.3125,0.375
+402800,Tri-State Cosmetology Institute,El Paso,79935,tristatecosmetology.com/,126,15000,0.8404,16134,0,0.6651,0.5933,5735,0.0397,0.9603,0.0397,0.7619,0.1429
+407683,UCAS University of Cosmetology Arts & Sciences-Harlingen,Harlingen,78550-5034,www.ucastx.com/,87,12650,0.5682,13830,0,0.9701,0.7612,6447,0.0115,0.9885,0,1,0
+414489,Baldwin Beauty School-North Austin,Austin,78757-7068,baldwinbeautyschools.com/,78,13900,0.5,22130,0,0.6893,0.534,6980,0.0256,0.9744,0.0513,0.3974,0.3333
+418913,Pipo Academy of Hair Design,El Paso,79903,www.pipoacademy.com/,8,7025,0.2424,20136,N/A,0.625,0.125,N/A,0.25,0.75,0,1,0
+418968,Tint School of Makeup and Cosmetology-Dallas,Grand Prairie,75051,tintcosmetologyschools.com/,220,15750,0.506,23288,0,0.5782,0.6005,6333,0.0091,0.9909,0.4727,0.4227,0.05
+419633,Texas College of Cosmetology-San Angelo,San Angelon,76904,www.texascollegecosmetology.com/,72,13250,0.6943,17331,0,0.8472,0.9097,6333,0.0556,0.9444,0.0417,0.5694,0.3194
+423412,Mid Cities Barber College,Grand Prairie,75051-4892,midcitiesbarbercollege.edu/,22,8450,0.6307,24664,N/A,0.4643,0,N/A,0.7273,0.2727,0.3182,0.5909,0.0909
+434274,Academy of Hair Design-Lufkin,Lufkin,75904,www.lufkinhairdesign.com/,74,12700,0.7692,13874,0,0.6147,0.5138,11125,0.1486,0.8514,0.3243,0.0135,0.6486
+437608,Advanced Barber College and Hair Design,Weslaco,78596,abcrgv.com/,91,13510,0.5664,9803,N/A,0.7718,0.2913,N/A,0.6813,0.3187,0,0.956,0.011
+440989,Texas Barber College,Houston,77036,www.txbarber.edu/,518,14720,0.3077,12667,0,0.9035,0.9035,13000,0.778,0.222,0.7683,0.1892,0.0174
+443021,Dallas Barber & Stylist College,Dallas,75243,www.dallasbarberandstylistcollege.com/,8,16950,0.7925,18647,0,0.4722,0.4444,N/A,0.625,0.375,1,0,0
+443298,Trend Barber College,Houston,77071-2202,trendbarbercollege.org/,30,13600,0.4675,13737,0,0.8438,0.7188,12794,0.9,0.1,0.8667,0.0667,0.0333
+447449,Academy of Hair Design-Jasper,Jasper,75951,lufkinhairdesign.com/,52,12700,0.9524,13874,0,0.5735,0.9706,11125,0.2308,0.7692,0.3654,0.0192,0.5962
+449904,Milan Institute of Cosmetology-San Antonio Military,San Antonio,78221,www.milaninstitute.edu/,225,8265,0.5297,15046,0,0.6995,0.6114,6333,0.0844,0.9156,0.0844,0.8089,0.0533
+450711,Trend Barber College,Houston,77090,trendbarbercollege.com/,61,13600,0.5781,13737,0,0.7554,0.705,12794,0.8033,0.1967,0.8525,0.0984,0.0328
+451547,Manuel and Theresa's School of Hair Design-Bryan,Bryan,77803,www.manuelandtheresasschoolofhair.com/,13,15000,0.8788,20692,0,0.6429,0.7143,7924,0.0769,0.9231,0.0769,0.6154,0.3077
+458043,DuVall's School of Cosmetology,Bedford,76021,duvallschool.com/,65,11400,0.6265,26412,0,0.6054,0.6531,7917,0.0462,0.9538,0.2308,0.2308,0.3077
+458061,Texas Beauty College,Haltom city,76117,texasbeautyinfo.com/,38,8217,0.875,17246,N/A,0.8587,0,N/A,0.0789,0.9211,0.0263,0.2632,0
+458098,The Salon Professional Academy-Lewisville,Lewisville,75067,www.tspadallas.com/,132,16750,0.7284,22143,0,0.3388,0.4898,7917,0.0227,0.9773,0.0985,0.1212,0.7197
+459523,ABC Beauty Academy,Richardson,75081,www.abcbeautyacademy.webs.com/,52,8217,0.8696,20397,N/A,0.9307,0,N/A,0.1538,0.8462,0.1923,0.0385,0.0385
+459532,Salon & Spa Institute,Brownsville,78520-8809,www.ssi.edu/,71,12125,0.7231,9709,0,0.2963,0.3037,8212,0.0141,0.9859,0,0.9718,0.0141
+460534,Milan Institute of Cosmetology-El Paso,El Paso,79936,www.milaninstitute.edu/,448,12859,0.5135,15046,0,0.67,0.5994,6333,0.0871,0.9129,0.0335,0.8638,0.0647
+460978,Ogle School Hair Skin Nails-North Dallas,Dallas,75248-1216,www.ogleschool.edu/,312,15700,0.6441,19872,0,0.6151,0.5198,7917,0.016,0.984,0.4167,0.234,0.2147
+461740,Buckner Barber School,Dallas,75217-1775,www.invictuscc.edu/,38,15185,0.6136,27850,0,0.7917,0.8056,N/A,0.7632,0.2368,0.8158,0.1579,0.0263
+470296,Manuel and Theresa's School of Hair Design-Victoria,Victoria,77902-7076,www.manuelandtheresasschoolofhair.com/,18,15000,0.8,20692,0,0.72,0.76,7924,0.1111,0.8889,0.0556,0.7778,0.1667
+475662,UCAS University of Cosmetology Arts & Sciences-La Joya,La Joya,78560-4018,www.ucastx.com/,51,12650,0.6154,13830,0,0.988,0.7711,6447,0,1,0,1,0
+476540,Vogue College of Cosmetology-San Antonio Fredericksburg,San Antonio,78201-5035,vogue.edu/,90,15250,0.7,19450,0,0.7,0.645,6333,0.0333,0.9667,0.1,0.7444,0.1222
+476559,Vogue College of Cosmetology,San Antonio,78238-4402,vogue.edu/,92,15200,N/A,16258,0,0.6825,0.6085,6333,0.0326,0.9674,0.0435,0.8913,0.0652
+476896,Wade Gordon Hairdressing Academy,Amarillo,79109,www.wadegordonacademy.com/,129,11600,0.4963,20071,0,0.6538,0.649,9833,0.4031,0.5969,0.1008,0.5271,0.2636
+478591,Ogle School Hair Skin Nails-Denton,Denton,76205-7534,www.ogleschool.edu/,228,16500,0.7402,19689,0,0.5791,0.5678,7917,0.0132,0.9868,0.2149,0.2544,0.4386
+480125,Ogle School Hair Skin Nails-San Antonio,San Antonio,78216,www.ogleschool.edu/,466,15700,0.7077,19689,0,0.6571,0.5419,7917,0.03,0.97,0.1137,0.6009,0.206
+482200,Cosmetology Academy of Texarkana,Texarkana,75503,cosmetologyacademyoftexarkana.com/,28,12500,0.5833,16005,0,0.6585,0.5366,10637,0.1429,0.8571,0.1786,0.0357,0.7857
+482981,Alamo City Barber College,San Antonio,78250-3227,www.alamocitybarbercollege.com/,114,10775,0.5652,13654,0,0.8249,0.6732,6937,0.7982,0.2018,0.2018,0.7105,0.0526
+483513,Neecee's Barber College,Abilene,79602,neeceescollege.com/,32,13390,0.3611,13263,0,0.7167,0.7167,10667,0.8125,0.1875,0.3438,0.5625,0.0938
+483559,Bella Cosmetology and Barber College,Greenville,75402,bellacollege.com/,57,15600,0.492,11234,0,0.5667,0.5833,10667,0.0526,0.9474,0.2105,0.2105,0.5614
+483735,Total Transformation Institute of Cosmetology,San Marcos,78666-8115,ttioc.edu/,112,14422,0.75,19327,0,0.6125,0.6938,7917,0.0893,0.9107,0.0804,0.5179,0.3214
+484136,Yahweh Beauty Academy,Killeen,76543-4153,www.yahwehbeautyacademy.com/,29,6700,0.6271,12410,N/A,0.1833,0,N/A,0.3793,0.6207,0.8966,0.069,0.0345
+484604,Ogle School Hair Skin Nails-Stafford,Stafford,77477,ogleschool.edu/,550,15700,0.6801,18860,0,0.6944,0.6091,7917,0.02,0.98,0.5291,0.2982,0.0873
+485874,Salon Boutique Academy,Addison,75001-4399,www.salonboutiqueacademy.com/,200,11850,0.8857,22739,0,0.3789,0.3975,7917,0.01,0.99,0.345,0.465,0.155
+485926,GA Beauty & Barber School,McAllen,78501-3309,www.gabeautybarber.com/,171,9250,0.5187,N/A,0,0.3717,0.2138,2783,0.3333,0.6667,0,0.9883,0.0117
+486503,Laredo CHI Academy Beauty School,Laredo,78041-6540,www.laredochi.com/,54,8311,0.8,11623,N/A,0.7257,0,N/A,0.037,0.963,0,1,0
+487065,Wade Gordon Hairdressing Academy-Lubbock,Lubbock,79423-2125,wadegordonacademy.com/,96,11600,0.597,20071,0,0.7603,0.7329,9833,0.3125,0.6875,0.1146,0.5417,0.2917
+487232,Texas College of Cosmetology-Lubbock,Lubbock,79414-2532,www.texascollegecosmetology.com/,54,13250,0.7668,17331,0,0.5723,0.5723,6333,0,1,0.037,0.6296,0.2593
+488110,Natural Images Beauty College,Clute,77531-3603,natural-images-bc.com/,75,16000,0.4085,13863,0,0.2455,0.2364,7917,0.16,0.84,0.0667,0.3867,0.4933
+488299,Mission Beauty Institute,Mission,78572-4404,missionbeautyinstitute.wordpress.com/,11,6250,0.5278,14650,0,0.7931,0.3966,N/A,0.1818,0.8182,0,1,0
+490522,Allgood Beauty Institute,Frisco,75034,allgoodbeauty.com/,30,10950,0.7576,N/A,0,0.8,0.7,N/A,0,1,0.4333,0.1667,0.3333
+490674,Manuel and Theresa's School of Hair Design,Brenham,77833-3033,www.manuelandtheresasschoolofhair.com/,8,15000,N/A,20692,0,0.7143,0.7143,7924,0.125,0.875,0.125,0.125,0.75
+491066,Strand Institute of Beauty & Esthetics,Corpus Christi,78409,thestrandinstitute.edu/,65,14025,0.9048,15522,0,0.4018,0.4286,7917,0.0308,0.9692,0,0.4,0.2154
+491589,Mystros Barber Academy,Houston,77090,https://mystrosbarberacademy.org/,50,15000,N/A,N/A,0,0.4815,0.463,N/A,0.84,0.16,0.82,0.1,0.08
+491835,Salon Professional Academy of San Antonio,San Antonio,78232-2242,www.tspasanantonio.com/,94,17525,0.8438,14594,0,0.6258,0.7301,7917,0.0426,0.9574,0.1596,0.234,0.3404
+491996,The Salon Professional Academy-Georgetown,Georgetown,78626-5470,www.tspageorgetown.com/,79,17125,0.6207,18923,0,0.3246,0.4474,N/A,0.0253,0.9747,0.0127,0.2785,0.6582
+493743,Houston Barber School,Houston,77073-4400,www.htxbarberschool.com/,264,14000,0.9212,15383,0,0.8019,0.6317,10667,0.7197,0.2803,0.7424,0.2083,0.0265
+493804,Deluxe Barber College,San Antonio,78217-2118,www.deluxebarbercollege.com/,94,12100,0.629,N/A,0,0.6491,0.6433,6500,0.8404,0.1596,0.4574,0.5106,0
+494472,Evvaylois Academy School of Beauty,Brenham,77833,https://www.evvayloisschoolofbeauty.com/,14,11800,N/A,N/A,0,0.7,0.65,N/A,0.0714,0.9286,0.2857,0.4286,0.2143
+494719,Tonsorial Arts Barber College,Texarkana,75501-3264,https://www.tonsorialartsbarbercollege.com/,170,12500,0.6122,N/A,0,0.8903,0.8819,10667,0.4529,0.5471,0.7824,0.0588,0.1118
+494728,Michael's Barber & Hair Stylist Academy,Irving,75062-6016,barberstylistacademy.com/,42,15185,0.4655,N/A,N/A,0.7703,0.8514,N/A,0.7143,0.2857,0.6429,0.2619,0.0714
+495244,Pearlands Innovative School of Beauty,Pearland,77584-7891,www.pearlandinnovative.com/,69,15000,1,N/A,0,0.8155,0.767,N/A,0.087,0.913,0.5072,0.3043,0.1739
+495305,The Professional Cosmetology Academy,Laredo,78041-5930,https://www.tpcalaredo.com/,146,8850,0.7234,N/A,N/A,0.7208,0.6904,N/A,0.137,0.863,0,0.9863,0.0068
+497073,Ogle School Hair Skin Nails-Willowbrook,Houston,77070-5656,https://ogleschool.edu/,481,15700,0.7049,18860,0,0.7115,0.6083,7917,0.0333,0.9667,0.499,0.2744,0.1268
+497204,Mei Barber School,Brownsville,78520-5472,https://www.meibarberschool.com/,91,11075,0.7568,N/A,N/A,0.7583,0.1167,N/A,0.7912,0.2088,0,0.989,0
+497356,Barber Education Academy,Laredo,78041-6039,https://thebarbereducation.com/,37,9125,N/A,N/A,N/A,0.6892,0,N/A,0.6486,0.3514,0,1,0
+497365,Legends Barber College,Lufkin,75904-3105,https://www.legends-barber-college.com/,26,12625,0.5,N/A,N/A,0.5357,0.5893,N/A,0.7692,0.2308,0.5,0.3077,0.1538
+497383,Barbers Trade School,Beaumont,77701-3308,https://www.barbersinctx.com/,9,14000,N/A,N/A,N/A,1,1,N/A,0.8889,0.1111,0.3333,0.2222,0.4444
+497392,Top of the Line Barber School,San Antonio,78218-2109,https://totlbarberschool.org/,86,16000,N/A,N/A,N/A,0.7875,0.7625,N/A,0.8256,0.1744,0.3837,0.5465,0.0581
+498410,Premier Barber School,Houston,77088-2518,https://www.premierbarberschool.com/,45,12685,0.7917,N/A,N/A,0.5714,0.4405,N/A,0.8444,0.1556,0.7111,0.2889,0
+498890,East Texas Cosmetology College,Lufkin,75904-7137,https://www.easttxcc.com/,51,14595,0.74,N/A,N/A,0.3788,0.1515,N/A,0,1,0.0196,0.0784,0.7647
+499079,Collectiv Hair Dressing Academy-Collectiv Academy-Dallas,Dallas,75248-4073,https://collectivacademy.com/,319,10255,N/A,18106,0,0.6196,0.7229,10540,0.0188,0.9812,0.1661,0.2414,0.3699
+499927,South Post Oak Barber College,Houston,77045-5249,https://southpostoakbarbercollege.com/,10,12000,N/A,N/A,N/A,0,0,N/A,0.8,0.2,0.6,0.4,0
+499945,Brighton Barber Institute,Hurst,76054-3058,https://brightonbarber.com/,17,15175,N/A,N/A,N/A,0.2692,0.1538,N/A,0.8235,0.1765,0.5294,0.1765,0.2353
+500324,UCAS University of Cosmetology Arts & Sciences - 03,Brownsville,78521-1462,https://www.ucastx.com/,24,12650,N/A,13830,0,0.3929,0.1964,6447,0,1,0,0.9583,0
+500421,Epic Barber College,Houston,77015-2800,https://www.epicbarbercollege.com/,62,10189,0.129,N/A,N/A,0,0,N/A,0.7903,0.2097,0.0806,0.9032,0.0161

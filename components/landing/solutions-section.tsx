@@ -4,41 +4,41 @@ import Link from "next/link"
 
 const sdlcStages = [
   {
-    stage: "Aesthetic Mapping",
+    stage: "Institutional Audit",
     status: "Phase 1",
-    description: "Deep-dive technical validations of the digital-to-physical client touchpoints.",
+    description: "Deep-dive analysis into your current enrollment funnel and compliance vulnerabilities.",
     points: [
-      { label: "Journey Analysis", icon: Target, text: "Map every digital interaction from booking to treatment." },
-      { label: "Integrity Blueprint", icon: Server, text: "Design secure, HIPAA-compliant client data architecture." },
-      { label: "Technical Feasibility", icon: ShieldCheck, text: "Validate your AI skin analysis or Web3 loyalty concepts." },
-      { label: "Stack Performance", icon: Target, text: "Ensure 99.9% uptime for global service operations." },
+      { label: "Enrollment Analysis", icon: Target, text: "Map every drop-off point from ad click to signed application." },
+      { label: "Compliance Blueprint", icon: Server, text: "Audit your current Title-IV and NACCAS reporting data structures." },
+      { label: "Pedagogy Check", icon: ShieldCheck, text: "Evaluate the state board failure patterns of your previous cohorts." },
+      { label: "Economic ROI", icon: Target, text: "Measure your current tuition costs against average graduate earnings." },
     ],
     accentClass: "text-muted-foreground bg-muted border-border",
     glowClass: "bg-muted/5",
   },
   {
-    stage: "Cognitive Development",
+    stage: "Cognitive Deployment",
     status: "Phase 2",
-    description: "Elite engineering squads building high-throughput personalized service engines.",
+    description: "Elite engineering squads building and integrating your custom intelligence models.",
     points: [
-      { label: "Dedicated Pods", icon: Cpu, text: "Specialized teams focused on Beauty-Tech innovation." },
-      { label: "Personalized AI", icon: Zap, text: "Deploying custom recommendation and analysis engines." },
-      { label: "Modular Infrastructure", icon: Server, text: "Future-proof systems that grow with your franchise locations." },
-      { label: "Live Transparency", icon: Target, text: "Direct visibility into your technical build velocity." },
+      { label: "Dedicated Pods", icon: Cpu, text: "Specialized engineers focused solely on your academy's data." },
+      { label: "Diagnostic AI", icon: Zap, text: "Deploying your custom State Board pass probability engine." },
+      { label: "Placement Matcher", icon: Server, text: "Mapping 35,000+ local shops specifically for your geography." },
+      { label: "Live Transparency", icon: Target, text: "Direct visibility into our technical integration velocity." },
     ],
     accentClass: "text-primary bg-primary/10 border-primary/20",
     glowClass: "bg-primary/20",
     isHighlighted: true,
   },
   {
-    stage: "Franchise Scale",
+    stage: "Academy Scale",
     status: "Phase 3",
-    description: "Continuous integration and white-glove deployment across your global location network.",
+    description: "Continuous optimization across your school network and instructor portals.",
     points: [
-      { label: "Audit Readiness", icon: ShieldCheck, text: "Rigorous security and performance auditing for launch." },
-      { label: "Edge Deployment", icon: Rocket, text: "Low-latency system performance across all territories." },
-      { label: "Operational Handoff", icon: Target, text: "Comprehensive training and technical documentation." },
-      { label: "Brand Presence", icon: Rocket, text: "Launching a technical moat that defines your brand authority." },
+      { label: "Audit Readiness", icon: ShieldCheck, text: "Rigorous mock-audits simulating NACCAS/ACCSC requirements." },
+      { label: "Instructor Handoff", icon: Rocket, text: "Comprehensive training for your teaching staff and administration." },
+      { label: "Cohort Tracking", icon: Target, text: "Real-time monitoring of active student telemetry and progress." },
+      { label: "Institutional Moat", icon: Rocket, text: "Launching the technical advantage that defines your school's brand." },
     ],
     accentClass: "text-accent bg-accent/10 border-accent/20",
     glowClass: "bg-accent/5",
@@ -60,13 +60,13 @@ export function SolutionsSection() {
       <div className="mx-auto max-w-7xl px-6 relative z-10">
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">
-            The Aesthetic Innovation Lifecycle
+            The Trade School Innovation Lifecycle
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            Design. Build. Dominate.
+            Audit. Integrate. Dominate.
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            Our enterprise-grade Software Development Life Cycle (SDLC) is battle-tested for deploying complex Artificial Intelligence and Web3 infrastructure for the world's most elite wellness brands.
+            Our enterprise-grade implementation cycle is battle-tested for deploying Artificial Domain Intelligence (ADI) into Barber and Cosmetology academies without disrupting daily operations.
           </p>
         </div>
 

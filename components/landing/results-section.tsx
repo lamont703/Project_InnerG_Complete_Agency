@@ -1,28 +1,28 @@
 const results = [
   {
-    category: "Operational Efficiency",
-    metric: "84%",
-    metricLabel: "Time Reclaimed",
+    category: "Enrollment Velocity",
+    metric: "3.2x",
+    metricLabel: "Lead Conversion",
     description:
-      "Automated multi-location booking and membership workflows for a 50-unit MedSpa franchise, reclaiming 1,200+ team hours monthly.",
-    tags: ["AI Automation", "Franchise Scale", "ROI Focus"],
+      "Deployed Omni-Channel Admissions AI for a regional cosmetology academy, recovering 400+ abandoned applications in the first quarter.",
+    tags: ["Lead Recovery", "AI Admissions", "Enrollment ROI"],
   },
   {
-    category: "Infrastructure Scaling",
-    metric: "10x",
-    metricLabel: "Throughput Boost",
+    category: "State Board Licensure",
+    metric: "92%",
+    metricLabel: "First-Time Pass Rate",
     description:
-      "Re-architected patient records and supply chain tracking for a global dermo-cosmetics network to handle surge in digital diagnostics.",
-    highlights: ["HIPAA-Compliant", "Cloud Architecture", "Zero Downtime"],
-    tags: ["Scalability", "Clinical Data", "Cloud Ops"],
+      "Integrated our Predictive Diagnostics engine, catching at-risk students 30 days prior to their exams and boosting state board pass rates.",
+    highlights: ["NACCAS-Compliant", "Predictive Analytics", "Early Intervention"],
+    tags: ["Compliance", "Diagnostic AI", "Pass Probability"],
   },
   {
-    category: "Revenue Expansion",
-    metric: "42%",
-    metricLabel: "LTV Increase",
+    category: "Job Placement",
+    metric: "100%",
+    metricLabel: "Audit Readiness",
     description:
-      "Deployed a skin-type analysis and product recommendation engine that boosted lifetime value for a Tier-1 luxury skincare brand.",
-    tags: ["Personalization", "Retention AI", "Beauty-Tech"],
+      "Mapped 35,000+ local shops to automatically secure graduate interviews, ensuring perfect placement thresholds for Title-IV audits.",
+    tags: ["Career Placement", "Geospatial AI", "Title-IV Security"],
   },
 ]
 
@@ -37,11 +37,10 @@ export function ResultsSection() {
             Proven Outcomes
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            Realized Business Intelligence
+            Realized Institutional Intelligence
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            Every engagement is measured by the tangible business value we create
-            for the world's most ambitious wellness enterprises.
+            Every deployment is measured by the tangible enrollment growth and compliance security we create for ambitious trade schools.
           </p>
         </div>
 
@@ -90,12 +89,12 @@ export function ResultsSection() {
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-x-12 gap-y-8 opacity-60">
             {[
-              "Medical Aesthetics",
-              "Luxury Skincare",
-              "Global Franchises",
-              "Professional Grooming",
-              "Dermo-Cosmetics",
-              "Wellness Tech",
+              "Cosmetology Academies",
+              "Barber Colleges",
+              "Trade School Networks",
+              "NACCAS Audits",
+              "Title-IV Compliance",
+              "Esthetics Programs",
             ].map((industry) => (
               <div
                 key={industry}

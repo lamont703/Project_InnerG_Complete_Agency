@@ -78,7 +78,7 @@ export function HeroSection() {
         </h1>
 
         <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-white sm:text-xl text-balance">
-          Architecting custom AI and Blockchain for Beauty, Grooming, and Wellness leaders to drive institutional-grade innovation.
+          Architecting custom AI Agent Systems for Barber, Cosmetology and Wellness School leaders to drive institutional-grade innovation.
         </p>
 
 
@@ -117,15 +117,15 @@ export function HeroSection() {
                 HIPAA Ready
               </span>
               <span className="rounded-full bg-secondary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-secondary-foreground">
-                AES-256 Encrypted
+                NACCAS/ACCSC Trained
               </span>
             </div>
           </div>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
             {[
-              { title: "Personalization", label: "AI-driven client journeys at scale" },
-              { title: "Verification", label: "Blockchain-backed asset provenance" },
-              { title: "Security", label: "Audit-ready HIPAA architecture" },
+              { title: "Smart Admissions", label: "AI agents that talk to interested students 24/7 and qualifies them for admissions team." },
+              { title: "Higher Pass Rates", label: "Our AI systems are designed to help students pass their licensing exams on the first attempt." },
+              { title: "Career Matching", label: "Automate job hunting for your graduates and prove placement rates to accreditors." },
             ].map((item) => (
               <div key={item.title} className="text-center sm:text-left px-4">
                 <div className="text-xl font-bold text-foreground">{item.title}</div>

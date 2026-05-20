@@ -52,7 +52,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Bridging the gap between AI & Blockchain innovation and the aesthetic needs of elite wellness and grooming brands.
+              Architecting the Artificial Domain Intelligence (ADI) that powers enrollment, diagnostics, and Title-IV compliance for elite Barber and Cosmetology schools.
             </p>
           </div>
         </div>
