@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { trackNavClick, trackCTAClick } from "@/lib/analytics"
 
 const navLinks = [
+  { label: "Prototypes", href: "/ai-solutions" },
   { label: "Innovation", href: "/#services" },
   { label: "Lifecycle", href: "/#sdlc" },
   { label: "Impact", href: "/#results" },
