@@ -19,6 +19,15 @@ function GlowOrb({ className }: { className: string }) {
 
 const reports = [
   {
+    slug: "national-ai-classroom-accreditation-impact-report",
+    title: "The National AI Classroom Impact Report: Protecting NACCAS & ACCSC Accreditation Standards",
+    excerpt: "How classroom AI is transforming trade school pass rates and NACCAS/ACCSC accreditation compliance. Discover the data behind Title-IV safety.",
+    date: "May 20, 2026",
+    readingTime: "17 min read",
+    category: "Industry Report",
+    featured: true,
+  },
+  {
     slug: "el-paso-barber-market-rescue-report",
     title: "El Paso Barber Market Rescue Report: A Strategic Recovery Audit",
     excerpt: "El Paso exhibits a critical 58.0% aggregate fail rate, driven by high-volume institutions like Socorro HS. An industry rescue report mapping the path to licensure stabilization.",
