@@ -4,46 +4,46 @@ import { Brain, Blocks, Rocket, Shield, Cpu, BarChart3, Database, Zap, LineChart
 
 const services = [
   {
-    icon: Database,
-    title: "Domain Intelligence (ADI)",
+    icon: Brain,
+    title: "Exam Pass Predictor",
     description:
-      "We architect a proprietary intelligence layer for your wellness enterprise. Unified data structures designed for global autonomous operations.",
-    highlights: ["Sovereign Data Lakes", "Model Foundations", "Franchise Scaling"],
+      "Stop waiting for state board results. Our AI tracks student practice data and flags who is at risk of failing 30 days before the exam.",
+    highlights: ["Early Warnings", "Pass Predictions", "Automated Tutoring"],
+  },
+  {
+    icon: Users,
+    title: "Auto Job Placement",
+    description:
+      "Keep your placement rates high. Our AI maps 35,000+ local shops and automatically texts owners to set up job interviews for your graduates.",
+    highlights: ["60% Placement", "Automated Interviews", "Local Shop Maps"],
+  },
+  {
+    icon: BarChart3,
+    title: "ROI & Debt Tracking",
+    description:
+      "Prove your school's value. We pull federal financial aid data to show how your tuition costs and graduate salaries compare to local competitors.",
+    highlights: ["Title-IV Data", "Graduate Salaries", "Default Rates"],
   },
   {
     icon: Zap,
-    title: "Workflow Intelligence",
+    title: "24/7 AI Admissions",
     description:
-      "Automate high-fidelity workflows with custom agentic systems. We deploy AI intelligence that manages clinical intake and client nurturing.",
-    highlights: ["Agentic Systems", "Neural Workflows", "Institutional ROI"],
-  },
-  {
-    icon: LineChart,
-    title: "Cognitive Analytics",
-    description:
-      "Transform fragmented client records into predictive growth intelligence. Build high-fidelity models that anticipate treatment paths.",
-    highlights: ["LTV Prediction", "Behavioral Modeling", "Growth Engines"],
+      "Stop losing students who drop off your website. Our AI texts interested students instantly, answers financial aid questions, and drives enrollments.",
+    highlights: ["Lead Recovery", "Text Messaging", "24/7 Support"],
   },
   {
     icon: Shield,
-    title: "Supply Chain Authority",
+    title: "Automated Compliance",
     description:
-      "Leverage Blockchain to verify the ethical provenance of professional-grade assets. Secure your brand's authority with on-chain verification.",
-    highlights: ["Supply Chain Trust", "Ethical Verification", "On-Chain Audit"],
+      "Never stress over a NACCAS or ACCSC audit again. We automatically track and prove your exact graduation, placement, and licensure rates.",
+    highlights: ["NACCAS Ready", "Instant Audits", "Title-IV Tracking"],
   },
   {
-    icon: ChessKnight,
-    title: "Fractional CTO & Strategy",
+    icon: Blocks,
+    title: "Adaptive Lesson Plans",
     description:
-      "High-agency fractional CTO leadership for wellness brands. We architect your technical future with institutional-grade strategy.",
-    highlights: ["Technical Roadmap", "IP Ownership", "Risk Mitigation"],
-  },
-  {
-    icon: LayoutDashboard,
-    title: "Performance Auditing",
-    description:
-      "Total transparency into your digital-to-physical touchpoints. We ensure every system we architect is measurable and compliant.",
-    highlights: ["HIPAA Compliance", "Service Audits", "KPI Infrastructure"],
+      "Don't teach the same lesson twice. Our AI analyzes what your current students are struggling with and adjusts next week's syllabus automatically.",
+    highlights: ["Smart Syllabi", "Cohort Tracking", "Adaptive Teaching"],
   },
 ]
 
@@ -54,15 +54,15 @@ export function ServicesSection() {
         {/* Header */}
         <div className="text-center">
           <p className="text-sm font-black uppercase tracking-[0.3em] text-primary mb-4 flex items-center justify-center gap-2">
-            Aesthetic Intelligence™ Suite
-            <span className="text-[8px] opacity-70">[Patent Pending]</span>
+            Artificial Domain Intelligence
+            <span className="text-[8px] opacity-70">[Proprietary]</span>
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            Engineered for Luxury Wellness
+            Engineered for Trade Schools
           </h2>
           <p className="mx-auto mt-8 max-w-3xl text-lg text-muted-foreground leading-relaxed font-medium">
-            We partner with a selective cohort of Beauty and Wellness enterprises to build 
-            the sovereign intelligence layers required for the next decade of market dominance.
+            We partner with a selective cohort of Barber and Cosmetology Schools to build 
+            the cognitive infrastructure required for NACCAS/ACCSC compliance and market dominance.
           </p>
         </div>
 
@@ -71,11 +71,11 @@ export function ServicesSection() {
           {services.map((service) => (
             <div
               key={service.title}
-              className={`group relative rounded-2xl glass-panel p-8 transition-all duration-300 hover:border-primary/30 hover:bg-secondary/30 ${service.title === "Aesthetic Logic" ? "border-primary/40 ring-1 ring-primary/20 scale-[1.02] shadow-xl shadow-primary/5" : ""}`}
+              className={`group relative rounded-2xl glass-panel p-8 transition-all duration-300 hover:border-primary/30 hover:bg-secondary/30 ${service.title === "Exam Pass Predictor" ? "border-primary/40 ring-1 ring-primary/20 scale-[1.02] shadow-xl shadow-primary/5" : ""}`}
             >
-              {service.title === "Aesthetic Logic" && (
+              {service.title === "Exam Pass Predictor" && (
                 <div className="absolute -top-3 left-8 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-                  Flagship Offering
+                  Flagship Feature
                 </div>
               )}
               {/* Hover glow */}

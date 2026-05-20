@@ -282,8 +282,8 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
     markerGroupRef.current.clearLayers();
     markerRefs.current = {};
 
-    // Gather shops to plot: Top 50 nearest shops, and guarantee EVERY selected shop is plotted as well!
-    const plottedShops = [...filteredShops.slice(0, 50)];
+    // Gather shops to plot: Plot EVERY shop within the commuter bounds!
+    const plottedShops = [...filteredShops];
     selectedShops.forEach(licenseNum => {
       // Look up inside already-jittered filteredShops first to preserve coordinate spreading
       let selectedShop = filteredShops.find(s => s.licenseNumber === licenseNum);
@@ -646,7 +646,7 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
                 Live Map Enabled
               </div>
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                Showing {Math.min(filteredShops.length, 50)} nearest shops
+                Showing all {filteredShops.length} matching shops
               </span>
             </div>
           </div>
@@ -684,7 +684,7 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
           {/* Grid Layout of Storefronts */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredShops.length > 0 ? (
-              filteredShops.slice(0, 15).map(shop => {
+              filteredShops.map(shop => {
                 const isBarber = shop.subtype === "BS" || shop.businessName.toUpperCase().includes("BARBER") || (shop.licenseType && shop.licenseType.toUpperCase().includes("BARBER"));
                 const isSelected = selectedShops.includes(shop.licenseNumber);
 
@@ -763,11 +763,7 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
               </div>
             )}
 
-            {filteredShops.length > 15 && (
-              <div className="col-span-full text-center py-4 bg-slate-50 rounded-2xl border border-slate-100 text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">
-                + {filteredShops.length - 15} More Stores Available inside radius bounds.
-              </div>
-            )}
+
           </div>
         </div>
       </div>

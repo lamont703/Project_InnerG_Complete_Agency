@@ -1,6 +1,15 @@
 import fs from 'fs';
 import path from 'path';
 
+export interface FinancialData {
+    costOfAttendance: string;
+    completionRate: string;
+    medianEarnings: string;
+    defaultRate: string;
+    pellGrantRate: string;
+    federalLoanRate: string;
+}
+
 export interface GooglePlacesData {
     placeId: string;
     name: string;
@@ -36,6 +45,7 @@ export interface SchoolRanking {
     status: string;
     isAccredited: boolean;
     googleData: GooglePlacesData | null;
+    financialData: FinancialData | null;
 }
 
 interface CSVFileConfig {
@@ -97,6 +107,30 @@ export function getTexasSchoolRankings(year: string = 'all'): SchoolRanking[] {
         }
     }
 
+    // Load Federal Financial Data
+    const financialDataMap = new Map<string, FinancialData>();
+    const finPath = path.join(process.cwd(), 'public', '2026 Texas Barber and Cosmetology Financial Aide Data.csv');
+    if (fs.existsSync(finPath)) {
+        const content = fs.readFileSync(finPath, 'utf8');
+        const lines = content.split('\n');
+        for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            const values = parseCSVLine(lines[i]).map(v => v.trim());
+            if (values.length < 13) continue;
+            const schoolName = values[1];
+            if (schoolName && schoolName !== "School Name") {
+                financialDataMap.set(cleanName(schoolName), {
+                    costOfAttendance: values[6],
+                    completionRate: values[7],
+                    medianEarnings: values[8],
+                    defaultRate: values[9],
+                    pellGrantRate: values[10],
+                    federalLoanRate: values[11]
+                });
+            }
+        }
+    }
+
     // Load Google Places Premium Data
     const googleDataMap = new Map<string, GooglePlacesData>();
     const googlePath = path.join(process.cwd(), 'public', '2026 Texas Accredited Schools Plus Google Places Data.csv');
@@ -135,6 +169,16 @@ export function getTexasSchoolRankings(year: string = 'all'): SchoolRanking[] {
             }
         }
         return false;
+    }
+
+    function getFinancialData(name: string): FinancialData | null {
+        const c = cleanName(name);
+        for (const [key, data] of financialDataMap.entries()) {
+            if (c === key || c.includes(key) || key.includes(c)) {
+                return data;
+            }
+        }
+        return null;
     }
 
     function getGoogleData(name: string): GooglePlacesData | null {
@@ -275,7 +319,8 @@ export function getTexasSchoolRankings(year: string = 'all'): SchoolRanking[] {
             stateAvgPassRate: stateAvg,
             licenseNumber: "",
             isAccredited: checkAccreditation(s.schoolName),
-            googleData: getGoogleData(s.schoolName)
+            googleData: getGoogleData(s.schoolName),
+            financialData: getFinancialData(s.schoolName)
         };
     });
 

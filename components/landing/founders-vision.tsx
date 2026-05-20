@@ -17,11 +17,11 @@ export function FoundersVision() {
                     
                     <div className="mt-8 space-y-6">
                         <p className="text-2xl md:text-3xl lg:text-4xl leading-tight text-foreground font-black uppercase italic tracking-tighter">
-                            "We are building the sovereign <span className="text-primary italic">Intelligence Layer</span> of the global aesthetic industry."
+                            "We are building the sovereign <span className="text-primary italic">Intelligence Layer</span> of the Barber and Cosmetology industry."
                         </p>
 
                         <p className="max-w-2xl mx-auto text-lg text-muted-foreground leading-relaxed font-medium">
-                            Our mission is to architect the core **Artificial Domain Intelligence (ADI)** models that will power every elite wellness workflow, clinical diagnostic, and luxury client journey of the next decade.
+                            Our mission is to architect the core <strong>Artificial Domain Intelligence (ADI)</strong> models that will protect accreditations, power student diagnostics, and guarantee graduate job placement for the next decade.
                         </p>
                     </div>
 

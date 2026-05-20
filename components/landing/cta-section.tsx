@@ -80,17 +80,17 @@ export function CtaSection() {
               Get Started
             </p>
             <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-              Validate Your Aesthetic Innovation.
+              Validate Your Institutional Architecture.
             </h2>
             <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
-              Let our senior architects evaluate your project's technical feasibility, mitigate franchise-scale risks, and determine if your concept is ready for institutional-grade engineering.
+              Let our senior architects evaluate your academy's technical feasibility, mitigate Title-IV compliance risks, and determine if your school is ready for ADI integration.
             </p>
 
             <div className="mt-10 space-y-6">
               {[
-                { label: "Client-Journey Mapping", desc: "Ensure your AI or Web3 touchpoints are technically and practically sound" },
-                { label: "Franchise Risk Assessment", desc: "Identify architectural bottlenecks for global location scaling" },
-                { label: "Institutional-Grade Audit", desc: "Get a clear verdict on if your project is ready for production release" },
+                { label: "Enrollment Funnel Mapping", desc: "Ensure your digital admissions touchpoints are recovering every dropped lead." },
+                { label: "Accreditation Risk Assessment", desc: "Identify reporting bottlenecks for NACCAS and Title-IV compliance." },
+                { label: "Diagnostic Telemetry Audit", desc: "Get a clear verdict on if your current pedagogy is ready for AI pass-rate prediction." },
               ].map((item) => (
                 <div key={item.label} className="flex items-start gap-4">
                   <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
@@ -266,7 +266,7 @@ export function CtaSection() {
                 <div className="space-y-1">
                   <Input
                     {...register("industry")}
-                    placeholder="Niche (e.g. Med-Spa, High-End Grooming, Luxury Skincare)"
+                    placeholder="Niche (e.g. Cosmetology School, Barber College, Trade Academy)"
                     className={`bg-input/50 border-border text-foreground placeholder:text-muted-foreground focus:border-primary ${errors.industry ? "border-destructive focus:border-destructive" : ""}`}
                     disabled={isSubmitting}
                   />

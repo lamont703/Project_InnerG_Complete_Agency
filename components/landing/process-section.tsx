@@ -6,28 +6,28 @@ const steps = [
     step: "01",
     title: "Project Audit",
     description:
-      "We deep-dive into your business landscape, identifying high-impact opportunities where AI and blockchain can delivered measurable results for your specific scale.",
+      "We analyze your school's current operations, from enrollment funnels to Title-IV compliance, to locate the exact friction points draining your revenue.",
   },
   {
     icon: PenTool,
     step: "02",
     title: "Tailored Design",
     description:
-      "Our architects design custom solutions with clear blueprints, ensuring scalability and direct alignment with your operational objectives.",
+      "We blueprint custom AI agents and diagnostic tools that align directly with your curriculum and your NACCAS or ACCSC accreditation thresholds.",
   },
   {
     icon: Code2,
     step: "03",
     title: "Agile Build",
     description:
-      "Rapid development with iterative testing. We build production-ready solutions and integrate them seamlessly into your existing tools.",
+      "We rapidly deploy the intelligence layer, seamlessly integrating predictive grading and job placement tracking with your existing school software.",
   },
   {
     icon: Rocket,
     step: "04",
     title: "Continuous Optimization",
     description:
-      "We don't just launch and leave. We continuously optimize your systems to ensure they evolve with your business and keep driving growth.",
+      "We don't just launch and leave. Your ADI model learns from every new student cohort, constantly improving your pass rates and enrollment conversions.",
   },
 ]
 
@@ -46,8 +46,7 @@ export function ProcessSection() {
             The Inner G Complete Methodology
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            A proven four-phase methodology that transforms business ambition into
-            production-ready AI and blockchain solutions.
+            A proven four-phase methodology that integrates our Artificial Domain Intelligence directly into your school's existing workflows.
           </p>
         </div>
 

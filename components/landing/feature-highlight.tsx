@@ -5,27 +5,27 @@ import { TrendingUp, Lock, Zap, Globe } from "lucide-react"
 const features = [
   {
     icon: TrendingUp,
-    title: "Franchise Velocity",
+    title: "Enrollment Velocity",
     stat: "3.2x",
-    description: "Average revenue multiplier for wellness clients commercializing AI solutions with our team.",
+    description: "Average enrollment multiplier for academies deploying our Omni-Channel Admissions AI.",
   },
   {
     icon: Lock,
-    title: "Institutional Security",
-    stat: "HIPAA",
-    description: "All solutions built with medical-grade security, compliance, and audit-ready architecture.",
+    title: "Audit-Ready Compliance",
+    stat: "NACCAS",
+    description: "All solutions are built to perfectly align with Title-IV and state board reporting requirements.",
   },
   {
     icon: Zap,
-    title: "Service Deployment",
+    title: "System Integration",
     stat: "12 wk",
-    description: "Average time from architecture to production for specialized autonomous service agents.",
+    description: "Average time from architecture to full deployment of our intelligence layer into your school.",
   },
   {
     icon: Globe,
-    title: "Global Availability",
+    title: "Autonomous Support",
     stat: "24/7",
-    description: "Solutions engineered for global franchise networks with 99.99% uptime assurance.",
+    description: "AI agents engineered to recover dropped leads and answer student questions round-the-clock.",
   },
 ]
 
@@ -46,8 +46,8 @@ export function FeatureHighlight() {
             Built for Institutional Scale
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            We combine deep technical expertise with business acumen to deliver solutions
-            that don&apos;t just work — they generate measurable enterprise value.
+            We combine deep technical expertise with beauty industry acumen to deliver solutions
+            that don&apos;t just work — they protect accreditations and generate measurable enrollment growth.
           </p>
         </div>
 

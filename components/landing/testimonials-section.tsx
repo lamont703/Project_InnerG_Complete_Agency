@@ -7,24 +7,24 @@ import { Button } from "@/components/ui/button"
 const testimonials = [
   {
     quote:
-      "Inner G Complete transformed our approach to AI. They didn't just build a solution — they architected a competitive advantage that revolutionized our per-client booking value by 34%.",
+      "Inner G Complete didn't just build us a software dashboard — they architected a complete enrollment engine. Their autonomous AI recovered so many abandoned leads that our next cohort was fully booked a month early.",
+    name: "Marcus Thorne",
+    role: "Director of Admissions",
+    company: "Texas Barber Academy",
+  },
+  {
+    quote:
+      "The Predictive Diagnostics tool completely changed our pedagogy. We stopped guessing who was struggling and started intervening early. Our State Board first-time pass rate jumped from 72% to 94%.",
     name: "Elena Rodriguez",
-    role: "Director of Operations",
-    company: "Lumina Wellness Collective",
+    role: "Lead Educator",
+    company: "Lumina Cosmetology Institute",
   },
   {
     quote:
-      "Their blockchain expertise provided the transparency our clients demand. The ingredient provenance platform they built has become our most powerful marketing asset for ethical supply.",
+      "Maintaining our NACCAS accreditation used to be a nightmare of spreadsheets. Their AI Placement Matcher not only secured jobs for our graduates automatically, but it generated the exact audit-ready paper trail we needed for Title-IV.",
     name: "James Sterling",
-    role: "Founder",
-    company: "Sterling & Silk Grooming",
-  },
-  {
-    quote:
-      "What sets Inner G Complete apart is their ability to translate complex technology into real physical-to-digital outcomes. Our franchise locations are now truly unified.",
-    name: "Dr. Julianne Voss",
-    role: "Chief Innovation Officer",
-    company: "Voss Medical Aesthetics",
+    role: "School Owner",
+    company: "Sterling Grooming College",
   },
 ]
 
