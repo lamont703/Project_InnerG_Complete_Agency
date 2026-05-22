@@ -256,21 +256,28 @@ export class GhlProvider {
     message: string;
     subject?: string;
   }) {
+    const bodyPayload: any = {
+      type: params.type,
+      contactId: params.contactId,
+      message: params.message,
+      subject: params.subject,
+    }
+
+    // GHL requires an html field for outbound Email messages
+    if (params.type === "Email") {
+      bodyPayload.html = params.message.replace(/\n/g, "<br>")
+    }
+
     const response = await fetch(`${GHL_API_BASE}/conversations/messages`, {
       method: "POST",
       headers: this.headers,
-      body: JSON.stringify({
-        type: params.type,
-        contactId: params.contactId,
-        message: params.message,
-        subject: params.subject,
-      }),
-    });
+      body: JSON.stringify(bodyPayload),
+    })
 
     if (!response.ok) {
-      throw new Error(`GHL_SEND_MESSAGE_ERROR: ${await response.text()}`);
+      throw new Error(`GHL_SEND_MESSAGE_ERROR: ${await response.text()}`)
     }
-    return await response.json();
+    return await response.json()
   }
 
   /**

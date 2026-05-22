@@ -113,6 +113,9 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
   // UI Selection States
   const [selectedShops, setSelectedShops] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
+  
   const [leadForm, setLeadForm] = useState({
     name: "",
     phone: "",
@@ -216,6 +219,14 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
       })
       .sort((a, b) => a.distance - b.distance);
   }, [initialShops, selectedMetro, customCoords, radius, selectedSubtype, searchQuery]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredShops.length, selectedMetro, radius, selectedSubtype, searchQuery]);
+
+  const totalPages = Math.ceil(filteredShops.length / itemsPerPage);
+  const paginatedShops = filteredShops.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   // Initialize and update Live Leaflet Map dynamically
   useEffect(() => {
@@ -683,8 +694,8 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
 
           {/* Grid Layout of Storefronts */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredShops.length > 0 ? (
-              filteredShops.map(shop => {
+            {paginatedShops.length > 0 ? (
+              paginatedShops.map(shop => {
                 const isBarber = shop.subtype === "BS" || shop.businessName.toUpperCase().includes("BARBER") || (shop.licenseType && shop.licenseType.toUpperCase().includes("BARBER"));
                 const isSelected = selectedShops.includes(shop.licenseNumber);
 
@@ -762,9 +773,38 @@ export default function BarberPlacementMatcherClient({ initialShops, errorMsg }:
                 <p className="text-[10px] uppercase tracking-widest text-slate-400">Expand your commute radius slider or try a different city center hub.</p>
               </div>
             )}
-
-
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between bg-slate-50 border border-slate-100 rounded-3xl p-4 gap-4 mt-6">
+              <button
+                onClick={() => {
+                  setCurrentPage(p => Math.max(1, p - 1));
+                  window.scrollTo({ top: document.getElementById(mapContainerId)?.parentElement?.offsetTop || 0, behavior: 'smooth' });
+                }}
+                disabled={currentPage === 1}
+                className="w-full sm:w-auto px-6 py-3 text-[10px] font-black uppercase tracking-widest bg-white border border-slate-200 rounded-xl hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                Previous Page
+              </button>
+              
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                Page {currentPage} of {totalPages}
+              </span>
+              
+              <button
+                onClick={() => {
+                  setCurrentPage(p => Math.min(totalPages, p + 1));
+                  window.scrollTo({ top: document.getElementById(mapContainerId)?.parentElement?.offsetTop || 0, behavior: 'smooth' });
+                }}
+                disabled={currentPage === totalPages}
+                className="w-full sm:w-auto px-6 py-3 text-[10px] font-black uppercase tracking-widest bg-white border border-slate-200 rounded-xl hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                Next Page
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
