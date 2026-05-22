@@ -1,0 +1,11 @@
+-- Add additional columns from the raw CSV
+ALTER TABLE agent_barbershop_leads
+ADD COLUMN IF NOT EXISTS place_id TEXT,
+ADD COLUMN IF NOT EXISTS formatted_address TEXT,
+ADD COLUMN IF NOT EXISTS website TEXT,
+ADD COLUMN IF NOT EXISTS latitude NUMERIC,
+ADD COLUMN IF NOT EXISTS longitude NUMERIC,
+ADD COLUMN IF NOT EXISTS rating NUMERIC,
+ADD COLUMN IF NOT EXISTS total_reviews INTEGER,
+ADD COLUMN IF NOT EXISTS place_types TEXT,
+ADD COLUMN IF NOT EXISTS business_status TEXT;

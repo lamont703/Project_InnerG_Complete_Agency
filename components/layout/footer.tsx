@@ -5,6 +5,7 @@ const footerLinks = {
   Solutions: [
     { label: "Texas Barber Exam Intelligence Prep", href: "/texas-barber-exam-intelligence-prep" },
     { label: "Accreditation Advisory Committee Toolkit", href: "/program-advisory-committee-kit" },
+    { label: "Barber & Cosmetology Placement", href: "/barber-cosmetology-placement" },
     { label: "Wellness Spa Intelligence", href: "#services" },
     { label: "Franchise Architectures", href: "#services" },
     { label: "Luxury Beauty AI", href: "#services" },
