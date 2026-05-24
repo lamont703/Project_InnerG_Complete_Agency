@@ -57,14 +57,6 @@ const solutions = [
     href: "/barber-cos-continuing-education",
     roles: ["School Students", "School Instructors"]
   },
-  {
-    title: "Accreditation Advisory Committee Toolkit",
-    label: "Compliance Presenter & Minutes Tool",
-    description: "Prepare and de-risk your AI integration proposal for your next Program Advisory Committee (PAC) meeting. Run digital agendas and generate audit-ready resolution minutes instantly.",
-    icon: Shield,
-    href: "/program-advisory-committee-kit",
-    roles: ["School Administrators"]
-  },
 ]
 
 export default function AISolutionsPage() {

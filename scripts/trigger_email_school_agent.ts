@@ -35,7 +35,8 @@ async function loadPendingSchools(limit: number) {
 }
 
 async function generateAiMessage(prompt: string): Promise<string> {
-  const geminiApiKey = Deno.env.get("GEMINI_API_KEY") || "AIzaSyDmIBEFOBD2xEGqzS1cPVPqTOJNH2kz_Ws"
+  const geminiApiKey = Deno.env.get("GEMINI_API_KEY")
+  if (!geminiApiKey) throw new Error("Missing GEMINI_API_KEY in environment")
   
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
     method: "POST",

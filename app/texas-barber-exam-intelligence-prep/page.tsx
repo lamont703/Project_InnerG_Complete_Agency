@@ -45,34 +45,45 @@ export default function TexasBarberExamPrep() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative flex items-center justify-center overflow-hidden pt-12 pb-16 lg:pt-32 lg:pb-40 border-b border-slate-100 bg-white">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-50 to-white" />
-        <GlowOrb className="top-1/4 -left-32 h-96 w-96 bg-primary/10 animate-float" />
-        <GlowOrb className="bottom-0 right-1/4 h-80 w-80 bg-accent/5 animate-float-delayed" />
+      <section className="relative flex items-center justify-center overflow-hidden pt-12 pb-16 lg:pt-32 lg:pb-40 border-b border-slate-900 bg-slate-950">
+        {/* Background Image Container */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <Image
+            src="/barber_exam_prep.png"
+            alt="Texas Barber Exam Intelligence Prep Background"
+            fill
+            className="object-cover scale-105"
+            priority
+          />
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[2px]" />
+        </div>
+
+        <GlowOrb className="top-1/4 -left-32 h-96 w-96 bg-primary/10 animate-float z-0" />
+        <GlowOrb className="bottom-0 right-1/4 h-80 w-80 bg-accent/5 animate-float-delayed z-0" />
 
         <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
-          <div className="mb-6 lg:mb-10 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 lg:px-6 py-2 shadow-sm">
+          <div className="mb-6 lg:mb-10 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 lg:px-6 py-2 shadow-sm backdrop-blur-md">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-[10px] lg:text-xs font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] text-primary">Sovereign Texas Pilot Program</span>
+            <span className="text-[10px] lg:text-xs font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] text-white">Sovereign Texas Pilot Program</span>
           </div>
 
           <h1 className="text-4xl font-black leading-[0.9] tracking-tighter sm:text-6xl md:text-8xl uppercase italic">
-            <span className="block text-slate-950 mb-2 lg:mb-4">
+            <span className="block text-white mb-2 lg:mb-4 drop-shadow-lg">
               Texas Barber Exam
             </span>
-            <span className="block text-primary">
+            <span className="block text-primary drop-shadow-lg">
               Intelligence Prep™
             </span>
           </h1>
 
-          <p className="mx-auto mt-6 lg:mt-10 max-w-3xl text-lg lg:text-xl leading-relaxed text-slate-800 font-bold sm:text-2xl text-balance">
+          <p className="mx-auto mt-6 lg:mt-10 max-w-3xl text-lg lg:text-xl leading-relaxed text-slate-200 font-bold sm:text-2xl text-balance drop-shadow-md">
             Inner G Complete Agency is leading an elite research and development pilot to resolve the structural fail rates in the Texas barbering market. We architect proprietary Artificial Domain Intelligence (ADI) to secure your NACCAS accreditation.
           </p>
 
           <div className="mt-10 lg:mt-14 flex flex-col items-center justify-center gap-4 lg:gap-6 px-6">
             <Button
               size="lg"
-              className="bg-primary text-white hover:bg-slate-900 gap-3 h-auto py-6 lg:py-8 px-6 lg:px-12 text-xs lg:text-sm font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] shadow-2xl transition-all hover:-translate-y-1 w-full max-w-lg rounded-2xl"
+              className="bg-primary text-white hover:bg-blue-700 gap-3 h-auto py-6 lg:py-8 px-6 lg:px-12 text-xs lg:text-sm font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] shadow-[0_4px_20px_rgba(37,99,235,0.4)] transition-all hover:-translate-y-1 w-full max-w-lg rounded-2xl border border-primary/50"
               asChild
             >
               <Link href="/barber-school-pilot-scholarship-fund">
@@ -83,7 +94,7 @@ export default function TexasBarberExamPrep() {
             <Button
               variant="outline"
               size="lg"
-              className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50 gap-3 h-auto py-6 lg:py-8 px-6 lg:px-12 text-xs lg:text-sm font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] transition-all hover:scale-[1.02] border-2 shadow-sm w-full max-w-lg rounded-2xl"
+              className="border-white/20 bg-white/5 backdrop-blur-sm text-white hover:bg-white/10 hover:text-white gap-3 h-auto py-6 lg:py-8 px-6 lg:px-12 text-xs lg:text-sm font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] transition-all hover:scale-[1.02] border-2 shadow-sm w-full max-w-lg rounded-2xl"
               asChild
             >
               <Link href="/tools/texas-barber-exam-practice-deck">Launch Barber Practice Questions</Link>

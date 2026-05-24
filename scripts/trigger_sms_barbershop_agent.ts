@@ -24,18 +24,23 @@ const headers = {
   "Version": "2021-07-28",
 }
 
-async function loadPendingShops(limit: number) {
-  const { data, error } = await supabase
-    .from("agent_barbershop_leads")
-    .select("*")
-    .eq("outreach_status", "pending")
-    .limit(limit)
+async function loadPendingShops(limit: number, targetPhone?: string | null) {
+  let query = supabase.from("agent_barbershop_leads").select("*")
+
+  if (targetPhone) {
+    query = query.eq("phone", targetPhone)
+  } else {
+    query = query.eq("outreach_status", "pending").limit(limit)
+  }
+
+  const { data, error } = await query
   if (error) throw error
   return data || []
 }
 
 async function generateAiMessage(prompt: string): Promise<string> {
-  const geminiApiKey = Deno.env.get("GEMINI_API_KEY") || "AIzaSyDmIBEFOBD2xEGqzS1cPVPqTOJNH2kz_Ws"
+  const geminiApiKey = Deno.env.get("GEMINI_API_KEY")
+  if (!geminiApiKey) throw new Error("Missing GEMINI_API_KEY in environment")
   
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
     method: "POST",
@@ -102,13 +107,17 @@ async function sendGhlMessage(contactId: string, message: string) {
   return data
 }
 
-async function runSmsAgent(limit: number) {
+async function runSmsAgent(limit: number, targetPhone?: string | null) {
   console.log("==================================================================")
-  console.log(`📡 INNER G COMPLETE AGENCY — SMS BARBERSHOP AGENT (LIMIT: ${limit}) 📡`)
+  if (targetPhone) {
+    console.log(`📡 INNER G COMPLETE AGENCY — TARGETING PHONE: ${targetPhone} 📡`)
+  } else {
+    console.log(`📡 INNER G COMPLETE AGENCY — SMS BARBERSHOP AGENT (LIMIT: ${limit}) 📡`)
+  }
   console.log("==================================================================\n")
 
   try {
-    const shops = await loadPendingShops(limit)
+    const shops = await loadPendingShops(limit, targetPhone)
 
     for (const shop of shops) {
       console.log(`\n🤖 [SMS AGENT] Processing ${shop.shop_name}...`)
@@ -137,7 +146,7 @@ Keep it under 300 characters. No markdown. No placeholders.`
       console.log(`📱 Phone:       ${shop.phone}`)
       console.log(`======================================================`)
       
-      const targetApproval = prompt(`Approve generating a message for this shop? (y/N): `)
+      const targetApproval = Deno.env.get("AUTO_APPROVE") ? "y" : prompt(`Approve generating a message for this shop? (y/N): `)
       if (targetApproval?.trim().toLowerCase() !== 'y') {
         console.log(`⚠️ Shop skipped by human. No API tokens used.\n`)
         continue
@@ -172,5 +181,15 @@ Keep it under 300 characters. No markdown. No placeholders.`
   }
 }
 
-const limitArg = parseInt(Deno.args[0] || "1", 10)
-runSmsAgent(limitArg)
+const arg = Deno.args[0] || "1"
+let limitArg = 1
+let phoneArg: string | null = null
+
+// If the argument contains non-numeric characters (like + or -) or is 10+ digits long, treat as phone number
+if (arg.startsWith("+") || arg.length >= 10 || arg.includes("-")) {
+  phoneArg = arg
+} else {
+  limitArg = parseInt(arg, 10) || 1
+}
+
+runSmsAgent(limitArg, phoneArg)
