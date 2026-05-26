@@ -3,13 +3,10 @@ import Image from "next/image"
 
 const footerLinks = {
   Solutions: [
+    { label: "Barber & Cosmetology Shop Day", href: "/barber-cosmetology-placement" },
+    { label: "Barber & Cosmetology Placement", href: "/barber-beauty-network" },
     { label: "Texas Barber Exam Intelligence Prep", href: "/texas-barber-exam-intelligence-prep" },
     { label: "Accreditation Advisory Committee Toolkit", href: "/program-advisory-committee-kit" },
-    { label: "Barber & Cosmetology Placement", href: "/barber-cosmetology-placement" },
-    { label: "Barber & Beauty Network", href: "/barber-beauty-network" },
-    { label: "Wellness Spa Intelligence", href: "#services" },
-    { label: "Franchise Architectures", href: "#services" },
-    { label: "Luxury Beauty AI", href: "#services" },
   ],
   Tools: [
     { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },

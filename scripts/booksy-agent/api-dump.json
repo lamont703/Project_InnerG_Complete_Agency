@@ -1,0 +1,1261 @@
+{
+  "profile_url": "https://booksy.com/en-us/780396_barber-serjio_barber-shop_134663_willows",
+  "captured_at": "2026-05-24T21:14:52.918Z",
+  "total_api_calls": 10,
+  "responses": [
+    {
+      "url": "https://us.booksy.com/core/v2/customer_api/my_booksy/galleries/?no_thumbs=true&min_gallery_businesses=5",
+      "status": 200,
+      "contentType": "application/json; charset=UTF-8",
+      "body": {
+        "1": {
+          "businesses": [
+            {
+              "id": 98245,
+              "name": "Anthony @ Westside Barbershop",
+              "location": {
+                "coordinate": {
+                  "latitude": 27.96555,
+                  "longitude": -82.49339
+                },
+                "address": "2800 N Mac Dill Ave, Tampa, 33607",
+                "city": "Tampa"
+              },
+              "distance": null,
+              "active": true,
+              "visible": true,
+              "reviews_count": 457,
+              "reviews_stars": 5,
+              "reviews_rank": 4.958424507658643,
+              "images": {
+                "cover": [
+                  {
+                    "image_id": 25613248,
+                    "business_id": 98245,
+                    "tags": [],
+                    "staffers": [],
+                    "description": null,
+                    "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/98245/biz_photo/5b1ce27de72e49ac9c2aa921d1d59f-anthony-westside-barbershop-biz-photo-ec3cc553a4c14549816ec0c0970f90-booksy.jpeg",
+                    "height": 720,
+                    "width": 1280,
+                    "category": "biz_photo",
+                    "is_cover_photo": true,
+                    "inspiration_categories": [],
+                    "order": 0,
+                    "visible": true,
+                    "active": true,
+                    "created": "2023-08-20T22:01:43"
+                  }
+                ],
+                "biz_photo_count": null,
+                "biz_photo_per_page": 20
+              },
+              "primary_category": 6,
+              "url": "98245_anthony-westside-barbershop_barber-shop_15761_tampa",
+              "reviews_rank_score": 0.9754054065931548,
+              "is_recommended": true,
+              "promoted": true,
+              "manual_boost_score": 0,
+              "max_discount_rate": 0,
+              "low_availability": false,
+              "timezone_name": "America/New_York",
+              "accept_booksy_pay": false,
+              "meta": {
+                "score": 5329.159,
+                "id": "business:98245",
+                "item_no": 0
+              }
+            },
+            {
+              "id": 481342,
+              "name": "🔥💈Flawless Fades & Hair Systems Installations💈🔥",
+              "location": {
+                "coordinate": {
+                  "latitude": 28.565465200000002,
+                  "longitude": -81.16164529999999
+                },
+                "address": "1801 Sandy Creek Ln Suite 104, Orlando, 32826",
+                "city": "Orlando"
+              },
+              "distance": null,
+              "active": true,
+              "visible": true,
+              "reviews_count": 385,
+              "reviews_stars": 5,
+              "reviews_rank": 4.950649350649351,
+              "images": {
+                "cover": [
+                  {
+                    "image_id": 29812280,
+                    "business_id": 481342,
+                    "tags": [],
+                    "staffers": [],
+                    "description": null,
+                    "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/481342/biz_photo/5f28c4906bb6475692f485b86f7147-flawless-fades-hair-systems-in-biz-photo-c643db9da71d4eea86e3e9ef3f4dc6-booksy.jpeg",
+                    "height": 700,
+                    "width": 1245,
+                    "category": "biz_photo",
+                    "is_cover_photo": true,
+                    "inspiration_categories": [],
+                    "order": 0,
+                    "visible": true,
+                    "active": true,
+                    "created": "2025-07-17T16:34:47"
+                  }
+                ],
+                "biz_photo_count": null,
+                "biz_photo_per_page": 20
+              },
+              "primary_category": 6,
+              "url": "481342_flawless-fades-hair-systems-installations_barber-shop_134763_orlando",
+              "reviews_rank_score": 0.970861123732069,
+              "is_recommended": true,
+              "promoted": true,
+              "manual_boost_score": 0,
+              "max_discount_rate": 0,
+              "low_availability": false,
+              "timezone_name": "America/New_York",
+              "accept_booksy_pay": false,
+              "meta": {
+                "score": 5282.709,
+                "id": "business:481342",
+                "item_no": 1
+              }
+            },
+            {
+              "id": 97281,
+              "name": "Krispi King 1",
+              "location": {
+                "coordinate": {
+                  "latitude": 35.75513,
+                  "longitude": -95.38961
+                },
+                "address": "115 N Junction Street, Muskogee, OK, 74401",
+                "city": "Muskogee, OK"
+              },
+              "distance": null,
+              "active": true,
+              "visible": true,
+              "reviews_count": 250,
+              "reviews_stars": 5,
+              "reviews_rank": 4.976,
+              "images": {
+                "cover": [
+                  {
+                    "image_id": 22166387,
+                    "business_id": 97281,
+                    "tags": [],
+                    "staffers": [],
+                    "description": null,
+                    "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/97281/biz_photo/5bdceacc1ef9401993e90965b17369-kang-gstylesbarbershop-biz-photo-504ac3a689db473cac5a4c38453c61-booksy.jpeg",
+                    "height": 666,
+                    "width": 999,
+                    "category": "biz_photo",
+                    "is_cover_photo": true,
+                    "inspiration_categories": [],
+                    "order": 0,
+                    "visible": true,
+                    "active": true,
+                    "created": "2022-01-24T17:31:53"
+                  }
+                ],
+                "biz_photo_count": null,
+                "biz_photo_per_page": 20
+              },
+              "primary_category": 6,
+              "url": "97281_krispi-king-1_barber-shop_32403_muskogee",
+              "reviews_rank_score": 0.9744346014262719,
+              "is_recommended": true,
+              "promoted": true,
+              "manual_boost_score": 0,
+              "max_discount_rate": 0,
+              "low_availability": false,
+              "timezone_name": "America/Chicago",
+              "accept_booksy_pay": false,
+              "meta": {
+                "score": 5246.6006,
+                "id": "business:97281",
+                "item_no": 2
+              }
+            },
+            {
+              "id": 482511,
+              "name": "Jose Vargas - Empire Barber Studio, FL",
+              "location": {
+                "coordinate": {
+                  "latitude": 28.086200893661918,
+                  "longitude": -81.62230748464243
+                },
+                "address": "1920 verano dr, Haines City, 33844",
+                "city": "Haines City"
+              },
+              "distance": null,
+              "active": true,
+              "visible": true,
+              "reviews_count": 917,
+              "reviews_stars": 5,
+              "reviews_rank": 4.947655398037077,
+              "images": {
+                "cover": [
+                  {
+                    "image_id": 32296632,
+                    "business_id": 482511,
+                    "tags": [],
+                    "staffers": [],
+                    "description": null,
+                    "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/482511/biz_photo/10e11032b46e49e3acc6daacdde30b-jose-vargas-empire-barber-stud-biz-photo-da4daa62016d47dca7f05ae5a54f02-booksy.jpeg",
+                    "height": 720,
+                    "width": 1280,
+                    "category": "biz_photo",
+                    "is_cover_photo": true,
+                    "inspiration_categories": [],
+                    "order": 0,
+                    "visible": true,
+                    "active": true,
+                    "created": "2026-04-27T22:02:55"
+                  }
+                ],
+                "biz_photo_count": null,
+                "biz_photo_per_page": 20
+              },
+              "primary_category": 6,
+              "url": "482511_jose-vargas-empire-barber-studio-fl_barber-shop_16005_haines-city",
+              "reviews_rank_score": 0.9772664145721852,
+              "is_recommended": true,
+              "promoted": true,
+              "manual_boost_score": 0,
+              "max_discount_rate": 0,
+              "low_availability": false,
+              "timezone_name": "America/New_York",
+              "accept_booksy_pay": false,
+              "meta": {
+                "score": 5221.047,
+                "id": "business:482511",
+                "item_no": 3
+              }
+            },
+            {
+              "id": 207352,
+              "name": "DezelClippz @ DiamondCutz",
+              "location": {
+                "coordinate": {
+                  "latitude": 36.03575558640302,
+                  "longitude": -115.17106019895874
+                },
+                "address": "8480 south Las Vegas Blvd, Suite 140, Las Vegas, 89183",
+                "city": "Las Vegas"
+              },
+              "distance": null,
+              "active": true,
+              "visible": true,
+              "reviews_count": 185,
+              "reviews_stars": 5,
+              "reviews_rank": 4.697297297297298,
+              "images": {
+                "cover": [
+                  {
+                    "image_id": 26814309,
+                    "business_id": 207352,
+                    "tags": [],
+                    "staffers": [],
+                    "description": null,
+                    "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/207352/biz_photo/1efbb13e9c474012a6c97f457bc3de-dezelclippz-diamondcutz-biz-photo-5cc804f1b0724497adf8a52f2ff324-booksy.jpeg",
+                    "height": 723,
+                    "width": 1286,
+                    "category": "biz_photo",
+                    "is_cover_photo": true,
+                    "inspiration_categories": [],
+                    "order": 0,
+                    "visible": true,
+                    "active": true,
+                    "created": "2024-02-27T17:31:45"
+                  }
+                ],
+                "biz_photo_count": null,
+                "biz_photo_per_page": 20
+              },
+              "primary_category": 6,
+              "url": "207352_dezelclippz-diamondcutz_barber-shop_29251_las-vegas",
+              "reviews_rank_score": 0.8769950203723585,
+              "is_recommended": false,
+              "promoted": true,
+              "manual_boost_score": 0,
+              "max_discount_rate": 0,
+              "low_availability": false,
+              "timezone_name": "America/Los_Angeles",
+              "accept_booksy_pay": false,
+              "meta": {
+                "score": 5212.05,
+                "id": "business:207352",
+                "item_no": 4
+              }
+            },
+            {
+              "id": 485491,
+              "name": "Jordan Nunez",
+              "location": {
+                "coordinate": {
+                  "latitude": 38.50222787207493,
+                  "longitude": -122.75200637184855
+                },
+                "address": "676 Larkfield Ctr, Santa Rosa CA, 95403",
+                "city": "Santa Rosa CA"
+              },
+              "distance": null,
+              "active": true,
+              "visible": true,
+              "reviews_count": 232,
+              "reviews_stars": 5,
+              "reviews_rank": 4.952586206896552,
+              "images": {
+                "cover": [
+                  {
+                    "image_id": 24160287,
+                    "business_id": 485491,
+                    "tags": [],
+                    "staffers": [],
+                    "description": null,
+                    "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/485491/biz_photo/10be6ab224fb4de8b4867dd4e7fe43-jordan-nunez-biz-photo-3a5ee88a3e0a48daaf9ae284462e9f-booksy.jpeg",
+                    "height": 303,
+                    "width": 539,
+                    "category": "biz_photo",
+                    "is_cover_photo": true,
+                    "inspiration_categories": [],
+                    "order": 0,
+                    "visible": true,
+                    "active": true,
+                    "created": "2022-12-28T15:50:22"
+                  }
+                ],
+                "biz_photo_count": null,
+                "biz_photo_per_page": 20
+              },
+              "primary_category": 6,
+              "url": "485491_jordan-nunez_barber-shop_134731_santa-rosa",
+              "reviews_rank_score": 0.9642573261230776,
+              "is_recommended": true,
+              "promoted": true,
+              "manual_boost_score": 0,
+              "max_discount_rate": 10,
+              "low_availability": false,
+              "timezone_name": "America/Los_Angeles",
+              "accept_booksy_pay": false,
+              "meta": {
+                "score": 5160.3335,
+                "id": "business:485491",
+                "item_no": 5
+              }
+            },
+            {
+              "id": 475070,
+              "name": "Fade Factory Barbershop - South",
+              "location": {
+                "coordinate": {
+                  "latitude": 27.4719725276088,
+                  "longitude": -99.4762420248996
+                },
+                "address": "2805 US-83, Laredo, 78046",
+                "city": "Laredo"
+              },
+              "distance": null,
+              "active": true,
+              "visible": true,
+              "reviews_count": 233,
+              "reviews_stars": 5,
+              "reviews_rank": 4.742489270386266,
+              "images": {
+                "cover": [
+                  {
+                    "image_id": 25463412,
+                    "business_id": 475070,
+                    "tags": [],
+                    "staffers": [],
+                    "description": null,
+                    "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/475070/biz_photo/55b06819cb114af2988ef02e4d7628-fade-factory-barbershop-south-biz-photo-1bd5cb15bda1428db909edbc8c2a57-booksy.jpeg",
+                    "height": 718,
+                    "width": 1278,
+                    "category": "biz_photo",
+                    "is_cover_photo": true,
+                    "inspiration_categories": [],
+                    "order": 0,
+                    "visible": true,
+                    "active": true,
+                    "created": "2023-07-28T06:45:09"
+                  }
+                ],
+                "biz_photo_count": null,
+                "biz_photo_per_page": 20
+              },
+              "primary_category": 6,
+              "url": "475070_fade-factory-barbershop-south_barber-shop_37569_laredo",
+              "reviews_rank_score": 0.8965109383102811,
+              "is_recommended": true,
+              "promoted": true,
+              "manual_boost_score": 0,
+              "max_discount_rate": 0,
+              "low_availability": false,
+              "timezone_name": "America/Chicago",
+              "accept_booksy_pay": false,
+              "meta": {
+                "score": 5148.2476,
+                "id": "business:475070",
+                "item_no": 6
+              }
+            },
+            {
+              "id": 431586,
+              "name": "Jay Roby  (Lincoln Ave Barbershop)",
+              "location": {
+                "coordinate": {
+                  "latitude": 42.03614,
+                  "longitude": -88.28402
+                },
+                "address": "50 S Grove, Unit C, Elgin, IL",
+                "city": "Elgin"
+              },
+              "distance": null,
+              "active": true,
+              "visible": true,
+              "reviews_count": 174,
+              "reviews_stars": 5,
+              "reviews_rank": 4.862068965517241,
+              "images": {
+                "cover": [
+                  {
+                    "image_id": 25787031,
+                    "business_id": 431586,
+                    "tags": [],
+                    "staffers": [],
+                    "description": null,
+                    "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/431586/biz_photo/6766f8b87a534683a02ab046fdbfcc-jay-roby-lincoln-ave-barbersho-biz-photo-fadf110d22e04d5baf0820dd6a6c04-booksy.jpeg",
+                    "height": 1560,
+                    "width": 2340,
+                    "category": "biz_photo",
+                    "is_cover_photo": true,
+                    "inspiration_categories": [],
+                    "order": 0,
+                    "visible": true,
+                    "active": true,
+                    "created": "2023-09-16T03:28:04"
+                  }
+                ],
+                "biz_photo_count": null,
+                "biz_photo_per_page": 20
+              },
+              "primary_category": 6,
+              "url": "431586_jay-roby-lincoln-ave-barbershop_barber-shop_7_usa",
+              "reviews_rank_score": 0.9268205486728962,
+              "is_recommended": true,
+              "promoted": true,
+              "manual_boost_score": 0,
+              "max_discount_rate": 0,
+              "low_availability": false,
+              "timezone_name": "America/Chicago",
+              "accept_booksy_pay": false,
+              "meta": {
+                "score": 5116.0005,
+                "id": "business:431586",
+                "item_no": 7
+              }
+            },
+            {
+              "id": 442056,
+              "name": "Jose Sanchez",
+              "location": {
+                "coordinate": {
+                  "latitude": 36.01511980352988,
+                  "longitude": -115.15316708138693
+                },
+                "address": "450 E Silverado Ranch Blvd, #110, Las Vegas, 89183",
+                "city": "Las Vegas"
+              },
+              "distance": null,
+              "active": true,
+              "visible": true,
+              "reviews_count": 174,
+              "reviews_stars": 5,
+              "reviews_rank": 5,
+              "images": {
+                "cover": [
+                  {
+                    "image_id": 31863770,
+                    "business_id": 442056,
+                    "tags": [],
+                    "staffers": [],
+                    "description": null,
+                    "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/442056/biz_photo/c0196c7e0bcb46729ced7eeb6204d7-jose-sanchez-biz-photo-294dd5f58f51404bba1db4a35837fd-booksy.jpeg",
+                    "height": 697,
+                    "width": 1240,
+                    "category": "biz_photo",
+                    "is_cover_photo": true,
+                    "inspiration_categories": [],
+                    "order": 0,
+                    "visible": true,
+                    "active": true,
+                    "created": "2026-03-19T14:22:22"
+                  }
+                ],
+                "biz_photo_count": null,
+                "biz_photo_per_page": 20
+              },
+              "primary_category": 6,
+              "url": "442056_jose-sanchez_barber-shop_29251_las-vegas",
+              "reviews_rank_score": 0.97839875484701,
+              "is_recommended": true,
+              "promoted": true,
+              "manual_boost_score": 0,
+              "max_discount_rate": 0,
+              "low_availability": false,
+              "timezone_name": "America/Los_Angeles",
+              "accept_booksy_pay": false,
+              "meta": {
+                "score": 5116.0005,
+                "id": "business:442056",
+                "item_no": 8
+              }
+            },
+            {
+              "id": 434116,
+              "name": "Rob",
+              "location": {
+                "coordinate": {
+                  "latitude": 34.04991597192913,
+                  "longitude": -117.24678329826546
+                },
+                "address": "25540 Barton rd, Loma Linda, 92354",
+                "city": "Loma Linda"
+              },
+              "distance": null,
+              "active": true,
+              "visible": true,
+              "reviews_count": 198,
+              "reviews_stars": 5,
+              "reviews_rank": 4.974747474747475,
+              "images": {
+                "cover": [
+                  {
+                    "image_id": 30294194,
+                    "business_id": 434116,
+                    "tags": [],
+                    "staffers": [],
+                    "description": null,
+                    "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/434116/biz_photo/7fe2d989cfbe43cd9548a4f6f17fac-rob-biz-photo-a8924aa934c64e8b974dd6c8e6e230-booksy.jpeg",
+                    "height": 663,
+                    "width": 1179,
+                    "category": "biz_photo",
+                    "is_cover_photo": true,
+                    "inspiration_categories": [],
+                    "order": 0,
+                    "visible": true,
+                    "active": true,
+                    "created": "2025-09-27T06:42:50"
+                  }
+                ],
+                "biz_photo_count": null,
+                "biz_photo_per_page": 20
+              },
+              "primary_category": 6,
+              "url": "434116_rob_barber-shop_102323_loma-linda",
+              "reviews_rank_score": 0.9698793172606662,
+              "is_recommended": true,
+              "promoted": true,
+              "manual_boost_score": 0,
+              "max_discount_rate": 0,
+              "low_availability": false,
+              "timezone_name": "America/Los_Angeles",
+              "accept_booksy_pay": false,
+              "meta": {
+                "score": 5113.454,
+                "id": "business:434116",
+                "item_no": 9
+              }
+            }
+          ],
+          "label": "Recommended",
+          "type": "recommended",
+          "promoted_labels": {
+            "promoted_label": "Promoted",
+            "promoted_hint": "This partner's profile ranks higher in search results because they have purchased an additional paid service from Booksy to assist in acquiring new clients.",
+            "recommended_label": "Booksy Recommended",
+            "recommended_hint": "The Booksy Recommended badge is available to partners who have:\n- purchased an additional paid service from Booksy to assist in acquiring new clients.\n- met certain requirements such as having a high average rating."
+          }
+        }
+      }
+    },
+    {
+      "url": "https://us.booksy.com/core/v2/customer_api/account/exists/?email=lamont703%40gmail.com",
+      "status": 200,
+      "contentType": "application/json; charset=UTF-8",
+      "body": {
+        "account_exists": true
+      }
+    },
+    {
+      "url": "https://api.hcaptcha.com/checksiteconfig?v=be2fb915d274e0153a2483e68ec5703d502b9d3d&host=booksy.com&sitekey=6ad14483-0a2c-40c1-bc66-3510778e97f9&sc=1&swa=1&spst=1",
+      "status": 200,
+      "contentType": "application/json",
+      "body": {
+        "features": {
+          "custom_theme": true,
+          "enc_get_req": true
+        },
+        "c": {
+          "type": "hsw",
+          "req": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmIjowLCJzIjoyLCJ0IjoidyIsImQiOiJPTG5LTlh6OGpsOE5id2QxUXZCaVIzWGVrcmpLazNUMEpqNXY5OCt0UG1kdldudE5jRFBuQjY3MVJJU0FlVXRQdDR0YTBzQTJQY3BzT3hlR0JqT2hqVnBmamJmWGZxeEluSHllVktGaWVrTnBPU2lMcS9EUzhSTXdaY2cxaUhlcTBsSzBCS2RpMG1CTVJxT0h0blhpSDQvdmdJN0ovTVVTQkkrWkl4b1BQTDRCNE1JVFFzSHQ0cTl1eEpvRklSeUx0cUliUU5hYlFnelErNGpsVTI4ZXFnaHZOKzZPR1lHQUk1a3prUWx2dUoyaXlEcHBQQTVXUWk3enhYL3lxaW1kMjQrUmVsekxoRXIwUnRiK3QxaWRNZ2ZUV0lZNEVJSUZIaWYwIiwibCI6Ii9jL2RiMzdkNTZjNzQwODExNzU2MjMxMjg1ZmEzYWMwMTliODdkMjFhZTBkMTA0NTE3NjNlYTk2MWJhMTdjNWQxZWUiLCJpIjoic2hhMjU2LS9CSkNZR2hlNmJnNGdudVlKTWlhWjE1c3BpSVhnWWRQZ055VlhuOG4rMEE9IiwiZSI6MTc3OTY2MDg3OSwibiI6ImhzdyIsImMiOjEwMDB9.MSNmqOeBMOYAYKWaUkFGfRGdvifBPTDNXAi54fe4ZnY"
+        },
+        "pass": true
+      }
+    },
+    {
+      "url": "https://us.booksy.com/core/v2/customer_api/omnibus_consent_content/",
+      "status": 200,
+      "contentType": "application/json",
+      "body": {
+        "title": null,
+        "html": null
+      }
+    },
+    {
+      "url": "https://us.booksy.com/core/v2/customer_api/images/780396/?no_thumbs=true&category=inspiration&page=1&images_per_page=8&comments_size=50",
+      "status": 200,
+      "contentType": "application/json; charset=UTF-8",
+      "body": {
+        "images": [
+          {
+            "image_id": 26037110,
+            "business_id": 780396,
+            "tags": [],
+            "staffers": [],
+            "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/inspiration/8ed5e433595d4f078f8d03583356b0-barber-serjio-inspiration-03851e3f850443ef96e7377c3cbee9-booksy.jpeg",
+            "height": 2796,
+            "width": 1290,
+            "category": "inspiration",
+            "inspiration_categories": [
+              6,
+              1
+            ],
+            "order": 0,
+            "visible": true,
+            "description": "Haircut & Beard LineUp",
+            "active": true,
+            "created": "2023-10-25T20:30:48",
+            "is_cover_photo": false,
+            "liked": false,
+            "likes_count": 0,
+            "comments_count": 0,
+            "comments": [],
+            "meta": {
+              "score": null,
+              "id": "image:26037110",
+              "sort": [
+                0,
+                1698265848000
+              ],
+              "item_no": 0
+            },
+            "business": {
+              "cover_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/biz_photo/46e64b2472e445df9e236b610a757c-barber-serjio-biz-photo-8c54d6d8b31e48b2b118720faa86fc-booksy.jpeg",
+              "thumbnail_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/logo/8287010245d244d5ade7b6705285ab-barber-serjio-logo-3b60a43ea8214c66b6e05172ee42a6-booksy.jpeg",
+              "name": "Barber Serjio",
+              "id": 780396
+            }
+          },
+          {
+            "image_id": 26037086,
+            "business_id": 780396,
+            "tags": [],
+            "staffers": [],
+            "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/inspiration/7721be4734544bcabc634caeb294a6-barber-serjio-inspiration-8685444d8fc94a2b876f44e9ab2918-booksy.jpeg",
+            "height": 2340,
+            "width": 1872,
+            "category": "inspiration",
+            "inspiration_categories": [
+              6,
+              1
+            ],
+            "order": 1,
+            "visible": true,
+            "description": "Haircut & Beard line up",
+            "active": true,
+            "created": "2023-10-25T20:28:07",
+            "is_cover_photo": false,
+            "liked": false,
+            "likes_count": 0,
+            "comments_count": 0,
+            "comments": [],
+            "meta": {
+              "score": null,
+              "id": "image:26037086",
+              "sort": [
+                1,
+                1698265687000
+              ],
+              "item_no": 1
+            },
+            "business": {
+              "cover_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/biz_photo/46e64b2472e445df9e236b610a757c-barber-serjio-biz-photo-8c54d6d8b31e48b2b118720faa86fc-booksy.jpeg",
+              "thumbnail_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/logo/8287010245d244d5ade7b6705285ab-barber-serjio-logo-3b60a43ea8214c66b6e05172ee42a6-booksy.jpeg",
+              "name": "Barber Serjio",
+              "id": 780396
+            }
+          },
+          {
+            "image_id": 26037077,
+            "business_id": 780396,
+            "tags": [],
+            "staffers": [],
+            "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/inspiration/11b6cb0063e54f25a0191ade1ac752-barber-serjio-inspiration-4e7a002395b94fb997aa205ad70864-booksy.jpeg",
+            "height": 2796,
+            "width": 1290,
+            "category": "inspiration",
+            "inspiration_categories": [
+              6
+            ],
+            "order": 2,
+            "visible": true,
+            "description": "",
+            "active": true,
+            "created": "2023-10-25T20:26:35",
+            "is_cover_photo": false,
+            "liked": false,
+            "likes_count": 1,
+            "comments_count": 0,
+            "comments": [],
+            "meta": {
+              "score": null,
+              "id": "image:26037077",
+              "sort": [
+                2,
+                1698265595000
+              ],
+              "item_no": 2
+            },
+            "business": {
+              "cover_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/biz_photo/46e64b2472e445df9e236b610a757c-barber-serjio-biz-photo-8c54d6d8b31e48b2b118720faa86fc-booksy.jpeg",
+              "thumbnail_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/logo/8287010245d244d5ade7b6705285ab-barber-serjio-logo-3b60a43ea8214c66b6e05172ee42a6-booksy.jpeg",
+              "name": "Barber Serjio",
+              "id": 780396
+            }
+          },
+          {
+            "image_id": 26037046,
+            "business_id": 780396,
+            "tags": [],
+            "staffers": [],
+            "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/inspiration/f6dc43bbcfe843e98fd8f1548efb0b-barber-serjio-inspiration-51a1e02f49a24b1b8a971895035c19-booksy.jpeg",
+            "height": 2340,
+            "width": 1755,
+            "category": "inspiration",
+            "inspiration_categories": [
+              6,
+              1
+            ],
+            "order": 3,
+            "visible": true,
+            "description": "Haircut with Design",
+            "active": true,
+            "created": "2023-10-25T20:21:42",
+            "is_cover_photo": false,
+            "liked": false,
+            "likes_count": 0,
+            "comments_count": 0,
+            "comments": [],
+            "meta": {
+              "score": null,
+              "id": "image:26037046",
+              "sort": [
+                3,
+                1698265302000
+              ],
+              "item_no": 3
+            },
+            "business": {
+              "cover_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/biz_photo/46e64b2472e445df9e236b610a757c-barber-serjio-biz-photo-8c54d6d8b31e48b2b118720faa86fc-booksy.jpeg",
+              "thumbnail_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/logo/8287010245d244d5ade7b6705285ab-barber-serjio-logo-3b60a43ea8214c66b6e05172ee42a6-booksy.jpeg",
+              "name": "Barber Serjio",
+              "id": 780396
+            }
+          },
+          {
+            "image_id": 25151225,
+            "business_id": 780396,
+            "tags": [],
+            "staffers": [],
+            "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/inspiration/5dedc29bc5bd4d4eae9a2e256849aa-barber-serjio-inspiration-8cf4419af4a946d995a9b14c204b2c-booksy.jpeg",
+            "height": 886,
+            "width": 886,
+            "category": "inspiration",
+            "inspiration_categories": [
+              6,
+              1
+            ],
+            "order": 4,
+            "visible": true,
+            "description": "Bald fade with hard part and combover",
+            "active": true,
+            "created": "2023-06-06T22:49:56",
+            "is_cover_photo": false,
+            "liked": false,
+            "likes_count": 1,
+            "comments_count": 0,
+            "comments": [],
+            "meta": {
+              "score": null,
+              "id": "image:25151225",
+              "sort": [
+                4,
+                1686091796000
+              ],
+              "item_no": 4
+            },
+            "business": {
+              "cover_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/biz_photo/46e64b2472e445df9e236b610a757c-barber-serjio-biz-photo-8c54d6d8b31e48b2b118720faa86fc-booksy.jpeg",
+              "thumbnail_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/logo/8287010245d244d5ade7b6705285ab-barber-serjio-logo-3b60a43ea8214c66b6e05172ee42a6-booksy.jpeg",
+              "name": "Barber Serjio",
+              "id": 780396
+            }
+          },
+          {
+            "image_id": 24947498,
+            "business_id": 780396,
+            "tags": [],
+            "staffers": [],
+            "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/inspiration/ea8766546d324975a8ebf819db9f34-barber-serjio-inspiration-df5952b63f9747d8ad2f3f3a128806-booksy.jpeg",
+            "height": 2340,
+            "width": 2277,
+            "category": "inspiration",
+            "inspiration_categories": [
+              6,
+              1
+            ],
+            "order": 5,
+            "visible": true,
+            "description": "Comb over bald fade",
+            "active": true,
+            "created": "2023-05-02T20:50:55",
+            "is_cover_photo": false,
+            "liked": false,
+            "likes_count": 0,
+            "comments_count": 0,
+            "comments": [],
+            "meta": {
+              "score": null,
+              "id": "image:24947498",
+              "sort": [
+                5,
+                1683060655000
+              ],
+              "item_no": 5
+            },
+            "business": {
+              "cover_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/biz_photo/46e64b2472e445df9e236b610a757c-barber-serjio-biz-photo-8c54d6d8b31e48b2b118720faa86fc-booksy.jpeg",
+              "thumbnail_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/logo/8287010245d244d5ade7b6705285ab-barber-serjio-logo-3b60a43ea8214c66b6e05172ee42a6-booksy.jpeg",
+              "name": "Barber Serjio",
+              "id": 780396
+            }
+          },
+          {
+            "image_id": 24875328,
+            "business_id": 780396,
+            "tags": [],
+            "staffers": [],
+            "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/inspiration/c9a5bbe998d04ca09806482e8e57cb-barber-serjio-inspiration-fedcaffdc28e4c4082ec2f66b63498-booksy.jpeg",
+            "height": 1288,
+            "width": 1286,
+            "category": "inspiration",
+            "inspiration_categories": [
+              6,
+              1
+            ],
+            "order": 6,
+            "visible": true,
+            "description": "Bald fade Comb over with Hard part",
+            "active": true,
+            "created": "2023-04-20T06:15:49",
+            "is_cover_photo": false,
+            "liked": false,
+            "likes_count": 0,
+            "comments_count": 0,
+            "comments": [],
+            "meta": {
+              "score": null,
+              "id": "image:24875328",
+              "sort": [
+                6,
+                1681971349000
+              ],
+              "item_no": 6
+            },
+            "business": {
+              "cover_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/biz_photo/46e64b2472e445df9e236b610a757c-barber-serjio-biz-photo-8c54d6d8b31e48b2b118720faa86fc-booksy.jpeg",
+              "thumbnail_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/logo/8287010245d244d5ade7b6705285ab-barber-serjio-logo-3b60a43ea8214c66b6e05172ee42a6-booksy.jpeg",
+              "name": "Barber Serjio",
+              "id": 780396
+            }
+          },
+          {
+            "image_id": 24875325,
+            "business_id": 780396,
+            "tags": [],
+            "staffers": [],
+            "image": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/inspiration/edd2f408e8af4d468caa2caa1f6110-barber-serjio-inspiration-7510bc074bbf4d5b9a38825ed61a9f-booksy.jpeg",
+            "height": 922,
+            "width": 919,
+            "category": "inspiration",
+            "inspiration_categories": [
+              6,
+              1
+            ],
+            "order": 7,
+            "visible": true,
+            "description": "Bald fade",
+            "active": true,
+            "created": "2023-04-20T06:14:47",
+            "is_cover_photo": false,
+            "liked": false,
+            "likes_count": 0,
+            "comments_count": 0,
+            "comments": [],
+            "meta": {
+              "score": null,
+              "id": "image:24875325",
+              "sort": [
+                7,
+                1681971287000
+              ],
+              "item_no": 7
+            },
+            "business": {
+              "cover_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/biz_photo/46e64b2472e445df9e236b610a757c-barber-serjio-biz-photo-8c54d6d8b31e48b2b118720faa86fc-booksy.jpeg",
+              "thumbnail_photo": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/logo/8287010245d244d5ade7b6705285ab-barber-serjio-logo-3b60a43ea8214c66b6e05172ee42a6-booksy.jpeg",
+              "name": "Barber Serjio",
+              "id": 780396
+            }
+          }
+        ],
+        "images_count": 23,
+        "images_per_page": 8
+      }
+    },
+    {
+      "url": "https://us.booksy.com/core/v2/customer_api/businesses/780396/safety_rules/",
+      "status": 200,
+      "contentType": "application/json; charset=UTF-8",
+      "body": {
+        "rules": [
+          {
+            "id": 6,
+            "text": "Disinfection of all surfaces in the workplace",
+            "type": "safety"
+          },
+          {
+            "id": 7,
+            "text": "Disinfection between clients",
+            "type": "safety"
+          }
+        ],
+        "safety_note_text": "",
+        "booking_note_text": "",
+        "updated": "2020-05-09T06:48"
+      }
+    },
+    {
+      "url": "https://api.segment.io/v1/p",
+      "status": 200,
+      "contentType": "application/json",
+      "body": {
+        "success": true
+      }
+    },
+    {
+      "url": "https://us.booksy.com/core/v2/customer_api/businesses/780396/safety_rules/",
+      "status": 200,
+      "contentType": "application/json; charset=UTF-8",
+      "body": {
+        "rules": [
+          {
+            "id": 6,
+            "text": "Disinfection of all surfaces in the workplace",
+            "type": "safety"
+          },
+          {
+            "id": 7,
+            "text": "Disinfection between clients",
+            "type": "safety"
+          }
+        ],
+        "safety_note_text": "",
+        "booking_note_text": "",
+        "updated": "2020-05-09T06:48"
+      }
+    },
+    {
+      "url": "https://us.booksy.com/core/v2/other/apple_token/?domain=https%3A%2F%2Fbooksy.com",
+      "status": 200,
+      "contentType": "application/json; charset=UTF-8",
+      "body": {
+        "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6IlhOOVlBM1kzVzUiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJVRzYzVjQ4UjQ1IiwiaWF0IjoxNzc5NjU0ODU2LCJleHAiOjE3ODA4NjQ0NTYwMDAsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3N5LmNvbSJ9.ZFDDKskx5-BtrfYq0tamxOhbaIzyT346E5dXb5HaPQD9HgFzH2_PiJIkiPzmJ3gmN4hpV836chLqG5z0O6leAA"
+      }
+    },
+    {
+      "url": "https://us.booksy.com/core/v2/customer_api/businesses/780396/review_photos/?page=1&photos_per_page=20",
+      "status": 200,
+      "contentType": "application/json",
+      "body": {
+        "photos": [
+          {
+            "id": 841590,
+            "url": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/review_photos/ed0fe6ed2524496b9ed0869da0e5f2f6.jpeg",
+            "review_data": {
+              "id": 8874347,
+              "created": "2025-06-04T22:13",
+              "review": "He did a great job considering my 3 y.o kept moving!! Deff recommended!! Will be going back for sure!!",
+              "rank": 5,
+              "verified": true,
+              "services": [
+                {
+                  "id": 5143553,
+                  "name": "Haircut - By Barber Serjio",
+                  "treatment_id": 363,
+                  "service_variant_id": 13660273
+                }
+              ],
+              "staff": [
+                {
+                  "id": 732745,
+                  "name": "Barber Serjio"
+                }
+              ],
+              "user": {
+                "id": 25663796,
+                "first_name": "LeLaura",
+                "last_name": "crawshaw",
+                "avatar": ""
+              }
+            }
+          },
+          {
+            "id": 800246,
+            "url": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/review_photos/0e1497430f3e48ea9a157bb665d213a7.jpeg",
+            "review_data": {
+              "id": 8494774,
+              "created": "2025-03-06T20:33",
+              "review": "Amazing work! Our son loves going here, thank you again for your amazing talent!",
+              "rank": 5,
+              "verified": true,
+              "services": [
+                {
+                  "id": 5143553,
+                  "name": "Haircut - By Barber Serjio",
+                  "treatment_id": 363,
+                  "service_variant_id": 13660273
+                }
+              ],
+              "staff": [
+                {
+                  "id": 732745,
+                  "name": "Barber Serjio"
+                }
+              ],
+              "user": {
+                "id": 19798121,
+                "first_name": "Justine",
+                "last_name": "Thompson",
+                "avatar": ""
+              }
+            }
+          },
+          {
+            "id": 642092,
+            "url": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/review_photos/f39182fe132e4f639b8378f919541a3c.jpeg",
+            "review_data": {
+              "id": 7009717,
+              "created": "2024-02-18T21:19",
+              "review": "Super awesome guy!! Great cuts & super good w kids! 10/10",
+              "rank": 5,
+              "verified": true,
+              "services": [
+                {
+                  "id": 5143553,
+                  "name": "Haircut - By Barber Serjio",
+                  "treatment_id": 347,
+                  "service_variant_id": 13660273
+                }
+              ],
+              "staff": [
+                {
+                  "id": 732745,
+                  "name": "Barber Serjio"
+                }
+              ],
+              "user": {
+                "id": 18992362,
+                "first_name": "Michelle",
+                "last_name": "Chavez",
+                "avatar": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/users/df9cc0ed4bf24c9ab33009b7aacadde2.jpeg"
+              }
+            }
+          },
+          {
+            "id": 551663,
+            "url": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/review_photos/80df250b8a254b09bc31bbc37db0315f.jpeg",
+            "review_data": {
+              "id": 6210179,
+              "created": "2023-07-13T23:42",
+              "review": "Sergio is talented beyond measure, listens and executes your requests with zero hesitation. The entire barber shop staff is dialed in and are professionals. I wish I would’ve come in sooner. 10/10",
+              "rank": 5,
+              "verified": true,
+              "services": [
+                {
+                  "id": 5143555,
+                  "name": "Haircut & Beard Trim/Line Up - By Barber Serjio",
+                  "treatment_id": 369,
+                  "service_variant_id": 13660275
+                }
+              ],
+              "staff": [
+                {
+                  "id": 732745,
+                  "name": "Barber Serjio"
+                }
+              ],
+              "user": {
+                "id": 8248080,
+                "first_name": "Schyler",
+                "last_name": "Johnson",
+                "avatar": ""
+              }
+            }
+          },
+          {
+            "id": 433087,
+            "url": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/review_photos/0c3277151f324659b0baaeb014d85a6e.jpeg",
+            "review_data": {
+              "id": 5237439,
+              "created": "2022-10-12T01:38",
+              "review": "Serjio did an amazing job with my kiddo...I am so impressed.  Highly recommend!!",
+              "rank": 5,
+              "verified": true,
+              "services": [
+                {
+                  "id": 5143553,
+                  "name": "Haircut - By Barber Serjio",
+                  "treatment_id": 347,
+                  "service_variant_id": 13660273
+                }
+              ],
+              "staff": [
+                {
+                  "id": 732745,
+                  "name": "Barber Serjio"
+                }
+              ],
+              "user": {
+                "id": 12816019,
+                "first_name": "Jodene",
+                "last_name": "SETERA",
+                "avatar": ""
+              }
+            }
+          },
+          {
+            "id": 433086,
+            "url": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/review_photos/7fed974a39b54f3dabd7072fd3058ac4.jpeg",
+            "review_data": {
+              "id": 5237439,
+              "created": "2022-10-12T01:38",
+              "review": "Serjio did an amazing job with my kiddo...I am so impressed.  Highly recommend!!",
+              "rank": 5,
+              "verified": true,
+              "services": [
+                {
+                  "id": 5143553,
+                  "name": "Haircut - By Barber Serjio",
+                  "treatment_id": 347,
+                  "service_variant_id": 13660273
+                }
+              ],
+              "staff": [
+                {
+                  "id": 732745,
+                  "name": "Barber Serjio"
+                }
+              ],
+              "user": {
+                "id": 12816019,
+                "first_name": "Jodene",
+                "last_name": "SETERA",
+                "avatar": ""
+              }
+            }
+          },
+          {
+            "id": 422579,
+            "url": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/review_photos/aa35beb75a25433a839a910c7b614ae1.jpeg",
+            "review_data": {
+              "id": 5141945,
+              "created": "2022-09-17T01:35",
+              "review": "Serg always lines me up righteous great barber only one I go to",
+              "rank": 5,
+              "verified": true,
+              "services": [
+                {
+                  "id": 5143553,
+                  "name": "Haircut - By Barber Serjio",
+                  "treatment_id": 347,
+                  "service_variant_id": 13660273
+                }
+              ],
+              "staff": [
+                {
+                  "id": 732745,
+                  "name": "Barber Serjio"
+                }
+              ],
+              "user": {
+                "id": 12521863,
+                "first_name": "Logan",
+                "last_name": "PArr",
+                "avatar": ""
+              }
+            }
+          },
+          {
+            "id": 401222,
+            "url": "https://d2zdpiztbgorvt.cloudfront.net/region1/us/780396/review_photos/57a1e9bf2c324eda85e4e162509fd468.jpeg",
+            "review_data": {
+              "id": 4944537,
+              "created": "2022-08-02T17:32",
+              "review": "💈✔️ 💯 Brother has you right‼️",
+              "rank": 5,
+              "verified": true,
+              "services": [
+                {
+                  "id": 5143553,
+                  "name": "Haircut - By Barber Serjio",
+                  "treatment_id": 347,
+                  "service_variant_id": 13660273
+                }
+              ],
+              "staff": [
+                {
+                  "id": 732745,
+                  "name": "Barber Serjio"
+                }
+              ],
+              "user": {
+                "id": 11603507,
+                "first_name": "Roberto",
+                "last_name": "Flores",
+                "avatar": ""
+              }
+            }
+          }
+        ],
+        "photos_count": 8,
+        "photos_page": 1,
+        "photos_per_page": 20
+      }
+    }
+  ]
+}
