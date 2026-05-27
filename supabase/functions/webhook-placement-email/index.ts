@@ -237,11 +237,26 @@ Body: [email body]`
     logger.info("School lead saved", { turns: finalTurns.length })
   }
 
-  // 7. Send reply via GHL Email
+  // 7. Stage draft in GHL Contact Custom Fields (instead of sending directly)
   const ghl = new GhlProvider(ghlApiKey)
-  await ghl.sendMessage({ contactId, type: "Email", message: emailBody, subject: emailSubject })
+  const useManualQueue = Deno.env.get("USE_GHL_MANUAL_QUEUE") !== "false"
 
-  logger.info("Placement Email reply dispatched", { contactId, emailSubject })
+  if (useManualQueue) {
+    try {
+      logger.info("Staging email reply in GHL custom fields", { contactId })
+      await ghl.updateContactCustomFields(contactId, [
+        { id: "ai_draft_subject", fieldValue: emailSubject },
+        { id: "ai_draft_body", fieldValue: emailBody }
+      ])
+      logger.info("Contact custom fields updated for review queue")
+    } catch (err) {
+      logger.error("GHL custom fields update failed, falling back to direct send", { err })
+      await ghl.sendMessage({ contactId, type: "Email", message: emailBody, subject: emailSubject })
+    }
+  } else {
+    logger.info("Sending reply immediately via GHL Conversations")
+    await ghl.sendMessage({ contactId, type: "Email", message: emailBody, subject: emailSubject })
+  }
 
   return okResponse({ status: "success", contactId, extracted, emailSubject })
 }, {
