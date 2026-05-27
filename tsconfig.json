@@ -39,6 +39,7 @@
     "node_modules",
     "supabase/functions",
     "scripts",
+    "scratch",
     "test-*.ts",
     "test-*.js",
     "parseIds.js"
