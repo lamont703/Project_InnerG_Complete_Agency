@@ -24,12 +24,16 @@ const headers = {
   "Version": "2021-07-28",
 }
 
-async function loadPendingSchools(limit: number) {
-  const { data, error } = await supabase
-    .from("agent_barber_school_leads")
-    .select("*")
-    .eq("outreach_status", "pending")
-    .limit(limit)
+async function loadPendingSchools(limit: number, targetEmail?: string | null) {
+  let query = supabase.from("agent_barber_school_leads").select("*")
+
+  if (targetEmail) {
+    query = query.eq("email", targetEmail)
+  } else {
+    query = query.eq("outreach_status", "pending").limit(limit)
+  }
+
+  const { data, error } = await query
   if (error) throw error
   return data || []
 }
@@ -109,13 +113,32 @@ async function sendGhlMessage(contactId: string, message: string, subject: strin
   return data
 }
 
-async function runEmailAgent(limit: number) {
+async function updateGhlContactCustomFields(contactId: string, customFields: Array<{ id: string; fieldValue: any }>) {
+  console.log(`[GHL] Updating Contact Custom Fields for Contact ${contactId}...`)
+  const response = await fetch(`${GHL_API_BASE}/contacts/${contactId}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({ customFields }),
+  })
+
+  const data = await response.json()
+  if (!response.ok) throw new Error(`GHL_UPDATE_CONTACT_ERROR: ${JSON.stringify(data)}`)
+  console.log(`[GHL] Contact Custom Fields updated successfully.`)
+  return data
+}
+
+
+async function runEmailAgent(limit: number, targetEmail?: string | null) {
   console.log("==================================================================")
-  console.log(`📡 INNER G COMPLETE AGENCY — EMAIL BARBER SCHOOL AGENT (LIMIT: ${limit}) 📡`)
+  if (targetEmail) {
+    console.log(`📡 INNER G COMPLETE AGENCY — TARGETING EMAIL: ${targetEmail} 📡`)
+  } else {
+    console.log(`📡 INNER G COMPLETE AGENCY — EMAIL BARBER SCHOOL AGENT (LIMIT: ${limit}) 📡`)
+  }
   console.log("==================================================================\n")
 
   try {
-    const schools = await loadPendingSchools(limit)
+    const schools = await loadPendingSchools(limit, targetEmail)
 
     for (const school of schools) {
       console.log(`\n🤖 [EMAIL AGENT] Processing ${school.school_name}...`)
@@ -123,6 +146,23 @@ async function runEmailAgent(limit: number) {
         console.log(`⚠️ Note: ${school.school_name} missing email in DB. Using fallback 'lamont703@gmail.com' for testing.`)
         school.email = "lamont703@gmail.com"
       }
+
+      // --- PRE-GENERATION TARGET APPROVAL (Saves Tokens) ---
+      console.log(`\n======================================================`)
+      console.log(`🛡️  PRE-GENERATION TARGET APPROVAL `)
+      console.log(`======================================================`)
+      console.log(`📍 Target School: ${school.school_name} in ${school.city || 'Texas'}`)
+      console.log(`📧 Email:         ${school.email}`)
+      console.log(`👤 Rep:           ${school.admissions_rep_name || 'Unknown'}`)
+      console.log(`======================================================`)
+      
+      const targetApproval = Deno.env.get("AUTO_APPROVE") ? "y" : prompt(`Approve generating an outreach email for this school? (y/N): `)
+      if (targetApproval?.trim().toLowerCase() !== 'y') {
+        console.log(`⚠️ School skipped by human. No API tokens used.\n`)
+        continue
+      }
+
+      console.log(`\n🧠 Approval granted! Generating AI Draft...`)
 
       const schoolContactId = await upsertGhlContact({
         name: school.admissions_rep_name && school.admissions_rep_name !== "Unknown" ? school.admissions_rep_name : school.school_name,
@@ -141,6 +181,9 @@ Subject: [subject line]
 Body: [email body]`
 
       const initialEmailResponse = await generateAiMessage(emailOutreachPrompt)
+      console.log("------------------ DEBUG RAW AI RESPONSE ------------------")
+      console.log(initialEmailResponse)
+      console.log("-----------------------------------------------------------")
       let emailSubject = `Barber Placement Opportunity — Inner G Complete Agency`
       let emailBody = initialEmailResponse
       const subjectMatch = initialEmailResponse.match(/Subject:\s*(.*)/i)
@@ -149,7 +192,27 @@ Body: [email body]`
       if (bodyMatch && bodyMatch[1]) emailBody = bodyMatch[1].trim()
 
       console.log(`🤖 Generated Email Subject: "${emailSubject}"`)
-      await sendGhlMessage(schoolContactId, emailBody, emailSubject)
+      
+      const useManualQueue = Deno.env.get("USE_GHL_MANUAL_QUEUE") !== "false"
+      
+      if (useManualQueue) {
+        try {
+          console.log(`🚀 Staging email draft in GHL Contact Custom Fields (Manual Actions Queue)...`)
+          await updateGhlContactCustomFields(schoolContactId, [
+            { id: "ai_draft_subject", fieldValue: emailSubject },
+            { id: "ai_draft_body", fieldValue: emailBody }
+          ])
+          console.log(`✅ Staged draft in custom fields. GHL Workflow will auto-queue this for review.`)
+        } catch (err) {
+          console.log(`⚠️ GHL custom fields update failed: ${err.message}`)
+          console.log(`👉 Make sure you created 'ai_draft_subject' and 'ai_draft_body' custom fields in GoHighLevel.`)
+          console.log(`🔄 Falling back to direct email dispatch...`)
+          await sendGhlMessage(schoolContactId, emailBody, emailSubject)
+        }
+      } else {
+        console.log(`🚀 Dispatching email directly via HighLevel Conversations...`)
+        await sendGhlMessage(schoolContactId, emailBody, emailSubject)
+      }
       
       await supabase.from("agent_barber_school_leads").update({
         outreach_status: "contacted",
@@ -172,5 +235,15 @@ Body: [email body]`
   }
 }
 
-const limitArg = parseInt(Deno.args[0] || "1", 10)
-runEmailAgent(limitArg)
+const arg = Deno.args[0] || "1"
+let limitArg = 1
+let emailArg: string | null = null
+
+// If the argument contains "@", treat as an email address
+if (arg.includes("@")) {
+  emailArg = arg
+} else {
+  limitArg = parseInt(arg, 10) || 1
+}
+
+runEmailAgent(limitArg, emailArg)

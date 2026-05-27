@@ -9,21 +9,147 @@ import {
   Users, Briefcase, GraduationCap, ArrowRight, 
   Search, MapPin, Star, Scissors, CheckCircle2, ShieldCheck,
   ChevronLeft, ChevronRight, Phone, Globe, Sparkles, Lock, 
-  Check, Building2, AlertCircle, X
+  Check, Building2, AlertCircle, X, Award, BookOpen, Calendar, Clock, ExternalLink
 } from "lucide-react";
 import Image from "next/image";
 import { createBrowserClient } from "@/lib/supabase/browser";
 
 const MOCK_STUDENTS = [
-  { name: "Marcus Johnson", school: "Texas Barber College", type: "Barber", status: "Licensed", city: "Dallas", image: "https://images.unsplash.com/photo-1605497788044-5a32c7078486?q=80&w=800&auto=format&fit=crop" },
-  { name: "Sarah Williams", school: "Ogle School", type: "Cosmetologist", status: "Graduating Soon", city: "Fort Worth", image: "https://images.unsplash.com/photo-1562322140-8baeececf3df?q=80&w=800&auto=format&fit=crop" },
-  { name: "David Chen", school: "Franklin Institute", type: "Barber", status: "Licensed", city: "Austin", image: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=800&auto=format&fit=crop" },
-  { name: "Jessica Gomez", school: "Paul Mitchell The School", type: "Cosmetologist", status: "Licensed", city: "Houston", image: "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?q=80&w=800&auto=format&fit=crop" },
-  { name: "Tyrone Davis", school: "Texas Barber College", type: "Barber", status: "Student", city: "Dallas", image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=800&auto=format&fit=crop" },
-  { name: "Emily Carter", school: "Ogle School", type: "Esthetician", status: "Graduating Soon", city: "San Antonio", image: "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?q=80&w=800&auto=format&fit=crop" },
-  { name: "Michael Lee", school: "Franklin Institute", type: "Barber", status: "Student", city: "Fort Worth", image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=800&auto=format&fit=crop" },
-  { name: "Amanda Taylor", school: "Paul Mitchell The School", type: "Cosmetologist", status: "Licensed", city: "Austin", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop" },
-  { name: "Chris Martinez", school: "Texas Barber College", type: "Barber", status: "Graduating Soon", city: "Dallas", image: "https://images.unsplash.com/photo-1618077360395-f3068be8e001?q=80&w=800&auto=format&fit=crop" },
+  { 
+    id: "student-mock-1",
+    name: "Marcus Johnson", 
+    school: "Texas Barber College", 
+    type: "Barber", 
+    status: "Licensed", 
+    city: "Dallas", 
+    image: "https://images.unsplash.com/photo-1605497788044-5a32c7078486?q=80&w=800&auto=format&fit=crop",
+    instagram: "https://instagram.com/marcus_fades",
+    tiktok: "https://tiktok.com/@marcus_cuts",
+    youtube: "https://youtube.com/@marcus_fades",
+    portfolio: "https://marcusfades.me",
+    pathway: "Dual-Pathway Eligible",
+    specialties: ["Modern Fades", "Beard Styling", "Razor Shaves"]
+  },
+  { 
+    id: "student-mock-2",
+    name: "Sarah Williams", 
+    school: "Ogle School", 
+    type: "Cosmetologist", 
+    status: "Graduating Soon", 
+    city: "Fort Worth", 
+    image: "https://images.unsplash.com/photo-1562322140-8baeececf3df?q=80&w=800&auto=format&fit=crop",
+    instagram: "https://instagram.com/sarah_styles",
+    tiktok: "https://tiktok.com/@sarah_cuts",
+    youtube: "https://youtube.com/@sarahstyles",
+    portfolio: "https://sarahstyles.com",
+    pathway: "Barbershop Hire",
+    specialties: ["Hair Coloring", "Precision Cuts", "Blowouts"]
+  },
+  { 
+    id: "student-mock-3",
+    name: "David Chen", 
+    school: "Franklin Institute", 
+    type: "Barber", 
+    status: "Licensed", 
+    city: "Austin", 
+    image: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=800&auto=format&fit=crop",
+    instagram: "https://instagram.com/david_cuts",
+    tiktok: "https://tiktok.com/@david_fades",
+    youtube: "https://youtube.com/@davidcuts",
+    portfolio: "https://davidcuts.me",
+    pathway: "School Instructor",
+    specialties: ["Classic Tapers", "Lineups", "Skin Fades"]
+  },
+  { 
+    id: "student-mock-4",
+    name: "Jessica Gomez", 
+    school: "Paul Mitchell The School", 
+    type: "Cosmetologist", 
+    status: "Licensed", 
+    city: "Houston", 
+    image: "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?q=80&w=800&auto=format&fit=crop",
+    instagram: "https://instagram.com/jess_styles",
+    tiktok: "https://tiktok.com/@jess_beauty",
+    youtube: "https://youtube.com/@jessicagomez",
+    portfolio: "https://jessicagomez.com",
+    pathway: "Dual-Pathway Eligible",
+    specialties: ["Perms & Waves", "Esthetics", "Facial Massage"]
+  },
+  { 
+    id: "student-mock-5",
+    name: "Tyrone Davis", 
+    school: "Texas Barber College", 
+    type: "Barber", 
+    status: "Student", 
+    city: "Dallas", 
+    image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=800&auto=format&fit=crop",
+    instagram: "https://instagram.com/tyrone_cuts",
+    tiktok: "https://tiktok.com/@tyrone_fades",
+    youtube: "https://youtube.com/@tyronecuts",
+    portfolio: "https://tyronedavis.me",
+    pathway: "Barbershop Hire",
+    specialties: ["Modern Fades", "Beard Styling", "Razor Shaves"]
+  },
+  { 
+    id: "student-mock-6",
+    name: "Emily Carter", 
+    school: "Ogle School", 
+    type: "Esthetician", 
+    status: "Graduating Soon", 
+    city: "San Antonio", 
+    image: "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?q=80&w=800&auto=format&fit=crop",
+    instagram: "https://instagram.com/emily_esthetics",
+    tiktok: "https://tiktok.com/@emily_skin",
+    youtube: "https://youtube.com/@emilycarter",
+    portfolio: "https://emilycarter.com",
+    pathway: "School Instructor",
+    specialties: ["Hair Coloring", "Precision Cuts", "Blowouts"]
+  },
+  { 
+    id: "student-mock-7",
+    name: "Michael Lee", 
+    school: "Franklin Institute", 
+    type: "Barber", 
+    status: "Student", 
+    city: "Fort Worth", 
+    image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=800&auto=format&fit=crop",
+    instagram: "https://instagram.com/michael_cuts",
+    tiktok: "https://tiktok.com/@michael_fades",
+    youtube: "https://youtube.com/@michaellee",
+    portfolio: "https://michaellee.me",
+    pathway: "Dual-Pathway Eligible",
+    specialties: ["Classic Tapers", "Lineups", "Skin Fades"]
+  },
+  { 
+    id: "student-mock-8",
+    name: "Amanda Taylor", 
+    school: "Paul Mitchell The School", 
+    type: "Cosmetologist", 
+    status: "Licensed", 
+    city: "Austin", 
+    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop",
+    instagram: "https://instagram.com/amanda_beauty",
+    tiktok: "https://tiktok.com/@amanda_styles",
+    youtube: "https://youtube.com/@amandataylor",
+    portfolio: "https://amandataylor.com",
+    pathway: "Barbershop Hire",
+    specialties: ["Perms & Waves", "Esthetics", "Facial Massage"]
+  },
+  { 
+    id: "student-mock-9",
+    name: "Chris Martinez", 
+    school: "Texas Barber College", 
+    type: "Barber", 
+    status: "Graduating Soon", 
+    city: "Dallas", 
+    image: "https://images.unsplash.com/photo-1618077360395-f3068be8e001?q=80&w=800&auto=format&fit=crop",
+    instagram: "https://instagram.com/chris_cuts",
+    tiktok: "https://tiktok.com/@chris_fades",
+    youtube: "https://youtube.com/@chrismartinez",
+    portfolio: "https://chrismartinez.me",
+    pathway: "School Instructor",
+    specialties: ["Modern Fades", "Beard Styling", "Razor Shaves"]
+  }
 ];
 
 export default function BarberBeautyNetworkPage() {
@@ -58,6 +184,38 @@ export default function BarberBeautyNetworkPage() {
   const [expandedChats, setExpandedChats] = useState<{ [key: string]: boolean }>({});
   const [applicationSuccessShopId, setApplicationSuccessShopId] = useState<string | null>(null);
   const [isFallbackMode, setIsFallbackMode] = useState(false);
+
+  // Career Passport Modal States
+  const [selectedPassportStudent, setSelectedPassportStudent] = useState<any | null>(null);
+  const [passportActiveTab, setPassportActiveTab] = useState<'credentials' | 'portfolio' | 'schedule'>('credentials');
+  const [scheduleShopName, setScheduleShopName] = useState("");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [scheduleNotes, setScheduleNotes] = useState("");
+  const [scheduleSuccess, setScheduleSuccess] = useState(false);
+
+  // Application Flow States
+  const [selectedApplyShop, setSelectedApplyShop] = useState<any | null>(null);
+  const [applyStudentName, setApplyStudentName] = useState("Marcus Johnson");
+  const [applyLoadingState, setApplyLoadingState] = useState<'idle' | 'verifying' | 'packaging' | 'submitting' | 'done'>('idle');
+
+  // Create Career Passport Wizard States
+  const [isCreatingPassport, setIsCreatingPassport] = useState(false);
+  const [createStep, setCreateStep] = useState(1);
+  const [newPassportName, setNewPassportName] = useState("");
+  const [newPassportSchool, setNewPassportSchool] = useState("");
+  const [newPassportCity, setNewPassportCity] = useState("");
+  const [newPassportType, setNewPassportType] = useState("Barber");
+  const [newPassportStatus, setNewPassportStatus] = useState("Student");
+  const [newPassportHours, setNewPassportHours] = useState(1500);
+  const [newPassportInstagram, setNewPassportInstagram] = useState("");
+  const [newPassportTiktok, setNewPassportTiktok] = useState("");
+  const [newPassportYoutube, setNewPassportYoutube] = useState("");
+  const [newPassportPortfolio, setNewPassportPortfolio] = useState("");
+  const [newPassportPathway, setNewPassportPathway] = useState("Barbershop Hire");
+  const [newPassportSpecialties, setNewPassportSpecialties] = useState("Modern Fades, Beard Styling");
+  const [createLoadingState, setCreateLoadingState] = useState<'idle' | 'generating' | 'done'>('idle');
+  const [customStudents, setCustomStudents] = useState<any[]>([]);
 
   const ITEMS_PER_PAGE_STUDENTS = 3;
   const ITEMS_PER_PAGE_SHOPS = 6;
@@ -129,11 +287,6 @@ export default function BarberBeautyNetworkPage() {
 
   // Dynamic Student List Generator
   const studentsList = useMemo(() => {
-    if (dbSchools.length === 0) {
-      // Fallback if schools aren't loaded yet
-      return MOCK_STUDENTS;
-    }
-
     const FIRST_NAMES = ["Marcus", "Sarah", "David", "Jessica", "Tyrone", "Emily", "Michael", "Amanda", "Chris", "Brandon", "Ashley", "Daniel", "Taylor", "Jordan", "Alex", "Sophia", "Matthew", "Isabella", "Justin", "Megan"];
     const LAST_NAMES = ["Johnson", "Williams", "Chen", "Gomez", "Davis", "Carter", "Lee", "Taylor", "Martinez", "Jackson", "Smith", "Brown", "Rodriguez", "Jones", "Thomas", "White", "Miller", "Davis", "Garcia", "Rodriguez"];
     const TYPES = ["Barber", "Cosmetologist", "Barber", "Esthetician", "Barber", "Cosmetologist"];
@@ -150,24 +303,49 @@ export default function BarberBeautyNetworkPage() {
       "https://images.unsplash.com/photo-1618077360395-f3068be8e001?q=80&w=800&auto=format&fit=crop"
     ];
 
-    // Generate one graduating student for each school to integrate real database schools!
-    return dbSchools.map((school, idx) => {
-      const fName = FIRST_NAMES[idx % FIRST_NAMES.length];
-      const lName = LAST_NAMES[(idx + 3) % LAST_NAMES.length];
-      const type = TYPES[idx % TYPES.length];
-      const status = STATUSES[idx % STATUSES.length];
-      const image = IMAGES[idx % IMAGES.length];
+    let baseList = [];
+    if (dbSchools.length === 0) {
+      baseList = MOCK_STUDENTS;
+    } else {
+      baseList = dbSchools.map((school, idx) => {
+        const fName = FIRST_NAMES[idx % FIRST_NAMES.length];
+        const lName = LAST_NAMES[(idx + 3) % LAST_NAMES.length];
+        const type = TYPES[idx % TYPES.length];
+        const status = STATUSES[idx % STATUSES.length];
+        const image = IMAGES[idx % IMAGES.length];
 
-      return {
-        name: `${fName} ${lName}`,
-        school: school.school_name,
-        city: school.city || "Texas",
-        type,
-        status,
-        image
-      };
-    });
-  }, [dbSchools]);
+        const handle = `${fName.toLowerCase()}_${lName.toLowerCase()}`;
+        const PATHWAYS = ['Barbershop Hire', 'School Instructor', 'Dual-Pathway Eligible'];
+        const pathway = PATHWAYS[idx % PATHWAYS.length];
+        
+        const SPECIALTIES_SETS = [
+          ['Modern Fades', 'Beard Styling', 'Razor Shaves'],
+          ['Hair Coloring', 'Precision Cuts', 'Blowouts'],
+          ['Classic Tapers', 'Lineups', 'Skin Fades'],
+          ['Perms & Waves', 'Esthetics', 'Facial Massage']
+        ];
+        const specialties = SPECIALTIES_SETS[idx % SPECIALTIES_SETS.length];
+
+        return {
+          id: `student-${idx}`,
+          name: `${fName} ${lName}`,
+          school: school.school_name,
+          city: school.city || "Texas",
+          type,
+          status,
+          image,
+          instagram: `https://instagram.com/${handle}`,
+          tiktok: `https://tiktok.com/@${handle}`,
+          youtube: `https://youtube.com/@${handle}`,
+          portfolio: `https://${handle}.com`,
+          pathway,
+          specialties
+        };
+      });
+    }
+
+    return [...customStudents, ...baseList];
+  }, [dbSchools, customStudents]);
 
   // Filter & Search Logic for Shops
   const filteredShops = dbShops.filter(shop => {
@@ -360,7 +538,7 @@ export default function BarberBeautyNetworkPage() {
                 <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-6 border border-blue-100 shadow-sm">
                    <Scissors className="w-8 h-8 text-blue-600" />
                 </div>
-                <h2 className="text-3xl font-extrabold text-slate-900 mb-4">For Students & Graduates</h2>
+                <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Career Passport: For Students & Graduates</h2>
                 <p className="text-slate-600 text-lg leading-relaxed mb-8">
                   Stop relying on generic resumes. Create a rich, visual portfolio that showcases your cuts, styles, and licensure status. Let top barbershops and salons discover you before you even graduate.
                 </p>
@@ -379,12 +557,13 @@ export default function BarberBeautyNetworkPage() {
                 </ul>
                 <button 
                   onClick={() => {
-                    document.getElementById('explore-network')?.scrollIntoView({ behavior: 'smooth' });
-                    setActiveTab('students');
+                    setIsCreatingPassport(true);
+                    setCreateStep(1);
+                    setCreateLoadingState('idle');
                   }}
                   className="w-full py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg transition-colors flex items-center justify-center gap-2"
                 >
-                  Create Your Portfolio
+                  Create Your Career Passport
                   <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
@@ -409,7 +588,7 @@ export default function BarberBeautyNetworkPage() {
                 <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mb-6 border border-white/20 shadow-sm">
                    <MapPin className="w-8 h-8 text-white" />
                 </div>
-                <h2 className="text-3xl font-extrabold text-white mb-4">For Shop Owners</h2>
+                <h2 className="text-3xl font-extrabold text-white mb-4">Claim Your Barbershop: For Shop Owners</h2>
                 <p className="text-slate-300 text-lg leading-relaxed mb-8">
                   Stop hoping for walk-in talent. Create a premium listing for your barbershop or salon. Showcase your culture, chair rental rates, and invite vetted students for a Shop Day visit.
                 </p>
@@ -433,7 +612,7 @@ export default function BarberBeautyNetworkPage() {
                   }}
                   className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg transition-colors flex items-center justify-center gap-2"
                 >
-                  List Your Shop
+                  Claim Your Barbershop
                   <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
@@ -559,20 +738,124 @@ export default function BarberBeautyNetworkPage() {
                     <p className="text-slate-500 text-sm">Try broadening your search term or adjusting filters.</p>
                   </div>
                 ) : (
-                  <div className="grid md:grid-cols-3 gap-6 mb-10">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
                     {currentStudents.map((student, i) => (
-                      <div key={i} className="rounded-2xl border border-slate-200 p-6 bg-white hover:border-blue-300 hover:shadow-lg transition-all cursor-pointer group">
-                        <div className="relative w-full h-48 rounded-xl overflow-hidden mb-6 border border-slate-100">
-                          <Image src={student.image} alt={student.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <div key={student.id || i} className="rounded-[2.2rem] border border-slate-200 p-6 bg-white hover:border-blue-400 hover:shadow-2xl transition-all flex flex-col group relative overflow-hidden">
+                        
+                        {/* Passport Header */}
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 mb-4">
+                          <div className="flex items-center gap-1.5 text-xs font-black text-indigo-600 uppercase tracking-widest">
+                            <Award className="w-4.5 h-4.5 text-indigo-500" />
+                            Career Passport
+                          </div>
+                          <span className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-full border ${
+                            student.status === 'Licensed' 
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+                              : 'bg-blue-50 text-blue-700 border-blue-200/60'
+                          }`}>
+                            {student.status}
+                          </span>
                         </div>
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-bold text-lg text-slate-900">{student.name}</h3>
-                          <span className="px-3 py-1 bg-green-50 text-green-700 text-[10px] font-black uppercase tracking-widest rounded-full">{student.status}</span>
+
+                        {/* Headshot & Basic Details */}
+                        <div className="flex gap-4 items-start mb-4">
+                          <div className="relative w-20 h-24 rounded-2xl overflow-hidden border border-slate-200 shrink-0 bg-slate-50 shadow-inner group-hover:border-blue-400 transition-all duration-300">
+                            <Image src={student.image} alt={student.name} fill className="object-cover object-top" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-black text-lg text-slate-900 truncate leading-snug group-hover:text-blue-600 transition-colors">{student.name}</h3>
+                            <p className="text-xs font-bold text-slate-400 mt-0.5 truncate uppercase tracking-wider">{student.type} Candidate</p>
+                            
+                            {/* School & City Details */}
+                            <div className="flex items-center gap-1.5 text-slate-500 font-semibold text-xs mt-2.5 truncate">
+                              <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="truncate">{student.school}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-500 font-bold text-xs mt-1">
+                              <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                              <span className="text-blue-600">{student.city}</span>
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-slate-500 font-semibold text-sm mb-4">
-                          {student.type} • {student.school} • <span className="text-blue-600 font-bold">{student.city}</span>
-                        </p>
-                        <button className="w-full py-3 rounded-lg border border-slate-200 font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">View Portfolio</button>
+
+                        {/* Placement Pathway Section */}
+                        <div className="bg-slate-50/60 p-3 rounded-2xl border border-slate-200/60 mb-4 flex items-center justify-between text-xs font-semibold">
+                          <span className="text-slate-400 text-[10px] uppercase tracking-wider font-bold">Placement Pathway</span>
+                          <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wide border shadow-sm ${
+                            student.pathway === 'School Instructor' 
+                              ? 'bg-purple-50 text-purple-700 border-purple-200/60' 
+                              : student.pathway === 'Dual-Pathway Eligible'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200/60'
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+                          }`}>
+                            {student.pathway}
+                          </span>
+                        </div>
+
+                        {/* Expertise Specialties */}
+                        <div className="mb-4">
+                          <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider block mb-1.5">Expertise Focus</span>
+                          <div className="flex flex-wrap gap-1">
+                            {student.specialties && student.specialties.map((spec: string, idx: number) => (
+                              <span key={idx} className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg border border-slate-200/40">
+                                {spec}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Social Galleries / Portfolios */}
+                        <div className="mb-6 pt-3.5 border-t border-slate-100 mt-auto">
+                          <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider block mb-2">Visual Gallery / Portfolios</span>
+                          <div className="grid grid-cols-4 gap-2">
+                            <div 
+                              className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-200/60 text-slate-500 shadow-sm"
+                              title="Instagram Portfolio Connected"
+                            >
+                              <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                              <span className="text-[8px] font-black mt-1 uppercase tracking-wider">Instagram</span>
+                            </div>
+                            
+                            <div 
+                              className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-200/60 text-slate-500 shadow-sm"
+                              title="TikTok Gallery Connected"
+                            >
+                              <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+                              </svg>
+                              <span className="text-[8px] font-black mt-1 uppercase tracking-wider">TikTok</span>
+                            </div>
+                            
+                            <div 
+                              className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-200/60 text-slate-500 shadow-sm"
+                              title="YouTube Channel Connected"
+                            >
+                              <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>
+                              <span className="text-[8px] font-black mt-1 uppercase tracking-wider">YouTube</span>
+                            </div>
+                            
+                            <div 
+                              className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-200/60 text-slate-500 shadow-sm"
+                              title="Personal Website Connected"
+                            >
+                              <Globe className="w-4.5 h-4.5" />
+                              <span className="text-[8px] font-black mt-1 uppercase tracking-wider">Website</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Interactive Call to Action */}
+                        <button 
+                          onClick={() => {
+                            setSelectedPassportStudent(student);
+                            setPassportActiveTab('credentials');
+                            setScheduleSuccess(false);
+                          }}
+                          className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-md active:scale-[0.98]"
+                        >
+                          <GraduationCap className="w-4 h-4 text-blue-400" />
+                          View Full Career Passport
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -879,15 +1162,18 @@ export default function BarberBeautyNetworkPage() {
                                 {applicationSuccessShopId === shop.id ? (
                                   <div className="w-full py-3.5 bg-green-50 border border-green-200 rounded-xl text-green-700 font-bold text-xs flex items-center justify-center gap-2 animate-pulse">
                                     <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                    Portfolio Shared Successfully!
+                                    Passport Shared Successfully!
                                   </div>
                                 ) : (
                                   <button 
-                                    onClick={() => handleApplyToShop(shop.id)}
+                                    onClick={() => {
+                                      setSelectedApplyShop(shop);
+                                      setApplyLoadingState('idle');
+                                    }}
                                     className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-colors cursor-pointer inline-flex items-center justify-center gap-2 shadow-md shadow-blue-500/10 hover:shadow-blue-500/20 active:scale-[0.98]"
                                   >
-                                    <GraduationCap className="w-4 h-4" />
-                                    Share Profile / Apply Now
+                                    <GraduationCap className="w-4 h-4 text-blue-400" />
+                                    Submit Career Passport to Apply
                                   </button>
                                 )}
                                 
@@ -1047,6 +1333,753 @@ export default function BarberBeautyNetworkPage() {
                   <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-sm mx-auto">
                     Thanks, {claimName}! We have received your verification request for **{selectedClaimShop.shop_name}**. We will contact you at **{claimEmail}** within 24 hours to secure your login!
                   </p>
+                </motion.div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Submit Career Passport Application Modal */}
+      <AnimatePresence>
+        {selectedApplyShop && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-[2.5rem] max-w-lg w-full p-8 border border-slate-200 shadow-2xl relative"
+            >
+              <button 
+                onClick={() => {
+                  setSelectedApplyShop(null);
+                  setApplyLoadingState('idle');
+                }}
+                className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {applyLoadingState === 'idle' && (
+                <div className="space-y-6">
+                  <div className="text-center space-y-2 mb-2">
+                    <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-4">
+                      <Award className="w-8 h-8 animate-bounce" />
+                    </div>
+                    <h3 className="text-2xl font-black text-slate-900">Submit Career Passport</h3>
+                    <p className="text-slate-500 font-semibold text-sm leading-relaxed max-w-sm mx-auto">
+                      Submit your verified credentials, accredited board hours, and visual social styling portfolios directly to **{selectedApplyShop.shop_name}**!
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Select Your Career Passport</label>
+                      <select 
+                        value={applyStudentName}
+                        onChange={(e) => setApplyStudentName(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
+                      >
+                        <option value="Marcus Johnson">Marcus Johnson — Barber (Licensed)</option>
+                        <option value="Sarah Williams">Sarah Williams — Cosmetologist (Graduating Soon)</option>
+                        <option value="David Chen">David Chen — Barber (Licensed / Instructor Certified)</option>
+                      </select>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/60 space-y-2 text-xs font-semibold text-slate-600">
+                      <div className="flex justify-between"><span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Passport Stamp:</span> <span className="text-green-600">VERIFIED BOARD ELIGIBLE</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Hours Certified:</span> <span>1,500 / 1,500 Hours Complete</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Visual Portfolio:</span> <span>Instagram, TikTok & YouTube Connected</span></div>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      setApplyLoadingState('verifying');
+                      setTimeout(() => {
+                        setApplyLoadingState('packaging');
+                        setTimeout(() => {
+                          setApplyLoadingState('submitting');
+                          setTimeout(() => {
+                            setApplyLoadingState('done');
+                            setApplicationSuccessShopId(selectedApplyShop.id);
+                            setTimeout(() => {
+                              setSelectedApplyShop(null);
+                              setApplyLoadingState('idle');
+                              setApplicationSuccessShopId(null);
+                            }, 3000);
+                          }, 1200);
+                        }, 1200);
+                      }, 1000);
+                    }}
+                    className="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/10"
+                  >
+                    Confirm & Submit Career Passport
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+
+              {(applyLoadingState === 'verifying' || applyLoadingState === 'packaging' || applyLoadingState === 'submitting') && (
+                <div className="py-16 text-center space-y-6">
+                  <div className="relative w-20 h-20 mx-auto">
+                    <div className="absolute inset-0 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin" />
+                    <div className="absolute inset-2 rounded-full border-4 border-indigo-50 border-t-indigo-400 animate-spin animate-reverse" />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-black text-indigo-600 uppercase tracking-widest animate-pulse">
+                      {applyLoadingState === 'verifying' && "Verifying Credentials..."}
+                      {applyLoadingState === 'packaging' && "Packaging Board Hours..."}
+                      {applyLoadingState === 'submitting' && "Dispatching Passport..."}
+                    </h3>
+                    <p className="text-xs text-slate-400 font-medium">Securing connection to {selectedApplyShop.shop_name} outreach...</p>
+                  </div>
+                </div>
+              )}
+
+              {applyLoadingState === 'done' && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="py-12 text-center space-y-4"
+                >
+                  <div className="w-16 h-16 rounded-full bg-green-50 text-green-500 border border-green-200 flex items-center justify-center mx-auto mb-4 animate-bounce">
+                    <Check className="w-9 h-9" />
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900">Career Passport Submitted!</h3>
+                  <p className="text-slate-500 font-semibold text-sm leading-relaxed max-w-sm mx-auto">
+                    Excellent choice, **{applyStudentName}**! Your verified Career Passport credentials and visual galleries have been successfully submitted to **{selectedApplyShop.shop_name}**!
+                  </p>
+                </motion.div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Career Passport Dialog Modal */}
+      <AnimatePresence>
+        {selectedPassportStudent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 bg-slate-900/75 backdrop-blur-md overflow-y-auto">
+            <motion.div 
+              initial={{ opacity: 0, y: 30, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 30, scale: 0.98 }}
+              className="bg-white rounded-[2.5rem] max-w-4xl w-full border border-slate-200 shadow-2xl relative overflow-hidden flex flex-col md:flex-row my-8"
+            >
+              {/* Close Button */}
+              <button 
+                onClick={() => setSelectedPassportStudent(null)}
+                className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer z-20"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Passport Side Panel (Navy/Indigo Leather cover style) */}
+              <div className="md:w-[40%] bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-8 flex flex-col justify-between relative overflow-hidden border-r border-slate-800 shrink-0">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(99,102,241,0.15),transparent)] pointer-events-none" />
+                
+                <div className="space-y-6 relative z-10">
+                  <div className="flex items-center gap-2 text-amber-400 uppercase tracking-widest text-[10px] font-black">
+                    <Award className="w-5 h-5 text-amber-400" />
+                    Verified Credentials
+                  </div>
+
+                  <div className="flex flex-col items-center text-center space-y-4 pt-4">
+                    {/* Headshot with Golden Border */}
+                    <div className="relative w-32 h-40 rounded-2xl overflow-hidden border-2 border-amber-400/80 shadow-xl bg-slate-800">
+                      <Image 
+                        src={selectedPassportStudent.image} 
+                        alt={selectedPassportStudent.name} 
+                        fill 
+                        className="object-cover object-top" 
+                      />
+                      {/* Gold Wax Seal Stamp */}
+                      <div className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 border border-amber-300 flex items-center justify-center shadow-lg animate-pulse" title="Board Verified Eligible">
+                        <Check className="w-4 h-4 text-slate-900 font-bold" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <h3 className="text-2xl font-black tracking-tight text-white">{selectedPassportStudent.name}</h3>
+                      <span className="inline-block px-3 py-1 bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase tracking-wider rounded-full border border-amber-500/20">
+                        {selectedPassportStudent.type} candidate
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Passport Biometrics Table */}
+                <div className="mt-8 pt-6 border-t border-white/10 space-y-3.5 text-xs text-slate-300 relative z-10">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Passport No.</span>
+                    <span className="font-mono font-bold text-amber-400">
+                      TX-PS-{selectedPassportStudent.id ? selectedPassportStudent.id.substring(selectedPassportStudent.id.lastIndexOf('-') + 1).toUpperCase() : "MOCK"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Authority</span>
+                    <span className="font-bold">Texas Licensing Board</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">School of Origin</span>
+                    <span className="font-bold max-w-[150px] truncate text-right">{selectedPassportStudent.school}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Metro Area</span>
+                    <span className="font-bold text-blue-400">{selectedPassportStudent.city}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Passport Details Panel (White paper pages style) */}
+              <div className="flex-1 p-8 flex flex-col justify-between bg-slate-50/50">
+                <div>
+                  {/* Modal Navigation Tabs */}
+                  <div className="flex border-b border-slate-200 mb-6 gap-2">
+                    {[
+                      { id: 'credentials', label: 'Vetted Credentials', icon: Award },
+                      { id: 'portfolio', label: 'Visual Gallery', icon: Scissors },
+                      { id: 'schedule', label: 'Schedule Shop Day', icon: Calendar }
+                    ].map((tab) => {
+                      const Icon = tab.icon;
+                      const isActive = passportActiveTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setPassportActiveTab(tab.id as any)}
+                          className={`flex items-center gap-1.5 pb-3.5 px-2 text-xs font-black uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
+                            isActive 
+                              ? 'border-indigo-600 text-indigo-600' 
+                              : 'border-transparent text-slate-400 hover:text-slate-600'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                          {tab.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Tab Contents */}
+                  <div className="min-h-[280px]">
+                    
+                    {/* Tab 1: Vetted Credentials */}
+                    {passportActiveTab === 'credentials' && (
+                      <div className="space-y-6 animate-fadeIn">
+                        
+                        {/* Progress hours bar */}
+                        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                          <div className="flex justify-between items-center text-xs font-bold">
+                            <span className="text-slate-500">Board Required Hours Completed</span>
+                            <span className="text-indigo-600 font-extrabold text-sm">1,500 / 1,500 Hours</span>
+                          </div>
+                          <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                            <div className="h-full bg-gradient-to-r from-indigo-500 to-blue-600 rounded-full w-full" />
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-green-600 font-extrabold uppercase mt-1">
+                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            Accredited Program Hours Fully Completed & Signed Off
+                          </div>
+                        </div>
+
+                        {/* Vetted Checklist */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {[
+                            { title: "Texas Board Written Exam", desc: "Successfully Passed with Honors", status: "PASSED" },
+                            { title: "Texas Board Practical Exam", desc: "Board Exam Date Vetted & Scheduled", status: "SCHEDULED" }
+                          ].map((item, idx) => (
+                            <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-start gap-3">
+                              <div className="p-1 rounded-full bg-green-50 text-green-600 border border-green-200 shrink-0">
+                                <Check className="w-3.5 h-3.5" />
+                              </div>
+                              <div>
+                                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide">{item.title}</h4>
+                                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">{item.desc}</p>
+                                <span className="inline-block mt-2 px-2 py-0.5 bg-green-50 border border-green-200 text-green-700 text-[8px] font-black rounded uppercase tracking-wider">
+                                  {item.status}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab 2: Visual Portfolio Mock Gallery */}
+                    {passportActiveTab === 'portfolio' && (
+                      <div className="space-y-4 animate-fadeIn">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
+                          <span>Live Connected Feed Display (For Display Only)</span>
+                          <span className="text-indigo-600 flex items-center gap-1">
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            @ {selectedPassportStudent.name.toLowerCase().replace(' ', '_')}_fades
+                          </span>
+                        </div>
+
+                        {/* 3x2 High Fidelity Cuts Grid */}
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            { tag: "Skin Fade", img: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=400&auto=format&fit=crop" },
+                            { tag: "Lineup Trim", img: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?q=80&w=400&auto=format&fit=crop" },
+                            { tag: "Razor Shave", img: "https://images.unsplash.com/photo-1593702275687-f8b402bf1fb5?q=80&w=400&auto=format&fit=crop" },
+                            { tag: "Taper Fade", img: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=400&auto=format&fit=crop" },
+                            { tag: "Modern Slick", img: "https://images.unsplash.com/photo-1605497788044-5a32c7078486?q=80&w=400&auto=format&fit=crop" },
+                            { tag: "Beard Shape", img: "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?q=80&w=400&auto=format&fit=crop" }
+                          ].map((cut, idx) => (
+                            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100 group/cut shadow-sm hover:border-indigo-400 transition-colors">
+                              <Image 
+                                src={cut.img} 
+                                alt={cut.tag} 
+                                fill 
+                                className="object-cover group-hover/cut:scale-105 transition-transform duration-500" 
+                              />
+                              <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/cut:opacity-100 flex items-center justify-center transition-opacity">
+                                <span className="text-[10px] font-black uppercase text-white tracking-widest bg-indigo-600/90 px-2.5 py-1 rounded-lg border border-indigo-400/40">
+                                  {cut.tag}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab 3: Interactive Scheduling Form */}
+                    {passportActiveTab === 'schedule' && (
+                      <div className="animate-fadeIn">
+                        {!scheduleSuccess ? (
+                          <form 
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              if (!scheduleShopName || !scheduleDate || !scheduleTime) return;
+                              setScheduleSuccess(true);
+                            }}
+                            className="space-y-4"
+                          >
+                            <div className="text-xs font-bold text-slate-500 mb-1">
+                              Invite **{selectedPassportStudent.name}** for a dedicated **Shop Day Visit** at your location!
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-1.5 col-span-2 md:col-span-1">
+                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Your Barbershop Name</label>
+                                <input 
+                                  type="text" 
+                                  required 
+                                  placeholder="e.g. Dallas Fades Barbershop"
+                                  value={scheduleShopName}
+                                  onChange={(e) => setScheduleShopName(e.target.value)}
+                                  className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                                />
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Proposed Visit Date</label>
+                                <div className="relative">
+                                  <Calendar className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                  <input 
+                                    type="date" 
+                                    required
+                                    value={scheduleDate}
+                                    onChange={(e) => setScheduleDate(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="space-y-1.5 col-span-2 md:col-span-1">
+                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Proposed Start Time</label>
+                                <div className="relative">
+                                  <Clock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                  <input 
+                                    type="time" 
+                                    required
+                                    value={scheduleTime}
+                                    onChange={(e) => setScheduleTime(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Outreach Notes / Special Requirements</label>
+                              <textarea 
+                                placeholder="Describe what type of chair structures you have available, potential tools you want them to bring, and any specific styling tasks they can run..."
+                                value={scheduleNotes}
+                                onChange={(e) => setScheduleNotes(e.target.value)}
+                                className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500 h-20 resize-none"
+                              />
+                            </div>
+
+                            <button 
+                              type="submit"
+                              className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/10"
+                            >
+                              <Calendar className="w-4 h-4" />
+                              Schedule Shop Day Invitation
+                            </button>
+                          </form>
+                        ) : (
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="py-10 text-center space-y-4"
+                          >
+                            <div className="w-14 h-14 rounded-full bg-green-50 text-green-500 border border-green-200 flex items-center justify-center mx-auto mb-2 animate-bounce">
+                              <Check className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-xl font-black text-slate-900">Invitation Dispatched!</h3>
+                            <p className="text-slate-500 font-semibold text-xs leading-relaxed max-w-sm mx-auto">
+                              Your Shop Day request has been successfully compiled and sent to **{selectedPassportStudent.name}** and their Admissions Rep at **{selectedPassportStudent.school}**. 
+                              We have queued the outreach details on your highlevel workflows!
+                            </p>
+                          </motion.div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Modal Bottom Branding Footer */}
+                <div className="pt-4 border-t border-slate-200 flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest mt-6">
+                  <span>Inner G Complete Placement</span>
+                  <span>Authentic Board Seal</span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Create Career Passport Wizard Modal */}
+      <AnimatePresence>
+        {isCreatingPassport && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-[2.5rem] max-w-xl w-full p-8 border border-slate-200 shadow-2xl relative flex flex-col my-8"
+            >
+              {/* Close Button */}
+              <button 
+                onClick={() => {
+                  setIsCreatingPassport(false);
+                  setCreateStep(1);
+                  setCreateLoadingState('idle');
+                }}
+                className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer z-10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {createLoadingState === 'idle' && (
+                <div className="space-y-6">
+                  {/* Wizard Header */}
+                  <div className="text-center space-y-2 mb-2">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-2">
+                      <Award className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-2xl font-black text-slate-900">Mint Your Career Passport</h3>
+                    <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Step {createStep} of 4</p>
+                    
+                    {/* Step progress bar */}
+                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200 max-w-[200px] mx-auto">
+                      <div className="h-full bg-indigo-600 rounded-full transition-all duration-300" style={{ width: `${createStep * 25}%` }} />
+                    </div>
+                  </div>
+
+                  {/* Step 1: Personal Details */}
+                  {createStep === 1 && (
+                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Candidate Full Name</label>
+                        <input 
+                          type="text" 
+                          required 
+                          placeholder="e.g. Marcus Johnson"
+                          value={newPassportName}
+                          onChange={(e) => setNewPassportName(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Accredited Academy / School Name</label>
+                        <input 
+                          type="text" 
+                          required 
+                          placeholder="e.g. Texas Barber College"
+                          value={newPassportSchool}
+                          onChange={(e) => setNewPassportSchool(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Metro City</label>
+                          <input 
+                            type="text" 
+                            required 
+                            placeholder="e.g. Dallas"
+                            value={newPassportCity}
+                            onChange={(e) => setNewPassportCity(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Specialty Type</label>
+                          <select 
+                            value={newPassportType}
+                            onChange={(e) => setNewPassportType(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
+                          >
+                            <option value="Barber">Barber</option>
+                            <option value="Cosmetologist">Cosmetologist</option>
+                            <option value="Esthetician">Esthetician</option>
+                          </select>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Step 2: Credential Vetting */}
+                  {createStep === 2 && (
+                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Licensure Status</label>
+                          <select 
+                            value={newPassportStatus}
+                            onChange={(e) => setNewPassportStatus(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
+                          >
+                            <option value="Licensed">Licensed</option>
+                            <option value="Graduating Soon">Graduating Soon</option>
+                            <option value="Student">Student</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Completed Board Hours</label>
+                          <input 
+                            type="number" 
+                            required 
+                            min="0"
+                            max="1500"
+                            placeholder="e.g. 1500"
+                            value={newPassportHours}
+                            onChange={(e) => setNewPassportHours(Number(e.target.value))}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold rounded-2xl flex items-start gap-3">
+                        <ShieldCheck className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-amber-900 block mb-0.5">Accredited Status Verification</span>
+                          Completing board required hours qualifies you for verified status. Passports with 1,500 completed hours automatically receive the golden state-approved verification stamp!
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Step 3: Social Portfolios Sync */}
+                  {createStep === 3 && (
+                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                      <div className="text-xs font-bold text-slate-500 mb-2">
+                        Instead of uploading styling photos, link your existing social media portfolios beautifully for display-only verification:
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Instagram Username</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. marcus_fades"
+                            value={newPassportInstagram}
+                            onChange={(e) => setNewPassportInstagram(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">TikTok Handle</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. @marcus_cuts"
+                            value={newPassportTiktok}
+                            onChange={(e) => setNewPassportTiktok(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">YouTube Handle</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. @marcuscuts"
+                            value={newPassportYoutube}
+                            onChange={(e) => setNewPassportYoutube(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Personal Website</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. marcuscuts.com"
+                            value={newPassportPortfolio}
+                            onChange={(e) => setNewPassportPortfolio(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Step 4: Specialties & Pathway */}
+                  {createStep === 4 && (
+                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Placement Pathway</label>
+                        <select 
+                          value={newPassportPathway}
+                          onChange={(e) => setNewPassportPathway(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
+                        >
+                          <option value="Barbershop Hire">Barbershop Hire — Chair/Booth Placements</option>
+                          <option value="School Instructor">School Instructor — Academy Staff Placements</option>
+                          <option value="Dual-Pathway Eligible">Dual-Pathway Eligible — Highly Versatile Candidate</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Desired Specialties (Comma Separated)</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Modern Fades, Beard Styling, Hair Coloring"
+                          value={newPassportSpecialties}
+                          onChange={(e) => setNewPassportSpecialties(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Wizard Footer Controls */}
+                  <div className="flex gap-4 pt-4 border-t border-slate-100">
+                    {createStep > 1 && (
+                      <button 
+                        onClick={() => setCreateStep(s => s - 1)}
+                        className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider transition-colors hover:bg-slate-50 cursor-pointer"
+                      >
+                        Back
+                      </button>
+                    )}
+                    
+                    <button 
+                      onClick={() => {
+                        if (createStep < 4) {
+                          if (createStep === 1 && (!newPassportName || !newPassportSchool || !newPassportCity)) {
+                            alert("Please fill in your name, school, and city to proceed.");
+                            return;
+                          }
+                          setCreateStep(s => s + 1);
+                        } else {
+                          if (!newPassportName) return;
+                          
+                          setCreateLoadingState('generating');
+                          setTimeout(() => {
+                            const newStudent = {
+                              id: `student-custom-${Date.now()}`,
+                              name: newPassportName,
+                              school: newPassportSchool || "Independent Barber Academy",
+                              city: newPassportCity || "Texas Hub",
+                              type: newPassportType,
+                              status: newPassportStatus,
+                              image: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=800&auto=format&fit=crop",
+                              instagram: newPassportInstagram ? `https://instagram.com/${newPassportInstagram}` : "https://instagram.com",
+                              tiktok: newPassportTiktok ? `https://tiktok.com/@${newPassportTiktok.replace('@', '')}` : "https://tiktok.com",
+                              youtube: newPassportYoutube ? `https://youtube.com/@${newPassportYoutube.replace('@', '')}` : "https://youtube.com",
+                              portfolio: newPassportPortfolio ? `https://${newPassportPortfolio}` : "https://innergcomplete.com",
+                              pathway: newPassportPathway,
+                              specialties: newPassportSpecialties.split(',').map(s => s.trim()).filter(Boolean)
+                            };
+
+                            setCustomStudents(prev => [newStudent, ...prev]);
+                            setCreateLoadingState('done');
+                          }, 3000);
+                        }
+                      }}
+                      className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/10"
+                    >
+                      {createStep === 4 ? "Mint Career Passport" : "Continue"}
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Minting Passport loading screens */}
+              {createLoadingState === 'generating' && (
+                <div className="py-16 text-center space-y-6">
+                  <div className="relative w-20 h-20 mx-auto">
+                    <div className="absolute inset-0 rounded-full border-4 border-amber-100 border-t-amber-500 animate-spin" />
+                    <div className="absolute inset-2 rounded-full border-4 border-amber-50 border-t-amber-300 animate-spin animate-reverse" />
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <h3 className="text-lg font-black text-amber-500 uppercase tracking-widest animate-pulse">
+                      Minting Career Passport...
+                    </h3>
+                    <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                      Assembling Security Watermarks...
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Minting Success Screen */}
+              {createLoadingState === 'done' && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="py-12 text-center space-y-6"
+                >
+                  <div className="w-16 h-16 rounded-full bg-green-50 text-green-500 border border-green-200 flex items-center justify-center mx-auto mb-2 animate-bounce">
+                    <Check className="w-9 h-9" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-black text-slate-900">Career Passport Minted!</h3>
+                    <p className="text-slate-500 font-semibold text-xs leading-relaxed max-w-sm mx-auto">
+                      Congratulations, **{newPassportName}**! Your verified **Career Passport** has been successfully generated and added to the official placement network.
+                    </p>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      setIsCreatingPassport(false);
+                      setCreateStep(1);
+                      setCreateLoadingState('idle');
+                      
+                      setTimeout(() => {
+                        document.getElementById('explore-network')?.scrollIntoView({ behavior: 'smooth' });
+                        setActiveTab('students');
+                      }, 500);
+                    }}
+                    className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-slate-900/10"
+                  >
+                    View Your Passport in Registry
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </motion.div>
               )}
             </motion.div>

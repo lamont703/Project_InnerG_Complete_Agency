@@ -206,6 +206,21 @@ export class GhlProvider {
   }
 
   /**
+   * Updates an existing contact's custom fields.
+   */
+  async updateContactCustomFields(contactId: string, customFields: Array<{ id: string; fieldValue: any }>) {
+    const response = await fetch(`${GHL_API_BASE}/contacts/${contactId}`, {
+      method: "PUT",
+      headers: this.headers,
+      body: JSON.stringify({ customFields }),
+    });
+    if (!response.ok) {
+      throw new Error(`GHL_UPDATE_CONTACT_ERROR: ${await response.text()}`);
+    }
+    return await response.json();
+  }
+
+  /**
    * Adds tags to an existing contact.
    */
   async addTags(contactId: string, tags: string[]) {
