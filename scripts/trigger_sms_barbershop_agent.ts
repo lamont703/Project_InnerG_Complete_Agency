@@ -30,7 +30,7 @@ async function loadPendingShops(limit: number, targetPhone?: string | null) {
   if (targetPhone) {
     query = query.eq("phone", targetPhone)
   } else {
-    query = query.eq("outreach_status", "pending").limit(limit)
+    query = query.eq("outreach_status", "pending").ilike("city", "%Houston%").limit(limit)
   }
 
   const { data, error } = await query
@@ -160,12 +160,19 @@ Keep it under 300 characters. No markdown. No placeholders.`
       
       await sendGhlMessage(shopContactId, initialSms)
       
+      const initialTurn = [{
+        role: "agent",
+        content: initialSms,
+        timestamp: new Date().toISOString()
+      }]
+
       await supabase.from("agent_barbershop_leads").update({
         outreach_status: "contacted",
         last_contacted_at: new Date().toISOString(),
         outreach_attempts: (shop.outreach_attempts || 0) + 1,
         contact_id: shopContactId,
-        last_conversation_history: `Lamont: ${initialSms}`
+        last_conversation_history: `Lamont: ${initialSms}`,
+        conversation_turns: initialTurn
       }).eq("id", shop.id)
       
       console.log(`✅ Initial SMS dispatched and telemetry updated for ${shop.shop_name}\n`)

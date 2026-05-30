@@ -129,6 +129,40 @@ export default createHandler(async ({ adminClient, body }) => {
   }
   const turnsWithUserMsg = [...priorTurns, userTurn]
 
+  // Immediately save the user turn to DB so newer webhooks can see it
+  const tempLead = { ...lead, conversation_turns: turnsWithUserMsg }
+  if (lead.id) {
+    await adminClient.from("agent_barbershop_leads").update({ conversation_turns: turnsWithUserMsg, updated_at: now }).eq("id", lead.id)
+  } else {
+    const { data: inserted } = await adminClient.from("agent_barbershop_leads").insert({ ...tempLead, updated_at: now }).select("id").single()
+    if (inserted) lead.id = inserted.id
+  }
+
+  // 4. DEBOUNCE: Sleep 15 seconds to catch double-texts
+  logger.info("Sleeping 15s to debounce double-texts...", { contactId })
+  await new Promise(resolve => setTimeout(resolve, 15000))
+
+  // 5. CONCURRENCY CHECK: Re-fetch lead to see if another message arrived
+  const { data: latestLeads } = await adminClient.from("agent_barbershop_leads").select("conversation_turns").eq("contact_id", contactId)
+  const latestLead = latestLeads?.[0]
+  if (latestLead) {
+    let latestTurns: ConversationTurn[] = []
+    if (Array.isArray(latestLead.conversation_turns)) latestTurns = latestLead.conversation_turns
+    else if (typeof latestLead.conversation_turns === "string") {
+      try { latestTurns = JSON.parse(latestLead.conversation_turns) } catch (e) { latestTurns = [] }
+    }
+    
+    const lastUserTurn = latestTurns.slice().reverse().find((t: any) => t.role === "user")
+    if (lastUserTurn && lastUserTurn.timestamp !== now) {
+      logger.info("A newer user message arrived during sleep. Aborting this execution to let the newest webhook handle it.", { contactId })
+      return okResponse({ status: "aborted_due_to_double_text" })
+    }
+    
+    // If we're still the newest, use the latest turns (which might include messages that came in *before* us but weren't in priorTurns)
+    // Actually, if we're the newest, turnsWithUserMsg is the most up-to-date representation up to 'now'.
+    // We will just proceed with turnsWithUserMsg for generation, but we should use latestTurns to ensure we don't overwrite other things.
+  }
+
   // Build formatted thread for both prompts
   const formattedThread = formatConversationThread(turnsWithUserMsg)
 
@@ -138,6 +172,7 @@ export default createHandler(async ({ adminClient, body }) => {
   const extractionPrompt = `You are a CRM data extraction engine for a barber placement agency.
 Review the FULL conversation thread below and extract the most up-to-date values for these 7 fields.
 If a field has not been explicitly mentioned in the conversation, output null for that field.
+CRITICAL: If the user mentions having open chairs, available spots, or booth rentals, you must infer that "hiring_need" is true, even if they don't explicitly say the word "hiring".
 
 Full conversation:
 ${formattedThread}
@@ -171,16 +206,18 @@ Here is the complete conversation thread so far:
 ${formattedThread}
 
 Instructions:
-- Respond naturally as if this is a real SMS conversation. 
-- Reference specific details the owner mentioned earlier in the thread.
+- Respond naturally as if this is a real SMS conversation. Keep it casual but professional.
+- **DO NOT re-introduce yourself in every message** (e.g., avoid saying "Hey there! Lamont from Inner G here" again). You are replying to an ongoing text thread, so just jump straight into the response.
+- **RULE OF ACKNOWLEDGMENT**: Always directly answer the user's questions first before asking your own. Do not ignore their questions to push your agenda.
+- **CONVERSATIONAL FLUIDITY**: Do not parrot the user's exact answers back to them (e.g., do not say "Got it, $150 a week sounds fair. How many chairs..."). Acknowledge briefly (e.g., "Perfect," "Makes sense") and ask the next question naturally.
+- **SMS FORMATTING**: Keep responses strictly to 1-2 sentences. Do not use multiple paragraphs. You are texting.
 - **CRITICAL REJECTION RULE**: If a barbershop states they are fully staffed, not hiring, or have no open chairs, DO NOT ask them for their rent prices, chair counts, or contact info. Instead, congratulate them on having a full shop, politely let them know Inner G is here if they ever need coverage in the future or want to host a "Shop Day" for students, and gracefully end the conversation.
 - **THE DROP IT RULE**: If the user explicitly says they are "not interested", "no thank you", or "stop", DO NOT try to sell them or overcome the objection. Say "Understood, thanks for your time!" and gracefully end the conversation.
-- **THE CANNOT DISCLOSE RULE**: If a shop owner explicitly says they "cannot disclose", "won't share", "prefer not to say", or otherwise refuses to provide specific operational details (chair count, commission %, rent rate), DO NOT push back or try to overcome the objection. Accept the boundary immediately, reassure them it is no problem, and pivot to offering free value — e.g., offer to start sending candidate profiles anyway and ask for their name and best email address. Moving the relationship forward is more important than any single data point.
-- **ANSWERING QUESTIONS**: If the user asks a specific question (like what school or where you are located), answer it directly, conversationally, and honestly. Do not immediately pivot back to asking for their email if you just answered a question. Let the conversation breathe.
-- **PITCHING SHOP DAY**: When mentioning Shop Day, frame it as an OPTION. Say something like 'We also do Shop Days where we bring students to you. Is that something you might be open to?' DO NOT tell the user you are signing them up or marking them down as a host without their explicit yes.
-- If they are hiring, and you do not yet know the number of chairs OR the rent/commission rate, inquire about them. BUT ONLY ASK ONE QUESTION AT A TIME to keep the conversation feeling natural. Do not repeatedly quote their chair count or rent prices back to them in every message.
-- If they are hiring and the owner has already provided BOTH the number of chairs and the rent/commission rate, thank them and politely ask for their name and best email address to send over candidate profiles.
-- Keep it concise, but do not sacrifice completeness.
+- **THE CANNOT DISCLOSE RULE**: If a shop owner refuses to provide specific operational details (chair count, commission %, rent rate), DO NOT push back. Accept the boundary immediately, reassure them, and pivot to offering free value (e.g., offer to send candidate profiles and ask for their email).
+- **THE YIELD RULE**: If the user firmly insists on doing things their way (e.g., "just give them my number", "don't need profiles just call me"), DO NOT argue or push your process. Gracefully accept their boundary and agree to it. For example: "Will do! I'll pass your number along to a few grads right now. Have a great day!"
+- **PITCHING SHOP DAY**: When mentioning Shop Day, frame it as an OPTION. Say something like 'We also do Shop Days where we bring students to you. Is that something you might be open to?' DO NOT tell the user you are signing them up without their explicit yes.
+- If they are hiring, and you do not yet know the number of chairs OR the rent/commission rate, inquire about them. BUT ONLY ASK ONE QUESTION AT A TIME to keep the conversation feeling natural.
+- If they are hiring and the owner has already provided BOTH the number of chairs and the rent/commission rate, politely ask for their name and best email address to send over candidate profiles.
 - IMPORTANT: Always write a complete, finished text message — never cut off mid-sentence.
 
 FAQ / Knowledge Base (Use this to answer questions accurately):
@@ -225,9 +262,19 @@ Write ONLY your next reply text:`
     updated_at: now,
   }
 
-  const { error: dbError } = await adminClient
-    .from("agent_barbershop_leads")
-    .upsert(updatedLead, { onConflict: "contact_id" })
+  let dbError = null;
+  if (lead.id) {
+    const { error } = await adminClient
+      .from("agent_barbershop_leads")
+      .update(updatedLead)
+      .eq("id", lead.id)
+    dbError = error
+  } else {
+    const { error } = await adminClient
+      .from("agent_barbershop_leads")
+      .insert(updatedLead)
+    dbError = error
+  }
 
   if (dbError) {
     logger.error("DB upsert failed", { dbError })
