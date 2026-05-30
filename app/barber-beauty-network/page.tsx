@@ -14,6 +14,20 @@ import {
 import Image from "next/image";
 import { createBrowserClient } from "@/lib/supabase/browser";
 
+function ShopImage({ shopId, fallbackSrc, alt }: { shopId: string, fallbackSrc: string, alt: string }) {
+  const [src, setSrc] = useState(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/social-assets/shop-images/${shopId}`);
+
+  return (
+    <img 
+      src={src}
+      alt={alt} 
+      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700 ease-out" 
+      onError={() => setSrc(fallbackSrc)}
+    />
+  );
+}
+
+
 const MOCK_STUDENTS = [
   { 
     id: "student-mock-1",
@@ -178,7 +192,21 @@ export default function BarberBeautyNetworkPage() {
   const [claimName, setClaimName] = useState("");
   const [claimEmail, setClaimEmail] = useState("");
   const [claimPhone, setClaimPhone] = useState("");
+  const [claimChairs, setClaimChairs] = useState("");
+  const [claimCompensation, setClaimCompensation] = useState("Booth Rent");
+  const [claimRentRate, setClaimRentRate] = useState("");
+  const [claimImageFile, setClaimImageFile] = useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [claimSuccess, setClaimSuccess] = useState(false);
+  
+  // OTP Verification States
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [otpInput, setOtpInput] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpError, setOtpError] = useState("");
+  const [verifyPhoneInput, setVerifyPhoneInput] = useState("");
 
   // Card Expandable Chat Log States
   const [expandedChats, setExpandedChats] = useState<{ [key: string]: boolean }>({});
@@ -390,12 +418,75 @@ export default function BarberBeautyNetworkPage() {
   const currentStudents = filteredStudents.slice((studentPage - 1) * ITEMS_PER_PAGE_STUDENTS, studentPage * ITEMS_PER_PAGE_STUDENTS);
   const currentShops = filteredShops.slice((shopPage - 1) * ITEMS_PER_PAGE_SHOPS, shopPage * ITEMS_PER_PAGE_SHOPS);
 
+  // OTP Logic
+  async function handleSendOtp() {
+    if (!selectedClaimShop || !selectedClaimShop.phone) return;
+    
+    const inputClean = verifyPhoneInput.replace(/\D/g, '');
+    const dbPhoneClean = selectedClaimShop.phone.replace(/\D/g, '');
+    
+    if (!inputClean || !dbPhoneClean.endsWith(inputClean) || inputClean.length < 10) {
+      setOtpError("The phone number you entered does not match our records for this shop.");
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setOtpError("");
+    try {
+      const res = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopId: selectedClaimShop.id, phone: selectedClaimShop.phone })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send OTP");
+      setIsOtpSent(true);
+    } catch (err: any) {
+      setOtpError(err.message);
+    } finally {
+      setIsSendingOtp(false);
+    }
+  }
+
+  async function handleVerifyOtp() {
+    if (!selectedClaimShop || !otpInput) return;
+    setIsVerifyingOtp(true);
+    setOtpError("");
+    try {
+      const res = await fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopId: selectedClaimShop.id, otp: otpInput })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to verify OTP");
+      setIsOtpVerified(true);
+    } catch (err: any) {
+      setOtpError(err.message);
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  }
+
   // Handle claiming submit
   async function handleClaimSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!claimName || !claimEmail || !claimPhone || !selectedClaimShop) return;
 
     try {
+      if (claimImageFile) {
+        setIsUploadingImage(true);
+        const formData = new FormData();
+        formData.append("file", claimImageFile);
+        formData.append("shopId", selectedClaimShop.id);
+        
+        await fetch("/api/upload-image", {
+          method: "POST",
+          body: formData
+        });
+        setIsUploadingImage(false);
+      }
+
       const supabase = createBrowserClient() as any;
       const { error } = await supabase
         .from('agent_barbershop_leads')
@@ -403,6 +494,9 @@ export default function BarberBeautyNetworkPage() {
           owner_name: claimName,
           email: claimEmail,
           phone: claimPhone,
+          booth_count_available: claimChairs ? parseInt(claimChairs) || 0 : undefined,
+          rent_type: claimCompensation,
+          rent_rate: claimRentRate,
           outreach_status: 'user_responded',
           updated_at: new Date().toISOString()
         })
@@ -416,6 +510,9 @@ export default function BarberBeautyNetworkPage() {
         owner_name: claimName,
         email: claimEmail,
         phone: claimPhone,
+        booth_count_available: claimChairs ? parseInt(claimChairs) || 0 : undefined,
+        rent_type: claimCompensation,
+        rent_rate: claimRentRate,
         outreach_status: 'user_responded'
       } : s));
 
@@ -426,6 +523,14 @@ export default function BarberBeautyNetworkPage() {
         setClaimName("");
         setClaimEmail("");
         setClaimPhone("");
+        setClaimChairs("");
+        setClaimCompensation("Booth Rent");
+        setClaimRentRate("");
+        setIsOtpSent(false);
+        setIsOtpVerified(false);
+        setOtpInput("");
+        setOtpError("");
+        setVerifyPhoneInput("");
       }, 3000);
     } catch (err) {
       console.error('Error claiming shop:', err);
@@ -467,12 +572,14 @@ export default function BarberBeautyNetworkPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.1]"
+            className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.1] flex justify-center"
           >
-            Connect Talent With <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-              Opportunity
-            </span>
+            <img 
+              src="/shopday-logo.svg" 
+              alt="ShopDay™" 
+              className="h-24 md:h-32 w-auto drop-shadow-sm"
+              draggable="false"
+            />
           </motion.h1>
 
           <motion.p 
@@ -481,7 +588,7 @@ export default function BarberBeautyNetworkPage() {
             transition={{ delay: 0.2 }}
             className="max-w-2xl mx-auto text-xl text-slate-600 font-medium leading-relaxed"
           >
-            The premium networking platform exclusively for the Barber, Beauty & Wellness industry. Build your portfolio, discover top-tier barber & cosmetology students, and schedule direct Shop Day visits.
+            Shop placement exclusively for the Barber, Beauty & Wellness industry. Build your passport, hire top-tier barber & cosmetology students and licensed professionals.
           </motion.p>
 
           <motion.div 
@@ -538,7 +645,7 @@ export default function BarberBeautyNetworkPage() {
                 <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-6 border border-blue-100 shadow-sm">
                    <Scissors className="w-8 h-8 text-blue-600" />
                 </div>
-                <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Career Passport: For Students & Graduates</h2>
+                <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Career Passport: For Students & Professionals</h2>
                 <p className="text-slate-600 text-lg leading-relaxed mb-8">
                   Stop relying on generic resumes. Create a rich, visual portfolio that showcases your cuts, styles, and licensure status. Let top barbershops and salons discover you before you even graduate.
                 </p>
@@ -590,13 +697,13 @@ export default function BarberBeautyNetworkPage() {
                 </div>
                 <h2 className="text-3xl font-extrabold text-white mb-4">Claim Your Barbershop: For Shop Owners</h2>
                 <p className="text-slate-300 text-lg leading-relaxed mb-8">
-                  Stop hoping for walk-in talent. Create a premium listing for your barbershop or salon. Showcase your culture, chair rental rates, and invite vetted students for a Shop Day visit.
+                  Stop hoping for walk-in talent. Create a premium listing for your barbershop or salon. Showcase your culture, chair rental rates, and invite vetted students and pros for a Shop Day visit.
                 </p>
                 <ul className="space-y-4 mb-10 mt-auto">
                   {[
                     "Premium Shop Profile & Photos",
                     "Booth Rent/Commission Transparency",
-                    "Browse Verified Student Portfolios",
+                    "Browse Verified Student and Pro Portfolios",
                     "Host Automated Shop Day Events"
                   ].map((feature, i) => (
                     <li key={i} className="flex items-center gap-3 text-slate-300 font-semibold">
@@ -1038,13 +1145,12 @@ export default function BarberBeautyNetworkPage() {
 
                             {/* Gallery Image */}
                             <div className="relative w-full h-52 rounded-2xl overflow-hidden mb-6 border border-slate-100 shadow-sm bg-slate-50 group-hover:shadow-md transition-shadow">
-                              <Image 
-                                src={getShopImage(shop.id)}
+                              <ShopImage 
+                                shopId={shop.id}
+                                fallbackSrc={getShopImage(shop.id)}
                                 alt={shop.shop_name} 
-                                fill 
-                                className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out" 
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-80" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-80 pointer-events-none" />
                               
                               {/* City Overlaid Tag */}
                               <div className="absolute bottom-4 left-4 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-white/20 shadow-sm">
@@ -1250,13 +1356,80 @@ export default function BarberBeautyNetworkPage() {
               className="bg-white rounded-3xl max-w-lg w-full p-8 border border-slate-200 shadow-2xl relative"
             >
               <button 
-                onClick={() => setSelectedClaimShop(null)}
+                  onClick={() => {
+                    setSelectedClaimShop(null);
+                    setIsOtpSent(false);
+                    setIsOtpVerified(false);
+                    setOtpInput("");
+                    setOtpError("");
+                    setVerifyPhoneInput("");
+                  }}
                 className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer animate-pulse"
               >
                 <X className="w-5 h-5" />
               </button>
 
               {!claimSuccess ? (
+                !isOtpVerified ? (
+                  <div className="space-y-6">
+                    <div className="text-center space-y-2 mb-2">
+                      <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-4">
+                        <ShieldCheck className="w-8 h-8 animate-bounce" />
+                      </div>
+                      <h3 className="text-2xl font-extrabold text-slate-900">Verify Ownership</h3>
+                      <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-sm mx-auto">
+                        To claim <strong>{selectedClaimShop.shop_name}</strong>, please verify your identity using the phone number on file.
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3 text-sm text-slate-600 mb-2">
+                      <div className="flex flex-col gap-2 border-b border-slate-200 pb-3">
+                        <label className="font-semibold text-slate-700 text-xs uppercase tracking-wider">
+                          Verify Phone Number
+                        </label>
+                        <p className="text-xs text-slate-500">
+                          Enter the shop's phone number to receive a verification code.
+                        </p>
+                        <input 
+                          type="tel"
+                          placeholder="(555) 555-5555"
+                          value={verifyPhoneInput}
+                          onChange={(e) => setVerifyPhoneInput(e.target.value)}
+                          disabled={isOtpSent}
+                          className="w-full px-4 py-2 mt-1 rounded-lg bg-white border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium disabled:opacity-50"
+                        />
+                      </div>
+                      {!isOtpSent ? (
+                        <button 
+                          onClick={handleSendOtp}
+                          disabled={isSendingOtp || !selectedClaimShop.phone || verifyPhoneInput.length < 10}
+                          className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white font-bold text-sm transition-colors mt-2"
+                        >
+                          {isSendingOtp ? "Sending Code..." : "Send SMS Verification Code"}
+                        </button>
+                      ) : (
+                        <div className="space-y-3 pt-2 border-t border-slate-200 mt-2">
+                          <input 
+                            type="text" 
+                            placeholder="Enter 4-digit code" 
+                            value={otpInput}
+                            onChange={(e) => setOtpInput(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-center text-lg font-mono tracking-widest"
+                            maxLength={4}
+                          />
+                          <button 
+                            onClick={handleVerifyOtp}
+                            disabled={isVerifyingOtp || otpInput.length !== 4}
+                            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold text-sm transition-colors"
+                          >
+                            {isVerifyingOtp ? "Verifying..." : "Verify Code"}
+                          </button>
+                        </div>
+                      )}
+                      {otpError && <p className="text-red-500 text-xs text-center font-medium mt-2">{otpError}</p>}
+                    </div>
+                  </div>
+                ) : (
                 <form onSubmit={handleClaimSubmit} className="space-y-6">
                   <div className="text-center space-y-2 mb-2">
                     <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-4">
@@ -1310,16 +1483,68 @@ export default function BarberBeautyNetworkPage() {
                         className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium"
                       />
                     </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Available Chairs</label>
+                        <input 
+                          type="number" 
+                          min="0"
+                          placeholder="e.g. 1" 
+                          value={claimChairs}
+                          onChange={(e) => setClaimChairs(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Compensation</label>
+                        <select 
+                          value={claimCompensation}
+                          onChange={(e) => setClaimCompensation(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium"
+                        >
+                          <option value="Booth Rent">Booth Rent</option>
+                          <option value="Commission">Commission</option>
+                          <option value="Salary">Salary</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Rent Rate / Details</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. $225 a week" 
+                        value={claimRentRate}
+                        onChange={(e) => setClaimRentRate(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium"
+                      />
+                    </div>
+                    
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Shop Image (Optional)</label>
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => setClaimImageFile(e.target.files?.[0] || null)}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1 px-1">Upload a photo of your shop to stand out. It will be displayed on your shop card.</p>
+                    </div>
                   </div>
 
                   <button 
                     type="submit" 
-                    className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-md transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-blue-500/10"
+                    disabled={isUploadingImage}
+                    className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-extrabold text-md transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-blue-500/10"
                   >
-                    Submit Verification Claim
-                    <ArrowRight className="w-5 h-5" />
+                    {isUploadingImage ? "Uploading Image & Verifying..." : "Submit Verification Claim"}
+                    {!isUploadingImage && <ArrowRight className="w-5 h-5" />}
                   </button>
                 </form>
+                )
               ) : (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}

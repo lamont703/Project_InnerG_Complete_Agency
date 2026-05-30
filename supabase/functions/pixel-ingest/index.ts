@@ -37,6 +37,27 @@ export default createHandler(async ({ adminClient, body, req }) => {
     const city = headers["cf-ipcity"]
 
     logger.info(`Received pixel event: ${body.event} for project: ${body.projectId} | Visitor: ${body.visitorId}`)
+    
+    // -- DOMAIN BLOCKLIST LOGIC --
+    const BLOCKED_DOMAINS = [
+        "onlycrypto.io"
+    ]
+
+    try {
+        const pageUrlStr = body.url || headers["referer"] || headers["origin"] || "";
+        if (pageUrlStr) {
+            const urlObj = new URL(pageUrlStr.startsWith('http') ? pageUrlStr : `https://${pageUrlStr}`);
+            const hostname = urlObj.hostname.toLowerCase().replace(/^www\./, '');
+            
+            if (BLOCKED_DOMAINS.includes(hostname)) {
+                logger.info(`Blocked pixel ingestion for blacklisted domain: ${hostname}`);
+                return okResponse({ success: true, received: true, note: "Domain blocked" });
+            }
+        }
+    } catch (e) {
+        // Ignore URL parsing errors, proceed with ingestion
+    }
+
     try {
         // 2. Extract Element Identification (Pluck from metadata)
         const elementName = body.metadata?.ig_click || body.metadata?.id || body.metadata?.text
