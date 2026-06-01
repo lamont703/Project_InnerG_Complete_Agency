@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { createBrowserClient } from "@/lib/supabase/browser";
+import { submitNewBarbershopLead } from "./actions";
 
 function ShopImage({ shopId, fallbackSrc, alt }: { shopId: string, fallbackSrc: string, alt: string }) {
   const [src, setSrc] = useState(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/social-assets/shop-images/${shopId}`);
@@ -198,6 +199,59 @@ export default function BarberBeautyNetworkPage() {
   const [claimImageFile, setClaimImageFile] = useState<File | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [claimSuccess, setClaimSuccess] = useState(false);
+
+  // New Shop Claim Modal States
+  const [isNewShopModalOpen, setIsNewShopModalOpen] = useState(false);
+  const [newShopForm, setNewShopForm] = useState({
+    shop_name: "",
+    owner_name: "",
+    phone: "",
+    city: "",
+    email: "",
+    rent_type: "Booth Rent",
+    booth_count_available: "",
+    rent_rate: "",
+    formatted_address: "",
+    website: ""
+  });
+  const [isSubmittingNewShop, setIsSubmittingNewShop] = useState(false);
+  const [newShopSuccess, setNewShopSuccess] = useState(false);
+
+  async function handleNewShopSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setIsSubmittingNewShop(true);
+    try {
+      const result = await submitNewBarbershopLead(newShopForm);
+      if (!result.success) throw new Error(result.error);
+      
+      if (result.data) {
+        setDbShops(prev => [result.data, ...prev]);
+      }
+      
+      setNewShopSuccess(true);
+      setTimeout(() => {
+        setIsNewShopModalOpen(false);
+        setNewShopSuccess(false);
+        setNewShopForm({
+          shop_name: "",
+          owner_name: "",
+          phone: "",
+          city: "",
+          email: "",
+          rent_type: "Booth Rent",
+          booth_count_available: "",
+          rent_rate: "",
+          formatted_address: "",
+          website: ""
+        });
+      }, 3000);
+    } catch (err: any) {
+      console.error('Error submitting new shop:', err);
+      alert(`Failed to submit shop information: ${err.message}`);
+    } finally {
+      setIsSubmittingNewShop(false);
+    }
+  }
   
   // OTP Verification States
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -713,10 +767,7 @@ export default function BarberBeautyNetworkPage() {
                   ))}
                 </ul>
                 <button 
-                  onClick={() => {
-                    document.getElementById('explore-network')?.scrollIntoView({ behavior: 'smooth' });
-                    setActiveTab('shops');
-                  }}
+                  onClick={() => setIsNewShopModalOpen(true)}
                   className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg transition-colors flex items-center justify-center gap-2"
                 >
                   Claim Your Barbershop
@@ -2339,6 +2390,109 @@ export default function BarberBeautyNetworkPage() {
       </section>
 
       <Footer />
+      {/* New Shop Claim Modal */}
+      <AnimatePresence>
+        {isNewShopModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl max-w-2xl w-full p-8 border border-slate-200 shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto"
+            >
+              <button 
+                  onClick={() => {
+                    setIsNewShopModalOpen(false);
+                    setNewShopSuccess(false);
+                  }}
+                className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer z-10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {!newShopSuccess ? (
+                <form onSubmit={handleNewShopSubmit} className="space-y-6">
+                  <div className="text-center space-y-2 mb-2">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-4">
+                      <ShieldCheck className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-2xl font-extrabold text-slate-900">List Your Barbershop</h3>
+                    <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-sm mx-auto">
+                      Join our network to connect with top-tier barber and cosmetology students looking for their first chair!
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Shop Name</label>
+                      <input type="text" required value={newShopForm.shop_name} onChange={(e) => setNewShopForm({...newShopForm, shop_name: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Owner Name</label>
+                      <input type="text" required value={newShopForm.owner_name} onChange={(e) => setNewShopForm({...newShopForm, owner_name: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Phone</label>
+                      <input type="tel" required value={newShopForm.phone} onChange={(e) => setNewShopForm({...newShopForm, phone: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Email</label>
+                      <input type="email" required value={newShopForm.email} onChange={(e) => setNewShopForm({...newShopForm, email: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">City</label>
+                      <input type="text" required value={newShopForm.city} onChange={(e) => setNewShopForm({...newShopForm, city: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Full Address</label>
+                      <input type="text" value={newShopForm.formatted_address} onChange={(e) => setNewShopForm({...newShopForm, formatted_address: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Compensation Type</label>
+                      <select value={newShopForm.rent_type} onChange={(e) => setNewShopForm({...newShopForm, rent_type: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium">
+                        <option>Booth Rent</option>
+                        <option>Commission</option>
+                        <option>Salary</option>
+                        <option>Salary + Commission</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Rent / Comm Rate</label>
+                      <input type="text" placeholder="e.g. $250/wk or 60/40" value={newShopForm.rent_rate} onChange={(e) => setNewShopForm({...newShopForm, rent_rate: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Chairs Available</label>
+                      <input type="number" min="0" value={newShopForm.booth_count_available} onChange={(e) => setNewShopForm({...newShopForm, booth_count_available: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Website</label>
+                      <input type="url" placeholder="https://" value={newShopForm.website} onChange={(e) => setNewShopForm({...newShopForm, website: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                    </div>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={isSubmittingNewShop}
+                    className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-bold text-lg transition-colors mt-6 shadow-lg shadow-blue-500/20"
+                  >
+                    {isSubmittingNewShop ? "Submitting..." : "Submit Shop Information"}
+                  </button>
+                </form>
+              ) : (
+                <div className="text-center py-10 space-y-4">
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <CheckCircle2 className="w-10 h-10 text-green-600" />
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900">Information Submitted!</h3>
+                  <p className="text-slate-500 text-sm font-medium max-w-sm mx-auto">
+                    Thanks for submitting your shop information. You will now be part of our network and students can connect with you.
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
