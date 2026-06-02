@@ -4,7 +4,7 @@ import MapWrapper from "./MapWrapper";
 export default async function ShopDayMapPage() {
   const supabase = await createServerClient();
   
-  const [shopsResponse, schoolsResponse] = await Promise.all([
+  const [shopsResponse, schoolsResponse, barbersResponse] = await Promise.all([
     supabase
       .from("agent_barbershop_leads")
       .select("id, latitude, longitude, shop_name, city, rent_type, booth_count_available, hiring_need, formatted_address")
@@ -13,14 +13,22 @@ export default async function ShopDayMapPage() {
       .not("longitude", "is", null),
     supabase
       .from("agent_barber_school_leads")
-      .select("id, latitude, longitude, school_name, city, accreditation_status, formatted_address")
+      .select("id, latitude, longitude, school_name, city, accreditation_status, formatted_address"),
+    supabase
+      .from("agent_barber_leads")
+      .select("id, latitude, longitude, name, address, desired_pay_structure, status")
+      .eq("status", "interested_in_placement")
+      .not("latitude", "is", null)
+      .not("longitude", "is", null)
   ]);
 
   if (shopsResponse.error) console.error("Error fetching shops:", shopsResponse.error);
   if (schoolsResponse.error) console.error("Error fetching schools:", schoolsResponse.error);
+  if (barbersResponse.error) console.error("Error fetching barbers:", barbersResponse.error);
 
   const shops = shopsResponse.data || [];
   const validSchools = (schoolsResponse.data || []).filter((s: any) => s.latitude && s.longitude);
+  const barbers = barbersResponse.data || [];
 
-  return <MapWrapper initialShops={shops} initialSchools={validSchools} />;
+  return <MapWrapper initialShops={shops} initialSchools={validSchools} initialBarbers={barbers} />;
 }

@@ -20,8 +20,9 @@ const MapComponent = dynamic(() => import('./MapComponent'), {
 interface MapWrapperProps {
   initialShops: any[];
   initialSchools: any[];
+  initialBarbers: any[];
 }
 
-export default function MapWrapper({ initialShops, initialSchools }: MapWrapperProps) {
-  return <MapComponent initialShops={initialShops} initialSchools={initialSchools} />;
+export default function MapWrapper({ initialShops, initialSchools, initialBarbers }: MapWrapperProps) {
+  return <MapComponent initialShops={initialShops} initialSchools={initialSchools} initialBarbers={initialBarbers} />;
 }

@@ -5,11 +5,12 @@ import Map, { Marker, Popup, NavigationControl, FullscreenControl } from "react-
 import "mapbox-gl/dist/mapbox-gl.css";
 // Browser client import removed as data is now fetched server-side
 import Link from "next/link";
-import { ArrowLeft, Scissors, Building, Users, GraduationCap } from "lucide-react";
+import { ArrowLeft, Scissors, Building, Users, GraduationCap, UserCheck } from "lucide-react";
 
-export default function ShopDayMap({ initialShops, initialSchools }: { initialShops: any[], initialSchools: any[] }) {
+export default function ShopDayMap({ initialShops, initialSchools, initialBarbers }: { initialShops: any[], initialSchools: any[], initialBarbers: any[] }) {
   const shops = initialShops || [];
   const schools = initialSchools || [];
+  const barbers = initialBarbers || [];
   const loading = false;
   const [selectedShop, setSelectedShop] = useState<any | null>(null);
 
@@ -27,12 +28,12 @@ export default function ShopDayMap({ initialShops, initialSchools }: { initialSh
       schools.map((school, index) => (
         <Marker
           key={`school-${school.id || index}`}
-          longitude={school.longitude}
-          latitude={school.latitude}
+          longitude={Number(school.longitude)}
+          latitude={Number(school.latitude)}
           anchor="bottom"
           onClick={(e) => {
             e.originalEvent.stopPropagation();
-            setSelectedShop({ ...school, isSchool: true });
+            setSelectedShop({ ...school, isSchool: true, isBarber: false });
           }}
         >
           <div className="cursor-pointer transform hover:scale-110 transition-transform duration-200 z-20">
@@ -45,19 +46,42 @@ export default function ShopDayMap({ initialShops, initialSchools }: { initialSh
     [schools]
   );
 
+  const barberPins = useMemo(
+    () =>
+      barbers.map((barber, index) => (
+        <Marker
+          key={`barber-${barber.id || index}`}
+          longitude={Number(barber.longitude)}
+          latitude={Number(barber.latitude)}
+          anchor="bottom"
+          onClick={(e) => {
+            e.originalEvent.stopPropagation();
+            setSelectedShop({ ...barber, isSchool: false, isBarber: true });
+          }}
+        >
+          <div className="cursor-pointer transform hover:scale-110 transition-transform duration-200 z-20">
+            <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+              <UserCheck className="w-5 h-5 text-white" />
+            </div>
+          </div>
+        </Marker>
+      )),
+    [barbers]
+  );
+
   const pins = useMemo(
     () =>
       shops.map((shop, index) => (
         <Marker
           key={`marker-${shop.id || index}`}
-          longitude={shop.longitude}
-          latitude={shop.latitude}
+          longitude={Number(shop.longitude)}
+          latitude={Number(shop.latitude)}
           anchor="bottom"
           onClick={(e) => {
             // If we let the click event propagates to the map, it will immediately close the popup
             // with `closeOnClick: true`
             e.originalEvent.stopPropagation();
-            setSelectedShop({ ...shop, isSchool: false });
+            setSelectedShop({ ...shop, isSchool: false, isBarber: false });
           }}
         >
           <div className="cursor-pointer transform hover:scale-110 transition-transform duration-200 z-10">
@@ -86,7 +110,7 @@ export default function ShopDayMap({ initialShops, initialSchools }: { initialSh
          <div className="bg-white/90 backdrop-blur-md px-6 py-4 rounded-xl shadow-lg border border-slate-200">
             <h1 className="text-xl font-black text-slate-900 tracking-tight">Shop Day Map</h1>
             <p className="text-slate-500 text-sm font-medium">
-              {loading ? "Loading locations..." : `${shops.length} Shops & ${schools.length} Schools`}
+              {loading ? "Loading locations..." : `${shops.length} Shops, ${schools.length} Schools, & ${barbers.length} Barbers`}
             </p>
          </div>
       </div>
@@ -103,6 +127,7 @@ export default function ShopDayMap({ initialShops, initialSchools }: { initialSh
         
         {pins}
         {schoolPins}
+        {barberPins}
 
         {selectedShop && (
           <Popup
@@ -117,10 +142,10 @@ export default function ShopDayMap({ initialShops, initialSchools }: { initialSh
             <div className="p-1 space-y-4">
               <div>
                 <h3 className="font-extrabold text-lg text-slate-900 mb-1 leading-tight">
-                  {selectedShop.isSchool ? selectedShop.school_name : selectedShop.shop_name}
+                  {selectedShop.isSchool ? selectedShop.school_name : selectedShop.isBarber ? selectedShop.name : selectedShop.shop_name}
                 </h3>
                 <p className="text-slate-500 text-xs font-medium line-clamp-2">
-                  {selectedShop.formatted_address || `${selectedShop.city}, TX`}
+                  {selectedShop.isBarber ? selectedShop.address : (selectedShop.formatted_address || `${selectedShop.city}, TX`)}
                 </p>
               </div>
 
@@ -133,6 +158,18 @@ export default function ShopDayMap({ initialShops, initialSchools }: { initialSh
                     </div>
                     <p className="font-bold text-slate-800 text-sm">
                       {selectedShop.accreditation_status || "Barber School"}
+                    </p>
+                  </div>
+                </div>
+              ) : selectedShop.isBarber ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-green-50 p-3 rounded-xl border border-green-100 col-span-2">
+                    <div className="flex items-center gap-1.5 text-green-600 mb-1">
+                      <UserCheck className="w-4 h-4" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Desired Structure</span>
+                    </div>
+                    <p className="font-bold text-slate-800 text-sm">
+                      {selectedShop.desired_pay_structure || "Open to Options"}
                     </p>
                   </div>
                 </div>
@@ -164,6 +201,10 @@ export default function ShopDayMap({ initialShops, initialSchools }: { initialSh
                 {selectedShop.isSchool ? (
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
                     Validated Partner School
+                  </span>
+                ) : selectedShop.isBarber ? (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                    Seeking Placement
                   </span>
                 ) : (
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
