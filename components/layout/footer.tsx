@@ -11,6 +11,7 @@ const footerLinks = {
   Tools: [
     { label: "Shop Day Map", href: "/shop-day-map" },
     { label: "Shop Day Matches", href: "/shop-day-matches" },
+    { label: "Shop Day Requests", href: "/shop-day-requests" },
     { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },
     { label: "Texas Barber Instructor Intelligence Dashboard", href: "/tools/texas-barber-instructor-intelligence-dashboard" },
     // { label: "Texas Barber School Accreditation Relationship Auditor", href: "/tools/texas-barber-school-accreditation-relationship-auditor" },
