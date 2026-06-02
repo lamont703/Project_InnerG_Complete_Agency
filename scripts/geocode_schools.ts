@@ -26,7 +26,15 @@ async function geocodeSchools() {
   let skipCount = 0;
 
   for (const school of schools) {
-    const queryStr = `${school.school_name}, ${school.city}, TX`;
+    let queryStr = "";
+    if (school.formatted_address && school.formatted_address.trim() !== "" && school.formatted_address !== "null") {
+      queryStr = school.formatted_address;
+      console.log(`📍 Using exact address for ${school.school_name}...`);
+    } else {
+      queryStr = `${school.school_name}, ${school.city}, TX`;
+      console.log(`📍 Falling back to Name/City for ${school.school_name}...`);
+    }
+
     const query = encodeURIComponent(queryStr);
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${mapboxKey}&limit=1`;
 
@@ -36,14 +44,13 @@ async function geocodeSchools() {
 
       if (data.features && data.features.length > 0) {
         const [lon, lat] = data.features[0].center;
-        const formatted_address = data.features[0].place_name;
-
+        
+        // We no longer overwrite formatted_address because we want to keep the precise Google Place address we just extracted!
         const { error: updateError } = await supabase
           .from("agent_barber_school_leads")
           .update({ 
             latitude: lat, 
-            longitude: lon,
-            formatted_address: formatted_address
+            longitude: lon
           })
           .eq("id", school.id);
 
