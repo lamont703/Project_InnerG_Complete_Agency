@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 
 export async function fetchShopRequests(phone: string) {
   const supabase = await createServerClient();
@@ -26,9 +27,13 @@ export async function fetchShopRequests(phone: string) {
   // We take the first matched shop
   const shop = (shops as any[])[0];
   
-  // 3. Fetch requests for this shop and join with barber details
-  // Note: we fetch all pending or approved requests
-  const { data: requests, error: requestsError } = await (supabase as any)
+  // 3. Fetch requests for this shop and join with barber details using service role key to bypass RLS
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data: requests, error: requestsError } = await (supabaseAdmin as any)
     .from("shop_day_requests")
     .select(`
       id,
@@ -40,7 +45,8 @@ export async function fetchShopRequests(phone: string) {
         name,
         address,
         desired_pay_structure,
-        phone
+        phone,
+        profile_url
       )
     `)
     .eq("shop_id", shop.id)
@@ -59,9 +65,12 @@ export async function fetchShopRequests(phone: string) {
 }
 
 export async function updateRequestStatus(requestId: string, newStatus: "approved" | "denied") {
-  const supabase = await createServerClient();
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
   
-  const { error } = await (supabase as any)
+  const { error } = await (supabaseAdmin as any)
     .from("shop_day_requests")
     .update({ status: newStatus })
     .eq("id", requestId);

@@ -139,9 +139,14 @@ export default function RequestsClient() {
                    </span>
                 )}
 
-                {/* Avatar Placeholder */}
-                <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-6 border border-slate-100 shadow-sm bg-slate-100 flex flex-col items-center justify-center">
-                  <User className="w-16 h-16 text-slate-300" />
+                {/* Avatar / Profile Image */}
+                <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-6 border border-slate-100 shadow-sm bg-slate-100 flex flex-col items-center justify-center group/image">
+                  <img 
+                    src="https://images.unsplash.com/photo-1593062096033-9a26b09da705?auto=format&fit=crop&w=400&q=80" 
+                    alt="Mock Barber Profile" 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover/image:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent opacity-60"></div>
                 </div>
 
                 <div className="flex-1 flex flex-col">
@@ -149,7 +154,13 @@ export default function RequestsClient() {
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div>
                       <h3 className="font-black text-2xl text-slate-900 tracking-tight leading-snug group-hover:text-blue-600 transition-colors">
-                        {barber.name}
+                        {barber.profile_url ? (
+                          <a href={barber.profile_url} target="_blank" rel="noreferrer" className="hover:underline">
+                            {barber.name}
+                          </a>
+                        ) : (
+                          barber.name
+                        )}
                       </h3>
                       <span className="text-xs text-slate-500 font-medium mt-1 flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5" />
