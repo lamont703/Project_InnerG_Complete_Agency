@@ -1,0 +1,75 @@
+"use server";
+
+import { createServerClient } from "@/lib/supabase/server";
+
+export async function fetchShopRequests(phone: string) {
+  const supabase = await createServerClient();
+  
+  // 1. Clean phone input
+  const cleanPhone = phone.replace(/\D/g, "");
+  if (cleanPhone.length < 10) {
+    return { error: "Invalid phone number." };
+  }
+
+  // 2. Find the Shop in the database using ilike matching logic similar to the matches page
+  const fuzzyPhone = "%" + cleanPhone.split("").join("%") + "%";
+
+  const { data: shops, error: shopError } = await supabase
+    .from("agent_barbershop_leads")
+    .select("id, shop_name")
+    .ilike("phone", fuzzyPhone);
+
+  if (shopError || !shops || shops.length === 0) {
+    return { error: "Could not find a shop linked to this phone number." };
+  }
+
+  // We take the first matched shop
+  const shop = (shops as any[])[0];
+  
+  // 3. Fetch requests for this shop and join with barber details
+  // Note: we fetch all pending or approved requests
+  const { data: requests, error: requestsError } = await (supabase as any)
+    .from("shop_day_requests")
+    .select(`
+      id,
+      status,
+      created_at,
+      barber_id,
+      agent_barber_leads (
+        id,
+        name,
+        address,
+        desired_pay_structure,
+        phone
+      )
+    `)
+    .eq("shop_id", shop.id)
+    .order("created_at", { ascending: false });
+
+  if (requestsError) {
+    console.error("Error fetching requests:", requestsError);
+    return { error: "Could not retrieve requests for your shop.", shopName: shop.shop_name };
+  }
+
+  return {
+    shopId: shop.id,
+    shopName: shop.shop_name,
+    requests: requests || []
+  };
+}
+
+export async function updateRequestStatus(requestId: string, newStatus: "approved" | "denied") {
+  const supabase = await createServerClient();
+  
+  const { error } = await (supabase as any)
+    .from("shop_day_requests")
+    .update({ status: newStatus })
+    .eq("id", requestId);
+    
+  if (error) {
+    console.error("Failed to update status", error);
+    return { error: "Failed to update request status. Please try again." };
+  }
+  
+  return { success: true };
+}
