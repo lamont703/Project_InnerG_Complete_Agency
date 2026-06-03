@@ -17,7 +17,7 @@ export async function fetchShopRequests(phone: string) {
 
   const { data: shops, error: shopError } = await supabase
     .from("agent_barbershop_leads")
-    .select("id, shop_name")
+    .select("id, shop_name, formatted_address, shop_image_url")
     .ilike("phone", fuzzyPhone);
 
   if (shopError || !shops || shops.length === 0) {
@@ -60,6 +60,8 @@ export async function fetchShopRequests(phone: string) {
   return {
     shopId: shop.id,
     shopName: shop.shop_name,
+    shopAddress: shop.formatted_address,
+    shopImageUrl: shop.shop_image_url,
     requests: requests || []
   };
 }
@@ -81,4 +83,51 @@ export async function updateRequestStatus(requestId: string, newStatus: "approve
   }
   
   return { success: true };
+}
+
+export async function updateShopDetails(
+  shopId: string, 
+  data: { shop_name?: string; formatted_address?: string; shop_image_url?: string }
+) {
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+  
+  const { error } = await (supabaseAdmin as any)
+    .from("agent_barbershop_leads")
+    .update(data)
+    .eq("id", shopId);
+    
+  if (error) {
+    console.error("Failed to update shop details", error);
+    return { error: "Failed to update shop details. Please try again." };
+  }
+  
+  return { success: true };
+}
+
+export async function uploadShopImage(shopId: string, formData: FormData) {
+  const file = formData.get("image") as File;
+  if (!file) return { error: "No image provided" };
+
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const fileExt = file.name.split('.').pop() || 'jpg';
+  const fileName = `${shopId}-${Date.now()}.${fileExt}`;
+
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from("shop-images")
+    .upload(fileName, file, { upsert: true, contentType: file.type });
+
+  if (uploadError) {
+    console.error("Upload error:", uploadError);
+    return { error: "Failed to upload image." };
+  }
+
+  const { data } = supabaseAdmin.storage.from("shop-images").getPublicUrl(fileName);
+  return { imageUrl: data.publicUrl };
 }

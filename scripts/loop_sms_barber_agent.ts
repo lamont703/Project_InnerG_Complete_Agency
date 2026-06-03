@@ -7,7 +7,7 @@
 // ==========================================
 // ⚙️ CONFIGURATION
 // Easily change this integer to adjust the interval (in minutes)
-const INTERVAL_MINUTES = 15;
+const INTERVAL_MINUTES = 10;
 
 // Number of leads to process per run
 const BATCH_SIZE = "1";

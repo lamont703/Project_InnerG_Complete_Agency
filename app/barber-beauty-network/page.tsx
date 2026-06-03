@@ -15,8 +15,13 @@ import Image from "next/image";
 import { createBrowserClient } from "@/lib/supabase/browser";
 import { submitNewBarbershopLead } from "./actions";
 
-function ShopImage({ shopId, fallbackSrc, alt }: { shopId: string, fallbackSrc: string, alt: string }) {
-  const [src, setSrc] = useState(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/social-assets/shop-images/${shopId}`);
+function ShopImage({ imageUrl, fallbackSrc, alt }: { imageUrl?: string | null, fallbackSrc: string, alt: string }) {
+  const [src, setSrc] = useState(imageUrl || fallbackSrc);
+
+  // Update src if imageUrl prop changes
+  useEffect(() => {
+    setSrc(imageUrl || fallbackSrc);
+  }, [imageUrl, fallbackSrc]);
 
   return (
     <img 
@@ -175,7 +180,7 @@ export default function BarberBeautyNetworkPage() {
 
   // Supabase Table States
   const [dbShops, setDbShops] = useState<any[]>([]);
-  const [dbSchools, setDbSchools] = useState<any[]>([]);
+  const [dbBarbers, setDbBarbers] = useState<any[]>([]);
   const [loadingShops, setLoadingShops] = useState(true);
 
   // Search & Filter States for Shops
@@ -319,30 +324,31 @@ export default function BarberBeautyNetworkPage() {
           .or('hiring_need.eq.true,booth_count_available.gte.1')
           .order('created_at', { ascending: false });
 
-        // Fetch schools
-        const { data: schoolsData, error: schoolsError } = await supabase
-          .from('agent_barber_school_leads')
+        // Fetch barbers looking for placement
+        const { data: barbersData, error: barbersError } = await supabase
+          .from('agent_barber_leads')
           .select('*')
-          .order('school_name', { ascending: true });
+          .eq('status', 'interested_in_placement')
+          .order('created_at', { ascending: false });
 
         if (shopsError) throw shopsError;
-        if (schoolsError) throw schoolsError;
+        if (barbersError) throw barbersError;
 
-        if (!shopsData || shopsData.length === 0 || !schoolsData || schoolsData.length === 0) {
+        if (!shopsData || shopsData.length === 0 || !barbersData || barbersData.length === 0) {
           console.warn("Supabase returned empty tables, falling back to preloaded database records...");
           setDbShops(MOCK_SHOPS);
-          setDbSchools(MOCK_SCHOOLS);
+          setDbBarbers(MOCK_STUDENTS); // Assuming MOCK_STUDENTS serves as fallback
           setIsFallbackMode(true);
         } else {
           setDbShops(shopsData);
-          setDbSchools(schoolsData);
+          setDbBarbers(barbersData);
           setIsFallbackMode(false);
         }
       } catch (err: any) {
         console.error('Error fetching data:', err);
         console.warn("Offline fallback mode engaged: Loading preloaded database records...");
         setDbShops(MOCK_SHOPS);
-        setDbSchools(MOCK_SCHOOLS);
+        setDbBarbers(MOCK_STUDENTS);
         setIsFallbackMode(true);
       } finally {
         setLoadingShops(false);
@@ -386,19 +392,19 @@ export default function BarberBeautyNetworkPage() {
     ];
 
     let baseList = [];
-    if (dbSchools.length === 0) {
+    if (dbBarbers.length === 0) {
       baseList = MOCK_STUDENTS;
     } else {
-      baseList = dbSchools.map((school, idx) => {
-        const fName = FIRST_NAMES[idx % FIRST_NAMES.length];
-        const lName = LAST_NAMES[(idx + 3) % LAST_NAMES.length];
-        const type = TYPES[idx % TYPES.length];
-        const status = STATUSES[idx % STATUSES.length];
+      baseList = dbBarbers.map((barber, idx) => {
+        const type = "Barber";
+        const status = "Interested in Placement";
         const image = IMAGES[idx % IMAGES.length];
 
+        const fName = barber.name ? barber.name.split(" ")[0] : FIRST_NAMES[idx % FIRST_NAMES.length];
+        const lName = barber.name && barber.name.split(" ").length > 1 ? barber.name.split(" ")[1] : LAST_NAMES[(idx + 3) % LAST_NAMES.length];
+        
         const handle = `${fName.toLowerCase()}_${lName.toLowerCase()}`;
-        const PATHWAYS = ['Barbershop Hire', 'School Instructor', 'Dual-Pathway Eligible'];
-        const pathway = PATHWAYS[idx % PATHWAYS.length];
+        const pathway = barber.desired_pay_structure || 'Possibly Booth Rent, Commission, Hourly or Salary';
         
         const SPECIALTIES_SETS = [
           ['Modern Fades', 'Beard Styling', 'Razor Shaves'],
@@ -409,10 +415,22 @@ export default function BarberBeautyNetworkPage() {
         const specialties = SPECIALTIES_SETS[idx % SPECIALTIES_SETS.length];
 
         return {
-          id: `student-${idx}`,
-          name: `${fName} ${lName}`,
-          school: school.school_name,
-          city: school.city || "Texas",
+          id: barber.id,
+          name: barber.name || `${fName} ${lName}`,
+          school: barber.source || "Licensed Professional",
+          city: (() => {
+            const address = barber.address || "";
+            if (!address) return "Texas";
+            const parts = address.split(',').map((p: string) => p.trim());
+            let cityStr = "Texas";
+            for (let i = parts.length - 1; i >= 0; i--) {
+              const p = parts[i];
+              if (/^\d+$/.test(p) || p.toLowerCase() === 'tx' || p.toLowerCase() === 'texas') continue;
+              cityStr = p;
+              break;
+            }
+            return `${cityStr}, TX`;
+          })(),
           type,
           status,
           image,
@@ -427,7 +445,7 @@ export default function BarberBeautyNetworkPage() {
     }
 
     return [...customStudents, ...baseList];
-  }, [dbSchools, customStudents]);
+  }, [dbBarbers, customStudents]);
 
   // Filter & Search Logic for Shops
   const filteredShops = dbShops.filter(shop => {
@@ -658,7 +676,7 @@ export default function BarberBeautyNetworkPage() {
               }}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg transition-all shadow-[0_4px_20px_rgba(37,99,235,0.25)] hover:shadow-[0_4px_25px_rgba(37,99,235,0.4)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer group"
             >
-              Browse Students
+              Browse Professionals
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
             <button 
@@ -699,7 +717,7 @@ export default function BarberBeautyNetworkPage() {
                 <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-6 border border-blue-100 shadow-sm">
                    <Scissors className="w-8 h-8 text-blue-600" />
                 </div>
-                <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Career Passport: For Students & Professionals</h2>
+                <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Passport: For Students & Professionals</h2>
                 <p className="text-slate-600 text-lg leading-relaxed mb-8">
                   Stop relying on generic resumes. Create a rich, visual portfolio that showcases your cuts, styles, and licensure status. Let top barbershops and salons discover you before you even graduate.
                 </p>
@@ -724,7 +742,7 @@ export default function BarberBeautyNetworkPage() {
                   }}
                   className="w-full py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg transition-colors flex items-center justify-center gap-2"
                 >
-                  Create Your Career Passport
+                  Create Your Passport
                   <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
@@ -749,7 +767,7 @@ export default function BarberBeautyNetworkPage() {
                 <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mb-6 border border-white/20 shadow-sm">
                    <MapPin className="w-8 h-8 text-white" />
                 </div>
-                <h2 className="text-3xl font-extrabold text-white mb-4">Claim Your Barbershop: For Shop Owners</h2>
+                <h2 className="text-3xl font-extrabold text-white mb-4">Claim Your Shop: For Shop Owners</h2>
                 <p className="text-slate-300 text-lg leading-relaxed mb-8">
                   Stop hoping for walk-in talent. Create a premium listing for your barbershop or salon. Showcase your culture, chair rental rates, and invite vetted students and pros for a Shop Day visit.
                 </p>
@@ -770,7 +788,7 @@ export default function BarberBeautyNetworkPage() {
                   onClick={() => setIsNewShopModalOpen(true)}
                   className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg transition-colors flex items-center justify-center gap-2"
                 >
-                  Claim Your Barbershop
+                  Claim Your Shop
                   <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
@@ -803,7 +821,7 @@ export default function BarberBeautyNetworkPage() {
                   activeTab === 'students' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                Browse Students
+                Browse Professionals
               </button>
               <button
                 onClick={() => {
@@ -844,6 +862,26 @@ export default function BarberBeautyNetworkPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
               >
+                {/* Dynamic Stats Panel for Students */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 bg-gradient-to-r from-blue-600 to-indigo-700 p-6 rounded-3xl text-white shadow-xl">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-blue-100 font-black uppercase tracking-wider">Active Candidates</span>
+                    <span className="text-3xl font-black">{dbBarbers.length}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-blue-100 font-black uppercase tracking-wider">Placement Ready</span>
+                    <span className="text-3xl font-black">{dbBarbers.length}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-blue-100 font-black uppercase tracking-wider">Active Cities</span>
+                    <span className="text-3xl font-black">{Math.max(0, availableStudentCities.length - 1)} Metros</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-blue-100 font-black uppercase tracking-wider">Placement Rate</span>
+                    <span className="text-3xl font-black">Free / Placement</span>
+                  </div>
+                </div>
+
                 {/* Premium Student Search & Filter Bar */}
                 <div className="flex flex-col md:flex-row gap-4 mb-8 bg-slate-100 p-6 rounded-2xl border border-slate-200">
                   <div className="flex-1 relative">
@@ -904,7 +942,7 @@ export default function BarberBeautyNetworkPage() {
                         <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 mb-4">
                           <div className="flex items-center gap-1.5 text-xs font-black text-indigo-600 uppercase tracking-widest">
                             <Award className="w-4.5 h-4.5 text-indigo-500" />
-                            Career Passport
+                            Passport
                           </div>
                           <span className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-full border ${
                             student.status === 'Licensed' 
@@ -918,20 +956,20 @@ export default function BarberBeautyNetworkPage() {
                         {/* Headshot & Basic Details */}
                         <div className="flex gap-4 items-start mb-4">
                           <div className="relative w-20 h-24 rounded-2xl overflow-hidden border border-slate-200 shrink-0 bg-slate-50 shadow-inner group-hover:border-blue-400 transition-all duration-300">
-                            <Image src={student.image} alt={student.name} fill className="object-cover object-top" />
+                            <img src={student.image} alt={student.name} className="w-full h-full object-cover object-top" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="font-black text-lg text-slate-900 truncate leading-snug group-hover:text-blue-600 transition-colors">{student.name}</h3>
                             <p className="text-xs font-bold text-slate-400 mt-0.5 truncate uppercase tracking-wider">{student.type} Candidate</p>
                             
-                            {/* School & City Details */}
-                            <div className="flex items-center gap-1.5 text-slate-500 font-semibold text-xs mt-2.5 truncate">
-                              <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                              <span className="truncate">{student.school}</span>
+                            <div className="text-slate-500 font-bold text-[11px] mt-2.5 leading-snug">
+                              <span className="text-slate-400 font-semibold mr-1">Looking For:</span>
+                              <span className="text-blue-600">{student.pathway}</span>
                             </div>
-                            <div className="flex items-center gap-1.5 text-slate-500 font-bold text-xs mt-1">
-                              <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                              <span className="text-blue-600">{student.city}</span>
+                            <div className="text-slate-500 font-bold text-[11px] mt-1 leading-snug flex items-center">
+                              <MapPin className="w-3 h-3 text-slate-400 mr-1" />
+                              <span className="text-slate-400 font-semibold mr-1">Location:</span>
+                              <span className="text-blue-600 truncate">{student.city}</span>
                             </div>
                           </div>
                         </div>
@@ -939,14 +977,8 @@ export default function BarberBeautyNetworkPage() {
                         {/* Placement Pathway Section */}
                         <div className="bg-slate-50/60 p-3 rounded-2xl border border-slate-200/60 mb-4 flex items-center justify-between text-xs font-semibold">
                           <span className="text-slate-400 text-[10px] uppercase tracking-wider font-bold">Placement Pathway</span>
-                          <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wide border shadow-sm ${
-                            student.pathway === 'School Instructor' 
-                              ? 'bg-purple-50 text-purple-700 border-purple-200/60' 
-                              : student.pathway === 'Dual-Pathway Eligible'
-                              ? 'bg-amber-50 text-amber-700 border-amber-200/60'
-                              : 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
-                          }`}>
-                            {student.pathway}
+                          <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wide border shadow-sm bg-emerald-50 text-emerald-700 border-emerald-200/60">
+                            Licensed Barber Facility
                           </span>
                         </div>
 
@@ -1012,7 +1044,7 @@ export default function BarberBeautyNetworkPage() {
                           className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-md active:scale-[0.98]"
                         >
                           <GraduationCap className="w-4 h-4 text-blue-400" />
-                          View Full Career Passport
+                          View Full Passport
                         </button>
                       </div>
                     ))}
@@ -1197,7 +1229,7 @@ export default function BarberBeautyNetworkPage() {
                             {/* Gallery Image */}
                             <div className="relative w-full h-52 rounded-2xl overflow-hidden mb-6 border border-slate-100 shadow-sm bg-slate-50 group-hover:shadow-md transition-shadow">
                               <ShopImage 
-                                shopId={shop.id}
+                                imageUrl={shop.shop_image_url}
                                 fallbackSrc={getShopImage(shop.id)}
                                 alt={shop.shop_name} 
                               />
