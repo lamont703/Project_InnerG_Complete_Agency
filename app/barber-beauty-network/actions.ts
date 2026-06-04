@@ -66,28 +66,69 @@ export async function submitNewBarbershopLead(formData: any) {
 
     if (!contactId) throw new Error("No contact ID returned from GHL.");
 
-    // 2. Insert into Supabase
-    const { data: leadData, error: dbError } = await supabase
+    // 2. Insert or Update into Supabase based on contact_id or phone number
+    const { data: existingShop } = await supabase
       .from('agent_barbershop_leads')
-      .upsert({
-        contact_id: contactId,
-        owner_name: formData.owner_name,
-        shop_name: formData.shop_name,
-        phone: formData.phone,
-        email: formData.email,
-        city: formData.city,
-        rent_type: formData.rent_type,
-        booth_count_available: formData.booth_count_available ? parseInt(formData.booth_count_available) : 0,
-        rent_rate: formData.rent_rate,
-        formatted_address: formData.formatted_address,
-        website: formData.website,
-        outreach_status: 'inbound lead',
-        hiring_need: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, { onConflict: "contact_id" })
-      .select()
-      .single();
+      .select('id, contact_id')
+      .or(`contact_id.eq.${contactId},phone.eq.${formData.phone}`)
+      .limit(1)
+      .maybeSingle();
+
+    let parsedCity = "";
+    if (formData.formatted_address) {
+      const match = formData.formatted_address.match(/([^,]+),\s*[A-Z]{2}\s+(\d{5})/);
+      if (match) {
+        parsedCity = `${match[1].trim()} ${match[2]}`;
+      }
+    }
+
+    const payload: any = {
+      contact_id: contactId,
+      owner_name: formData.owner_name,
+      shop_name: formData.shop_name,
+      phone: formData.phone,
+      email: formData.email,
+      rent_type: formData.rent_type,
+      booth_count_available: formData.booth_count_available ? parseInt(formData.booth_count_available) : 0,
+      rent_rate: formData.rent_rate,
+      formatted_address: formData.formatted_address,
+      website: formData.website,
+      outreach_status: 'shop claimed',
+      city: parsedCity,
+      hiring_need: true,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Set image if provided
+    if (formData.shop_image_url) {
+      payload.shop_image_url = formData.shop_image_url;
+    }
+
+    let leadData, dbError;
+
+    if (existingShop) {
+      // Update existing row matching the phone number
+      const { data, error } = await supabase
+        .from('agent_barbershop_leads')
+        .update(payload)
+        .eq('id', existingShop.id)
+        .select()
+        .single();
+        
+      leadData = data;
+      dbError = error;
+    } else {
+      // Insert new row
+      payload.created_at = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('agent_barbershop_leads')
+        .insert([payload])
+        .select()
+        .single();
+        
+      leadData = data;
+      dbError = error;
+    }
 
     if (dbError) throw dbError;
 

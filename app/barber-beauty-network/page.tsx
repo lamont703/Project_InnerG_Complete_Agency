@@ -226,11 +226,41 @@ export default function BarberBeautyNetworkPage() {
     e.preventDefault();
     setIsSubmittingNewShop(true);
     try {
-      const result = await submitNewBarbershopLead(newShopForm);
+      let finalImageUrl = "";
+      if (claimImageFile) {
+        setIsUploadingImage(true);
+        const formData = new FormData();
+        formData.append("file", claimImageFile);
+        
+        const uploadRes = await fetch("/api/upload-shop-image", {
+          method: "POST",
+          body: formData
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.imageUrl) {
+          finalImageUrl = uploadData.imageUrl;
+        }
+        setIsUploadingImage(false);
+      }
+
+      const submissionData = { ...newShopForm };
+      if (finalImageUrl) {
+        (submissionData as any).shop_image_url = finalImageUrl;
+      }
+
+      const result = await submitNewBarbershopLead(submissionData);
       if (!result.success) throw new Error(result.error);
       
       if (result.data) {
-        setDbShops(prev => [result.data, ...prev]);
+        setDbShops(prev => {
+          const existsIndex = prev.findIndex(s => s.id === result.data.id);
+          if (existsIndex >= 0) {
+            const newArr = [...prev];
+            newArr[existsIndex] = result.data;
+            return newArr;
+          }
+          return [result.data, ...prev];
+        });
       }
       
       setNewShopSuccess(true);
@@ -292,6 +322,10 @@ export default function BarberBeautyNetworkPage() {
   const [newPassportName, setNewPassportName] = useState("");
   const [newPassportSchool, setNewPassportSchool] = useState("");
   const [newPassportCity, setNewPassportCity] = useState("");
+  const [newPassportAddress, setNewPassportAddress] = useState("");
+  const [newPassportPhone, setNewPassportPhone] = useState("");
+  const [newPassportEmail, setNewPassportEmail] = useState("");
+  const [newPassportDesiredPay, setNewPassportDesiredPay] = useState("Booth Rent");
   const [newPassportType, setNewPassportType] = useState("Barber");
   const [newPassportStatus, setNewPassportStatus] = useState("Student");
   const [newPassportHours, setNewPassportHours] = useState(1500);
@@ -1249,19 +1283,12 @@ export default function BarberBeautyNetworkPage() {
                                   <h3 className="font-black text-2xl text-slate-900 tracking-tight leading-snug group-hover:text-blue-600 transition-colors">
                                     {shop.shop_name}
                                   </h3>
-                                  {shop.website && shop.website !== "N/A" ? (
-                                    <a 
-                                      href={shop.website} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer" 
-                                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-bold mt-1 group/link cursor-pointer"
-                                    >
-                                      <Globe className="w-3.5 h-3.5" />
-                                      Visit Shop Website
-                                      <ArrowRight className="w-3 h-3 group-hover/link:translate-x-0.5 transition-transform" />
-                                    </a>
+                                  {shop.formatted_address ? (
+                                    <span className="text-xs text-slate-500 font-medium mt-1 block truncate w-[280px]" title={shop.formatted_address}>
+                                      {shop.formatted_address}
+                                    </span>
                                   ) : (
-                                    <span className="text-xs text-slate-400 font-medium italic mt-1 block">No Website Linked</span>
+                                    <span className="text-xs text-slate-400 font-medium italic mt-1 block">No Address Listed</span>
                                   )}
                                 </div>
                                 
@@ -1356,18 +1383,33 @@ export default function BarberBeautyNetworkPage() {
                                 ) : (
                                   <button 
                                     onClick={() => {
-                                      setSelectedApplyShop(shop);
-                                      setApplyLoadingState('idle');
+                                      setIsCreatingPassport(true);
+                                      setCreateStep(1);
+                                      setCreateLoadingState('idle');
                                     }}
                                     className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-colors cursor-pointer inline-flex items-center justify-center gap-2 shadow-md shadow-blue-500/10 hover:shadow-blue-500/20 active:scale-[0.98]"
                                   >
                                     <GraduationCap className="w-4 h-4 text-blue-400" />
-                                    Submit Career Passport to Apply
+                                    Submit Passport to Book a Shop Day
                                   </button>
                                 )}
                                 
                                 <button 
-                                  onClick={() => setSelectedClaimShop(shop)}
+                                  onClick={() => {
+                                    setNewShopForm({
+                                      shop_name: shop.shop_name || "",
+                                      owner_name: "",
+                                      phone: "",
+                                      city: shop.city || "",
+                                      email: "",
+                                      rent_type: "Booth Rent",
+                                      booth_count_available: shop.booth_count_available?.toString() || "",
+                                      rent_rate: shop.rent_rate || "",
+                                      formatted_address: shop.formatted_address || "",
+                                      website: shop.website || ""
+                                    });
+                                    setIsNewShopModalOpen(true);
+                                  }}
                                   className="w-full py-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-xs transition-colors cursor-pointer inline-flex items-center justify-center gap-2"
                                 >
                                   <Lock className="w-3.5 h-3.5 text-slate-400" />
@@ -2091,7 +2133,7 @@ export default function BarberBeautyNetworkPage() {
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-2">
                       <Award className="w-6 h-6" />
                     </div>
-                    <h3 className="text-2xl font-black text-slate-900">Mint Your Career Passport</h3>
+                    <h3 className="text-2xl font-black text-slate-900">Mint Your Passport</h3>
                     <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Step {createStep} of 4</p>
                     
                     {/* Step progress bar */}
@@ -2115,6 +2157,31 @@ export default function BarberBeautyNetworkPage() {
                         />
                       </div>
 
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Phone Number</label>
+                          <input 
+                            type="tel" 
+                            required 
+                            placeholder="(555) 555-5555"
+                            value={newPassportPhone}
+                            onChange={(e) => setNewPassportPhone(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Email Address</label>
+                          <input 
+                            type="email" 
+                            required 
+                            placeholder="marcus@example.com"
+                            value={newPassportEmail}
+                            onChange={(e) => setNewPassportEmail(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Accredited Academy / School Name</label>
                         <input 
@@ -2127,31 +2194,32 @@ export default function BarberBeautyNetworkPage() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Metro City</label>
-                          <input 
-                            type="text" 
-                            required 
-                            placeholder="e.g. Dallas"
-                            value={newPassportCity}
-                            onChange={(e) => setNewPassportCity(e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
-                          />
-                        </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Current Barbershop Full Address or Home Full Address</label>
+                        <input 
+                          type="text" 
+                          required 
+                          placeholder="e.g. 123 Main St, Dallas, TX 75001"
+                          value={newPassportAddress}
+                          onChange={(e) => setNewPassportAddress(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
 
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Specialty Type</label>
-                          <select 
-                            value={newPassportType}
-                            onChange={(e) => setNewPassportType(e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
-                          >
-                            <option value="Barber">Barber</option>
-                            <option value="Cosmetologist">Cosmetologist</option>
-                            <option value="Esthetician">Esthetician</option>
-                          </select>
-                        </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Specialty Type</label>
+                        <select 
+                          value={newPassportType}
+                          onChange={(e) => setNewPassportType(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
+                        >
+                          <option value="Barber">Barber</option>
+                          <option value="Cosmetologist">Cosmetologist</option>
+                          <option value="Esthetician">Esthetician</option>
+                          <option value="Makeup Artist">Makeup Artist</option>
+                          <option value="Nail Technician">Nail Technician</option>
+                          <option value="Massage Therapist">Massage Therapist</option>
+                        </select>
                       </div>
                     </motion.div>
                   )}
@@ -2188,13 +2256,7 @@ export default function BarberBeautyNetworkPage() {
                         </div>
                       </div>
 
-                      <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold rounded-2xl flex items-start gap-3">
-                        <ShieldCheck className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-bold text-amber-900 block mb-0.5">Accredited Status Verification</span>
-                          Completing board required hours qualifies you for verified status. Passports with 1,500 completed hours automatically receive the golden state-approved verification stamp!
-                        </div>
-                      </div>
+
                     </motion.div>
                   )}
 
@@ -2264,10 +2326,26 @@ export default function BarberBeautyNetworkPage() {
                           className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
                         >
                           <option value="Barbershop Hire">Barbershop Hire — Chair/Booth Placements</option>
+                          <option value="Cosmetology Hire">Cosmetology Hire — Salon Placements</option>
                           <option value="School Instructor">School Instructor — Academy Staff Placements</option>
                           <option value="Dual-Pathway Eligible">Dual-Pathway Eligible — Highly Versatile Candidate</option>
                         </select>
                       </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Desired Pay Structure</label>
+                        <select 
+                          value={newPassportDesiredPay}
+                          onChange={(e) => setNewPassportDesiredPay(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
+                        >
+                          <option value="Booth Rent">Booth Rent</option>
+                          <option value="Commission">Commission</option>
+                          <option value="Hourly">Hourly</option>
+                          <option value="Salary">Salary</option>
+                        </select>
+                      </div>
+
 
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Desired Specialties (Comma Separated)</label>
@@ -2296,10 +2374,7 @@ export default function BarberBeautyNetworkPage() {
                     <button 
                       onClick={() => {
                         if (createStep < 4) {
-                          if (createStep === 1 && (!newPassportName || !newPassportSchool || !newPassportCity)) {
-                            alert("Please fill in your name, school, and city to proceed.");
-                            return;
-                          }
+
                           setCreateStep(s => s + 1);
                         } else {
                           if (!newPassportName) return;
@@ -2450,7 +2525,7 @@ export default function BarberBeautyNetworkPage() {
                     </div>
                     <h3 className="text-2xl font-extrabold text-slate-900">List Your Barbershop</h3>
                     <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-sm mx-auto">
-                      Join our network to connect with top-tier barber and cosmetology students looking for their first chair!
+                      Join our network to connect with top-tier barber and cosmetology students looking for their next chair!
                     </p>
                   </div>
 
@@ -2472,29 +2547,30 @@ export default function BarberBeautyNetworkPage() {
                       <input type="email" required value={newShopForm.email} onChange={(e) => setNewShopForm({...newShopForm, email: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">City</label>
-                      <input type="text" required value={newShopForm.city} onChange={(e) => setNewShopForm({...newShopForm, city: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Shop Image (Optional)</label>
+                      <input type="file" accept="image/*" onChange={(e) => setClaimImageFile(e.target.files?.[0] || null)} className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Full Address</label>
-                      <input type="text" value={newShopForm.formatted_address} onChange={(e) => setNewShopForm({...newShopForm, formatted_address: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                      <input type="text" required placeholder="123 Placement Dr. Dayton, Texas 43521, USA" value={newShopForm.formatted_address} onChange={(e) => setNewShopForm({...newShopForm, formatted_address: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Compensation Type</label>
                       <select value={newShopForm.rent_type} onChange={(e) => setNewShopForm({...newShopForm, rent_type: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium">
                         <option>Booth Rent</option>
                         <option>Commission</option>
+                        <option>Booth Rent/Commission</option>
                         <option>Salary</option>
                         <option>Salary + Commission</option>
                       </select>
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Rent / Comm Rate</label>
-                      <input type="text" placeholder="e.g. $250/wk or 60/40" value={newShopForm.rent_rate} onChange={(e) => setNewShopForm({...newShopForm, rent_rate: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                      <input type="text" required placeholder="e.g. $250/wk or 60/40" value={newShopForm.rent_rate} onChange={(e) => setNewShopForm({...newShopForm, rent_rate: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Chairs Available</label>
-                      <input type="number" min="0" value={newShopForm.booth_count_available} onChange={(e) => setNewShopForm({...newShopForm, booth_count_available: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Chairs Available To Rent</label>
+                      <input type="number" required min="0" value={newShopForm.booth_count_available} onChange={(e) => setNewShopForm({...newShopForm, booth_count_available: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Website</label>
