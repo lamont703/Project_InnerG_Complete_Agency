@@ -12,8 +12,9 @@ import {
   Check, Building2, AlertCircle, X, Award, BookOpen, Calendar, Clock, ExternalLink
 } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/browser";
-import { submitNewBarbershopLead } from "./actions";
+import { submitNewBarbershopLead, submitShopDayInvite, submitCareerPassport } from "./actions";
 
 function ShopImage({ imageUrl, fallbackSrc, alt }: { imageUrl?: string | null, fallbackSrc: string, alt: string }) {
   const [src, setSrc] = useState(imageUrl || fallbackSrc);
@@ -173,6 +174,7 @@ const MOCK_STUDENTS = [
 ];
 
 export default function BarberBeautyNetworkPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'students' | 'shops'>('students');
   const [studentPage, setStudentPage] = useState(1);
   const [shopPage, setShopPage] = useState(1);
@@ -306,10 +308,12 @@ export default function BarberBeautyNetworkPage() {
   const [selectedPassportStudent, setSelectedPassportStudent] = useState<any | null>(null);
   const [passportActiveTab, setPassportActiveTab] = useState<'credentials' | 'portfolio' | 'schedule'>('credentials');
   const [scheduleShopName, setScheduleShopName] = useState("");
+  const [schedulePhone, setSchedulePhone] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
   const [scheduleNotes, setScheduleNotes] = useState("");
   const [scheduleSuccess, setScheduleSuccess] = useState(false);
+  const [isScheduling, setIsScheduling] = useState(false);
 
   // Application Flow States
   const [selectedApplyShop, setSelectedApplyShop] = useState<any | null>(null);
@@ -473,7 +477,12 @@ export default function BarberBeautyNetworkPage() {
           youtube: `https://youtube.com/@${handle}`,
           portfolio: `https://${handle}.com`,
           pathway,
-          specialties
+          specialties,
+          passport_number: barber.passport_number,
+          state_board_authority: barber.state_board_authority,
+          school_name: barber.school_name,
+          metro_area: barber.metro_area,
+          completed_school_hours: barber.completed_school_hours
         };
       });
     }
@@ -970,7 +979,7 @@ export default function BarberBeautyNetworkPage() {
                 ) : (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
                     {currentStudents.map((student, i) => (
-                      <div key={student.id || i} className="rounded-[2.2rem] border border-slate-200 p-6 bg-white hover:border-blue-400 hover:shadow-2xl transition-all flex flex-col group relative overflow-hidden">
+                      <div key={`${student.id || 'student'}-${i}`} className="rounded-[2.2rem] border border-slate-200 p-6 bg-white hover:border-blue-400 hover:shadow-2xl transition-all flex flex-col group relative overflow-hidden">
                         
                         {/* Passport Header */}
                         <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 mb-4">
@@ -1865,20 +1874,20 @@ export default function BarberBeautyNetworkPage() {
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Passport No.</span>
                     <span className="font-mono font-bold text-amber-400">
-                      TX-PS-{selectedPassportStudent.id ? selectedPassportStudent.id.substring(selectedPassportStudent.id.lastIndexOf('-') + 1).toUpperCase() : "MOCK"}
+                      {selectedPassportStudent.passport_number ? `TX-PS-${selectedPassportStudent.passport_number.toUpperCase()}` : "TX-PS-PENDING"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Authority</span>
-                    <span className="font-bold">Texas Licensing Board</span>
+                    <span className="font-bold">{selectedPassportStudent.state_board_authority || "Texas Licensing Board"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">School of Origin</span>
-                    <span className="font-bold max-w-[150px] truncate text-right">{selectedPassportStudent.school}</span>
+                    <span className="font-bold max-w-[150px] truncate text-right">{selectedPassportStudent.school_name || selectedPassportStudent.school}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Metro Area</span>
-                    <span className="font-bold text-blue-400">{selectedPassportStudent.city}</span>
+                    <span className="font-bold text-blue-400">{selectedPassportStudent.metro_area || selectedPassportStudent.city}</span>
                   </div>
                 </div>
               </div>
@@ -1923,7 +1932,7 @@ export default function BarberBeautyNetworkPage() {
                         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
                           <div className="flex justify-between items-center text-xs font-bold">
                             <span className="text-slate-500">Board Required Hours Completed</span>
-                            <span className="text-indigo-600 font-extrabold text-sm">1,500 / 1,500 Hours</span>
+                            <span className="text-indigo-600 font-extrabold text-sm">{selectedPassportStudent.completed_school_hours ? Number(selectedPassportStudent.completed_school_hours).toLocaleString() : "1,500"} Hours</span>
                           </div>
                           <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                             <div className="h-full bg-gradient-to-r from-indigo-500 to-blue-600 rounded-full w-full" />
@@ -1962,10 +1971,6 @@ export default function BarberBeautyNetworkPage() {
                       <div className="space-y-4 animate-fadeIn">
                         <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
                           <span>Live Connected Feed Display (For Display Only)</span>
-                          <span className="text-indigo-600 flex items-center gap-1">
-                            <ExternalLink className="w-3.5 h-3.5" />
-                            @ {selectedPassportStudent.name.toLowerCase().replace(' ', '_')}_fades
-                          </span>
                         </div>
 
                         {/* 3x2 High Fidelity Cuts Grid */}
@@ -2001,15 +2006,39 @@ export default function BarberBeautyNetworkPage() {
                       <div className="animate-fadeIn">
                         {!scheduleSuccess ? (
                           <form 
-                            onSubmit={(e) => {
+                            onSubmit={async (e) => {
                               e.preventDefault();
-                              if (!scheduleShopName || !scheduleDate || !scheduleTime) return;
-                              setScheduleSuccess(true);
+                              if (!scheduleShopName || !schedulePhone || !scheduleDate || !scheduleTime) return;
+                              setIsScheduling(true);
+                              
+                              try {
+                                // Combine date and time into ISO string
+                                const combinedDateTime = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
+                                
+                                const result = await submitShopDayInvite({
+                                  shop_name: scheduleShopName,
+                                  shop_phone: schedulePhone,
+                                  professional_id: selectedPassportStudent.id,
+                                  invite_date: combinedDateTime,
+                                  notes: scheduleNotes
+                                });
+                                
+                                if (result.success) {
+                                  setScheduleSuccess(true);
+                                } else {
+                                  alert(`Failed to send invite: ${result.error}`);
+                                }
+                              } catch (err) {
+                                console.error(err);
+                                alert("An error occurred while sending the invite.");
+                              } finally {
+                                setIsScheduling(false);
+                              }
                             }}
                             className="space-y-4"
                           >
                             <div className="text-xs font-bold text-slate-500 mb-1">
-                              Invite **{selectedPassportStudent.name}** for a dedicated **Shop Day Visit** at your location!
+                              Invite {selectedPassportStudent.name} for a dedicated Shop Day Visit at your location!
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2025,6 +2054,21 @@ export default function BarberBeautyNetworkPage() {
                                 />
                               </div>
 
+                              <div className="space-y-1.5 col-span-2 md:col-span-1">
+                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Your Contact Phone</label>
+                                <div className="relative">
+                                  <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                  <input 
+                                    type="tel" 
+                                    required 
+                                    placeholder="(555) 555-5555"
+                                    value={schedulePhone}
+                                    onChange={(e) => setSchedulePhone(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                                  />
+                                </div>
+                              </div>
+
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Proposed Visit Date</label>
                                 <div className="relative">
@@ -2034,7 +2078,8 @@ export default function BarberBeautyNetworkPage() {
                                     required
                                     value={scheduleDate}
                                     onChange={(e) => setScheduleDate(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                                    onClick={(e) => e.currentTarget.showPicker && e.currentTarget.showPicker()}
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
                                   />
                                 </div>
                               </div>
@@ -2048,7 +2093,8 @@ export default function BarberBeautyNetworkPage() {
                                     required
                                     value={scheduleTime}
                                     onChange={(e) => setScheduleTime(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                                    onClick={(e) => e.currentTarget.showPicker && e.currentTarget.showPicker()}
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
                                   />
                                 </div>
                               </div>
@@ -2066,10 +2112,11 @@ export default function BarberBeautyNetworkPage() {
 
                             <button 
                               type="submit"
-                              className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/10"
+                              disabled={isScheduling}
+                              className={`w-full py-3 rounded-xl text-white font-extrabold text-xs tracking-wider uppercase transition-colors flex items-center justify-center gap-1.5 shadow-md ${isScheduling ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 cursor-pointer shadow-indigo-600/10'}`}
                             >
-                              <Calendar className="w-4 h-4" />
-                              Schedule Shop Day Invitation
+                              <Calendar className={`w-4 h-4 ${isScheduling ? 'animate-pulse' : ''}`} />
+                              {isScheduling ? "Sending Invite..." : "Schedule Shop Day Invitation"}
                             </button>
                           </form>
                         ) : (
@@ -2083,8 +2130,7 @@ export default function BarberBeautyNetworkPage() {
                             </div>
                             <h3 className="text-xl font-black text-slate-900">Invitation Dispatched!</h3>
                             <p className="text-slate-500 font-semibold text-xs leading-relaxed max-w-sm mx-auto">
-                              Your Shop Day request has been successfully compiled and sent to **{selectedPassportStudent.name}** and their Admissions Rep at **{selectedPassportStudent.school}**. 
-                              We have queued the outreach details on your highlevel workflows!
+                              Your Shop Day request has been successfully compiled and sent to {selectedPassportStudent.name}!
                             </p>
                           </motion.div>
                         )}
@@ -2134,7 +2180,10 @@ export default function BarberBeautyNetworkPage() {
                       <Award className="w-6 h-6" />
                     </div>
                     <h3 className="text-2xl font-black text-slate-900">Mint Your Passport</h3>
-                    <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Step {createStep} of 4</p>
+                    <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-sm mx-auto my-2">
+                      This form is only for Professionals and Students looking to rent a chair at a local shop.
+                    </p>
+                    <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-4">Step {createStep} of 4</p>
                     
                     {/* Step progress bar */}
                     <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200 max-w-[200px] mx-auto">
@@ -2372,34 +2421,76 @@ export default function BarberBeautyNetworkPage() {
                     )}
                     
                     <button 
-                      onClick={() => {
+                      onClick={async () => {
                         if (createStep < 4) {
-
+                          if (createStep === 1) {
+                            if (!newPassportName || !newPassportPhone || !newPassportEmail || !newPassportSchool || !newPassportAddress) {
+                              alert("Please fill out all mandatory fields: Candidate Full Name, Phone Number, Email Address, School Name, and Address before continuing.");
+                              return;
+                            }
+                            
+                            // Basic Regex to ensure: Starts with a number, has some text, and ends with a 5-digit zip code
+                            const addressRegex = /^\d+\s+.*\d{5}$/;
+                            if (!addressRegex.test(newPassportAddress.trim())) {
+                              alert("Please enter a complete address including Street Number, Street Name, City, State, and a 5-digit Zip Code (e.g., '123 Main St, Dallas, TX 75001').");
+                              return;
+                            }
+                          }
                           setCreateStep(s => s + 1);
                         } else {
-                          if (!newPassportName) return;
                           
                           setCreateLoadingState('generating');
-                          setTimeout(() => {
-                            const newStudent = {
-                              id: `student-custom-${Date.now()}`,
+                          
+                          try {
+                            const result = await submitCareerPassport({
                               name: newPassportName,
-                              school: newPassportSchool || "Independent Barber Academy",
-                              city: newPassportCity || "Texas Hub",
-                              type: newPassportType,
-                              status: newPassportStatus,
-                              image: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=800&auto=format&fit=crop",
-                              instagram: newPassportInstagram ? `https://instagram.com/${newPassportInstagram}` : "https://instagram.com",
-                              tiktok: newPassportTiktok ? `https://tiktok.com/@${newPassportTiktok.replace('@', '')}` : "https://tiktok.com",
-                              youtube: newPassportYoutube ? `https://youtube.com/@${newPassportYoutube.replace('@', '')}` : "https://youtube.com",
-                              portfolio: newPassportPortfolio ? `https://${newPassportPortfolio}` : "https://innergcomplete.com",
-                              pathway: newPassportPathway,
-                              specialties: newPassportSpecialties.split(',').map(s => s.trim()).filter(Boolean)
-                            };
+                              phone: newPassportPhone,
+                              email: newPassportEmail,
+                              school_name: newPassportSchool,
+                              address: newPassportAddress,
+                              specialty_type: newPassportType,
+                              licensure_status: newPassportStatus,
+                              completed_school_hours: newPassportHours,
+                              instagram_handle: newPassportInstagram,
+                              tiktok_handle: newPassportTiktok,
+                              youtube_channel: newPassportYoutube,
+                              profile_url: newPassportPortfolio,
+                              placement_pathway: newPassportPathway,
+                              desired_pay_structure: newPassportDesiredPay,
+                              desired_specialties: newPassportSpecialties
+                            });
 
-                            setCustomStudents(prev => [newStudent, ...prev]);
-                            setCreateLoadingState('done');
-                          }, 3000);
+                            if (result.success) {
+                              const newStudent = {
+                                id: result.data.id || `student-custom-${Date.now()}`,
+                                name: newPassportName,
+                                school: newPassportSchool || "Independent Barber Academy",
+                                city: newPassportCity || "Texas Hub",
+                                type: newPassportType,
+                                status: newPassportStatus,
+                                image: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=800&auto=format&fit=crop",
+                                instagram: newPassportInstagram ? `https://instagram.com/${newPassportInstagram}` : "https://instagram.com",
+                                tiktok: newPassportTiktok ? `https://tiktok.com/@${newPassportTiktok.replace('@', '')}` : "https://tiktok.com",
+                                youtube: newPassportYoutube ? `https://youtube.com/@${newPassportYoutube.replace('@', '')}` : "https://youtube.com",
+                                portfolio: newPassportPortfolio ? `https://${newPassportPortfolio}` : "https://innergcomplete.com",
+                                pathway: newPassportPathway,
+                                specialties: newPassportSpecialties.split(',').map(s => s.trim()).filter(Boolean)
+                              };
+
+                              setCustomStudents(prev => [newStudent, ...prev]);
+                              setCreateLoadingState('done');
+                              
+                              setTimeout(() => {
+                                router.push('/shop-day-matches');
+                              }, 2000);
+                            } else {
+                              alert(`Failed to mint passport: ${result.error}`);
+                              setCreateLoadingState('idle');
+                            }
+                          } catch (err) {
+                            console.error(err);
+                            setCreateLoadingState('idle');
+                          }
                         }
                       }}
                       className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/10"
@@ -2443,24 +2534,17 @@ export default function BarberBeautyNetworkPage() {
                   <div className="space-y-2">
                     <h3 className="text-2xl font-black text-slate-900">Career Passport Minted!</h3>
                     <p className="text-slate-500 font-semibold text-xs leading-relaxed max-w-sm mx-auto">
-                      Congratulations, **{newPassportName}**! Your verified **Career Passport** has been successfully generated and added to the official placement network.
+                      Congratulations, {newPassportName}! Your verified Career Passport has been successfully generated and added to the official placement network.
                     </p>
                   </div>
 
                   <button 
                     onClick={() => {
-                      setIsCreatingPassport(false);
-                      setCreateStep(1);
-                      setCreateLoadingState('idle');
-                      
-                      setTimeout(() => {
-                        document.getElementById('explore-network')?.scrollIntoView({ behavior: 'smooth' });
-                        setActiveTab('students');
-                      }, 500);
+                      router.push('/shop-day-matches');
                     }}
                     className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-slate-900/10"
                   >
-                    View Your Passport in Registry
+                    View Shop Day Matches
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </motion.div>
@@ -2523,9 +2607,9 @@ export default function BarberBeautyNetworkPage() {
                     <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-4">
                       <ShieldCheck className="w-8 h-8" />
                     </div>
-                    <h3 className="text-2xl font-extrabold text-slate-900">List Your Barbershop</h3>
+                    <h3 className="text-2xl font-extrabold text-slate-900">List Your Shop</h3>
                     <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-sm mx-auto">
-                      Join our network to connect with top-tier barber and cosmetology students looking for their next chair!
+                      Join our network to connect with top-tier barber and cosmetology professionals and students looking for their next chair!
                     </p>
                   </div>
 

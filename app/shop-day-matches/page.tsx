@@ -22,7 +22,7 @@ export default function ShopDayMatchesPage() {
             Shop Day <span className="text-blue-600">Matches</span>
           </h1>
           <p className="text-slate-600 font-medium text-lg max-w-2xl mx-auto">
-            Find the perfect barbershop for your next career move. Enter your phone number below to securely access the shops we've matched you with based on your location and goals.
+            Find the perfect shop for your next career move. Enter your phone number below to securely access the shops we've matched you with based on your location and goals.
           </p>
         </div>
 
