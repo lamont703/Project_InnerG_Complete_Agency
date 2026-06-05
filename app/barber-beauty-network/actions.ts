@@ -251,7 +251,7 @@ export async function submitCareerPassport(payload: {
   instagram_handle: string;
   tiktok_handle: string;
   youtube_channel: string;
-  profile_url: string;
+  website_url: string;
   placement_pathway: string;
   desired_pay_structure: string;
   desired_specialties: string;

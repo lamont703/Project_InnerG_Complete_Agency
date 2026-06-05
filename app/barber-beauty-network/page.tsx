@@ -2454,7 +2454,7 @@ export default function BarberBeautyNetworkPage() {
                               instagram_handle: newPassportInstagram,
                               tiktok_handle: newPassportTiktok,
                               youtube_channel: newPassportYoutube,
-                              profile_url: newPassportPortfolio,
+                              website_url: newPassportPortfolio,
                               placement_pathway: newPassportPathway,
                               desired_pay_structure: newPassportDesiredPay,
                               desired_specialties: newPassportSpecialties

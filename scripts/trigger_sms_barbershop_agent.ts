@@ -126,9 +126,20 @@ async function runSmsAgent(limit: number, targetPhone?: string | null) {
         continue
       }
       
+      // Clean and format phone for GHL (+1 followed by 10 digits)
+      let formattedPhone = shop.phone.replace(/\D/g, "");
+      if (formattedPhone.length === 10) {
+        formattedPhone = "+1" + formattedPhone;
+      } else if (formattedPhone.length === 11 && formattedPhone.startsWith("1")) {
+        formattedPhone = "+" + formattedPhone;
+      } else {
+        console.log(`⚠️ Skipping ${shop.shop_name} - Phone number does not have 10 valid digits: ${shop.phone}`)
+        continue
+      }
+      
       const shopContactId = await upsertGhlContact({
         name: shop.owner_name && shop.owner_name !== "Unknown Owner" ? shop.owner_name : shop.shop_name,
-        phone: shop.phone,
+        phone: formattedPhone,
         companyName: shop.shop_name
       })
 
