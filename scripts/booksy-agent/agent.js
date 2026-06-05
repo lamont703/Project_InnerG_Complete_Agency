@@ -183,7 +183,7 @@ if (!EMAIL || !PASSWORD) {
       // Find all anchor tags that look like Booksy profiles (usually have an ID followed by an underscore)
       const links = Array.from(document.querySelectorAll('a'))
         .map(a => a.href)
-        .filter(href => href.includes('booksy.com/en-us/') && /\d+_/.test(href) && !href.includes('?'));
+        .filter(href => href.includes('booksy.com/en-us/') && /\d+_/.test(href) && !href.includes('?') && !href.includes('/s/'));
       return [...new Set(links)]; // deduplicate
     });
     
@@ -192,7 +192,7 @@ if (!EMAIL || !PASSWORD) {
        profileLinks = await page.evaluate(() => {
           const links = Array.from(document.querySelectorAll('a'))
             .map(a => a.href)
-            .filter(href => href.includes('booksy.com/en-us/') && !href.includes('/s?') && !href.includes('login') && !href.includes('signup'));
+            .filter(href => href.includes('booksy.com/en-us/') && !href.includes('/s?') && !href.includes('/s/') && !href.includes('login') && !href.includes('signup'));
           return [...new Set(links)];
        });
     }
