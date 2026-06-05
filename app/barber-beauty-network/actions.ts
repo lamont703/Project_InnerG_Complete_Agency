@@ -74,11 +74,20 @@ export async function submitNewBarbershopLead(formData: any) {
       .limit(1)
       .maybeSingle();
 
-    let parsedCity = "";
-    if (formData.formatted_address) {
-      const match = formData.formatted_address.match(/([^,]+),\s*[A-Z]{2}\s+(\d{5})/);
-      if (match) {
-        parsedCity = `${match[1].trim()} ${match[2]}`;
+    const parsedCity = extractMetroArea(formData.formatted_address) || "";
+    
+    let lat = null;
+    let lng = null;
+    if (formData.formatted_address && process.env.GOOGLE_MAPS_API_KEY) {
+      try {
+        const geoRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.formatted_address)}&key=${process.env.GOOGLE_MAPS_API_KEY}`);
+        const geoData = await geoRes.json();
+        if (geoData.status === 'OK' && geoData.results && geoData.results.length > 0) {
+          lat = geoData.results[0].geometry.location.lat;
+          lng = geoData.results[0].geometry.location.lng;
+        }
+      } catch (err) {
+        console.error("Geocoding failed:", err);
       }
     }
 
@@ -95,6 +104,8 @@ export async function submitNewBarbershopLead(formData: any) {
       website: formData.website,
       outreach_status: 'shop claimed',
       city: parsedCity,
+      latitude: lat ? lat.toString() : null,
+      longitude: lng ? lng.toString() : null,
       hiring_need: true,
       updated_at: new Date().toISOString()
     };
@@ -217,8 +228,8 @@ function extractMetroArea(address: string | null | undefined): string | null {
     }
   }
   
-  // Fallback for no-comma formats: "123 Main St Dallas TX 75001"
-  const fallbackRegex = /([a-zA-Z\s]+)\s+[a-zA-Z]{2}\s+(\d{5})(?:-\d{4})?$/;
+  // Fallback for no-comma formats: "123 Main St Dallas TX 75001" or "Atlanta Georgia 30318"
+  const fallbackRegex = /([a-zA-Z\s]+)\s+[a-zA-Z]+\s+(\d{5})(?:-\d{4})?$/;
   const fallbackMatch = address.trim().match(fallbackRegex);
   if (fallbackMatch) {
     const words = fallbackMatch[1].trim().split(/\s+/);
