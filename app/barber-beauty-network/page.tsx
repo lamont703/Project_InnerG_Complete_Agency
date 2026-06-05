@@ -1403,27 +1403,34 @@ export default function BarberBeautyNetworkPage() {
                                   </button>
                                 )}
                                 
-                                <button 
-                                  onClick={() => {
-                                    setNewShopForm({
-                                      shop_name: shop.shop_name || "",
-                                      owner_name: "",
-                                      phone: "",
-                                      city: shop.city || "",
-                                      email: "",
-                                      rent_type: "Booth Rent",
-                                      booth_count_available: shop.booth_count_available?.toString() || "",
-                                      rent_rate: shop.rent_rate || "",
-                                      formatted_address: shop.formatted_address || "",
-                                      website: shop.website || ""
-                                    });
-                                    setIsNewShopModalOpen(true);
-                                  }}
-                                  className="w-full py-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-xs transition-colors cursor-pointer inline-flex items-center justify-center gap-2"
-                                >
-                                  <Lock className="w-3.5 h-3.5 text-slate-400" />
-                                  Is this your shop? Claim & Get Notified!
-                                </button>
+                                {shop.outreach_status?.trim().toLowerCase() === 'shop claimed' ? (
+                                  <div className="w-full py-3 rounded-xl border border-dashed border-emerald-200 bg-emerald-50 text-emerald-600 font-bold text-xs inline-flex items-center justify-center gap-2">
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                    Shop Claimed
+                                  </div>
+                                ) : (
+                                  <button 
+                                    onClick={() => {
+                                      setNewShopForm({
+                                        shop_name: shop.shop_name || "",
+                                        owner_name: "",
+                                        phone: "",
+                                        city: shop.city || "",
+                                        email: "",
+                                        rent_type: "Booth Rent",
+                                        booth_count_available: shop.booth_count_available?.toString() || "",
+                                        rent_rate: shop.rent_rate || "",
+                                        formatted_address: shop.formatted_address || "",
+                                        website: shop.website || ""
+                                      });
+                                      setIsNewShopModalOpen(true);
+                                    }}
+                                    className="w-full py-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-xs transition-colors cursor-pointer inline-flex items-center justify-center gap-2"
+                                  >
+                                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                                    Is this your shop? Claim & Get Notified!
+                                  </button>
+                                )}
                               </div>
                             </div>
 
