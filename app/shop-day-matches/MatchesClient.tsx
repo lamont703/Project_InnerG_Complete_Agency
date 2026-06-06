@@ -210,7 +210,7 @@ export default function MatchesClient() {
                   {/* Specialty place tags */}
                   {shop.place_types && shop.place_types.split('|').length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-4">
-                      {shop.place_types.split('|').map(t => t.trim().replace(/_/g, ' ')).slice(0, 3).map((tag: string, idx: number) => (
+                      {shop.place_types.split('|').map((t: string) => t.trim().replace(/_/g, ' ')).slice(0, 3).map((tag: string, idx: number) => (
                         <span key={idx} className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-wider rounded-lg border border-slate-200/40">
                           {tag}
                         </span>
