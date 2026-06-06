@@ -271,6 +271,21 @@ export async function submitCareerPassport(payload: {
     const randomPassportNum = Math.floor(1000000000000 + Math.random() * 9000000000000).toString();
     const computedMetroArea = extractMetroArea(payload.address);
     
+    let lat = null;
+    let lng = null;
+    if (payload.address && process.env.GOOGLE_MAPS_API_KEY) {
+      try {
+        const geoRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(payload.address)}&key=${process.env.GOOGLE_MAPS_API_KEY}`);
+        const geoData = await geoRes.json();
+        if (geoData.status === 'OK' && geoData.results && geoData.results.length > 0) {
+          lat = geoData.results[0].geometry.location.lat;
+          lng = geoData.results[0].geometry.location.lng;
+        }
+      } catch (err) {
+        console.error("Geocoding failed:", err);
+      }
+    }
+    
     // Lazy matching for phone number
     const digits = payload.phone.replace(/\D/g, '').slice(-10);
     let matchId = null;
@@ -309,7 +324,9 @@ export async function submitCareerPassport(payload: {
           source: 'Passport Form',
           passport_submitted: true,
           passport_number: randomPassportNum,
-          metro_area: computedMetroArea
+          metro_area: computedMetroArea,
+          latitude: lat ? lat.toString() : null,
+          longitude: lng ? lng.toString() : null
         })
         .eq('id', matchId)
         .select()
@@ -327,7 +344,9 @@ export async function submitCareerPassport(payload: {
           source: 'Passport Form',
           passport_submitted: true,
           passport_number: randomPassportNum,
-          metro_area: computedMetroArea
+          metro_area: computedMetroArea,
+          latitude: lat ? lat.toString() : null,
+          longitude: lng ? lng.toString() : null
         }])
         .select()
         .single();
