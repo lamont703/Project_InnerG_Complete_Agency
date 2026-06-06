@@ -165,7 +165,7 @@ export default function MatchesClient() {
                 {/* Gallery Image */}
                 <div className="relative w-full h-52 rounded-2xl overflow-hidden mb-6 border border-slate-100 shadow-sm bg-slate-50 group-hover:shadow-md transition-shadow">
                   <img 
-                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/social-assets/shop-images/${shop.id}`}
+                    src={shop.shop_image_url || `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/social-assets/shop-images/${shop.id}`}
                     alt={shop.shop_name} 
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700 ease-out"
                     onError={(e) => {
