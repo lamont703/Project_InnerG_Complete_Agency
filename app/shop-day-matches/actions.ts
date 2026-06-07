@@ -2,6 +2,7 @@
 
 import { createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendMetaConversionEvent, hashData, hashPhone } from "@/lib/meta-capi";
 export async function fetchBarberMatches(phone: string) {
   const supabase = await createServerClient();
   
@@ -157,7 +158,24 @@ export async function requestShopDay(barberId: string, shopId: string) {
       console.error("Failed to trigger GHL request webhook", e);
     }
   }
-  
+
+  // Meta CAPI: Fire SubmitApplication Event
+  await sendMetaConversionEvent({
+    event_name: 'SubmitApplication',
+    user_data: {
+      ph: hashPhone(barber?.phone),
+      fn: hashData(barber?.name?.split(' ')[0]),
+      ln: hashData(barber?.name?.split(' ').slice(1).join(' ')),
+      ct: hashData(barber?.address ? barber.address.split(',')[1]?.trim() : undefined),
+      st: hashData('tx'),
+    },
+    custom_data: {
+      content_name: 'Shop Day Request',
+      content_category: 'Professional',
+      content_ids: [shopId]
+    }
+  });
+
   return { success: true };
 }
 
