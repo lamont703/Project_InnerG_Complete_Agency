@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
+import { sendMetaConversionEvent, hashData, hashPhone } from "@/lib/meta-capi";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -143,6 +144,23 @@ export async function submitNewBarbershopLead(formData: any) {
 
     if (dbError) throw dbError;
 
+    // Meta CAPI: Fire Lead Event
+    await sendMetaConversionEvent({
+      event_name: 'Lead',
+      user_data: {
+        em: hashData(formData.email),
+        ph: hashPhone(formData.phone),
+        fn: hashData(formData.owner_name?.split(' ')[0]),
+        ln: hashData(formData.owner_name?.split(' ').slice(1).join(' ')),
+        ct: hashData(formData.city),
+        st: hashData('tx'),
+      },
+      custom_data: {
+        content_name: 'New Shop Claim',
+        content_category: 'Barbershop'
+      }
+    });
+
     return { success: true, data: leadData };
   } catch (err: any) {
     console.error("Error in submitNewBarbershopLead:", err);
@@ -222,6 +240,21 @@ export async function submitShopDayInvite(payload: {
         console.error("Failed to trigger GHL invite webhook", e);
       }
     }
+
+    // Meta CAPI: Fire Schedule Event
+    await sendMetaConversionEvent({
+      event_name: 'Schedule',
+      user_data: {
+        ph: hashPhone(payload.shop_phone),
+        fn: hashData(ownerName?.split(' ')[0] || payload.shop_name.split(' ')[0]),
+        ct: hashData(formattedAddress ? extractMetroArea(formattedAddress)?.split(' ')[0] : undefined),
+        st: hashData('tx'),
+      },
+      custom_data: {
+        content_name: 'Shop Day Invite',
+        content_category: 'Barbershop'
+      }
+    });
 
     return { success: true, data };
   } catch (err: any) {
@@ -422,6 +455,24 @@ export async function submitCareerPassport(payload: {
     }
 
     if (resultError) throw resultError;
+
+    // Meta CAPI: Fire Lead Event
+    await sendMetaConversionEvent({
+      event_name: 'Lead',
+      user_data: {
+        em: hashData(payload.email),
+        ph: hashPhone(payload.phone),
+        fn: hashData(payload.name?.split(' ')[0]),
+        ln: hashData(payload.name?.split(' ').slice(1).join(' ')),
+        ct: hashData(computedMetroArea?.split(' ')[0]),
+        st: hashData('tx'),
+      },
+      custom_data: {
+        content_name: 'Career Passport Creation',
+        content_category: 'Professional'
+      }
+    });
+
     return { success: true, data: resultData };
   } catch (err: any) {
     console.error("Error in submitCareerPassport:", err);
