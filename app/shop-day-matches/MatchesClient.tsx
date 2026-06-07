@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { fetchBarberMatches, requestShopDay, updateBarberProfile } from "./actions";
-import { Phone, Lock, Building, Users, MapPin, CheckCircle2, ChevronRight, Scissors, Star, Briefcase, Sparkles, ShieldCheck, Settings, X, Save } from "lucide-react";
+import { fetchBarberMatches, requestShopDay, updateBarberProfile, uploadPassportImage } from "./actions";
+import { Phone, Lock, Building, Users, MapPin, CheckCircle2, ChevronRight, Scissors, Star, Briefcase, Sparkles, ShieldCheck, Settings, X, Save, Upload } from "lucide-react";
 
 
 function maskPhone(phone: string | null) {
@@ -32,6 +32,7 @@ export default function MatchesClient() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsForm, setSettingsForm] = useState<any>({});
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   
   // Track which shops the user has requested a shop day for
   const [requestedShops, setRequestedShops] = useState<Set<string>>(new Set());
@@ -96,19 +97,44 @@ export default function MatchesClient() {
       placement_pathway: barberState.placement_pathway || "",
       desired_specialties: barberState.desired_specialties || "",
       email: barberState.email || "",
-      website_url: barberState.website_url || ""
+      website_url: barberState.website_url || "",
+      passport_image_url: barberState.passport_image_url || ""
     });
+    setSelectedImage(null);
     setIsSettingsOpen(true);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedImage(e.target.files[0]);
+    }
   };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingSettings(true);
-    const res = await updateBarberProfile(barberState.id, settingsForm);
+    
+    let updatedForm = { ...settingsForm };
+
+    if (selectedImage) {
+      const formData = new FormData();
+      formData.append("file", selectedImage);
+      formData.append("barberId", barberState.id);
+      
+      const uploadRes = await uploadPassportImage(formData);
+      if (uploadRes.error) {
+        alert(uploadRes.error);
+        setSavingSettings(false);
+        return;
+      }
+      updatedForm.passport_image_url = uploadRes.imageUrl;
+    }
+
+    const res = await updateBarberProfile(barberState.id, updatedForm);
     if (res.error) {
       alert(res.error);
     } else {
-      setBarberState({ ...barberState, ...settingsForm });
+      setBarberState({ ...barberState, ...updatedForm });
       setIsSettingsOpen(false);
     }
     setSavingSettings(false);
@@ -457,6 +483,23 @@ export default function MatchesClient() {
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Website URL</label>
                   <input type="url" placeholder="https://" value={settingsForm.website_url} onChange={e => setSettingsForm({...settingsForm, website_url: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Passport Image</label>
+                  <div className="flex items-center gap-4">
+                    {settingsForm.passport_image_url && !selectedImage && (
+                      <img src={settingsForm.passport_image_url} alt="Passport" className="w-16 h-16 rounded-xl object-cover border border-slate-200 shadow-sm" />
+                    )}
+                    <label className="flex-1 cursor-pointer">
+                      <div className="w-full p-4 border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50 rounded-xl transition-colors flex flex-col items-center justify-center gap-2">
+                        <Upload className="w-6 h-6 text-slate-400" />
+                        <span className="text-sm font-bold text-slate-600">
+                          {selectedImage ? selectedImage.name : "Upload new passport image"}
+                        </span>
+                      </div>
+                      <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                    </label>
+                  </div>
                 </div>
               </form>
             </div>

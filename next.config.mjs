@@ -18,6 +18,12 @@ const nextConfig = {
   // Strict mode for better React development experience
   reactStrictMode: true,
 
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
+
   // Explicitly allow server-only packages to prevent accidental browser bundling
   serverExternalPackages: [],
 
