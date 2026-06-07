@@ -1,7 +1,7 @@
 "use server";
 
 import { createServerClient } from "@/lib/supabase/server";
-
+import { createClient } from "@supabase/supabase-js";
 export async function fetchBarberMatches(phone: string) {
   const supabase = await createServerClient();
   
@@ -14,7 +14,7 @@ export async function fetchBarberMatches(phone: string) {
   
   const { data: barbers, error: barberError } = await supabase
     .from("agent_barber_leads")
-    .select("id, name, status")
+    .select("id, name, status, phone, address, desired_pay_structure, school_name, specialty_type, licensure_status, completed_school_hours, instagram_handle, tiktok_handle, youtube_channel, placement_pathway, desired_specialties, email, website_url")
     .ilike("phone", searchPattern);
     
   if (barberError) {
@@ -73,6 +73,7 @@ export async function fetchBarberMatches(phone: string) {
   return {
     barberId: barber.id,
     barberName: barber.name,
+    barber: barber,
     matches: enrichedMatches
   };
 }
@@ -80,18 +81,101 @@ export async function fetchBarberMatches(phone: string) {
 export async function requestShopDay(barberId: string, shopId: string) {
   const supabase = await createServerClient();
   
-  const { error } = await (supabase as any)
+  // 1. Fetch shop details to populate the request
+  const { data: shopData, error: shopError } = await supabase
+    .from("agent_barbershop_leads")
+    .select("shop_name, phone, formatted_address, owner_name")
+    .eq("id", shopId)
+    .single();
+  const shop: any = shopData;
+
+  if (shopError) {
+    console.error("Error fetching shop details for request:", shopError);
+    return { error: "Failed to fetch shop details. Please try again." };
+  }
+
+  // 2. Fetch professional details to populate the request
+  const { data: barberData, error: barberError } = await supabase
+    .from("agent_barber_leads")
+    .select("name, phone, address")
+    .eq("id", barberId)
+    .single();
+  const barber: any = barberData;
+
+  if (barberError) {
+    console.error("Error fetching professional details for request:", barberError);
+    return { error: "Failed to fetch professional details. Please try again." };
+  }
+
+  // 3. Insert into shop_day_requests with the extra denormalized data
+  // 3. Insert into shop_day_requests with the extra denormalized data
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data, error } = await adminClient
     .from("shop_day_requests")
     .insert({
       barber_id: barberId,
       shop_id: shopId,
+      shop_name: shop?.shop_name,
+      shop_phone: shop?.phone,
+      shop_address: shop?.formatted_address,
+      shop_owner_name: shop?.owner_name,
+      professionals_name: barber?.name,
+      professionals_phone_number: barber?.phone,
+      professionals_address: barber?.address,
       status: "pending"
-    });
+    })
+    .select();
     
   if (error) {
     console.error("Error creating request:", error);
     return { error: "Failed to send request. Please try again." };
   }
   
+  if (process.env.GHL_SHOP_DAY_REQUEST_WEBHOOK) {
+    try {
+      await fetch(process.env.GHL_SHOP_DAY_REQUEST_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data && data.length > 0 ? data[0] : {
+          barber_id: barberId,
+          shop_id: shopId,
+          shop_name: shop?.shop_name,
+          shop_phone: shop?.phone,
+          shop_address: shop?.formatted_address,
+          shop_owner_name: shop?.owner_name,
+          professionals_name: barber?.name,
+          professionals_phone_number: barber?.phone,
+          professionals_address: barber?.address,
+          status: "pending"
+        })
+      });
+    } catch (e) {
+      console.error("Failed to trigger GHL request webhook", e);
+    }
+  }
+  
+  return { success: true };
+}
+
+export async function updateBarberProfile(barberId: string, payload: any) {
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { error } = await adminClient
+    .from("agent_barber_leads")
+    .update(payload)
+    .eq("id", barberId);
+
+  if (error) {
+    console.error("Error updating profile:", error);
+    return { error: "Failed to update profile. Please try again." };
+  }
+
   return { success: true };
 }

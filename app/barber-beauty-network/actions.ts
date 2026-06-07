@@ -170,13 +170,14 @@ export async function submitShopDayInvite(payload: {
     // Attempt to find a matching shop in agent_barbershop_leads
     const { data: matchedShop } = await supabase
       .from('agent_barbershop_leads')
-      .select('shop_name, formatted_address, owner_name')
+      .select('id, shop_name, formatted_address, owner_name')
       .eq('phone', searchPhone)
       .maybeSingle();
 
     const finalShopName = matchedShop?.shop_name || payload.shop_name;
     const formattedAddress = matchedShop?.formatted_address || null;
     const ownerName = matchedShop?.owner_name || null;
+    const shopId = matchedShop?.id || null;
 
     // Attempt to find the matching professional in agent_barber_leads
     const { data: matchedProfessional } = await supabase
@@ -192,6 +193,7 @@ export async function submitShopDayInvite(payload: {
     const { data, error } = await supabase
       .from('shop_day_invites')
       .insert([{
+        shop_id: shopId,
         shop_name: finalShopName,
         shop_phone: payload.shop_phone,
         formatted_address: formattedAddress,
@@ -208,6 +210,19 @@ export async function submitShopDayInvite(payload: {
       .single();
 
     if (error) throw error;
+
+    if (process.env.GHL_SHOP_DAY_INVITE_WEBHOOK) {
+      try {
+        await fetch(process.env.GHL_SHOP_DAY_INVITE_WEBHOOK, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+      } catch (e) {
+        console.error("Failed to trigger GHL invite webhook", e);
+      }
+    }
+
     return { success: true, data };
   } catch (err: any) {
     console.error("Error in submitShopDayInvite:", err);

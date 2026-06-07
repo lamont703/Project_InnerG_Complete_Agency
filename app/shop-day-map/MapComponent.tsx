@@ -7,7 +7,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import Link from "next/link";
 import { ArrowLeft, Scissors, Building, Users, GraduationCap, UserCheck } from "lucide-react";
 
-export default function ShopDayMap({ initialShops, initialSchools, initialBarbers }: { initialShops: any[], initialSchools: any[], initialBarbers: any[] }) {
+export default function ShopDayMap({ initialShops, initialSchools, initialBarbers, invitesCount = 0, requestsCount = 0, claimedShopsCount = 0 }: { initialShops: any[], initialSchools: any[], initialBarbers: any[], invitesCount?: number, requestsCount?: number, claimedShopsCount?: number }) {
   const shops = initialShops || [];
   const schools = initialSchools || [];
   const barbers = initialBarbers || [];
@@ -110,7 +110,7 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
          <div className="bg-white/90 backdrop-blur-md px-6 py-4 rounded-xl shadow-lg border border-slate-200">
             <h1 className="text-xl font-black text-slate-900 tracking-tight">Shop Day Map</h1>
             <p className="text-slate-500 text-sm font-medium">
-              {loading ? "Loading locations..." : `${shops.length} Shops, ${schools.length} Schools, & ${barbers.length} Barbers`}
+              {loading ? "Loading locations..." : `${shops.length} Shops, ${schools.length} Schools, ${barbers.length} Barbers | ${invitesCount} Invites, ${requestsCount} Requests, ${claimedShopsCount} Claimed Shops`}
             </p>
          </div>
       </div>
