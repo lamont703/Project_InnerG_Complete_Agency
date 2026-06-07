@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { fetchBarberMatches, requestShopDay } from "./actions";
-import { Phone, Lock, Building, Users, MapPin, CheckCircle2, ChevronRight, Scissors, Star, Briefcase, Sparkles, ShieldCheck } from "lucide-react";
+import { fetchBarberMatches, requestShopDay, updateBarberProfile } from "./actions";
+import { Phone, Lock, Building, Users, MapPin, CheckCircle2, ChevronRight, Scissors, Star, Briefcase, Sparkles, ShieldCheck, Settings, X, Save } from "lucide-react";
 
 
 function maskPhone(phone: string | null) {
@@ -27,8 +27,11 @@ export default function MatchesClient() {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [barberState, setBarberState] = useState<{ id: string; name: string } | null>(null);
+  const [barberState, setBarberState] = useState<any | null>(null);
   const [matches, setMatches] = useState<any[]>([]);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsForm, setSettingsForm] = useState<any>({});
   
   // Track which shops the user has requested a shop day for
   const [requestedShops, setRequestedShops] = useState<Set<string>>(new Set());
@@ -47,9 +50,9 @@ export default function MatchesClient() {
       const result = await fetchBarberMatches(phone);
       if (result.error) {
         setError(result.error);
-        if (result.barberName) setBarberState({ id: result.barberId!, name: result.barberName });
+        if (result.barberName) setBarberState({ id: result.barberId!, name: result.barberName, ...(result.barber || {}) });
       } else {
-        setBarberState({ id: result.barberId!, name: result.barberName! });
+        setBarberState({ id: result.barberId!, name: result.barberName!, ...(result.barber || {}) });
         setMatches(result.matches!);
       }
     } catch (err) {
@@ -75,6 +78,40 @@ export default function MatchesClient() {
         return next;
       });
     }
+  };
+
+  const openSettings = () => {
+    setSettingsForm({
+      name: barberState.name || "",
+      phone: barberState.phone || "",
+      address: barberState.address || "",
+      desired_pay_structure: barberState.desired_pay_structure || "",
+      school_name: barberState.school_name || "",
+      specialty_type: barberState.specialty_type || "",
+      licensure_status: barberState.licensure_status || "",
+      completed_school_hours: barberState.completed_school_hours || "",
+      instagram_handle: barberState.instagram_handle || "",
+      tiktok_handle: barberState.tiktok_handle || "",
+      youtube_channel: barberState.youtube_channel || "",
+      placement_pathway: barberState.placement_pathway || "",
+      desired_specialties: barberState.desired_specialties || "",
+      email: barberState.email || "",
+      website_url: barberState.website_url || ""
+    });
+    setIsSettingsOpen(true);
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    const res = await updateBarberProfile(barberState.id, settingsForm);
+    if (res.error) {
+      alert(res.error);
+    } else {
+      setBarberState({ ...barberState, ...settingsForm });
+      setIsSettingsOpen(false);
+    }
+    setSavingSettings(false);
   };
 
   if (!barberState) {
@@ -118,7 +155,8 @@ export default function MatchesClient() {
 
   // Dashboard State
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <>
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="bg-white/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl shadow-lg border border-slate-200 mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
         <div>
           <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">Welcome, {barberState.name}!</h2>
@@ -128,12 +166,21 @@ export default function MatchesClient() {
               : error ? error : "We couldn't find any hiring shops within a 10 mile radius at this moment."}
           </p>
         </div>
-        <button 
-          onClick={() => { setBarberState(null); setPhone(""); setMatches([]); }}
-          className="text-slate-500 hover:text-slate-900 font-bold text-sm bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-xl transition-colors"
-        >
-          Sign Out
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={openSettings}
+            className="text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 p-2.5 rounded-xl transition-colors"
+            title="Profile Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => { setBarberState(null); setPhone(""); setMatches([]); }}
+            className="text-slate-500 hover:text-slate-900 font-bold text-sm bg-slate-100 hover:bg-slate-200 px-4 py-2.5 rounded-xl transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
       </div>
 
       {matches.length > 0 && (
@@ -165,7 +212,7 @@ export default function MatchesClient() {
                 {/* Gallery Image */}
                 <div className="relative w-full h-52 rounded-2xl overflow-hidden mb-6 border border-slate-100 shadow-sm bg-slate-50 group-hover:shadow-md transition-shadow">
                   <img 
-                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/social-assets/shop-images/${shop.id}`}
+                    src={shop.shop_image_url || `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/social-assets/shop-images/${shop.id}`}
                     alt={shop.shop_name} 
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700 ease-out"
                     onError={(e) => {
@@ -317,6 +364,114 @@ export default function MatchesClient() {
         </div>
         </>
       )}
-    </div>
+      </div>
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsSettingsOpen(false)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <div>
+                <h3 className="text-xl font-black text-slate-900">Profile Settings</h3>
+                <p className="text-sm text-slate-500 font-medium">Update your personal information below.</p>
+              </div>
+              <button onClick={() => setIsSettingsOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+              <form id="settings-form" onSubmit={handleSaveSettings} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Full Name</label>
+                  <input type="text" value={settingsForm.name} onChange={e => setSettingsForm({...settingsForm, name: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Phone</label>
+                  <input type="tel" value={settingsForm.phone} onChange={e => setSettingsForm({...settingsForm, phone: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Email</label>
+                  <input type="email" value={settingsForm.email} onChange={e => setSettingsForm({...settingsForm, email: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Address</label>
+                  <input type="text" value={settingsForm.address} onChange={e => setSettingsForm({...settingsForm, address: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Desired Pay Structure</label>
+                  <select value={settingsForm.desired_pay_structure} onChange={e => setSettingsForm({...settingsForm, desired_pay_structure: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select Option</option>
+                    <option value="Booth Rent">Booth Rent</option>
+                    <option value="Commission">Commission</option>
+                    <option value="Salary">Salary</option>
+                    <option value="Hourly">Hourly</option>
+                    <option value="Open to any structure">Open to any structure</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Placement Pathway</label>
+                  <select value={settingsForm.placement_pathway} onChange={e => setSettingsForm({...settingsForm, placement_pathway: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select Option</option>
+                    <option value="Seeking Immediate Placement">Seeking Immediate Placement</option>
+                    <option value="Browsing Options">Browsing Options</option>
+                    <option value="Future Placement (1+ month)">Future Placement (1+ month)</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">School Name</label>
+                  <input type="text" value={settingsForm.school_name} onChange={e => setSettingsForm({...settingsForm, school_name: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Completed Hours</label>
+                  <input type="text" value={settingsForm.completed_school_hours} onChange={e => setSettingsForm({...settingsForm, completed_school_hours: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Licensure Status</label>
+                  <select value={settingsForm.licensure_status} onChange={e => setSettingsForm({...settingsForm, licensure_status: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select Status</option>
+                    <option value="Licensed">Licensed</option>
+                    <option value="Student">Student</option>
+                    <option value="Permit">Permit</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Specialty Type</label>
+                  <input type="text" placeholder="e.g. Barber, Cosmetologist, Braider" value={settingsForm.specialty_type} onChange={e => setSettingsForm({...settingsForm, specialty_type: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Desired Specialties</label>
+                  <input type="text" placeholder="e.g. Fades, Braids, Color" value={settingsForm.desired_specialties} onChange={e => setSettingsForm({...settingsForm, desired_specialties: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Instagram Handle</label>
+                  <input type="text" placeholder="@username" value={settingsForm.instagram_handle} onChange={e => setSettingsForm({...settingsForm, instagram_handle: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">TikTok Handle</label>
+                  <input type="text" placeholder="@username" value={settingsForm.tiktok_handle} onChange={e => setSettingsForm({...settingsForm, tiktok_handle: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">YouTube Channel</label>
+                  <input type="text" placeholder="Channel Link" value={settingsForm.youtube_channel} onChange={e => setSettingsForm({...settingsForm, youtube_channel: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Website URL</label>
+                  <input type="url" placeholder="https://" value={settingsForm.website_url} onChange={e => setSettingsForm({...settingsForm, website_url: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </form>
+            </div>
+            
+            <div className="p-6 border-t border-slate-100 bg-slate-50/50 rounded-b-3xl flex justify-end gap-3">
+              <button type="button" onClick={() => setIsSettingsOpen(false)} className="px-6 py-3 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-200 bg-slate-100 transition-colors">
+                Cancel
+              </button>
+              <button type="submit" form="settings-form" disabled={savingSettings} className="px-6 py-3 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-70 transition-colors flex items-center gap-2">
+                {savingSettings ? "Saving..." : <><Save className="w-4 h-4" /> Save Profile</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

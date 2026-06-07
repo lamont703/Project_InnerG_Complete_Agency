@@ -2564,22 +2564,16 @@ export default function BarberBeautyNetworkPage() {
       {/* CTA Section */}
       <section className="py-24 bg-slate-900 text-center px-6">
         <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-6">Ready to Join the Network?</h2>
-        <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-10">Whether you are looking for the perfect chair or the perfect barber, everything starts here.</p>
+        <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-10">Whether you are looking for the perfect chair or the perfect student/licensed professional, everything starts here.</p>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <button 
-            onClick={() => {
-              document.getElementById('explore-network')?.scrollIntoView({ behavior: 'smooth' });
-              setActiveTab('students');
-            }}
+            onClick={() => setIsCreatingPassport(true)}
             className="px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg transition-colors cursor-pointer"
           >
-            I am a Student
+            I am a Professional/Student
           </button>
           <button 
-            onClick={() => {
-              document.getElementById('explore-network')?.scrollIntoView({ behavior: 'smooth' });
-              setActiveTab('shops');
-            }}
+            onClick={() => setIsNewShopModalOpen(true)}
             className="px-8 py-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-lg transition-colors cursor-pointer"
           >
             I am a Shop Owner
