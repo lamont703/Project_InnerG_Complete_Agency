@@ -266,6 +266,9 @@ export default function BarberBeautyNetworkPage() {
       }
       
       setNewShopSuccess(true);
+      if (typeof window !== 'undefined' && (window as any).fbq) {
+        (window as any).fbq('track', 'Lead');
+      }
       setTimeout(() => {
         setIsNewShopModalOpen(false);
         setNewShopSuccess(false);
@@ -341,6 +344,7 @@ export default function BarberBeautyNetworkPage() {
   const [newPassportSpecialties, setNewPassportSpecialties] = useState("Modern Fades, Beard Styling");
   const [createLoadingState, setCreateLoadingState] = useState<'idle' | 'generating' | 'done'>('idle');
   const [customStudents, setCustomStudents] = useState<any[]>([]);
+  const [newPassportImageFile, setNewPassportImageFile] = useState<File | null>(null);
 
   const ITEMS_PER_PAGE_STUDENTS = 3;
   const ITEMS_PER_PAGE_SHOPS = 6;
@@ -398,6 +402,9 @@ export default function BarberBeautyNetworkPage() {
 
   // Interactive Helpers
   const toggleChatExpand = (shopId: string) => {
+    if (!expandedChats[shopId] && typeof window !== 'undefined' && (window as any).fbq) {
+      (window as any).fbq('track', 'Contact');
+    }
     setExpandedChats(prev => ({
       ...prev,
       [shopId]: !prev[shopId]
@@ -436,7 +443,7 @@ export default function BarberBeautyNetworkPage() {
       baseList = dbBarbers.map((barber, idx) => {
         const type = "Barber";
         const status = "Interested in Placement";
-        const image = IMAGES[idx % IMAGES.length];
+        const image = barber.passport_image_url || IMAGES[idx % IMAGES.length];
 
         const fName = barber.name ? barber.name.split(" ")[0] : FIRST_NAMES[idx % FIRST_NAMES.length];
         const lName = barber.name && barber.name.split(" ").length > 1 ? barber.name.split(" ")[1] : LAST_NAMES[(idx + 3) % LAST_NAMES.length];
@@ -632,6 +639,9 @@ export default function BarberBeautyNetworkPage() {
       } : s));
 
       setClaimSuccess(true);
+      if (typeof window !== 'undefined' && (window as any).fbq) {
+        (window as any).fbq('track', 'Lead');
+      }
       setTimeout(() => {
         setSelectedClaimShop(null);
         setClaimSuccess(false);
@@ -936,6 +946,9 @@ export default function BarberBeautyNetworkPage() {
                       onChange={(e) => {
                         setStudentSearchQuery(e.target.value);
                         setStudentPage(1);
+                        if (typeof window !== 'undefined' && (window as any).fbq) {
+                          (window as any).fbq('track', 'Search');
+                        }
                       }}
                       className="w-full pl-12 pr-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium"
                     />
@@ -947,6 +960,9 @@ export default function BarberBeautyNetworkPage() {
                       onChange={(e) => {
                         setStudentSchoolFilter(e.target.value);
                         setStudentPage(1);
+                        if (typeof window !== 'undefined' && (window as any).fbq) {
+                          (window as any).fbq('track', 'Search');
+                        }
                       }}
                       className="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
                     >
@@ -960,6 +976,9 @@ export default function BarberBeautyNetworkPage() {
                       onChange={(e) => {
                         setStudentCityFilter(e.target.value);
                         setStudentPage(1);
+                        if (typeof window !== 'undefined' && (window as any).fbq) {
+                          (window as any).fbq('track', 'Search');
+                        }
                       }}
                       className="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
                     >
@@ -1082,6 +1101,9 @@ export default function BarberBeautyNetworkPage() {
                           onClick={() => {
                             setSelectedPassportStudent(student);
                             setPassportActiveTab('credentials');
+                            if (typeof window !== 'undefined' && (window as any).fbq) {
+                              (window as any).fbq('track', 'ViewContent');
+                            }
                             setScheduleSuccess(false);
                           }}
                           className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-md active:scale-[0.98]"
@@ -1179,7 +1201,12 @@ export default function BarberBeautyNetworkPage() {
                   <div className="flex gap-4">
                     <select
                       value={cityFilter}
-                      onChange={(e) => setCityFilter(e.target.value)}
+                      onChange={(e) => {
+                        setCityFilter(e.target.value);
+                        if (typeof window !== 'undefined' && (window as any).fbq) {
+                          (window as any).fbq('track', 'Search');
+                        }
+                      }}
                       className="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
                     >
                       {availableCities.map((city, idx) => (
@@ -1189,7 +1216,12 @@ export default function BarberBeautyNetworkPage() {
 
                     <select
                       value={rentFilter}
-                      onChange={(e) => setRentFilter(e.target.value)}
+                      onChange={(e) => {
+                        setRentFilter(e.target.value);
+                        if (typeof window !== 'undefined' && (window as any).fbq) {
+                          (window as any).fbq('track', 'Search');
+                        }
+                      }}
                       className="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
                     >
                       {availableStructures.map((struct, idx) => (
@@ -1767,13 +1799,17 @@ export default function BarberBeautyNetworkPage() {
                         setTimeout(() => {
                           setApplyLoadingState('submitting');
                           setTimeout(() => {
-                            setApplyLoadingState('done');
-                            setApplicationSuccessShopId(selectedApplyShop.id);
-                            setTimeout(() => {
-                              setSelectedApplyShop(null);
-                              setApplyLoadingState('idle');
-                              setApplicationSuccessShopId(null);
-                            }, 3000);
+                            if (true) {
+                              setApplyLoadingState('done');
+                              if (typeof window !== 'undefined' && (window as any).fbq) {
+                                (window as any).fbq('track', 'SubmitApplication');
+                              }
+                              setTimeout(() => {
+                                setSelectedApplyShop(null);
+                                setApplyLoadingState('idle');
+                                setApplicationSuccessShopId(null);
+                              }, 3000);
+                            }
                           }, 1200);
                         }, 1200);
                       }, 1000);
@@ -2032,6 +2068,9 @@ export default function BarberBeautyNetworkPage() {
                                 
                                 if (result.success) {
                                   setScheduleSuccess(true);
+                                  if (typeof window !== 'undefined' && (window as any).fbq) {
+                                    (window as any).fbq('track', 'Schedule');
+                                  }
                                 } else {
                                   alert(`Failed to send invite: ${result.error}`);
                                 }
@@ -2210,6 +2249,20 @@ export default function BarberBeautyNetworkPage() {
                           value={newPassportName}
                           onChange={(e) => setNewPassportName(e.target.value)}
                           className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider block">Passport Profile Image (Optional)</label>
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setNewPassportImageFile(e.target.files[0]);
+                            }
+                          }}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         />
                       </div>
 
@@ -2449,6 +2502,21 @@ export default function BarberBeautyNetworkPage() {
                           setCreateLoadingState('generating');
                           
                           try {
+                            let finalImageUrl = "";
+                            if (newPassportImageFile) {
+                              const formData = new FormData();
+                              formData.append("file", newPassportImageFile);
+                              
+                              const uploadRes = await fetch("/api/upload-passport-image", {
+                                method: "POST",
+                                body: formData
+                              });
+                              const uploadData = await uploadRes.json();
+                              if (uploadData.imageUrl) {
+                                finalImageUrl = uploadData.imageUrl;
+                              }
+                            }
+
                             const result = await submitCareerPassport({
                               name: newPassportName,
                               phone: newPassportPhone,
@@ -2464,10 +2532,14 @@ export default function BarberBeautyNetworkPage() {
                               website_url: newPassportPortfolio,
                               placement_pathway: newPassportPathway,
                               desired_pay_structure: newPassportDesiredPay,
-                              desired_specialties: newPassportSpecialties
+                              desired_specialties: newPassportSpecialties,
+                              passport_image_url: finalImageUrl || undefined
                             });
 
                             if (result.success) {
+                              if (typeof window !== 'undefined' && (window as any).fbq) {
+                                (window as any).fbq('track', 'Lead');
+                              }
                               const newStudent = {
                                 id: result.data.id || `student-custom-${Date.now()}`,
                                 name: newPassportName,

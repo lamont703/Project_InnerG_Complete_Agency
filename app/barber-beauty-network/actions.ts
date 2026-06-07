@@ -281,6 +281,7 @@ export async function submitCareerPassport(payload: {
   placement_pathway: string;
   desired_pay_structure: string;
   desired_specialties: string;
+  passport_image_url?: string;
 }) {
   try {
     const randomPassportNum = Math.floor(1000000000000 + Math.random() * 9000000000000).toString();
@@ -327,6 +328,54 @@ export async function submitCareerPassport(payload: {
       }
     }
     
+    // Sync to GHL
+    let finalContactId = null;
+    try {
+      const ghlResponse = await fetch(`${GHL_API_BASE}/contacts/`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${ghlApiKey}`,
+          "Content-Type": "application/json",
+          "Version": "2021-07-28",
+        },
+        body: JSON.stringify({
+          name: payload.name,
+          phone: payload.phone,
+          email: payload.email,
+          address1: payload.address,
+          city: computedMetroArea,
+          locationId,
+          tags: ["Passport Form", "Professional", payload.specialty_type || "Barber"]
+        }),
+      });
+
+      const data = await ghlResponse.json();
+      
+      if (!ghlResponse.ok) {
+        if (ghlResponse.status === 400 && data.message?.includes("duplicated")) {
+          finalContactId = data.meta?.contactId || data.contact?.id;
+          
+          if (finalContactId) {
+              await fetch(`${GHL_API_BASE}/contacts/${finalContactId}/tags`, {
+              method: "POST",
+              headers: {
+                  "Authorization": `Bearer ${ghlApiKey}`,
+                  "Content-Type": "application/json",
+                  "Version": "2021-07-28",
+              },
+              body: JSON.stringify({ tags: ["Passport Form", "Professional", payload.specialty_type || "Barber"] }),
+              });
+          }
+        } else {
+          console.error("GHL Contact Creation Error in Passport:", data);
+        }
+      } else {
+        finalContactId = data.contact?.id;
+      }
+    } catch (err) {
+      console.error("Failed to sync passport with GHL:", err);
+    }
+    
     let resultData, resultError;
     
     if (matchId) {
@@ -341,7 +390,8 @@ export async function submitCareerPassport(payload: {
           passport_number: randomPassportNum,
           metro_area: computedMetroArea,
           latitude: lat ? lat.toString() : null,
-          longitude: lng ? lng.toString() : null
+          longitude: lng ? lng.toString() : null,
+          contact_id: finalContactId || undefined
         })
         .eq('id', matchId)
         .select()
@@ -361,7 +411,8 @@ export async function submitCareerPassport(payload: {
           passport_number: randomPassportNum,
           metro_area: computedMetroArea,
           latitude: lat ? lat.toString() : null,
-          longitude: lng ? lng.toString() : null
+          longitude: lng ? lng.toString() : null,
+          contact_id: finalContactId || undefined
         }])
         .select()
         .single();

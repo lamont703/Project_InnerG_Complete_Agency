@@ -14,7 +14,7 @@ export async function fetchBarberMatches(phone: string) {
   
   const { data: barbers, error: barberError } = await supabase
     .from("agent_barber_leads")
-    .select("id, name, status, phone, address, desired_pay_structure, school_name, specialty_type, licensure_status, completed_school_hours, instagram_handle, tiktok_handle, youtube_channel, placement_pathway, desired_specialties, email, website_url")
+    .select("id, name, status, phone, address, desired_pay_structure, school_name, specialty_type, licensure_status, completed_school_hours, instagram_handle, tiktok_handle, youtube_channel, placement_pathway, desired_specialties, email, website_url, passport_image_url")
     .ilike("phone", searchPattern);
     
   if (barberError) {
@@ -178,4 +178,40 @@ export async function updateBarberProfile(barberId: string, payload: any) {
   }
 
   return { success: true };
+}
+
+export async function uploadPassportImage(formData: FormData) {
+  const file = formData.get("file") as File;
+  const barberId = formData.get("barberId") as string;
+  
+  if (!file || !barberId) {
+    return { error: "Missing file or user ID." };
+  }
+
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const fileName = `${barberId}-${Date.now()}`;
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  const { data, error } = await adminClient.storage
+    .from("passport_images")
+    .upload(fileName, buffer, {
+      contentType: file.type,
+      upsert: true
+    });
+
+  if (error) {
+    console.error("Storage upload error:", error);
+    return { error: "Failed to upload image." };
+  }
+
+  const { data: publicUrlData } = adminClient.storage
+    .from("passport_images")
+    .getPublicUrl(fileName);
+
+  return { imageUrl: publicUrlData.publicUrl + '?t=' + Date.now() };
 }
