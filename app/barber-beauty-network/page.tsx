@@ -218,7 +218,9 @@ export default function BarberBeautyNetworkPage() {
     rent_type: "Booth Rent",
     booth_count_available: "",
     rent_rate: "",
-    formatted_address: "",
+    street_address: "",
+    state: "Texas",
+    zip_code: "",
     website: ""
   });
   const [isSubmittingNewShop, setIsSubmittingNewShop] = useState(false);
@@ -245,9 +247,14 @@ export default function BarberBeautyNetworkPage() {
         setIsUploadingImage(false);
       }
 
-      const submissionData = { ...newShopForm };
+      const submissionData = { ...newShopForm } as any;
+      submissionData.formatted_address = `${newShopForm.street_address}, ${newShopForm.city}, ${newShopForm.state} ${newShopForm.zip_code}`;
+      delete submissionData.street_address;
+      delete submissionData.state;
+      delete submissionData.zip_code;
+      
       if (finalImageUrl) {
-        (submissionData as any).shop_image_url = finalImageUrl;
+        submissionData.shop_image_url = finalImageUrl;
       }
 
       const result = await submitNewBarbershopLead(submissionData);
@@ -281,7 +288,9 @@ export default function BarberBeautyNetworkPage() {
           rent_type: "Booth Rent",
           booth_count_available: "",
           rent_rate: "",
-          formatted_address: "",
+          street_address: "",
+          state: "Texas",
+          zip_code: "",
           website: ""
         });
       }, 3000);
@@ -1452,7 +1461,9 @@ export default function BarberBeautyNetworkPage() {
                                         rent_type: "Booth Rent",
                                         booth_count_available: shop.booth_count_available?.toString() || "",
                                         rent_rate: shop.rent_rate || "",
-                                        formatted_address: shop.formatted_address || "",
+                                        street_address: (shop.formatted_address || "").split(',')[0] || "",
+                                        state: "Texas",
+                                        zip_code: (shop.formatted_address || "").match(/\d{5}/)?.[0] || "",
                                         website: shop.website === "N/A" ? "" : (shop.website || "")
                                       });
                                       setIsNewShopModalOpen(true);
@@ -2707,9 +2718,23 @@ export default function BarberBeautyNetworkPage() {
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Shop Image (Optional)</label>
                       <input type="file" accept="image/*" onChange={(e) => setClaimImageFile(e.target.files?.[0] || null)} className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Full Address</label>
-                      <input type="text" required placeholder="123 Placement Dr. Dayton, Texas 43521, USA" value={newShopForm.formatted_address} onChange={(e) => setNewShopForm({...newShopForm, formatted_address: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-1.5 md:col-span-3">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Street Address</label>
+                        <input type="text" required placeholder="123 Placement Dr." value={newShopForm.street_address} onChange={(e) => setNewShopForm({...newShopForm, street_address: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">City</label>
+                        <input type="text" required placeholder="Houston" value={newShopForm.city} onChange={(e) => setNewShopForm({...newShopForm, city: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">State</label>
+                        <input type="text" required placeholder="Texas" value={newShopForm.state} onChange={(e) => setNewShopForm({...newShopForm, state: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Zip Code</label>
+                        <input type="text" required placeholder="78372" value={newShopForm.zip_code} onChange={(e) => setNewShopForm({...newShopForm, zip_code: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Compensation Type</label>
