@@ -30,7 +30,7 @@ async function loadPendingShops(limit: number, targetPhone?: string | null) {
   if (targetPhone) {
     query = query.eq("phone", targetPhone)
   } else {
-    query = query.eq("outreach_status", "pending").ilike("city", "%Houston%").limit(limit)
+    query = query.eq("outreach_status", "pending").ilike("city", "%Houston%").or("outreach_attempts.is.null,outreach_attempts.eq.0").limit(limit)
   }
 
   const { data, error } = await query

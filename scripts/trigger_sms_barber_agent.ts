@@ -30,7 +30,7 @@ async function loadPendingBarbers(limit: number, targetPhone?: string | null) {
   if (targetPhone) {
     query = query.eq("phone", targetPhone)
   } else {
-    query = query.eq("status", "pending_outreach").ilike("address", "%Houston%").limit(limit)
+    query = query.eq("status", "pending_outreach").ilike("address", "%Houston%").or("outreach_attempts.is.null,outreach_attempts.eq.0").limit(limit)
   }
 
   const { data, error } = await query
@@ -93,6 +93,24 @@ async function upsertGhlContact(contact: { name: string; phone?: string; company
   return data.contact?.id
 }
 
+async function checkGhlDndStatus(contactId: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${GHL_API_BASE}/contacts/${contactId}`, { headers })
+    if (!response.ok) return false
+    const data = await response.json()
+    const contact = data.contact
+    if (!contact) return false
+
+    if (contact.dnd === true) return true
+    if (contact.dndSettings?.SMS?.status === "active" || contact.dndSettings?.SMS?.status === "true") return true
+    return false
+  } catch (err) {
+    console.error(`[GHL] Failed to check DND status for ${contactId}:`, err)
+    return false
+  }
+}
+
+
 async function sendGhlMessage(contactId: string, message: string) {
   console.log(`[GHL] Sending outbound SMS to Contact ${contactId}...`)
   const response = await fetch(`${GHL_API_BASE}/conversations/messages`, {
@@ -132,6 +150,17 @@ async function runSmsAgent(limit: number, targetPhone?: string | null) {
         companyName: "Independent Barber"
       })
 
+      const isDnd = await checkGhlDndStatus(barberContactId)
+      if (isDnd) {
+        console.log(`⚠️ Contact ${barber.name} already has DND active in GHL. Updating database and skipping AI generation...`)
+        await supabase.from("agent_barber_leads").update({
+          status: "sms dnd enabled",
+          outreach_attempts: (barber.outreach_attempts || 0) + 1,
+          contact_id: barberContactId
+        }).eq("id", barber.id)
+        continue
+      }
+
       let locationText = barber.address ? ` based out of ${barber.address}` : ""
       
       const smsOutreachPrompt = `You are Lamont from Inner G Complete Agency, a professional barber placement coordinator.
@@ -163,7 +192,20 @@ Keep it under 200 characters. No markdown. No placeholders.`
       console.log(`🤖 AI Draft Generated: "${initialSms}"`)
       console.log(`🚀 Dispatching to HighLevel...`)
       
-      await sendGhlMessage(barberContactId, initialSms)
+      try {
+        await sendGhlMessage(barberContactId, initialSms)
+      } catch (sendError: any) {
+        if (sendError.message.includes("DND is active") || sendError.message.includes("dnd")) {
+          console.log(`⚠️ Contact ${barber.name} has DND active. Updating database to 'sms dnd enabled'...`)
+          await supabase.from("agent_barber_leads").update({
+            status: "sms dnd enabled",
+            outreach_attempts: (barber.outreach_attempts || 0) + 1,
+            contact_id: barberContactId
+          }).eq("id", barber.id)
+          continue
+        }
+        throw sendError
+      }
       
       const initialTurn = [{
         role: "agent",
