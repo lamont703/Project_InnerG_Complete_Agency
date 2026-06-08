@@ -209,7 +209,8 @@ export default function BarberBeautyNetworkPage() {
 
   // New Shop Claim Modal States
   const [isNewShopModalOpen, setIsNewShopModalOpen] = useState(false);
-  const [newShopForm, setNewShopForm] = useState({
+  const [newShopForm, setNewShopForm] = useState<any>({
+    id: null,
     shop_name: "",
     owner_name: "",
     phone: "",
@@ -280,6 +281,7 @@ export default function BarberBeautyNetworkPage() {
         setIsNewShopModalOpen(false);
         setNewShopSuccess(false);
         setNewShopForm({
+          id: null,
           shop_name: "",
           owner_name: "",
           phone: "",
@@ -519,6 +521,10 @@ export default function BarberBeautyNetworkPage() {
       (shop.rent_type && shop.rent_type.toLowerCase() === rentFilter.toLowerCase());
 
     return matchesSearch && matchesCity && matchesStructure;
+  }).sort((a, b) => {
+    const aClaimed = a.outreach_status?.trim().toLowerCase() === 'shop claimed' ? 1 : 0;
+    const bClaimed = b.outreach_status?.trim().toLowerCase() === 'shop claimed' ? 1 : 0;
+    return bClaimed - aClaimed;
   });
 
   // Filter & Search Logic for Students
@@ -1453,6 +1459,7 @@ export default function BarberBeautyNetworkPage() {
                                   <button 
                                     onClick={() => {
                                       setNewShopForm({
+                                        id: shop.id,
                                         shop_name: shop.shop_name || "",
                                         owner_name: "",
                                         phone: "",

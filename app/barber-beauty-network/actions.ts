@@ -13,67 +13,94 @@ const locationId = "QLyYYRoOhCg65lKW9HDX";
 
 export async function submitNewBarbershopLead(formData: any) {
   try {
-    // 1. Create/Upsert GHL Contact
-    const ghlResponse = await fetch(`${GHL_API_BASE}/contacts/`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${ghlApiKey}`,
-        "Content-Type": "application/json",
-        "Version": "2021-07-28",
-      },
-      body: JSON.stringify({
-        name: formData.owner_name,
-        phone: formData.phone,
-        email: formData.email,
-        companyName: formData.shop_name,
-        address1: formData.formatted_address,
-        city: formData.city,
-        website: formData.website,
-        locationId,
-        tags: ["Inbound Lead", "Barbershop", "Shop Claimed In Texas"]
-      }),
-    });
-
+    // 1. Try to find existing shop first if we have an ID
+    let existingShop = null;
     let contactId = null;
-    const data = await ghlResponse.json();
-    
-    if (!ghlResponse.ok) {
-      if (ghlResponse.status === 400 && data.message?.includes("duplicated")) {
-        contactId = data.meta?.contactId || data.contact?.id;
-        if (!contactId && data.traceId) {
-             // In some versions GHL returns the contactId inside meta.contactId or something similar.
-             // We'll just assume contactId was found if duplicated
-        }
-        
-        if (contactId) {
-            // Add tags to existing
+
+    if (formData.id) {
+      const { data } = await supabase.from('agent_barbershop_leads').select('id, contact_id').eq('id', formData.id).maybeSingle();
+      if (data) {
+        existingShop = data;
+        contactId = data.contact_id;
+      }
+    }
+
+    const ghlPayload = {
+      name: formData.owner_name,
+      phone: formData.phone,
+      email: formData.email,
+      companyName: formData.shop_name,
+      address1: formData.formatted_address,
+      city: formData.city,
+      website: formData.website,
+      locationId,
+      tags: ["Inbound Lead", "Barbershop", "Shop Claimed In Texas"]
+    };
+
+    // 2. Sync with GHL
+    if (contactId) {
+      // Update existing GHL contact
+      const ghlResponse = await fetch(`${GHL_API_BASE}/contacts/${contactId}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${ghlApiKey}`,
+          "Content-Type": "application/json",
+          "Version": "2021-07-28",
+        },
+        body: JSON.stringify(ghlPayload),
+      });
+      if (!ghlResponse.ok) {
+        console.error("GHL Contact Update Error:", await ghlResponse.text());
+      }
+    } else {
+      // Create new GHL contact
+      const ghlResponse = await fetch(`${GHL_API_BASE}/contacts/`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${ghlApiKey}`,
+          "Content-Type": "application/json",
+          "Version": "2021-07-28",
+        },
+        body: JSON.stringify(ghlPayload),
+      });
+
+      const data = await ghlResponse.json();
+      
+      if (!ghlResponse.ok) {
+        if (ghlResponse.status === 400 && data.message?.includes("duplicated")) {
+          contactId = data.meta?.contactId || data.contact?.id;
+          if (contactId) {
             await fetch(`${GHL_API_BASE}/contacts/${contactId}/tags`, {
-            method: "POST",
-            headers: {
+              method: "POST",
+              headers: {
                 "Authorization": `Bearer ${ghlApiKey}`,
                 "Content-Type": "application/json",
                 "Version": "2021-07-28",
-            },
-            body: JSON.stringify({ tags: ["Inbound Lead", "Barbershop", "Shop Claimed In Texas"] }),
+              },
+              body: JSON.stringify({ tags: ["Inbound Lead", "Barbershop", "Shop Claimed In Texas"] }),
             });
+          }
+        } else {
+          console.error("GHL Contact Creation Error:", data);
+          throw new Error("Failed to sync with CRM.");
         }
       } else {
-        console.error("GHL Contact Creation Error:", data);
-        throw new Error("Failed to sync with CRM.");
+        contactId = data.contact?.id;
       }
-    } else {
-      contactId = data.contact?.id;
     }
 
     if (!contactId) throw new Error("No contact ID returned from GHL.");
 
-    // 2. Insert or Update into Supabase based on contact_id or phone number
-    const { data: existingShop } = await supabase
-      .from('agent_barbershop_leads')
-      .select('id, contact_id')
-      .or(`contact_id.eq.${contactId},phone.eq.${formData.phone}`)
-      .limit(1)
-      .maybeSingle();
+    // 3. Find existing shop in DB by contactId or phone if we didn't find it by ID
+    if (!existingShop) {
+      const { data: dbShop } = await supabase
+        .from('agent_barbershop_leads')
+        .select('id, contact_id')
+        .or(`contact_id.eq.${contactId},phone.eq.${formData.phone}`)
+        .limit(1)
+        .maybeSingle();
+      existingShop = dbShop;
+    }
 
     const parsedCity = extractMetroArea(formData.formatted_address) || "";
     
