@@ -1453,7 +1453,7 @@ export default function BarberBeautyNetworkPage() {
                                         booth_count_available: shop.booth_count_available?.toString() || "",
                                         rent_rate: shop.rent_rate || "",
                                         formatted_address: shop.formatted_address || "",
-                                        website: shop.website || ""
+                                        website: shop.website === "N/A" ? "" : (shop.website || "")
                                       });
                                       setIsNewShopModalOpen(true);
                                     }}
@@ -2731,7 +2731,7 @@ export default function BarberBeautyNetworkPage() {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Website</label>
-                      <input type="url" placeholder="https://" value={newShopForm.website} onChange={(e) => setNewShopForm({...newShopForm, website: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
+                      <input type="text" placeholder="https://" value={newShopForm.website} onChange={(e) => setNewShopForm({...newShopForm, website: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium" />
                     </div>
                   </div>
 
