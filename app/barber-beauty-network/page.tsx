@@ -435,17 +435,7 @@ export default function BarberBeautyNetworkPage() {
     const LAST_NAMES = ["Johnson", "Williams", "Chen", "Gomez", "Davis", "Carter", "Lee", "Taylor", "Martinez", "Jackson", "Smith", "Brown", "Rodriguez", "Jones", "Thomas", "White", "Miller", "Davis", "Garcia", "Rodriguez"];
     const TYPES = ["Barber", "Cosmetologist", "Barber", "Esthetician", "Barber", "Cosmetologist"];
     const STATUSES = ["Licensed", "Graduating Soon", "Student", "Licensed", "Graduating Soon"];
-    const IMAGES = [
-      "https://images.unsplash.com/photo-1605497788044-5a32c7078486?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1562322140-8baeececf3df?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1618077360395-f3068be8e001?q=80&w=800&auto=format&fit=crop"
-    ];
+    const MOCK_PASSPORT_IMAGE = "/images/default_passport_avatar.png";
 
     let baseList = [];
     if (dbBarbers.length === 0) {
@@ -454,7 +444,7 @@ export default function BarberBeautyNetworkPage() {
       baseList = dbBarbers.map((barber, idx) => {
         const type = "Barber";
         const status = "Interested in Placement";
-        const image = barber.passport_image_url || IMAGES[idx % IMAGES.length];
+        const image = barber.passport_image_url || MOCK_PASSPORT_IMAGE;
 
         const fName = barber.name ? barber.name.split(" ")[0] : FIRST_NAMES[idx % FIRST_NAMES.length];
         const lName = barber.name && barber.name.split(" ").length > 1 ? barber.name.split(" ")[1] : LAST_NAMES[(idx + 3) % LAST_NAMES.length];
@@ -1718,7 +1708,7 @@ export default function BarberBeautyNetworkPage() {
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Shop Image (Optional)</label>
                       <input 
                         type="file" 
-                        accept="image/*"
+                        accept="image/jpeg, image/png, image/webp"
                         onChange={(e) => setClaimImageFile(e.target.files?.[0] || null)}
                         className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
                       />
@@ -1886,7 +1876,7 @@ export default function BarberBeautyNetworkPage() {
               initial={{ opacity: 0, y: 30, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 30, scale: 0.98 }}
-              className="bg-white rounded-[2.5rem] max-w-4xl w-full border border-slate-200 shadow-2xl relative overflow-hidden flex flex-col md:flex-row my-8"
+              className="bg-white rounded-3xl md:rounded-[2.5rem] max-w-4xl w-full border border-slate-200 shadow-2xl relative flex flex-col md:flex-row my-auto max-h-[95vh] md:max-h-[85vh] overflow-y-auto md:overflow-hidden"
             >
               {/* Close Button */}
               <button 
@@ -1897,7 +1887,7 @@ export default function BarberBeautyNetworkPage() {
               </button>
 
               {/* Passport Side Panel (Navy/Indigo Leather cover style) */}
-              <div className="md:w-[40%] bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-8 flex flex-col justify-between relative overflow-hidden border-r border-slate-800 shrink-0">
+              <div className="md:w-[40%] bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 md:p-8 flex flex-col justify-between relative overflow-hidden border-b md:border-b-0 md:border-r border-slate-800 shrink-0">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(99,102,241,0.15),transparent)] pointer-events-none" />
                 
                 <div className="space-y-6 relative z-10">
@@ -1954,10 +1944,10 @@ export default function BarberBeautyNetworkPage() {
               </div>
 
               {/* Passport Details Panel (White paper pages style) */}
-              <div className="flex-1 p-8 flex flex-col justify-between bg-slate-50/50">
+              <div className="flex-1 p-6 md:p-8 flex flex-col justify-between bg-slate-50/50 md:overflow-y-auto">
                 <div>
                   {/* Modal Navigation Tabs */}
-                  <div className="flex border-b border-slate-200 mb-6 gap-2">
+                  <div className="flex flex-wrap bg-slate-100 p-1.5 rounded-2xl mb-6 gap-1 border border-slate-200 shadow-inner">
                     {[
                       { id: 'credentials', label: 'Vetted Credentials', icon: Award },
                       { id: 'portfolio', label: 'Visual Gallery', icon: Scissors },
@@ -1969,13 +1959,13 @@ export default function BarberBeautyNetworkPage() {
                         <button
                           key={tab.id}
                           onClick={() => setPassportActiveTab(tab.id as any)}
-                          className={`flex items-center gap-1.5 pb-3.5 px-2 text-xs font-black uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
+                          className={`flex-1 min-w-[140px] flex items-center justify-center gap-2 py-2.5 px-3 text-[10px] md:text-xs font-black uppercase tracking-wider transition-all rounded-xl cursor-pointer ${
                             isActive 
-                              ? 'border-indigo-600 text-indigo-600' 
-                              : 'border-transparent text-slate-400 hover:text-slate-600'
+                              ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/60' 
+                              : 'text-slate-500 hover:bg-slate-200/50 hover:text-slate-700'
                           }`}
                         >
-                          <Icon className="w-4 h-4" />
+                          <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-500' : 'text-slate-400'}`} />
                           {tab.label}
                         </button>
                       );
@@ -2029,36 +2019,16 @@ export default function BarberBeautyNetworkPage() {
 
                     {/* Tab 2: Visual Portfolio Mock Gallery */}
                     {passportActiveTab === 'portfolio' && (
-                      <div className="space-y-4 animate-fadeIn">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
-                          <span>Live Connected Feed Display (For Display Only)</span>
+                      <div className="flex flex-col items-center justify-center h-full min-h-[250px] text-center space-y-4 animate-fadeIn bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 p-6">
+                        <div className="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400 mb-2">
+                          <Scissors className="w-6 h-6" />
                         </div>
-
-                        {/* 3x2 High Fidelity Cuts Grid */}
-                        <div className="grid grid-cols-3 gap-3">
-                          {[
-                            { tag: "Skin Fade", img: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=400&auto=format&fit=crop" },
-                            { tag: "Lineup Trim", img: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?q=80&w=400&auto=format&fit=crop" },
-                            { tag: "Razor Shave", img: "https://images.unsplash.com/photo-1593702275687-f8b402bf1fb5?q=80&w=400&auto=format&fit=crop" },
-                            { tag: "Taper Fade", img: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=400&auto=format&fit=crop" },
-                            { tag: "Modern Slick", img: "https://images.unsplash.com/photo-1605497788044-5a32c7078486?q=80&w=400&auto=format&fit=crop" },
-                            { tag: "Beard Shape", img: "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?q=80&w=400&auto=format&fit=crop" }
-                          ].map((cut, idx) => (
-                            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100 group/cut shadow-sm hover:border-indigo-400 transition-colors">
-                              <Image 
-                                src={cut.img} 
-                                alt={cut.tag} 
-                                fill 
-                                className="object-cover group-hover/cut:scale-105 transition-transform duration-500" 
-                              />
-                              <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/cut:opacity-100 flex items-center justify-center transition-opacity">
-                                <span className="text-[10px] font-black uppercase text-white tracking-widest bg-indigo-600/90 px-2.5 py-1 rounded-lg border border-indigo-400/40">
-                                  {cut.tag}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        <h4 className="text-sm font-black text-slate-800">No Visuals Uploaded Yet</h4>
+                        <p className="text-xs text-slate-500 font-semibold max-w-[280px] leading-relaxed">
+                          {selectedPassportStudent.name} hasn't uploaded their visual gallery to their passport yet. 
+                          <br/><br/>
+                          You can still invite them to a <span className="text-indigo-600 font-black cursor-pointer hover:underline" onClick={() => setPassportActiveTab('schedule')}>Shop Day</span> to see their skills in person!
+                        </p>
                       </div>
                     )}
 
@@ -2274,7 +2244,7 @@ export default function BarberBeautyNetworkPage() {
                         <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider block">Passport Profile Image (Optional)</label>
                         <input 
                           type="file" 
-                          accept="image/*"
+                          accept="image/jpeg, image/png, image/webp"
                           onChange={(e) => {
                             if (e.target.files && e.target.files[0]) {
                               setNewPassportImageFile(e.target.files[0]);
@@ -2723,7 +2693,7 @@ export default function BarberBeautyNetworkPage() {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Shop Image (Optional)</label>
-                      <input type="file" accept="image/*" onChange={(e) => setClaimImageFile(e.target.files?.[0] || null)} className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                      <input type="file" accept="image/jpeg, image/png, image/webp" onChange={(e) => setClaimImageFile(e.target.files?.[0] || null)} className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-1.5 md:col-span-3">
@@ -2831,23 +2801,8 @@ function sanitizeChatText(text: string | null) {
   return sanitized;
 }
 
-const SHOP_IMAGES = [
-  "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=800&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?q=80&w=800&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1593702275687-f8b402bf1fb5?q=80&w=800&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=800&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1605497788044-5a32c7078486?q=80&w=800&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?q=80&w=800&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?q=80&w=800&auto=format&fit=crop"
-];
-
 function getShopImage(id: string) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % SHOP_IMAGES.length;
-  return SHOP_IMAGES[index];
+  return "/images/default_shop_image.png";
 }
 
 function getPageNumbers(currentPage: number, totalPages: number) {
