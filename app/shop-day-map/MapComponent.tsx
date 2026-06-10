@@ -5,7 +5,7 @@ import Map, { Marker, Popup, NavigationControl, FullscreenControl } from "react-
 import "mapbox-gl/dist/mapbox-gl.css";
 // Browser client import removed as data is now fetched server-side
 import Link from "next/link";
-import { ArrowLeft, Scissors, Building, Users, GraduationCap, UserCheck } from "lucide-react";
+import { ArrowLeft, Scissors, Building, Users, GraduationCap, UserCheck, Search, MapPin } from "lucide-react";
 
 export default function ShopDayMap({ initialShops, initialSchools, initialBarbers, invitesCount = 0, requestsCount = 0, claimedShopsCount = 0 }: { initialShops: any[], initialSchools: any[], initialBarbers: any[], invitesCount?: number, requestsCount?: number, claimedShopsCount?: number }) {
   const shops = initialShops || [];
@@ -21,7 +21,45 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
     zoom: 5.5
   });
 
-  // Server-side props have replaced the client-side fetch
+  // Search State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    
+    const query = searchQuery.toLowerCase();
+    
+    const matchedShops = shops.filter((s: any) => 
+      s.shop_name?.toLowerCase().includes(query) || 
+      s.formatted_address?.toLowerCase().includes(query) ||
+      s.city?.toLowerCase().includes(query)
+    ).map((s: any) => ({ ...s, isSchool: false, isBarber: false, type: 'Shop', name: s.shop_name, addr: s.formatted_address || `${s.city}, TX` }));
+
+    const matchedSchools = schools.filter((s: any) => 
+      s.school_name?.toLowerCase().includes(query) || 
+      s.formatted_address?.toLowerCase().includes(query) ||
+      s.city?.toLowerCase().includes(query)
+    ).map((s: any) => ({ ...s, isSchool: true, isBarber: false, type: 'School', name: s.school_name, addr: s.formatted_address || `${s.city}, TX` }));
+
+    const matchedBarbers = barbers.filter((b: any) => 
+      b.name?.toLowerCase().includes(query) || 
+      b.address?.toLowerCase().includes(query)
+    ).map((b: any) => ({ ...b, isSchool: false, isBarber: true, type: 'Barber', name: b.name, addr: b.address }));
+
+    return [...matchedShops, ...matchedSchools, ...matchedBarbers].slice(0, 8);
+  }, [searchQuery, shops, schools, barbers]);
+
+  const handleSelectResult = (result: any) => {
+    setViewState({
+      longitude: Number(result.longitude),
+      latitude: Number(result.latitude),
+      zoom: 14
+    });
+    setSelectedShop(result);
+    setSearchQuery("");
+    setIsDropdownOpen(false);
+  };
 
   const schoolPins = useMemo(
     () =>
@@ -106,7 +144,71 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
         </Link>
       </div>
 
-      <div className="absolute top-6 right-6 z-10">
+      {/* Floating Smart Search Bar */}
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 w-[400px] max-w-[90vw]">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-slate-400" />
+          </div>
+          <input
+            type="text"
+            className="w-full bg-white/95 backdrop-blur-xl border border-slate-200 text-slate-900 text-sm rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 block pl-12 p-4 shadow-xl transition-all"
+            placeholder="Search by name, city, or address..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setIsDropdownOpen(true);
+            }}
+            onFocus={() => setIsDropdownOpen(true)}
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => {
+                setSearchQuery("");
+                setIsDropdownOpen(false);
+              }}
+              className="absolute inset-y-0 right-4 flex items-center text-slate-400 hover:text-slate-600"
+            >
+              <span className="text-xl leading-none">&times;</span>
+            </button>
+          )}
+        </div>
+
+        {/* Autocomplete Dropdown */}
+        {isDropdownOpen && searchResults.length > 0 && (
+          <div className="absolute w-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
+            <ul className="max-h-[60vh] overflow-y-auto p-2 space-y-1">
+              {searchResults.map((result: any, idx) => (
+                <li key={`search-res-${idx}`}>
+                  <button
+                    onClick={() => handleSelectResult(result)}
+                    className="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl transition-colors flex items-start gap-3"
+                  >
+                    <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${result.isSchool ? 'bg-red-100 text-red-600' : result.isBarber ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                      {result.isSchool ? <GraduationCap className="w-4 h-4" /> : result.isBarber ? <UserCheck className="w-4 h-4" /> : <Scissors className="w-4 h-4" />}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 truncate">{result.name}</h4>
+                      <div className="flex items-center gap-1 mt-0.5 text-xs text-slate-500">
+                        <MapPin className="w-3 h-3" />
+                        <span className="truncate">{result.addr}</span>
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        {isDropdownOpen && searchQuery && searchResults.length === 0 && (
+          <div className="absolute w-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 text-center z-50">
+            <p className="text-slate-500 text-sm font-medium">No locations found for "{searchQuery}"</p>
+          </div>
+        )}
+      </div>
+
+      <div className="absolute top-6 right-6 z-10 hidden lg:block">
          <div className="bg-white/90 backdrop-blur-md px-6 py-4 rounded-xl shadow-lg border border-slate-200">
             <h1 className="text-xl font-black text-slate-900 tracking-tight">Shop Day Map</h1>
             <p className="text-slate-500 text-sm font-medium">

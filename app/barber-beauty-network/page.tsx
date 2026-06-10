@@ -1471,7 +1471,7 @@ export default function BarberBeautyNetworkPage() {
                                     className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-colors cursor-pointer inline-flex items-center justify-center gap-2 shadow-md shadow-blue-500/10 hover:shadow-blue-500/20 active:scale-[0.98]"
                                   >
                                     <GraduationCap className="w-4 h-4 text-blue-400" />
-                                    Submit Passport to Book a Shop Day
+                                    Request A Shop Day
                                   </button>
                                 )}
                                 
@@ -2248,7 +2248,7 @@ export default function BarberBeautyNetworkPage() {
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-2">
                       <Award className="w-6 h-6" />
                     </div>
-                    <h3 className="text-2xl font-black text-slate-900">Mint Your Passport</h3>
+                    <h3 className="text-2xl font-black text-slate-900">Complete Your Passport to get Unlimited Shop Day Requests</h3>
                     <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-sm mx-auto my-2">
                       This form is only for Professionals and Students looking to rent a chair at a local shop.
                     </p>
