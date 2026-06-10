@@ -9,7 +9,7 @@ import {
   Users, Briefcase, GraduationCap, ArrowRight, 
   Search, MapPin, Star, Scissors, CheckCircle2, ShieldCheck,
   ChevronLeft, ChevronRight, Phone, Globe, Sparkles, Lock, 
-  Check, Building2, AlertCircle, X, Award, BookOpen, Calendar, Clock, ExternalLink
+  Check, Building2, AlertCircle, X, Award, BookOpen, Calendar, Clock, ExternalLink, Share2
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -444,6 +444,28 @@ export default function BarberBeautyNetworkPage() {
 
     loadData();
   }, [setTheme]);
+
+  // Handle shared link redirects
+  useEffect(() => {
+    if (typeof window !== "undefined" && dbShops.length > 0) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const requestShopId = urlParams.get('requestShopId');
+      if (requestShopId) {
+        const shopToRequest = dbShops.find((s: any) => s.id === requestShopId);
+        if (shopToRequest) {
+          // ensure the shops tab is active
+          setActiveTab('shops');
+          setSelectedApplyShop(shopToRequest);
+          setIsCreatingPassport(true);
+          setCreateStep(1);
+          setCreateLoadingState('idle');
+          // remove from url to prevent looping on refresh
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    }
+  }, [dbShops]);
+
 
   // Interactive Helpers
   const toggleChatExpand = (shopId: string) => {
@@ -1330,16 +1352,44 @@ export default function BarberBeautyNetworkPage() {
                         return (
                           <div key={shop.id} className="rounded-[2.2rem] border border-slate-200 p-6 bg-white hover:border-blue-400 hover:shadow-2xl transition-all flex flex-col group relative overflow-hidden">
                             
-                            {/* Hiring Pulsing Badge */}
-                            {shop.hiring_need || (shop.booth_count_available && shop.booth_count_available >= 1) ? (
-                              <span className="absolute top-4 right-4 z-10 px-3.5 py-1.5 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-md animate-pulse">
-                                Hiring: {shop.booth_count_available || 1}+ Chairs
-                              </span>
-                            ) : (
-                              <span className="absolute top-4 right-4 z-10 px-3.5 py-1.5 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-full border border-slate-200">
-                                Lead Profile
-                              </span>
-                            )}
+                            {/* Top Badges & Share Button */}
+                            <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+                              <button 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const url = `${window.location.origin}/shop/${shop.id}`;
+                                  if (navigator.share) {
+                                    navigator.share({
+                                      title: shop.shop_name,
+                                      url: url
+                                    }).catch((err) => {
+                                      // If the user simply closed the share sheet, ignore the AbortError
+                                      if (err.name !== 'AbortError') {
+                                        console.error("Share failed:", err);
+                                      }
+                                    });
+                                  } else {
+                                    navigator.clipboard.writeText(url);
+                                    alert("Link copied to clipboard!");
+                                  }
+                                }}
+                                className="w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center text-slate-600 hover:text-blue-600 shadow-md transition-colors border border-slate-200"
+                                title="Share Shop"
+                              >
+                                <Share2 className="w-4 h-4" />
+                              </button>
+
+                              {shop.hiring_need || (shop.booth_count_available && shop.booth_count_available >= 1) ? (
+                                <span className="px-3.5 py-1.5 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-md animate-pulse">
+                                  Hiring: {shop.booth_count_available || 1}+ Chairs
+                                </span>
+                              ) : (
+                                <span className="px-3.5 py-1.5 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-full border border-slate-200 shadow-sm">
+                                  Lead Profile
+                                </span>
+                              )}
+                            </div>
 
                             {/* Gallery Image */}
                             <div className="relative w-full h-52 rounded-2xl overflow-hidden mb-6 border border-slate-100 shadow-sm bg-slate-50 group-hover:shadow-md transition-shadow">
