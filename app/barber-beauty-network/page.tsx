@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
 import { Navbar } from "@/components/layout/navbar";
@@ -175,10 +175,40 @@ const MOCK_STUDENTS = [
 
 export default function BarberBeautyNetworkPage() {
   const router = useRouter();
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Force mobile video playback for iOS Safari
+  useEffect(() => {
+    if (heroVideoRef.current) {
+      heroVideoRef.current.defaultMuted = true;
+      heroVideoRef.current.play().catch(e => {
+        console.log("Autoplay prevented on mobile:", e);
+      });
+    }
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'students' | 'shops'>('students');
   const [studentPage, setStudentPage] = useState(1);
   const [shopPage, setShopPage] = useState(1);
   const { setTheme } = useTheme();
+
+  // UTM Tracking State
+  const [utmParams, setUtmParams] = useState({
+    utm_source: '',
+    utm_medium: '',
+    utm_campaign: '',
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setUtmParams({
+        utm_source: params.get('utm_source') || '',
+        utm_medium: params.get('utm_medium') || '',
+        utm_campaign: params.get('utm_campaign') || '',
+      });
+    }
+  }, []);
 
   // Supabase Table States
   const [dbShops, setDbShops] = useState<any[]>([]);
@@ -257,6 +287,10 @@ export default function BarberBeautyNetworkPage() {
       if (finalImageUrl) {
         submissionData.shop_image_url = finalImageUrl;
       }
+
+      submissionData.utm_source = utmParams.utm_source || undefined;
+      submissionData.utm_medium = utmParams.utm_medium || undefined;
+      submissionData.utm_campaign = utmParams.utm_campaign || undefined;
 
       const result = await submitNewBarbershopLead(submissionData);
       if (!result.success) throw new Error(result.error);
@@ -676,6 +710,7 @@ export default function BarberBeautyNetworkPage() {
       <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden border-b border-slate-200">
         <div className="absolute inset-0 z-0 bg-slate-50 overflow-hidden pointer-events-none">
           <video 
+            ref={heroVideoRef}
             autoPlay 
             loop 
             muted 
@@ -1436,7 +1471,7 @@ export default function BarberBeautyNetworkPage() {
                                     className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-colors cursor-pointer inline-flex items-center justify-center gap-2 shadow-md shadow-blue-500/10 hover:shadow-blue-500/20 active:scale-[0.98]"
                                   >
                                     <GraduationCap className="w-4 h-4 text-blue-400" />
-                                    Submit Passport to Book a Shop Day
+                                    Request A Shop Day
                                   </button>
                                 )}
                                 
@@ -2213,7 +2248,7 @@ export default function BarberBeautyNetworkPage() {
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-2">
                       <Award className="w-6 h-6" />
                     </div>
-                    <h3 className="text-2xl font-black text-slate-900">Mint Your Passport</h3>
+                    <h3 className="text-2xl font-black text-slate-900">Complete Your Passport to get Unlimited Shop Day Requests</h3>
                     <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-sm mx-auto my-2">
                       This form is only for Professionals and Students looking to rent a chair at a local shop.
                     </p>
@@ -2521,7 +2556,10 @@ export default function BarberBeautyNetworkPage() {
                               placement_pathway: newPassportPathway,
                               desired_pay_structure: newPassportDesiredPay,
                               desired_specialties: newPassportSpecialties,
-                              passport_image_url: finalImageUrl || undefined
+                              passport_image_url: finalImageUrl || undefined,
+                              utm_source: utmParams.utm_source || undefined,
+                              utm_medium: utmParams.utm_medium || undefined,
+                              utm_campaign: utmParams.utm_campaign || undefined
                             });
 
                             if (result.success) {

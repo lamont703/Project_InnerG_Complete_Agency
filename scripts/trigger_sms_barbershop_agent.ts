@@ -137,6 +137,27 @@ async function runSmsAgent(limit: number, targetPhone?: string | null) {
         continue
       }
       
+      // Cross-check: Ensure this phone isn't already being worked by the Barber Agent
+      const digits = shop.phone.replace(/\D/g, '').slice(-10);
+      if (digits.length >= 10) {
+        const likePattern = '%' + digits.split('').join('%') + '%';
+        const { data: crossCheckData } = await supabase
+          .from("agent_barber_leads")
+          .select("id, outreach_attempts")
+          .ilike("phone", likePattern)
+          .gt("outreach_attempts", 0)
+          .limit(1)
+
+        if (crossCheckData && crossCheckData.length > 0) {
+          console.log(`🛑 CROSS-TALK PREVENTION: ${shop.shop_name} is already engaged by the Barber Agent. Skipping and marking as aborted_cross_talk.`)
+          await supabase
+            .from("agent_barbershop_leads")
+            .update({ outreach_status: 'aborted_cross_talk' })
+            .eq("id", shop.id)
+          continue
+        }
+      }
+
       const shopContactId = await upsertGhlContact({
         name: shop.owner_name && shop.owner_name !== "Unknown Owner" ? shop.owner_name : shop.shop_name,
         phone: formattedPhone,

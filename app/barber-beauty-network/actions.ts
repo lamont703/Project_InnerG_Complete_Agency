@@ -135,6 +135,9 @@ export async function submitNewBarbershopLead(formData: any) {
       latitude: lat ? lat.toString() : null,
       longitude: lng ? lng.toString() : null,
       hiring_need: true,
+      utm_source: formData.utm_source || null,
+      utm_medium: formData.utm_medium || null,
+      utm_campaign: formData.utm_campaign || null,
       updated_at: new Date().toISOString()
     };
     
@@ -342,6 +345,9 @@ export async function submitCareerPassport(payload: {
   desired_pay_structure: string;
   desired_specialties: string;
   passport_image_url?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
 }) {
   try {
     const randomPassportNum = Math.floor(1000000000000 + Math.random() * 9000000000000).toString();
