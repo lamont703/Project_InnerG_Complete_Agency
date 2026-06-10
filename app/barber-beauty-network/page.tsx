@@ -1149,7 +1149,7 @@ export default function BarberBeautyNetworkPage() {
                           className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-md active:scale-[0.98]"
                         >
                           <GraduationCap className="w-4 h-4 text-blue-400" />
-                          View Full Passport
+                          Send A Shop Day Invite
                         </button>
                       </div>
                     ))}
