@@ -1,12 +1,11 @@
-const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config({ path: '.env.local' });
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { createClient } from '@supabase/supabase-js';
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 async function run() {
-  const { data, error } = await supabase.from('shop_day_invites').select('*').limit(1);
-  console.log("shop_day_invites data:", data);
+  const { data: bData, error: bError } = await supabase.from('agent_barbershop_leads').select('*').limit(1);
+  const { data: lData, error: lError } = await supabase.from('agent_barber_leads').select('*').limit(1);
+  console.log("Barbershop Leads columns:", Object.keys(bData[0] || {}).join(", "));
+  console.log("Barber Leads columns:", Object.keys(lData[0] || {}).join(", "));
 }
+
 run();

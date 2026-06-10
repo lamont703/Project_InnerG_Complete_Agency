@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
 import { Navbar } from "@/components/layout/navbar";
@@ -175,10 +175,40 @@ const MOCK_STUDENTS = [
 
 export default function BarberBeautyNetworkPage() {
   const router = useRouter();
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Force mobile video playback for iOS Safari
+  useEffect(() => {
+    if (heroVideoRef.current) {
+      heroVideoRef.current.defaultMuted = true;
+      heroVideoRef.current.play().catch(e => {
+        console.log("Autoplay prevented on mobile:", e);
+      });
+    }
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'students' | 'shops'>('students');
   const [studentPage, setStudentPage] = useState(1);
   const [shopPage, setShopPage] = useState(1);
   const { setTheme } = useTheme();
+
+  // UTM Tracking State
+  const [utmParams, setUtmParams] = useState({
+    utm_source: '',
+    utm_medium: '',
+    utm_campaign: '',
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setUtmParams({
+        utm_source: params.get('utm_source') || '',
+        utm_medium: params.get('utm_medium') || '',
+        utm_campaign: params.get('utm_campaign') || '',
+      });
+    }
+  }, []);
 
   // Supabase Table States
   const [dbShops, setDbShops] = useState<any[]>([]);
@@ -257,6 +287,10 @@ export default function BarberBeautyNetworkPage() {
       if (finalImageUrl) {
         submissionData.shop_image_url = finalImageUrl;
       }
+
+      submissionData.utm_source = utmParams.utm_source || undefined;
+      submissionData.utm_medium = utmParams.utm_medium || undefined;
+      submissionData.utm_campaign = utmParams.utm_campaign || undefined;
 
       const result = await submitNewBarbershopLead(submissionData);
       if (!result.success) throw new Error(result.error);
@@ -676,6 +710,7 @@ export default function BarberBeautyNetworkPage() {
       <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden border-b border-slate-200">
         <div className="absolute inset-0 z-0 bg-slate-50 overflow-hidden pointer-events-none">
           <video 
+            ref={heroVideoRef}
             autoPlay 
             loop 
             muted 
@@ -2521,7 +2556,10 @@ export default function BarberBeautyNetworkPage() {
                               placement_pathway: newPassportPathway,
                               desired_pay_structure: newPassportDesiredPay,
                               desired_specialties: newPassportSpecialties,
-                              passport_image_url: finalImageUrl || undefined
+                              passport_image_url: finalImageUrl || undefined,
+                              utm_source: utmParams.utm_source || undefined,
+                              utm_medium: utmParams.utm_medium || undefined,
+                              utm_campaign: utmParams.utm_campaign || undefined
                             });
 
                             if (result.success) {
