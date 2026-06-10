@@ -1,4 +1,4 @@
-import { createServerClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 import { Metadata, ResolvingMetadata } from "next";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
@@ -6,23 +6,45 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Star, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft } from "lucide-react";
 import Image from "next/image";
+import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
+import { ClaimShopButton } from "@/components/shared/claim-shop-button";
+
+export const dynamic = 'force-dynamic';
 
 type Props = {
   params: { id: string }
 };
 
+// Create a standard client for public SSR fetches
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder",
+  {
+    global: {
+      fetch: (url, options) => {
+        return fetch(url, { ...options, cache: 'no-store' });
+      }
+    }
+  }
+);
+
 export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  const supabase = await createServerClient();
-  const { data } = await supabase
-    .from("agent_barbershop_leads")
-    .select("shop_name, city, shop_image_url")
-    .eq("id", params.id)
-    .single();
+  const resolvedParams = await params;
+  
+  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agent_barbershop_leads?id=eq.${resolvedParams.id}&select=shop_name,city,shop_image_url`;
+  const response = await fetch(url, {
+    headers: {
+      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""}`,
+    },
+    cache: 'no-store'
+  });
 
-  const shop = data as any;
+  const data = await response.json();
+  const shop = data && data.length > 0 ? data[0] : null;
 
   if (!shop) {
     return {
@@ -52,16 +74,28 @@ export async function generateMetadata(
 }
 
 export default async function ShopProfilePage({ params }: Props) {
-  const supabase = await createServerClient();
-  const { data, error } = await supabase
-    .from("agent_barbershop_leads")
-    .select("*")
-    .eq("id", params.id)
-    .single();
+  const resolvedParams = await params;
+  
+  // Use native fetch to bypass any Supabase client caching bugs in Next.js 15+
+  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agent_barbershop_leads?id=eq.${resolvedParams.id}&select=*`;
+  const response = await fetch(url, {
+    headers: {
+      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""}`,
+    },
+    cache: 'no-store'
+  });
 
-  const shop = data as any;
+  const data = await response.json();
+  let shop = data && Array.isArray(data) && data.length > 0 ? data[0] : null;
 
-  if (error || !shop) {
+  console.log("SERVER ENV URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log("SERVER ENV KEY:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "EXISTS" : "MISSING");
+  console.log("SERVER RAW RESPONSE:", JSON.stringify(data));
+  console.log("SERVER FETCH FOR ID:", resolvedParams.id);
+  console.log("SERVER FETCH DATA KEYS:", shop ? Object.keys(shop) : "null");
+
+  if (!shop || Object.keys(shop).length === 0) {
     notFound();
   }
 
@@ -193,6 +227,10 @@ export default async function ShopProfilePage({ params }: Props) {
                     <p className="text-slate-800 font-bold font-mono mt-0.5">{maskPhone(shop.phone) || 'Not Provided'}</p>
                   </div>
                 </div>
+                
+                <div className="mt-6 border-t border-slate-200 pt-4">
+                  <ClaimShopButton shop={shop} />
+                </div>
               </div>
             </div>
 
@@ -205,13 +243,7 @@ export default async function ShopProfilePage({ params }: Props) {
                 <p className="text-blue-100 font-medium mb-8 max-w-lg mx-auto">
                   Submit your Career Passport to request a risk-free Shop Day. The owner will review your portfolio and invite you in!
                 </p>
-                <Link 
-                  href={`/barber-beauty-network?requestShopId=${shop.id}`}
-                  className="inline-flex items-center justify-center gap-3 bg-white text-blue-600 px-8 py-4 rounded-2xl font-black text-lg hover:bg-blue-50 hover:scale-105 transition-all shadow-xl shadow-blue-900/20"
-                >
-                  <Award className="w-5 h-5" />
-                  Request A Shop Day at {shop.shop_name}
-                </Link>
+                <RequestShopDayButton shop={shop} />
               </div>
             </div>
 
