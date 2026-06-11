@@ -8,6 +8,7 @@ import { MapPin, Star, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, 
 import Image from "next/image";
 import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
+import { PassportCarousel } from "@/components/shared/passport-carousel";
 
 export const dynamic = 'force-dynamic';
 
@@ -123,17 +124,11 @@ export default async function ShopProfilePage({ params }: Props) {
         <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden">
           {/* Header Image */}
           <div className="relative h-64 md:h-80 w-full bg-slate-100">
-            {shop.shop_image_url ? (
-              <img 
-                src={shop.shop_image_url} 
-                alt={shop.shop_name} 
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400">
-                <Scissors className="w-16 h-16 opacity-20" />
-              </div>
-            )}
+            <img 
+              src={shop.shop_image_url || "/images/default_shop_image.png"} 
+              alt={shop.shop_name} 
+              className="w-full h-full object-cover"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent pointer-events-none" />
             
             {/* Badges */}
@@ -249,6 +244,11 @@ export default async function ShopProfilePage({ params }: Props) {
 
           </div>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 mt-10">
+        <h2 className="text-3xl font-black text-slate-900 mb-6 text-center">Top Candidates Seeking Placement</h2>
+        <PassportCarousel />
       </div>
 
       <Footer />
