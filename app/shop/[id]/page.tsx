@@ -108,7 +108,7 @@ export default async function ShopProfilePage({ params }: Props) {
   const maskPhone = (phone: string) => phone ? phone.replace(/(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/, '(***) ***-****') : '';
 
   return (
-    <main className="min-h-screen light bg-slate-50 text-slate-900 selection:bg-blue-500/20 flex flex-col">
+    <main className="min-h-screen light bg-slate-50 text-slate-900 selection:bg-blue-500/20 flex flex-col overflow-x-hidden">
       <Navbar />
 
       <div className="flex-grow pt-32 pb-20 px-6 max-w-4xl mx-auto w-full">
@@ -246,9 +246,11 @@ export default async function ShopProfilePage({ params }: Props) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 mt-10">
-        <h2 className="text-3xl font-black text-slate-900 mb-6 text-center">Top Candidates Seeking Placement</h2>
-        <PassportCarousel />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 mt-10 w-full overflow-hidden">
+        <h2 className="text-2xl md:text-3xl px-2 font-black text-slate-900 mb-6 text-center break-words">Top Candidates Seeking Placement</h2>
+        <div className="w-full overflow-visible">
+          <PassportCarousel />
+        </div>
       </div>
 
       <Footer />
