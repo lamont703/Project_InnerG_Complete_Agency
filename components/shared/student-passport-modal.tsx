@@ -208,12 +208,12 @@ export function StudentPassportModal({
                           <form 
                             onSubmit={async (e) => {
                               e.preventDefault();
-                              if (!scheduleShopName || !schedulePhone || !scheduleDate || !scheduleTime) return;
+                              if (!scheduleShopName || !schedulePhone) return;
                               setIsScheduling(true);
                               
                               try {
-                                // Combine date and time into ISO string
-                                const combinedDateTime = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
+                                // Combine date and time into ISO string if both are provided, otherwise null
+                                const combinedDateTime = (scheduleDate && scheduleTime) ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString() : null;
                                 
                                 const result = await submitShopDayInvite({
                                   shop_name: scheduleShopName,
@@ -272,6 +272,7 @@ export function StudentPassportModal({
                                 </div>
                               </div>
 
+                              {/* 
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Proposed Visit Date</label>
                                 <div className="relative">
@@ -301,6 +302,7 @@ export function StudentPassportModal({
                                   />
                                 </div>
                               </div>
+                              */}
                             </div>
 
                             <div className="space-y-1.5">

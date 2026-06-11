@@ -202,7 +202,7 @@ export async function submitShopDayInvite(payload: {
   shop_name: string;
   shop_phone: string;
   professional_id: string;
-  invite_date: string;
+  invite_date?: string | null;
   notes: string;
 }) {
   try {
