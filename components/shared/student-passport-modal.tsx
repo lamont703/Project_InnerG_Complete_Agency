@@ -13,7 +13,7 @@ export function StudentPassportModal({
   selectedPassportStudent: any;
   onClose: () => void;
 }) {
-  const [passportActiveTab, setPassportActiveTab] = useState<'credentials' | 'portfolio' | 'schedule'>('credentials');
+  const [passportActiveTab, setPassportActiveTab] = useState<'credentials' | 'portfolio' | 'schedule'>('schedule');
   const [scheduleShopName, setScheduleShopName] = useState("");
   const [schedulePhone, setSchedulePhone] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
@@ -26,7 +26,7 @@ export function StudentPassportModal({
   
   useEffect(() => {
     if (selectedPassportStudent) {
-      setPassportActiveTab('credentials');
+      setPassportActiveTab('schedule');
       setScheduleSuccess(false);
       setScheduleShopName("");
       setSchedulePhone("");
@@ -103,7 +103,9 @@ export function StudentPassportModal({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">School of Origin</span>
-                    <span className="font-bold max-w-[150px] truncate text-right">{selectedPassportStudent.school_name || selectedPassportStudent.school}</span>
+                    <span className="font-bold max-w-[150px] truncate text-right">
+                      {selectedPassportStudent.school_name || ""}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Metro Area</span>
