@@ -61,7 +61,7 @@ async function generateAiMessage(prompt: string): Promise<string> {
   return generatedText.trim()
 }
 
-async function upsertGhlContact(contact: { name: string; phone?: string; companyName: string }) {
+async function upsertGhlContact(contact: { name: string; phone?: string; companyName: string; shop_profile_page_url?: string | null }) {
   console.log(`[GHL] Upserting Contact: ${contact.name} (${contact.companyName})...`)
   const response = await fetch(`${GHL_API_BASE}/contacts/`, {
     method: "POST",
@@ -71,7 +71,16 @@ async function upsertGhlContact(contact: { name: string; phone?: string; company
       phone: contact.phone,
       companyName: contact.companyName,
       locationId,
-      tags: ["Autonomous Matcher Test"]
+      tags: ["Autonomous Matcher Test"],
+      ...(contact.shop_profile_page_url ? {
+        customFields: [
+          {
+            id: "cCoAAjVEaqRmeQ0fAfl8",
+            key: "contact.shop_profile_page_url",
+            field_value: contact.shop_profile_page_url
+          }
+        ]
+      } : {})
     }),
   })
 
@@ -161,7 +170,8 @@ async function runSmsAgent(limit: number, targetPhone?: string | null) {
       const shopContactId = await upsertGhlContact({
         name: shop.owner_name && shop.owner_name !== "Unknown Owner" ? shop.owner_name : shop.shop_name,
         phone: formattedPhone,
-        companyName: shop.shop_name
+        companyName: shop.shop_name,
+        shop_profile_page_url: shop.shop_profile_page_url
       })
 
       const ownerPromptStr = shop.owner_name && shop.owner_name !== "Unknown Owner" ? `owner ${shop.owner_name} at ` : ""
@@ -215,7 +225,7 @@ Keep it under 300 characters. No markdown. No placeholders.`
     console.log("   Inbound SMS replies  → webhook-placement-sms edge function")
     console.log("------------------------------------------------------------------")
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("\n❌ Outreach failed:", error.message)
   }
 }

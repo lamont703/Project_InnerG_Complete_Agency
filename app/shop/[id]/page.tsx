@@ -157,11 +157,12 @@ export default async function ShopProfilePage({ params }: Props) {
                   {shop.shop_name}
                 </h1>
                 {shop.formatted_address && (
-                  <p className="text-slate-500 font-medium text-lg flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-slate-400" />
+                  <p className="text-slate-500 font-medium text-lg flex items-center gap-2 mb-4">
+                    <MapPin className="w-5 h-5 text-slate-400 shrink-0" />
                     {shop.formatted_address}
                   </p>
                 )}
+                <ClaimShopButton shop={shop} />
               </div>
 
               <div className="flex items-center gap-2 bg-amber-50 px-4 py-2 rounded-2xl border border-amber-200 shrink-0">
@@ -221,10 +222,6 @@ export default async function ShopProfilePage({ params }: Props) {
                     <p className="text-xs font-bold text-slate-400 uppercase">Phone</p>
                     <p className="text-slate-800 font-bold font-mono mt-0.5">{maskPhone(shop.phone) || 'Not Provided'}</p>
                   </div>
-                </div>
-                
-                <div className="mt-6 border-t border-slate-200 pt-4">
-                  <ClaimShopButton shop={shop} />
                 </div>
               </div>
             </div>
