@@ -69,7 +69,13 @@ export async function fetchBarberMatches(phone: string) {
       ...shop,
       distance_miles: matchMeta?.distance_miles || 0
     };
-  }).sort((a, b) => a.distance_miles - b.distance_miles);
+  }).sort((a, b) => {
+    const aClaimed = a.outreach_status === 'shop claimed';
+    const bClaimed = b.outreach_status === 'shop claimed';
+    if (aClaimed && !bClaimed) return -1;
+    if (!aClaimed && bClaimed) return 1;
+    return a.distance_miles - b.distance_miles;
+  });
 
   return {
     barberId: barber.id,
