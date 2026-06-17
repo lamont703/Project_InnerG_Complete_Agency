@@ -262,6 +262,15 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
                       {selectedShop.accreditation_status || "Barber School"}
                     </p>
                   </div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 col-span-2">
+                    <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Address</span>
+                    </div>
+                    <p className="font-bold text-slate-800 text-sm">
+                      {selectedShop.formatted_address || `${selectedShop.city}, TX`}
+                    </p>
+                  </div>
                 </div>
               ) : selectedShop.isBarber ? (
                 <div className="grid grid-cols-2 gap-3">

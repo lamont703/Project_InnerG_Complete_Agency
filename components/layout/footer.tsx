@@ -19,6 +19,7 @@ const footerLinks = {
     { label: "Texas Barber School Historical Performance Tracker", href: "/texas-barber-school-historical-performance" },
     { label: "Texas Barbershop Placement Matcher & Agent", href: "/texas-barbershop-placement-matcher" },
     { label: "Texas Barber & Cosmetology Continuing Education Portal", href: "/barber-cos-continuing-education" },
+    { label: "Pixel Analytics", href: "/pixel-analytics" },
   ],
   Social: [
     { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },
