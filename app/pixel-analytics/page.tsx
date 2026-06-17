@@ -1,0 +1,229 @@
+import Link from "next/link"
+import { fetchAnalyticsData } from "./actions"
+import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, ArrowUpRight } from "lucide-react"
+
+export const metadata = {
+  title: "Pixel Analytics | Inner G Complete",
+  description: "Advanced domain intelligence tracking pixel analytics.",
+}
+
+export const dynamic = 'force-dynamic'
+
+export default async function PixelAnalyticsPage(
+  props: { searchParams: Promise<{ days?: string }> }
+) {
+  const searchParams = await props.searchParams;
+  const days = searchParams.days ? parseInt(searchParams.days) : undefined
+  const data = await fetchAnalyticsData(days)
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] text-slate-900 dark:text-slate-100 p-8 md:p-12 lg:p-24 font-sans selection:bg-primary/30">
+      
+      {/* Header */}
+      <header className="mb-12">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+              <Activity className="w-4 h-4 animate-pulse" />
+              Live Tracking Active
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">
+              Pixel <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500">Analytics</span>
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 max-w-2xl text-lg">
+              Real-time domain intelligence and visitor telemetry. Showing data exclusively for <code className="bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-sm">localhost</code> and <code className="bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-sm">innergcomplete.com</code>.
+            </p>
+          </div>
+
+          {/* Time Filter */}
+          <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl w-max">
+            {[
+              { label: "Today", value: "1" },
+              { label: "7D", value: "7" },
+              { label: "30D", value: "30" },
+              { label: "All Time", value: undefined },
+            ].map((f) => {
+              const isActive = (days?.toString() === f.value) || (!days && !f.value);
+              const href = f.value ? `/pixel-analytics?days=${f.value}` : "/pixel-analytics";
+              return (
+                <Link
+                  key={f.label}
+                  href={href}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    isActive 
+                      ? "bg-white dark:bg-slate-950 shadow-sm text-primary" 
+                      : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  }`}
+                >
+                  {f.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </header>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400">
+              <BarChart3 className="w-6 h-6" />
+            </div>
+            <h3 className="font-semibold text-slate-600 dark:text-slate-400">Total Page Views</h3>
+          </div>
+          <p className="text-4xl font-black">{data.totalViews.toLocaleString()}</p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
+              <Users className="w-6 h-6" />
+            </div>
+            <h3 className="font-semibold text-slate-600 dark:text-slate-400">Unique Visitors</h3>
+          </div>
+          <p className="text-4xl font-black">{data.uniqueVisitors.toLocaleString()}</p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-emerald-600 dark:text-emerald-400">
+              <MousePointerClick className="w-6 h-6" />
+            </div>
+            <h3 className="font-semibold text-slate-600 dark:text-slate-400">Total Clicks</h3>
+          </div>
+          <p className="text-4xl font-black">{data.totalClicks.toLocaleString()}</p>
+        </div>
+      </div>
+
+      {/* Tables Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+        {/* Top Pages */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <Globe className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold">Top Performing Pages</h2>
+          </div>
+          <div className="space-y-4">
+            {data.topPages.length > 0 ? data.topPages.map((page, i) => (
+              <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+                <span className="font-medium truncate max-w-[70%]">{page.url}</span>
+                <span className="flex items-center gap-2 font-bold text-primary">
+                  {page.count} <span className="text-xs text-slate-400 font-normal">views</span>
+                </span>
+              </div>
+            )) : (
+              <div className="text-slate-500 text-center py-8">No page data available</div>
+            )}
+          </div>
+        </div>
+
+        {/* Top Insights */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold">Top Insights Pages</h2>
+          </div>
+          <div className="space-y-4">
+            {data.topInsights.length > 0 ? data.topInsights.map((page, i) => (
+              <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+                <span className="font-medium truncate max-w-[70%]" title={page.url}>
+                  {page.url.replace('/insights', '') || '/insights'}
+                </span>
+                <span className="flex items-center gap-2 font-bold text-primary">
+                  {page.count} <span className="text-xs text-slate-400 font-normal">views</span>
+                </span>
+              </div>
+            )) : (
+              <div className="text-slate-500 text-center py-8">No insights data available</div>
+            )}
+          </div>
+        </div>
+
+        {/* Top Referrers */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <LinkIcon className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold">Top Traffic Sources</h2>
+          </div>
+          <div className="space-y-4">
+            {data.topReferrers.length > 0 ? data.topReferrers.map((ref, i) => (
+              <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+                <span className="font-medium truncate max-w-[70%]">{ref.url || "Direct / Unknown"}</span>
+                <span className="flex items-center gap-2 font-bold text-primary">
+                  {ref.count} <span className="text-xs text-slate-400 font-normal">referrals</span>
+                </span>
+              </div>
+            )) : (
+              <div className="text-slate-500 text-center py-8">No referrer data available</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Activity Feed */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm">
+        <h2 className="text-xl font-bold mb-6">Live Event Feed</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                <th className="pb-4 font-medium px-4">Event Time</th>
+                <th className="pb-4 font-medium px-4">Type</th>
+                <th className="pb-4 font-medium px-4">Page</th>
+                <th className="pb-4 font-medium px-4">Location</th>
+                <th className="pb-4 font-medium px-4 text-right">Details</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {data.recentEvents.length > 0 ? data.recentEvents.map((event, i) => (
+                <tr key={event.id || i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                  <td className="py-4 px-4 text-slate-500">
+                    {new Date(event.created_at).toLocaleString()}
+                  </td>
+                  <td className="py-4 px-4">
+                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
+                      event.event_name === 'click' 
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                    }`}>
+                      {event.event_name.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 max-w-[200px] truncate" title={event.page_url}>
+                    {(() => {
+                      try {
+                        return new URL(event.page_url).pathname || "/";
+                      } catch {
+                        return event.page_url;
+                      }
+                    })()}
+                  </td>
+                  <td className="py-4 px-4 text-slate-500">
+                    {event.city ? `${event.city}, ` : ""}{event.country || "Unknown"}
+                  </td>
+                  <td className="py-4 px-4 text-right">
+                    {event.event_name === 'click' && event.metadata?.text ? (
+                      <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                        Clicked: "{event.metadata.text.substring(0, 20)}{event.metadata.text.length > 20 ? '...' : ''}"
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-slate-500">
+                    Listening for incoming pixel events...
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  )
+}
