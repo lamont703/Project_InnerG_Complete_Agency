@@ -20,6 +20,7 @@ const footerLinks = {
     { label: "Texas Barbershop Placement Matcher & Agent", href: "/texas-barbershop-placement-matcher" },
     { label: "Texas Barber & Cosmetology Continuing Education Portal", href: "/barber-cos-continuing-education" },
     { label: "Pixel Analytics", href: "/pixel-analytics" },
+    { label: "Shop Day Connections", href: "/shop-day-connections" },
   ],
   Social: [
     { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },
