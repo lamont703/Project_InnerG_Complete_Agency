@@ -431,7 +431,8 @@ export default function BarberBeautyNetworkPage() {
           state_board_authority: barber.state_board_authority,
           school_name: barber.school_name,
           metro_area: barber.metro_area,
-          completed_school_hours: barber.completed_school_hours
+          completed_school_hours: barber.completed_school_hours,
+          is_actively_looking: barber.is_actively_looking
         };
       });
     }

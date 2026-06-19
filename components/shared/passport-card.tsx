@@ -14,9 +14,16 @@ export function PassportCard({
       
       {/* Passport Header */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 mb-4">
-        <div className="flex items-center gap-1.5 text-xs font-black text-indigo-600 uppercase tracking-widest">
-          <Award className="w-4.5 h-4.5 text-indigo-500" />
-          Passport
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-1.5 text-xs font-black text-indigo-600 uppercase tracking-widest">
+            <Award className="w-4.5 h-4.5 text-indigo-500" />
+            Passport
+          </div>
+          {student.is_actively_looking === false && (
+            <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 max-w-max">
+              🔒 Happily Employed
+            </span>
+          )}
         </div>
         <span className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-full border ${
           student.status === 'Licensed' 
@@ -109,13 +116,22 @@ export function PassportCard({
       </div>
 
       {/* Interactive Call to Action */}
-      <button 
-        onClick={() => onSelect(student)}
-        className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-md active:scale-[0.98]"
-      >
-        <GraduationCap className="w-4 h-4 text-blue-400" />
-        Send A Shop Day Invite
-      </button>
+      {student.is_actively_looking === false ? (
+        <button 
+          disabled
+          className="w-full py-3.5 rounded-xl bg-slate-50 text-slate-400 font-extrabold text-[11px] tracking-wider uppercase flex items-center justify-center gap-1.5 cursor-not-allowed border border-slate-200"
+        >
+          🔒 Not Looking for Opportunities
+        </button>
+      ) : (
+        <button 
+          onClick={() => onSelect(student)}
+          className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-md active:scale-[0.98]"
+        >
+          <GraduationCap className="w-4 h-4 text-blue-400" />
+          Send A Shop Day Invite
+        </button>
+      )}
     </div>
   );
 }
