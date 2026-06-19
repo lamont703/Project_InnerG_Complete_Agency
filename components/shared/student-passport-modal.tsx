@@ -248,7 +248,7 @@ export function StudentPassportModal({
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-1.5 col-span-2 md:col-span-1">
-                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Your Barbershop Name</label>
+                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Your Barbershop Name <span className="text-red-500">*</span></label>
                                 <input 
                                   type="text" 
                                   required 
@@ -260,7 +260,7 @@ export function StudentPassportModal({
                               </div>
 
                               <div className="space-y-1.5 col-span-2 md:col-span-1">
-                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Your Contact Phone</label>
+                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Your Contact Phone <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                   <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                   <input 
