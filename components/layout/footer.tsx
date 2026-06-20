@@ -21,6 +21,7 @@ const footerLinks = {
     { label: "Texas Barber & Cosmetology Continuing Education Portal", href: "/barber-cos-continuing-education" },
     { label: "Pixel Analytics", href: "/pixel-analytics" },
     { label: "Shop Day Connections", href: "/shop-day-connections" },
+    { label: "Barbershop Site Template", href: "/tools/shop-site-template/buzzardsbarbershop" },
   ],
   Social: [
     { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },
