@@ -33,7 +33,7 @@ export default async function AIBoothStationTool(props: { params: Promise<{ shop
     .single();
 
   if (targetError || !targetShopData) {
-    console.error("Shop not found:", urlShopName);
+    console.error("Shop not found:", slug);
     notFound();
   }
 
