@@ -22,14 +22,13 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export default async function AIBoothStationTool(props: { params: Promise<{ shop_name: string }> }) {
   const params = await props.params;
-  // Decode URL parameter (e.g. "barberia-ramirez-suarez" -> "barberia ramirez suarez")
-  const urlShopName = decodeURIComponent(params.shop_name).replace(/-/g, ' ');
+  const slug = params.shop_name;
 
-  // Fetch target shop from database using ilike for case-insensitive and flexible matching
+  // Fetch target shop from database using the generated URL column
   const { data: targetShopData, error: targetError } = await supabase
     .from('agent_barbershop_leads')
     .select('*')
-    .ilike('shop_name', `%${urlShopName}%`)
+    .ilike('chair_pricing_tool_url', `%${slug}`)
     .limit(1)
     .single();
 
