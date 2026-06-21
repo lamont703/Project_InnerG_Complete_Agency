@@ -46,6 +46,7 @@ const RADIUS_OPTIONS = [1, 3, 5, 10];
 export default function ClientDashboard({ initialBarbers, initialShops = [], targetShop }: ClientDashboardProps) {
   const [selectedRadius, setSelectedRadius] = useState<number>(10);
   const [selectedPassportStudent, setSelectedPassportStudent] = useState<any | null>(null);
+  const [showAllBarbers, setShowAllBarbers] = useState(false);
 
   // Filter barbers dynamically based on selected radius
   const activeBarbers = initialBarbers.filter(b => b.distance === null || b.distance <= selectedRadius);
@@ -263,12 +264,6 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
                     </div>
                   </div>
                 </div>
-
-                <div className="mt-8 pt-6 border-t border-zinc-100 flex justify-end">
-                  <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-medium">
-                    Auto-Generate Recruitment Campaign
-                  </Button>
-                </div>
               </div>
             </div>
 
@@ -277,15 +272,19 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
               <div className="p-6 border-b border-zinc-200 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-zinc-900">Live Match Queue</h2>
-                  <p className="text-sm text-zinc-500">Graduating barbers looking for placement near {targetShop.cityInfo}.</p>
+                  <p className="text-sm text-zinc-500">Professionals looking for chair rental near {targetShop.cityInfo}.</p>
                 </div>
-                <Button variant="outline" className="text-sm font-medium border-zinc-200">
-                  View All ({activeCount})
+                <Button 
+                  variant="outline" 
+                  className="text-sm font-medium border-zinc-200"
+                  onClick={() => setShowAllBarbers(!showAllBarbers)}
+                >
+                  {showAllBarbers ? "View Less" : `View All (${activeCount})`}
                 </Button>
               </div>
               
               <div className="divide-y divide-zinc-100 transition-all duration-300">
-                {activeBarbers.slice(0, 5).map((barber, i) => (
+                {(showAllBarbers ? activeBarbers : activeBarbers.slice(0, 5)).map((barber, i) => (
                   <div 
                     key={barber.id || i} 
                     onClick={() => {
