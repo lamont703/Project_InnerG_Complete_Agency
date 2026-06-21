@@ -86,8 +86,8 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
   });
 
   // Safe defaults if no data is present in the specific radius
-  const avgRent = rentCount > 0 ? Math.round(totalRent / rentCount) : 238;
-  const avgSplit = commission60 > commission50 ? "60/40" : "50/50";
+  const avgRent = rentCount > 0 ? Math.round(totalRent / rentCount) : 0;
+  const avgSplit = commission60 + commission50 === 0 ? "N/A" : (commission60 > commission50 ? "60/40" : "50/50");
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900 pb-20">
@@ -178,7 +178,7 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
               <span className="text-zinc-500 text-sm">/ week</span>
             </div>
             <div className="mt-2 text-xs text-zinc-400 font-medium">
-              Based on {rentCount > 0 ? rentCount : "statewide averages"} nearby shops
+              Based on {rentCount} nearby {rentCount === 1 ? 'shop' : 'shops'}
             </div>
           </div>
 
@@ -198,7 +198,7 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
               <span className="text-zinc-500 text-sm">Barber/Shop</span>
             </div>
             <div className="mt-2 text-xs text-zinc-400 font-medium">
-              Based on {commission60 + commission50 > 0 ? commission60 + commission50 : "statewide averages"} nearby shops
+              Based on {commission60 + commission50} nearby {commission60 + commission50 === 1 ? 'shop' : 'shops'}
             </div>
           </div>
 
