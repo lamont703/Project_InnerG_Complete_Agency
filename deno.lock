@@ -2,6 +2,7 @@
   "version": "5",
   "redirects": {
     "https://deno.land/std/dotenv/mod.ts": "https://deno.land/std@0.224.0/dotenv/mod.ts",
+    "https://esm.sh/@google/generative-ai": "https://esm.sh/@google/generative-ai@0.24.1",
     "https://esm.sh/@supabase/functions-js@^2.1.5?target=denonext": "https://esm.sh/@supabase/functions-js@2.106.1?target=denonext",
     "https://esm.sh/@supabase/gotrue-js@^2.56.0?target=denonext": "https://esm.sh/@supabase/gotrue-js@2.105.4?target=denonext",
     "https://esm.sh/@supabase/gotrue-js@^2.60.0?target=denonext": "https://esm.sh/@supabase/gotrue-js@2.108.1?target=denonext",
@@ -168,6 +169,8 @@
     "https://deno.land/x/zod@v3.21.4/locales/en.ts": "a7a25cd23563ccb5e0eed214d9b31846305ddbcdb9c5c8f508b108943366ab4c",
     "https://deno.land/x/zod@v3.21.4/mod.ts": "64e55237cb4410e17d968cd08975566059f27638ebb0b86048031b987ba251c4",
     "https://deno.land/x/zod@v3.21.4/types.ts": "b5d061babea250de14fc63764df5b3afa24f2b088a1d797fc060ba49a0ddff28",
+    "https://esm.sh/@google/generative-ai@0.24.1": "1b08807076eadeaddb89d41e9a2365e6980ec870416b808e58fd0ea6ac0a93d5",
+    "https://esm.sh/@google/generative-ai@0.24.1/denonext/generative-ai.mjs": "08c9716071f5f129a462eb9c71ebaa7f0597d1ef5005ef995fd606f3f0f7f073",
     "https://esm.sh/@supabase/auth-js@2.99.1/denonext/auth-js.mjs": "343444fc58a7d4010105e48f1e99a4526f0a52d92430e096fa2e056640765b61",
     "https://esm.sh/@supabase/functions-js@2.106.1/denonext/functions-js.mjs": "85fb07538aaa092210b598b4d0c46077491e3f7ed4a39a3a00c019ede40bf0c0",
     "https://esm.sh/@supabase/functions-js@2.106.1?target=denonext": "7c7e06e3d0bbf5f53a546819d4466de4e24b5c2ee8964de5df8951e8e497f782",

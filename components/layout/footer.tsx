@@ -22,6 +22,7 @@ const footerLinks = {
     { label: "Pixel Analytics", href: "/pixel-analytics" },
     { label: "Shop Day Connections", href: "/shop-day-connections" },
     { label: "Barbershop Site Template", href: "/tools/shop-site-template/buzzardsbarbershop" },
+    { label: "AI Booth Station Tool", href: "/tools/ai-booth-station" },
   ],
   Social: [
     { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },
