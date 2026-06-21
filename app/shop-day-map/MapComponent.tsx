@@ -294,6 +294,11 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
                     <p className="font-bold text-slate-800 text-sm">
                       {selectedShop.rent_type || "Booth Rent"}
                     </p>
+                    {selectedShop.rent_rate && (
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        {selectedShop.rent_rate}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
