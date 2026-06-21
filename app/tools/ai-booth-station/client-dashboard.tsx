@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react"
+import Link from "next/link"
+import Image from "next/image"
 import { BarChart3, TrendingUp, Users, MapPin, Search, ChevronRight, Activity, Percent, DollarSign, BrainCircuit, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -61,7 +63,11 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
   let commission60 = 0;
 
   activeShops.forEach(shop => {
-    if (shop.rent_rate) {
+    const typeLower = (shop.rent_type || "").toLowerCase();
+    const isCommission = typeLower.includes("commission") || typeLower.includes("split");
+    const isBoothRent = typeLower.includes("booth") || typeLower.includes("rent") || (!isCommission && typeLower !== "unknown");
+
+    if (isBoothRent && shop.rent_rate) {
       // Extract dollar amounts (e.g., "$250/wk" -> 250)
       const match = shop.rent_rate.match(/\$?(\d+)/);
       if (match && parseInt(match[1]) > 50 && parseInt(match[1]) < 1000) {
@@ -70,12 +76,12 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
       }
     }
     
-    // Naive logic to guess commission split preference from string data
-    const rateLower = (shop.rent_rate || "").toLowerCase();
-    const typeLower = (shop.rent_type || "").toLowerCase();
-    
-    if (rateLower.includes("50") || typeLower.includes("50")) commission50++;
-    if (rateLower.includes("60") || typeLower.includes("60")) commission60++;
+    if (isCommission) {
+      // Naive logic to guess commission split preference from string data
+      const rateLower = (shop.rent_rate || "").toLowerCase();
+      if (rateLower.includes("50") || typeLower.includes("50")) commission50++;
+      if (rateLower.includes("60") || typeLower.includes("60")) commission60++;
+    }
   });
 
   // Safe defaults if no data is present in the specific radius
@@ -87,12 +93,20 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
       {/* Top Navigation */}
       <header className="bg-white border-b border-zinc-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center">
-              <Activity className="w-4 h-4 text-white" />
+          <Link href="/" className="flex items-center gap-2 group" aria-label="Inner G Complete Agency Home">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 text-white transition-transform group-hover:scale-105 overflow-hidden">
+              <Image 
+                src="/icon-light-32x32.png" 
+                alt="Inner G Logo" 
+                width={32} 
+                height={32}
+                className="h-full w-full object-contain"
+              />
             </div>
-            <span className="font-bold tracking-tight text-zinc-900">Market Oracle</span>
-          </div>
+            <span className="text-xl font-bold tracking-tight text-zinc-900 sm:block">
+              Inner G Complete<span className="hidden lg:inline text-zinc-500 font-normal"> Agency</span>
+            </span>
+          </Link>
           
           <div className="flex items-center gap-4">
             <div className="text-sm font-medium text-zinc-500">
@@ -162,6 +176,9 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
               <span className="text-3xl font-black text-zinc-900 transition-all duration-300">${avgRent}</span>
               <span className="text-zinc-500 text-sm">/ week</span>
             </div>
+            <div className="mt-2 text-xs text-zinc-400 font-medium">
+              Based on {rentCount > 0 ? rentCount : "statewide averages"} nearby shops
+            </div>
           </div>
 
           {/* Metric 2 */}
@@ -178,6 +195,9 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-black text-zinc-900 transition-all duration-300">{avgSplit}</span>
               <span className="text-zinc-500 text-sm">Barber/Shop</span>
+            </div>
+            <div className="mt-2 text-xs text-zinc-400 font-medium">
+              Based on {commission60 + commission50 > 0 ? commission60 + commission50 : "statewide averages"} nearby shops
             </div>
           </div>
 
