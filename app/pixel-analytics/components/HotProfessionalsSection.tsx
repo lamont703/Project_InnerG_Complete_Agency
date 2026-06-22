@@ -15,8 +15,6 @@ type Professional = {
 export default function HotProfessionalsSection({ professionals }: { professionals: Professional[] }) {
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
 
-  if (!professionals || professionals.length === 0) return null;
-
   return (
     <>
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm mb-12 border-l-4 border-l-blue-500">
@@ -27,34 +25,41 @@ export default function HotProfessionalsSection({ professionals }: { professiona
         <p className="text-slate-500 dark:text-slate-400 mb-6">
           These are professionals (barbers/candidates) who logged in to view their matches, resolved by the tracking pixel.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {professionals.map((prof, i) => (
-            <div key={i} className="flex flex-col p-5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:shadow-md transition-all">
-              <div className="flex items-center justify-between mb-2 gap-2">
-                <h3 className="font-bold text-lg text-slate-900 dark:text-white truncate" title={prof.name}>
-                  {prof.name}
-                </h3>
-                <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs font-bold px-2 py-1 rounded shrink-0">
-                  {prof.views} Views
-                </span>
+        
+        {professionals && professionals.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {professionals.map((prof, i) => (
+              <div key={i} className="flex flex-col p-5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:shadow-md transition-all">
+                <div className="flex items-center justify-between mb-2 gap-2">
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white truncate" title={prof.name}>
+                    {prof.name}
+                  </h3>
+                  <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs font-bold px-2 py-1 rounded shrink-0">
+                    {prof.views} Views
+                  </span>
+                </div>
+                <div className="text-sm text-slate-500 dark:text-slate-400 mb-4 font-mono">
+                  {prof.phone || 'No phone provided'}
+                </div>
+                <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    {prof.clicks} Clicks Tracked
+                  </span>
+                  <button 
+                    onClick={() => setSelectedProfessional(prof)}
+                    className="text-primary text-sm font-semibold hover:underline flex items-center gap-1 bg-primary/10 px-3 py-1 rounded-full transition-colors hover:bg-primary/20"
+                  >
+                    View Details <Eye className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
-              <div className="text-sm text-slate-500 dark:text-slate-400 mb-4 font-mono">
-                {prof.phone || 'No phone provided'}
-              </div>
-              <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {prof.clicks} Clicks Tracked
-                </span>
-                <button 
-                  onClick={() => setSelectedProfessional(prof)}
-                  className="text-primary text-sm font-semibold hover:underline flex items-center gap-1 bg-primary/10 px-3 py-1 rounded-full transition-colors hover:bg-primary/20"
-                >
-                  View Details <Eye className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-medium">
+            No active professionals tracked on site in this time frame. Log in to the Matches portal using a professional's phone number to trigger tracking.
+          </div>
+        )}
       </div>
 
       {/* Details Modal */}
