@@ -28,7 +28,7 @@ export default async function AIBoothStationTool(props: { params: Promise<{ shop
   const { data: targetShopData, error: targetError } = await supabase
     .from('agent_barbershop_leads')
     .select('*')
-    .ilike('chair_pricing_tool_url', `%${slug}`)
+    .ilike('chair_pricing_tool_url', `%/${slug}%`)
     .limit(1)
     .single();
 
