@@ -31,7 +31,7 @@
         return;
     }
 
-    // 3. Visitor Management (Permanent ID)
+    // 3. Visitor & Session Management
     function getVisitorId() {
         let id = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (!id) {
@@ -41,10 +41,23 @@
         return id;
     }
 
+    function getSessionId() {
+        let sid = sessionStorage.getItem(LOCAL_STORAGE_KEY + "_session");
+        if (!sid) {
+            sid = crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2));
+            sessionStorage.setItem(LOCAL_STORAGE_KEY + "_session", sid);
+        }
+        return sid;
+    }
+
     const visitorId = getVisitorId();
+    const sessionId = getSessionId();
+    const pageLoadTime = Date.now();
 
     // 4. Tracking Method
     function track(eventName, metadata = {}) {
+        // Automatically inject session_id into metadata
+        metadata.session_id = sessionId;
         const payload = {
             projectId: projectId,
             visitorId: visitorId,
@@ -133,8 +146,73 @@
     // Attach global click listener
     document.addEventListener("click", handleAutoClickTracking, true);
 
-    // 7. Session Duration (Heartbeat) - Optional, kept simple for v1
-    // window.addEventListener("beforeunload", () => track("session_end"));
+    // 7. Scroll Depth Tracking
+    let scrollDepthsTracked = { 50: false, 90: false };
+    const handleScroll = () => {
+        const docHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+        const winHeight = window.innerHeight;
+        const scrollTop = window.scrollY || window.pageYOffset;
+        // Avoid division by zero on very short pages
+        if (docHeight <= winHeight) return;
+        const scrollPercent = (scrollTop / (docHeight - winHeight)) * 100;
+
+        if (scrollPercent >= 50 && !scrollDepthsTracked[50]) {
+            scrollDepthsTracked[50] = true;
+            track("scroll", { depth: "50%" });
+        }
+        if (scrollPercent >= 90 && !scrollDepthsTracked[90]) {
+            scrollDepthsTracked[90] = true;
+            track("scroll", { depth: "90%" });
+        }
+    };
+    
+    // Throttle scroll event to avoid performance hits
+    let scrollTimeout;
+    window.addEventListener("scroll", () => {
+        if (!scrollTimeout) {
+            scrollTimeout = setTimeout(() => {
+                handleScroll();
+                scrollTimeout = null;
+            }, 200);
+        }
+    }, { passive: true });
+
+    // 8. Session Duration (Time on Page)
+    // Use an object to avoid tracking multiple times if visibility changes rapidly
+    let pageLeaveTracked = false;
+    const handlePageLeave = () => {
+        if (!pageLeaveTracked) {
+            const durationSeconds = Math.round((Date.now() - pageLoadTime) / 1000);
+            track("page_leave", { duration_seconds: durationSeconds });
+            // Don't mark tracked=true if we want them to re-track on return.
+            // But typical page_leave implies they left. We'll leave it re-trackable for SPA feel.
+        }
+    };
+
+    window.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") {
+            handlePageLeave();
+        }
+    });
+
+    // 9. Inbound Link Identity Resolution (GoHighLevel)
+    const urlParams = new URLSearchParams(window.location.search);
+    const ghlId = urlParams.get('ghl_id') || urlParams.get('ghl_contact_id') || urlParams.get('contact_id');
+    const userEmail = urlParams.get('email');
+    const userPhone = urlParams.get('phone');
+
+    if (ghlId || userEmail || userPhone) {
+        setTimeout(() => {
+            const identityTraits = {};
+            if (ghlId) identityTraits.ghl_contact_id = ghlId;
+            if (userPhone) identityTraits.phone = userPhone;
+            
+            const primaryId = userEmail || userPhone || `ghl_${ghlId}`;
+            window.innerG.identify(primaryId, identityTraits);
+            
+            console.log(`[Inner G Pixel] Identity resolved via URL parameters:`, primaryId);
+        }, 500);
+    }
 
     console.log(`[Inner G Pixel] Initialized for project: ${projectId}`);
 

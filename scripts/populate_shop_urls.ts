@@ -12,11 +12,10 @@ const BASE_URL = "https://agency.innergcomplete.com/shop/";
 async function populateShopUrls() {
   console.log("🚀 Starting to populate shop_profile_page_url for all shops...");
 
-  // Fetch all shops that don't have the URL set yet
+  // Fetch ALL shops to regenerate URLs with tracking parameters
   const { data: shops, error: fetchError } = await supabase
     .from("agent_barbershop_leads")
-    .select("id, shop_name, shop_profile_page_url")
-    .is("shop_profile_page_url", null);
+    .select("id, shop_name, shop_profile_page_url, contact_id");
 
   if (fetchError) {
     console.error("❌ Error fetching shops:", fetchError.message);
@@ -34,7 +33,12 @@ async function populateShopUrls() {
   let errorCount = 0;
 
   for (const shop of shops) {
-    const profileUrl = `${BASE_URL}${shop.id}`;
+    let profileUrl = `${BASE_URL}${shop.id}`;
+    if (shop.contact_id) {
+       profileUrl += `?ghl_contact_id=${shop.contact_id}`;
+    } else {
+       profileUrl += `?ghl_contact_id={{contact.id}}`;
+    }
 
     const { error: updateError } = await supabase
       .from("agent_barbershop_leads")

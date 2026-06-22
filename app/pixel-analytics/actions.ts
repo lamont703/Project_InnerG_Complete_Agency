@@ -10,7 +10,17 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 export type AnalyticsData = {
   totalViews: number
   totalClicks: number
-  uniqueVisitors: number
+  activeUsers: number
+  engagedUsers: number
+  returningUsers: number
+  identifiedLeads: { 
+    contactId: string; 
+    shopName: string; 
+    phone: string; 
+    views: number;
+    clicks: number;
+    activity: any[];
+  }[]
   topPages: { url: string; count: number }[]
   topInsights: { url: string; count: number }[]
   topReferrers: { url: string; count: number }[]
@@ -27,7 +37,11 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
   let cutoffDate: string | undefined;
   if (days) {
     const d = new Date();
-    d.setDate(d.getDate() - days);
+    // If 'Today' (days=1), we want midnight of the current day (subtract 0).
+    // Otherwise subtract the number of days (e.g. 7 or 30).
+    const daysToSubtract = days === 1 ? 0 : days;
+    d.setDate(d.getDate() - daysToSubtract);
+    d.setHours(0, 0, 0, 0); // Strict calendar day reset at midnight
     cutoffDate = d.toISOString();
   }
 
@@ -67,6 +81,9 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
   let totalViews = 0
   let totalClicks = 0
   const visitors = new Set<string>()
+  const engagedSet = new Set<string>()
+  const ghlContactStats = new Map<string, { views: number; clicks: number; activity: any[] }>()
+  
   const pageCounts: Record<string, number> = {}
   const insightsCounts: Record<string, number> = {}
   const referrerCounts: Record<string, number> = {}
@@ -80,6 +97,46 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
 
     if (event.visitor_id) {
       visitors.add(event.visitor_id)
+      
+      // Check for engagement
+      if (
+        event.event_name === "click" || 
+        (event.event_name === "scroll" && event.metadata?.depth === "50%") ||
+        (event.event_name === "page_leave" && event.metadata?.duration_seconds >= 60)
+      ) {
+        engagedSet.add(event.visitor_id)
+      }
+    }
+    
+    // GHL Resolution
+    let contactId: string | null = null;
+    if (event.metadata?.ghl_contact_id) {
+       contactId = event.metadata.ghl_contact_id;
+    } else if (event.page_url && event.page_url.includes('ghl_contact_id=')) {
+       try {
+           const url = new URL(event.page_url);
+           const id = url.searchParams.get('ghl_contact_id');
+           if (id && id !== '{{contact.id}}') contactId = id;
+       } catch (e) {}
+    }
+
+    if (contactId) {
+       if (!ghlContactStats.has(contactId)) {
+           ghlContactStats.set(contactId, { views: 0, clicks: 0, activity: [] });
+       }
+       const stats = ghlContactStats.get(contactId)!;
+       if (event.event_name === "page_view") stats.views++;
+       if (event.event_name === "click") stats.clicks++;
+       
+       if (stats.activity.length < 50) {
+           stats.activity.push({
+               id: event.id,
+               event_name: event.event_name,
+               page_url: event.page_url,
+               created_at: event.created_at,
+               metadata: event.metadata || {}
+           });
+       }
     }
 
     // Top Pages and Insights
@@ -110,6 +167,69 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
     }
   }
 
+  let returningUsersCount = 0;
+  if (visitors.size > 0) {
+    if (cutoffDate) {
+      // Chunk check for past events
+      const visitorsArr = Array.from(visitors);
+      const chunk = 500;
+      const returningSet = new Set<string>();
+      for (let i = 0; i < visitorsArr.length; i += chunk) {
+         const { data: pastEvents } = await supabase
+           .from("pixel_events")
+           .select("visitor_id")
+           .in("visitor_id", visitorsArr.slice(i, i+chunk))
+           .lt("created_at", cutoffDate)
+           .limit(10000);
+         if (pastEvents) {
+           pastEvents.forEach((e: any) => returningSet.add(e.visitor_id));
+         }
+      }
+      returningUsersCount = returningSet.size;
+    } else {
+      // All time: Returning means they visited on > 1 distinct date
+      const visitorDates = new Map<string, Set<string>>();
+      for (const event of events) {
+         if (!event.visitor_id || !event.created_at) continue;
+         const d = new Date(event.created_at).toISOString().split('T')[0];
+         if (!visitorDates.has(event.visitor_id)) visitorDates.set(event.visitor_id, new Set());
+         visitorDates.get(event.visitor_id)!.add(d);
+      }
+      for (const dates of visitorDates.values()) {
+         if (dates.size > 1) returningUsersCount++;
+      }
+    }
+  }
+  
+  let identifiedLeads: AnalyticsData['identifiedLeads'] = [];
+  if (ghlContactStats.size > 0) {
+     const contactIds = Array.from(ghlContactStats.keys());
+     const chunk = 500;
+     for (let i = 0; i < contactIds.length; i += chunk) {
+         const { data: leads } = await supabase
+             .from("agent_barbershop_leads")
+             .select("shop_name, phone, contact_id")
+             .in("contact_id", contactIds.slice(i, i+chunk));
+             
+         if (leads) {
+             for (const lead of leads) {
+                 if (lead.contact_id && ghlContactStats.has(lead.contact_id)) {
+                     const stats = ghlContactStats.get(lead.contact_id)!;
+                     identifiedLeads.push({
+                         contactId: lead.contact_id,
+                         shopName: lead.shop_name || 'Unknown Shop',
+                         phone: lead.phone || '',
+                         views: stats.views,
+                         clicks: stats.clicks,
+                         activity: stats.activity
+                     });
+                 }
+             }
+         }
+     }
+     identifiedLeads.sort((a, b) => b.views - a.views);
+  }
+
   const topPages = Object.entries(pageCounts)
     .map(([url, count]) => ({ url, count }))
     .sort((a, b) => b.count - a.count)
@@ -130,7 +250,10 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
   return {
     totalViews,
     totalClicks,
-    uniqueVisitors: visitors.size,
+    activeUsers: visitors.size,
+    engagedUsers: engagedSet.size,
+    returningUsers: returningUsersCount,
+    identifiedLeads,
     topPages,
     topInsights,
     topReferrers,
