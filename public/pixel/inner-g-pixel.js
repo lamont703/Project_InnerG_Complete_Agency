@@ -189,11 +189,13 @@
         }
     };
 
-    window.addEventListener("visibilitychange", () => {
+    document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "hidden") {
             handlePageLeave();
         }
     });
+
+    window.addEventListener("pagehide", handlePageLeave);
 
     // 9. Inbound Link Identity Resolution (GoHighLevel)
     const urlParams = new URLSearchParams(window.location.search);
