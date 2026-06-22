@@ -61,9 +61,9 @@ export default async function FootTrafficRadarDirectory({ searchParams }: { sear
         {shops && shops.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {shops.map((shop) => {
-              // Extract the slug from the chair_pricing_tool_url
-              // Assuming url looks like: https://agency.innergcomplete.com/tools/ai-booth-station/signature-fadez
-              const slugMatch = shop.chair_pricing_tool_url ? shop.chair_pricing_tool_url.match(/([^/]+)\/?$/) : null;
+              // Extract the slug from the chair_pricing_tool_url, ignoring any query parameters
+              const urlWithoutQuery = shop.chair_pricing_tool_url ? shop.chair_pricing_tool_url.split('?')[0] : null;
+              const slugMatch = urlWithoutQuery ? urlWithoutQuery.match(/([^/]+)\/?$/) : null;
               const slug = slugMatch ? slugMatch[1] : shop.id;
 
               return (
