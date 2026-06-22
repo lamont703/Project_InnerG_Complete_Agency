@@ -5,6 +5,8 @@ import { fetchBarberMatches, requestShopDay, updateBarberProfile, uploadPassport
 import { Phone, Lock, Building, Users, MapPin, CheckCircle2, ChevronRight, Scissors, Star, Briefcase, Sparkles, ShieldCheck, Settings, X, Save, Upload } from "lucide-react";
 
 
+import Link from 'next/link';
+
 function maskPhone(phone: string | null) {
   if (!phone) return "No Phone Listed";
   const cleaned = phone.replace(/\D/g, '');
@@ -37,9 +39,17 @@ export default function MatchesClient() {
   // Track which shops the user has requested a shop day for
   const [requestedShops, setRequestedShops] = useState<Set<string>>(new Set());
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!phone || phone.length < 10) {
+  // Restore session from localStorage
+  React.useEffect(() => {
+    const savedPhone = localStorage.getItem("matches_phone");
+    if (savedPhone) {
+      setPhone(savedPhone);
+      performLogin(savedPhone);
+    }
+  }, []);
+
+  const performLogin = async (phoneToUse: string) => {
+    if (!phoneToUse || phoneToUse.length < 10) {
       setError("Please enter a valid phone number.");
       return;
     }
@@ -48,11 +58,12 @@ export default function MatchesClient() {
     setError(null);
 
     try {
-      const result = await fetchBarberMatches(phone);
+      const result = await fetchBarberMatches(phoneToUse);
       if (result.error) {
         setError(result.error);
         if (result.barberName) setBarberState({ id: result.barberId!, name: result.barberName, ...(result.barber || {}) });
       } else {
+        localStorage.setItem("matches_phone", phoneToUse);
         setBarberState({ id: result.barberId!, name: result.barberName!, ...(result.barber || {}) });
         setMatches(result.matches!);
       }
@@ -61,6 +72,11 @@ export default function MatchesClient() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await performLogin(phone);
   };
 
   const handleRequestShopDay = async (shopId: string) => {
@@ -183,16 +199,25 @@ export default function MatchesClient() {
   return (
     <>
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-white/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl shadow-lg border border-slate-200 mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="bg-white/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl shadow-lg border border-slate-200 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
           <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">Welcome, {barberState.name}!</h2>
-          <p className="text-slate-500 font-medium">
+          <p className="text-slate-500 font-medium mb-4">
             {matches.length > 0 
               ? `We found ${matches.length} highly-rated barbershops hiring within exactly 10 miles of your location.`
               : error ? error : "We couldn't find any hiring shops within a 10 mile radius at this moment."}
           </p>
+          {matches.length > 0 && (
+            <Link 
+              href={`/tools/foot-traffic-radar?phone=${encodeURIComponent(phone)}`}
+              className="inline-flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 border border-emerald-500/20 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+            >
+              <Sparkles className="w-4 h-4" />
+              View Foot Traffic Radar for these Shops
+            </Link>
+          )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <button 
             onClick={openSettings}
             className="text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 p-2.5 rounded-xl transition-colors"
@@ -201,7 +226,7 @@ export default function MatchesClient() {
             <Settings className="w-5 h-5" />
           </button>
           <button 
-            onClick={() => { setBarberState(null); setPhone(""); setMatches([]); }}
+            onClick={() => { localStorage.removeItem("matches_phone"); setBarberState(null); setPhone(""); setMatches([]); }}
             className="text-slate-500 hover:text-slate-900 font-bold text-sm bg-slate-100 hover:bg-slate-200 px-4 py-2.5 rounded-xl transition-colors"
           >
             Sign Out
