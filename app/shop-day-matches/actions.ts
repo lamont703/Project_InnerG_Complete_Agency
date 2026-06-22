@@ -55,7 +55,7 @@ export async function fetchBarberMatches(phone: string) {
   
   const { data: shopsDetails, error: shopsError } = await supabase
     .from("agent_barbershop_leads")
-    .select("id, shop_name, formatted_address, city, rent_type, hiring_need, booth_count_available, shop_image_url, rating, total_reviews, place_types, rent_rate, specialty_desired, owner_name, email, phone, outreach_status")
+    .select("id, shop_name, formatted_address, city, rent_type, hiring_need, booth_count_available, shop_image_url, rating, total_reviews, place_types, rent_rate, specialty_desired, owner_name, email, phone, outreach_status, chair_pricing_tool_url, opportunity_status, radar_last_updated_at")
     .in("id", shopIds);
 
   if (shopsError || !shopsDetails) {
