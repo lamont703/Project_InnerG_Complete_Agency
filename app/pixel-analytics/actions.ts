@@ -21,6 +21,14 @@ export type AnalyticsData = {
     clicks: number;
     activity: any[];
   }[]
+  identifiedProfessionals: {
+    barberId: string;
+    name: string;
+    phone: string;
+    views: number;
+    clicks: number;
+    activity: any[];
+  }[]
   topPages: { url: string; count: number }[]
   topInsights: { url: string; count: number }[]
   topReferrers: { url: string; count: number }[]
@@ -230,6 +238,93 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
      identifiedLeads.sort((a, b) => b.views - a.views);
   }
 
+  // Identify Professional Telemetry
+  let identifiedProfessionals: AnalyticsData['identifiedProfessionals'] = [];
+  const uniqueVisitorIds = Array.from(visitors);
+  const professionalVisitorMap = new Map<string, { barberId: string; name: string; phone: string }>();
+
+  if (uniqueVisitorIds.length > 0) {
+    const chunk = 500;
+    for (let i = 0; i < uniqueVisitorIds.length; i += chunk) {
+      const { data: idEvents } = await supabase
+        .from("pixel_events")
+        .select("visitor_id, metadata")
+        .in("visitor_id", uniqueVisitorIds.slice(i, i + chunk))
+        .or("event_name.eq.identify,event_name.eq.$identify");
+
+      if (idEvents) {
+        for (const ev of idEvents) {
+          if (ev.metadata?.role === "professional" && ev.visitor_id) {
+            professionalVisitorMap.set(ev.visitor_id, {
+              barberId: ev.metadata.barberId,
+              name: ev.metadata.name || "Professional",
+              phone: ev.metadata.email || "",
+            });
+          }
+        }
+      }
+    }
+  }
+
+  const professionalStats = new Map<string, { barberId: string; name: string; phone: string; views: number; clicks: number; activity: any[] }>();
+  for (const event of events) {
+    if (event.visitor_id && professionalVisitorMap.has(event.visitor_id)) {
+      const profInfo = professionalVisitorMap.get(event.visitor_id)!;
+      const barberId = profInfo.barberId;
+      if (!professionalStats.has(barberId)) {
+        professionalStats.set(barberId, {
+          barberId,
+          name: profInfo.name,
+          phone: profInfo.phone,
+          views: 0,
+          clicks: 0,
+          activity: [],
+        });
+      }
+      const stats = professionalStats.get(barberId)!;
+      if (event.event_name === "page_view") stats.views++;
+      if (event.event_name === "click") stats.clicks++;
+
+      if (stats.activity.length < 50) {
+        stats.activity.push({
+          id: event.id,
+          event_name: event.event_name,
+          page_url: event.page_url,
+          created_at: event.created_at,
+          metadata: event.metadata || {},
+        });
+      }
+    }
+  }
+
+  if (professionalStats.size > 0) {
+    const barberIds = Array.from(professionalStats.keys());
+    const chunk = 500;
+    for (let i = 0; i < barberIds.length; i += chunk) {
+      const { data: barbers } = await supabase
+        .from("agent_barber_leads")
+        .select("id, name, phone")
+        .in("id", barberIds.slice(i, i + chunk));
+
+      if (barbers) {
+        for (const b of barbers) {
+          if (professionalStats.has(b.id)) {
+            const stats = professionalStats.get(b.id)!;
+            identifiedProfessionals.push({
+              barberId: b.id,
+              name: b.name || stats.name || "Professional",
+              phone: b.phone || stats.phone || "",
+              views: stats.views,
+              clicks: stats.clicks,
+              activity: stats.activity,
+            });
+          }
+        }
+      }
+    }
+    identifiedProfessionals.sort((a, b) => b.views - a.views);
+  }
+
   const topPages = Object.entries(pageCounts)
     .map(([url, count]) => ({ url, count }))
     .sort((a, b) => b.count - a.count)
@@ -254,6 +349,7 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
     engagedUsers: engagedSet.size,
     returningUsers: returningUsersCount,
     identifiedLeads,
+    identifiedProfessionals,
     topPages,
     topInsights,
     topReferrers,

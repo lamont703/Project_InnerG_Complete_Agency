@@ -66,6 +66,15 @@ export default function MatchesClient() {
         localStorage.setItem("matches_phone", phoneToUse);
         setBarberState({ id: result.barberId!, name: result.barberName!, ...(result.barber || {}) });
         setMatches(result.matches!);
+
+        // Identify the professional for pixel tracking
+        if (typeof window !== "undefined" && (window as any).innerG) {
+          (window as any).innerG.identify(phoneToUse, {
+            name: result.barberName || "",
+            role: "professional",
+            barberId: result.barberId
+          });
+        }
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");

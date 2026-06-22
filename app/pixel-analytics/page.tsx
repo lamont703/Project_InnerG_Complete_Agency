@@ -4,6 +4,7 @@ import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon,
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import HotLeadsSection from "./components/HotLeadsSection"
+import HotProfessionalsSection from "./components/HotProfessionalsSection"
 
 export const metadata = {
   title: "Pixel Analytics | Inner G Complete",
@@ -126,6 +127,9 @@ export default async function PixelAnalyticsPage(
 
         {/* Identified CRM Leads */}
         <HotLeadsSection leads={data.identifiedLeads} />
+
+        {/* Identified Professionals */}
+        <HotProfessionalsSection professionals={data.identifiedProfessionals} />
 
         {/* Tables Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
