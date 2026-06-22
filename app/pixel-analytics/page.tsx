@@ -1,8 +1,9 @@
 import Link from "next/link"
 import { fetchAnalyticsData } from "./actions"
-import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon } from "lucide-react"
+import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
+import HotLeadsSection from "./components/HotLeadsSection"
 
 export const metadata = {
   title: "Pixel Analytics | Inner G Complete",
@@ -68,37 +69,63 @@ export default async function PixelAnalyticsPage(
         </header>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400">
-                <BarChart3 className="w-6 h-6" />
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-12">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400">
+                <BarChart3 className="w-5 h-5" />
               </div>
-              <h3 className="font-semibold text-slate-600 dark:text-slate-400">Total Page Views</h3>
+              <h3 className="font-semibold text-sm text-slate-600 dark:text-slate-400">Total Views</h3>
             </div>
-            <p className="text-4xl font-black">{data.totalViews.toLocaleString()}</p>
+            <p className="text-3xl font-black">{data.totalViews.toLocaleString()}</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
-                <Users className="w-6 h-6" />
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
+                <Users className="w-5 h-5" />
               </div>
-              <h3 className="font-semibold text-slate-600 dark:text-slate-400">Unique Visitors</h3>
+              <h3 className="font-semibold text-sm text-slate-600 dark:text-slate-400">Active Users</h3>
             </div>
-            <p className="text-4xl font-black">{data.uniqueVisitors.toLocaleString()}</p>
+            <p className="text-3xl font-black">{data.activeUsers.toLocaleString()}</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-emerald-600 dark:text-emerald-400">
-                <MousePointerClick className="w-6 h-6" />
-              </div>
-              <h3 className="font-semibold text-slate-600 dark:text-slate-400">Total Clicks</h3>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+              <Zap className="w-16 h-16" />
             </div>
-            <p className="text-4xl font-black">{data.totalClicks.toLocaleString()}</p>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-amber-600 dark:text-amber-400">
+                <Zap className="w-5 h-5" />
+              </div>
+              <h3 className="font-semibold text-sm text-slate-600 dark:text-slate-400">Engaged Users</h3>
+            </div>
+            <p className="text-3xl font-black">{data.engagedUsers.toLocaleString()}</p>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2.5 bg-purple-50 dark:bg-purple-900/20 rounded-xl text-purple-600 dark:text-purple-400">
+                <RefreshCw className="w-5 h-5" />
+              </div>
+              <h3 className="font-semibold text-sm text-slate-600 dark:text-slate-400">Returning Users</h3>
+            </div>
+            <p className="text-3xl font-black">{data.returningUsers.toLocaleString()}</p>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-emerald-600 dark:text-emerald-400">
+                <MousePointerClick className="w-5 h-5" />
+              </div>
+              <h3 className="font-semibold text-sm text-slate-600 dark:text-slate-400">Total Clicks</h3>
+            </div>
+            <p className="text-3xl font-black">{data.totalClicks.toLocaleString()}</p>
           </div>
         </div>
+
+        {/* Identified CRM Leads */}
+        <HotLeadsSection leads={data.identifiedLeads} />
 
         {/* Tables Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">

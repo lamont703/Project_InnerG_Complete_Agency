@@ -18,7 +18,7 @@ async function updateUrls() {
   console.log("Fetching shops...");
   const { data: shops, error } = await supabase
     .from("agent_barbershop_leads")
-    .select("id, shop_name");
+    .select("id, shop_name, contact_id");
 
   if (error) {
     console.error("Error fetching shops:", error);
@@ -33,7 +33,14 @@ async function updateUrls() {
     
     // Create URL-friendly slug (lowercase, replace non-alphanumeric with hyphens)
     const slug = shop.shop_name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
-    const url = `${BASE_URL}/${slug}`;
+    let url = `${BASE_URL}/${slug}`;
+    
+    // Add GHL tracking parameters
+    if (shop.contact_id) {
+      url += `?ghl_contact_id=${shop.contact_id}`;
+    } else {
+      url += `?ghl_contact_id={{contact.id}}`;
+    }
 
     const { error: updateError } = await supabase
       .from("agent_barbershop_leads")
