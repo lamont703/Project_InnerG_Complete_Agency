@@ -33,6 +33,8 @@ type TargetShopInfo = {
   rentType: string;
   boothCountAvailable: number;
   initials: string;
+  isRateEstimated: boolean;
+  isTypeEstimated: boolean;
 }
 
 interface ClientDashboardProps {
@@ -241,7 +243,12 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
 
                 <div className="space-y-6">
                   <p className="text-zinc-700 leading-relaxed text-lg">
-                    {targetShop.ownerName.split(' ')[0]}, you currently have <strong className="text-zinc-900">{targetShop.boothCountAvailable} chairs available</strong>. Based on your recent SMS logs, you are offering: <strong className="text-zinc-900">{targetShop.rentRate}</strong> or <strong className="text-zinc-900">{targetShop.rentType}</strong>.
+                    {targetShop.ownerName.split(' ')[0]}, you currently have <strong className="text-zinc-900">{targetShop.boothCountAvailable} {targetShop.boothCountAvailable === 1 ? 'chair' : 'chairs'} available</strong>.
+                    {targetShop.isRateEstimated && targetShop.isTypeEstimated ? (
+                      ` Based on your recent SMS logs, you haven't specified your exact rental pricing yet, so we have defaulted to a standard ${targetShop.rentType} setup.`
+                    ) : (
+                      ` Based on your recent SMS logs, you are offering a ${targetShop.rentType} structure ${targetShop.isRateEstimated ? "with rates to be negotiated" : `at ${targetShop.rentRate}`}.`
+                    )}
                   </p>
                   
                   <div className="grid sm:grid-cols-2 gap-4">
@@ -342,13 +349,17 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
                 <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700/50">
                   <div className="text-sm font-medium text-zinc-400 mb-1 uppercase tracking-wider">Option A</div>
                   <div className="text-xl font-black text-white mb-2">{targetShop.rentType}</div>
-                  <p className="text-sm text-zinc-300">Based on your recent messages.</p>
+                  <p className="text-sm text-zinc-300">
+                    {targetShop.isTypeEstimated ? "Standard industry structure." : "Based on your recent messages."}
+                  </p>
                 </div>
 
                 <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700/50">
                   <div className="text-sm font-medium text-zinc-400 mb-1 uppercase tracking-wider">Option B</div>
                   <div className="text-xl font-black text-white mb-2">{targetShop.rentRate}</div>
-                  <p className="text-sm text-zinc-300">Based on your recent messages.</p>
+                  <p className="text-sm text-zinc-300">
+                    {targetShop.isRateEstimated ? "Rate not specified in messages." : "Based on your recent messages."}
+                  </p>
                 </div>
               </div>
 
