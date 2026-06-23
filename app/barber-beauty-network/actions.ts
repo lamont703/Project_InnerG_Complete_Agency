@@ -259,18 +259,6 @@ export async function submitShopDayInvite(payload: {
 
     if (error) throw error;
 
-    if (process.env.GHL_SHOP_DAY_INVITE_WEBHOOK) {
-      try {
-        await fetch(process.env.GHL_SHOP_DAY_INVITE_WEBHOOK, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-      } catch (e) {
-        console.error("Failed to trigger GHL invite webhook", e);
-      }
-    }
-
     // Meta CAPI: Fire Schedule Event
     await sendMetaConversionEvent({
       event_name: 'Schedule',

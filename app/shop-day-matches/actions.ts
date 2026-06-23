@@ -141,29 +141,6 @@ export async function requestShopDay(barberId: string, shopId: string) {
     console.error("Error creating request:", error);
     return { error: "Failed to send request. Please try again." };
   }
-  
-  if (process.env.GHL_SHOP_DAY_REQUEST_WEBHOOK) {
-    try {
-      await fetch(process.env.GHL_SHOP_DAY_REQUEST_WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data && data.length > 0 ? data[0] : {
-          barber_id: barberId,
-          shop_id: shopId,
-          shop_name: shop?.shop_name,
-          shop_phone: shop?.phone,
-          shop_address: shop?.formatted_address,
-          shop_owner_name: shop?.owner_name,
-          professionals_name: barber?.name,
-          professionals_phone_number: barber?.phone,
-          professionals_address: barber?.address,
-          status: "pending"
-        })
-      });
-    } catch (e) {
-      console.error("Failed to trigger GHL request webhook", e);
-    }
-  }
 
   // Meta CAPI: Fire SubmitApplication Event
   await sendMetaConversionEvent({
