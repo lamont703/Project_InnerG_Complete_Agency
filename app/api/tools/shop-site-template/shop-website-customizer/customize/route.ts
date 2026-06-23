@@ -5,6 +5,10 @@ export async function POST(request: Request) {
   try {
     const { prompt, config: currentConfig } = await request.json();
 
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY is not set in production environment variables.");
+    }
+
     // Initialize GoogleGenAI client using GEMINI_API_KEY
     const genAI = new GoogleGenAI({
       apiKey: process.env.GEMINI_API_KEY,
