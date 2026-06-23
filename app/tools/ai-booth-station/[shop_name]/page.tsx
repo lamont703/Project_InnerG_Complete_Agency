@@ -94,13 +94,15 @@ export default async function AIBoothStationTool(props: { params: Promise<{ shop
   }
 
   const targetShopUIInfo = {
-    ownerName: targetShopData.owner_name || "Shop Owner",
+    ownerName: targetShopData.owner_name && targetShopData.owner_name !== "Unknown Owner" ? targetShopData.owner_name : "Shop Owner",
     shopName: targetShopData.shop_name || "Barbershop",
     cityInfo: targetShopData.city || "Houston, TX",
-    rentRate: targetShopData.rent_rate || "$250/week",
+    rentRate: targetShopData.rent_rate || "Negotiable",
     rentType: targetShopData.rent_type || "Booth Rent",
     boothCountAvailable: targetShopData.booth_count_available || 1,
-    initials: (targetShopData.owner_name || "S O").substring(0, 2).toUpperCase()
+    initials: (targetShopData.owner_name && targetShopData.owner_name !== "Unknown Owner" ? targetShopData.owner_name : "S O").substring(0, 2).toUpperCase(),
+    isRateEstimated: !targetShopData.rent_rate,
+    isTypeEstimated: !targetShopData.rent_type
   };
 
   return <ClientDashboard initialBarbers={processedBarbers} initialShops={processedShops} targetShop={targetShopUIInfo} />
