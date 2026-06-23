@@ -941,7 +941,7 @@ export default function CustomizerPage() {
   )
 
   return (
-    <div className="flex h-screen w-screen flex-col lg:flex-row overflow-hidden bg-neutral-950 font-sans text-neutral-200">
+    <div className="fixed inset-0 flex flex-col lg:flex-row overflow-hidden bg-neutral-950 font-sans text-neutral-200" style={{ height: '100dvh' }}>
       
       {/* Dynamic Toast Alert (mainly for mobile transition triggers) */}
       {toastMessage && (
@@ -992,14 +992,14 @@ export default function CustomizerPage() {
       ) : (
         <>
           {/* 1. EDITOR SIDEBAR CONSOLE (Full screen on mobile if activeTab === 'chat', else hidden) */}
-          <div className={`w-full lg:w-[430px] lg:shrink-0 flex-col border-r border-neutral-800 bg-neutral-900 flex-1 min-h-0 lg:h-full ${
+          <div className={`w-full lg:w-[430px] lg:shrink-0 flex-col border-r border-neutral-800 bg-neutral-900 flex-1 min-h-0 overflow-hidden lg:h-full ${
             activeTab === "chat" ? "flex" : "hidden lg:flex"
           }`}>
             {sidebarContent}
           </div>
 
           {/* 2. WEB PREVIEW PANEL (Full screen on mobile if activeTab === 'preview', else hidden) */}
-          <div className={`flex-1 flex-col bg-neutral-950 min-h-0 lg:h-full ${
+          <div className={`flex-1 flex-col bg-neutral-950 min-h-0 overflow-hidden lg:h-full ${
             activeTab === "preview" ? "flex" : "hidden lg:flex"
           }`}>
             {previewContent}
@@ -1007,8 +1007,8 @@ export default function CustomizerPage() {
         </>
       )}
 
-      {/* 3. MOBILE BOTTOM TAB BAR */}
-      <div className="flex lg:hidden h-16 border-t border-neutral-800 bg-neutral-900/90 backdrop-blur-md items-center justify-around px-6 z-40">
+      {/* 3. MOBILE BOTTOM TAB BAR — shrink-0 ensures it never collapses */}
+      <div className="flex lg:hidden h-14 shrink-0 border-t border-neutral-800 bg-neutral-900 backdrop-blur-md items-center justify-around px-6 z-40">
         <button
           onClick={() => {
             setActiveTab("chat")

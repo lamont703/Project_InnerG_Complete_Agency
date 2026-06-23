@@ -20,7 +20,7 @@ export default function LegendzLayout({
   children: React.ReactNode
 }>) {
   return (
-    <div className={`${inter.variable} ${oswald.variable} w-full min-h-screen`}>
+    <div className={`${inter.variable} ${oswald.variable} w-full h-full overflow-hidden`}>
       {children}
     </div>
   )
