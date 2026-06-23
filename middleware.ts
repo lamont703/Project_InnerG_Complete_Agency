@@ -26,6 +26,11 @@ export default async function proxy(request: NextRequest) {
         return NextResponse.rewrite(new URL('/texas-barber-exam-intelligence-prep', request.url))
     }
 
+    // Bypass auth checks for public API tools to prevent unnecessary Supabase calls and 403 logs
+    if (pathname.startsWith('/api/tools/')) {
+        return NextResponse.next()
+    }
+
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
