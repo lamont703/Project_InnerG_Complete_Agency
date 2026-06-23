@@ -45,7 +45,7 @@ export function Contact() {
                   Call / Text
                 </h3>
                 <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                  (404) 555-0142
+                  <a href="tel:+14045550142" className="hover:text-primary transition-colors">(404) 555-0142</a>
                   <br />
                   Walk-ins welcome
                 </p>
