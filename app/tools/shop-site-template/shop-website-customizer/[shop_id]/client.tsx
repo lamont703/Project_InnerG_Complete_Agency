@@ -11,8 +11,14 @@ import { Contact } from "@/components/shop-site-template/shop-website-customizer
 import { SiteFooter } from "@/components/shop-site-template/shop-website-customizer/site-footer"
 import { defaultSiteConfig, type SiteConfig } from "@/components/shop-site-template/shop-website-customizer/config-defaults"
 
-export default function Page() {
-  const [config, setConfig] = useState<SiteConfig>(defaultSiteConfig)
+export default function ShopPreviewClient({ 
+  initialConfig, 
+  shopId 
+}: { 
+  initialConfig: SiteConfig
+  shopId: string
+}) {
+  const [config, setConfig] = useState<SiteConfig>(initialConfig)
   const [isEditable, setIsEditable] = useState(false)
 
   useEffect(() => {
@@ -58,8 +64,8 @@ export default function Page() {
         <Features config={config.features} isEditable={isEditable} />
         <Services />
         <Testimonials />
-        <CareersBooths />
-        <Contact />
+        <CareersBooths config={config} />
+        <Contact config={config} />
       </main>
       <SiteFooter />
     </div>

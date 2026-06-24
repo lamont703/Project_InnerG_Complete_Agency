@@ -29,6 +29,7 @@ import {
   ResizablePanel,
   ResizableHandle
 } from "@/components/ui/resizable"
+import { saveSiteConfigAction } from "./actions"
 
 interface Message {
   id: string
@@ -42,8 +43,16 @@ interface Message {
 type DeviceMode = "desktop" | "tablet" | "mobile"
 type TabMode = "chat" | "preview"
 
-export default function CustomizerPage() {
-  const [config, setConfig] = useState<SiteConfig>(defaultSiteConfig)
+export default function CustomizerClient({
+  initialConfig,
+  shopId,
+  shopName
+}: {
+  initialConfig: SiteConfig
+  shopId: string
+  shopName: string
+}) {
+  const [config, setConfig] = useState<SiteConfig>(initialConfig)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -55,7 +64,7 @@ export default function CustomizerPage() {
   const [inputValue, setInputValue] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const [deviceMode, setDeviceMode] = useState<DeviceMode>("desktop")
-  const [activeTab, setActiveTab] = useState<TabMode>("chat")
+  const [activeTab, setActiveTab] = useState<TabMode>("preview")
   const [consoleTab, setConsoleTab] = useState<"chat" | "manual">("chat")
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [iframeKey, setIframeKey] = useState(0) // increment to force reload
@@ -194,7 +203,7 @@ export default function CustomizerPage() {
   }
 
   const handleReset = () => {
-    updateConfig(defaultSiteConfig)
+    updateConfig(initialConfig)
     setIframeKey((k) => k + 1)
     
     const newMsg: Message = {
@@ -418,12 +427,16 @@ export default function CustomizerPage() {
     setExpandedSteps((prev) => ({ ...prev, [msgId]: !prev[msgId] }))
   }
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     setIsTyping(true)
-    setTimeout(() => {
-      setIsTyping(false)
+    const result = await saveSiteConfigAction(shopId, config)
+    setIsTyping(false)
+    if (result.success) {
       setShowPublishSuccess(true)
-    }, 1800)
+      setToastMessage("Successfully saved to database!")
+    } else {
+      setToastMessage(`Save failed: ${result.error}`)
+    }
   }
 
   const sidebarContent = (
@@ -865,7 +878,7 @@ export default function CustomizerPage() {
         <div className="flex items-center gap-2">
           <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-[11px] lg:text-xs text-neutral-400 font-mono truncate max-w-[140px] sm:max-w-xs">
-            localhost:3000/tools/shop-site-template/shop-website-customizer
+            {isMounted && typeof window !== "undefined" ? window.location.host : "localhost:3000"}/tools/shop-site-template/shop-website-customizer/{shopId}
           </span>
         </div>
 
@@ -929,7 +942,7 @@ export default function CustomizerPage() {
           <iframe
             key={iframeKey}
             ref={iframeRef}
-            src="/tools/shop-site-template/shop-website-customizer"
+            src={`/tools/shop-site-template/shop-website-customizer/${shopId}`}
             onLoad={handleIframeLoad}
             className="h-full w-full border-0 bg-neutral-950"
             title="Site customization live preview"

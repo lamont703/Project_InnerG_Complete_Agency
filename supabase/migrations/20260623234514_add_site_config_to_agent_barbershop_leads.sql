@@ -1,0 +1,1 @@
+ALTER TABLE public.agent_barbershop_leads ADD COLUMN IF NOT EXISTS site_config JSONB;

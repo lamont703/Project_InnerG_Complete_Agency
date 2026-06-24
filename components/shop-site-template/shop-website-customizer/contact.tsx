@@ -11,7 +11,9 @@ const hours = [
   { day: "Sunday", time: "Open 24 Hours" },
 ]
 
-export function Contact() {
+import { SiteConfig, defaultSiteConfig } from "./config-defaults"
+
+export function Contact({ config = defaultSiteConfig }: { config?: SiteConfig }) {
   return (
     <section id="contact" className="border-t border-border bg-card/30 py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -33,10 +35,8 @@ export function Contact() {
                 <h3 className="mt-4 font-heading text-base font-semibold uppercase tracking-wide text-card-foreground">
                   Location
                 </h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                  612 S Central Ave
-                  <br />
-                  Hapeville, GA 30354
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                  {config.shopInfo?.address || "612 S Central Ave\nHapeville, GA 30354"}
                 </p>
               </div>
               <div className="rounded-xl border border-border bg-card p-6">
@@ -45,7 +45,9 @@ export function Contact() {
                   Call / Text
                 </h3>
                 <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                  <a href="tel:+14045550142" className="hover:text-primary transition-colors">(404) 555-0142</a>
+                  <a href={`tel:${config.shopInfo?.phone || "4045550142"}`} className="hover:text-primary transition-colors">
+                    {config.shopInfo?.phone || "(404) 555-0142"}
+                  </a>
                   <br />
                   Walk-ins welcome
                 </p>
@@ -83,8 +85,8 @@ export function Contact() {
           {/* Map */}
           <div className="min-h-80 overflow-hidden rounded-xl border border-border">
             <iframe
-              title="Legends Barbershop location map"
-              src="https://www.google.com/maps?q=612+S+Central+Ave,+Hapeville,+GA+30354&output=embed"
+              title={`${config.shopInfo?.name || "Legends Barbershop"} location map`}
+              src={`https://www.google.com/maps?q=${encodeURIComponent(config.shopInfo?.address || "612 S Central Ave, Hapeville, GA 30354")}&output=embed`}
               className="size-full min-h-80"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
