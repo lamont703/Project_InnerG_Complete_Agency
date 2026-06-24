@@ -85,6 +85,10 @@ export default function CustomizerClient({
   const [showPublishSuccess, setShowPublishSuccess] = useState(false)
   const [expandedSteps, setExpandedSteps] = useState<Record<string, boolean>>({})
   const [galleryOpenFor, setGalleryOpenFor] = useState<string | null>(null)
+  
+  // Onboarding Tour State
+  const [tourStep, setTourStep] = useState<number>(0)
+  const [showTour, setShowTour] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -100,6 +104,17 @@ export default function CustomizerClient({
     }
     checkSize()
     window.addEventListener("resize", checkSize)
+    
+    // Check if user has seen tour
+    if (!localStorage.getItem("hasSeenCustomizerTour")) {
+      setTimeout(() => {
+        setShowTour(true)
+        setTourStep(1)
+        setActiveTab("chat")
+        setConsoleTab("chat")
+      }, 1000) // slight delay for smooth entry
+    }
+    
     return () => window.removeEventListener("resize", checkSize)
   }, [])
 
@@ -512,7 +527,7 @@ export default function CustomizerClient({
             consoleTab === "manual"
               ? "border-primary text-white"
               : "border-transparent text-neutral-400 hover:text-neutral-200"
-          }`}
+          } ${showTour && tourStep === 3 ? "relative z-[201] ring-4 ring-amber-500 rounded-lg bg-neutral-900 shadow-[0_0_30px_rgba(245,158,11,0.5)]" : ""}`}
         >
           <Sliders className="size-3.5" />
           Manual Settings
@@ -614,6 +629,8 @@ export default function CustomizerClient({
 
           {/* Input Area */}
           <div className="border-t border-neutral-800 p-4 pb-6 lg:pb-4">
+             {/* Chat Input */}
+          <div className={`relative mt-2 flex items-end gap-2 ${showTour && tourStep === 1 ? "z-[201] ring-4 ring-blue-500 rounded-xl bg-neutral-900 p-2 shadow-[0_0_30px_rgba(59,130,246,0.5)]" : ""}`}>
             <form onSubmit={handleSendMessage} className="relative">
               <textarea
                 rows={2}
@@ -652,6 +669,7 @@ export default function CustomizerClient({
                 </button>
               </div>
             </form>
+            </div>
             <div className="mt-2 text-[10px] text-center text-neutral-500">
               AI updates colors and copywriting instantly in real-time.
             </div>
@@ -1201,7 +1219,7 @@ export default function CustomizerClient({
 
           <ResizablePanel
             defaultSize={70}
-            className="flex flex-col bg-neutral-950 h-full"
+            className={`flex flex-col bg-neutral-950 h-full relative ${showTour && tourStep === 2 ? "z-[201] ring-4 ring-primary ring-offset-4 ring-offset-black rounded-xl shadow-[0_0_50px_rgba(var(--primary),0.6)]" : ""}`}
           >
             {previewContent}
           </ResizablePanel>
@@ -1218,7 +1236,7 @@ export default function CustomizerClient({
           {/* 2. WEB PREVIEW PANEL (Full screen on mobile if activeTab === 'preview', else hidden) */}
           <div className={`flex-1 flex-col bg-neutral-950 min-h-0 overflow-hidden lg:h-full ${
             activeTab === "preview" ? "flex" : "hidden lg:flex"
-          }`}>
+          } ${showTour && tourStep === 2 ? "relative z-[201] ring-4 ring-primary ring-offset-4 ring-offset-black rounded-xl shadow-[0_0_50px_rgba(var(--primary),0.6)]" : ""}`}>
             {previewContent}
           </div>
         </>
@@ -1319,7 +1337,7 @@ export default function CustomizerClient({
       )}
 
       {/* Image Gallery Picker Modal */}
-      {galleryOpenFor && (
+      {galleryOpenFor && !showTour && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div
             onClick={() => setGalleryOpenFor(null)}
@@ -1366,6 +1384,100 @@ export default function CustomizerClient({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 3-Step Interactive Onboarding Tour */}
+      {showTour && (
+        <>
+          {/* Backdrop sits below highlighted elements */}
+          <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm pointer-events-auto" />
+
+          {/* Tour Modal Container sits above highlighted elements */}
+          <div className="fixed inset-0 z-[205] flex items-center justify-center pointer-events-none">
+            <div className="relative w-[90%] max-w-md pointer-events-auto rounded-2xl border border-primary/50 bg-neutral-900 p-6 shadow-2xl animate-in zoom-in-95 fade-in duration-300">
+              {/* Step Counter */}
+              <div className="absolute -top-3 -right-3 flex size-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-lg border border-neutral-900">
+                {tourStep}/3
+              </div>
+
+              <div className="text-center">
+                {tourStep === 1 && (
+                  <>
+                    <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-blue-500/10 text-blue-400">
+                      <span className="text-2xl">🤖</span>
+                    </div>
+                    <h3 className="font-heading text-xl font-bold text-white uppercase tracking-wider">Meet Your AI Assistant</h3>
+                    <p className="mt-3 text-sm text-neutral-400 leading-relaxed">
+                      Welcome to your intelligent website builder! Tell the AI what you want to change—like <strong className="text-white">"Make it a dark theme"</strong> or <strong className="text-white">"Add a hot towel shave service"</strong>—and watch it happen instantly.
+                    </p>
+                  </>
+                )}
+                {tourStep === 2 && (
+                  <>
+                    <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <span className="text-2xl">🖱️</span>
+                    </div>
+                    <h3 className="font-heading text-xl font-bold text-white uppercase tracking-wider">Direct Click-to-Edit</h3>
+                    <p className="mt-3 text-sm text-neutral-400 leading-relaxed">
+                      See something you want to change right now? Just click on any text, button, map, or photo directly in the live preview on the right to instantly edit it!
+                    </p>
+                  </>
+                )}
+                {tourStep === 3 && (
+                  <>
+                    <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
+                      <span className="text-2xl">⚙️</span>
+                    </div>
+                    <h3 className="font-heading text-xl font-bold text-white uppercase tracking-wider">Granular Control</h3>
+                    <p className="mt-3 text-sm text-neutral-400 leading-relaxed">
+                      Need absolute precision? Switch over to the <strong className="text-white">Manual Settings tab</strong> to tweak individual prices, descriptions, and pick curated gallery photos. Click <strong className="text-primary">Publish</strong> when you're ready to go live!
+                    </p>
+                  </>
+                )}
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="mt-8 flex justify-between items-center border-t border-neutral-800/60 pt-4">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowTour(false)
+                    localStorage.setItem("hasSeenCustomizerTour", "true")
+                    setActiveTab("preview")
+                  }}
+                  className="text-xs font-semibold text-neutral-500 hover:text-white transition-colors uppercase tracking-wider"
+                >
+                  Skip Tour
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (tourStep < 3) {
+                      const nextStep = tourStep + 1;
+                      setTourStep(nextStep);
+                      if (nextStep === 2) {
+                        setActiveTab("preview");
+                      } else if (nextStep === 3) {
+                        setActiveTab("chat");
+                        setConsoleTab("manual");
+                      }
+                    } else {
+                      setShowTour(false)
+                      localStorage.setItem("hasSeenCustomizerTour", "true")
+                      setActiveTab("preview")
+                    }
+                  }}
+                  className="rounded-lg bg-primary px-5 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors uppercase tracking-wider"
+                >
+                  {tourStep === 3 ? "Get Started" : "Next Step"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
     </div>
