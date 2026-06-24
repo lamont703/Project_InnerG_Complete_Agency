@@ -21,7 +21,8 @@ import {
   Paperclip,
   Mic,
   Loader2,
-  Sliders
+  Sliders,
+  ExternalLink
 } from "lucide-react"
 import { defaultSiteConfig, type SiteConfig } from "@/components/shop-site-template/shop-website-customizer/config-defaults"
 import {
@@ -74,18 +75,6 @@ export default function CustomizerClient({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
-  // Scroll and Focus Input Refs
-  const heroTitleRef = useRef<HTMLInputElement>(null)
-  const heroSubtitleRef = useRef<HTMLTextAreaElement>(null)
-  const heroCtaRef = useRef<HTMLInputElement>(null)
-  const featuresTitleRef = useRef<HTMLInputElement>(null)
-  const featuresSubtitleRef = useRef<HTMLInputElement>(null)
-  const feat0TitleRef = useRef<HTMLInputElement>(null)
-  const feat0DescRef = useRef<HTMLTextAreaElement>(null)
-  const feat1TitleRef = useRef<HTMLInputElement>(null)
-  const feat1DescRef = useRef<HTMLTextAreaElement>(null)
-  const feat2TitleRef = useRef<HTMLInputElement>(null)
-  const feat2DescRef = useRef<HTMLTextAreaElement>(null)
   const [isMounted, setIsMounted] = useState(false)
   const [isDesktop, setIsDesktop] = useState(false)
 
@@ -105,12 +94,27 @@ export default function CustomizerClient({
     const saved = localStorage.getItem("legends-site-config")
     if (saved) {
       try {
-        setConfig(JSON.parse(saved))
+        const parsed = JSON.parse(saved)
+        // Deep merge with defaultSiteConfig so new schema fields (like services) don't turn up blank!
+        setConfig({
+          ...defaultSiteConfig,
+          ...initialConfig,
+          ...parsed,
+          hero: { ...defaultSiteConfig.hero, ...initialConfig.hero, ...parsed.hero, stats: { ...defaultSiteConfig.hero?.stats, ...initialConfig.hero?.stats, ...parsed.hero?.stats } },
+          header: parsed.header || initialConfig.header || defaultSiteConfig.header,
+          features: { ...defaultSiteConfig.features, ...initialConfig.features, ...parsed.features },
+          shopInfo: { ...defaultSiteConfig.shopInfo, ...initialConfig.shopInfo, ...parsed.shopInfo },
+          careers: { ...defaultSiteConfig.careers, ...initialConfig.careers, ...parsed.careers },
+          services: parsed.services || initialConfig.services || defaultSiteConfig.services,
+          testimonials: parsed.testimonials || initialConfig.testimonials || defaultSiteConfig.testimonials,
+          contact: parsed.contact || initialConfig.contact || defaultSiteConfig.contact,
+          footer: parsed.footer || initialConfig.footer || defaultSiteConfig.footer
+        })
       } catch (e) {
         console.error(e)
       }
     }
-  }, [])
+  }, [initialConfig])
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -148,32 +152,23 @@ export default function CustomizerClient({
 
           // 3. Scroll and focus corresponding input element after DOM renders
           setTimeout(() => {
-            let targetRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null> | null = null
-
-            if (field === "hero.title") targetRef = heroTitleRef
-            else if (field === "hero.subtitle") targetRef = heroSubtitleRef
-            else if (field === "hero.ctaText") targetRef = heroCtaRef
-            else if (field === "features.title") targetRef = featuresTitleRef
-            else if (field === "features.subtitle") targetRef = featuresSubtitleRef
-            else if (field === "features.list.0.title") targetRef = feat0TitleRef
-            else if (field === "features.list.0.description") targetRef = feat0DescRef
-            else if (field === "features.list.1.title") targetRef = feat1TitleRef
-            else if (field === "features.list.1.description") targetRef = feat1DescRef
-            else if (field === "features.list.2.title") targetRef = feat2TitleRef
-            else if (field === "features.list.2.description") targetRef = feat2DescRef
-
-            if (targetRef && targetRef.current) {
-              const el = targetRef.current
+            const el = document.getElementById(`input-${field}`) as HTMLInputElement | HTMLTextAreaElement | null
+            if (el) {
               el.scrollIntoView({ behavior: "smooth", block: "center" })
               el.focus()
 
               // Trigger quick temporary border glow animation
-              el.classList.add("ring-4", "ring-primary/60", "border-primary")
+              const isTextArea = el.tagName.toLowerCase() === "textarea"
+              const originalClass = el.className
+              const baseClass = "w-full rounded border bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all"
+              const textAreaAddon = isTextArea ? " resize-none" : ""
+              
+              el.className = `${baseClass}${textAreaAddon} border-primary ring-2 ring-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.5)]`
               setTimeout(() => {
-                el.classList.remove("ring-4", "ring-primary/60", "border-primary")
-              }, 1200)
+                el.className = originalClass
+              }, 1500)
             }
-          }, 150)
+          }, 100)
         }
       }
     }
@@ -721,7 +716,7 @@ export default function CustomizerClient({
                   Hero Title
                 </label>
                 <input
-                  ref={heroTitleRef}
+                  id="input-hero.title"
                   type="text"
                   value={config.hero.title}
                   onChange={(e) => {
@@ -737,7 +732,7 @@ export default function CustomizerClient({
                   Hero Subtitle
                 </label>
                 <textarea
-                  ref={heroSubtitleRef}
+                  id="input-hero.subtitle"
                   rows={3}
                   value={config.hero.subtitle}
                   onChange={(e) => {
@@ -753,7 +748,7 @@ export default function CustomizerClient({
                   CTA Button Label
                 </label>
                 <input
-                  ref={heroCtaRef}
+                  id="input-hero.ctaText"
                   type="text"
                   value={config.hero.ctaText}
                   onChange={(e) => {
@@ -778,7 +773,7 @@ export default function CustomizerClient({
                   Features Title
                 </label>
                 <input
-                  ref={featuresTitleRef}
+                  id="input-features.title"
                   type="text"
                   value={config.features.title}
                   onChange={(e) => {
@@ -794,7 +789,7 @@ export default function CustomizerClient({
                   Features Subtitle
                 </label>
                 <input
-                  ref={featuresSubtitleRef}
+                  id="input-features.subtitle"
                   type="text"
                   value={config.features.subtitle}
                   onChange={(e) => {
@@ -815,8 +810,6 @@ export default function CustomizerClient({
             </h3>
             <div className="space-y-4 divide-y divide-neutral-800/60">
               {config.features.list.map((item, idx) => {
-                const titleRef = idx === 0 ? feat0TitleRef : idx === 1 ? feat1TitleRef : feat2TitleRef
-                const descRef = idx === 0 ? feat0DescRef : idx === 1 ? feat1DescRef : feat2DescRef
                 return (
                   <div key={idx} className="space-y-3 pt-3 first:pt-0">
                     <span className="text-[9px] font-bold text-primary tracking-wider uppercase">
@@ -827,7 +820,7 @@ export default function CustomizerClient({
                         Title
                       </label>
                       <input
-                        ref={titleRef}
+                        id={`input-features.list.${idx}.title`}
                         type="text"
                         value={item.title}
                         onChange={(e) => {
@@ -843,7 +836,7 @@ export default function CustomizerClient({
                         Description
                       </label>
                       <textarea
-                        ref={descRef}
+                        id={`input-features.list.${idx}.description`}
                         rows={2}
                         value={item.description}
                         onChange={(e) => {
@@ -858,6 +851,184 @@ export default function CustomizerClient({
                 )
               })}
             </div>
+          </div>
+
+          {/* Shop Info Section */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-neutral-800 pb-1">
+              Shop Details & Contact
+            </h3>
+            <div>
+              <label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">
+                Shop Name
+              </label>
+              <input
+                id="input-shopInfo.name"
+                type="text"
+                value={config.shopInfo?.name || ""}
+                onChange={(e) => {
+                  const updated = { ...config, shopInfo: { ...config.shopInfo!, name: e.target.value } }
+                  updateConfig(updated)
+                }}
+                className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">
+                Phone Number
+              </label>
+              <input
+                id="input-shopInfo.phone"
+                type="text"
+                value={config.shopInfo?.phone || ""}
+                onChange={(e) => {
+                  const updated = { ...config, shopInfo: { ...config.shopInfo!, phone: e.target.value } }
+                  updateConfig(updated)
+                }}
+                className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">
+                Address
+              </label>
+              <textarea
+                id="input-shopInfo.address"
+                rows={2}
+                value={config.shopInfo?.address || ""}
+                onChange={(e) => {
+                  const updated = { ...config, shopInfo: { ...config.shopInfo!, address: e.target.value } }
+                  updateConfig(updated)
+                }}
+                className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Careers Section */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-neutral-800 pb-1">
+              Careers & Hiring
+            </h3>
+            <div>
+              <label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">
+                Weekly Booth Rent Rate
+              </label>
+              <input
+                id="input-careers.rentRate"
+                type="text"
+                value={config.careers?.rentRate || ""}
+                onChange={(e) => {
+                  const updated = { ...config, careers: { ...config.careers!, rentRate: e.target.value } }
+                  updateConfig(updated)
+                }}
+                className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all"
+              />
+            </div>
+          </div>
+
+          
+          {/* Header Branding & Nav */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-neutral-800 pb-1">
+              Header Branding & Nav
+            </h3>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Logo Text</label><input id="input-header.logoText" type="text" value={config.header?.logoText || ""} onChange={(e) => { const updated = { ...config, header: { ...config.header!, logoText: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Status Badge Text</label><input id="input-header.statusText" type="text" value={config.header?.statusText || ""} onChange={(e) => { const updated = { ...config, header: { ...config.header!, statusText: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">CTA Button Text</label><input id="input-header.ctaText" type="text" value={config.header?.ctaText || ""} onChange={(e) => { const updated = { ...config, header: { ...config.header!, ctaText: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            
+            <div className="space-y-2 pt-2 border-t border-neutral-800/60">
+              <span className="text-[9px] font-bold text-primary tracking-wider uppercase mb-2 block">Navigation Links</span>
+              {config.header?.links.map((link, idx) => (
+                <div key={idx} className="flex gap-2">
+                  <div className="flex-1"><input id={`input-header.links.${idx}.label`} type="text" value={link.label} onChange={(e) => { const updated = { ...config }; updated.header!.links[idx].label = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-2 py-1.5 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Hero Stats Section */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-neutral-800 pb-1">
+              Hero Stats & Badge
+            </h3>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Location Badge</label><input id="input-hero.locationBadge" type="text" value={config.hero?.locationBadge || ""} onChange={(e) => { const updated = { ...config, hero: { ...config.hero, locationBadge: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Hours Stat</label><input id="input-hero.stats.hours" type="text" value={config.hero?.stats?.hours || ""} onChange={(e) => { const updated = { ...config, hero: { ...config.hero, stats: { ...config.hero.stats!, hours: e.target.value } } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Address Stat</label><input id="input-hero.stats.address" type="text" value={config.hero?.stats?.address || ""} onChange={(e) => { const updated = { ...config, hero: { ...config.hero, stats: { ...config.hero.stats!, address: e.target.value } } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            <div className="flex gap-2">
+              <div className="flex-1"><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Rating</label><input id="input-hero.stats.rating" type="text" value={config.hero?.stats?.rating || ""} onChange={(e) => { const updated = { ...config, hero: { ...config.hero, stats: { ...config.hero.stats!, rating: e.target.value } } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+              <div className="flex-1"><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Rating Text</label><input id="input-hero.stats.ratingText" type="text" value={config.hero?.stats?.ratingText || ""} onChange={(e) => { const updated = { ...config, hero: { ...config.hero, stats: { ...config.hero.stats!, ratingText: e.target.value } } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            </div>
+          </div>
+
+          {/* Services Section */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-neutral-800 pb-1">
+              Services Section
+            </h3>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Title</label><input id="input-services.title" type="text" value={config.services?.title || ""} onChange={(e) => { const updated = { ...config, services: { ...config.services!, title: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Subtitle</label><input id="input-services.subtitle" type="text" value={config.services?.subtitle || ""} onChange={(e) => { const updated = { ...config, services: { ...config.services!, subtitle: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">CTA Text</label><input id="input-services.ctaText" type="text" value={config.services?.ctaText || ""} onChange={(e) => { const updated = { ...config, services: { ...config.services!, ctaText: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            <div className="space-y-4 divide-y divide-neutral-800/60 pt-2">
+              {config.services?.list.map((item, idx) => (
+                <div key={idx} className="space-y-3 pt-3 first:pt-0">
+                  <span className="text-[9px] font-bold text-primary tracking-wider uppercase">Service Card #{idx + 1}</span>
+                  <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Title</label><input id={`input-services.list.${idx}.title`} type="text" value={item.title} onChange={(e) => { const updated = { ...config }; updated.services!.list[idx].title = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+                  <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Price</label><input id={`input-services.list.${idx}.price`} type="text" value={item.price} onChange={(e) => { const updated = { ...config }; updated.services!.list[idx].price = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+                  <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Description</label><textarea id={`input-services.list.${idx}.description`} rows={2} value={item.description} onChange={(e) => { const updated = { ...config }; updated.services!.list[idx].description = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all resize-none" /></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Testimonials Section */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-neutral-800 pb-1">
+              Testimonials Section
+            </h3>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Title</label><input id="input-testimonials.title" type="text" value={config.testimonials?.title || ""} onChange={(e) => { const updated = { ...config, testimonials: { ...config.testimonials!, title: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Subtitle</label><input id="input-testimonials.subtitle" type="text" value={config.testimonials?.subtitle || ""} onChange={(e) => { const updated = { ...config, testimonials: { ...config.testimonials!, subtitle: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            <div className="space-y-4 divide-y divide-neutral-800/60 pt-2">
+              {config.testimonials?.reviews.map((item, idx) => (
+                <div key={idx} className="space-y-3 pt-3 first:pt-0">
+                  <span className="text-[9px] font-bold text-primary tracking-wider uppercase">Review #{idx + 1}</span>
+                  <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Quote</label><textarea id={`input-testimonials.reviews.${idx}.quote`} rows={2} value={item.quote} onChange={(e) => { const updated = { ...config }; updated.testimonials!.reviews[idx].quote = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all resize-none" /></div>
+                  <div className="flex gap-2">
+                    <div className="flex-1"><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Name</label><input id={`input-testimonials.reviews.${idx}.name`} type="text" value={item.name} onChange={(e) => { const updated = { ...config }; updated.testimonials!.reviews[idx].name = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+                    <div className="flex-1"><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Detail</label><input id={`input-testimonials.reviews.${idx}.detail`} type="text" value={item.detail} onChange={(e) => { const updated = { ...config }; updated.testimonials!.reviews[idx].detail = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Operating Hours Section */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-neutral-800 pb-1">
+              Operating Hours
+            </h3>
+            <div className="space-y-2">
+              {config.contact?.hoursInfo.map((item, idx) => (
+                <div key={idx} className="flex gap-2">
+                  <div className="w-24"><input id={`input-contact.hoursInfo.${idx}.day`} type="text" value={item.day} onChange={(e) => { const updated = { ...config }; updated.contact!.hoursInfo[idx].day = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-2 py-1 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+                  <div className="flex-1"><input id={`input-contact.hoursInfo.${idx}.time`} type="text" value={item.time} onChange={(e) => { const updated = { ...config }; updated.contact!.hoursInfo[idx].time = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-2 py-1 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer Branding Section */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-neutral-800 pb-1">
+              Footer Branding
+            </h3>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Shop Title</label><input id="input-footer.title" type="text" value={config.footer?.title || ""} onChange={(e) => { const updated = { ...config, footer: { ...config.footer!, title: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Description</label><textarea id="input-footer.description" rows={2} value={config.footer?.description || ""} onChange={(e) => { const updated = { ...config, footer: { ...config.footer!, description: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all resize-none" /></div>
+            <div className="flex gap-2">
+              <div className="flex-1"><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Contact Header</label><input id="input-footer.contactText" type="text" value={config.footer?.contactText || ""} onChange={(e) => { const updated = { ...config, footer: { ...config.footer!, contactText: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+              <div className="flex-1"><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Explore Header</label><input id="input-footer.exploreText" type="text" value={config.footer?.exploreText || ""} onChange={(e) => { const updated = { ...config, footer: { ...config.footer!, exploreText: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+            </div>
+            <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Copyright</label><input id="input-footer.copyright" type="text" value={config.footer?.copyright || ""} onChange={(e) => { const updated = { ...config, footer: { ...config.footer!, copyright: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
           </div>
 
           {/* Quick tips */}
@@ -1056,7 +1227,7 @@ export default function CustomizerClient({
 
       {/* Publish Success Dialog Modal */}
       {showPublishSuccess && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           
           <div
             onClick={() => setShowPublishSuccess(false)}
@@ -1070,14 +1241,46 @@ export default function CustomizerClient({
               Successfully Deployed!
             </h3>
             <p className="mt-2 text-sm text-neutral-400 leading-relaxed">
-              Your site changes have been compiled, tailwind theme configurations optimized, and static routes pre-rendered to production.
+              Your site changes have been compiled and published. Your public site is now live at:
             </p>
-            <button
-              onClick={() => setShowPublishSuccess(false)}
-              className="mt-6 w-full rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-            >
-              Done
-            </button>
+            
+            <div className="mt-4 bg-black/50 border border-neutral-800 rounded-lg p-3 flex items-center gap-2">
+              <input 
+                type="text" 
+                readOnly 
+                value={typeof window !== 'undefined' ? `${window.location.origin}/s/${shopId}` : `/s/${shopId}`}
+                className="w-full bg-transparent text-xs text-neutral-300 focus:outline-none" 
+                onClick={(e) => e.currentTarget.select()}
+              />
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(typeof window !== 'undefined' ? `${window.location.origin}/s/${shopId}` : `/s/${shopId}`)
+                  setToastMessage("Link copied to clipboard!")
+                }}
+                className="text-neutral-500 hover:text-white transition-colors"
+                title="Copy Link"
+              >
+                <span className="text-[10px] font-bold uppercase tracking-wider">Copy</span>
+              </button>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setShowPublishSuccess(false)}
+                className="flex-1 rounded-lg bg-neutral-800 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors"
+              >
+                Close
+              </button>
+              <a
+                href={`/s/${shopId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowPublishSuccess(false)}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Open Live Site <ExternalLink className="size-3.5" />
+              </a>
+            </div>
           </div>
         </div>
       )}

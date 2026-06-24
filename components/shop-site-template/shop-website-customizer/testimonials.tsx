@@ -26,22 +26,54 @@ const reviews = [
   },
 ]
 
-export function Testimonials() {
+import { SiteConfig, defaultSiteConfig } from "./config-defaults"
+import { cn } from "@/lib/utils"
+
+const defaultReviews = reviews
+
+interface TestimonialsProps {
+  config?: SiteConfig
+  isEditable?: boolean
+}
+
+export function Testimonials({ config = defaultSiteConfig, isEditable }: TestimonialsProps) {
   const [index, setIndex] = useState(0)
 
-  const prev = () => setIndex((i) => (i === 0 ? reviews.length - 1 : i - 1))
-  const next = () => setIndex((i) => (i === reviews.length - 1 ? 0 : i + 1))
+  const { testimonials } = config
+  const title = testimonials?.title || "Social Proof"
+  const subtitle = testimonials?.subtitle || "What the city is saying"
+  const reviewsList = testimonials?.reviews || defaultReviews
 
-  const review = reviews[index]
+  const handleVisualEdit = (field: string) => {
+    if (isEditable) {
+      window.parent.postMessage({ type: "VISUAL_EDIT_REQUEST", field }, "*")
+    }
+  }
+
+  const editableClass = (field: string) =>
+    isEditable
+      ? "cursor-pointer hover:ring-2 hover:ring-primary/50 hover:ring-offset-2 hover:ring-offset-background rounded-lg p-0.5 transition-all inline-block"
+      : ""
+
+  const prev = () => setIndex((i) => (i === 0 ? reviewsList.length - 1 : i - 1))
+  const next = () => setIndex((i) => (i === reviewsList.length - 1 ? 0 : i + 1))
+
+  const review = reviewsList[index]
 
   return (
     <section id="reviews" className="border-t border-border bg-background py-20 lg:py-28">
       <div className="mx-auto max-w-4xl px-6 text-center lg:px-8">
-        <p className="text-sm font-semibold uppercase tracking-widest text-primary">
-          Social Proof
+        <p 
+          onClick={() => handleVisualEdit("testimonials.title")}
+          className={cn("text-sm font-semibold uppercase tracking-widest text-primary inline-block", editableClass("testimonials.title"))}
+        >
+          {title}
         </p>
-        <h2 className="mt-3 font-heading text-4xl font-bold uppercase tracking-tight text-balance text-foreground lg:text-5xl">
-          What the city is saying
+        <h2 
+          onClick={() => handleVisualEdit("testimonials.subtitle")}
+          className={cn("mt-3 font-heading text-4xl font-bold uppercase tracking-tight text-balance text-foreground lg:text-5xl", editableClass("testimonials.subtitle"))}
+        >
+          {subtitle}
         </h2>
 
         <div className="relative mt-12 rounded-2xl border border-border bg-card p-8 sm:p-12">
@@ -53,15 +85,26 @@ export function Testimonials() {
             ))}
           </div>
 
-          <blockquote className="mt-6 text-xl leading-relaxed text-pretty text-card-foreground sm:text-2xl">
+          <blockquote 
+            onClick={() => handleVisualEdit(`testimonials.reviews.${index}.quote`)}
+            className={cn("mt-6 text-xl leading-relaxed text-pretty text-card-foreground sm:text-2xl", editableClass(`testimonials.reviews.${index}.quote`))}
+          >
             &ldquo;{review.quote}&rdquo;
           </blockquote>
 
           <div className="mt-8">
-            <p className="font-heading text-lg font-semibold uppercase tracking-wide text-foreground">
+            <p 
+              onClick={() => handleVisualEdit(`testimonials.reviews.${index}.name`)}
+              className={cn("font-heading text-lg font-semibold uppercase tracking-wide text-foreground", editableClass(`testimonials.reviews.${index}.name`))}
+            >
               {review.name}
             </p>
-            <p className="text-sm text-muted-foreground">{review.detail}</p>
+            <p 
+              onClick={() => handleVisualEdit(`testimonials.reviews.${index}.detail`)}
+              className={cn("text-sm text-muted-foreground", editableClass(`testimonials.reviews.${index}.detail`))}
+            >
+              {review.detail}
+            </p>
           </div>
 
           <div className="mt-10 flex items-center justify-center gap-4">
@@ -75,7 +118,7 @@ export function Testimonials() {
             </button>
 
             <div className="flex items-center gap-2">
-              {reviews.map((_, i) => (
+              {reviewsList.map((_, i) => (
                 <button
                   key={i}
                   type="button"

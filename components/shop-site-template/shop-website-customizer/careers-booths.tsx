@@ -27,8 +27,9 @@ interface FormState {
 }
 
 import { SiteConfig, defaultSiteConfig } from "./config-defaults"
+import { cn } from "@/lib/utils"
 
-export function CareersBooths({ config = defaultSiteConfig }: { config?: SiteConfig }) {
+export function CareersBooths({ config = defaultSiteConfig, isEditable }: { config?: SiteConfig, isEditable?: boolean }) {
   // Modal State
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedRole, setSelectedRole] = useState<RoleType>("booth")
@@ -43,6 +44,17 @@ export function CareersBooths({ config = defaultSiteConfig }: { config?: SiteCon
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+
+  const handleVisualEdit = (field: string) => {
+    if (isEditable) {
+      window.parent.postMessage({ type: "VISUAL_EDIT_REQUEST", field }, "*")
+    }
+  }
+
+  const editableClass = (field: string) =>
+    isEditable
+      ? "cursor-pointer hover:ring-2 hover:ring-primary/50 hover:ring-offset-2 hover:ring-offset-background rounded-lg p-0.5 transition-all inline-block"
+      : ""
 
   // Calculator State
   const [avgPrice, setAvgPrice] = useState(45)
@@ -113,7 +125,7 @@ export function CareersBooths({ config = defaultSiteConfig }: { config?: SiteCon
             Elevate Your Barber Career
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-            {config.shopInfo?.name || "Legends"} is your premier shop. Whether you want the security of commission clients or the freedom of running your own business with booth rental, we have a chair for you.
+            <span onClick={() => handleVisualEdit("shopInfo.name")} className={editableClass("shopInfo.name")}>{config.shopInfo?.name || "Legends"}</span> is your premier shop. Whether you want the security of commission clients or the freedom of running your own business with booth rental, we have a chair for you.
           </p>
         </div>
 
@@ -186,7 +198,9 @@ export function CareersBooths({ config = defaultSiteConfig }: { config?: SiteCon
             <ul className="mt-8 space-y-3.5">
               {[
                 "24/7 keycard access — work when you and your high-paying clients want",
-                `Flat weekly rent (${config.careers?.rentRate || "$250/wk"}) — keep 100% of your earnings after rent`,
+                <span key="rentRate" onClick={() => handleVisualEdit("careers.rentRate")} className={editableClass("careers.rentRate")}>
+                  {`Flat weekly rent (${config.careers?.rentRate || "$250/wk"}) — keep 100% of your earnings after rent`}
+                </span>,
                 "Premium Italian leather chair, spacious tool station, and LED lighting",
                 "Access to wash stations, laundry facilities, and clean towels",
                 "Ring lights, styling backdrops, and media kit support for content"
