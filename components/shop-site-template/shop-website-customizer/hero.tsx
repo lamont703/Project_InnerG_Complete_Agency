@@ -7,6 +7,13 @@ interface HeroProps {
     title: string
     subtitle: string
     ctaText: string
+    locationBadge?: string
+    stats?: {
+      hours: string
+      address: string
+      rating: string
+      ratingText: string
+    }
   }
   isEditable?: boolean
 }
@@ -15,6 +22,13 @@ export function Hero({ config, isEditable }: HeroProps) {
   const title = config?.title || "Legendary Grooming, 24/7"
   const subtitle = config?.subtitle || "Atlanta's upscale barbershop & hair studio. A-1 cuts, crisp fades, and a dope vibe — for the whole family, any hour of the day."
   const ctaText = config?.ctaText || "Book Online"
+  const locationBadge = config?.locationBadge || "Open 24 Hours · Hapeville, ATL"
+  const stats = config?.stats || {
+    hours: "Open 24 Hours",
+    address: "612 S Central Ave",
+    rating: "5.0",
+    ratingText: "A-1 Service"
+  }
 
   const handleVisualEdit = (field: string) => {
     if (isEditable) {
@@ -42,12 +56,15 @@ export function Hero({ config, isEditable }: HeroProps) {
 
       <div className="relative mx-auto w-full max-w-7xl px-6 pt-28 pb-16 lg:px-8">
         <div className="max-w-2xl">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary">
+          <div 
+            onClick={() => handleVisualEdit("hero.locationBadge")}
+            className={cn("mb-6 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary", editableClass("hero.locationBadge"))}
+          >
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex size-2 rounded-full bg-primary" />
             </span>
-            Open 24 Hours · Hapeville, ATL
+            {locationBadge}
           </div>
 
           <h1 
@@ -98,15 +115,16 @@ export function Hero({ config, isEditable }: HeroProps) {
           <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Clock className="size-4 text-primary" />
-              Open 24 Hours
+              <span onClick={() => handleVisualEdit("hero.stats.hours")} className={editableClass("hero.stats.hours")}>{stats.hours}</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="size-4 text-primary" />
-              612 S Central Ave
+              <span onClick={() => handleVisualEdit("hero.stats.address")} className={editableClass("hero.stats.address")}>{stats.address}</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Star className="size-4 fill-primary text-primary" />
-              <span className="font-semibold text-foreground">5.0</span> A-1 Service
+              <span onClick={() => handleVisualEdit("hero.stats.rating")} className={cn("font-semibold text-foreground", editableClass("hero.stats.rating"))}>{stats.rating}</span>
+              <span onClick={() => handleVisualEdit("hero.stats.ratingText")} className={editableClass("hero.stats.ratingText")}>{stats.ratingText}</span>
             </div>
           </div>
         </div>
