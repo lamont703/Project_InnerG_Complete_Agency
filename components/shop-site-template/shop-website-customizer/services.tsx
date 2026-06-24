@@ -92,13 +92,16 @@ export function Services({ config = defaultSiteConfig, isEditable }: ServicesPro
               key={idx}
               className="group overflow-hidden rounded-xl border border-border bg-card"
             >
-              <div className="relative aspect-[4/5] overflow-hidden">
+              <div 
+                className="relative aspect-[4/5] overflow-hidden"
+                onClick={() => handleVisualEdit(`services.list.${idx}.image`)}
+              >
                 <img
                   src={service.image || "/placeholder.svg"}
                   alt={service.title}
-                  className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  className={cn("size-full object-cover transition-transform duration-500 group-hover:scale-105", editableClass(`services.list.${idx}.image`))}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent pointer-events-none" />
                 <span 
                   onClick={() => handleVisualEdit(`services.list.${idx}.price`)}
                   className={cn("absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground", editableClass(`services.list.${idx}.price`))}

@@ -22,7 +22,7 @@ const footerLinks = {
     { label: "Pixel Analytics", href: "/pixel-analytics" },
     { label: "Shop Day Connections", href: "/shop-day-connections" },
     { label: "Shop Site Template", href: "/s/a6cd48e5-2b32-4062-8284-c100cccdefc3" },
-    { label: "Shop Site AI Customizer", href: "https://agency.innergcomplete.com/tools/shop-site-template/shop-website-customizer/a6cd48e5-2b32-4062-8284-c100cccdefc3/customizer" },
+    { label: "Shop Site AI Customizer", href: "/tools/shop-site-template/shop-website-customizer/a6cd48e5-2b32-4062-8284-c100cccdefc3/customizer" },
     { label: "AI Booth Station Tool", href: "/tools/ai-booth-station" },
     { label: "Foot Traffic Radar Tool", href: "/tools/foot-traffic-radar" },
   ],
