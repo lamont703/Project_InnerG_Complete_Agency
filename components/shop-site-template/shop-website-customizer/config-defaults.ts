@@ -20,6 +20,16 @@ export interface SiteConfig {
     subtitle: string
     list: FeatureItem[]
   }
+  shopInfo?: {
+    name: string
+    phone: string
+    email: string
+    address: string
+  }
+  careers?: {
+    rentType: string
+    rentRate: string
+  }
 }
 
 export const defaultSiteConfig: SiteConfig = {
@@ -52,4 +62,14 @@ export const defaultSiteConfig: SiteConfig = {
       },
     ],
   },
+  shopInfo: {
+    name: "Legends Barbershop",
+    phone: "(404) 555-0142",
+    email: "hello@legendsbarbershop.com",
+    address: "612 S Central Ave, Hapeville, GA 30354"
+  },
+  careers: {
+    rentType: "Booth Rent",
+    rentRate: "$250/week"
+  }
 }

@@ -26,7 +26,9 @@ interface FormState {
   message: string
 }
 
-export function CareersBooths() {
+import { SiteConfig, defaultSiteConfig } from "./config-defaults"
+
+export function CareersBooths({ config = defaultSiteConfig }: { config?: SiteConfig }) {
   // Modal State
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedRole, setSelectedRole] = useState<RoleType>("booth")
@@ -48,7 +50,9 @@ export function CareersBooths() {
   const [daysPerWeek, setDaysPerWeek] = useState(5)
   const [commissionSplit, setCommissionSplit] = useState(60) // Barber keeps 60%
 
-  const BOOTH_RENT_WEEKLY = 250 // Flat booth rent fee
+  // Parse rent amount from string (e.g. "$200/week" -> 200), default to 250
+  const parsedRent = parseInt((config.careers?.rentRate || "250").replace(/[^0-9]/g, ''))
+  const BOOTH_RENT_WEEKLY = isNaN(parsedRent) ? 250 : parsedRent
 
   // Math calculations
   const cutsPerWeek = cutsPerDay * daysPerWeek
@@ -109,7 +113,7 @@ export function CareersBooths() {
             Elevate Your Barber Career
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-            Legends is Atlanta's premier 24/7 shop. Whether you want the security of commission clients or the freedom of running your own business with booth rental, we have a chair for you.
+            {config.shopInfo?.name || "Legends"} is your premier shop. Whether you want the security of commission clients or the freedom of running your own business with booth rental, we have a chair for you.
           </p>
         </div>
 
@@ -182,7 +186,7 @@ export function CareersBooths() {
             <ul className="mt-8 space-y-3.5">
               {[
                 "24/7 keycard access — work when you and your high-paying clients want",
-                "Flat weekly rent ($250/wk) — keep 100% of your earnings after rent",
+                `Flat weekly rent (${config.careers?.rentRate || "$250/wk"}) — keep 100% of your earnings after rent`,
                 "Premium Italian leather chair, spacious tool station, and LED lighting",
                 "Access to wash stations, laundry facilities, and clean towels",
                 "Ring lights, styling backdrops, and media kit support for content"
@@ -223,7 +227,7 @@ export function CareersBooths() {
                   Estimate Your Earnings
                 </h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Compare how much you take home renting a booth at Legends versus working on a commission split. Drag the sliders to match your typical numbers.
+                  Compare how much you take home renting a booth at {config.shopInfo?.name || "Legends"} versus working on a commission split. Drag the sliders to match your typical numbers.
                 </p>
               </div>
 
@@ -341,7 +345,7 @@ export function CareersBooths() {
                     Booth Rental
                   </div>
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                    Legends Rental Take-Home
+                    {config.shopInfo?.name || "Legends"} Rental Take-Home
                   </p>
                   <div className="mt-1 flex items-baseline gap-1.5">
                     <span className="font-heading text-2xl font-bold text-foreground">
@@ -363,7 +367,7 @@ export function CareersBooths() {
                     Commission
                   </div>
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                    Legends Commission Take-Home
+                    {config.shopInfo?.name || "Legends"} Commission Take-Home
                   </p>
                   <div className="mt-1 flex items-baseline gap-1.5">
                     <span className="font-heading text-2xl font-bold text-foreground">
@@ -438,7 +442,7 @@ export function CareersBooths() {
                         {formState.role === "booth" ? "Rent a Station" : "Join the Barber Crew"}
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        Legends Barbershop — Atlanta, GA
+                        {config.shopInfo?.name || "Legends Barbershop"} — {config.shopInfo?.address?.split(',')[1] || "Atlanta, GA"}
                       </p>
                     </div>
                   </div>

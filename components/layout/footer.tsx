@@ -23,7 +23,7 @@ const footerLinks = {
     { label: "Shop Day Connections", href: "/shop-day-connections" },
     { label: "Barbershop Site Template", href: "/tools/shop-site-template/buzzardsbarbershop" },
     { label: "Shop Site Template", href: "/tools/shop-site-template/shop-website-customizer" },
-    { label: "Shop Site AI Customizer", href: "/tools/shop-site-template/shop-website-customizer/customizer" },
+    { label: "Shop Site AI Customizer", href: "/tools/shop-site-template/shop-website-customizer/a6cd48e5-2b32-4062-8284-c100cccdefc3/customizer" },
     { label: "AI Booth Station Tool", href: "/tools/ai-booth-station" },
     { label: "Foot Traffic Radar Tool", href: "/tools/foot-traffic-radar" },
   ],
