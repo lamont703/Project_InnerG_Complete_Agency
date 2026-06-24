@@ -120,7 +120,7 @@ export default function CustomizerClient({
 
   // Load configuration from local storage on mount
   useEffect(() => {
-    const saved = localStorage.getItem("legends-site-config")
+    const saved = localStorage.getItem(`legends-site-config-${shopId}`)
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
@@ -169,7 +169,7 @@ export default function CustomizerClient({
         if (event.data.type === "UPDATE_SITE_CONFIG") {
           const newConfig = event.data.config as SiteConfig
           setConfig(newConfig)
-          localStorage.setItem("legends-site-config", JSON.stringify(newConfig))
+          localStorage.setItem(`legends-site-config-${shopId}`, JSON.stringify(newConfig))
         } else if (event.data.type === "VISUAL_EDIT_REQUEST") {
           const field = event.data.field as string
 
@@ -229,7 +229,7 @@ export default function CustomizerClient({
   // Handle updates locally and send to iframe
   const updateConfig = (newConfig: SiteConfig) => {
     setConfig(newConfig)
-    localStorage.setItem("legends-site-config", JSON.stringify(newConfig))
+    localStorage.setItem(`legends-site-config-${shopId}`, JSON.stringify(newConfig))
     syncConfigToIframe(newConfig)
   }
 
