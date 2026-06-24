@@ -44,6 +44,19 @@ interface Message {
 type DeviceMode = "desktop" | "tablet" | "mobile"
 type TabMode = "chat" | "preview"
 
+const PRESET_IMAGES = [
+  "/images/gallery/black_man_braids_taper_1782315612759.png", // Braids & taper fade
+  "/images/gallery/black_barber_cutting_boy_1782315583127.png", // Barber cutting boy's fade
+  "/images/gallery/black_man_beard_trim_1782315593358.png", // Premium beard shape-up
+  "/images/gallery/black_man_razor_lineup_1782315601802.png", // Crisp razor lineup
+  "/images/service-haircut.png", // Original haircut image
+  "/images/service-fade.png", // Original fade image
+  "/images/service-beard.png", // Original beard trim image
+  "/images/service-styling.png", // Original styling image
+  "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=600&auto=format&fit=crop", // Barber working
+  "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=600&auto=format&fit=crop", // Clean fade closeup
+]
+
 export default function CustomizerClient({
   initialConfig,
   shopId,
@@ -71,6 +84,7 @@ export default function CustomizerClient({
   const [iframeKey, setIframeKey] = useState(0) // increment to force reload
   const [showPublishSuccess, setShowPublishSuccess] = useState(false)
   const [expandedSteps, setExpandedSteps] = useState<Record<string, boolean>>({})
+  const [galleryOpenFor, setGalleryOpenFor] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -152,21 +166,28 @@ export default function CustomizerClient({
 
           // 3. Scroll and focus corresponding input element after DOM renders
           setTimeout(() => {
-            const el = document.getElementById(`input-${field}`) as HTMLInputElement | HTMLTextAreaElement | null
-            if (el) {
-              el.scrollIntoView({ behavior: "smooth", block: "center" })
-              el.focus()
+            if (event.data.field.startsWith("services.list.") && event.data.field.endsWith(".image")) {
+              setGalleryOpenFor(event.data.field)
+              // Scroll to services
+              const el = document.getElementById("input-services.title")
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+            } else {
+              const el = document.getElementById(`input-${field}`) as HTMLInputElement | HTMLTextAreaElement | null
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" })
+                el.focus()
 
-              // Trigger quick temporary border glow animation
-              const isTextArea = el.tagName.toLowerCase() === "textarea"
-              const originalClass = el.className
-              const baseClass = "w-full rounded border bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all"
-              const textAreaAddon = isTextArea ? " resize-none" : ""
-              
-              el.className = `${baseClass}${textAreaAddon} border-primary ring-2 ring-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.5)]`
-              setTimeout(() => {
-                el.className = originalClass
-              }, 1500)
+                // Trigger quick temporary border glow animation
+                const isTextArea = el.tagName.toLowerCase() === "textarea"
+                const originalClass = el.className
+                const baseClass = "w-full rounded border bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all"
+                const textAreaAddon = isTextArea ? " resize-none" : ""
+                
+                el.className = `${baseClass}${textAreaAddon} border-primary ring-2 ring-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.5)]`
+                setTimeout(() => {
+                  el.className = originalClass
+                }, 1500)
+              }
             }
           }, 100)
         }
@@ -970,12 +991,24 @@ export default function CustomizerClient({
             <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Subtitle</label><input id="input-services.subtitle" type="text" value={config.services?.subtitle || ""} onChange={(e) => { const updated = { ...config, services: { ...config.services!, subtitle: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
             <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">CTA Text</label><input id="input-services.ctaText" type="text" value={config.services?.ctaText || ""} onChange={(e) => { const updated = { ...config, services: { ...config.services!, ctaText: e.target.value } }; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
             <div className="space-y-4 divide-y divide-neutral-800/60 pt-2">
-              {config.services?.list.map((item, idx) => (
-                <div key={idx} className="space-y-3 pt-3 first:pt-0">
-                  <span className="text-[9px] font-bold text-primary tracking-wider uppercase">Service Card #{idx + 1}</span>
-                  <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Title</label><input id={`input-services.list.${idx}.title`} type="text" value={item.title} onChange={(e) => { const updated = { ...config }; updated.services!.list[idx].title = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
-                  <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Price</label><input id={`input-services.list.${idx}.price`} type="text" value={item.price} onChange={(e) => { const updated = { ...config }; updated.services!.list[idx].price = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
-                  <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Description</label><textarea id={`input-services.list.${idx}.description`} rows={2} value={item.description} onChange={(e) => { const updated = { ...config }; updated.services!.list[idx].description = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all resize-none" /></div>
+              {config.services?.list.map((service, idx) => (
+                <div key={idx} className="pt-4 space-y-3">
+                  <div className="flex gap-4">
+                    <div className="w-20 h-24 shrink-0 rounded overflow-hidden relative group border border-neutral-800">
+                      <img src={service.image} alt={service.title} className="size-full object-cover" />
+                      <div 
+                        className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        onClick={() => setGalleryOpenFor(`services.list.${idx}.image`)}
+                      >
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-white">Replace</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Service {idx + 1} Title</label><input id={`input-services.list.${idx}.title`} type="text" value={service.title} onChange={(e) => { const updated = { ...config }; updated.services!.list[idx].title = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-2 py-1.5 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+                      <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Price</label><input id={`input-services.list.${idx}.price`} type="text" value={service.price} onChange={(e) => { const updated = { ...config }; updated.services!.list[idx].price = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-2 py-1.5 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all" /></div>
+                    </div>
+                  </div>
+                  <div><label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">Description</label><textarea id={`input-services.list.${idx}.description`} rows={2} value={service.description} onChange={(e) => { const updated = { ...config }; updated.services!.list[idx].description = e.target.value; updateConfig(updated) }} className="w-full rounded border border-neutral-800 bg-neutral-950 px-2 py-1.5 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all resize-none" /></div>
                 </div>
               ))}
             </div>
@@ -1280,6 +1313,56 @@ export default function CustomizerClient({
               >
                 Open Live Site <ExternalLink className="size-3.5" />
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Gallery Picker Modal */}
+      {galleryOpenFor && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div
+            onClick={() => setGalleryOpenFor(null)}
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+          />
+          <div className="relative w-full max-w-4xl rounded-2xl border border-neutral-800 bg-neutral-900 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="font-heading text-xl font-bold text-white">Select an Image</h3>
+                <p className="text-sm text-neutral-400 mt-1">Choose a premium high-resolution photo from our curated barbering library.</p>
+              </div>
+              <button onClick={() => setGalleryOpenFor(null)} className="p-2 hover:bg-neutral-800 rounded-full text-neutral-400 hover:text-white transition-colors">
+                <X className="size-5" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              {PRESET_IMAGES.map((imgUrl, idx) => (
+                <div 
+                  key={idx}
+                  onClick={() => {
+                    if (galleryOpenFor) {
+                      // Parse "services.list.0.image"
+                      const pathParts = galleryOpenFor.split('.')
+                      if (pathParts[0] === 'services' && pathParts[1] === 'list') {
+                        const index = parseInt(pathParts[2])
+                        const updated = { ...config }
+                        if (updated.services && updated.services.list[index]) {
+                          updated.services.list[index].image = imgUrl
+                          updateConfig(updated)
+                        }
+                      }
+                      setGalleryOpenFor(null)
+                    }
+                  }}
+                  className="group relative aspect-[4/5] rounded-xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-primary transition-all shadow-lg"
+                >
+                  <img src={imgUrl} alt={`Curated preset ${idx}`} className="size-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <span className="bg-primary text-primary-foreground px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest shadow-xl">Use Photo</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
