@@ -79,66 +79,77 @@ export function Contact({ config = defaultSiteConfig, isEditable }: { config?: S
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-6">
-              <div className="flex items-center justify-between">
-                <h3 className="flex items-center gap-2 font-heading text-base font-semibold uppercase tracking-wide text-card-foreground">
-                  <Clock className="size-5 text-primary" />
-                  Hours
-                </h3>
-                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-                  Open 24 Hours
-                </span>
+            {config.visibility?.showContactHours !== false && (
+              <div className="rounded-xl border border-border bg-card p-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="flex items-center gap-2 font-heading text-base font-semibold uppercase tracking-wide text-card-foreground">
+                    <Clock className="size-5 text-primary" />
+                    Hours
+                  </h3>
+                  <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+                    Open 24 Hours
+                  </span>
+                </div>
+                <ul className="mt-5 divide-y divide-border">
+                  {hoursList.map((h, idx) => (
+                    <li
+                      key={h.day}
+                      className="flex items-center justify-between py-2.5 text-sm"
+                    >
+                      <span onClick={() => handleVisualEdit(`contact.hoursInfo.${idx}.day`)} className={cn("text-muted-foreground", editableClass(`contact.hoursInfo.${idx}.day`))}>{h.day}</span>
+                      <span onClick={() => handleVisualEdit(`contact.hoursInfo.${idx}.time`)} className={cn("font-medium text-card-foreground", editableClass(`contact.hoursInfo.${idx}.time`))}>{h.time}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="mt-5 divide-y divide-border">
-                {hoursList.map((h, idx) => (
-                  <li
-                    key={h.day}
-                    className="flex items-center justify-between py-2.5 text-sm"
-                  >
-                    <span onClick={() => handleVisualEdit(`contact.hoursInfo.${idx}.day`)} className={cn("text-muted-foreground", editableClass(`contact.hoursInfo.${idx}.day`))}>{h.day}</span>
-                    <span onClick={() => handleVisualEdit(`contact.hoursInfo.${idx}.time`)} className={cn("font-medium text-card-foreground", editableClass(`contact.hoursInfo.${idx}.time`))}>{h.time}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            )}
 
             <Button size="lg" className="h-12 text-base" asChild>
-              <a href="#contact">Book Online</a>
+              <a 
+                href={config.shopInfo?.bookingLink || "#top"}
+                target={config.shopInfo?.bookingLink ? "_blank" : undefined}
+                rel={config.shopInfo?.bookingLink ? "noopener noreferrer" : undefined}
+                onClick={(e) => isEditable && e.preventDefault()}
+              >
+                {config.header?.ctaText || "Book Online"}
+              </a>
             </Button>
           </div>
 
           {/* Map */}
-          <div 
-            className="relative min-h-[400px] overflow-hidden rounded-2xl border border-border bg-card lg:min-h-full group"
-            onClick={(e) => {
-              if (isEditable) {
-                // Prevent iframe from eating the click when in editor mode
-                e.preventDefault()
-                handleVisualEdit("shopInfo.address")
-              }
-            }}
-          >
-            <iframe
-              title="Legends Barbershop Location"
-              src={`https://maps.google.com/maps?q=${encodeURIComponent((config.shopInfo?.address || "612 S Central Ave, Hapeville, GA 30354").replace(/\n/g, ' '))}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
-              className="absolute inset-0 size-full border-0"
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-            
-            {/* Editor Click Overlay */}
-            {isEditable && (
-              <div className="absolute inset-0 z-10 cursor-pointer bg-transparent hover:ring-2 hover:ring-inset hover:ring-primary/50 transition-all">
-                <div className="absolute top-4 right-4 rounded bg-primary/90 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                  Tap to Edit Address
+          {config.visibility?.showContactMap !== false && (
+            <div 
+              className="relative min-h-[400px] overflow-hidden rounded-2xl border border-border bg-card lg:min-h-full group"
+              onClick={(e) => {
+                if (isEditable) {
+                  // Prevent iframe from eating the click when in editor mode
+                  e.preventDefault()
+                  handleVisualEdit("shopInfo.address")
+                }
+              }}
+            >
+              <iframe
+                title="Legends Barbershop Location"
+                src={`https://maps.google.com/maps?q=${encodeURIComponent((config.shopInfo?.address || "612 S Central Ave, Hapeville, GA 30354").replace(/\n/g, ' '))}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                className="absolute inset-0 size-full border-0"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+              
+              {/* Editor Click Overlay */}
+              {isEditable && (
+                <div className="absolute inset-0 z-10 cursor-pointer bg-transparent hover:ring-2 hover:ring-inset hover:ring-primary/50 transition-all">
+                  <div className="absolute top-4 right-4 rounded bg-primary/90 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                    Edit Location
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Subtle map overlay gradient to match theme borders */}
-            <div className="pointer-events-none absolute inset-0 z-0 ring-1 ring-inset ring-border/20" />
-          </div>
+              {/* Subtle map overlay gradient to match theme borders */}
+              <div className="pointer-events-none absolute inset-0 z-0 ring-1 ring-inset ring-border/20" />
+            </div>
+          )}
         </div>
       </div>
     </section>

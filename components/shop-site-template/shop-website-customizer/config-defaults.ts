@@ -58,6 +58,7 @@ export interface SiteConfig {
     phone: string
     email: string
     address: string
+    bookingLink?: string
   }
   contact?: {
     hoursInfo: Array<{
@@ -75,6 +76,23 @@ export interface SiteConfig {
     contactText: string
     exploreText: string
     copyright: string
+  }
+  visibility?: {
+    showFeatures: boolean
+    showServices: boolean
+    showTestimonials: boolean
+    showCareers: boolean
+    showContact: boolean
+    showHeaderNav?: boolean
+    showHeaderStatus?: boolean
+    showHeaderCTA?: boolean
+    showHeroLocation?: boolean
+    showHeroStats?: boolean
+    showHeroCTA?: boolean
+    showCareersCommission?: boolean
+    showCareersBooth?: boolean
+    showContactMap?: boolean
+    showContactHours?: boolean
   }
 }
 
@@ -172,8 +190,25 @@ export const defaultSiteConfig: SiteConfig = {
   footer: {
     title: "Legends Barbershop & Hair Studio",
     description: "Legendary grooming, 24/7, in the heart of Hapeville, Atlanta.",
-    contactText: "Contact",
+    contactText: "Contact Us",
     exploreText: "Explore",
-    copyright: "© 2026 Legends Barbershop & Hair Studio. All rights reserved."
+    copyright: "© 2024 Legends Barbershop. All rights reserved.",
+  },
+  visibility: {
+    showFeatures: true,
+    showServices: true,
+    showTestimonials: true,
+    showCareers: true,
+    showContact: true,
+    showHeaderNav: true,
+    showHeaderStatus: true,
+    showHeaderCTA: true,
+    showHeroLocation: true,
+    showHeroStats: true,
+    showHeroCTA: true,
+    showCareersCommission: true,
+    showCareersBooth: true,
+    showContactMap: true,
+    showContactHours: true,
   }
 }

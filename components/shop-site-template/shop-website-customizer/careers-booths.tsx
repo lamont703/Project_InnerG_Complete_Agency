@@ -112,6 +112,9 @@ export function CareersBooths({ config = defaultSiteConfig, isEditable }: { conf
     setModalOpen(false)
   }
 
+  const isCommissionVisible = config.visibility?.showCareersCommission !== false
+  const isBoothVisible = config.visibility?.showCareersBooth !== false
+
   return (
     <section id="careers" className="border-t border-border bg-background py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -130,99 +133,106 @@ export function CareersBooths({ config = defaultSiteConfig, isEditable }: { conf
         </div>
 
         {/* Dual Paths: Commission vs Booth Rental */}
-        <div className="mt-16 grid gap-8 lg:grid-cols-2">
+        <div className={cn(
+          "mt-16 grid gap-8",
+          isCommissionVisible && isBoothVisible ? "lg:grid-cols-2" : "lg:grid-cols-1 lg:max-w-2xl mx-auto"
+        )}>
           
           {/* Card 1: Commission Barber */}
-          <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
-            <div className="absolute top-0 right-0 -mr-6 -mt-6 size-24 rounded-full bg-primary/10 blur-xl" />
-            <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Briefcase className="size-6" />
-            </div>
-            
-            <h3 className="mt-6 font-heading text-2xl font-bold uppercase tracking-wide text-foreground">
-              Commission Barber
-            </h3>
-            <p className="mt-2 text-sm text-primary font-medium tracking-wider uppercase">
-              Steady Client Flow & Support
-            </p>
-            
-            <p className="mt-4 text-muted-foreground leading-relaxed">
-              Perfect for talented barbers who want to focus on their craft without the stress of managing booth rent. We feed you high-quality clients 24 hours a day, handle your marketing, and support your growth.
-            </p>
+          {config.visibility?.showCareersCommission !== false && (
+            <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
+              <div className="absolute top-0 right-0 -mr-6 -mt-6 size-24 rounded-full bg-primary/10 blur-xl" />
+              <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Briefcase className="size-6" />
+              </div>
+              
+              <h3 className="mt-6 font-heading text-2xl font-bold uppercase tracking-wide text-foreground">
+                Commission Barber
+              </h3>
+              <p className="mt-2 text-sm text-primary font-medium tracking-wider uppercase">
+                Steady Client Flow & Support
+              </p>
+              
+              <p className="mt-4 text-muted-foreground leading-relaxed">
+                Perfect for talented barbers who want to focus on their craft without the stress of managing booth rent. We feed you high-quality clients 24 hours a day, handle your marketing, and support your growth.
+              </p>
 
-            <ul className="mt-8 space-y-3.5">
-              {[
-                "High walk-in volume from Georgia State and local airport traffic",
-                "Up to 70% commission split based on experience and retention",
-                "All supplies, premium backbar products, and towels provided",
-                "Paid marketing, Instagram promotions, and booking app profile",
-                "Flexible scheduling in a high-energy, respectful environment"
-              ].map((perk, idx) => (
-                <li key={idx} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <span>{perk}</span>
-                </li>
-              ))}
-            </ul>
+              <ul className="mt-8 space-y-3.5">
+                {[
+                  "High walk-in volume from Georgia State and local airport traffic",
+                  "Up to 70% commission split based on experience and retention",
+                  "All supplies, premium backbar products, and towels provided",
+                  "Paid marketing, Instagram promotions, and booking app profile",
+                  "Flexible scheduling in a high-energy, respectful environment"
+                ].map((perk, idx) => (
+                  <li key={idx} className="flex items-start gap-3 text-sm text-muted-foreground">
+                    <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <span>{perk}</span>
+                  </li>
+                ))}
+              </ul>
 
-            <div className="mt-8 pt-6 border-t border-border/60">
-              <Button 
-                onClick={() => handleOpenModal("commission")} 
-                size="lg" 
-                className="w-full h-11"
-              >
-                Apply as Commission Barber
-                <ArrowRight className="ml-2 size-4 group-hover/button:translate-x-1 transition-transform" />
-              </Button>
+              <div className="mt-8 pt-6 border-t border-border/60">
+                <Button 
+                  onClick={() => handleOpenModal("commission")} 
+                  size="lg" 
+                  className="w-full h-11"
+                >
+                  Apply as Commission Barber
+                  <ArrowRight className="ml-2 size-4 group-hover/button:translate-x-1 transition-transform" />
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Card 2: Booth Rental */}
-          <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
-            <div className="absolute top-0 right-0 -mr-6 -mt-6 size-24 rounded-full bg-primary/10 blur-xl" />
-            <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Store className="size-6" />
-            </div>
-            
-            <h3 className="mt-6 font-heading text-2xl font-bold uppercase tracking-wide text-foreground">
-              Station & Booth Rental
-            </h3>
-            <p className="mt-2 text-sm text-primary font-medium tracking-wider uppercase">
-              Be Your Own Boss (100% Profits)
-            </p>
-            
-            <p className="mt-4 text-muted-foreground leading-relaxed">
-              Designed for established professionals looking to run their independent business. Benefit from our premium, fully-equipped shop space, premium amenities, and our unique 24-hour keycard access.
-            </p>
+          {config.visibility?.showCareersBooth !== false && (
+            <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
+              <div className="absolute top-0 right-0 -mr-6 -mt-6 size-24 rounded-full bg-primary/10 blur-xl" />
+              <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Store className="size-6" />
+              </div>
+              
+              <h3 className="mt-6 font-heading text-2xl font-bold uppercase tracking-wide text-foreground">
+                Station & Booth Rental
+              </h3>
+              <p className="mt-2 text-sm text-primary font-medium tracking-wider uppercase">
+                Be Your Own Boss (100% Profits)
+              </p>
+              
+              <p className="mt-4 text-muted-foreground leading-relaxed">
+                Designed for established professionals looking to run their independent business. Benefit from our premium, fully-equipped shop space, premium amenities, and our unique 24-hour keycard access.
+              </p>
 
-            <ul className="mt-8 space-y-3.5">
-              {[
-                "24/7 keycard access — work when you and your high-paying clients want",
-                <span key="rentRate" onClick={() => handleVisualEdit("careers.rentRate")} className={editableClass("careers.rentRate")}>
-                  {`Flat weekly rent (${config.careers?.rentRate || "$250/wk"}) — keep 100% of your earnings after rent`}
-                </span>,
-                "Premium Italian leather chair, spacious tool station, and LED lighting",
-                "Access to wash stations, laundry facilities, and clean towels",
-                "Ring lights, styling backdrops, and media kit support for content"
-              ].map((perk, idx) => (
-                <li key={idx} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <span>{perk}</span>
-                </li>
-              ))}
-            </ul>
+              <ul className="mt-8 space-y-3.5">
+                {[
+                  "24/7 keycard access — work when you and your high-paying clients want",
+                  <span key="rentRate" onClick={() => handleVisualEdit("careers.rentRate")} className={editableClass("careers.rentRate")}>
+                    {`Flat weekly rent (${config.careers?.rentRate || "$250/wk"}) — keep 100% of your earnings after rent`}
+                  </span>,
+                  "Premium Italian leather chair, spacious tool station, and LED lighting",
+                  "Access to wash stations, laundry facilities, and clean towels",
+                  "Ring lights, styling backdrops, and media kit support for content"
+                ].map((perk, idx) => (
+                  <li key={idx} className="flex items-start gap-3 text-sm text-muted-foreground">
+                    <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <span>{perk}</span>
+                  </li>
+                ))}
+              </ul>
 
-            <div className="mt-8 pt-6 border-t border-border/60">
-              <Button 
-                onClick={() => handleOpenModal("booth")} 
-                size="lg" 
-                className="w-full h-11"
-              >
-                Apply for Station Rental
-                <ArrowRight className="ml-2 size-4 group-hover/button:translate-x-1 transition-transform" />
-              </Button>
+              <div className="mt-8 pt-6 border-t border-border/60">
+                <Button 
+                  onClick={() => handleOpenModal("booth")} 
+                  size="lg" 
+                  className="w-full h-11"
+                >
+                  Reserve Booth Space
+                  <ArrowRight className="ml-2 size-4 group-hover/button:translate-x-1 transition-transform" />
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
 

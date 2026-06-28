@@ -744,6 +744,92 @@ export default function CustomizerClient({
             </div>
           </div>
 
+          {/* Section Visibility */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-neutral-800 pb-1">
+              Section Visibility
+            </h3>
+            
+            <div className="flex flex-col gap-5">
+              {[
+                {
+                  group: "Entire Sections",
+                  toggles: [
+                    { key: "showFeatures", label: "Features Section" },
+                    { key: "showServices", label: "Services Section" },
+                    { key: "showTestimonials", label: "Testimonials Section" },
+                    { key: "showCareers", label: "Careers Section" },
+                    { key: "showContact", label: "Contact Section" },
+                  ]
+                },
+                {
+                  group: "Header Elements",
+                  toggles: [
+                    { key: "showHeaderNav", label: "Navigation Links" },
+                    { key: "showHeaderStatus", label: "Status Badge" },
+                    { key: "showHeaderCTA", label: "Book Online Button" },
+                  ]
+                },
+                {
+                  group: "Hero Elements",
+                  toggles: [
+                    { key: "showHeroLocation", label: "Location Badge" },
+                    { key: "showHeroStats", label: "Stats Block (Hours/Address)" },
+                    { key: "showHeroCTA", label: "Book Online Button" },
+                  ]
+                },
+                {
+                  group: "Careers Elements",
+                  toggles: [
+                    { key: "showCareersCommission", label: "Commission Card" },
+                    { key: "showCareersBooth", label: "Booth Rental Card" },
+                  ]
+                },
+                {
+                  group: "Contact Elements",
+                  toggles: [
+                    { key: "showContactMap", label: "Interactive Map" },
+                    { key: "showContactHours", label: "Business Hours" },
+                  ]
+                }
+              ].map((category, idx) => (
+                <div key={idx} className="space-y-2">
+                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">{category.group}</span>
+                  <div className="flex flex-col gap-2 pl-1 border-l border-neutral-800/50">
+                    {category.toggles.map(({ key, label }) => (
+                      <label key={key} className="flex items-center gap-3 cursor-pointer group ml-2">
+                        <div className="relative flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={config.visibility?.[key as keyof typeof config.visibility] ?? true}
+                            onChange={(e) => {
+                              const updated = { ...config }
+                              if (!updated.visibility) {
+                                // Default all to true if visibility object didn't exist
+                                updated.visibility = {
+                                  showFeatures: true, showServices: true, showTestimonials: true, showCareers: true, showContact: true,
+                                  showHeaderNav: true, showHeaderStatus: true, showHeaderCTA: true,
+                                  showHeroLocation: true, showHeroStats: true, showHeroCTA: true,
+                                  showCareersCommission: true, showCareersBooth: true,
+                                  showContactMap: true, showContactHours: true
+                                }
+                              }
+                              (updated.visibility as any)[key] = e.target.checked
+                              updateConfig(updated)
+                            }}
+                            className="peer sr-only"
+                          />
+                          <div className="w-8 h-4 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
+                        </div>
+                        <span className="text-xs text-neutral-300 group-hover:text-white transition-colors">{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Hero Copy Fields */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-neutral-800 pb-1">
@@ -793,6 +879,22 @@ export default function CustomizerClient({
                   onChange={(e) => {
                     const updated = { ...config }
                     updated.hero.ctaText = e.target.value
+                    updateConfig(updated)
+                  }}
+                  className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">
+                  Booking Link (Booksy, Acuity, TheCut, etc.)
+                </label>
+                <input
+                  id="input-shopInfo.bookingLink"
+                  type="url"
+                  placeholder="https://..."
+                  value={config.shopInfo?.bookingLink || ""}
+                  onChange={(e) => {
+                    const updated = { ...config, shopInfo: { ...config.shopInfo!, bookingLink: e.target.value } }
                     updateConfig(updated)
                   }}
                   className="w-full rounded border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-white focus:outline-none focus:border-neutral-700 transition-all"
