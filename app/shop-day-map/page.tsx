@@ -7,7 +7,7 @@ export default async function ShopDayMapPage() {
   const [shopsResponse, schoolsResponse, barbersResponse, invitesCountRes, requestsCountRes, claimedShopsCountRes] = await Promise.all([
     supabase
       .from("agent_barbershop_leads")
-      .select("id, latitude, longitude, shop_name, city, rent_type, rent_rate, booth_count_available, hiring_need, formatted_address")
+      .select("id, latitude, longitude, shop_name, city, rent_type, rent_rate, booth_count_available, hiring_need, formatted_address, phone, email, shop_image_url, rating, total_reviews")
       .or('hiring_need.eq.true,booth_count_available.gte.1')
       .not("latitude", "is", null)
       .not("longitude", "is", null),
