@@ -313,7 +313,9 @@ export default async function ShopProfilePage({ params }: Props) {
         </div>
       </div>
 
-      <Footer />
+      <div className="light bg-slate-50 text-slate-900">
+        <Footer />
+      </div>
     </div >
   );
 }
