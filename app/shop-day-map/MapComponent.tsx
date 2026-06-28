@@ -14,6 +14,7 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
   const [selectedShop, setSelectedShop] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "shops" | "schools" | "pros">("all");
+  const [mobileView, setMobileView] = useState<"map" | "list">("map");
 
   const [viewState, setViewState] = useState({
     longitude: -97.7431,
@@ -25,7 +26,7 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
 
   // Normalize all items for the unified feed
   const allItems = useMemo(() => {
-    const s = shops.map((s: any) => ({ ...s, isSchool: false, isBarber: false, type: 'Shop', name: s.shop_name, addr: s.formatted_address || `${s.city}, TX` }));
+    const s = shops.map((s: any) => ({ ...s, isSchool: false, isBarber: false, type: 'Shop', name: s.shop_name, addr: s.formatted_address || `${s.city}, TX`, phone: s.phone, email: s.email, image: s.shop_image_url, booth_count_available: s.booth_count_available, rent_type: s.rent_type, rating: s.rating, total_reviews: s.total_reviews }));
     const sc = schools.map((s: any) => ({ ...s, isSchool: true, isBarber: false, type: 'School', name: s.school_name, addr: s.formatted_address || `${s.city}, TX` }));
     const b = barbers.map((b: any) => ({ ...b, isSchool: false, isBarber: true, type: 'Barber', name: b.name, addr: b.address }));
     return [...s, ...sc, ...b];
@@ -151,10 +152,10 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
   }, [selectedShop]);
 
   return (
-    <div className="flex flex-col lg:flex-row-reverse h-screen w-full overflow-hidden bg-slate-50">
+    <div className="flex flex-col lg:flex-row-reverse h-screen w-full overflow-hidden bg-slate-50 relative">
       
       {/* RIGHT PANEL: FEED */}
-      <div className="w-full lg:w-[400px] xl:w-[460px] flex flex-col h-[50vh] lg:h-full bg-white border-l border-slate-200 shadow-2xl z-20 shrink-0">
+      <div className={`w-full lg:w-[400px] xl:w-[460px] flex flex-col h-full bg-white border-l border-slate-200 shadow-2xl z-20 shrink-0 ${mobileView === 'map' ? 'hidden lg:flex' : 'flex'}`}>
         
         {/* Sidebar Header & Search */}
         <div className="p-4 border-b border-slate-100 shrink-0 space-y-4 shadow-sm z-10 bg-white">
@@ -260,22 +261,41 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
                   key={`${item.type}-${item.id || idx}`}
                   id={`feed-item-${item.id}`}
                   onClick={() => handleSelectResult(item)}
-                  className={`w-full text-left p-4 rounded-2xl border transition-all ${
+                  className={`w-full text-left rounded-2xl border transition-all overflow-hidden ${
                     isSelected 
                       ? 'bg-blue-50/50 border-blue-300 shadow-md ring-1 ring-blue-500/20 transform scale-[1.01]' 
                       : 'bg-white border-slate-200 shadow-sm hover:border-slate-300 hover:shadow-md hover:scale-[1.01]'
                   }`}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className={`mt-0.5 w-11 h-11 rounded-full flex items-center justify-center shrink-0 shadow-sm border ${
-                      item.isSchool ? 'bg-red-50 text-red-600 border-red-100' : 
-                      item.isBarber ? 'bg-green-50 text-green-600 border-green-100' : 
-                      'bg-blue-50 text-blue-600 border-blue-100'
-                    }`}>
-                      {item.isSchool ? <GraduationCap className="w-5 h-5" /> : item.isBarber ? <UserCheck className="w-5 h-5" /> : <Scissors className="w-5 h-5" />}
+                  {/* Real Estate Style Image Banner */}
+                  {item.image && (
+                    <div className="w-full h-40 bg-slate-100 relative">
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                      <div className="absolute top-3 left-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-white ${
+                          item.isSchool ? 'bg-red-500 text-white' : 
+                          item.isBarber ? 'bg-green-500 text-white' : 
+                          'bg-blue-600 text-white'
+                        }`}>
+                          {item.isSchool ? <GraduationCap className="w-4 h-4" /> : item.isBarber ? <UserCheck className="w-4 h-4" /> : <Scissors className="w-4 h-4" />}
+                        </div>
+                      </div>
                     </div>
-                    
-                    <div className="flex-1 min-w-0">
+                  )}
+
+                  <div className="p-4">
+                    <div className="flex items-start gap-4">
+                      {!item.image && (
+                        <div className={`mt-0.5 w-11 h-11 rounded-full flex items-center justify-center shrink-0 shadow-sm border ${
+                          item.isSchool ? 'bg-red-50 text-red-600 border-red-100' : 
+                          item.isBarber ? 'bg-green-50 text-green-600 border-green-100' : 
+                          'bg-blue-50 text-blue-600 border-blue-100'
+                        }`}>
+                          {item.isSchool ? <GraduationCap className="w-5 h-5" /> : item.isBarber ? <UserCheck className="w-5 h-5" /> : <Scissors className="w-5 h-5" />}
+                        </div>
+                      )}
+                      
+                      <div className="flex-1 min-w-0">
                       <h4 className={`text-[15px] font-bold truncate ${isSelected ? 'text-blue-900' : 'text-slate-900'}`}>
                         {item.name}
                       </h4>
@@ -284,6 +304,16 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
                         <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-400" />
                         <span className="line-clamp-2 leading-tight">{item.addr}</span>
                       </div>
+
+                      {item.rating && (
+                        <div className="flex items-center gap-1 mt-1">
+                           <span className="text-yellow-400 font-bold text-sm">★</span>
+                           <span className="text-sm font-bold text-slate-700">{item.rating}</span>
+                           {item.total_reviews && (
+                             <span className="text-xs text-slate-500">({item.total_reviews} reviews)</span>
+                           )}
+                        </div>
+                      )}
 
                       <div className="mt-3 flex flex-wrap gap-2">
                         {item.isSchool ? (
@@ -299,17 +329,47 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
                             <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
                               {item.rent_type || "Booth Rent"}
                             </span>
+                            {item.booth_count_available > 0 && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 border border-blue-200">
+                                {item.booth_count_available} {item.booth_count_available === 1 ? 'Chair' : 'Chairs'} Available
+                              </span>
+                            )}
                             {item.hiring_need && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700 border border-green-200">
                                 Actively Hiring
                               </span>
+                            )}
+                            {(item.phone || item.email) && (
+                              <div className="flex items-center gap-2 mt-2 w-full pt-2 border-t border-slate-100/60">
+                                {item.phone && (
+                                  <a 
+                                    href={`tel:${item.phone}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-[11px] font-bold uppercase tracking-wider border border-blue-200"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                    Call
+                                  </a>
+                                )}
+                                {item.email && (
+                                  <a 
+                                    href={`mailto:${item.email}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors text-[11px] font-bold uppercase tracking-wider border border-slate-200"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                    Email
+                                  </a>
+                                )}
+                              </div>
                             )}
                           </>
                         )}
                       </div>
                     </div>
                   </div>
-                </button>
+                </div>
+              </button>
               );
             })
           )}
@@ -317,7 +377,7 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
       </div>
 
       {/* RIGHT PANEL: MAP */}
-      <div className="flex-1 h-[50vh] lg:h-full relative z-10 bg-slate-200">
+      <div className={`flex-1 h-full relative z-10 bg-slate-200 ${mobileView === 'list' ? 'hidden lg:block' : 'block'}`}>
         <Map
           {...viewState}
           onMove={(evt) => setViewState(evt.viewState)}
@@ -404,6 +464,26 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
             </Popup>
           )}
         </Map>
+      </div>
+
+      {/* MOBILE TOGGLE BUTTON */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 lg:hidden">
+        <button
+          onClick={() => setMobileView(mobileView === 'map' ? 'list' : 'map')}
+          className="bg-slate-900 text-white hover:bg-slate-800 shadow-2xl px-6 py-3 rounded-full font-bold text-sm flex items-center gap-2 transition-all ring-4 ring-slate-900/10"
+        >
+          {mobileView === 'map' ? (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+              Show List
+            </>
+          ) : (
+            <>
+              <MapPin className="w-4 h-4" />
+              Show Map
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
