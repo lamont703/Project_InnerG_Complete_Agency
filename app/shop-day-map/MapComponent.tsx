@@ -26,7 +26,7 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
 
   // Normalize all items for the unified feed
   const allItems = useMemo(() => {
-    const s = shops.map((s: any) => ({ ...s, isSchool: false, isBarber: false, type: 'Shop', name: s.shop_name, addr: s.formatted_address || `${s.city}, TX`, phone: s.phone, email: s.email, image: s.shop_image_url, booth_count_available: s.booth_count_available, rent_type: s.rent_type, rating: s.rating, total_reviews: s.total_reviews }));
+    const s = shops.map((s: any) => ({ ...s, isSchool: false, isBarber: false, type: 'Shop', name: s.shop_name, addr: s.formatted_address || `${s.city}, TX`, phone: s.phone, email: s.email, image: s.shop_image_url, booth_count_available: s.booth_count_available, rent_type: s.rent_type, rating: s.rating, total_reviews: s.total_reviews, profileUrl: s.shop_profile_page_url }));
     const sc = schools.map((s: any) => ({ ...s, isSchool: true, isBarber: false, type: 'School', name: s.school_name, addr: s.formatted_address || `${s.city}, TX` }));
     const b = barbers.map((b: any) => ({ ...b, isSchool: false, isBarber: true, type: 'Barber', name: b.name, addr: b.address }));
     return [...s, ...sc, ...b];
@@ -339,26 +339,40 @@ export default function ShopDayMap({ initialShops, initialSchools, initialBarber
                                 Actively Hiring
                               </span>
                             )}
-                            {(item.phone || item.email) && (
-                              <div className="flex items-center gap-2 mt-2 w-full pt-2 border-t border-slate-100/60">
-                                {item.phone && (
+                            {(item.phone || item.email || item.profileUrl) && (
+                              <div className="flex flex-wrap items-center justify-between gap-2 mt-2 w-full pt-3 border-t border-slate-100/60">
+                                <div className="flex gap-2">
+                                  {item.phone && (
+                                    <a 
+                                      href={`tel:${item.phone}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-[11px] font-bold uppercase tracking-wider border border-blue-200"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                      Call
+                                    </a>
+                                  )}
+                                  {item.email && (
+                                    <a 
+                                      href={`mailto:${item.email}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors text-[11px] font-bold uppercase tracking-wider border border-slate-200"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                      Email
+                                    </a>
+                                  )}
+                                </div>
+                                {item.profileUrl && (
                                   <a 
-                                    href={`tel:${item.phone}`}
+                                    href={item.profileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     onClick={(e) => e.stopPropagation()}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-[11px] font-bold uppercase tracking-wider border border-blue-200"
+                                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors text-[11px] font-bold uppercase tracking-wider shadow-sm ml-auto"
                                   >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                                    Call
-                                  </a>
-                                )}
-                                {item.email && (
-                                  <a 
-                                    href={`mailto:${item.email}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors text-[11px] font-bold uppercase tracking-wider border border-slate-200"
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                                    Email
+                                    View Profile
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-0.5"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
                                   </a>
                                 )}
                               </div>
