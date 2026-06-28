@@ -60,12 +60,12 @@ export default function ShopPreviewClient({
     <div style={customStyles} className="min-h-screen bg-background text-foreground transition-all duration-300">
       <SiteHeader config={config} isEditable={isEditable} />
       <main>
-        <Hero config={config.hero} isEditable={isEditable} />
-        <Features config={config.features} isEditable={isEditable} />
-        <Services config={config} isEditable={isEditable} />
-        <Testimonials config={config} isEditable={isEditable} />
-        <CareersBooths config={config} isEditable={isEditable} />
-        <Contact config={config} isEditable={isEditable} />
+        <Hero config={config.hero} shopInfo={config.shopInfo} visibility={config.visibility} isEditable={isEditable} />
+        {config.visibility?.showFeatures !== false && <Features config={config.features} isEditable={isEditable} />}
+        {config.visibility?.showServices !== false && <Services config={config} isEditable={isEditable} />}
+        {config.visibility?.showTestimonials !== false && <Testimonials config={config} isEditable={isEditable} />}
+        {config.visibility?.showCareers !== false && <CareersBooths config={config} isEditable={isEditable} />}
+        {config.visibility?.showContact !== false && <Contact config={config} isEditable={isEditable} />}
       </main>
       <SiteFooter config={config} isEditable={isEditable} />
     </div>

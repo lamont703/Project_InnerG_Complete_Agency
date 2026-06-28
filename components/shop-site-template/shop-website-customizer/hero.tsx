@@ -15,10 +15,18 @@ interface HeroProps {
       ratingText: string
     }
   }
+  shopInfo?: {
+    bookingLink?: string
+  }
+  visibility?: {
+    showHeroLocation?: boolean
+    showHeroStats?: boolean
+    showHeroCTA?: boolean
+  }
   isEditable?: boolean
 }
 
-export function Hero({ config, isEditable }: HeroProps) {
+export function Hero({ config, shopInfo, visibility, isEditable }: HeroProps) {
   const title = config?.title || "Legendary Grooming, 24/7"
   const subtitle = config?.subtitle || "Atlanta's upscale barbershop & hair studio. A-1 cuts, crisp fades, and a dope vibe — for the whole family, any hour of the day."
   const ctaText = config?.ctaText || "Book Online"
@@ -56,21 +64,20 @@ export function Hero({ config, isEditable }: HeroProps) {
 
       <div className="relative mx-auto w-full max-w-7xl px-6 pt-28 pb-16 lg:px-8">
         <div className="max-w-2xl">
-          <div 
-            onClick={() => handleVisualEdit("hero.locationBadge")}
-            className={cn("mb-6 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary", editableClass("hero.locationBadge"))}
-          >
-            <span className="relative flex size-2">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex size-2 rounded-full bg-primary" />
-            </span>
-            {locationBadge}
-          </div>
+          {visibility?.showHeroLocation !== false && (
+            <div
+              onClick={() => handleVisualEdit("hero.locationBadge")}
+              className={cn("inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)] backdrop-blur-sm", editableClass("hero.locationBadge"))}
+            >
+              <MapPin className="size-4" />
+              {locationBadge}
+            </div>
+          )}
 
           <h1 
             onClick={() => handleVisualEdit("hero.title")}
             className={cn(
-              "font-heading text-5xl font-bold uppercase leading-[0.95] tracking-tight text-balance text-foreground sm:text-6xl lg:text-7xl",
+              "mt-6 font-heading text-5xl font-bold uppercase leading-[0.95] tracking-tight text-balance text-foreground sm:text-6xl lg:text-7xl",
               editableClass("hero.title")
             )}
           >
@@ -88,20 +95,29 @@ export function Hero({ config, isEditable }: HeroProps) {
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div
-              onClick={(e) => {
-                if (isEditable) {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleVisualEdit("hero.ctaText")
-                }
-              }}
-              className={cn(editableClass("hero.ctaText"), "inline-block")}
-            >
-              <Button size="lg" className="h-12 px-7 text-base" asChild>
-                <a href="#contact" onClick={(e) => isEditable && e.preventDefault()}>{ctaText}</a>
-              </Button>
-            </div>
+            {visibility?.showHeroCTA !== false && (
+              <div
+                onClick={(e) => {
+                  if (isEditable) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleVisualEdit("hero.ctaText")
+                  }
+                }}
+                className={cn(editableClass("hero.ctaText"), "inline-block")}
+              >
+                <Button size="lg" className="h-14 px-8 text-base font-bold shadow-xl shadow-primary/25 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/30" asChild>
+                  <a 
+                    href={shopInfo?.bookingLink || "#services"}
+                    target={shopInfo?.bookingLink ? "_blank" : undefined}
+                    rel={shopInfo?.bookingLink ? "noopener noreferrer" : undefined}
+                    onClick={(e) => isEditable && e.preventDefault()}
+                  >
+                    {ctaText}
+                  </a>
+                </Button>
+              </div>
+            )}
             <Button
               size="lg"
               variant="outline"
@@ -112,21 +128,23 @@ export function Hero({ config, isEditable }: HeroProps) {
             </Button>
           </div>
 
-          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4 text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Clock className="size-4 text-primary" />
-              <span onClick={() => handleVisualEdit("hero.stats.hours")} className={editableClass("hero.stats.hours")}>{stats.hours}</span>
+          {visibility?.showHeroStats !== false && (
+            <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Clock className="size-4 text-primary" />
+                <span onClick={() => handleVisualEdit("hero.stats.hours")} className={editableClass("hero.stats.hours")}>{stats.hours}</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <MapPin className="size-4 text-primary" />
+                <span onClick={() => handleVisualEdit("hero.stats.address")} className={editableClass("hero.stats.address")}>{stats.address}</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Star className="size-4 fill-primary text-primary" />
+                <span onClick={() => handleVisualEdit("hero.stats.rating")} className={cn("font-semibold text-foreground", editableClass("hero.stats.rating"))}>{stats.rating}</span>
+                <span onClick={() => handleVisualEdit("hero.stats.ratingText")} className={editableClass("hero.stats.ratingText")}>{stats.ratingText}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <MapPin className="size-4 text-primary" />
-              <span onClick={() => handleVisualEdit("hero.stats.address")} className={editableClass("hero.stats.address")}>{stats.address}</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Star className="size-4 fill-primary text-primary" />
-              <span onClick={() => handleVisualEdit("hero.stats.rating")} className={cn("font-semibold text-foreground", editableClass("hero.stats.rating"))}>{stats.rating}</span>
-              <span onClick={() => handleVisualEdit("hero.stats.ratingText")} className={editableClass("hero.stats.ratingText")}>{stats.ratingText}</span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </section>

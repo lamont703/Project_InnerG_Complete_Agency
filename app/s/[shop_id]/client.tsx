@@ -29,12 +29,12 @@ export default function PublicSiteClient({
     <div style={customStyles} className="min-h-screen bg-background text-foreground transition-all duration-300">
       <SiteHeader config={config} isEditable={false} />
       <main>
-        <Hero config={config.hero} isEditable={false} />
-        <Features config={config.features} isEditable={false} />
-        <Services config={config} isEditable={false} />
-        <Testimonials config={config} isEditable={false} />
-        <CareersBooths config={config} isEditable={false} />
-        <Contact config={config} isEditable={false} />
+        <Hero config={config.hero} shopInfo={config.shopInfo} visibility={config.visibility} isEditable={false} />
+        {config.visibility?.showFeatures !== false && <Features config={config.features} isEditable={false} />}
+        {config.visibility?.showServices !== false && <Services config={config} isEditable={false} />}
+        {config.visibility?.showTestimonials !== false && <Testimonials config={config} isEditable={false} />}
+        {config.visibility?.showCareers !== false && <CareersBooths config={config} isEditable={false} />}
+        {config.visibility?.showContact !== false && <Contact config={config} isEditable={false} />}
       </main>
       <SiteFooter config={config} isEditable={false} />
     </div>

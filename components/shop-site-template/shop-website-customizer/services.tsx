@@ -81,7 +81,14 @@ export function Services({ config = defaultSiteConfig, isEditable }: ServicesPro
             className={cn(editableClass("services.ctaText"), "inline-block")}
           >
             <Button variant="outline" size="lg" asChild>
-              <a href="#contact" onClick={(e) => isEditable && e.preventDefault()}>{ctaText}</a>
+              <a 
+                href={config.shopInfo?.bookingLink || "#contact"}
+                target={config.shopInfo?.bookingLink ? "_blank" : undefined}
+                rel={config.shopInfo?.bookingLink ? "noopener noreferrer" : undefined}
+                onClick={(e) => isEditable && e.preventDefault()}
+              >
+                {ctaText}
+              </a>
             </Button>
           </div>
         </div>

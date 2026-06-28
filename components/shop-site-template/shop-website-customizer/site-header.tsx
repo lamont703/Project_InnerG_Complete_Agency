@@ -37,34 +37,48 @@ export function SiteHeader({ config = defaultSiteConfig, isEditable = false }: {
           </span>
         </div>
 
-        <nav className="hidden items-center gap-8 md:flex">
-          {header.links.map((link, idx) => (
-            <span
-              key={idx}
-              onClick={() => handleVisualEdit(`header.links.${idx}.label`)}
-              className={cn("text-sm font-medium text-muted-foreground transition-colors hover:text-foreground", editableClass(`header.links.${idx}.label`))}
-            >
-              {link.label}
-            </span>
-          ))}
-        </nav>
+        {config.visibility?.showHeaderNav !== false && (
+          <nav className="hidden items-center gap-8 md:flex">
+            {header.links.map((link, idx) => (
+              <span
+                key={idx}
+                onClick={() => handleVisualEdit(`header.links.${idx}.label`)}
+                className={cn("text-sm font-medium text-muted-foreground transition-colors hover:text-foreground", editableClass(`header.links.${idx}.label`))}
+              >
+                {link.label}
+              </span>
+            ))}
+          </nav>
+        )}
 
         <div className="hidden items-center gap-3 md:flex">
-          <span 
-            onClick={() => handleVisualEdit("header.statusText")}
-            className={cn("flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground", editableClass("header.statusText"))}
-          >
-            <span className="relative flex size-2">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex size-2 rounded-full bg-primary" />
+          {config.visibility?.showHeaderStatus !== false && (
+            <span 
+              onClick={() => handleVisualEdit("header.statusText")}
+              className={cn("flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground", editableClass("header.statusText"))}
+            >
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex size-2 rounded-full bg-primary" />
+              </span>
+              {header.statusText}
             </span>
-            {header.statusText}
-          </span>
-          <div onClick={() => handleVisualEdit("header.ctaText")} className={editableClass("header.ctaText")}>
-            <Button size="lg" asChild>
-              <span className="cursor-pointer">{header.ctaText}</span>
-            </Button>
-          </div>
+          )}
+          {config.visibility?.showHeaderCTA !== false && (
+            <div onClick={() => handleVisualEdit("header.ctaText")} className={editableClass("header.ctaText")}>
+              <Button size="lg" asChild>
+                <a 
+                  href={config.shopInfo?.bookingLink || "#services"}
+                  target={config.shopInfo?.bookingLink ? "_blank" : undefined}
+                  rel={config.shopInfo?.bookingLink ? "noopener noreferrer" : undefined}
+                  className="cursor-pointer"
+                  onClick={(e) => isEditable && e.preventDefault()}
+                >
+                  {header.ctaText}
+                </a>
+              </Button>
+            </div>
+          )}
         </div>
 
         <button
@@ -81,7 +95,7 @@ export function SiteHeader({ config = defaultSiteConfig, isEditable = false }: {
       {open && (
         <div className="border-t border-border/60 bg-background md:hidden">
           <nav className="flex flex-col px-6 py-4">
-            {header.links.map((link, idx) => (
+            {config.visibility?.showHeaderNav !== false && header.links.map((link, idx) => (
               <span
                 key={idx}
                 onClick={() => {
@@ -93,11 +107,24 @@ export function SiteHeader({ config = defaultSiteConfig, isEditable = false }: {
                 {link.label}
               </span>
             ))}
-            <div onClick={() => handleVisualEdit("header.ctaText")} className={cn("mt-3", editableClass("header.ctaText"))}>
-              <Button size="lg" asChild>
-                <span className="cursor-pointer" onClick={() => !isEditable && setOpen(false)}>{header.ctaText}</span>
-              </Button>
-            </div>
+            {config.visibility?.showHeaderCTA !== false && (
+              <div onClick={() => handleVisualEdit("header.ctaText")} className={cn("mt-3", editableClass("header.ctaText"))}>
+                <Button size="lg" asChild>
+                  <a 
+                    href={config.shopInfo?.bookingLink || "#services"}
+                    target={config.shopInfo?.bookingLink ? "_blank" : undefined}
+                    rel={config.shopInfo?.bookingLink ? "noopener noreferrer" : undefined}
+                    className="cursor-pointer" 
+                    onClick={(e) => {
+                      if (isEditable) e.preventDefault();
+                      if (!isEditable) setOpen(false);
+                    }}
+                  >
+                    {header.ctaText}
+                  </a>
+                </Button>
+              </div>
+            )}
           </nav>
         </div>
       )}

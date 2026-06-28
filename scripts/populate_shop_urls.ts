@@ -7,60 +7,74 @@ const supabaseUrl = Deno.env.get("NEXT_PUBLIC_SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const BASE_URL = "https://agency.innergcomplete.com/shop/";
+const BASE_PROFILE_URL = "https://agency.innergcomplete.com/shop/";
+const BASE_CUSTOMIZER_URL = "https://agency.innergcomplete.com/tools/shop-site-template/shop-website-customizer/";
 
 async function populateShopUrls() {
-  console.log("🚀 Starting to populate shop_profile_page_url for all shops...");
+  console.log("🚀 Starting to append tracking IDs to shop_profile_page_url and customizer_url for all shops...");
 
-  // Fetch ALL shops to regenerate URLs with tracking parameters
-  const { data: shops, error: fetchError } = await supabase
-    .from("agent_barbershop_leads")
-    .select("id, shop_name, shop_profile_page_url, contact_id");
+  let hasMore = true;
+  let totalSuccessCount = 0;
+  let totalErrorCount = 0;
 
-  if (fetchError) {
-    console.error("❌ Error fetching shops:", fetchError.message);
-    Deno.exit(1);
-  }
+  while (hasMore) {
+    // Fetch shops that haven't been updated with tracking yet
+    const { data: shops, error: fetchError } = await supabase
+      .from("agent_barbershop_leads")
+      .select("id, shop_name, shop_profile_page_url, customizer_url, contact_id")
+      .not("customizer_url", "like", "%ghl_contact_id%")
+      .limit(1000);
 
-  if (!shops || shops.length === 0) {
-    console.log("✅ All shops already have a shop_profile_page_url. Nothing to update.");
-    Deno.exit(0);
-  }
-
-  console.log(`📡 Found ${shops.length} shops needing URL population. Beginning updates...`);
-
-  let successCount = 0;
-  let errorCount = 0;
-
-  for (const shop of shops) {
-    let profileUrl = `${BASE_URL}${shop.id}`;
-    if (shop.contact_id) {
-       profileUrl += `?ghl_contact_id=${shop.contact_id}`;
-    } else {
-       profileUrl += `?ghl_contact_id={{contact.id}}`;
+    if (fetchError) {
+      console.error("❌ Error fetching shops:", fetchError.message);
+      Deno.exit(1);
     }
 
-    const { error: updateError } = await supabase
-      .from("agent_barbershop_leads")
-      .update({ shop_profile_page_url: profileUrl })
-      .eq("id", shop.id);
+    if (!shops || shops.length === 0) {
+      hasMore = false;
+      break;
+    }
 
-    if (updateError) {
-      console.error(`❌ Error updating ${shop.shop_name} (${shop.id}):`, updateError.message);
-      errorCount++;
-    } else {
-      console.log(`✅ Updated: ${shop.shop_name} -> ${profileUrl}`);
-      successCount++;
+    console.log(`📡 Found batch of ${shops.length} shops needing URL population. Beginning updates...`);
+
+    let batchSuccessCount = 0;
+
+    for (const shop of shops) {
+      const contactTracking = shop.contact_id ? `?ghl_contact_id=${shop.contact_id}` : `?ghl_contact_id={{contact.id}}`;
+
+      let newProfileUrl = `${BASE_PROFILE_URL}${shop.id}`;
+      let newCustomizerUrl = `${BASE_CUSTOMIZER_URL}${shop.id}/customizer`;
+
+      newProfileUrl += contactTracking;
+      newCustomizerUrl += contactTracking;
+
+      const { error: updateError } = await supabase
+        .from("agent_barbershop_leads")
+        .update({ 
+          shop_profile_page_url: newProfileUrl,
+          customizer_url: newCustomizerUrl
+        })
+        .eq("id", shop.id);
+
+      if (updateError) {
+        console.error(`❌ Error updating ${shop.shop_name} (${shop.id}):`, updateError.message);
+        totalErrorCount++;
+      } else {
+        batchSuccessCount++;
+      }
+      
+      // Small delay to be polite to the database
+      await new Promise(resolve => setTimeout(resolve, 10));
     }
     
-    // Small delay to be polite to the database
-    await new Promise(resolve => setTimeout(resolve, 50));
+    totalSuccessCount += batchSuccessCount;
+    console.log(`✅ Batch complete. Updated ${batchSuccessCount} shops in this pass.`);
   }
 
   console.log("\n================================================");
-  console.log("🏁 URL POPULATION COMPLETE");
-  console.log(`✅ Successfully Updated: ${successCount}`);
-  console.log(`❌ Failed Updates: ${errorCount}`);
+  console.log("🏁 URL TRACKING POPULATION COMPLETE");
+  console.log(`✅ Successfully Updated: ${totalSuccessCount}`);
+  console.log(`❌ Failed Updates: ${totalErrorCount}`);
   console.log("================================================");
 }
 

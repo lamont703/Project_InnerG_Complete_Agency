@@ -11,10 +11,10 @@ const GHL_API_KEY = process.env.GHL_API_KEY || "pit-96f9b0b9-c512-4066-81b6-d74a
 const LOCATION_ID = process.env.GHL_LOCATION_ID || "QLyYYRoOhCg65lKW9HDX"
 
 async function run() {
-  console.log("🚀 Starting GHL Sync for Customizer URLs...")
+  console.log("🚀 Starting GHL Sync for Customizer and Profile URLs...")
 
-  // 1. Fetch custom fields from GHL to find the ID of customizer_url
-  console.log("Fetching custom fields from GHL to find 'customizer_url' ID...")
+  // 1. Fetch custom fields from GHL
+  console.log("Fetching custom fields from GHL...")
   const fieldsRes = await fetch(`https://services.leadconnectorhq.com/locations/${LOCATION_ID}/customFields`, {
     method: "GET",
     headers: {
@@ -30,26 +30,34 @@ async function run() {
   }
 
   const fieldsData = await fieldsRes.json()
+  
   const customizerField = fieldsData.customFields?.find((f: any) => 
     f.name.toLowerCase().includes("customizer_url") || f.fieldKey.includes("customizer_url")
+  )
+  
+  const profileField = fieldsData.customFields?.find((f: any) => 
+    f.name.toLowerCase().includes("shop_profile_page_url") || f.fieldKey.includes("shop_profile_page_url")
   )
 
   if (!customizerField) {
     console.error("❌ Could not find a custom field named 'customizer_url' in GHL!")
     process.exit(1)
   }
+  
+  if (!profileField) {
+    console.error("❌ Could not find a custom field named 'shop_profile_page_url' in GHL!")
+    process.exit(1)
+  }
 
-  const customFieldId = customizerField.id
-  const customFieldKey = customizerField.fieldKey
-  console.log(`✅ Found 'customizer_url' custom field! ID: ${customFieldId}`)
+  console.log(`✅ Found 'customizer_url' custom field! ID: ${customizerField.id}`)
+  console.log(`✅ Found 'shop_profile_page_url' custom field! ID: ${profileField.id}`)
 
-  // 2. Fetch shops with contact_id and customizer_url
+  // 2. Fetch shops with contact_id
   console.log("Fetching shops from database...")
   const { data: shops, error: fetchError } = await supabase
     .from("agent_barbershop_leads")
-    .select("id, shop_name, contact_id, customizer_url")
+    .select("id, shop_name, contact_id, customizer_url, shop_profile_page_url")
     .not("contact_id", "is", null)
-    .not("customizer_url", "is", null)
 
   if (fetchError) {
     console.error("❌ Error fetching shops:", fetchError.message)
@@ -57,11 +65,11 @@ async function run() {
   }
 
   if (!shops || shops.length === 0) {
-    console.log("✅ No shops found with both a contact_id and customizer_url. Nothing to sync.")
+    console.log("✅ No shops found with a contact_id. Nothing to sync.")
     process.exit(0)
   }
 
-  console.log(`📡 Found ${shops.length} contacts needing sync. Beginning updates...`)
+  console.log(`📡 Found ${shops.length} contacts. Beginning sync...`)
 
   let successCount = 0
   let errorCount = 0
@@ -69,6 +77,28 @@ async function run() {
   // 3. Process individually with delay to respect GHL rate limits
   for (const shop of shops) {
     try {
+      const customFieldsArray = []
+      
+      if (shop.customizer_url) {
+        customFieldsArray.push({
+          id: customizerField.id,
+          key: customizerField.fieldKey,
+          field_value: shop.customizer_url
+        })
+      }
+      
+      if (shop.shop_profile_page_url) {
+        customFieldsArray.push({
+          id: profileField.id,
+          key: profileField.fieldKey,
+          field_value: shop.shop_profile_page_url
+        })
+      }
+      
+      if (customFieldsArray.length === 0) {
+        continue // Nothing to sync for this shop
+      }
+
       const res = await fetch(`https://services.leadconnectorhq.com/contacts/${shop.contact_id}`, {
         method: "PUT",
         headers: {
@@ -78,13 +108,7 @@ async function run() {
           "Accept": "application/json"
         },
         body: JSON.stringify({
-          customFields: [
-            {
-              id: customFieldId,
-              key: customFieldKey,
-              field_value: shop.customizer_url
-            }
-          ]
+          customFields: customFieldsArray
         })
       })
 
@@ -93,7 +117,7 @@ async function run() {
         console.error(`❌ GHL Error for ${shop.shop_name} (${shop.contact_id}):`, errorData)
         errorCount++
       } else {
-        console.log(`✅ Synced Customizer URL to GHL for ${shop.shop_name}`)
+        console.log(`✅ Synced URLs to GHL for ${shop.shop_name}`)
         successCount++
       }
     } catch (err: any) {
@@ -107,7 +131,7 @@ async function run() {
   }
 
   console.log("\n================================================")
-  console.log("🏁 GHL CUSTOMIZER URL SYNC COMPLETE")
+  console.log("🏁 GHL URL SYNC COMPLETE")
   console.log(`✅ Successfully Synced: ${successCount}`)
   console.log(`❌ Failed Syncs: ${errorCount}`)
   console.log("================================================")
