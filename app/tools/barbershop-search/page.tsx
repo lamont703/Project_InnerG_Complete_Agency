@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { Search, MapPin, Building, Phone } from "lucide-react";
+import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow } from "lucide-react";
 import { searchBarbershops } from "./actions";
 import Link from "next/link";
 import { Footer } from "@/components/layout/footer";
@@ -11,6 +11,8 @@ import { useTheme } from "next-themes";
 export default function BarbershopSearchPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [isPending, startTransition] = useTransition();
   const { setTheme } = useTheme();
 
@@ -18,97 +20,212 @@ export default function BarbershopSearchPage() {
     setTheme("light");
   }, [setTheme]);
 
+  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value);
+    setPage(1);
+  };
+
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (query.trim().length >= 2) {
         startTransition(async () => {
-          const res = await searchBarbershops(query);
-          if (res.success) {
-            setResults(res.data || []);
+          const res = await searchBarbershops(query, page);
+          if (res.success && res.data) {
+            setResults(res.data.results || []);
+            setTotal(res.data.total || 0);
           }
         });
       } else {
         setResults([]);
+        setTotal(0);
       }
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [query]);
+  }, [query, page]);
 
   return (
     <div className="min-h-screen flex flex-col light bg-slate-50 text-slate-900 selection:bg-blue-500/20">
       <Navbar />
+      
       <main className="flex-1 flex flex-col items-center pt-32 px-4 sm:px-6 lg:px-8">
         
         {/* Search Header Area */}
         <div className={`w-full max-w-3xl transition-all duration-500 ease-in-out ${results.length > 0 || query ? 'mt-8' : 'mt-[20vh]'}`}>
           <div className="text-center mb-8">
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-primary mb-4">
-              Artificial Domain <span className="text-muted-foreground">Intelligence</span>
+              Barber & Cosmetology <br />
+              <span className="text-black">Domain Intelligence</span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              Search the largest network of barbershops and beauty professionals.
+              Search the worlds largest collection of barber, beauty & wellness data.
             </p>
           </div>
 
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className={`h-6 w-6 transition-colors ${isPending ? 'text-primary animate-pulse' : 'text-muted-foreground group-focus-within:text-primary'}`} />
+          <div className="relative group w-full">
+            <div className="absolute inset-0 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-all"></div>
+            <div className="relative flex items-center">
+              <Search className="absolute left-4 h-6 w-6 text-slate-400 group-hover:text-blue-500 transition-colors" />
+              <input
+                type="text"
+                value={query}
+                onChange={handleQueryChange}
+                className="block w-full pl-12 pr-4 py-4 sm:text-lg border border-border rounded-full bg-secondary/30 focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm focus:shadow-md outline-none"
+                placeholder="Search by shop name, city, hiring, rent type, or culture..."
+              />
+              {isPending && (
+                <div className="absolute right-4">
+                  <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                </div>
+              )}
             </div>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="block w-full pl-12 pr-4 py-4 sm:text-lg border border-border rounded-full bg-secondary/30 focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm focus:shadow-md outline-none"
-              placeholder="Search by shop name, city, or state..."
-            />
           </div>
         </div>
 
         {/* Results Area */}
         <div className="w-full max-w-3xl mt-12 space-y-4 pb-20">
-          {results.length > 0 ? (
-            results.map((shop) => (
-              <div key={shop.id} className="bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-card-foreground flex items-center gap-2">
-                      <Building className="h-5 w-5 text-muted-foreground" />
-                      {shop.shop_name || "Unknown Shop"}
-                    </h3>
-                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                      {shop.formatted_address ? (
-                        <p className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          {shop.formatted_address}
-                        </p>
-                      ) : (
-                        <p className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          {shop.city || "Unknown City"}, {shop.state || "TX"}
-                        </p>
-                      )}
-                      {shop.phone && (
-                        <p className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          {shop.phone}
-                        </p>
-                      )}
+          
+          {results.length > 0 && results.map((item, idx) => {
+            if (item.resultType === 'internal') {
+              return (
+                <div key={`internal-${idx}`} className="bg-gradient-to-r from-blue-50 to-white p-6 rounded-2xl border border-blue-100 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                      <AppWindow className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">{item.label}</h3>
+                      <p className="text-sm text-slate-500">Internal Platform Tool</p>
                     </div>
                   </div>
-                  {/* Future CTA button here */}
                   <Link 
-                    href={`/shop/${shop.id}`}
-                    className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-full hover:bg-primary/90 transition-colors"
+                    href={item.href}
+                    className="shrink-0 px-6 py-2.5 text-sm font-semibold text-blue-700 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors shadow-sm"
                   >
-                    View Details
+                    Open Tool
                   </Link>
                 </div>
-              </div>
-            ))
-          ) : query.trim().length >= 2 && !isPending ? (
+              );
+            }
+
+            if (item.resultType === 'web') {
+              return (
+                <div key={`web-${item.id}`} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
+                  <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+                    <Globe className="h-4 w-4" />
+                    {item.domain_url || (item.url ? new URL(item.url).hostname : "")}
+                  </div>
+                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-lg font-bold text-blue-600 hover:underline">
+                    {item.url}
+                  </a>
+                  <p className="mt-3 text-sm text-slate-600 leading-relaxed italic border-l-2 border-slate-200 pl-3">
+                    "{item.snippet}"
+                  </p>
+                </div>
+              );
+            }
+
+            if (item.resultType === 'shop') {
+              return (
+                <div key={`shop-${item.id}`} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
+                  {item.hiring_need && item.booth_count_available > 0 && (
+                    <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg shadow-sm">
+                      HIRING: {item.booth_count_available} Chairs Open
+                    </div>
+                  )}
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-xl font-extrabold text-slate-900">
+                          {item.shop_name || "Unknown Shop"}
+                        </h3>
+                        {item.rating && (
+                          <span className="flex items-center text-sm font-medium text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">
+                            <Star className="h-3.5 w-3.5 mr-1 fill-current" />
+                            {item.rating}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2 mt-3 text-sm text-slate-600">
+                        {item.formatted_address ? (
+                          <p className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-slate-400" />
+                            {item.formatted_address}
+                          </p>
+                        ) : (
+                          <p className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-slate-400" />
+                            {item.city || "Unknown City"}
+                          </p>
+                        )}
+                        
+                        <div className="flex flex-wrap gap-3 mt-3">
+                          {(item.rent_type || item.rent_rate) && (
+                            <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-medium text-xs">
+                              <Briefcase className="h-3.5 w-3.5" />
+                              {item.rent_type || "Unknown"} {item.rent_rate ? `• ${item.rent_rate}` : ""}
+                            </span>
+                          )}
+                          
+                          {item.ai_culture_summary && (
+                            <span className="flex items-center gap-1.5 bg-purple-50 text-purple-700 px-2.5 py-1 rounded-md font-medium text-xs">
+                              <Users className="h-3.5 w-3.5" />
+                              {item.ai_culture_summary}
+                            </span>
+                          )}
+                          
+                          {item.opportunity_status && (
+                            <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md font-medium text-xs">
+                              <Target className="h-3.5 w-3.5" />
+                              {item.opportunity_status}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Link 
+                      href={`/shop/${item.id}`}
+                      className="shrink-0 w-full sm:w-auto px-6 py-2.5 text-sm font-semibold text-white bg-slate-900 rounded-full hover:bg-slate-800 transition-colors shadow-sm text-center mt-4 sm:mt-0"
+                    >
+                      View Shop
+                    </Link>
+                  </div>
+                </div>
+              );
+            }
+
+            return null;
+          })}
+
+          {/* Pagination Controls */}
+          {total > 10 && (
+            <div className="flex justify-center items-center gap-4 mt-8 pt-4">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1 || isPending}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              >
+                Previous
+              </button>
+              <span className="text-sm font-medium text-slate-600">
+                Page {page} of {Math.ceil(total / 10)}
+              </span>
+              <button
+                onClick={() => setPage(p => p + 1)}
+                disabled={page >= Math.ceil(total / 10) || isPending}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {results.length === 0 && query.trim().length >= 2 && !isPending ? (
             <div className="text-center py-12 text-muted-foreground">
-              No results found for "{query}". Try a different city or shop name.
+              No results found for "{query}". Try a different term.
             </div>
           ) : null}
         </div>

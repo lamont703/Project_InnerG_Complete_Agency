@@ -26,6 +26,7 @@ const footerLinks = {
     { label: "AI Booth Station Tool", href: "/tools/ai-booth-station" },
     { label: "Foot Traffic Radar Tool", href: "/tools/foot-traffic-radar" },
     { label: "Barbershop Search Engine", href: "/tools/barbershop-search" },
+    { label: "Web Crawler Domain Management", href: "/tools/domain-management" },
   ],
   Social: [
     { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },
