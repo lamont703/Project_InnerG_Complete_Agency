@@ -4,19 +4,21 @@ import { useState, useEffect } from "react";
 import { createBrowserClient } from "@/lib/supabase/browser";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
-import { Globe, RefreshCw, Plus, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Globe, Plus, RefreshCw, CheckCircle, XCircle, Clock, Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function DomainManagementPage() {
   const supabase = createBrowserClient();
   const [domains, setDomains] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
   const [newDomain, setNewDomain] = useState("");
   const [isCrawling, setIsCrawling] = useState(false);
 
   useEffect(() => {
     fetchDomains();
     fetchLogs();
+    fetchSuggestions();
   }, []);
 
   const fetchDomains = async () => {
@@ -34,6 +36,15 @@ export default function DomainManagementPage() {
       .order("created_at", { ascending: false })
       .limit(20);
     if (!error && data) setLogs(data);
+  };
+
+  const fetchSuggestions = async () => {
+    const { data, error } = await (supabase as any)
+      .from("crawler_discovered_links")
+      .select("*, crawler_seed_domains(domain_url)")
+      .eq("status", "Pending")
+      .order("created_at", { ascending: false });
+    if (!error && data) setSuggestions(data);
   };
 
   const handleAddDomain = async (e: React.FormEvent) => {
@@ -56,6 +67,28 @@ export default function DomainManagementPage() {
       setNewDomain("");
       fetchDomains();
     }
+  };
+
+  const handleApproveSuggestion = async (suggestion: any) => {
+    const { error: insertError } = await (supabase as any).from("crawler_seed_domains").insert({
+      domain_url: suggestion.discovered_url,
+      status: "Active",
+      crawl_frequency: "Weekly",
+    });
+
+    if (!insertError || insertError.message.includes('duplicate')) {
+      await (supabase as any).from("crawler_discovered_links").update({ status: "Approved" }).eq("id", suggestion.id);
+      toast.success("Domain approved and added to Seed List!");
+      fetchDomains();
+      fetchSuggestions();
+    } else {
+      toast.error("Failed to approve domain.");
+    }
+  };
+
+  const handleIgnoreSuggestion = async (id: string) => {
+    await (supabase as any).from("crawler_discovered_links").update({ status: "Ignored" }).eq("id", id);
+    fetchSuggestions();
   };
 
   const triggerCrawl = async (domainId?: string) => {
@@ -167,6 +200,49 @@ export default function DomainManagementPage() {
                       >
                         <RefreshCw className={`h-4 w-4 ${isCrawling ? "animate-spin" : ""}`} />
                       </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Suggestions Card */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+              <div className="p-6 border-b border-slate-200">
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Link2 className="h-5 w-5 text-purple-600" /> 
+                  Discovered Suggestions
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">Pending links discovered by the crawler on seed pages.</p>
+              </div>
+              <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
+                {suggestions.length === 0 ? (
+                  <p className="p-6 text-slate-500 text-center">No pending suggestions yet.</p>
+                ) : (
+                  suggestions.map((sug) => (
+                    <div key={sug.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <a href={sug.discovered_url} target="_blank" rel="noopener noreferrer" className="font-medium text-slate-900 hover:text-blue-600 hover:underline truncate block">
+                          {sug.discovered_url}
+                        </a>
+                        <p className="text-xs text-slate-500 mt-1 truncate">
+                          Found on: {sug.crawler_seed_domains?.domain_url}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <button 
+                          onClick={() => handleApproveSuggestion(sug)}
+                          className="px-3 py-1.5 text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors"
+                        >
+                          Approve
+                        </button>
+                        <button 
+                          onClick={() => handleIgnoreSuggestion(sug.id)}
+                          className="px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+                        >
+                          Ignore
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}

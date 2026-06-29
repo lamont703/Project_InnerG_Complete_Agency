@@ -4,8 +4,6 @@ import { useState, useTransition, useEffect } from "react";
 import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow } from "lucide-react";
 import { searchBarbershops } from "./actions";
 import Link from "next/link";
-import { Footer } from "@/components/layout/footer";
-import { Navbar } from "@/components/layout/navbar";
 import { useTheme } from "next-themes";
 
 export default function BarbershopSearchPage() {
@@ -46,18 +44,17 @@ export default function BarbershopSearchPage() {
 
   return (
     <div className="min-h-screen flex flex-col light bg-slate-50 text-slate-900 selection:bg-blue-500/20">
-      <Navbar />
       
-      <main className="flex-1 flex flex-col items-center pt-32 px-4 sm:px-6 lg:px-8">
+      <main className="flex-1 flex flex-col items-center pt-16 sm:pt-32 px-4 sm:px-6 lg:px-8 w-full">
         
         {/* Search Header Area */}
         <div className={`w-full max-w-3xl transition-all duration-500 ease-in-out ${results.length > 0 || query ? 'mt-8' : 'mt-[20vh]'}`}>
-          <div className="text-center mb-8">
-            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-primary mb-4">
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-primary mb-3 sm:mb-4">
               Barber & Cosmetology <br />
               <span className="text-black">Domain Intelligence</span>
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-base sm:text-lg text-muted-foreground px-2">
               Search the worlds largest collection of barber, beauty & wellness data.
             </p>
           </div>
@@ -88,19 +85,19 @@ export default function BarbershopSearchPage() {
           {results.length > 0 && results.map((item, idx) => {
             if (item.resultType === 'internal') {
               return (
-                <div key={`internal-${idx}`} className="bg-gradient-to-r from-blue-50 to-white p-6 rounded-2xl border border-blue-100 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                <div key={`internal-${idx}`} className="bg-gradient-to-r from-blue-50 to-white p-5 sm:p-6 rounded-2xl border border-blue-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4 w-full">
+                    <div className="shrink-0 h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
                       <AppWindow className="h-5 w-5" />
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-900">{item.label}</h3>
-                      <p className="text-sm text-slate-500">Internal Platform Tool</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900 truncate">{item.label}</h3>
+                      <p className="text-xs sm:text-sm text-slate-500">Internal Platform Tool</p>
                     </div>
                   </div>
                   <Link 
                     href={item.href}
-                    className="shrink-0 px-6 py-2.5 text-sm font-semibold text-blue-700 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors shadow-sm"
+                    className="shrink-0 w-full sm:w-auto px-6 py-2.5 text-sm font-semibold text-blue-700 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors shadow-sm text-center"
                   >
                     Open Tool
                   </Link>
@@ -110,15 +107,15 @@ export default function BarbershopSearchPage() {
 
             if (item.resultType === 'web') {
               return (
-                <div key={`web-${item.id}`} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                  <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-                    <Globe className="h-4 w-4" />
-                    {item.domain_url || (item.url ? new URL(item.url).hostname : "")}
+                <div key={`web-${item.id}`} className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 mb-2 truncate">
+                    <Globe className="shrink-0 h-4 w-4" />
+                    <span className="truncate">{item.domain_url || (item.url ? new URL(item.url).hostname : "")}</span>
                   </div>
-                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-lg font-bold text-blue-600 hover:underline">
+                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-base sm:text-lg font-bold text-blue-600 hover:underline break-all block">
                     {item.url}
                   </a>
-                  <p className="mt-3 text-sm text-slate-600 leading-relaxed italic border-l-2 border-slate-200 pl-3">
+                  <p className="mt-3 text-xs sm:text-sm text-slate-600 leading-relaxed italic border-l-2 border-slate-200 pl-3">
                     "{item.snippet}"
                   </p>
                 </div>
@@ -127,31 +124,31 @@ export default function BarbershopSearchPage() {
 
             if (item.resultType === 'shop') {
               return (
-                <div key={`shop-${item.id}`} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
+                <div key={`shop-${item.id}`} className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
                   {item.hiring_need && item.booth_count_available > 0 && (
-                    <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg shadow-sm">
-                      HIRING: {item.booth_count_available} Chairs Open
+                    <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 rounded-bl-lg shadow-sm">
+                      HIRING: {item.booth_count_available} Chairs
                     </div>
                   )}
-                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-xl font-extrabold text-slate-900">
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-6 mt-4 sm:mt-0">
+                    <div className="flex-1 w-full min-w-0">
+                      <div className="flex items-start sm:items-center gap-2 mb-1 flex-col sm:flex-row">
+                        <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 truncate w-full sm:w-auto">
                           {item.shop_name || "Unknown Shop"}
                         </h3>
                         {item.rating && (
-                          <span className="flex items-center text-sm font-medium text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">
+                          <span className="shrink-0 flex items-center text-xs sm:text-sm font-medium text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">
                             <Star className="h-3.5 w-3.5 mr-1 fill-current" />
                             {item.rating}
                           </span>
                         )}
                       </div>
                       
-                      <div className="space-y-2 mt-3 text-sm text-slate-600">
+                      <div className="space-y-2 mt-2 sm:mt-3 text-xs sm:text-sm text-slate-600">
                         {item.formatted_address ? (
-                          <p className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-slate-400" />
-                            {item.formatted_address}
+                          <p className="flex items-start gap-2">
+                            <MapPin className="shrink-0 h-4 w-4 text-slate-400 mt-0.5" />
+                            <span className="truncate">{item.formatted_address}</span>
                           </p>
                         ) : (
                           <p className="flex items-center gap-2">
@@ -201,21 +198,21 @@ export default function BarbershopSearchPage() {
 
           {/* Pagination Controls */}
           {total > 10 && (
-            <div className="flex justify-center items-center gap-4 mt-8 pt-4">
+            <div className="flex justify-center items-center gap-2 sm:gap-4 mt-8 pt-4 w-full flex-wrap">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1 || isPending}
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
               >
                 Previous
               </button>
-              <span className="text-sm font-medium text-slate-600">
+              <span className="text-xs sm:text-sm font-medium text-slate-600 px-2">
                 Page {page} of {Math.ceil(total / 10)}
               </span>
               <button
                 onClick={() => setPage(p => p + 1)}
                 disabled={page >= Math.ceil(total / 10) || isPending}
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
               >
                 Next
               </button>
@@ -230,7 +227,6 @@ export default function BarbershopSearchPage() {
           ) : null}
         </div>
       </main>
-      <Footer />
     </div>
   );
 }
