@@ -46,6 +46,37 @@ export async function POST(request: Request) {
         const html = await response.text();
         const $ = cheerio.load(html);
 
+        // Extract Links before removing junk
+        const discoveredUrls = new Set<string>();
+        const domainOrigin = new URL(domain.domain_url).origin;
+
+        $('a[href]').each((_, el) => {
+          let href = $(el).attr('href');
+          if (!href) return;
+          
+          try {
+            // Resolve relative URLs
+            const resolvedUrl = new URL(href, domainOrigin);
+            
+            // Only keep http/https external links
+            if ((resolvedUrl.protocol === 'http:' || resolvedUrl.protocol === 'https:') && resolvedUrl.origin !== domainOrigin) {
+              discoveredUrls.add(resolvedUrl.href);
+            }
+          } catch (e) {
+            // Ignore invalid URLs
+          }
+        });
+
+        if (discoveredUrls.size > 0) {
+          const linksToInsert = Array.from(discoveredUrls).map(url => ({
+            source_domain_id: domain.id,
+            discovered_url: url,
+            status: 'Pending'
+          }));
+
+          await supabase.from('crawler_discovered_links').upsert(linksToInsert, { onConflict: 'discovered_url', ignoreDuplicates: true });
+        }
+
         // Remove junk elements
         $('script, style, noscript, iframe, img, svg, nav, footer, header').remove();
 
