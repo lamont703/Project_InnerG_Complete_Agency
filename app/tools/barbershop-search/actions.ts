@@ -59,50 +59,27 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     });
     cleanQuery = cleanQuery.replace(/\s+/g, ' ').trim();
 
-    // 1. Internal Pages
-    const internalPages = [
-      { label: "Barber & Cosmetology Shop Day", href: "/barber-cosmetology-placement" },
-      { label: "Barber & Cosmetology Placement", href: "/barber-beauty-network" },
-      { label: "Texas Barber Exam Intelligence Prep", href: "/texas-barber-exam-intelligence-prep" },
-      { label: "Accreditation Advisory Committee Toolkit", href: "/program-advisory-committee-kit" },
-      { label: "Shop Day Map", href: "/shop-day-map" },
-      { label: "Shop Day Matches", href: "/shop-day-matches" },
-      { label: "Shop Day Requests", href: "/shop-day-requests" },
-      { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },
-      { label: "Texas Barber Instructor Intelligence Dashboard", href: "/tools/texas-barber-instructor-intelligence-dashboard" },
-      { label: "Texas Barber School Benchmarking Intelligence", href: "/texas-school-benchmarking" },
-      { label: "Texas Barber School Historical Performance Tracker", href: "/texas-barber-school-historical-performance" },
-      { label: "Texas Barbershop Placement Matcher & Agent", href: "/texas-barbershop-placement-matcher" },
-      { label: "Texas Barber & Cosmetology Continuing Education Portal", href: "/barber-cos-continuing-education" },
-      { label: "Pixel Analytics", href: "/pixel-analytics" },
-      { label: "Shop Day Connections", href: "/shop-day-connections" },
-      { label: "AI Booth Station Tool", href: "/tools/ai-booth-station" },
-      { label: "Foot Traffic Radar Tool", href: "/tools/foot-traffic-radar" },
-      { label: "Barbershop Search Engine", href: "/tools/barbershop-search" },
-      { label: "Web Crawler Domain Management", href: "/tools/domain-management" },
-    ];
-    
+    // 1. Internal Pages (Semantic Tool Ranker)
     let internalMatches: any[] = [];
     if (filterTab === 'All' || filterTab === 'Tools') {
-      internalMatches = cleanQuery.length >= 2 
-        ? internalPages.filter(p => p.label.toLowerCase().includes(cleanQuery)).map(p => ({ ...p, resultType: 'internal' }))
-        : [];
+      if (cleanQuery.length >= 2) {
+        const { data: toolRes, error: toolErr } = await supabase.rpc('search_platform_tools_ranked', {
+          query_text: cleanQuery,
+          query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
+          limit_val: 3
+        });
         
-      // Apply AI-generated internal routing rules (Self-healing telemetry loop)
-      internalRoutingRules.forEach(rule => {
-        const ruleWords = rule.value.toLowerCase().split(/\s+/).filter((w: string) => w.length > 0);
-        const queryText = query.toLowerCase();
-        
-        // Check if ALL words from the rule are present in the user's query
-        const isMatch = ruleWords.every((word: string) => queryText.includes(word));
-        
-        if (isMatch) {
-          const matchedTool = internalPages.find(p => p.href === rule.target);
-          if (matchedTool && !internalMatches.find(m => m.href === matchedTool.href)) {
-            internalMatches.push({ ...matchedTool, resultType: 'internal' });
-          }
+        if (!toolErr && toolRes) {
+          internalMatches = toolRes.map((tool: any) => ({
+            label: tool.name,
+            href: tool.url,
+            description: tool.description,
+            image_url: tool.image_url,
+            resultType: 'internal',
+            match_score: tool.match_score
+          }));
         }
-      });
+      }
     }
 
     // 2. Web Results (Postgres Full-Text + Semantic Hybrid Search)
@@ -139,62 +116,112 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
             snippet, 
             og_image_url: page.og_image_url, 
             is_video: page.is_video,
-            resultType: 'web' 
+            resultType: 'web',
+            match_score: page.match_score
           };
         });
       }
     }
 
-    const topMatches = [...internalMatches, ...webMatches];
-    const topCount = topMatches.length;
-
-    // 3. Shop Results (Calculate Pagination Offsets)
-    let shopLimit = 0;
-    let shopOffset = 0;
-
-    if (fromIndex < topCount) {
-      const remainingForPage = ITEMS_PER_PAGE - (topCount - fromIndex);
-      if (remainingForPage > 0) {
-        shopLimit = remainingForPage;
-        shopOffset = 0;
+    // 2.5 Barber Results
+    let barberMatches: any[] = [];
+    if (filterTab === 'All' || filterTab === 'Barbers') {
+      const { data: barberRes, error: barberErr } = await supabase.rpc('search_barbers_ranked', {
+        query_text: cleanQuery.length >= 2 ? cleanQuery : '',
+        query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
+        limit_val: filterTab === 'All' ? 10 : 20
+      });
+      if (!barberErr && barberRes) {
+        barberMatches = barberRes.map((b: any) => ({
+          ...b,
+          resultType: 'barber'
+        }));
       }
-    } else {
-      shopLimit = ITEMS_PER_PAGE;
-      shopOffset = fromIndex - topCount;
     }
 
-    let shopData: any[] = [];
+    // 3. Shop Results
+    let shopMatches: any[] = [];
     let shopCount = 0;
 
-    if (filterTab === 'All' || filterTab === 'Barbershops') {
-      const rpcQuery = cleanQuery.length >= 2 ? cleanQuery : '';
-      
-      if (shopLimit > 0) {
-        const { data, error } = await supabase.rpc('search_barbershops_ranked', {
-          query_text: rpcQuery,
-          is_hiring_filter: isHiring,
-          rent_type_filter: rentTypeFilter || '',
-          limit_val: shopLimit,
-          offset_val: shopOffset,
-          query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null
-        });
-        
-        if (error) throw error;
-        shopData = data || [];
-        shopCount = (shopData.length > 0 && shopData[0].total_matched) ? Number(shopData[0].total_matched) : 0;
+    if (filterTab === 'All') {
+      const { data, error } = await supabase.rpc('search_barbershops_ranked', {
+        query_text: cleanQuery.length >= 2 ? cleanQuery : '',
+        is_hiring_filter: isHiring,
+        rent_type_filter: rentTypeFilter || '',
+        limit_val: 10,
+        offset_val: 0,
+        query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null
+      });
+      if (!error && data) {
+        shopMatches = data.map((s: any) => ({ ...s, resultType: 'shop', match_score: s.trust_score }));
+      }
+    } else if (filterTab === 'Barbershops') {
+      const { data, error } = await supabase.rpc('search_barbershops_ranked', {
+        query_text: cleanQuery.length >= 2 ? cleanQuery : '',
+        is_hiring_filter: isHiring,
+        rent_type_filter: rentTypeFilter || '',
+        limit_val: ITEMS_PER_PAGE,
+        offset_val: fromIndex,
+        query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null
+      });
+      if (!error && data) {
+        shopMatches = data.map((s: any) => ({ ...s, resultType: 'shop', match_score: s.trust_score }));
+        shopCount = (data.length > 0 && data[0].total_matched) ? Number(data[0].total_matched) : 0;
       }
     }
 
-    const shopMatches = shopData.map(s => ({ ...s, resultType: 'shop' }));
+    // 4. Combine Results & Pagination
+    let pageResults: any[] = [];
+    let totalResults = 0;
 
-    // 4. Combine Results
-    const pageResults = [];
-    if (fromIndex < topCount) {
-      pageResults.push(...topMatches.slice(fromIndex, fromIndex + ITEMS_PER_PAGE));
+    if (filterTab === 'All') {
+      // Dynamic Unified Ranking
+      // 1. Normalize scores so no category has an unfair baseline advantage
+      const maxBarber = Math.max(...barberMatches.map(b => b.match_score || 0), 1);
+      const maxShop = Math.max(...shopMatches.map(s => s.match_score || 0), 1);
+      const maxWeb = Math.max(...webMatches.map(w => w.match_score || 0), 1);
+
+      // 2. Determine Intent Bias from the original query
+      let shopBonus = 0;
+      let barberBonus = 0;
+      let webBonus = 0;
+      
+      const q = query.toLowerCase();
+      if (/\\b(how|why|what is|best way|guide|tutorial|tips)\\b/.test(q)) webBonus = 200;
+      if (/\\b(barbers?|stylists?|braiders?|locticians?|people|someone)\\b/.test(q)) barberBonus = 200;
+      if (/\\b(shops?|barbershops?|salons?|studios?|suites?|places?)\\b/.test(q)) {
+        shopBonus = 200;
+        if (q.includes('barbershop')) barberBonus = 0; // Prevent 'barber' regex from overriding
+      }
+
+      // 3. Combine with Normalization + Bias
+      const others = [
+        ...barberMatches.map(b => ({ ...b, sort_score: ((b.match_score / maxBarber) * 100) + barberBonus })),
+        ...webMatches.map(w => ({ ...w, sort_score: ((w.match_score / maxWeb) * 100) + webBonus })),
+        ...shopMatches.map(s => ({ ...s, sort_score: ((s.match_score / maxShop) * 100) + shopBonus }))
+      ];
+      
+      others.sort((a, b) => (b.sort_score || 0) - (a.sort_score || 0));
+      const unifiedMatches = [...internalMatches, ...others];
+      
+      totalResults = unifiedMatches.length;
+      pageResults = unifiedMatches.slice(fromIndex, fromIndex + ITEMS_PER_PAGE);
+    } else {
+      // Tab-specific logic
+      if (filterTab === 'Tools') {
+         totalResults = internalMatches.length;
+         pageResults = internalMatches.slice(fromIndex, fromIndex + ITEMS_PER_PAGE);
+      } else if (filterTab === 'Barbers') {
+         totalResults = barberMatches.length;
+         pageResults = barberMatches.slice(fromIndex, fromIndex + ITEMS_PER_PAGE);
+      } else if (filterTab === 'Articles' || filterTab === 'Videos') {
+         totalResults = webMatches.length;
+         pageResults = webMatches.slice(fromIndex, fromIndex + ITEMS_PER_PAGE);
+      } else if (filterTab === 'Barbershops') {
+         totalResults = shopCount;
+         pageResults = shopMatches;
+      }
     }
-    pageResults.push(...shopMatches);
-
-    const totalResults = topCount + shopCount;
 
     // 5. Log Telemetry (Fire & Forget)
     if (page === 1 && query.trim().length >= 2) {
