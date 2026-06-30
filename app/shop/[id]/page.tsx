@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 import { Metadata, ResolvingMetadata } from "next";
-import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -9,6 +8,7 @@ import Image from "next/image";
 import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { PassportCarousel } from "@/components/shared/passport-carousel";
+import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 
 export const dynamic = 'force-dynamic';
 
@@ -108,17 +108,10 @@ export default async function ShopProfilePage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 selection:bg-blue-500/20 flex flex-col overflow-x-hidden">
-      <Navbar />
 
-      <div className="flex-grow pt-28 pb-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
+      <div className="flex-grow pt-8 pb-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
         
-        <Link 
-          href="/shop-day-map"
-          className="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold text-sm mb-6 transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Back to Map
-        </Link>
+        <DynamicBackButton />
 
         {/* Header Title & Badges */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">
@@ -144,9 +137,9 @@ export default async function ShopProfilePage({ params }: Props) {
           </div>
         </div>
 
-        {/* Real Estate Image Gallery (Masonry Style) */}
-        <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-2 h-[40vh] md:h-[60vh] rounded-3xl overflow-hidden mb-12 shadow-sm border border-slate-200 bg-slate-50">
-          <div className="md:col-span-2 row-span-2 relative h-full">
+        {/* Real Estate Image Gallery (Masonry on Desktop, Swipe Carousel on Mobile) */}
+        <div className="flex md:grid overflow-x-auto md:overflow-hidden snap-x snap-mandatory md:snap-none md:grid-cols-4 md:grid-rows-2 gap-2 h-64 md:h-[60vh] rounded-none md:rounded-3xl mb-8 md:mb-12 scrollbar-hide -mx-4 md:mx-0 px-4 md:px-0">
+          <div className="md:col-span-2 row-span-2 relative h-full shrink-0 aspect-square md:aspect-auto md:w-auto snap-center rounded-2xl md:rounded-none overflow-hidden border border-slate-200 md:border-none shadow-sm md:shadow-none">
             <img src={images[0]} alt="Shop Primary" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700 cursor-pointer" />
             <div className="absolute top-4 left-4 z-10 flex gap-2">
               {shop.hiring_need || (shop.booth_count_available && shop.booth_count_available >= 1) ? (
@@ -161,13 +154,13 @@ export default async function ShopProfilePage({ params }: Props) {
             </div>
           </div>
           {images.slice(1, 5).map((imgUrl: string, idx: number) => (
-            <div key={idx} className="hidden md:block relative h-full overflow-hidden">
+            <div key={idx} className="relative h-full overflow-hidden shrink-0 aspect-square md:aspect-auto md:w-auto snap-center rounded-2xl md:rounded-none border border-slate-200 md:border-none shadow-sm md:shadow-none">
               <img src={imgUrl} alt={`Shop view ${idx + 2}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700 cursor-pointer" />
             </div>
           ))}
-          {/* Fill empty spots if less than 5 images */}
+          {/* Fill empty spots if less than 5 images (Desktop Only) */}
           {images.length < 5 && Array.from({ length: 5 - images.length }).map((_, idx) => (
-             <div key={`empty-${idx}`} className="hidden md:block relative h-full bg-slate-100 flex items-center justify-center border border-slate-200/50">
+             <div key={`empty-${idx}`} className="hidden md:flex relative h-full bg-slate-100 items-center justify-center border border-slate-200/50">
                <Scissors className="w-8 h-8 text-slate-300 opacity-50" />
              </div>
           ))}

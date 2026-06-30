@@ -1,0 +1,2 @@
+ALTER TABLE public.scraped_web_pages
+ADD COLUMN IF NOT EXISTS is_video BOOLEAN DEFAULT FALSE;

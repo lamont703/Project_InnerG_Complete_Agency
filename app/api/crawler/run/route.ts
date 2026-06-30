@@ -46,6 +46,23 @@ export async function POST(request: Request) {
         const html = await response.text();
         const $ = cheerio.load(html);
 
+        // Extract Hero Image (OG or Twitter)
+        let ogImage = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content') || null;
+        if (ogImage && !ogImage.startsWith('http')) {
+          try {
+            ogImage = new URL(ogImage, new URL(domain.domain_url).origin).href;
+          } catch (e) {
+            ogImage = null;
+          }
+        }
+
+        // Determine if Video
+        let isVideo = false;
+        const ogType = $('meta[property="og:type"]').attr('content') || '';
+        if (ogType.includes('video') || domain.domain_url.includes('youtube.com') || domain.domain_url.includes('youtu.be') || domain.domain_url.includes('tiktok.com') || domain.domain_url.includes('vimeo.com')) {
+          isVideo = true;
+        }
+
         // Extract Links before removing junk
         const discoveredUrls = new Set<string>();
         const domainOrigin = new URL(domain.domain_url).origin;
@@ -80,17 +97,23 @@ export async function POST(request: Request) {
         // Remove junk elements
         $('script, style, noscript, iframe, img, svg, nav, footer, header').remove();
 
+        // Extract Metadata for search indexing (Crucial for JS-heavy sites like YouTube)
+        const pageTitle = $('title').text() || $('meta[property="og:title"]').attr('content') || '';
+        const pageDesc = $('meta[name="description"]').attr('content') || $('meta[property="og:description"]').attr('content') || '';
+
         // Extract raw text
         let rawText = $('body').text();
         
-        // Clean up whitespace
-        rawText = rawText.replace(/\s+/g, ' ').trim();
+        // Clean up whitespace and inject metadata so Postgres full-text search can find it
+        rawText = `${pageTitle} ${pageDesc} ${rawText}`.replace(/\s+/g, ' ').trim();
 
         // Upsert into scraped_web_pages
         const { error: upsertError } = await supabase.from('scraped_web_pages').upsert({
           domain_id: domain.id,
           url: domain.domain_url,
-          raw_text: rawText
+          raw_text: rawText,
+          og_image_url: ogImage,
+          is_video: isVideo
         }, { onConflict: 'url' });
 
         if (upsertError) throw upsertError;
