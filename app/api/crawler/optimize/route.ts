@@ -22,11 +22,33 @@ export async function POST(request: Request) {
     }
     
     if (queries.length === 0) {
-      return NextResponse.json({ message: "No failed queries to analyze.", stop_words_added: 0, searches_performed: 0, links_discovered: 0 });
+      return NextResponse.json({ message: "No failed queries to analyze.", stop_words_added: 0, searches_performed: 0, links_discovered: 0, internal_routes_added: 0 });
     }
 
     const rawQueries = queries.map(q => q.raw_query);
     const uniqueQueries = Array.from(new Set(rawQueries));
+
+    const internalPages = [
+      { label: "Barber & Cosmetology Shop Day", href: "/barber-cosmetology-placement" },
+      { label: "Barber & Cosmetology Placement", href: "/barber-beauty-network" },
+      { label: "Texas Barber Exam Intelligence Prep", href: "/texas-barber-exam-intelligence-prep" },
+      { label: "Accreditation Advisory Committee Toolkit", href: "/program-advisory-committee-kit" },
+      { label: "Shop Day Map", href: "/shop-day-map" },
+      { label: "Shop Day Matches", href: "/shop-day-matches" },
+      { label: "Shop Day Requests", href: "/shop-day-requests" },
+      { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },
+      { label: "Texas Barber Instructor Intelligence Dashboard", href: "/tools/texas-barber-instructor-intelligence-dashboard" },
+      { label: "Texas Barber School Benchmarking Intelligence", href: "/texas-school-benchmarking" },
+      { label: "Texas Barber School Historical Performance Tracker", href: "/texas-barber-school-historical-performance" },
+      { label: "Texas Barbershop Placement Matcher & Agent", href: "/texas-barbershop-placement-matcher" },
+      { label: "Texas Barber & Cosmetology Continuing Education Portal", href: "/barber-cos-continuing-education" },
+      { label: "Pixel Analytics", href: "/pixel-analytics" },
+      { label: "Shop Day Connections", href: "/shop-day-connections" },
+      { label: "AI Booth Station Tool", href: "/tools/ai-booth-station" },
+      { label: "Foot Traffic Radar Tool", href: "/tools/foot-traffic-radar" },
+      { label: "Barbershop Search Engine", href: "/tools/barbershop-search" },
+      { label: "Web Crawler Domain Management", href: "/tools/domain-management" },
+    ];
 
     // 2. Ask Gemini to analyze
     const prompt = `
@@ -35,13 +57,18 @@ Users are searching for things and getting 0 results.
 Analyze these failed queries:
 ${JSON.stringify(uniqueQueries)}
 
-Your job is to return a JSON object with two arrays:
+We also have a proprietary ecosystem of SaaS tools and dashboards:
+${JSON.stringify(internalPages)}
+
+Your job is to return a JSON object with three arrays:
 1. "new_stop_words": an array of conversational fluff words (e.g. "what", "are", "the", "offers", "best", "use") that we should strip from queries.
-2. "missing_knowledge_searches": an array of optimal web Search query strings to find missing information. Only suggest searches for factual knowledge the engine lacks (e.g. "best barber clippers 2026"). Ignore generic location queries like "shops in houston".
+2. "internal_routing_rules": If a failed query (e.g. "how to find good barbers") implies the user is looking for one of our proprietary tools (e.g. "Texas Barbershop Placement Matcher & Agent"), map it! Return an object: { "phrase": "find good barbers", "target_href": "/texas-barbershop-placement-matcher" }. Provide multiple variations if necessary.
+3. "missing_knowledge_searches": an array of optimal web Search query strings to find missing information. ONLY suggest searches for factual knowledge the engine lacks (e.g. "best barber clippers 2026"). DO NOT suggest searches if you mapped the intent to an internal_routing_rule.
 
 Return ONLY valid JSON. Format:
 {
   "new_stop_words": ["word1", "word2"],
+  "internal_routing_rules": [{"phrase": "some phrase", "target_href": "/some-href"}],
   "missing_knowledge_searches": ["search query 1"]
 }
 `;
@@ -62,7 +89,7 @@ Return ONLY valid JSON. Format:
       return NextResponse.json({ error: "Failed to parse LLM response" }, { status: 500 });
     }
 
-    const { new_stop_words = [], missing_knowledge_searches = [] } = analysis;
+    const { new_stop_words = [], internal_routing_rules = [], missing_knowledge_searches = [] } = analysis;
 
     // 3. Insert new stop words
     if (new_stop_words.length > 0) {
@@ -78,6 +105,24 @@ Return ONLY valid JSON. Format:
         
       if (stopWordsToInsert.length > 0) {
         await supabase.from('search_engine_rules').insert(stopWordsToInsert);
+      }
+    }
+
+    // 3b. Insert internal routing rules
+    if (internal_routing_rules.length > 0) {
+      const { data: existingRoutes } = await supabase.from('search_engine_rules').select('value').eq('rule_type', 'internal_routing');
+      const existingPhrases = new Set((existingRoutes || []).map(r => r.value));
+      
+      const routesToInsert = internal_routing_rules
+        .filter((r: any) => !existingPhrases.has(r.phrase.toLowerCase()))
+        .map((r: any) => ({
+          rule_type: 'internal_routing',
+          value: r.phrase.toLowerCase(),
+          target: r.target_href
+        }));
+        
+      if (routesToInsert.length > 0) {
+        await supabase.from('search_engine_rules').insert(routesToInsert);
       }
     }
 
@@ -136,6 +181,7 @@ Return ONLY valid JSON. Format:
     return NextResponse.json({ 
       message: "Analysis complete",
       stop_words_added: new_stop_words.length,
+      internal_routes_added: internal_routing_rules.length,
       searches_performed: missing_knowledge_searches.length,
       links_discovered: discoveredLinks.size
     });

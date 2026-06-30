@@ -17,6 +17,7 @@ export default function DomainManagementPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCurating, setIsCurating] = useState(false);
   const [isAuditing, setIsAuditing] = useState(false);
+  const [isEmbedding, setIsEmbedding] = useState(false);
   const [activeTab, setActiveTab] = useState<'pending' | 'audit'>('pending');
   const [qualityTab, setQualityTab] = useState<'flagged' | 'validated'>('flagged');
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -138,6 +139,30 @@ export default function DomainManagementPage() {
       toast.error("An error occurred during analysis.", { id: "analysis-toast" });
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const triggerEmbeddings = async (targetTable: string) => {
+    setIsEmbedding(true);
+    toast.info(`Generating missing embeddings for ${targetTable}...`, { id: "embedding-toast" });
+    
+    try {
+      const res = await fetch("/api/embeddings/generate", { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetTable })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        toast.success(`Success! Generated ${data.updatedCount} new embeddings.`, { id: "embedding-toast" });
+      } else {
+        toast.error(data.error || "Failed to generate embeddings.", { id: "embedding-toast" });
+      }
+    } catch (err) {
+      toast.error("An error occurred during embedding generation.", { id: "embedding-toast" });
+    } finally {
+      setIsEmbedding(false);
     }
   };
 
@@ -277,7 +302,18 @@ export default function DomainManagementPage() {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h2 className="text-lg font-bold text-slate-900">Seed List</h2>
-                <div className="flex gap-2 w-full sm:w-auto">
+                <div className="flex gap-2 w-full sm:w-auto flex-wrap justify-end">
+                  <button
+                    onClick={() => {
+                      triggerEmbeddings('agent_barbershop_leads');
+                      setTimeout(() => triggerEmbeddings('scraped_web_pages'), 2000);
+                    }}
+                    disabled={isEmbedding}
+                    className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:opacity-50 flex-1 sm:flex-none justify-center"
+                  >
+                    <Brain className={`h-4 w-4 ${isEmbedding ? "animate-pulse" : ""}`} />
+                    {isEmbedding ? "Generating..." : "Generate Embeddings"}
+                  </button>
                   <button
                     onClick={() => triggerAnalysis()}
                     disabled={isAnalyzing || isCrawling}

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
+import { GoogleGenAI } from "@google/genai";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -18,11 +19,30 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     let cleanQuery = query.toLowerCase().trim();
     let isHiring = false;
     let rentTypeFilter: string | null = null;
+    let queryEmbedding: number[] | null = null;
+
+    // Ping Gemini to get semantic vector
+    if (cleanQuery.length >= 2) {
+      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const res = await ai.models.embedContent({
+          model: 'gemini-embedding-2',
+          contents: cleanQuery,
+          config: { outputDimensionality: 768 }
+        });
+        if (res.embeddings && res.embeddings[0].values) {
+          queryEmbedding = res.embeddings[0].values;
+        }
+      } catch (e) {
+        console.error("Failed to generate query embedding (falling back to standard search):", e);
+      }
+    }
 
     // Fetch dynamic rules from DB
     const { data: rules } = await supabase.from('search_engine_rules').select('*');
     const stopWordsList = rules?.filter(r => r.rule_type === 'stop_word').map(r => r.value) || [];
     const intentRules = rules?.filter(r => r.rule_type === 'intent_mapping') || [];
+    const internalRoutingRules = rules?.filter(r => r.rule_type === 'internal_routing') || [];
 
     // Apply intent mappings dynamically
     intentRules.forEach(rule => {
@@ -67,44 +87,62 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       internalMatches = cleanQuery.length >= 2 
         ? internalPages.filter(p => p.label.toLowerCase().includes(cleanQuery)).map(p => ({ ...p, resultType: 'internal' }))
         : [];
+        
+      // Apply AI-generated internal routing rules (Self-healing telemetry loop)
+      internalRoutingRules.forEach(rule => {
+        const ruleWords = rule.value.toLowerCase().split(/\s+/).filter((w: string) => w.length > 0);
+        const queryText = query.toLowerCase();
+        
+        // Check if ALL words from the rule are present in the user's query
+        const isMatch = ruleWords.every((word: string) => queryText.includes(word));
+        
+        if (isMatch) {
+          const matchedTool = internalPages.find(p => p.href === rule.target);
+          if (matchedTool && !internalMatches.find(m => m.href === matchedTool.href)) {
+            internalMatches.push({ ...matchedTool, resultType: 'internal' });
+          }
+        }
+      });
     }
 
-    // 2. Web Results (Postgres Full-Text Search)
+    // 2. Web Results (Postgres Full-Text + Semantic Hybrid Search)
     let webMatches: any[] = [];
     if (filterTab === 'All' || filterTab === 'Articles' || filterTab === 'Videos') {
-      let webQuery = supabase.from('scraped_web_pages').select('id, url, raw_text, domain_id, og_image_url, is_video, crawler_seed_domains(domain_url)').limit(20);
-      
-      if (filterTab === 'Articles') {
-        webQuery = webQuery.eq('is_video', false);
-      } else if (filterTab === 'Videos') {
-        webQuery = webQuery.eq('is_video', true);
-      }
+      let isVideoFilter: boolean | null = null;
+      if (filterTab === 'Articles') isVideoFilter = false;
+      if (filterTab === 'Videos') isVideoFilter = true;
 
-      if (cleanQuery.length >= 2) {
-        // websearch type handles quotes, hyphens, and multi-word gracefully
-        webQuery = webQuery.textSearch('raw_text', `'${cleanQuery}'`, { type: 'websearch', config: 'english' });
-      }
-      const webRes = await webQuery;
-      webMatches = (webRes.data || []).map(page => {
-        const matchIndex = page.raw_text.toLowerCase().indexOf(cleanQuery);
-        let snippet = page.raw_text;
-        if (matchIndex !== -1 && cleanQuery.length >= 2) {
-          const start = Math.max(0, matchIndex - 60);
-          const end = Math.min(page.raw_text.length, matchIndex + cleanQuery.length + 60);
-          snippet = (start > 0 ? '...' : '') + page.raw_text.substring(start, end) + (end < page.raw_text.length ? '...' : '');
-        } else {
-          snippet = page.raw_text.substring(0, 150) + '...';
-        }
-        return { 
-          id: page.id, 
-          url: page.url, 
-          domain_url: Array.isArray(page.crawler_seed_domains) ? (page.crawler_seed_domains[0] as any)?.domain_url : (page.crawler_seed_domains as any)?.domain_url, 
-          snippet, 
-          og_image_url: page.og_image_url, 
-          is_video: page.is_video,
-          resultType: 'web' 
-        };
+      const { data: webRes, error: webErr } = await supabase.rpc('search_web_pages_ranked', {
+        query_text: cleanQuery.length >= 2 ? cleanQuery : '',
+        query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
+        limit_val: 20,
+        is_video_filter: isVideoFilter
       });
+
+      if (!webErr && webRes) {
+        webMatches = webRes.map((page: any) => {
+          const matchIndex = page.raw_text ? page.raw_text.toLowerCase().indexOf(cleanQuery) : -1;
+          let snippet = page.raw_text || '';
+          
+          if (matchIndex !== -1 && cleanQuery.length >= 2) {
+            const start = Math.max(0, matchIndex - 60);
+            const end = Math.min(snippet.length, matchIndex + cleanQuery.length + 60);
+            snippet = (start > 0 ? '...' : '') + snippet.substring(start, end) + (end < snippet.length ? '...' : '');
+          } else {
+            snippet = snippet.substring(0, 150) + '...';
+          }
+          
+          return { 
+            id: page.id, 
+            url: page.url, 
+            domain_url: page.domain_url, 
+            snippet, 
+            og_image_url: page.og_image_url, 
+            is_video: page.is_video,
+            resultType: 'web' 
+          };
+        });
+      }
     }
 
     const topMatches = [...internalMatches, ...webMatches];
@@ -125,25 +163,26 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       shopOffset = fromIndex - topCount;
     }
 
-    let shopQ = supabase.from('agent_barbershop_leads')
-      .select('id, shop_name, city, formatted_address, phone, hiring_need, booth_count_available, rent_type, rent_rate, ai_culture_summary, rating, opportunity_status, google_images', { count: 'exact' });
-    
-    if (isHiring) shopQ = shopQ.eq('hiring_need', true).gt('booth_count_available', 0);
-    if (rentTypeFilter) shopQ = shopQ.eq('rent_type', rentTypeFilter);
-    if (cleanQuery.length >= 2) shopQ = shopQ.or(`shop_name.ilike.%${cleanQuery}%,city.ilike.%${cleanQuery}%,rent_type.ilike.%${cleanQuery}%,ai_culture_summary.ilike.%${cleanQuery}%,opportunity_status.ilike.%${cleanQuery}%`);
-
     let shopData: any[] = [];
     let shopCount = 0;
 
-    if (shopLimit > 0 && (filterTab === 'All' || filterTab === 'Barbershops')) {
-      const { data, count, error } = await shopQ.range(shopOffset, shopOffset + shopLimit - 1);
-      if (error) throw error;
-      shopData = data || [];
-      shopCount = count || 0;
-    } else if (filterTab === 'All' || filterTab === 'Barbershops') {
-      const { count, error } = await shopQ.limit(1);
-      if (error) throw error;
-      shopCount = count || 0;
+    if (filterTab === 'All' || filterTab === 'Barbershops') {
+      const rpcQuery = cleanQuery.length >= 2 ? cleanQuery : '';
+      
+      if (shopLimit > 0) {
+        const { data, error } = await supabase.rpc('search_barbershops_ranked', {
+          query_text: rpcQuery,
+          is_hiring_filter: isHiring,
+          rent_type_filter: rentTypeFilter || '',
+          limit_val: shopLimit,
+          offset_val: shopOffset,
+          query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null
+        });
+        
+        if (error) throw error;
+        shopData = data || [];
+        shopCount = (shopData.length > 0 && shopData[0].total_matched) ? Number(shopData[0].total_matched) : 0;
+      }
     }
 
     const shopMatches = shopData.map(s => ({ ...s, resultType: 'shop' }));
