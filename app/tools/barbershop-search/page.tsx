@@ -14,7 +14,7 @@ function SearchContent() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(Number(searchParams.get("p")) || 1);
   const [filterTab, setFilterTab] = useState(searchParams.get("tab") || "All");
-  const [isPending, startTransition] = useTransition();
+  const [isLoading, setIsLoading] = useState(false);
   const { setTheme } = useTheme();
 
   useEffect(() => {
@@ -47,13 +47,15 @@ function SearchContent() {
           return;
         }
 
-        startTransition(async () => {
-          const res = await searchBarbershops(query, page, filterTab);
+        setIsLoading(true);
+        searchBarbershops(query, page, filterTab).then(res => {
           if (res.success && res.data) {
             setResults(res.data.results || []);
             setTotal(res.data.total || 0);
             sessionStorage.setItem(cacheKey, JSON.stringify({ results: res.data.results, total: res.data.total }));
           }
+        }).finally(() => {
+          setIsLoading(false);
         });
       } else {
         setResults([]);
@@ -132,7 +134,7 @@ function SearchContent() {
                 className="block w-full pl-12 pr-4 py-4 sm:text-lg border border-border rounded-full bg-secondary/30 focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm focus:shadow-md outline-none"
                 placeholder="Search by shop name, city, hiring, rent type, or culture..."
               />
-              {isPending && (
+              {isLoading && (
                 <div className="absolute right-4">
                   <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                 </div>
@@ -209,9 +211,9 @@ function SearchContent() {
 
             if (item.resultType === 'web') {
               return (
-                <div key={`web-${item.id}`} className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-4 sm:gap-6 relative group/webcard">
+                <div key={`web-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
                   {item.og_image_url && (
-                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="shrink-0 w-full sm:w-40 h-48 sm:h-28 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
+                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
                       <img src={item.og_image_url} alt="Article Preview" className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
                       {item.is_video && (
                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center transition-colors group-hover/thumbnail:bg-black/20">
@@ -245,77 +247,47 @@ function SearchContent() {
 
             if (item.resultType === 'shop') {
               return (
-                <div key={`shop-${item.id}`} className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-                  {item.hiring_need && item.booth_count_available > 0 && (
-                    <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 rounded-bl-lg shadow-sm z-10">
-                      HIRING: {item.booth_count_available} Chairs
-                    </div>
-                  )}
-                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-6 mt-4 sm:mt-0">
-                    
-                    {item.google_images && Array.isArray(item.google_images) && item.google_images.length > 0 && (
-                      <div className="shrink-0 w-full sm:w-24 h-48 sm:h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
-                        <img src={item.google_images[0]} alt={item.shop_name} className="w-full h-full object-cover" />
-                      </div>
-                    )}
-
-                    <div className="flex-1 w-full min-w-0">
-                      <div className="flex items-start sm:items-center gap-2 mb-1 flex-col sm:flex-row">
-                        <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 truncate w-full sm:w-auto">
-                          {item.shop_name || "Unknown Shop"}
-                        </h3>
-                        {item.rating && (
-                          <span className="shrink-0 flex items-center text-xs sm:text-sm font-medium text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">
-                            <Star className="h-3.5 w-3.5 mr-1 fill-current" />
-                            {item.rating}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2 mt-2 sm:mt-3 text-xs sm:text-sm text-slate-600">
-                        {item.formatted_address ? (
-                          <p className="flex items-start gap-2">
-                            <MapPin className="shrink-0 h-4 w-4 text-slate-400 mt-0.5" />
-                            <span className="truncate">{item.formatted_address}</span>
-                          </p>
-                        ) : (
-                          <p className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-slate-400" />
-                            {item.city || "Unknown City"}
-                          </p>
-                        )}
-                        
-                        <div className="flex flex-wrap gap-3 mt-3">
-                          {(item.rent_type || item.rent_rate) && (
-                            <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-medium text-xs">
-                              <Briefcase className="h-3.5 w-3.5" />
-                              {item.rent_type || "Unknown"} {item.rent_rate ? `• ${item.rent_rate}` : ""}
-                            </span>
-                          )}
-                          
-                          {item.ai_culture_summary && (
-                            <span className="flex items-center gap-1.5 bg-purple-50 text-purple-700 px-2.5 py-1 rounded-md font-medium text-xs">
-                              <Users className="h-3.5 w-3.5" />
-                              {item.ai_culture_summary}
-                            </span>
-                          )}
-                          
-                          {item.opportunity_status && (
-                            <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md font-medium text-xs">
-                              <Target className="h-3.5 w-3.5" />
-                              {item.opportunity_status}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Link 
-                      href={`/shop/${item.id}`}
-                      className="shrink-0 w-full sm:w-auto px-6 py-2.5 text-sm font-semibold text-white bg-slate-900 rounded-full hover:bg-slate-800 transition-colors shadow-sm text-center mt-4 sm:mt-0"
-                    >
-                      View Shop
+                <div key={`shop-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
+                  {item.google_images && Array.isArray(item.google_images) && item.google_images.length > 0 && (
+                    <Link href={`/shop/${item.id}`} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
+                      <img src={item.google_images[0]} alt={item.shop_name} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
                     </Link>
+                  )}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    
+                    {/* Breadcrumb (Google Style) */}
+                    <div className="flex items-center gap-1.5 text-xs sm:text-[13px] text-slate-700 mb-1 truncate">
+                      <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                        <MapPin className="h-3 w-3 text-slate-500" />
+                      </div>
+                      <span className="truncate opacity-80">barberbeauty.net › shops › {(item.city || 'local').toLowerCase().replace(/\s+/g, '-')}</span>
+                    </div>
+
+                    {/* Prominent Title Link */}
+                    <Link href={`/shop/${item.id}`} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
+                      {item.shop_name || "Unknown Shop"}
+                    </Link>
+
+                    {/* Rating & Location Snippet */}
+                    <div className="flex items-center gap-1.5 text-sm text-slate-600 mb-1.5 flex-wrap">
+                      {item.rating && (
+                        <span className="flex items-center text-[13px]">
+                          <span className="font-medium text-slate-700 mr-1">{item.rating}</span>
+                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          <span className="ml-1 opacity-80">({item.total_reviews || 0})</span>
+                          <span className="mx-1.5 opacity-50">·</span>
+                        </span>
+                      )}
+                      <span className="truncate max-w-[180px] sm:max-w-xs">{item.formatted_address || item.city}</span>
+                    </div>
+                    
+                    {/* Details Snippet */}
+                    <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
+                      {item.hiring_need && item.booth_count_available > 0 ? (
+                        <span className="font-medium text-green-700 mr-1">Hiring {item.booth_count_available} Chairs.</span>
+                      ) : null}
+                      {item.ai_culture_summary || item.opportunity_status || "Premium barbershop offering traditional cuts, hot towel shaves, and top-tier grooming services."}
+                    </p>
                   </div>
                 </div>
               );
@@ -326,21 +298,48 @@ function SearchContent() {
 
           {/* Pagination Controls */}
           {total > 10 && (
-            <div className="flex justify-center items-center gap-2 sm:gap-4 mt-8 pt-4 w-full flex-wrap">
+            <div className="flex justify-center items-center gap-2 mt-12 pt-6 border-t border-slate-200 w-full flex-wrap">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1 || isPending}
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                disabled={page === 1 || isLoading}
+                className="px-3 sm:px-4 py-2 h-10 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
               >
                 Previous
               </button>
-              <span className="text-xs sm:text-sm font-medium text-slate-600 px-2">
+              
+              <div className="hidden sm:flex gap-1">
+                {Array.from({ length: Math.min(10, Math.ceil(total / 10)) }).map((_, i) => {
+                  const totalPages = Math.ceil(total / 10);
+                  let start = page - 5;
+                  if (start < 1) start = 1;
+                  if (start + 9 > totalPages) start = Math.max(1, totalPages - 9);
+                  const pNum = start + i;
+                  
+                  return (
+                    <button
+                      key={pNum}
+                      onClick={() => setPage(pNum)}
+                      disabled={isLoading}
+                      className={`w-10 h-10 flex items-center justify-center text-sm font-medium rounded-lg transition-colors border ${
+                        page === pNum 
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
+                          : 'text-slate-700 bg-white border-slate-300 hover:bg-slate-50 disabled:opacity-50'
+                      }`}
+                    >
+                      {pNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <span className="text-xs font-medium text-slate-600 px-2 sm:hidden">
                 Page {page} of {Math.ceil(total / 10)}
               </span>
+              
               <button
                 onClick={() => setPage(p => p + 1)}
-                disabled={page >= Math.ceil(total / 10) || isPending}
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                disabled={page >= Math.ceil(total / 10) || isLoading}
+                className="px-3 sm:px-4 py-2 h-10 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
               >
                 Next
               </button>
@@ -348,7 +347,7 @@ function SearchContent() {
           )}
 
           {/* Empty State */}
-          {results.length === 0 && query.trim().length >= 2 && !isPending ? (
+          {results.length === 0 && query.trim().length >= 2 && !isLoading ? (
             <div className="text-center py-12 text-muted-foreground">
               No results found for "{query}". Try a different term.
             </div>
