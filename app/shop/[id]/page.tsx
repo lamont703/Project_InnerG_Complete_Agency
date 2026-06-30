@@ -260,30 +260,22 @@ export default async function ShopProfilePage({ params }: Props) {
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Managed By</p>
                 <h4 className="font-black text-slate-900 text-lg mb-4">{shop.owner_name && shop.owner_name !== "Unknown Owner" ? shop.owner_name : "Unclaimed (Claim to add)"}</h4>
                 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-slate-600 text-sm font-medium">
-                    <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0">
-                      <Mail className="w-3.5 h-3.5 text-slate-400" />
-                    </div>
-                    {maskEmail(shop.email) || 'Email Hidden'}
+                {(shop.email || shop.phone) && (
+                  <div className={`grid gap-3 mt-4 relative z-10 ${shop.email && shop.phone ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    {shop.email && (
+                      <a href={`mailto:${shop.email}`} className="w-full py-3 px-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm flex items-center justify-center gap-2">
+                        <Mail className="w-4 h-4 text-slate-500" />
+                        Email
+                      </a>
+                    )}
+                    {shop.phone && (
+                      <a href={`tel:${shop.phone}`} className="w-full py-3 px-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm flex items-center justify-center gap-2">
+                        <Phone className="w-4 h-4 text-slate-500" />
+                        Call
+                      </a>
+                    )}
                   </div>
-                  <div className="flex items-center gap-3 text-slate-600 text-sm font-medium">
-                    <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
-                    </div>
-                    {maskPhone(shop.phone) || 'Phone Hidden'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                <div className="w-full">
-                   <RequestShopDayButton shop={shop} />
-                </div>
-                <button className="w-full py-4 px-6 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold rounded-xl transition-colors border border-slate-200">
-                  Contact Owner
-                </button>
+                )}
               </div>
 
               <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
