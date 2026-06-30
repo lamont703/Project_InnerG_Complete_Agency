@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow } from "lucide-react";
+import { useState, useTransition, useEffect, Suspense } from "react";
+import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle } from "lucide-react";
 import { searchBarbershops } from "./actions";
 import Link from "next/link";
 import { useTheme } from "next-themes";
+import { useSearchParams } from "next/navigation";
 
-export default function BarbershopSearchPage() {
-  const [query, setQuery] = useState("");
+function SearchContent() {
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get("q") || "");
   const [results, setResults] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(Number(searchParams.get("p")) || 1);
+  const [filterTab, setFilterTab] = useState(searchParams.get("tab") || "All");
   const [isPending, startTransition] = useTransition();
   const { setTheme } = useTheme();
 
@@ -25,12 +28,31 @@ export default function BarbershopSearchPage() {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
+      // Sync State to URL so it remembers when we click "Back"
+      const params = new URLSearchParams();
+      if (query.trim()) params.set("q", query.trim());
+      if (filterTab !== "All") params.set("tab", filterTab);
+      if (page > 1) params.set("p", page.toString());
+      window.history.replaceState(null, '', `?${params.toString()}`);
+
       if (query.trim().length >= 2) {
+        // Intercept with Session Storage Cache to prevent re-fetching when hitting "Back"
+        const cacheKey = `search_${query}_${filterTab}_${page}`;
+        const cached = sessionStorage.getItem(cacheKey);
+        
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          setResults(parsed.results);
+          setTotal(parsed.total);
+          return;
+        }
+
         startTransition(async () => {
-          const res = await searchBarbershops(query, page);
+          const res = await searchBarbershops(query, page, filterTab);
           if (res.success && res.data) {
             setResults(res.data.results || []);
             setTotal(res.data.total || 0);
+            sessionStorage.setItem(cacheKey, JSON.stringify({ results: res.data.results, total: res.data.total }));
           }
         });
       } else {
@@ -40,21 +62,61 @@ export default function BarbershopSearchPage() {
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [query, page]);
+  }, [query, page, filterTab]);
+
+  // Helper for Google-style results
+  const generateTitleFromUrl = (urlStr: string) => {
+    try {
+      const urlObj = new URL(urlStr);
+      if (urlObj.hostname.includes('youtube.com') && urlObj.searchParams.get('v')) {
+        return `YouTube Video - ${urlObj.searchParams.get('v')}`;
+      }
+      let path = urlObj.pathname.replace(/\/$/, "");
+      if (path === '' || path === '/') return urlObj.hostname.replace('www.', '').split('.')[0].toUpperCase();
+      
+      const segments = path.split('/');
+      const lastSegment = segments[segments.length - 1];
+      if (!lastSegment || lastSegment.length < 3) return urlObj.hostname.replace('www.', '');
+      
+      return lastSegment
+        .replace(/[-_]/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase())
+        .replace(/\.Html$|\.Php$/, '')
+        .substring(0, 80);
+    } catch {
+      return urlStr;
+    }
+  };
+
+  const generateBreadcrumb = (urlStr: string) => {
+    try {
+      const urlObj = new URL(urlStr);
+      let hostname = urlObj.hostname.replace('www.', '');
+      let path = urlObj.pathname.replace(/\/$/, "");
+      if (path === '' || path === '/') return hostname;
+      
+      const segments = path.split('/').filter(Boolean).slice(0, 2); // Max 2 segments
+      let breadcrumb = `${hostname} › ${segments.join(' › ')}`;
+      if (breadcrumb.length > 50) breadcrumb = breadcrumb.substring(0, 50) + '...';
+      return breadcrumb;
+    } catch {
+      return urlStr;
+    }
+  };
 
   return (
-    <div className="min-h-screen flex flex-col light bg-slate-50 text-slate-900 selection:bg-blue-500/20">
+    <div className="min-h-[calc(100vh-64px)] flex flex-col light bg-slate-50 text-slate-900 selection:bg-blue-500/20">
       
-      <main className="flex-1 flex flex-col items-center pt-16 sm:pt-32 px-4 sm:px-6 lg:px-8 w-full">
+      <main className={`flex-1 flex flex-col items-center px-4 sm:px-6 lg:px-8 w-full transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${results.length > 0 || query.trim().length > 0 ? 'justify-start pt-8 sm:pt-16' : 'justify-center pb-32'}`}>
         
         {/* Search Header Area */}
-        <div className={`w-full max-w-3xl transition-all duration-500 ease-in-out ${results.length > 0 || query ? 'mt-8' : 'mt-[20vh]'}`}>
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-primary mb-3 sm:mb-4">
+        <div className={`w-full transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${results.length > 0 || query.trim().length > 0 ? 'max-w-4xl' : 'max-w-3xl'}`}>
+          <div className={`text-center transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'mb-6 sm:mb-8 scale-90 sm:scale-100 transform origin-top' : 'mb-8 sm:mb-10'}`}>
+            <h1 className={`font-extrabold tracking-tight text-primary transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-3xl sm:text-4xl mb-2' : 'text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6'}`}>
               Barber & Cosmetology <br />
               <span className="text-black">Domain Intelligence</span>
             </h1>
-            <p className="text-base sm:text-lg text-muted-foreground px-2">
+            <p className={`text-muted-foreground px-2 transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-sm sm:text-base opacity-0 h-0 overflow-hidden' : 'text-base sm:text-xl opacity-100 h-auto'}`}>
               Search the worlds largest collection of barber, beauty & wellness data.
             </p>
           </div>
@@ -77,6 +139,46 @@ export default function BarbershopSearchPage() {
               )}
             </div>
           </div>
+
+          {/* Quick Search Suggestions */}
+          {query.trim().length === 0 && results.length === 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
+              <span className="text-sm text-slate-500 font-medium">Try searching:</span>
+              <button
+                onClick={() => { setQuery("Shops hiring in Houston"); setPage(1); }}
+                className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <Search className="h-3 w-3 inline-block mr-1.5 opacity-50" />
+                Shops hiring in Houston
+              </button>
+              <button
+                onClick={() => { setQuery("Barbers in Houston looking for chairs"); setPage(1); }}
+                className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <Search className="h-3 w-3 inline-block mr-1.5 opacity-50" />
+                Barbers in Houston looking for chairs
+              </button>
+            </div>
+          )}
+
+          {/* Filter Tabs */}
+          {(query.trim().length >= 2 || results.length > 0) && (
+            <div className="flex items-center gap-2 mt-6 overflow-x-auto pb-2 scrollbar-hide px-2">
+              {['All', 'Barbershops', 'Articles', 'Videos', 'Tools'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => { setFilterTab(tab); setPage(1); }}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
+                    filterTab === tab
+                      ? 'bg-blue-50 border-blue-200 text-blue-700'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Results Area */}
@@ -107,17 +209,36 @@ export default function BarbershopSearchPage() {
 
             if (item.resultType === 'web') {
               return (
-                <div key={`web-${item.id}`} className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 mb-2 truncate">
-                    <Globe className="shrink-0 h-4 w-4" />
-                    <span className="truncate">{item.domain_url || (item.url ? new URL(item.url).hostname : "")}</span>
+                <div key={`web-${item.id}`} className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-4 sm:gap-6 relative group/webcard">
+                  {item.og_image_url && (
+                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="shrink-0 w-full sm:w-40 h-48 sm:h-28 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
+                      <img src={item.og_image_url} alt="Article Preview" className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                      {item.is_video && (
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center transition-colors group-hover/thumbnail:bg-black/20">
+                          <PlayCircle className="h-10 w-10 text-white/90 drop-shadow-md" />
+                        </div>
+                      )}
+                    </a>
+                  )}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    {/* Breadcrumb (Google Style) */}
+                    <div className="flex items-center gap-1.5 text-xs sm:text-[13px] text-slate-700 mb-1 truncate">
+                      <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                        <Globe className="h-3 w-3 text-slate-500" />
+                      </div>
+                      <span className="truncate opacity-80">{generateBreadcrumb(item.url)}</span>
+                    </div>
+                    
+                    {/* Prominent Title Link */}
+                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-2 truncate">
+                      {generateTitleFromUrl(item.url)}
+                    </a>
+                    
+                    {/* Snippet */}
+                    <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
+                      {item.snippet}
+                    </p>
                   </div>
-                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-base sm:text-lg font-bold text-blue-600 hover:underline break-all block">
-                    {item.url}
-                  </a>
-                  <p className="mt-3 text-xs sm:text-sm text-slate-600 leading-relaxed italic border-l-2 border-slate-200 pl-3">
-                    "{item.snippet}"
-                  </p>
                 </div>
               );
             }
@@ -126,11 +247,18 @@ export default function BarbershopSearchPage() {
               return (
                 <div key={`shop-${item.id}`} className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
                   {item.hiring_need && item.booth_count_available > 0 && (
-                    <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 rounded-bl-lg shadow-sm">
+                    <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 rounded-bl-lg shadow-sm z-10">
                       HIRING: {item.booth_count_available} Chairs
                     </div>
                   )}
                   <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-6 mt-4 sm:mt-0">
+                    
+                    {item.google_images && Array.isArray(item.google_images) && item.google_images.length > 0 && (
+                      <div className="shrink-0 w-full sm:w-24 h-48 sm:h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                        <img src={item.google_images[0]} alt={item.shop_name} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+
                     <div className="flex-1 w-full min-w-0">
                       <div className="flex items-start sm:items-center gap-2 mb-1 flex-col sm:flex-row">
                         <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 truncate w-full sm:w-auto">
@@ -228,5 +356,13 @@ export default function BarbershopSearchPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function BarbershopSearchPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center">Loading Search Engine...</div>}>
+      <SearchContent />
+    </Suspense>
   );
 }
