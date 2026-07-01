@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'ABC Fitness\'s Intelligence Ceiling | Strategic View | Inner G Complete',
-  description: 'A strategic audit of the intelligence gap at the heart of the world\'s largest fitness platform and how ADI bridges it.',
+  title: 'ABC Fitness Software Audit: Too Big to Innovate? | Sovereign Audit',
+  description: 'We analyzed ABC Fitness\'s enterprise architecture. Discover why boutique fitness owners are ditching it for sovereign AI solutions.',
   openGraph: {
-    title: 'ABC Fitness\'s Intelligence Ceiling | Inner G Complete',
+    title: 'ABC Fitness Software Audit: Too Big to Innovate? | Sovereign Audit',
+    description: 'We analyzed ABC Fitness\'s enterprise architecture. Discover why boutique fitness owners are ditching it for sovereign AI solutions.',
     type: 'article',
-    url: 'https://innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit',
+    url: 'https://agency.innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit',
     siteName: 'Inner G Complete Agency',
     images: [
       {

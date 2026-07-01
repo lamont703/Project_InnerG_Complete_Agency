@@ -1,23 +1,23 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: "Rebooking Intelligence Pilot | Barber Grooming ADI Architecture",
-  description: "A CPMAI-governed pilot architecture for deploying an ADI model that autonomously triggers client rebooking, eliminates no-shows, and maintains floor revenue.",
+  title: "Rebooking AI Case Study: Eliminating Barber No-Shows in 2026",
+  description: "Read the pilot case study on how autonomous AI is predicting no-shows and automatically rebooking clients to maintain 100% floor revenue.",
   keywords: [
     "Barber ADI pilot",
     "rebooking AI model",
     "theCut platform intelligence",
     "Booksy barber automation",
     "no-show prediction AI",
-    "predictive scheduling model",
+    "predictive scheduling case study",
     "CPMAI blueprint",
     "barbershop retention technology"
   ],
   openGraph: {
-    title: "Rebooking Appointment Intelligence | Barber Grooming ADI Pilot",
-    description: "A CPMAI-governed pilot architecture for deploying an ADI model that autonomously keeps a barber's calendar full.",
+    title: "Rebooking AI Case Study: Eliminating Barber No-Shows in 2026",
+    description: "Read the pilot case study on how autonomous AI is predicting no-shows and automatically rebooking clients to maintain 100% floor revenue.",
     type: "article",
-    url: "https://innergcomplete.com/insights/rebooking-intelligence-pilot",
+    url: "https://agency.innergcomplete.com/insights/rebooking-intelligence-pilot",
     publishedTime: "2026-04-14T08:00:00Z",
     authors: ["https://innergcomplete.com/about"],
     siteName: 'Inner G Complete Agency',

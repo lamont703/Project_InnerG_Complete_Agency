@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRight, Sparkles, Shield } from "lucide-react"
+import { ArrowRight, Sparkles, Shield, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
@@ -87,12 +87,12 @@ export function HeroSection() {
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Button
             size="lg"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 px-8 py-6 text-base glow-primary"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 px-8 py-6 text-base shadow-[0_0_20px_rgba(209,173,117,0.4)] hover:shadow-[0_0_30px_rgba(209,173,117,0.6)] transition-all duration-300"
             asChild
           >
-            <Link href="/ai-solutions">
-              Explore AI Agent Solutions
-              <ArrowRight className="h-4 w-4" />
+            <Link href="/tools/barbershop-search">
+              <Search className="h-4 w-4" />
+              Launch Our Intelligence
             </Link>
           </Button>
         </div>

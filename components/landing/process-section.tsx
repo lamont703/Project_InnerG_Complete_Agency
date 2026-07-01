@@ -4,9 +4,9 @@ const steps = [
   {
     icon: Search,
     step: "01",
-    title: "Project Audit",
+    title: "Data & Market Audit",
     description:
-      "We analyze your school's current operations, from enrollment funnels to Title-IV compliance, to locate the exact friction points draining your revenue.",
+      "We don't guess. We begin by running your local zip codes through our proprietary Intelligence Engine to analyze foot traffic, shop density, and competitor placement rates before writing a single line of code.",
   },
   {
     icon: PenTool,
