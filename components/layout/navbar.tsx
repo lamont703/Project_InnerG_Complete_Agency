@@ -82,18 +82,18 @@ export function Navbar() {
             className="text-muted-foreground hover:text-foreground"
             asChild
           >
-            <Link href="/#contact" onClick={(e) => handleNavClick(e, '/#contact')}>Book a Call</Link>
+            <Link href="/login" onClick={(e) => handleNavClick(e, '/login')}>Login</Link>
           </Button>
           <Button
             size="sm"
-            className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1 lg:gap-2"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1 lg:gap-2 shadow-[0_0_15px_rgba(209,173,117,0.3)] transition-all hover:shadow-[0_0_25px_rgba(209,173,117,0.5)]"
             asChild
           >
             <Link 
-              href="/login" 
-              onClick={() => trackCTAClick({ cta_label: 'Get Started', page: 'Navbar', destination: '/login' })}
+              href="/tools/barbershop-search" 
+              onClick={() => trackCTAClick({ cta_label: 'Launch AI Search', page: 'Navbar', destination: '/tools/barbershop-search' })}
             >
-              Get Started
+              Launch AI Search
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </Button>
@@ -121,17 +121,28 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <div className="mt-3 border-t border-border pt-3">
-              <Button className="w-full bg-primary text-primary-foreground gap-2" asChild>
+            <div className="mt-3 border-t border-border pt-3 flex flex-col gap-2">
+              <Button className="w-full bg-primary text-primary-foreground gap-2 shadow-lg" asChild>
+                <Link 
+                  href="/tools/barbershop-search" 
+                  onClick={() => {
+                    setIsMobileOpen(false);
+                    trackCTAClick({ cta_label: 'Launch AI Search (Mobile)', page: 'Navbar', destination: '/tools/barbershop-search' });
+                  }}
+                >
+                  Launch AI Search
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
+              <Button variant="ghost" className="w-full text-muted-foreground" asChild>
                 <Link 
                   href="/login" 
                   onClick={() => {
                     setIsMobileOpen(false);
-                    trackCTAClick({ cta_label: 'Get Started (Mobile)', page: 'Navbar', destination: '/login' });
+                    trackCTAClick({ cta_label: 'Login (Mobile)', page: 'Navbar', destination: '/login' });
                   }}
                 >
-                  Get Started
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  Login
                 </Link>
               </Button>
             </div>

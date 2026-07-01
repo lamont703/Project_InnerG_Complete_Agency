@@ -1,18 +1,19 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'theCut\'s Intelligence Ceiling | Strategic View | Inner G Complete',
-  description: 'A CEO-level strategic audit of the intelligence gap within theCut\'s $2B transaction platform and the blueprint for its ADI evolution.',
+  title: 'TheCut App Review 2026: Why Barbers Are Leaving | Sovereign Audit',
+  description: 'A brutal audit of TheCut platform. See why the top 1% of barbers are replacing it with custom AI-powered booking funnels.',
   keywords: [
-    'theCut AI strategy',
-    'theCut barber app intelligence',
+    'theCut alternatives 2026',
+    'thecut app review',
     'barber platform AI evolution',
     'theCut strategic audit',
   ],
   openGraph: {
-    title: 'theCut\'s Intelligence Ceiling | Inner G Complete',
+    title: 'TheCut App Review 2026: Why Barbers Are Leaving | Sovereign Audit',
+    description: 'A brutal audit of TheCut platform. See why the top 1% of barbers are replacing it with custom AI-powered booking funnels.',
     type: 'article',
-    url: 'https://innergcomplete.com/insights/thecut-sovereign-intelligence-audit',
+    url: 'https://agency.innergcomplete.com/insights/thecut-sovereign-intelligence-audit',
     siteName: 'Inner G Complete Agency',
     images: [
       {

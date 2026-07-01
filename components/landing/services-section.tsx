@@ -54,15 +54,14 @@ export function ServicesSection() {
         {/* Header */}
         <div className="text-center">
           <p className="text-sm font-black uppercase tracking-[0.3em] text-primary mb-4 flex items-center justify-center gap-2">
-            Artificial Domain Intelligence
+            Custom AI Development Agency
             <span className="text-[8px] opacity-70">[Proprietary]</span>
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            Engineered for Trade Schools
+            Enterprise Architectures Built on Foundational Data
           </h2>
           <p className="mx-auto mt-8 max-w-3xl text-lg text-muted-foreground leading-relaxed font-medium">
-            We partner with a selective cohort of Barber and Cosmetology Schools to build 
-            the cognitive infrastructure required for NACCAS/ACCSC compliance and market dominance.
+            Our proprietary Artificial Domain Intelligence (ADI) processes the local barber, beauty and wellness market in real-time. We leverage this sovereign data engine to build custom, NACCAS/ACCSC compliant software solutions exclusively for top-tier Barber and Cosmetology Schools.
           </p>
         </div>
 

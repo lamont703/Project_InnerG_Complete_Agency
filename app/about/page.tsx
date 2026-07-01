@@ -31,8 +31,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const domainUrl = `https://${host}`
 
   return {
-    title: `About Us | ${tenantName} — ADI Architecture Firm`,
-    description: `${tenantName} architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. Learn our mission, vision, and CPMAI-governed ADI methodology.`,
+    title: `About ${tenantName} | The First AI Infrastructure for Barbershops`,
+    description: `Meet the team building sovereign intelligence architecture for the grooming industry. See how we're replacing legacy apps with autonomous AI.`,
     keywords: [
       "ADI architecture firm",
       "Artificial Domain Intelligence agency",
@@ -43,16 +43,16 @@ export async function generateMetadata(): Promise<Metadata> {
       `${tenantName} about`,
     ],
     openGraph: {
-      title: `About ${tenantName} | Artificial Domain Intelligence`,
-      description: `We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises — CPMAI-governed, institutionally auditable, built to own.`,
+      title: `About ${tenantName} | The First AI Infrastructure for Barbershops`,
+      description: `Meet the team building sovereign intelligence architecture for the grooming industry. See how we're replacing legacy apps with autonomous AI.`,
       url: `${domainUrl}/about`,
       type: "website",
       images: [{ url: '/og-image.png', width: 1200, height: 630, alt: tenantName }],
     },
     twitter: {
       card: "summary_large_image",
-      title: `About ${tenantName} | Artificial Domain Intelligence`,
-      description: `We architect sovereign AI intelligence layers for grooming, beauty, and wellness enterprises — CPMAI-governed, institutionally auditable, built to own.`,
+      title: `About ${tenantName} | The First AI Infrastructure for Barbershops`,
+      description: `Meet the team building sovereign intelligence architecture for the grooming industry. See how we're replacing legacy apps with autonomous AI.`,
       images: ["/og-image.png"],
     },
     alternates: {

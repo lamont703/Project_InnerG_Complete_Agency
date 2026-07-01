@@ -1,18 +1,19 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Autonomous Concierge: ROI Analysis | Industry Report',
-  description: 'Quantifying the economic impact of AI-driven booking agents on clinical throughput and client retention in MedSpas and wellness clinics.',
+  title: 'Autonomous Concierge ROI: How AI Saves Barbers $12k/Yr [Case Study]',
+  description: 'Quantifying the massive economic impact of AI-driven booking agents. See how autonomous concierges eliminate no-shows and increase clinical throughput.',
   keywords: [
     'autonomous concierge AI',
-    'MedSpa AI ROI analysis',
+    'barber AI ROI case study',
     'AI clinical throughput',
     'wellness AI booking agents',
   ],
   openGraph: {
-    title: 'Autonomous Concierge: ROI Analysis | Inner G Complete',
+    title: 'Autonomous Concierge ROI: How AI Saves Barbers $12k/Yr [Case Study]',
+    description: 'Quantifying the massive economic impact of AI-driven booking agents. See how autonomous concierges eliminate no-shows and increase clinical throughput.',
     type: 'article',
-    url: 'https://innergcomplete.com/insights/autonomous-concierge-roi-analysis',
+    url: 'https://agency.innergcomplete.com/insights/autonomous-concierge-roi-analysis',
     siteName: 'Inner G Complete Agency',
     images: [
       {

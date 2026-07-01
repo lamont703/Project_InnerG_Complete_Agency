@@ -1,13 +1,14 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'The Sovereign Intelligence Layer | Core Vision',
-  description: 'Why the enterprise that builds a proprietary Artificial Domain Intelligence creates an unassailable competitive moat.',
-  keywords: ['sovereign intelligence layer', 'Artificial Domain Intelligence vision', 'enterprise grooming AI moat'],
+  title: 'How Barbershops Are Building AI Moats in 2026 [Case Study]',
+  description: 'Why the enterprise that builds a proprietary Artificial Domain Intelligence creates an unassailable competitive advantage. Read the sovereign strategy.',
+  keywords: ['sovereign intelligence layer', 'Artificial Domain Intelligence case study', 'enterprise grooming AI moat'],
   openGraph: {
-    title: 'The Sovereign Intelligence Layer: Why ADI Wins',
+    title: 'How Barbershops Are Building AI Moats in 2026 [Case Study]',
+    description: 'Why the enterprise that builds a proprietary Artificial Domain Intelligence creates an unassailable competitive advantage. Read the sovereign strategy.',
     type: 'article',
-    url: 'https://innergcomplete.com/insights/the-sovereign-intelligence-layer',
+    url: 'https://agency.innergcomplete.com/insights/the-sovereign-intelligence-layer',
     siteName: 'Inner G Complete Agency',
     images: [
       {

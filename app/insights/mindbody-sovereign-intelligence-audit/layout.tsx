@@ -1,17 +1,18 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'MindBody\'s Intelligence Ceiling | Strategic View | Inner G Complete',
-  description: 'A platform audit of why MindBody\'s 700-integration architecture generates data without generating intelligence—and how sovereign AI changes that.',
+  title: 'Mindbody is Dead for Salons in 2026 | Sovereign Audit',
+  description: 'An explosive audit of Mindbody\'s legacy infrastructure and why elite salon owners are migrating to AI-driven sovereign architecture.',
   keywords: [
-    'MindBody AI integration',
-    'MindBody data architecture',
+    'mindbody alternatives 2026',
+    'mindbody reviews',
     'wellness software ADI layers',
   ],
   openGraph: {
-    title: 'MindBody\'s Intelligence Ceiling | Inner G Complete',
+    title: 'Mindbody is Dead for Salons in 2026 | Sovereign Audit',
+    description: 'An explosive audit of Mindbody\'s legacy infrastructure and why elite salon owners are migrating to AI-driven sovereign architecture.',
     type: 'article',
-    url: 'https://innergcomplete.com/insights/mindbody-sovereign-intelligence-audit',
+    url: 'https://agency.innergcomplete.com/insights/mindbody-sovereign-intelligence-audit',
     siteName: 'Inner G Complete Agency',
     images: [
       {

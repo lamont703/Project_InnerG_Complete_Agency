@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'The Feasibility Premium: Starting with "No" | Strategic View',
+  title: 'AI Implementation Failures: The Feasibility Premium [Case Study]',
   description: 'Why the most successful AI projects in wellness and grooming begin with a ruthless CPMAI viability audit, not a development sprint.',
   openGraph: {
-    title: 'The Feasibility Premium: Starting with "No"',
+    title: 'AI Implementation Failures: The Feasibility Premium [Case Study]',
+    description: 'Why the most successful AI projects in wellness and grooming begin with a ruthless CPMAI viability audit, not a development sprint.',
     type: 'article',
-    url: 'https://innergcomplete.com/insights/the-feasibility-premium',
+    url: 'https://agency.innergcomplete.com/insights/the-feasibility-premium',
     siteName: 'Inner G Complete Agency',
     images: [
       {
