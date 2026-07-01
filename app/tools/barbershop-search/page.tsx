@@ -13,9 +13,15 @@ function SearchContent() {
   const [results, setResults] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(Number(searchParams.get("p")) || 1);
-  const [filterTab, setFilterTab] = useState(searchParams.get("tab") || "All");
+  const [filterTab, setFilterTab] = useState(searchParams.get("tab") || "AI Mode");
   const [activeFilters, setActiveFilters] = useState<string[]>(searchParams.get("filters") ? searchParams.get("filters")!.split(',') : []);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // AI Chat State
+  const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  
   const { setTheme } = useTheme();
 
   useEffect(() => {
@@ -25,6 +31,43 @@ function SearchContent() {
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
     setPage(1);
+  };
+
+  const handleChatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || isAiLoading) return;
+    
+    const newMsg = { role: 'user', content: chatInput.trim() };
+    const newHistory = [...chatMessages, newMsg];
+    setChatMessages(newHistory);
+    setChatInput("");
+    setIsAiLoading(true);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newHistory })
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setChatMessages([...newHistory, { role: 'model', content: data.error || 'Failed to connect.' }]);
+        if (res.status === 429 && (window as any).innerG?.track) {
+          (window as any).innerG.track('ai_rate_limit_hit', { limit: 5 });
+        }
+      } else {
+        setChatMessages([...newHistory, { role: 'model', content: data.text }]);
+        if ((window as any).innerG?.track) {
+          (window as any).innerG.track('ai_chat_message_sent', { query_length: chatInput.length });
+        }
+      }
+    } catch (err) {
+      setChatMessages([...newHistory, { role: 'model', content: 'Connection error.' }]);
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -126,71 +169,82 @@ function SearchContent() {
         
         {/* Search Header Area */}
         <div className={`w-full transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${results.length > 0 || query.trim().length > 0 ? 'max-w-4xl' : 'max-w-3xl'}`}>
-          <div className={`text-center transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'mb-6 sm:mb-8 scale-90 sm:scale-100 transform origin-top' : 'mb-8 sm:mb-10'}`}>
-            <h1 className={`font-extrabold tracking-tight text-primary transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-3xl sm:text-4xl mb-2' : 'text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6'}`}>
-              Barber & Cosmetology <br />
-              <span className="text-black">Domain Intelligence</span>
-            </h1>
-            <p className={`text-muted-foreground px-2 transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-sm sm:text-base opacity-0 h-0 overflow-hidden' : 'text-base sm:text-xl opacity-100 h-auto'}`}>
-              Search the worlds largest collection of barber, beauty & wellness data.
-            </p>
-          </div>
+          {filterTab !== 'AI Mode' && (
+            <>
+              <div className={`text-center transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'mb-6 sm:mb-8 scale-90 sm:scale-100 transform origin-top' : 'mb-8 sm:mb-10'}`}>
+                <h1 className={`font-extrabold tracking-tight text-primary transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-3xl sm:text-4xl mb-2' : 'text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6'}`}>
+                  Barber & Cosmetology <br />
+                  <span className="text-black">Domain Intelligence</span>
+                </h1>
+                <p className={`text-muted-foreground px-2 transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-sm sm:text-base opacity-0 h-0 overflow-hidden' : 'text-base sm:text-xl opacity-100 h-auto'}`}>
+                  Search the worlds largest collection of barber, beauty & wellness data.
+                </p>
+              </div>
 
-          <div className="relative group w-full">
-            <div className="absolute inset-0 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-all"></div>
-            <div className="relative flex items-center">
-              <Search className="absolute left-4 h-6 w-6 text-slate-400 group-hover:text-blue-500 transition-colors" />
-              <input
-                type="text"
-                value={query}
-                onChange={handleQueryChange}
-                className="block w-full pl-12 pr-4 py-4 sm:text-lg border border-border rounded-full bg-secondary/30 focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm focus:shadow-md outline-none"
-                placeholder="Search by shop name, city, hiring, rent type, or culture..."
-              />
-              {isLoading && (
-                <div className="absolute right-4">
-                  <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+              <div className="relative group w-full">
+                <div className="absolute inset-0 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-all"></div>
+                <div className="relative flex items-center">
+                  <Search className="absolute left-4 h-6 w-6 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={handleQueryChange}
+                    className="block w-full pl-12 pr-4 py-4 sm:text-lg border border-border rounded-full bg-secondary/30 focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm focus:shadow-md outline-none"
+                    placeholder="Search by shop name, city, hiring, rent type, or culture..."
+                  />
+                  {isLoading && (
+                    <div className="absolute right-4">
+                      <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Search Suggestions */}
+              {query.trim().length === 0 && results.length === 0 && (
+                <div className="flex flex-wrap items-center justify-center gap-3 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                  <span className="text-sm text-slate-500 font-medium">Try searching:</span>
+                  <button
+                    onClick={() => { setQuery("Shops hiring in Houston"); setPage(1); }}
+                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <Search className="h-3 w-3 inline-block mr-1.5 opacity-50" />
+                    Shops hiring in Houston
+                  </button>
+                  <button
+                    onClick={() => { setQuery("Barbers in Houston looking for chairs"); setPage(1); }}
+                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <Search className="h-3 w-3 inline-block mr-1.5 opacity-50" />
+                    Barbers in Houston looking for chairs
+                  </button>
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Quick Search Suggestions */}
-          {query.trim().length === 0 && results.length === 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-3 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
-              <span className="text-sm text-slate-500 font-medium">Try searching:</span>
-              <button
-                onClick={() => { setQuery("Shops hiring in Houston"); setPage(1); }}
-                className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <Search className="h-3 w-3 inline-block mr-1.5 opacity-50" />
-                Shops hiring in Houston
-              </button>
-              <button
-                onClick={() => { setQuery("Barbers in Houston looking for chairs"); setPage(1); }}
-                className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <Search className="h-3 w-3 inline-block mr-1.5 opacity-50" />
-                Barbers in Houston looking for chairs
-              </button>
-            </div>
+            </>
           )}
 
           {/* Filter Tabs */}
-          {(query.trim().length >= 2 || results.length > 0) && (
+          {(query.trim().length >= 2 || results.length > 0 || filterTab === 'AI Mode') && (
             <div className="flex flex-col gap-3 mt-6">
               {/* Category Tabs */}
               <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide px-2">
-                {['All', 'Barbershops', 'Barbers', 'Articles', 'Videos', 'Tools'].map((tab) => (
+                {['AI Mode', 'All', 'Barbershops', 'Barbers', 'Articles', 'Videos', 'Tools'].map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => { setFilterTab(tab); setPage(1); }}
+                    onClick={() => { 
+                      setFilterTab(tab); 
+                      setPage(1); 
+                      if (tab === 'AI Mode' && (window as any).innerG?.track) {
+                        (window as any).innerG.track('ai_mode_activated');
+                      }
+                    }}
                     className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
                       filterTab === tab
-                        ? 'bg-blue-50 border-blue-200 text-blue-700'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        ? (tab === 'AI Mode' ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-blue-50 border-blue-200 text-blue-700')
+                        : (tab === 'AI Mode' ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50')
                     }`}
                   >
+                    {tab === 'AI Mode' && <span className="mr-1.5">✨</span>}
                     {tab}
                   </button>
                 ))}
@@ -233,10 +287,69 @@ function SearchContent() {
           )}
         </div>
 
-        {/* Results Area */}
-        <div className="w-full max-w-3xl mt-12 space-y-4 pb-20">
+        {/* Results Area / AI Chat */}
+        <div className={`w-full max-w-3xl flex flex-col ${filterTab === 'AI Mode' ? 'mt-4 pb-4 flex-1' : 'mt-12 space-y-4 pb-20'}`}>
           
-          {results.length > 0 && results.map((item, idx) => {
+          {filterTab === 'AI Mode' ? (
+            <div className="flex flex-col w-full" style={{ height: 'calc(100dvh - 170px)', maxHeight: '850px' }}>
+              
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {chatMessages.length === 0 && (
+                  <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+                      <span className="text-2xl">✨</span>
+                    </div>
+                    <p className="font-medium text-slate-700">How can I help you today?</p>
+                    <p className="text-sm text-slate-500 max-w-sm mt-2">I am grounded in your proprietary search data. Ask me to summarize or find specific insights.</p>
+                  </div>
+                )}
+                
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-800 shadow-sm rounded-tl-sm'}`}>
+                      {msg.content}
+                    </div>
+                  </div>
+                ))}
+                
+                {isAiLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <form onSubmit={handleChatSubmit} className="p-4 bg-transparent pb-safe">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Ask a question..."
+                    maxLength={150}
+                    disabled={isAiLoading}
+                    className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={isAiLoading || !chatInput.trim()}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                  </button>
+                </div>
+                <div className="text-xs text-slate-400 text-right mt-1.5 mr-2">
+                  {chatInput.length}/150 characters
+                </div>
+              </form>
+            </div>
+          ) : (
+            <>
+              {results.length > 0 && results.map((item, idx) => {
             if (item.resultType === 'internal') {
               return (
                 <div key={`internal-${idx}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
@@ -270,14 +383,15 @@ function SearchContent() {
             }
 
             if (item.resultType === 'web') {
+              const isVideo = item.is_video;
               return (
-                <div key={`web-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
+                <div key={`web-${item.id}`} className={`bg-white p-3 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row items-start gap-3 sm:gap-5 relative group/webcard`}>
                   {item.og_image_url && (
-                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
-                      <img src={item.og_image_url} alt="Article Preview" className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
-                      {item.is_video && (
+                    <a href={item.url} target="_blank" rel="noopener noreferrer" className={`shrink-0 overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail ${isVideo ? 'w-[45%] sm:w-48 md:w-56 lg:w-64 aspect-video rounded-lg' : 'w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg'}`}>
+                      <img src={item.og_image_url} alt={isVideo ? "Video Preview" : "Article Preview"} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                      {isVideo && (
                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center transition-colors group-hover/thumbnail:bg-black/20">
-                          <PlayCircle className="h-10 w-10 text-white/90 drop-shadow-md" />
+                          <PlayCircle className="h-8 w-8 sm:h-10 sm:w-10 text-white/90 drop-shadow-md" />
                         </div>
                       )}
                     </a>
@@ -463,6 +577,8 @@ function SearchContent() {
               No results found for "{query}". Try a different term.
             </div>
           ) : null}
+            </>
+          )}
         </div>
       </main>
     </div>

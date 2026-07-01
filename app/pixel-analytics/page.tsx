@@ -169,6 +169,43 @@ export default async function PixelAnalyticsPage(
           </div>
         </div>
 
+        {/* AI Mode Metrics */}
+        <h2 className="text-2xl font-bold mb-6">AI Mode Intelligence</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-12">
+          <div className="bg-gradient-to-br from-teal-900 to-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg text-white">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-medium text-teal-200">AI Mode Activations</h3>
+              <div className="p-2 bg-white/10 rounded-lg">
+                <Activity className="w-5 h-5 text-teal-300" />
+              </div>
+            </div>
+            <p className="text-4xl font-black">{data.aiModeActivations?.toLocaleString() || 0}</p>
+            <p className="text-sm text-teal-300 mt-2">Users toggling AI Mode</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-cyan-900 to-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg text-white">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-medium text-cyan-200">AI Chat Messages Sent</h3>
+              <div className="p-2 bg-white/10 rounded-lg">
+                <Zap className="w-5 h-5 text-cyan-300" />
+              </div>
+            </div>
+            <p className="text-4xl font-black">{data.aiMessagesSent?.toLocaleString() || 0}</p>
+            <p className="text-sm text-cyan-300 mt-2">Total AI conversation depth</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-rose-900 to-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg text-white">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-medium text-rose-200">Paywall Limits Hit</h3>
+              <div className="p-2 bg-white/10 rounded-lg">
+                <Target className="w-5 h-5 text-rose-300" />
+              </div>
+            </div>
+            <p className="text-4xl font-black">{data.aiRateLimitHits?.toLocaleString() || 0}</p>
+            <p className="text-sm text-rose-300 mt-2">Users hitting the 5-message cap</p>
+          </div>
+        </div>
+
         {/* Identified CRM Leads */}
         <HotLeadsSection leads={data.identifiedLeads} />
 
