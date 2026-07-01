@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next'
 import { headers } from 'next/headers'
 import fs from 'fs'
 import path from 'path'
+import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,7 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Deduplicate and filter out redundant trailing slashes
     const uniqueRoutes = Array.from(new Set(rawRoutes))
 
-    return uniqueRoutes.map((route) => {
+    const staticSitemap = uniqueRoutes.map((route) => {
       // Dynamic SEO Prioritization Algorithm based on directory depth
       const depth = route.split('/').filter(Boolean).length
       let priority = 0.8
@@ -71,7 +72,40 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency,
         priority,
       }
-    })
+    });
+
+    // Programmatic SEO: Fetch all Houston shops to generate Dynamic Market Analysis URLs
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: shops } = await supabase
+      .from('agent_barbershop_leads')
+      .select('chair_pricing_tool_url')
+      .ilike('city', '%houston%')
+      .not('chair_pricing_tool_url', 'is', null);
+
+    const dynamicSitemap = (shops || []).map((shop: any) => {
+      // Extract the slug from the URL
+      let slug = "";
+      try {
+        const urlObj = new URL(shop.chair_pricing_tool_url);
+        const pathSegments = urlObj.pathname.split('/');
+        slug = pathSegments[pathSegments.length - 1];
+      } catch (e) {
+        const parts = shop.chair_pricing_tool_url.split('?')[0].split('/');
+        slug = parts[parts.length - 1];
+      }
+
+      return {
+        url: `${baseUrl}/houston/insights/market-analysis/${slug}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.85,
+      };
+    });
+
+    return [...staticSitemap, ...dynamicSitemap];
   } catch (error) {
     // Fallback static array just in case the production serverless environment strips the source folder
     console.warn("Autonomous sitemap crawler failed. Falling back to static route map.", error)
