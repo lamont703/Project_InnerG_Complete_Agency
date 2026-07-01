@@ -140,6 +140,12 @@ export async function POST(request: Request) {
           details: error.message || 'Unknown error occurred during crawl'
         });
 
+        // Set status to Error to prevent future crawls, and update last_crawled_at
+        await supabase.from('crawler_seed_domains').update({
+          status: 'Error',
+          last_crawled_at: new Date().toISOString()
+        }).eq('id', domain.id);
+
         results.push({ domain: domain.domain_url, status: 'Error', error: error.message });
       }
     }

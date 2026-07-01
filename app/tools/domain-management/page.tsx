@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createBrowserClient } from "@/lib/supabase/browser";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
-import { Globe, Plus, RefreshCw, CheckCircle, XCircle, Clock, Link2, Brain } from "lucide-react";
+import { Globe, Plus, RefreshCw, CheckCircle, XCircle, Clock, Link2, Brain, Pause, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function DomainManagementPage() {
@@ -23,7 +23,12 @@ export default function DomainManagementPage() {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [qualityLogs, setQualityLogs] = useState<any[]>([]);
   const [seedPage, setSeedPage] = useState(1);
+  const [seedSearch, setSeedSearch] = useState("");
   const SEEDS_PER_PAGE = 5;
+
+  const filteredDomains = domains.filter((domain) =>
+    domain.domain_url.toLowerCase().includes(seedSearch.toLowerCase())
+  );
 
   useEffect(() => {
     fetchDomains();
@@ -97,6 +102,20 @@ export default function DomainManagementPage() {
       setNewDomain("");
       fetchDomains();
     }
+  };
+
+  const handleTogglePause = async (domain: any) => {
+    const newStatus = domain.status === 'Active' ? 'Paused' : 'Active';
+    await (supabase as any).from("crawler_seed_domains").update({ status: newStatus }).eq("id", domain.id);
+    toast.success(`Domain ${newStatus === 'Paused' ? 'archived' : 'activated'}!`);
+    fetchDomains();
+  };
+
+  const handleDeleteDomain = async (id: string) => {
+    if (!confirm("Are you sure you want to hard delete this domain? It may be rediscovered by the engine later.")) return;
+    await (supabase as any).from("crawler_seed_domains").delete().eq("id", id);
+    toast.success("Domain deleted!");
+    fetchDomains();
   };
 
   const handleApproveSuggestion = async (suggestion: any) => {
@@ -301,7 +320,19 @@ export default function DomainManagementPage() {
             {/* Seed List Card */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 className="text-lg font-bold text-slate-900">Seed List</h2>
+                <div className="flex flex-col gap-2">
+                  <h2 className="text-lg font-bold text-slate-900">Seed List</h2>
+                  <input
+                    type="text"
+                    placeholder="Search domains..."
+                    value={seedSearch}
+                    onChange={(e) => {
+                      setSeedSearch(e.target.value);
+                      setSeedPage(1); // Reset to page 1 on search
+                    }}
+                    className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
                 <div className="flex gap-2 w-full sm:w-auto flex-wrap justify-end">
                   <button
                     onClick={() => {
@@ -333,10 +364,10 @@ export default function DomainManagementPage() {
                 </div>
               </div>
               <div className="divide-y divide-slate-100">
-                {domains.length === 0 ? (
-                  <p className="p-6 text-slate-500 text-center">No domains added yet.</p>
+                {filteredDomains.length === 0 ? (
+                  <p className="p-6 text-slate-500 text-center">No domains found.</p>
                 ) : (
-                  domains.slice((seedPage - 1) * SEEDS_PER_PAGE, seedPage * SEEDS_PER_PAGE).map((domain) => (
+                  filteredDomains.slice((seedPage - 1) * SEEDS_PER_PAGE, seedPage * SEEDS_PER_PAGE).map((domain) => (
                     <div key={domain.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
                       <div>
                         <a href={domain.domain_url} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">
@@ -352,19 +383,35 @@ export default function DomainManagementPage() {
                           </span>
                         </div>
                       </div>
-                      <button
-                        onClick={() => triggerCrawl(domain.id)}
-                        disabled={isCrawling}
-                        className="text-slate-500 hover:text-blue-600 p-2 border border-slate-200 rounded-lg hover:border-blue-200 transition-colors disabled:opacity-50"
-                        title="Crawl this domain only"
-                      >
-                        <RefreshCw className={`h-4 w-4 ${isCrawling ? "animate-spin" : ""}`} />
-                      </button>
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          onClick={() => handleTogglePause(domain)}
+                          className="text-slate-500 hover:text-orange-600 p-2 border border-slate-200 rounded-lg hover:border-orange-200 transition-colors"
+                          title={domain.status === 'Active' ? "Archive (Pause) this domain" : "Re-activate this domain"}
+                        >
+                          {domain.status === 'Active' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDomain(domain.id)}
+                          className="text-slate-500 hover:text-red-600 p-2 border border-slate-200 rounded-lg hover:border-red-200 transition-colors"
+                          title="Hard Delete this domain"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => triggerCrawl(domain.id)}
+                          disabled={isCrawling || domain.status !== 'Active'}
+                          className="text-slate-500 hover:text-blue-600 p-2 border border-slate-200 rounded-lg hover:border-blue-200 transition-colors disabled:opacity-50"
+                          title="Crawl this domain only"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${isCrawling ? "animate-spin" : ""}`} />
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
               </div>
-              {domains.length > SEEDS_PER_PAGE && (
+              {filteredDomains.length > SEEDS_PER_PAGE && (
                 <div className="p-4 border-t border-slate-200 flex justify-between items-center bg-slate-50">
                   <button
                     onClick={() => setSeedPage((p) => Math.max(1, p - 1))}
@@ -374,11 +421,11 @@ export default function DomainManagementPage() {
                     Previous
                   </button>
                   <span className="text-sm text-slate-600 font-medium">
-                    Page {seedPage} of {Math.ceil(domains.length / SEEDS_PER_PAGE)}
+                    Page {seedPage} of {Math.ceil(filteredDomains.length / SEEDS_PER_PAGE)}
                   </span>
                   <button
-                    onClick={() => setSeedPage((p) => Math.min(Math.ceil(domains.length / SEEDS_PER_PAGE), p + 1))}
-                    disabled={seedPage >= Math.ceil(domains.length / SEEDS_PER_PAGE)}
+                    onClick={() => setSeedPage((p) => Math.min(Math.ceil(filteredDomains.length / SEEDS_PER_PAGE), p + 1))}
+                    disabled={seedPage >= Math.ceil(filteredDomains.length / SEEDS_PER_PAGE)}
                     className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
                   >
                     Next
