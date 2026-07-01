@@ -14,6 +14,7 @@ function SearchContent() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(Number(searchParams.get("p")) || 1);
   const [filterTab, setFilterTab] = useState(searchParams.get("tab") || "All");
+  const [activeFilters, setActiveFilters] = useState<string[]>(searchParams.get("filters") ? searchParams.get("filters")!.split(',') : []);
   const [isLoading, setIsLoading] = useState(false);
   const { setTheme } = useTheme();
 
@@ -33,11 +34,22 @@ function SearchContent() {
       if (query.trim()) params.set("q", query.trim());
       if (filterTab !== "All") params.set("tab", filterTab);
       if (page > 1) params.set("p", page.toString());
+      if (activeFilters.length > 0) params.set("filters", activeFilters.join(','));
       window.history.replaceState(null, '', `?${params.toString()}`);
 
       if (query.trim().length >= 2) {
+        // Custom VC Metrics Tracking: Track Search Intent
+        if (typeof window !== "undefined") {
+          if ((window as any).innerG?.track) {
+            console.log("[Search Tracking] Firing search_executed event:", query.trim());
+            (window as any).innerG.track('search_executed', { query: query.trim(), filter: filterTab, page: page, filters_used: activeFilters });
+          } else {
+            console.warn("[Search Tracking] window.innerG is not loaded yet!");
+          }
+        }
+
         // Intercept with Session Storage Cache to prevent re-fetching when hitting "Back"
-        const cacheKey = `search_${query}_${filterTab}_${page}`;
+        const cacheKey = `search_${query}_${filterTab}_${page}_${activeFilters.join(',')}`;
         const cached = sessionStorage.getItem(cacheKey);
         
         if (cached) {
@@ -48,7 +60,8 @@ function SearchContent() {
         }
 
         setIsLoading(true);
-        searchBarbershops(query, page, filterTab).then(res => {
+
+        searchBarbershops(query, page, filterTab, activeFilters).then(res => {
           if (res.success && res.data) {
             setResults(res.data.results || []);
             setTotal(res.data.total || 0);
@@ -64,7 +77,7 @@ function SearchContent() {
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [query, page, filterTab]);
+  }, [query, page, filterTab, activeFilters]);
 
   // Helper for Google-style results
   const generateTitleFromUrl = (urlStr: string) => {
@@ -165,20 +178,57 @@ function SearchContent() {
 
           {/* Filter Tabs */}
           {(query.trim().length >= 2 || results.length > 0) && (
-            <div className="flex items-center gap-2 mt-6 overflow-x-auto pb-2 scrollbar-hide px-2">
-              {['All', 'Barbershops', 'Barbers', 'Articles', 'Videos', 'Tools'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => { setFilterTab(tab); setPage(1); }}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
-                    filterTab === tab
-                      ? 'bg-blue-50 border-blue-200 text-blue-700'
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
+            <div className="flex flex-col gap-3 mt-6">
+              {/* Category Tabs */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide px-2">
+                {['All', 'Barbershops', 'Barbers', 'Articles', 'Videos', 'Tools'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => { setFilterTab(tab); setPage(1); }}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
+                      filterTab === tab
+                        ? 'bg-blue-50 border-blue-200 text-blue-700'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              {/* Faceted Filters (Intent Tags) */}
+              {(filterTab === 'All' || filterTab === 'Barbershops') && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide px-2">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-2 shrink-0">Filters:</span>
+                  {[
+                    { id: 'hiring_now', label: 'Hiring Now' },
+                    { id: 'booth_rent', label: 'Booth Rent' },
+                    { id: 'commission', label: 'Commission' },
+                    { id: 'rating_4.5', label: '4.5+ Stars' }
+                  ].map((filter) => {
+                    const isActive = activeFilters.includes(filter.id);
+                    return (
+                      <button
+                        key={filter.id}
+                        onClick={() => {
+                          setActiveFilters(prev => 
+                            isActive ? prev.filter(f => f !== filter.id) : [...prev, filter.id]
+                          );
+                          setPage(1);
+                        }}
+                        className={`px-3 py-1 rounded-md text-xs font-bold whitespace-nowrap transition-colors border ${
+                          isActive
+                            ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
+                            : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50'
+                        }`}
+                      >
+                        {isActive && <Target className="w-3 h-3 inline-block mr-1 opacity-70" />}
+                        {filter.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

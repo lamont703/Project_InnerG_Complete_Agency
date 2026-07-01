@@ -263,13 +263,13 @@ export default async function ShopProfilePage({ params }: Props) {
                 {(shop.email || shop.phone) && (
                   <div className={`grid gap-3 mt-4 relative z-10 ${shop.email && shop.phone ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {shop.email && (
-                      <a href={`mailto:${shop.email}`} className="w-full py-3 px-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm flex items-center justify-center gap-2">
+                      <a href={`mailto:${shop.email}`} data-ig-click="outbound_lead" className="w-full py-3 px-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm flex items-center justify-center gap-2">
                         <Mail className="w-4 h-4 text-slate-500" />
                         Email
                       </a>
                     )}
                     {shop.phone && (
-                      <a href={`tel:${shop.phone}`} className="w-full py-3 px-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm flex items-center justify-center gap-2">
+                      <a href={`tel:${shop.phone}`} data-ig-click="outbound_lead" className="w-full py-3 px-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm flex items-center justify-center gap-2">
                         <Phone className="w-4 h-4 text-slate-500" />
                         Call
                       </a>

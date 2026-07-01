@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { fetchAnalyticsData } from "./actions"
-import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw } from "lucide-react"
+import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import HotLeadsSection from "./components/HotLeadsSection"
@@ -86,7 +86,7 @@ export default async function PixelAnalyticsPage(
               <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
                 <Users className="w-5 h-5" />
               </div>
-              <h3 className="font-semibold text-sm text-slate-600 dark:text-slate-400">Active Users</h3>
+              <h3 className="font-semibold text-sm text-slate-600 dark:text-slate-400">Unique Browsers</h3>
             </div>
             <p className="text-3xl font-black">{data.activeUsers.toLocaleString()}</p>
           </div>
@@ -125,6 +125,50 @@ export default async function PixelAnalyticsPage(
           </div>
         </div>
 
+        {/* VC / Marketplace Metrics */}
+        <h2 className="text-2xl font-bold mb-6">Marketplace Intelligence</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-12">
+          <div className="bg-gradient-to-br from-indigo-900 to-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg text-white">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-medium text-indigo-200">Search Queries Processed</h3>
+              <div className="p-2 bg-white/10 rounded-lg">
+                <Globe className="w-5 h-5 text-indigo-300" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-3">
+              <p className="text-4xl font-black">{data.totalSearches?.toLocaleString() || 0}</p>
+            </div>
+            <div className="mt-3 pt-3 border-t border-indigo-800/50 flex justify-between items-center text-sm">
+              <span className="text-indigo-300">Unique Searchers</span>
+              <span className="font-bold text-indigo-100 bg-indigo-500/20 px-2.5 py-0.5 rounded-full">
+                {data.uniqueSearchers?.toLocaleString() || 0}
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-blue-900 to-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg text-white">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-medium text-blue-200">Outbound Leads Generated</h3>
+              <div className="p-2 bg-white/10 rounded-lg">
+                <LinkIcon className="w-5 h-5 text-blue-300" />
+              </div>
+            </div>
+            <p className="text-4xl font-black">{data.outboundLeads?.toLocaleString() || 0}</p>
+            <p className="text-sm text-blue-300 mt-2">Clicks to shop email & phones</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-900 to-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg text-white">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-medium text-purple-200">Shop Claim Conversions</h3>
+              <div className="p-2 bg-white/10 rounded-lg">
+                <Activity className="w-5 h-5 text-purple-300" />
+              </div>
+            </div>
+            <p className="text-4xl font-black">{data.shopClaims?.toLocaleString() || 0}</p>
+            <p className="text-sm text-purple-300 mt-2">Professionals initiating claims</p>
+          </div>
+        </div>
+
         {/* Identified CRM Leads */}
         <HotLeadsSection leads={data.identifiedLeads} />
 
@@ -132,7 +176,7 @@ export default async function PixelAnalyticsPage(
         <HotProfessionalsSection professionals={data.identifiedProfessionals} />
 
         {/* Tables Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Top Pages */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm">
             <div className="flex items-center gap-3 mb-6">
@@ -191,6 +235,29 @@ export default async function PixelAnalyticsPage(
                 </div>
               )) : (
                 <div className="text-slate-500 text-center py-8">No referrer data available</div>
+              )}
+            </div>
+          </div>
+
+          {/* Top Search Filters */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+              <Target className="w-24 h-24" />
+            </div>
+            <div className="flex items-center gap-3 mb-6 relative z-10">
+              <Target className="w-5 h-5 text-indigo-500" />
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Top Search Filters</h2>
+            </div>
+            <div className="space-y-4 relative z-10">
+              {data.topFilters?.length > 0 ? data.topFilters.map((filter, i) => (
+                <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800/30 hover:border-indigo-200 transition-colors">
+                  <span className="font-bold text-slate-700 dark:text-slate-300 capitalize">{filter.filter_id.replace('_', ' ')}</span>
+                  <span className="flex items-center gap-2 font-black text-indigo-600 dark:text-indigo-400">
+                    {filter.count} <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Searches</span>
+                  </span>
+                </div>
+              )) : (
+                <div className="text-slate-500 text-center py-8">No filter data yet</div>
               )}
             </div>
           </div>

@@ -105,7 +105,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       };
     });
 
-    return [...staticSitemap, ...dynamicSitemap];
+    // Programmatic SEO: Generate URLs for the /shop/[id] public profiles
+    // We limit to 20,000 to ensure the Vercel Serverless Function doesn't timeout while generating the XML
+    const { data: allShops } = await supabase
+      .from('agent_barbershop_leads')
+      .select('id')
+      .limit(20000);
+
+    const shopProfileSitemap = (allShops || []).map((shop: any) => ({
+      url: `${baseUrl}/shop/${shop.id}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.6, // Lower priority than core static pages
+    }));
+
+    return [...staticSitemap, ...dynamicSitemap, ...shopProfileSitemap];
   } catch (error) {
     // Fallback static array just in case the production serverless environment strips the source folder
     console.warn("Autonomous sitemap crawler failed. Falling back to static route map.", error)

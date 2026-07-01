@@ -10,7 +10,12 @@ export function ClaimShopButton({ shop }: { shop?: any }) {
   return (
     <>
       <button 
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          if (typeof window !== "undefined" && (window as any).innerG?.track) {
+            (window as any).innerG.track('claim_shop_initiated', { shop_id: shop?.id, shop_name: shop?.shop_name });
+          }
+          setIsOpen(true);
+        }}
         className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors shadow-md mt-6"
       >
         <ShieldCheck className="w-4 h-4" />

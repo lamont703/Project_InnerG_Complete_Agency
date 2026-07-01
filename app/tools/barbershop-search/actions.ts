@@ -7,7 +7,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export async function searchBarbershops(query: string, page: number = 1, filterTab: string = 'All') {
+export async function searchBarbershops(query: string, page: number = 1, filterTab: string = 'All', activeFilters: string[] = []) {
   try {
     if (!query || query.trim().length < 2) {
       return { success: true, data: { results: [], total: 0 } };
@@ -20,6 +20,11 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     let isHiring = false;
     let rentTypeFilter: string | null = null;
     let queryEmbedding: number[] | null = null;
+
+    // Explicit Filter Overrides from UI
+    if (activeFilters.includes('hiring_now')) isHiring = true;
+    if (activeFilters.includes('booth_rent')) rentTypeFilter = 'Booth Rent';
+    if (activeFilters.includes('commission')) rentTypeFilter = 'Commission';
 
     // Ping Gemini to get semantic vector
     if (cleanQuery.length >= 2) {
@@ -44,11 +49,13 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     const intentRules = rules?.filter(r => r.rule_type === 'intent_mapping') || [];
     const internalRoutingRules = rules?.filter(r => r.rule_type === 'internal_routing') || [];
 
-    // Apply intent mappings dynamically
+    // Apply intent mappings dynamically (only if not explicitly set by UI toggles)
     intentRules.forEach(rule => {
       if (cleanQuery.includes(rule.value.toLowerCase())) {
-        if (rule.target === 'hiring') isHiring = true;
-        if (rule.target === 'Booth Rent' || rule.target === 'Commission') rentTypeFilter = rule.target;
+        if (rule.target === 'hiring' && !activeFilters.includes('hiring_now')) isHiring = true;
+        if ((rule.target === 'Booth Rent' || rule.target === 'Commission') && !activeFilters.includes('booth_rent') && !activeFilters.includes('commission')) {
+          rentTypeFilter = rule.target;
+        }
         cleanQuery = cleanQuery.replace(rule.value.toLowerCase(), '').trim();
       }
     });
@@ -171,7 +178,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         is_hiring_filter: isHiring,
         rent_type_filter: rentTypeFilter || '',
-        limit_val: shopLim,
+        limit_val: shopLim * (activeFilters.includes('rating_4.5') ? 3 : 1), // Fetch more if filtering locally
         offset_val: (page - 1) * shopLim,
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null
       });
@@ -183,7 +190,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         is_hiring_filter: isHiring,
         rent_type_filter: rentTypeFilter || '',
-        limit_val: ITEMS_PER_PAGE,
+        limit_val: ITEMS_PER_PAGE * (activeFilters.includes('rating_4.5') ? 3 : 1),
         offset_val: fromIndex,
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null
       });
@@ -191,6 +198,12 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
         shopMatches = data.map((s: any) => ({ ...s, resultType: 'shop', match_score: s.trust_score }));
         shopCount = (data.length > 0 && data[0].total_matched) ? Number(data[0].total_matched) : 0;
       }
+    }
+
+    if (activeFilters.includes('rating_4.5')) {
+      shopMatches = shopMatches.filter(s => s.rating && s.rating >= 4.5);
+      if (filterTab === 'All') shopMatches = shopMatches.slice(0, shopLim);
+      else shopMatches = shopMatches.slice(0, ITEMS_PER_PAGE);
     }
 
     // 4. Combine Results & Pagination
