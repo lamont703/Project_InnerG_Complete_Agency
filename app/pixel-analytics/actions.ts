@@ -17,6 +17,9 @@ export type AnalyticsData = {
   uniqueSearchers: number
   outboundLeads: number
   shopClaims: number
+  aiModeActivations: number
+  aiMessagesSent: number
+  aiRateLimitHits: number
   identifiedLeads: { 
     contactId: string; 
     shopName: string; 
@@ -62,6 +65,7 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
     return {
       totalViews: 0, totalClicks: 0, activeUsers: 0, engagedUsers: 0, returningUsers: 0,
       totalSearches: 0, uniqueSearchers: 0, outboundLeads: 0, shopClaims: 0,
+      aiModeActivations: 0, aiMessagesSent: 0, aiRateLimitHits: 0,
       identifiedLeads: [], identifiedProfessionals: [], topPages: [], topInsights: [], topReferrers: [], topFilters: [], recentEvents: []
     }
   }
@@ -249,6 +253,9 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
     uniqueSearchers: summary.uniqueSearchers || 0,
     outboundLeads: summary.outboundLeads || 0,
     shopClaims: summary.shopClaims || 0,
+    aiModeActivations: summary.aiModeActivations || 0,
+    aiMessagesSent: summary.aiMessagesSent || 0,
+    aiRateLimitHits: summary.aiRateLimitHits || 0,
     topPages: summary.topPages || [],
     topInsights: summary.topInsights || [],
     topReferrers: summary.topReferrers || [],
