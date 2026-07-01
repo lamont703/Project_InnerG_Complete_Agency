@@ -59,26 +59,46 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     });
     cleanQuery = cleanQuery.replace(/\s+/g, ' ').trim();
 
-    // 1. Internal Pages (Semantic Tool Ranker)
+    // --- Dynamic Bento Box Ratios ---
+    let shopLim = 3, barberLim = 3, webLim = 2, toolLim = 2; // Default (Unbiased)
+    let intentType = 'default';
+    const qRaw = query.toLowerCase();
+    
+    if (/\b(how|why|what is|best way|guide|tutorial|tips|learn)\b/.test(qRaw)) {
+      // Educational Intent
+      intentType = 'educational';
+      webLim = 5; toolLim = 2; barberLim = 2; shopLim = 1;
+    } else if (/\b(shops?|barbershops?|salons?|studios?|suites?|places?|hiring|near me|booth|commission)\b/.test(qRaw)) {
+      // Employment / Location Intent
+      intentType = 'location';
+      shopLim = 5; barberLim = 3; webLim = 1; toolLim = 1;
+    } else if (/\b(barbers?|stylists?|braiders?|locticians?|people|someone)\b/.test(qRaw)) {
+      // Networking / People Intent
+      intentType = 'networking';
+      barberLim = 5; shopLim = 3; webLim = 1; toolLim = 1;
+    }
+    // --------------------------------
+
+    // 1. Internal Tools (Platform Tools)
     let internalMatches: any[] = [];
     if (filterTab === 'All' || filterTab === 'Tools') {
-      if (cleanQuery.length >= 2) {
-        const { data: toolRes, error: toolErr } = await supabase.rpc('search_platform_tools_ranked', {
-          query_text: cleanQuery,
-          query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
-          limit_val: 3
-        });
-        
-        if (!toolErr && toolRes) {
-          internalMatches = toolRes.map((tool: any) => ({
-            label: tool.name,
-            href: tool.url,
-            description: tool.description,
-            image_url: tool.image_url,
-            resultType: 'internal',
-            match_score: tool.match_score
-          }));
-        }
+      const { data: toolRes, error: toolErr } = await supabase.rpc('search_platform_tools_ranked', {
+        query_text: cleanQuery,
+        query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
+        limit_val: filterTab === 'All' ? toolLim : ITEMS_PER_PAGE,
+        offset_val: filterTab === 'All' ? (page - 1) * toolLim : fromIndex
+      });
+      
+      if (!toolErr && toolRes) {
+        internalMatches = toolRes.map((tool: any) => ({
+          label: tool.name,
+          href: tool.url,
+          description: tool.description,
+          image_url: tool.image_url,
+          resultType: 'internal',
+          match_score: tool.match_score,
+          total_matched: tool.total_matched
+        }));
       }
     }
 
@@ -92,7 +112,8 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       const { data: webRes, error: webErr } = await supabase.rpc('search_web_pages_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
-        limit_val: 20,
+        limit_val: filterTab === 'All' ? webLim : ITEMS_PER_PAGE,
+        offset_val: filterTab === 'All' ? (page - 1) * webLim : fromIndex,
         is_video_filter: isVideoFilter
       });
 
@@ -117,7 +138,8 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
             og_image_url: page.og_image_url, 
             is_video: page.is_video,
             resultType: 'web',
-            match_score: page.match_score
+            match_score: page.match_score,
+            total_matched: page.total_matched
           };
         });
       }
@@ -129,7 +151,8 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       const { data: barberRes, error: barberErr } = await supabase.rpc('search_barbers_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
-        limit_val: filterTab === 'All' ? 10 : 20
+        limit_val: filterTab === 'All' ? barberLim : ITEMS_PER_PAGE,
+        offset_val: filterTab === 'All' ? (page - 1) * barberLim : fromIndex
       });
       if (!barberErr && barberRes) {
         barberMatches = barberRes.map((b: any) => ({
@@ -148,8 +171,8 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         is_hiring_filter: isHiring,
         rent_type_filter: rentTypeFilter || '',
-        limit_val: 10,
-        offset_val: 0,
+        limit_val: shopLim,
+        offset_val: (page - 1) * shopLim,
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null
       });
       if (!error && data) {
@@ -175,48 +198,46 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     let totalResults = 0;
 
     if (filterTab === 'All') {
-      // Dynamic Unified Ranking
-      // 1. Normalize scores so no category has an unfair baseline advantage
-      const maxBarber = Math.max(...barberMatches.map(b => b.match_score || 0), 1);
-      const maxShop = Math.max(...shopMatches.map(s => s.match_score || 0), 1);
-      const maxWeb = Math.max(...webMatches.map(w => w.match_score || 0), 1);
-
-      // 2. Determine Intent Bias from the original query
-      let shopBonus = 0;
-      let barberBonus = 0;
-      let webBonus = 0;
+      // Grouped Bento Box (Prioritized Concatenation)
+      let interleaved: any[] = [];
       
-      const q = query.toLowerCase();
-      if (/\\b(how|why|what is|best way|guide|tutorial|tips)\\b/.test(q)) webBonus = 200;
-      if (/\\b(barbers?|stylists?|braiders?|locticians?|people|someone)\\b/.test(q)) barberBonus = 200;
-      if (/\\b(shops?|barbershops?|salons?|studios?|suites?|places?)\\b/.test(q)) {
-        shopBonus = 200;
-        if (q.includes('barbershop')) barberBonus = 0; // Prevent 'barber' regex from overriding
+      if (intentType === 'educational') {
+        // Educational Anchor: All Articles -> All Tools -> All Barbers -> All Shops
+        interleaved = [...webMatches, ...internalMatches, ...barberMatches, ...shopMatches];
+      } else if (intentType === 'networking') {
+        // Networking Anchor: All Barbers -> All Shops -> All Tools -> All Articles
+        interleaved = [...barberMatches, ...shopMatches, ...internalMatches, ...webMatches];
+      } else {
+        // Default / Location Anchor: All Shops -> All Barbers -> All Articles -> All Tools
+        interleaved = [...shopMatches, ...barberMatches, ...webMatches, ...internalMatches];
       }
+      
+      // Calculate the total number of pages needed for each category based on its consumption rate
+      const shopPages = Math.ceil((shopCount || 0) / shopLim);
+      const barberTotal = barberMatches.length > 0 && barberMatches[0].total_matched ? Number(barberMatches[0].total_matched) : 0;
+      const barberPages = Math.ceil(barberTotal / barberLim);
+      const webTotal = webMatches.length > 0 && webMatches[0].total_matched ? Number(webMatches[0].total_matched) : 0;
+      const webPages = Math.ceil(webTotal / webLim);
+      const toolTotal = internalMatches.length > 0 && internalMatches[0].total_matched ? Number(internalMatches[0].total_matched) : 0;
+      const toolPages = Math.ceil(toolTotal / toolLim);
 
-      // 3. Combine with Normalization + Bias
-      const others = [
-        ...barberMatches.map(b => ({ ...b, sort_score: ((b.match_score / maxBarber) * 100) + barberBonus })),
-        ...webMatches.map(w => ({ ...w, sort_score: ((w.match_score / maxWeb) * 100) + webBonus })),
-        ...shopMatches.map(s => ({ ...s, sort_score: ((s.match_score / maxShop) * 100) + shopBonus }))
-      ];
-      
-      others.sort((a, b) => (b.sort_score || 0) - (a.sort_score || 0));
-      const unifiedMatches = [...internalMatches, ...others];
-      
-      totalResults = unifiedMatches.length;
-      pageResults = unifiedMatches.slice(fromIndex, fromIndex + ITEMS_PER_PAGE);
+      // Find the deepest category in terms of total pages required
+      const maxPagesRequired = Math.max(shopPages, barberPages, webPages, toolPages);
+
+      // Trick the frontend into generating exactly maxPagesRequired by providing a total that divides by ITEMS_PER_PAGE (10)
+      totalResults = maxPagesRequired * ITEMS_PER_PAGE;
+      pageResults = interleaved; // Return all combined items to preserve depth
     } else {
       // Tab-specific logic
       if (filterTab === 'Tools') {
-         totalResults = internalMatches.length;
-         pageResults = internalMatches.slice(fromIndex, fromIndex + ITEMS_PER_PAGE);
+         totalResults = (internalMatches.length > 0 && internalMatches[0].total_matched) ? Number(internalMatches[0].total_matched) : internalMatches.length;
+         pageResults = internalMatches;
       } else if (filterTab === 'Barbers') {
-         totalResults = barberMatches.length;
-         pageResults = barberMatches.slice(fromIndex, fromIndex + ITEMS_PER_PAGE);
+         totalResults = (barberMatches.length > 0 && barberMatches[0].total_matched) ? Number(barberMatches[0].total_matched) : barberMatches.length;
+         pageResults = barberMatches;
       } else if (filterTab === 'Articles' || filterTab === 'Videos') {
-         totalResults = webMatches.length;
-         pageResults = webMatches.slice(fromIndex, fromIndex + ITEMS_PER_PAGE);
+         totalResults = (webMatches.length > 0 && webMatches[0].total_matched) ? Number(webMatches[0].total_matched) : webMatches.length;
+         pageResults = webMatches;
       } else if (filterTab === 'Barbershops') {
          totalResults = shopCount;
          pageResults = shopMatches;
