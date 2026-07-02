@@ -13,7 +13,7 @@ function SearchContent() {
   const [results, setResults] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(Number(searchParams.get("p")) || 1);
-  const [filterTab, setFilterTab] = useState(searchParams.get("tab") || "AI Mode");
+  const [filterTab, setFilterTab] = useState(searchParams.get("tab") || "All");
   const [activeFilters, setActiveFilters] = useState<string[]>(searchParams.get("filters") ? searchParams.get("filters")!.split(',') : []);
   const [isLoading, setIsLoading] = useState(false);
   
