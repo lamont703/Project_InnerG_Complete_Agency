@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { computeShopEcosystemReport } from '@/lib/shop-ecosystem';
 
 // Next.js patches the global fetch() to cache responses by default, which
 // can end up caching the Gemini SDK's own internal fetch calls (identical
@@ -32,11 +33,31 @@ export async function POST(req: Request) {
       );
     }
 
-    const { messages } = await req.json();
+    const { messages, shopId } = await req.json();
     const latestMessage = messages[messages.length - 1].content;
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const supabase = createAdminClient();
+
+    // When a shop owner arrives from their own shop's profile page via "Ask
+    // AI About This Market", shopId identifies exactly which shop — this is
+    // a direct geospatial computation (haversine + free-text rent parsing),
+    // not something a similarity search over embeddings could answer, so it
+    // bypasses the RAG grounding below entirely, same as the exam leaderboards.
+    let shopEcosystemContext: any = null;
+    if (shopId) {
+      const { data: shopRow } = await supabase
+        .from('agent_barbershop_leads')
+        .select('id, shop_name, city, latitude, longitude, rent_rate')
+        .eq('id', shopId)
+        .single() as { data: { id: string; shop_name: string; city: string | null; latitude: number | null; longitude: number | null; rent_rate: string | null } | null };
+      if (shopRow) {
+        const report = await computeShopEcosystemReport(supabase as any, shopRow);
+        if (report) {
+          shopEcosystemContext = { shop_name: shopRow.shop_name, city: shopRow.city, profile_url: `/shop/${shopRow.id}`, ...report };
+        }
+      }
+    }
 
     // 1. Generate Embedding for the user's message
     const embeddingResponse = await ai.models.embedContent({
@@ -77,6 +98,7 @@ export async function POST(req: Request) {
       webPages,
       platformTools,
       testingLeaderboard,
+      cosmetologyTestingLeaderboard,
     ] = await Promise.all([
       rpcCall('search_barbershops_ranked', {
         query_text: latestMessage,
@@ -145,19 +167,42 @@ export async function POST(req: Request) {
         const [barberSchools, cosmetSchools] = await Promise.all([
           supabase
             .from('agent_barber_school_leads')
-            .select('school_name, city, written_test_takers_2026, written_pass_rate_2026, practical_test_takers_2026, practical_pass_rate_2026')
+            .select('id, school_name, city, written_test_takers_2026, written_pass_rate_2026, practical_test_takers_2026, practical_pass_rate_2026')
             .not('written_test_takers_2026', 'is', null)
             .order('written_test_takers_2026', { ascending: false })
             .limit(8),
           supabase
             .from('agent_cosmetology_school_leads')
-            .select('school_name, city, written_test_takers_2026, written_pass_rate_2026, practical_test_takers_2026, practical_pass_rate_2026')
+            .select('id, school_name, city, written_test_takers_2026, written_pass_rate_2026, practical_test_takers_2026, practical_pass_rate_2026')
             .not('written_test_takers_2026', 'is', null)
             .order('written_test_takers_2026', { ascending: false })
             .limit(8),
         ]);
         return [...(barberSchools.data || []), ...(cosmetSchools.data || [])]
           .sort((a: any, b: any) => (b.written_test_takers_2026 || 0) - (a.written_test_takers_2026 || 0))
+          .slice(0, 8);
+      })(),
+      // Same aggregate/analytical need, but for the 2026 Cosmetology Operator
+      // exam — a genuinely different license from Class A Barber, tracked in
+      // its own cosmetology_* columns (see agent_cosmetology_student_leads)
+      // so a dual-licensed school's two exam populations don't blend.
+      (async () => {
+        const [barberSchools, cosmetSchools] = await Promise.all([
+          supabase
+            .from('agent_barber_school_leads')
+            .select('id, school_name, city, cosmetology_written_test_takers_2026, cosmetology_written_pass_rate_2026, cosmetology_practical_test_takers_2026, cosmetology_practical_pass_rate_2026')
+            .not('cosmetology_written_test_takers_2026', 'is', null)
+            .order('cosmetology_written_test_takers_2026', { ascending: false })
+            .limit(8),
+          supabase
+            .from('agent_cosmetology_school_leads')
+            .select('id, school_name, city, cosmetology_written_test_takers_2026, cosmetology_written_pass_rate_2026, cosmetology_practical_test_takers_2026, cosmetology_practical_pass_rate_2026')
+            .not('cosmetology_written_test_takers_2026', 'is', null)
+            .order('cosmetology_written_test_takers_2026', { ascending: false })
+            .limit(8),
+        ]);
+        return [...(barberSchools.data || []), ...(cosmetSchools.data || [])]
+          .sort((a: any, b: any) => (b.cosmetology_written_test_takers_2026 || 0) - (a.cosmetology_written_test_takers_2026 || 0))
           .slice(0, 8);
       })(),
     ]);
@@ -184,7 +229,9 @@ export async function POST(req: Request) {
     // previously cut the JSON off before ever reaching a field added later
     // in the object, silently making the model "forget" that data existed.
     const mergedContext = {
-      texas_2026_exam_school_leaderboard: testingLeaderboard,
+      ...(shopEcosystemContext ? { my_shop_ecosystem_report: shopEcosystemContext } : {}),
+      texas_2026_exam_school_leaderboard: withProfileUrl(testingLeaderboard, '/schools'),
+      texas_2026_cosmetology_exam_school_leaderboard: withProfileUrl(cosmetologyTestingLeaderboard, '/schools'),
       barbershops: withProfileUrl(shops, '/shop'),
       professionals: withProfileUrl(barbers, '/barbers'),
       barber_and_cosmetology_schools: withProfileUrl(schoolsForLookup, '/schools'),
@@ -196,12 +243,14 @@ export async function POST(req: Request) {
     };
 
     // 4. Construct System Prompt
-    const systemPrompt = `You are the Inner G Complete AI Assistant, deeply knowledgeable about the barber, beauty and wellness industry — including barbershops, salons, individual barbers and cosmetologists, barber/cosmetology schools, supply stores, and 2026 Texas Class A Barber licensing exam outcomes (pass/fail rates and student testing volume per school).
+    const systemPrompt = `You are the Inner G Complete AI Assistant, deeply knowledgeable about the barber, beauty and wellness industry — including barbershops, salons, individual barbers and cosmetologists, barber/cosmetology schools, supply stores, and 2026 Texas Class A Barber and Cosmetology Operator licensing exam outcomes (pass/fail rates and student testing volume per school, for each exam separately).
 You MUST answer the user's questions based ONLY on the following context data fetched directly from our database.
 If the answer is not in the context, say you don't know based on current data.
 CRITICAL INSTRUCTION: Keep your answer extremely concise, friendly, and helpful. You MUST keep your entire response under 100 words. Do not ramble. If you write more than 100 words, your response will be abruptly cut off.
 
-LINKING RULE: Whenever you mention a specific tool from software_tools, or a specific barbershop/barber/school/salon/cosmetologist/store that has a profile_url, you MUST format that mention as a markdown link using its EXACT url/profile_url value from the context, e.g. [Barber & Cosmetology Placement](/barber-beauty-network). Never invent a URL, never modify one, and never mention a linkable item by name without linking it. Use each link only once per response.
+LINKING RULE: Whenever you mention a specific tool from software_tools, or a specific barbershop/barber/school/salon/cosmetologist/store that has a profile_url (or profileUrl) field in the context, you MUST format that mention as a markdown link using its EXACT value, e.g. [Barber & Cosmetology Placement](/barber-beauty-network). Every valid link in this context is a relative path starting with "/" — NEVER use a link starting with "http" or "https" (this includes Google Places URLs like places.googleapis.com, which sometimes appear elsewhere in this data as image sources, not link destinations). If an item you want to mention does NOT have a profile_url/profileUrl in the context, mention it by plain name with NO link at all — do not construct, guess, or reuse a URL from anywhere else in the data. Use each link only once per response.
+
+MY_SHOP_ECOSYSTEM_REPORT RULE: If my_shop_ecosystem_report is present, the user is that shop's owner asking about their own local market — it has real computed stats (talent pipeline, labor supply, competition, supply chain, rent) within a radius of their shop, not a search result. Given the 100-word limit, lead with the single most decision-relevant insight (e.g. a tight labor market, a standout nearby school, or rent well above/below the local median) rather than listing every number. If they ask a strategic follow-up (e.g. "should I raise my rent," "should I hire now") that the report's numbers directly speak to, give a concrete, data-grounded answer using those numbers (e.g. rent sitting well below the local median directly supports room to raise it) — don't deflect to "I don't have enough information" when the relevant number is already in my_shop_ecosystem_report. Only decline if the question needs information genuinely outside this data (e.g. their specific finances, lease terms, or customer base).
 
 Context Data (JSON):
 ${JSON.stringify(mergedContext).substring(0, 120000)}

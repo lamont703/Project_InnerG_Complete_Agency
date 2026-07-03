@@ -84,7 +84,7 @@ function SearchContent() {
     setPage(1);
   };
 
-  const sendChatMessage = async (messageText: string) => {
+  const sendChatMessage = async (messageText: string, shopId?: string) => {
     const trimmed = messageText.trim();
     if (!trimmed || isAiLoading) return;
 
@@ -98,7 +98,7 @@ function SearchContent() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newHistory })
+        body: JSON.stringify({ messages: newHistory, shopId })
       });
 
       const data = await res.json();
@@ -143,6 +143,22 @@ function SearchContent() {
       }
     }
   };
+
+  // A shop owner arriving via the "Ask AI About This Market" link on their
+  // shop's profile page — drop straight into AI Mode with a question about
+  // that specific shop already asked, so they don't have to re-explain
+  // which shop they mean. shopId rides along in the chat request so the
+  // backend can compute (not embed-search) that shop's ecosystem report.
+  useEffect(() => {
+    const ecosystemShopId = searchParams.get("ecosystemShopId");
+    const ecosystemShopName = searchParams.get("ecosystemShopName");
+    if (ecosystemShopId && chatMessages.length === 0) {
+      setFilterTab("AI Mode");
+      const shopLabel = ecosystemShopName || "my shop";
+      sendChatMessage(`Tell me about the market ecosystem around ${shopLabel} — talent pipeline, labor supply, competition, and rent.`, ecosystemShopId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // `ignore` guards against a stale in-flight search resolving after the
