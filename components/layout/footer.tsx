@@ -3,7 +3,6 @@ import Image from "next/image"
 
 const footerLinks = {
   Solutions: [
-    { label: "Barber & Cosmetology Shop Day", href: "/barber-cosmetology-placement" },
     { label: "Barber & Cosmetology Placement", href: "/barber-beauty-network" },
     { label: "Texas Barber Exam Intelligence Prep", href: "/texas-barber-exam-intelligence-prep" },
     { label: "Accreditation Advisory Committee Toolkit", href: "/program-advisory-committee-kit" },

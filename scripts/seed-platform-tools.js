@@ -6,7 +6,6 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const tools = [
-  { name: "Barber & Cosmetology Shop Day", url: "/barber-cosmetology-placement", description: "A marketplace for barbers and cosmetologists to find open chairs, try out shops for a day, and secure placement in high-quality salons and barbershops." },
   { name: "Barber & Cosmetology Placement", url: "/barber-beauty-network", description: "The premier Barber & Beauty Network for discovering career opportunities, applying for jobs, and networking with top-tier shop owners." },
   { name: "Texas Barber Exam Intelligence Prep", url: "/texas-barber-exam-intelligence-prep", description: "An AI-powered study guide and exam preparation tool designed specifically for the Texas Barber written and practical exams to ensure passing scores." },
   { name: "Accreditation Advisory Committee Toolkit", url: "/program-advisory-committee-kit", description: "A comprehensive toolkit and guide for Barber and Cosmetology schools to maintain Title IV compliance and manage their Program Advisory Committees effectively." },

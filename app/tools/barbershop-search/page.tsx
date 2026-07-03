@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useTransition, useEffect, Suspense } from "react";
-import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle } from "lucide-react";
+import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown } from "lucide-react";
 import { searchBarbershops } from "./actions";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useSearchParams } from "next/navigation";
+
+const ALL_TABS = ['AI Mode', 'All', 'Schools', 'Salons', 'Barbershops', 'Barbers', 'Cosmetologist', 'Stores', 'Articles', 'Videos', 'Tools'];
+const PRIMARY_MOBILE_TABS = ['AI Mode', 'All'];
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -16,6 +19,7 @@ function SearchContent() {
   const [filterTab, setFilterTab] = useState(searchParams.get("tab") || "All");
   const [activeFilters, setActiveFilters] = useState<string[]>(searchParams.get("filters") ? searchParams.get("filters")!.split(',') : []);
   const [isLoading, setIsLoading] = useState(false);
+  const [showMoreTabs, setShowMoreTabs] = useState(false);
   
   // AI Chat State
   const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([]);
@@ -190,7 +194,7 @@ function SearchContent() {
                     value={query}
                     onChange={handleQueryChange}
                     className="block w-full pl-12 pr-4 py-4 sm:text-lg border border-border rounded-full bg-secondary/30 focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm focus:shadow-md outline-none"
-                    placeholder="Search by shop name, city, hiring, rent type, or culture..."
+                    placeholder="Search shops, barbers & more"
                   />
                   {isLoading && (
                     <div className="absolute right-4">
@@ -226,14 +230,14 @@ function SearchContent() {
           {/* Filter Tabs */}
           {(query.trim().length >= 2 || results.length > 0 || filterTab === 'AI Mode') && (
             <div className="flex flex-col gap-3 mt-6">
-              {/* Category Tabs */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide px-2">
-                {['AI Mode', 'All', 'Barbershops', 'Barbers', 'Articles', 'Videos', 'Tools'].map((tab) => (
+              {/* Category Tabs — Desktop: full horizontal-scroll list */}
+              <div className="hidden sm:flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide px-2">
+                {ALL_TABS.map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => { 
-                      setFilterTab(tab); 
-                      setPage(1); 
+                    onClick={() => {
+                      setFilterTab(tab);
+                      setPage(1);
                       if (tab === 'AI Mode' && (window as any).innerG?.track) {
                         (window as any).innerG.track('ai_mode_activated');
                       }
@@ -248,6 +252,72 @@ function SearchContent() {
                     {tab}
                   </button>
                 ))}
+              </div>
+
+              {/* Category Tabs — Mobile: primary tabs + "More" dropdown for the rest */}
+              <div className="flex sm:hidden items-center gap-2 px-2 relative">
+                {PRIMARY_MOBILE_TABS.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => {
+                      setFilterTab(tab);
+                      setPage(1);
+                      setShowMoreTabs(false);
+                      if (tab === 'AI Mode' && (window as any).innerG?.track) {
+                        (window as any).innerG.track('ai_mode_activated');
+                      }
+                    }}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
+                      filterTab === tab
+                        ? (tab === 'AI Mode' ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-blue-50 border-blue-200 text-blue-700')
+                        : (tab === 'AI Mode' ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50')
+                    }`}
+                  >
+                    {tab === 'AI Mode' && <span className="mr-1.5">✨</span>}
+                    {tab}
+                  </button>
+                ))}
+
+                {/* If the active tab isn't one of the pinned primaries, show it too so selection stays visible */}
+                {!PRIMARY_MOBILE_TABS.includes(filterTab) && (
+                  <button
+                    onClick={() => setShowMoreTabs((v) => !v)}
+                    className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border bg-blue-50 border-blue-200 text-blue-700 shrink-0"
+                  >
+                    {filterTab}
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setShowMoreTabs((v) => !v)}
+                  className="ml-auto shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                >
+                  More
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showMoreTabs ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showMoreTabs && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowMoreTabs(false)} />
+                    <div className="absolute top-full right-0 mt-2 z-20 bg-white border border-slate-200 rounded-xl shadow-lg py-2 w-52 max-h-80 overflow-y-auto">
+                      {ALL_TABS.filter((tab) => !PRIMARY_MOBILE_TABS.includes(tab)).map((tab) => (
+                        <button
+                          key={tab}
+                          onClick={() => {
+                            setFilterTab(tab);
+                            setPage(1);
+                            setShowMoreTabs(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
+                            filterTab === tab ? 'text-blue-700 bg-blue-50' : 'text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          {tab}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Faceted Filters (Intent Tags) */}
@@ -469,19 +539,21 @@ function SearchContent() {
 
             if (item.resultType === 'barber') {
               const isLooking = item.status === 'interested_in_placement' && item.is_actively_looking === true;
+              const barberPhoto = item.booksy_photo_url || item.passport_image_url;
+              const barberHref = `/barbers/${item.id}`;
               return (
                 <div key={`barber-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
-                  {item.passport_image_url ? (
-                    <Link href={item.profile_url || '#'} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-full overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
-                      <img src={item.passport_image_url} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                  {barberPhoto ? (
+                    <Link href={barberHref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-full overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
+                      <img src={barberPhoto} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
                     </Link>
                   ) : (
-                    <Link href={item.profile_url || '#'} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-full overflow-hidden bg-slate-100 border border-slate-200 relative flex items-center justify-center group/thumbnail">
+                    <Link href={barberHref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-full overflow-hidden bg-slate-100 border border-slate-200 relative flex items-center justify-center group/thumbnail">
                       <Users className="h-8 w-8 text-slate-400 transition-transform duration-500 group-hover/thumbnail:scale-105" />
                     </Link>
                   )}
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    
+
                     {/* Breadcrumb (Google Style) */}
                     <div className="flex items-center gap-1.5 text-xs sm:text-[13px] text-slate-700 mb-1 truncate">
                       <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
@@ -491,7 +563,7 @@ function SearchContent() {
                     </div>
 
                     {/* Prominent Title Link */}
-                    <Link href={item.profile_url || '#'} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
+                    <Link href={barberHref} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
                       {item.name || "Unknown Barber"}
                     </Link>
 
@@ -504,14 +576,249 @@ function SearchContent() {
                           <span className="truncate max-w-[180px] sm:max-w-xs">{item.metro_area}</span>
                         </>
                       )}
+                      {item.booksy_rating && (
+                        <>
+                          <span className="mx-1.5 opacity-50">·</span>
+                          <span className="flex items-center gap-1 text-amber-600 font-medium">
+                            <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                            {Number(item.booksy_rating).toFixed(1)}
+                            {item.booksy_review_count ? ` (${item.booksy_review_count})` : ''}
+                          </span>
+                        </>
+                      )}
                     </div>
-                    
+
                     {/* Details Snippet */}
                     <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
                       {isLooking ? (
                         <span className="font-medium text-green-700 mr-1">Actively Looking For Placement.</span>
                       ) : null}
                       Professional barber based in the {item.metro_area || 'Texas'} area specializing in {item.specialty_type || 'grooming services'}.
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+
+            if (item.resultType === 'school') {
+              const schoolPhoto = Array.isArray(item.google_photos) ? item.google_photos[0] : null;
+              const schoolHref = `/schools/${item.id}`;
+              return (
+                <div key={`school-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
+                  {schoolPhoto ? (
+                    <Link href={schoolHref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
+                      <img src={schoolPhoto} alt={item.school_name} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                    </Link>
+                  ) : (
+                    <Link href={schoolHref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative flex items-center justify-center group/thumbnail">
+                      <GraduationCap className="h-8 w-8 text-slate-400 transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                    </Link>
+                  )}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+
+                    {/* Breadcrumb (Google Style) */}
+                    <div className="flex items-center gap-1.5 text-xs sm:text-[13px] text-slate-700 mb-1 truncate">
+                      <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                        <GraduationCap className="h-3 w-3 text-slate-500" />
+                      </div>
+                      <span className="truncate opacity-80">barberbeauty.net › schools › {(item.city || 'texas').toLowerCase().replace(/\s+/g, '-')}</span>
+                    </div>
+
+                    {/* Prominent Title Link */}
+                    <Link href={schoolHref} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
+                      {item.school_name || "Barber School"}
+                    </Link>
+
+                    {/* Category & Location Snippet */}
+                    <div className="flex items-center gap-1.5 text-sm text-slate-600 mb-1.5 flex-wrap">
+                      <span className="truncate max-w-[180px] sm:max-w-xs">{item.school_category || item.accreditation_status || 'Barber School'}</span>
+                      {item.city && (
+                        <>
+                          <span className="mx-1.5 opacity-50">·</span>
+                          <span className="truncate max-w-[180px] sm:max-w-xs">{item.city}</span>
+                        </>
+                      )}
+                      {item.rating && (
+                        <>
+                          <span className="mx-1.5 opacity-50">·</span>
+                          <span className="flex items-center gap-1 text-amber-600 font-medium">
+                            <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                            {Number(item.rating).toFixed(1)}
+                            {item.google_review_count ? ` (${item.google_review_count})` : ''}
+                          </span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Details Snippet */}
+                    <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
+                      {item.written_pass_rate_2026 != null ? (
+                        <span className="font-medium text-green-700 mr-1">
+                          {Math.round(item.written_pass_rate_2026 * 100)}% 2026 Written Pass Rate
+                          {item.practical_pass_rate_2026 != null ? ` · ${Math.round(item.practical_pass_rate_2026 * 100)}% Practical` : ''}.
+                        </span>
+                      ) : item.state_pass_rate ? (
+                        <span className="font-medium text-green-700 mr-1">{item.state_pass_rate} State Board Pass Rate.</span>
+                      ) : null}
+                      {item.annual_tuition ? `Tuition ~$${Number(item.annual_tuition).toLocaleString()}. ` : ''}
+                      {item.school_category || 'Barber/cosmetology school'}{item.city ? ` in ${item.city}` : ''}.
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+
+            if (item.resultType === 'store') {
+              const storePhoto = Array.isArray(item.google_images) ? item.google_images[0] : null;
+              const storeHref = `/stores/${item.id}`;
+              const isBeautyStore = item.store_type === 'beauty_supply';
+              return (
+                <div key={`store-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
+                  {storePhoto ? (
+                    <Link href={storeHref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
+                      <img src={storePhoto} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                    </Link>
+                  ) : (
+                    <Link href={storeHref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative flex items-center justify-center group/thumbnail">
+                      <Store className="h-8 w-8 text-slate-400 transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                    </Link>
+                  )}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+
+                    {/* Breadcrumb (Google Style) */}
+                    <div className="flex items-center gap-1.5 text-xs sm:text-[13px] text-slate-700 mb-1 truncate">
+                      <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                        <Store className="h-3 w-3 text-slate-500" />
+                      </div>
+                      <span className="truncate opacity-80">barberbeauty.net › stores › {(item.city || 'houston').toLowerCase().replace(/\s+/g, '-')}</span>
+                    </div>
+
+                    {/* Prominent Title Link */}
+                    <Link href={storeHref} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
+                      {item.name || (isBeautyStore ? "Beauty Supply Store" : "Barber Supply Store")}
+                    </Link>
+
+                    {/* Rating & Location Snippet */}
+                    <div className="flex items-center gap-1.5 text-sm text-slate-600 mb-1.5 flex-wrap">
+                      {item.rating && (
+                        <span className="flex items-center text-[13px]">
+                          <span className="font-medium text-slate-700 mr-1">{item.rating}</span>
+                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          <span className="ml-1 opacity-80">({item.total_reviews || 0})</span>
+                          <span className="mx-1.5 opacity-50">·</span>
+                        </span>
+                      )}
+                      <span className="truncate max-w-[180px] sm:max-w-xs">{item.formatted_address || item.city}</span>
+                    </div>
+
+                    {/* Details Snippet */}
+                    <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
+                      {isBeautyStore
+                        ? `Beauty supply store offering hair care products, wigs, extensions, and styling supplies${item.city ? ` in ${item.city}` : ''}.`
+                        : `Barber supply store offering clippers, shears, chemicals, and professional grooming products${item.city ? ` in ${item.city}` : ''}.`}
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+
+            if (item.resultType === 'salon') {
+              const salonPhoto = Array.isArray(item.google_images) ? item.google_images[0] : null;
+              const salonHref = `/salons/${item.id}`;
+              return (
+                <div key={`salon-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
+                  {salonPhoto ? (
+                    <Link href={salonHref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
+                      <img src={salonPhoto} alt={item.shop_name} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                    </Link>
+                  ) : (
+                    <Link href={salonHref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative flex items-center justify-center group/thumbnail">
+                      <Users className="h-8 w-8 text-slate-400 transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                    </Link>
+                  )}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+
+                    {/* Breadcrumb (Google Style) */}
+                    <div className="flex items-center gap-1.5 text-xs sm:text-[13px] text-slate-700 mb-1 truncate">
+                      <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                        <Users className="h-3 w-3 text-slate-500" />
+                      </div>
+                      <span className="truncate opacity-80">barberbeauty.net › salons › {(item.city || 'houston').toLowerCase().replace(/\s+/g, '-')}</span>
+                    </div>
+
+                    {/* Prominent Title Link */}
+                    <Link href={salonHref} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
+                      {item.shop_name || "Hair & Beauty Salon"}
+                    </Link>
+
+                    {/* Rating & Location Snippet */}
+                    <div className="flex items-center gap-1.5 text-sm text-slate-600 mb-1.5 flex-wrap">
+                      {item.rating && (
+                        <span className="flex items-center text-[13px]">
+                          <span className="font-medium text-slate-700 mr-1">{item.rating}</span>
+                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          <span className="ml-1 opacity-80">({item.total_reviews || 0})</span>
+                          <span className="mx-1.5 opacity-50">·</span>
+                        </span>
+                      )}
+                      <span className="truncate max-w-[180px] sm:max-w-xs">{item.formatted_address || item.city}</span>
+                    </div>
+
+                    {/* Details Snippet */}
+                    <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
+                      Hair & beauty salon{item.city ? ` in ${item.city}` : ''}.
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+
+            if (item.resultType === 'cosmetologist') {
+              const cosmetPhoto = item.booksy_photo_url || (Array.isArray(item.booksy_gallery_urls) ? item.booksy_gallery_urls[0] : null);
+              const cosmetHref = `/cosmetologists/${item.id}`;
+              return (
+                <div key={`cosmetologist-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
+                  {cosmetPhoto ? (
+                    <Link href={cosmetHref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-full overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
+                      <img src={cosmetPhoto} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                    </Link>
+                  ) : (
+                    <Link href={cosmetHref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-full overflow-hidden bg-slate-100 border border-slate-200 relative flex items-center justify-center group/thumbnail">
+                      <Users className="h-8 w-8 text-slate-400 transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                    </Link>
+                  )}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+
+                    {/* Breadcrumb (Google Style) */}
+                    <div className="flex items-center gap-1.5 text-xs sm:text-[13px] text-slate-700 mb-1 truncate">
+                      <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                        <Users className="h-3 w-3 text-slate-500" />
+                      </div>
+                      <span className="truncate opacity-80">barberbeauty.net › cosmetologists › {(item.metro_area || 'houston').toLowerCase().replace(/\s+/g, '-')}</span>
+                    </div>
+
+                    {/* Prominent Title Link */}
+                    <Link href={cosmetHref} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
+                      {item.name || "Beauty Professional"}
+                    </Link>
+
+                    {/* Rating & Location Snippet */}
+                    <div className="flex items-center gap-1.5 text-sm text-slate-600 mb-1.5 flex-wrap">
+                      {item.booksy_rating && (
+                        <span className="flex items-center text-[13px]">
+                          <span className="font-medium text-slate-700 mr-1">{Number(item.booksy_rating).toFixed(1)}</span>
+                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          <span className="ml-1 opacity-80">({item.booksy_review_count || 0})</span>
+                          <span className="mx-1.5 opacity-50">·</span>
+                        </span>
+                      )}
+                      <span className="truncate max-w-[180px] sm:max-w-xs">{item.address || item.metro_area}</span>
+                    </div>
+
+                    {/* Details Snippet */}
+                    <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
+                      {item.booksy_price_range ? `${item.booksy_price_range}. ` : ''}
+                      Beauty professional{item.metro_area ? ` in ${item.metro_area}` : ''}.
                     </p>
                   </div>
                 </div>
