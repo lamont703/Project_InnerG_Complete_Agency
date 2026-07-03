@@ -29,7 +29,6 @@ export async function POST(request: Request) {
     const uniqueQueries = Array.from(new Set(rawQueries));
 
     const internalPages = [
-      { label: "Barber & Cosmetology Shop Day", href: "/barber-cosmetology-placement" },
       { label: "Barber & Cosmetology Placement", href: "/barber-beauty-network" },
       { label: "Texas Barber Exam Intelligence Prep", href: "/texas-barber-exam-intelligence-prep" },
       { label: "Accreditation Advisory Committee Toolkit", href: "/program-advisory-committee-kit" },

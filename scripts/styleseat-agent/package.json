@@ -1,0 +1,10 @@
+{
+  "name": "styleseat-agent",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "playwright": "^1.60.0",
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}

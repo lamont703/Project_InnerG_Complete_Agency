@@ -67,22 +67,38 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     cleanQuery = cleanQuery.replace(/\s+/g, ' ').trim();
 
     // --- Dynamic Bento Box Ratios ---
-    let shopLim = 3, barberLim = 3, webLim = 2, toolLim = 2; // Default (Unbiased)
+    let shopLim = 3, barberLim = 3, webLim = 2, toolLim = 2, schoolLim = 2, storeLim = 2, salonLim = 2, cosmetologistLim = 2; // Default (Unbiased)
     let intentType = 'default';
     const qRaw = query.toLowerCase();
-    
-    if (/\b(how|why|what is|best way|guide|tutorial|tips|learn)\b/.test(qRaw)) {
+
+    if (/\b(cosmetologist|makeup artist|nail tech|nail technician|esthetician|eyelash|lash artist|lash tech|manicure|pedicure|facial)\b/.test(qRaw)) {
+      // Cosmetologist / Beauty Professional Intent
+      intentType = 'cosmetologists';
+      cosmetologistLim = 5; shopLim = 1; barberLim = 1; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1;
+    } else if (/\b(salons?|hair salon|beauty salon|hairstylist|blowout|updo|balayage)\b/.test(qRaw)) {
+      // Salon Intent
+      intentType = 'salons';
+      salonLim = 5; shopLim = 1; barberLim = 1; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; cosmetologistLim = 1;
+    } else if (/\b(schools?|academy|academies|college|colleges|enroll|tuition|accredited|financial aid|barber program|cosmetology)\b/.test(qRaw)) {
+      // School / Enrollment Intent
+      intentType = 'schools';
+      schoolLim = 5; webLim = 2; barberLim = 1; shopLim = 1; toolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1;
+    } else if (/\b(supply|supplies|clippers?|shears?|wholesale|products?|equipment)\b/.test(qRaw)) {
+      // Supply Store Intent
+      intentType = 'supplies';
+      storeLim = 5; webLim = 1; barberLim = 1; shopLim = 1; toolLim = 1; schoolLim = 1; salonLim = 1; cosmetologistLim = 1;
+    } else if (/\b(how|why|what is|best way|guide|tutorial|tips|learn)\b/.test(qRaw)) {
       // Educational Intent
       intentType = 'educational';
-      webLim = 5; toolLim = 2; barberLim = 2; shopLim = 1;
-    } else if (/\b(shops?|barbershops?|salons?|studios?|suites?|places?|hiring|near me|booth|commission)\b/.test(qRaw)) {
+      webLim = 5; toolLim = 2; barberLim = 2; shopLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1;
+    } else if (/\b(shops?|barbershops?|studios?|suites?|places?|hiring|near me|booth|commission)\b/.test(qRaw)) {
       // Employment / Location Intent
       intentType = 'location';
-      shopLim = 5; barberLim = 3; webLim = 1; toolLim = 1;
+      shopLim = 5; barberLim = 3; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1;
     } else if (/\b(barbers?|stylists?|braiders?|locticians?|people|someone)\b/.test(qRaw)) {
       // Networking / People Intent
       intentType = 'networking';
-      barberLim = 5; shopLim = 3; webLim = 1; toolLim = 1;
+      barberLim = 5; shopLim = 3; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1;
     }
     // --------------------------------
 
@@ -169,6 +185,101 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       }
     }
 
+    // 2.7 School Results
+    let schoolMatches: any[] = [];
+    if (filterTab === 'All' || filterTab === 'Schools') {
+      const { data: schoolRes, error: schoolErr } = await supabase.rpc('search_schools_ranked', {
+        query_text: cleanQuery.length >= 2 ? cleanQuery : '',
+        query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
+        limit_val: filterTab === 'All' ? schoolLim : ITEMS_PER_PAGE,
+        offset_val: filterTab === 'All' ? (page - 1) * schoolLim : fromIndex
+      });
+      if (!schoolErr && schoolRes) {
+        schoolMatches = schoolRes.map((s: any) => ({
+          ...s,
+          resultType: 'school'
+        }));
+      }
+    }
+
+    // 2.9 Supply Store Results (barber supply stores + beauty supply stores,
+    // merged under one "Stores" bucket since they share the same card/profile shape)
+    let storeMatches: any[] = [];
+    if (filterTab === 'All' || filterTab === 'Stores') {
+      const storeLimitVal = filterTab === 'All' ? storeLim : ITEMS_PER_PAGE;
+      const storeOffsetVal = filterTab === 'All' ? (page - 1) * storeLim : fromIndex;
+
+      const [
+        { data: barberStoreRes, error: barberStoreErr },
+        { data: beautyStoreRes, error: beautyStoreErr }
+      ] = await Promise.all([
+        supabase.rpc('search_supply_stores_ranked', {
+          query_text: cleanQuery.length >= 2 ? cleanQuery : '',
+          query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
+          limit_val: storeLimitVal,
+          offset_val: storeOffsetVal
+        }),
+        supabase.rpc('search_beauty_supply_stores_ranked', {
+          query_text: cleanQuery.length >= 2 ? cleanQuery : '',
+          query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
+          limit_val: storeLimitVal,
+          offset_val: storeOffsetVal
+        })
+      ]);
+
+      const barberStoreMatches = (!barberStoreErr && barberStoreRes)
+        ? barberStoreRes.map((s: any) => ({ ...s, resultType: 'store', store_type: 'barber_supply' }))
+        : [];
+      const beautyStoreMatches = (!beautyStoreErr && beautyStoreRes)
+        ? beautyStoreRes.map((s: any) => ({ ...s, resultType: 'store', store_type: 'beauty_supply' }))
+        : [];
+
+      const barberStoreTotal = barberStoreMatches.length > 0 && barberStoreMatches[0].total_matched ? Number(barberStoreMatches[0].total_matched) : 0;
+      const beautyStoreTotal = beautyStoreMatches.length > 0 && beautyStoreMatches[0].total_matched ? Number(beautyStoreMatches[0].total_matched) : 0;
+      const combinedStoreTotal = barberStoreTotal + beautyStoreTotal;
+
+      storeMatches = [...barberStoreMatches, ...beautyStoreMatches]
+        .sort((a, b) => Number(b.match_score) - Number(a.match_score))
+        .slice(0, storeLimitVal)
+        // Stamp the combined total onto every item so downstream logic that
+        // reads `storeMatches[0].total_matched` keeps working unchanged.
+        .map((s) => ({ ...s, total_matched: combinedStoreTotal }));
+    }
+
+    // 2.95 Salon Results
+    let salonMatches: any[] = [];
+    if (filterTab === 'All' || filterTab === 'Salons') {
+      const { data: salonRes, error: salonErr } = await supabase.rpc('search_salons_ranked', {
+        query_text: cleanQuery.length >= 2 ? cleanQuery : '',
+        query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
+        limit_val: filterTab === 'All' ? salonLim : ITEMS_PER_PAGE,
+        offset_val: filterTab === 'All' ? (page - 1) * salonLim : fromIndex
+      });
+      if (!salonErr && salonRes) {
+        salonMatches = salonRes.map((s: any) => ({
+          ...s,
+          resultType: 'salon'
+        }));
+      }
+    }
+
+    // 2.97 Cosmetologist Results
+    let cosmetologistMatches: any[] = [];
+    if (filterTab === 'All' || filterTab === 'Cosmetologist') {
+      const { data: cosmetologistRes, error: cosmetologistErr } = await supabase.rpc('search_cosmetologists_ranked', {
+        query_text: cleanQuery.length >= 2 ? cleanQuery : '',
+        query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
+        limit_val: filterTab === 'All' ? cosmetologistLim : ITEMS_PER_PAGE,
+        offset_val: filterTab === 'All' ? (page - 1) * cosmetologistLim : fromIndex
+      });
+      if (!cosmetologistErr && cosmetologistRes) {
+        cosmetologistMatches = cosmetologistRes.map((c: any) => ({
+          ...c,
+          resultType: 'cosmetologist'
+        }));
+      }
+    }
+
     // 3. Shop Results
     let shopMatches: any[] = [];
     let shopCount = 0;
@@ -214,17 +325,29 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       // Grouped Bento Box (Prioritized Concatenation)
       let interleaved: any[] = [];
       
-      if (intentType === 'educational') {
-        // Educational Anchor: All Articles -> All Tools -> All Barbers -> All Shops
-        interleaved = [...webMatches, ...internalMatches, ...barberMatches, ...shopMatches];
+      if (intentType === 'cosmetologists') {
+        // Cosmetologist Anchor: All Cosmetologists -> All Salons -> All Shops -> All Barbers -> All Articles -> All Stores -> All Schools -> All Tools
+        interleaved = [...cosmetologistMatches, ...salonMatches, ...shopMatches, ...barberMatches, ...webMatches, ...storeMatches, ...schoolMatches, ...internalMatches];
+      } else if (intentType === 'salons') {
+        // Salon Anchor: All Salons -> All Shops -> All Barbers -> All Articles -> All Stores -> All Schools -> All Cosmetologists -> All Tools
+        interleaved = [...salonMatches, ...shopMatches, ...barberMatches, ...webMatches, ...storeMatches, ...schoolMatches, ...cosmetologistMatches, ...internalMatches];
+      } else if (intentType === 'schools') {
+        // School Anchor: All Schools -> All Articles -> All Barbers -> All Shops -> All Stores -> All Salons -> All Cosmetologists -> All Tools
+        interleaved = [...schoolMatches, ...webMatches, ...barberMatches, ...shopMatches, ...storeMatches, ...salonMatches, ...cosmetologistMatches, ...internalMatches];
+      } else if (intentType === 'supplies') {
+        // Supply Store Anchor: All Stores -> All Shops -> All Barbers -> All Articles -> All Salons -> All Cosmetologists -> All Tools
+        interleaved = [...storeMatches, ...shopMatches, ...barberMatches, ...webMatches, ...schoolMatches, ...salonMatches, ...cosmetologistMatches, ...internalMatches];
+      } else if (intentType === 'educational') {
+        // Educational Anchor: All Articles -> All Tools -> All Barbers -> All Shops -> All Schools -> All Stores -> All Salons -> All Cosmetologists
+        interleaved = [...webMatches, ...internalMatches, ...barberMatches, ...shopMatches, ...schoolMatches, ...storeMatches, ...salonMatches, ...cosmetologistMatches];
       } else if (intentType === 'networking') {
-        // Networking Anchor: All Barbers -> All Shops -> All Tools -> All Articles
-        interleaved = [...barberMatches, ...shopMatches, ...internalMatches, ...webMatches];
+        // Networking Anchor: All Barbers -> All Cosmetologists -> All Shops -> All Tools -> All Articles -> All Schools -> All Stores -> All Salons
+        interleaved = [...barberMatches, ...cosmetologistMatches, ...shopMatches, ...internalMatches, ...webMatches, ...schoolMatches, ...storeMatches, ...salonMatches];
       } else {
-        // Default / Location Anchor: All Shops -> All Barbers -> All Articles -> All Tools
-        interleaved = [...shopMatches, ...barberMatches, ...webMatches, ...internalMatches];
+        // Default / Location Anchor: All Shops -> All Barbers -> All Salons -> All Cosmetologists -> All Articles -> All Schools -> All Stores -> All Tools
+        interleaved = [...shopMatches, ...barberMatches, ...salonMatches, ...cosmetologistMatches, ...webMatches, ...schoolMatches, ...storeMatches, ...internalMatches];
       }
-      
+
       // Calculate the total number of pages needed for each category based on its consumption rate
       const shopPages = Math.ceil((shopCount || 0) / shopLim);
       const barberTotal = barberMatches.length > 0 && barberMatches[0].total_matched ? Number(barberMatches[0].total_matched) : 0;
@@ -233,9 +356,17 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       const webPages = Math.ceil(webTotal / webLim);
       const toolTotal = internalMatches.length > 0 && internalMatches[0].total_matched ? Number(internalMatches[0].total_matched) : 0;
       const toolPages = Math.ceil(toolTotal / toolLim);
+      const schoolTotal = schoolMatches.length > 0 && schoolMatches[0].total_matched ? Number(schoolMatches[0].total_matched) : 0;
+      const schoolPages = Math.ceil(schoolTotal / schoolLim);
+      const storeTotal = storeMatches.length > 0 && storeMatches[0].total_matched ? Number(storeMatches[0].total_matched) : 0;
+      const storePages = Math.ceil(storeTotal / storeLim);
+      const salonTotal = salonMatches.length > 0 && salonMatches[0].total_matched ? Number(salonMatches[0].total_matched) : 0;
+      const salonPages = Math.ceil(salonTotal / salonLim);
+      const cosmetologistTotal = cosmetologistMatches.length > 0 && cosmetologistMatches[0].total_matched ? Number(cosmetologistMatches[0].total_matched) : 0;
+      const cosmetologistPages = Math.ceil(cosmetologistTotal / cosmetologistLim);
 
       // Find the deepest category in terms of total pages required
-      const maxPagesRequired = Math.max(shopPages, barberPages, webPages, toolPages);
+      const maxPagesRequired = Math.max(shopPages, barberPages, webPages, toolPages, schoolPages, storePages, salonPages, cosmetologistPages);
 
       // Trick the frontend into generating exactly maxPagesRequired by providing a total that divides by ITEMS_PER_PAGE (10)
       totalResults = maxPagesRequired * ITEMS_PER_PAGE;
@@ -254,6 +385,18 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       } else if (filterTab === 'Barbershops') {
          totalResults = shopCount;
          pageResults = shopMatches;
+      } else if (filterTab === 'Schools') {
+         totalResults = (schoolMatches.length > 0 && schoolMatches[0].total_matched) ? Number(schoolMatches[0].total_matched) : schoolMatches.length;
+         pageResults = schoolMatches;
+      } else if (filterTab === 'Stores') {
+         totalResults = (storeMatches.length > 0 && storeMatches[0].total_matched) ? Number(storeMatches[0].total_matched) : storeMatches.length;
+         pageResults = storeMatches;
+      } else if (filterTab === 'Salons') {
+         totalResults = (salonMatches.length > 0 && salonMatches[0].total_matched) ? Number(salonMatches[0].total_matched) : salonMatches.length;
+         pageResults = salonMatches;
+      } else if (filterTab === 'Cosmetologist') {
+         totalResults = (cosmetologistMatches.length > 0 && cosmetologistMatches[0].total_matched) ? Number(cosmetologistMatches[0].total_matched) : cosmetologistMatches.length;
+         pageResults = cosmetologistMatches;
       }
     }
 
