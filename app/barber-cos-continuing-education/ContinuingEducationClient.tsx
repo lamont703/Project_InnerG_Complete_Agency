@@ -2,30 +2,30 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
-import { 
-  Sparkles, 
-  BookOpen, 
-  Clock, 
-  Award, 
-  Star, 
-  Search, 
-  Play, 
-  Check, 
-  X, 
-  GraduationCap, 
-  Lock, 
-  Unlock, 
-  ArrowRight, 
-  CheckCircle2, 
-  User, 
+import Link from 'next/link';
+import {
+  Sparkles,
+  BookOpen,
+  Clock,
+  Award,
+  Star,
+  Search,
+  Play,
+  Check,
+  X,
+  GraduationCap,
+  Lock,
+  Unlock,
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle2,
+  User,
   Mail,
   ShieldCheck,
   Video,
   FileText,
   Bookmark
 } from 'lucide-react';
-import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
 
 interface RawSchool {
   license_type: string;
@@ -268,9 +268,7 @@ export default function ContinuingEducationClient({ schools, errorMsg }: Continu
   if (!mounted) return null;
 
   return (
-    <main className="min-h-screen bg-white text-slate-900 flex flex-col pt-20 selection:bg-primary/20 light">
-      <Navbar />
-
+    <main className="min-h-screen bg-white text-slate-900 flex flex-col selection:bg-primary/20 light">
       {/* Hero Header */}
       <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 py-12 lg:py-16">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-12 gap-6 border-b border-slate-100 pb-12">
@@ -786,7 +784,12 @@ export default function ContinuingEducationClient({ schools, errorMsg }: Continu
         </div>
       )}
 
-      <Footer />
+      <div className="text-center py-10">
+        <Link href="/tools/barbershop-search" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Search
+        </Link>
+      </div>
     </main>
   );
 }

@@ -32,7 +32,12 @@ function normalizeWhitespace(str) {
 }
 
 // Matches: {8-digit school code} {text...} {LASTNAME(s)}, {FIRSTNAME...} TX Class A Barber {Written|Practical}\s*English {MM-DD-YY} {PASS|FAIL} ({score}%)
-const RECORD_REGEX = /(\d{8})\s+([\s\S]+?),\s+([\s\S]+?)\s+TX Class A Barber (Written|Practical)\s*English\s+(\d{2}-\d{2}-\d{2})\s+(PASS|FAIL)\s*\(([\d.]+)%\)/g;
+// Note: \s* (not \s+) before "TX Class A Barber" — the source PDF text
+// sometimes has zero whitespace between the name and the test-name marker
+// (e.g. "MARTINEZTX Class A Barber..."), which \s+ would fail to match,
+// forcing the engine to backtrack across subsequent records looking for a
+// working boundary and swallowing them into one garbled record.
+const RECORD_REGEX = /(\d{8})\s+([\s\S]+?),\s+([\s\S]+?)\s*TX Class A Barber (Written|Practical)\s*English\s+(\d{2}-\d{2}-\d{2})\s+(PASS|FAIL|UNAVAILABLE)\s*\(([\d.]+)%\)/g;
 
 function parseRawRecords(text, testType) {
   const records = [];
@@ -50,6 +55,14 @@ function parseRawRecords(text, testType) {
     });
   }
   return records;
+}
+
+function wordOverlapScore(a, b) {
+  const aw = new Set(a.split(' ').filter((w) => w.length > 2));
+  const bw = new Set(b.split(' ').filter((w) => w.length > 2));
+  if (aw.size === 0 || bw.size === 0) return 0;
+  const overlap = [...aw].filter((w) => bw.has(w)).length;
+  return overlap / Math.max(aw.size, bw.size);
 }
 
 function wordPrefixOverlap(a, b) {
@@ -81,23 +94,41 @@ function resolveSchoolNames(allRecords, knownSchoolNames) {
         common = wordPrefixOverlap(common, uniquePrefixes[i]);
         if (!common) break;
       }
-      if (common) {
+      // A couple of schools are spelled two different ways for the same
+      // code across records (e.g. "CUT & SHAVE BARBER & BEAUTY COLLEGE" vs
+      // "CUT AND SHAVE BARBER COLLEGE"), which collapses the common prefix
+      // down to something implausibly short ("CUT"). Below 2 words, prefer
+      // a known-name match over trusting the prefix.
+      if (common && common.split(' ').length >= 2) {
         schoolNameByCode.set(code, common);
         continue;
       }
     }
 
-    // Fallback: only one distinct prefix seen for this code (single record, or
-    // all records happen to share the exact same full prefix incl. last name
-    // — shouldn't happen since last names differ, but guard anyway).
-    // Try to match against known school names by finding the longest known
-    // name that is a prefix of this string.
+    // Fallback: either a single record for this code, or the common-prefix
+    // result was too short to trust (inconsistent spelling across records).
+    // Try every prefix variant against known school names — first for an
+    // exact prefix match, then by word overlap for inconsistent spellings.
     const candidate = uniquePrefixes[0];
     let bestMatch = null;
-    for (const known of knownSchoolNames) {
-      const knownUpper = known.toUpperCase();
-      if (candidate.startsWith(knownUpper) && (!bestMatch || knownUpper.length > bestMatch.length)) {
-        bestMatch = knownUpper;
+    for (const variant of uniquePrefixes) {
+      for (const known of knownSchoolNames) {
+        const knownUpper = known.toUpperCase();
+        if (variant.startsWith(knownUpper) && (!bestMatch || knownUpper.length > bestMatch.length)) {
+          bestMatch = knownUpper;
+        }
+      }
+    }
+    if (!bestMatch) {
+      for (const variant of uniquePrefixes) {
+        for (const known of knownSchoolNames) {
+          const knownUpper = known.toUpperCase();
+          if (wordOverlapScore(variant, knownUpper) >= 0.75) {
+            bestMatch = knownUpper;
+            break;
+          }
+        }
+        if (bestMatch) break;
       }
     }
     if (bestMatch) {
@@ -111,6 +142,40 @@ function resolveSchoolNames(allRecords, knownSchoolNames) {
   }
 
   return { schoolNameByCode, ambiguous };
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// The single-pass non-greedy regex is ambiguous about where a school name
+// ends and a last name begins, which occasionally lets the engine backtrack
+// across an entire run of a retaking student's records (5+ attempts) before
+// finding a working match — swallowing all of them into one garbled row.
+// Once the school name is known (from resolveSchoolNames), re-extracting
+// with the exact name as a literal anchor removes that ambiguity: the last
+// name is simply "whatever comes right after this known name, up to the
+// comma," which can't overshoot.
+function extractPreciseRecordsForSchool(text, schoolCode, schoolNameRaw, testType) {
+  const anchor = schoolNameRaw.split(' ').map(escapeRegex).join('\\s+');
+  const regex = new RegExp(
+    `${schoolCode}\\s+${anchor}\\s+([\\s\\S]+?),\\s+([\\s\\S]+?)\\s*TX Class A Barber (Written|Practical)\\s*English\\s+(\\d{2}-\\d{2}-\\d{2})\\s+(PASS|FAIL|UNAVAILABLE)\\s*\\(([\\d.]+)%\\)`,
+    'g'
+  );
+  const records = [];
+  let m;
+  while ((m = regex.exec(text)) !== null) {
+    records.push({
+      schoolCode,
+      prefixBeforeComma: schoolNameRaw + ' ' + normalizeWhitespace(m[1]),
+      firstNamePart: normalizeWhitespace(m[2]),
+      testType: m[3] === 'Written' ? 'Written' : 'Practical',
+      testDate: m[4],
+      result: m[5],
+      score: parseFloat(m[6]),
+    });
+  }
+  return records;
 }
 
 function titleCase(str) {
@@ -148,15 +213,67 @@ async function run() {
     console.log(ambiguous.slice(0, 20).map((a) => `  ${a.code}: "${a.candidate}" -> guessed "${a.guessed}"`).join('\n'));
   }
 
+  // Re-extract each school's records using its now-known exact name as a
+  // literal anchor, which removes the ambiguity that caused catastrophic
+  // backtracking on students with many retake attempts (see
+  // extractPreciseRecordsForSchool). Falls back to the original pass-1 raw
+  // records for a (school, test type) if the anchor doesn't recover at
+  // least as many records — this happens for the handful of schools whose
+  // resolved name was itself a heuristic guess that doesn't literally
+  // appear in the text.
+  const rawByCodeAndType = new Map();
+  for (const r of allRaw) {
+    const key = `${r.schoolCode}|${r.testType}`;
+    if (!rawByCodeAndType.has(key)) rawByCodeAndType.set(key, []);
+    rawByCodeAndType.get(key).push(r);
+  }
+
+  let preciseWins = 0, fallbackWins = 0;
+  const reconciledRaw = [];
+  for (const [key, rawRecords] of rawByCodeAndType.entries()) {
+    const [schoolCode, testType] = key.split('|');
+    const schoolNameRaw = schoolNameByCode.get(schoolCode);
+    const sourceText = testType === 'Written' ? writtenText : practicalText;
+    const preciseRecords = schoolNameRaw ? extractPreciseRecordsForSchool(sourceText, schoolCode, schoolNameRaw, testType) : [];
+
+    if (preciseRecords.length >= rawRecords.length) {
+      reconciledRaw.push(...preciseRecords);
+      preciseWins++;
+    } else {
+      reconciledRaw.push(...rawRecords);
+      fallbackWins++;
+    }
+  }
+  console.log(`\nPrecise re-extraction: ${preciseWins} school/test-type groups improved, ${fallbackWins} fell back to the original pass.`);
+
+  // A handful of records are marked UNAVAILABLE (0.0%) — a voided/no-score
+  // attempt, not a real pass/fail outcome. Matched on the regex (so they
+  // don't cause backtracking) but dropped here since they'd otherwise skew
+  // pass-rate stats as a false FAIL.
+  const unavailableCount = reconciledRaw.filter((r) => r.result === 'UNAVAILABLE').length;
+  if (unavailableCount > 0) {
+    console.log(`Dropping ${unavailableCount} UNAVAILABLE (voided/no-score) record(s).`);
+  }
+  const scoredOnly = reconciledRaw.filter((r) => r.result !== 'UNAVAILABLE');
+
   // Build final records: split last name from the school-name prefix, group
   // attempts per (schoolCode, lastName, firstNamePart) for attempt numbering.
-  const finalRecords = allRaw.map((r) => {
-    const schoolName = schoolNameByCode.get(r.schoolCode) || r.prefixBeforeComma;
+  const finalRecords = scoredOnly.map((r) => {
+    const primaryName = schoolNameByCode.get(r.schoolCode) || r.prefixBeforeComma;
+    // The resolved school name doesn't always match this specific record's
+    // actual text (a few schools are listed under 2 different names for the
+    // same code — e.g. renamed mid-year, with both old and new names
+    // appearing as separate roster entries). If it doesn't match, fall back
+    // to a per-record heuristic (assume a 1-word last name) rather than
+    // slicing garbage into the last name field.
+    const schoolName = r.prefixBeforeComma.startsWith(primaryName)
+      ? primaryName
+      : r.prefixBeforeComma.split(' ').slice(0, -1).join(' ');
     const lastName = r.prefixBeforeComma.slice(schoolName.length).trim() || r.prefixBeforeComma;
     return {
       school_code: r.schoolCode,
-      school_name_raw: schoolName,
-      school_name: titleCase(schoolName),
+      school_name_raw: primaryName,
+      school_name: titleCase(primaryName),
       last_name: titleCase(lastName),
       first_name: titleCase(r.firstNamePart),
       test_type: r.testType,

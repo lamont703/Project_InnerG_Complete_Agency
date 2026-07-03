@@ -5,30 +5,27 @@ const footerLinks = {
   Solutions: [
     { label: "Barber & Cosmetology Placement", href: "/barber-beauty-network" },
     { label: "Texas Barber Exam Intelligence Prep", href: "/texas-barber-exam-intelligence-prep" },
-    { label: "Accreditation Advisory Committee Toolkit", href: "/program-advisory-committee-kit" },
+    { label: "Barbershop Search Engine", href: "/tools/barbershop-search" },
   ],
-  Tools: [
-    { label: "Shop Day Map", href: "/shop-day-map" },
+  "Industry Tools": [
     { label: "Shop Day Matches", href: "/shop-day-matches" },
     { label: "Shop Day Requests", href: "/shop-day-requests" },
     { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },
     { label: "Texas Barber Instructor Intelligence Dashboard", href: "/tools/texas-barber-instructor-intelligence-dashboard" },
     // { label: "Texas Barber School Accreditation Relationship Auditor", href: "/tools/texas-barber-school-accreditation-relationship-auditor" },
-    { label: "Texas Barber School Benchmarking Intelligence", href: "/texas-school-benchmarking" },
-    { label: "Texas Barber School Historical Performance Tracker", href: "/texas-barber-school-historical-performance" },
-    { label: "Texas Barbershop Placement Matcher & Agent", href: "/texas-barbershop-placement-matcher" },
+    { label: "Texas Barber & Cosmetology School Leaderboard", href: "/texas-school-leaderboard" },
     { label: "Texas Barber & Cosmetology Continuing Education Portal", href: "/barber-cos-continuing-education" },
-    { label: "Pixel Analytics", href: "/pixel-analytics" },
-    { label: "Shop Day Connections", href: "/shop-day-connections" },
     { label: "Shop Site Template", href: "/s/a6cd48e5-2b32-4062-8284-c100cccdefc3" },
     { label: "Shop Site AI Customizer", href: "/tools/shop-site-template/shop-website-customizer/a6cd48e5-2b32-4062-8284-c100cccdefc3/customizer" },
     { label: "AI Booth Station Tool", href: "/tools/ai-booth-station" },
     { label: "Foot Traffic Radar Tool", href: "/tools/foot-traffic-radar" },
-    { label: "Barbershop Search Engine", href: "/tools/barbershop-search" },
-    { label: "Web Crawler Domain Management", href: "/tools/domain-management" },
   ],
-  Social: [
-    { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },
+  "Internal Tools": [
+    { label: "Pixel Analytics", href: "/pixel-analytics" },
+    { label: "Web Crawler Domain Management", href: "/tools/domain-management" },
+    { label: "Shop Day Map", href: "/shop-day-map" },
+    { label: "Shop Day Connections", href: "/shop-day-connections" },
+    { label: "Accreditation Advisory Committee Toolkit", href: "/program-advisory-committee-kit" },
   ],
   Company: [
     { label: "Research & Insights", href: "/insights" },
@@ -37,6 +34,7 @@ const footerLinks = {
     { label: "Careers", href: "/careers" },
     { label: "Contact", href: "/contact" },
     { label: "Sitemap", href: "/sitemap.xml" },
+    { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },
   ],
 }
 

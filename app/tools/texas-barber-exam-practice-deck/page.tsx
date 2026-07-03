@@ -17,8 +17,6 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import { cn } from "@/lib/utils"
 import { BarberSchoolSelector } from "@/components/forms/BarberSchoolSelector"
 import { BarberRegisterForm } from "@/components/forms/BarberRegisterForm"
@@ -260,9 +258,7 @@ export default function PublicSwipeDeckPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white light text-slate-950 flex flex-col pt-20 selection:bg-primary/20">
-      <Navbar />
-
+    <main className="min-h-screen bg-white light text-slate-950 flex flex-col selection:bg-primary/20">
       <div className="flex-1 flex flex-col p-4 lg:p-8 overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-b from-slate-50 to-white pointer-events-none" />
         <div className="max-w-2xl mx-auto w-full h-full flex flex-col pt-8 lg:pt-12 relative z-10">
@@ -574,10 +570,15 @@ export default function PublicSwipeDeckPage() {
                   </Button>
               </div>
           </div>
+
+          <div className="text-center mt-4 mb-8">
+            <Link href="/tools/barbershop-search" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Search
+            </Link>
+          </div>
         </div>
       </div>
-
-      <Footer />
     </main>
   )
 }

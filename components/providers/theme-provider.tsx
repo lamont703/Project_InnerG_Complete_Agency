@@ -76,7 +76,7 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
 
   // Determine forced theme
   let forcedTheme: string | undefined = isGated ? undefined : 'dark';
-  if (pathname === '/texas-school-benchmarking') {
+  if (pathname === '/texas-school-leaderboard') {
     forcedTheme = 'light';
   }
 

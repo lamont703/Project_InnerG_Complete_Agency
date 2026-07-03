@@ -7,6 +7,42 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Cosmetologist profiles don't have a clean category column — the profession
+// shows up in the scraped name ("Jane Doe Makeup Artist") and in the booksy
+// service names, so category filters match against that combined text.
+const COSMET_CATEGORY_PATTERNS: Record<string, RegExp> = {
+  cosmet_hair: /\b(hair|stylist|cosmetologist)\b/i,
+  cosmet_makeup: /\bmakeup\b/i,
+  cosmet_nails: /\b(nail|manicure|pedicure)\b/i,
+  cosmet_esthetician: /\b(esthetic|facial|skin)\b/i,
+  cosmet_lashes: /\blash/i,
+};
+
+// When a facet filter (rating, pass rate, city, etc.) is active, results are
+// filtered client-side after fetching from the RPC. Fetching a small,
+// per-page batch and slicing by page offset BEFORE filtering doesn't work:
+// consecutive pages fetch overlapping RPC windows, and the number of items
+// surviving the filter varies per window, so pages end up with an
+// inconsistent, sometimes-overlapping count of results instead of a clean
+// 10. The fix is to fetch a large enough batch to cover the whole ranked
+// candidate pool ONCE (from offset 0), filter it completely, and only then
+// slice out the requested page's window — so pagination reflects the true
+// filtered result set.
+const FILTERED_FETCH_LIMIT = 500;
+
+function paginateFiltered<T extends Record<string, any>>(filtered: T[], pageOffset: number, pageSize: number): T[] {
+  const total = filtered.length;
+  return filtered.slice(pageOffset, pageOffset + pageSize).map((item) => ({ ...item, total_matched: total }));
+}
+
+function cosmetMatchesCategory(c: any, activeFilters: string[]): boolean {
+  const activeCategoryFilters = Object.keys(COSMET_CATEGORY_PATTERNS).filter((f) => activeFilters.includes(f));
+  if (activeCategoryFilters.length === 0) return true;
+  const serviceNames = Array.isArray(c.booksy_services) ? c.booksy_services.map((s: any) => s.name).join(' ') : '';
+  const haystack = `${c.name || ''} ${serviceNames}`;
+  return activeCategoryFilters.some((f) => COSMET_CATEGORY_PATTERNS[f].test(haystack));
+}
+
 export async function searchBarbershops(query: string, page: number = 1, filterTab: string = 'All', activeFilters: string[] = []) {
   try {
     if (!query || query.trim().length < 2) {
@@ -171,11 +207,13 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     // 2.5 Barber Results
     let barberMatches: any[] = [];
     if (filterTab === 'All' || filterTab === 'Barbers') {
+      const barberLimBase = filterTab === 'All' ? barberLim : ITEMS_PER_PAGE;
+      const barberFilterActive = ['barber_actively_looking', 'barber_wants_booth', 'barber_wants_commission', 'rating_4.5'].some((f) => activeFilters.includes(f));
       const { data: barberRes, error: barberErr } = await supabase.rpc('search_barbers_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
-        limit_val: filterTab === 'All' ? barberLim : ITEMS_PER_PAGE,
-        offset_val: filterTab === 'All' ? (page - 1) * barberLim : fromIndex
+        limit_val: barberFilterActive ? FILTERED_FETCH_LIMIT : barberLimBase,
+        offset_val: barberFilterActive ? 0 : (filterTab === 'All' ? (page - 1) * barberLim : fromIndex)
       });
       if (!barberErr && barberRes) {
         barberMatches = barberRes.map((b: any) => ({
@@ -183,22 +221,74 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
           resultType: 'barber'
         }));
       }
+      if (activeFilters.includes('barber_actively_looking')) {
+        barberMatches = barberMatches.filter((b) => b.is_actively_looking === true);
+      }
+      if (activeFilters.includes('barber_wants_booth')) {
+        barberMatches = barberMatches.filter((b) => /booth/i.test(b.desired_pay_structure || ''));
+      }
+      if (activeFilters.includes('barber_wants_commission')) {
+        barberMatches = barberMatches.filter((b) => /commission/i.test(b.desired_pay_structure || ''));
+      }
+      if (activeFilters.includes('rating_4.5')) {
+        barberMatches = barberMatches.filter((b) => b.booksy_rating && b.booksy_rating >= 4.5);
+      }
+      if (barberFilterActive) {
+        const pageOffset = filterTab === 'All' ? (page - 1) * barberLim : fromIndex;
+        barberMatches = paginateFiltered(barberMatches, pageOffset, barberLimBase);
+      }
     }
 
     // 2.7 School Results
     let schoolMatches: any[] = [];
     if (filterTab === 'All' || filterTab === 'Schools') {
+      const schoolLimBase = filterTab === 'All' ? schoolLim : ITEMS_PER_PAGE;
+      const schoolFilterActive = ['school_accredited', 'school_high_pass_rate', 'school_affordable', 'rating_4.5', 'school_city_houston'].some((f) => activeFilters.includes(f));
       const { data: schoolRes, error: schoolErr } = await supabase.rpc('search_schools_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
-        limit_val: filterTab === 'All' ? schoolLim : ITEMS_PER_PAGE,
-        offset_val: filterTab === 'All' ? (page - 1) * schoolLim : fromIndex
+        limit_val: schoolFilterActive ? FILTERED_FETCH_LIMIT : schoolLimBase,
+        offset_val: schoolFilterActive ? 0 : (filterTab === 'All' ? (page - 1) * schoolLim : fromIndex)
       });
       if (!schoolErr && schoolRes) {
         schoolMatches = schoolRes.map((s: any) => ({
           ...s,
           resultType: 'school'
         }));
+      }
+      if (activeFilters.includes('school_accredited')) {
+        schoolMatches = schoolMatches.filter((s) => s.accreditation_status === 'Accredited');
+      }
+      if (activeFilters.includes('school_high_pass_rate')) {
+        // Written is the harder exam (statewide ~46% pass vs ~84% for
+        // practical), so it's the more meaningful signal of how well a
+        // school prepares students. Practical is only used as a fallback
+        // for schools that don't have written data reported.
+        schoolMatches = schoolMatches.filter((s) =>
+          s.written_pass_rate_2026 != null
+            ? s.written_pass_rate_2026 >= 0.8
+            : (s.practical_pass_rate_2026 != null && s.practical_pass_rate_2026 >= 0.8)
+        );
+        // Don't re-sort by raw pass rate here — that would bury Houston
+        // results under any 100%-pass-rate school statewide. match_score
+        // (from search_schools_ranked) already blends location/keyword
+        // relevance with a pass-rate bonus, which keeps geography relevant.
+      }
+      if (activeFilters.includes('school_affordable')) {
+        schoolMatches = schoolMatches.filter((s) => s.annual_tuition != null && Number(s.annual_tuition) <= 10000);
+      }
+      if (activeFilters.includes('school_city_houston')) {
+        // Keyword relevance alone doesn't reliably keep Houston schools
+        // above equally-high-pass-rate schools in other cities, so this is
+        // a hard filter rather than relying on match_score weighting.
+        schoolMatches = schoolMatches.filter((s) => s.city && /houston/i.test(s.city));
+      }
+      if (activeFilters.includes('rating_4.5')) {
+        schoolMatches = schoolMatches.filter((s) => s.rating && parseFloat(s.rating) >= 4.5);
+      }
+      if (schoolFilterActive) {
+        const pageOffset = filterTab === 'All' ? (page - 1) * schoolLim : fromIndex;
+        schoolMatches = paginateFiltered(schoolMatches, pageOffset, schoolLimBase);
       }
     }
 
@@ -208,6 +298,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     if (filterTab === 'All' || filterTab === 'Stores') {
       const storeLimitVal = filterTab === 'All' ? storeLim : ITEMS_PER_PAGE;
       const storeOffsetVal = filterTab === 'All' ? (page - 1) * storeLim : fromIndex;
+      const storeFilterActive = ['rating_4.5', 'store_budget', 'store_moderate'].some((f) => activeFilters.includes(f));
 
       const [
         { data: barberStoreRes, error: barberStoreErr },
@@ -216,14 +307,14 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
         supabase.rpc('search_supply_stores_ranked', {
           query_text: cleanQuery.length >= 2 ? cleanQuery : '',
           query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
-          limit_val: storeLimitVal,
-          offset_val: storeOffsetVal
+          limit_val: storeFilterActive ? FILTERED_FETCH_LIMIT : storeLimitVal,
+          offset_val: storeFilterActive ? 0 : storeOffsetVal
         }),
         supabase.rpc('search_beauty_supply_stores_ranked', {
           query_text: cleanQuery.length >= 2 ? cleanQuery : '',
           query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
-          limit_val: storeLimitVal,
-          offset_val: storeOffsetVal
+          limit_val: storeFilterActive ? FILTERED_FETCH_LIMIT : storeLimitVal,
+          offset_val: storeFilterActive ? 0 : storeOffsetVal
         })
       ]);
 
@@ -240,20 +331,34 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
 
       storeMatches = [...barberStoreMatches, ...beautyStoreMatches]
         .sort((a, b) => Number(b.match_score) - Number(a.match_score))
-        .slice(0, storeLimitVal)
         // Stamp the combined total onto every item so downstream logic that
         // reads `storeMatches[0].total_matched` keeps working unchanged.
         .map((s) => ({ ...s, total_matched: combinedStoreTotal }));
+
+      if (activeFilters.includes('rating_4.5')) {
+        storeMatches = storeMatches.filter((s) => s.rating && Number(s.rating) >= 4.5);
+      }
+      if (activeFilters.includes('store_budget')) {
+        storeMatches = storeMatches.filter((s) => s.price_level === 'PRICE_LEVEL_INEXPENSIVE');
+      }
+      if (activeFilters.includes('store_moderate')) {
+        storeMatches = storeMatches.filter((s) => s.price_level === 'PRICE_LEVEL_MODERATE');
+      }
+      storeMatches = storeFilterActive
+        ? paginateFiltered(storeMatches, storeOffsetVal, storeLimitVal)
+        : storeMatches.slice(0, storeLimitVal);
     }
 
     // 2.95 Salon Results
     let salonMatches: any[] = [];
     if (filterTab === 'All' || filterTab === 'Salons') {
+      const salonLimBase = filterTab === 'All' ? salonLim : ITEMS_PER_PAGE;
+      const salonFilterActive = ['rating_4.5', 'salon_100_reviews'].some((f) => activeFilters.includes(f));
       const { data: salonRes, error: salonErr } = await supabase.rpc('search_salons_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
-        limit_val: filterTab === 'All' ? salonLim : ITEMS_PER_PAGE,
-        offset_val: filterTab === 'All' ? (page - 1) * salonLim : fromIndex
+        limit_val: salonFilterActive ? FILTERED_FETCH_LIMIT : salonLimBase,
+        offset_val: salonFilterActive ? 0 : (filterTab === 'All' ? (page - 1) * salonLim : fromIndex)
       });
       if (!salonErr && salonRes) {
         salonMatches = salonRes.map((s: any) => ({
@@ -261,16 +366,28 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
           resultType: 'salon'
         }));
       }
+      if (activeFilters.includes('rating_4.5')) {
+        salonMatches = salonMatches.filter((s) => s.rating && Number(s.rating) >= 4.5);
+      }
+      if (activeFilters.includes('salon_100_reviews')) {
+        salonMatches = salonMatches.filter((s) => s.total_reviews && Number(s.total_reviews) >= 100);
+      }
+      if (salonFilterActive) {
+        const pageOffset = filterTab === 'All' ? (page - 1) * salonLim : fromIndex;
+        salonMatches = paginateFiltered(salonMatches, pageOffset, salonLimBase);
+      }
     }
 
     // 2.97 Cosmetologist Results
     let cosmetologistMatches: any[] = [];
     if (filterTab === 'All' || filterTab === 'Cosmetologist') {
+      const cosmetologistLimBase = filterTab === 'All' ? cosmetologistLim : ITEMS_PER_PAGE;
+      const cosmetFilterActive = ['rating_4.5', ...Object.keys(COSMET_CATEGORY_PATTERNS)].some((f) => activeFilters.includes(f));
       const { data: cosmetologistRes, error: cosmetologistErr } = await supabase.rpc('search_cosmetologists_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
-        limit_val: filterTab === 'All' ? cosmetologistLim : ITEMS_PER_PAGE,
-        offset_val: filterTab === 'All' ? (page - 1) * cosmetologistLim : fromIndex
+        limit_val: cosmetFilterActive ? FILTERED_FETCH_LIMIT : cosmetologistLimBase,
+        offset_val: cosmetFilterActive ? 0 : (filterTab === 'All' ? (page - 1) * cosmetologistLim : fromIndex)
       });
       if (!cosmetologistErr && cosmetologistRes) {
         cosmetologistMatches = cosmetologistRes.map((c: any) => ({
@@ -278,19 +395,29 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
           resultType: 'cosmetologist'
         }));
       }
+      if (activeFilters.includes('rating_4.5')) {
+        cosmetologistMatches = cosmetologistMatches.filter((c) => c.booksy_rating && c.booksy_rating >= 4.5);
+      }
+      cosmetologistMatches = cosmetologistMatches.filter((c) => cosmetMatchesCategory(c, activeFilters));
+      if (cosmetFilterActive) {
+        const pageOffset = filterTab === 'All' ? (page - 1) * cosmetologistLim : fromIndex;
+        cosmetologistMatches = paginateFiltered(cosmetologistMatches, pageOffset, cosmetologistLimBase);
+      }
     }
 
     // 3. Shop Results
     let shopMatches: any[] = [];
     let shopCount = 0;
 
+    const shopFilterActive = activeFilters.includes('rating_4.5');
+
     if (filterTab === 'All') {
       const { data, error } = await supabase.rpc('search_barbershops_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         is_hiring_filter: isHiring,
         rent_type_filter: rentTypeFilter || '',
-        limit_val: shopLim * (activeFilters.includes('rating_4.5') ? 3 : 1), // Fetch more if filtering locally
-        offset_val: (page - 1) * shopLim,
+        limit_val: shopFilterActive ? FILTERED_FETCH_LIMIT : shopLim,
+        offset_val: shopFilterActive ? 0 : (page - 1) * shopLim,
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null
       });
       if (!error && data) {
@@ -301,20 +428,23 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         is_hiring_filter: isHiring,
         rent_type_filter: rentTypeFilter || '',
-        limit_val: ITEMS_PER_PAGE * (activeFilters.includes('rating_4.5') ? 3 : 1),
-        offset_val: fromIndex,
+        limit_val: shopFilterActive ? FILTERED_FETCH_LIMIT : ITEMS_PER_PAGE,
+        offset_val: shopFilterActive ? 0 : fromIndex,
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null
       });
       if (!error && data) {
         shopMatches = data.map((s: any) => ({ ...s, resultType: 'shop', match_score: s.trust_score }));
-        shopCount = (data.length > 0 && data[0].total_matched) ? Number(data[0].total_matched) : 0;
+        if (!shopFilterActive) shopCount = (data.length > 0 && data[0].total_matched) ? Number(data[0].total_matched) : 0;
       }
     }
 
-    if (activeFilters.includes('rating_4.5')) {
+    if (shopFilterActive) {
       shopMatches = shopMatches.filter(s => s.rating && s.rating >= 4.5);
-      if (filterTab === 'All') shopMatches = shopMatches.slice(0, shopLim);
-      else shopMatches = shopMatches.slice(0, ITEMS_PER_PAGE);
+      const pageOffset = filterTab === 'All' ? (page - 1) * shopLim : fromIndex;
+      const pageSize = filterTab === 'All' ? shopLim : ITEMS_PER_PAGE;
+      const filteredTotal = shopMatches.length;
+      shopMatches = shopMatches.slice(pageOffset, pageOffset + pageSize);
+      if (filterTab === 'Barbershops') shopCount = filteredTotal;
     }
 
     // 4. Combine Results & Pagination
