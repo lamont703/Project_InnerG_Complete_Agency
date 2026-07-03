@@ -27,8 +27,6 @@ import {
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import { cn } from "@/lib/utils"
 import { BarberSchoolSelector } from "@/components/forms/BarberSchoolSelector"
 
@@ -149,9 +147,7 @@ export default function InstructorDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-white light text-slate-950 flex flex-col pt-20 selection:bg-primary/20">
-      <Navbar />
-
+    <main className="min-h-screen bg-white light text-slate-950 flex flex-col selection:bg-primary/20">
       <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-12 lg:py-16">
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 lg:mb-12 gap-6">
@@ -569,6 +565,13 @@ export default function InstructorDashboard() {
                 Sovereign Intelligence Alignment Engine © 2026 <br /> Inner G Complete Agency
             </p>
         </div>
+
+        <div className="text-center mt-8">
+          <Link href="/tools/barbershop-search" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Search
+          </Link>
+        </div>
       </div>
 
       {/* AI Strategic fulfillment Modal */}
@@ -868,8 +871,6 @@ export default function InstructorDashboard() {
           </div>
         )}
       </AnimatePresence>
-
-      <Footer />
     </main>
   )
 }

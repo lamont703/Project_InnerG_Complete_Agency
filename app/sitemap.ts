@@ -127,7 +127,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const fallbackRoutes = [
       '', '/texas-barber-exam-intelligence-prep', '/barber-school-pilot-scholarship-fund',
       '/el-paso-barber-exam-intelligence-prep', '/tools/texas-barber-exam-practice-deck',
-      '/texas-barbershop-placement-matcher', '/barber-cos-continuing-education',
+      '/barber-cos-continuing-education',
       '/insights', '/about', '/glossary', '/privacy-policy', '/terms-of-service',
       '/contact', '/careers', '/cookie-policy'
     ]

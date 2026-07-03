@@ -1,6 +1,6 @@
 import MatchesClient from "./MatchesClient";
-import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
   title: "Shop Day Matches | Inner G Complete Agency",
@@ -10,8 +10,6 @@ export const metadata = {
 export default function ShopDayMatchesPage() {
   return (
     <main className="min-h-screen light bg-slate-50 text-slate-900 selection:bg-blue-500/20 flex flex-col">
-      <Navbar />
-      
       <section className="relative overflow-hidden flex-grow flex flex-col border-b border-slate-200">
         {/* Hero Background Video */}
         <div className="absolute inset-0 z-0 bg-slate-50 overflow-hidden pointer-events-none">
@@ -44,10 +42,15 @@ export default function ShopDayMatchesPage() {
           </div>
 
           <MatchesClient />
+
+          <div className="text-center mt-10">
+            <Link href="/tools/barbershop-search" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Search
+            </Link>
+          </div>
         </div>
       </section>
-
-      <Footer />
     </main>
   );
 }

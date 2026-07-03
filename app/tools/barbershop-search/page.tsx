@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, Suspense } from "react";
-import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown } from "lucide-react";
+import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight } from "lucide-react";
 import { searchBarbershops } from "./actions";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -9,6 +9,53 @@ import { useSearchParams } from "next/navigation";
 
 const ALL_TABS = ['AI Mode', 'All', 'Schools', 'Salons', 'Barbershops', 'Barbers', 'Cosmetologist', 'Stores', 'Articles', 'Videos', 'Tools'];
 const PRIMARY_MOBILE_TABS = ['AI Mode', 'All'];
+
+// Each tab surfaces the facets that matter for that entity type. 'All' reuses
+// the Barbershops set since that's the entity its filters were built around.
+const FILTERS_BY_TAB: Record<string, { id: string; label: string }[]> = {
+  All: [
+    { id: 'hiring_now', label: 'Hiring Now' },
+    { id: 'booth_rent', label: 'Booth Rent' },
+    { id: 'commission', label: 'Commission' },
+    { id: 'rating_4.5', label: '4.5+ Stars' },
+  ],
+  Barbershops: [
+    { id: 'hiring_now', label: 'Hiring Now' },
+    { id: 'booth_rent', label: 'Booth Rent' },
+    { id: 'commission', label: 'Commission' },
+    { id: 'rating_4.5', label: '4.5+ Stars' },
+  ],
+  Schools: [
+    { id: 'school_city_houston', label: 'In Houston' },
+    { id: 'school_accredited', label: 'Accredited' },
+    { id: 'school_high_pass_rate', label: '80%+ Pass Rate' },
+    { id: 'school_affordable', label: 'Under $10k Tuition' },
+    { id: 'rating_4.5', label: '4.5+ Stars' },
+  ],
+  Barbers: [
+    { id: 'barber_actively_looking', label: 'Actively Looking' },
+    { id: 'barber_wants_booth', label: 'Wants Booth Rent' },
+    { id: 'barber_wants_commission', label: 'Wants Commission' },
+    { id: 'rating_4.5', label: '4.5+ Stars' },
+  ],
+  Cosmetologist: [
+    { id: 'cosmet_hair', label: 'Hair Stylist' },
+    { id: 'cosmet_makeup', label: 'Makeup Artist' },
+    { id: 'cosmet_nails', label: 'Nail Tech' },
+    { id: 'cosmet_esthetician', label: 'Esthetician' },
+    { id: 'cosmet_lashes', label: 'Lash Artist' },
+    { id: 'rating_4.5', label: '4.5+ Stars' },
+  ],
+  Salons: [
+    { id: 'rating_4.5', label: '4.5+ Stars' },
+    { id: 'salon_100_reviews', label: '100+ Reviews' },
+  ],
+  Stores: [
+    { id: 'rating_4.5', label: '4.5+ Stars' },
+    { id: 'store_budget', label: 'Budget-Friendly' },
+    { id: 'store_moderate', label: 'Mid-Range' },
+  ],
+};
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -37,11 +84,11 @@ function SearchContent() {
     setPage(1);
   };
 
-  const handleChatSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || isAiLoading) return;
-    
-    const newMsg = { role: 'user', content: chatInput.trim() };
+  const sendChatMessage = async (messageText: string) => {
+    const trimmed = messageText.trim();
+    if (!trimmed || isAiLoading) return;
+
+    const newMsg = { role: 'user', content: trimmed };
     const newHistory = [...chatMessages, newMsg];
     setChatMessages(newHistory);
     setChatInput("");
@@ -53,9 +100,9 @@ function SearchContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: newHistory })
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
         setChatMessages([...newHistory, { role: 'model', content: data.error || 'Failed to connect.' }]);
         if (res.status === 429 && (window as any).innerG?.track) {
@@ -64,7 +111,7 @@ function SearchContent() {
       } else {
         setChatMessages([...newHistory, { role: 'model', content: data.text }]);
         if ((window as any).innerG?.track) {
-          (window as any).innerG.track('ai_chat_message_sent', { query_length: chatInput.length });
+          (window as any).innerG.track('ai_chat_message_sent', { query_length: trimmed.length });
         }
       }
     } catch (err) {
@@ -74,7 +121,38 @@ function SearchContent() {
     }
   };
 
+  const handleChatSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendChatMessage(chatInput);
+  };
+
+  const handleTabClick = (tab: string) => {
+    setFilterTab(tab);
+    setPage(1);
+    setShowMoreTabs(false);
+    if (tab === 'AI Mode') {
+      if ((window as any).innerG?.track) {
+        (window as any).innerG.track('ai_mode_activated');
+      }
+      // Carry the in-progress search query into AI Mode so the user can pick
+      // up their research immediately instead of retyping it — but only when
+      // starting a fresh chat, so switching tabs away and back doesn't
+      // re-send/duplicate an already-ongoing conversation.
+      if (query.trim().length > 0 && chatMessages.length === 0) {
+        sendChatMessage(query);
+      }
+    }
+  };
+
   useEffect(() => {
+    // `ignore` guards against a stale in-flight search resolving after the
+    // query has since changed (e.g. cleared) — without it, clearTimeout only
+    // cancels a search that hasn't fired yet; once searchBarbershops() has
+    // actually been called, its .then() would still land later and overwrite
+    // the cleared results, making the screen look like it "snaps back" to a
+    // results page on its own.
+    let ignore = false;
+
     const delayDebounceFn = setTimeout(() => {
       // Sync State to URL so it remembers when we click "Back"
       const params = new URLSearchParams();
@@ -98,24 +176,27 @@ function SearchContent() {
         // Intercept with Session Storage Cache to prevent re-fetching when hitting "Back"
         const cacheKey = `search_${query}_${filterTab}_${page}_${activeFilters.join(',')}`;
         const cached = sessionStorage.getItem(cacheKey);
-        
+
         if (cached) {
           const parsed = JSON.parse(cached);
-          setResults(parsed.results);
-          setTotal(parsed.total);
+          if (!ignore) {
+            setResults(parsed.results);
+            setTotal(parsed.total);
+          }
           return;
         }
 
         setIsLoading(true);
 
         searchBarbershops(query, page, filterTab, activeFilters).then(res => {
+          if (ignore) return;
           if (res.success && res.data) {
             setResults(res.data.results || []);
             setTotal(res.data.total || 0);
             sessionStorage.setItem(cacheKey, JSON.stringify({ results: res.data.results, total: res.data.total }));
           }
         }).finally(() => {
-          setIsLoading(false);
+          if (!ignore) setIsLoading(false);
         });
       } else {
         setResults([]);
@@ -123,8 +204,61 @@ function SearchContent() {
       }
     }, 300);
 
-    return () => clearTimeout(delayDebounceFn);
+    return () => {
+      ignore = true;
+      clearTimeout(delayDebounceFn);
+    };
   }, [query, page, filterTab, activeFilters]);
+
+  // Renders AI Mode responses with markdown-style [label](url) links turned
+  // into real clickable links (relative paths use Next's client-side Link,
+  // absolute URLs open in a new tab) and **bold** turned into <strong>.
+  // Getting users to click through into our own tools from chat is the
+  // whole point of grounding the model in tool URLs, so this can't just be
+  // plain text.
+  const renderChatContent = (content: string, keyPrefix: string) => {
+    const pattern = /\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*/g;
+    const nodes: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    let idx = 0;
+
+    while ((match = pattern.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        nodes.push(content.slice(lastIndex, match.index));
+      }
+
+      if (match[1] !== undefined) {
+        const label = match[1];
+        const url = match[2];
+        const isExternal = /^https?:\/\//i.test(url);
+        const linkClasses = "inline-flex items-center gap-0.5 text-blue-600 font-semibold underline decoration-blue-300 underline-offset-2 hover:text-blue-800 hover:decoration-blue-500 transition-colors";
+        nodes.push(
+          isExternal ? (
+            <a key={`${keyPrefix}-${idx++}`} href={url} target="_blank" rel="noopener noreferrer" className={linkClasses}>
+              {label}
+              <ArrowUpRight className="w-3 h-3 shrink-0" />
+            </a>
+          ) : (
+            <Link key={`${keyPrefix}-${idx++}`} href={url} className={linkClasses}>
+              {label}
+              <ArrowUpRight className="w-3 h-3 shrink-0" />
+            </Link>
+          )
+        );
+      } else if (match[3] !== undefined) {
+        nodes.push(<strong key={`${keyPrefix}-${idx++}`}>{match[3]}</strong>);
+      }
+
+      lastIndex = pattern.lastIndex;
+    }
+
+    if (lastIndex < content.length) {
+      nodes.push(content.slice(lastIndex));
+    }
+
+    return nodes;
+  };
 
   // Helper for Google-style results
   const generateTitleFromUrl = (urlStr: string) => {
@@ -209,11 +343,11 @@ function SearchContent() {
                 <div className="flex flex-wrap items-center justify-center gap-3 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
                   <span className="text-sm text-slate-500 font-medium">Try searching:</span>
                   <button
-                    onClick={() => { setQuery("Shops hiring in Houston"); setPage(1); }}
+                    onClick={() => { setQuery("Open booth stations in Houston barbershops"); setPage(1); }}
                     className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <Search className="h-3 w-3 inline-block mr-1.5 opacity-50" />
-                    Shops hiring in Houston
+                    Open booth stations in Houston barbershops
                   </button>
                   <button
                     onClick={() => { setQuery("Barbers in Houston looking for chairs"); setPage(1); }}
@@ -221,6 +355,18 @@ function SearchContent() {
                   >
                     <Search className="h-3 w-3 inline-block mr-1.5 opacity-50" />
                     Barbers in Houston looking for chairs
+                  </button>
+                  <button
+                    onClick={() => {
+                      setQuery("Barber schools in Houston with the best pass rates");
+                      setFilterTab("Schools");
+                      setActiveFilters(["school_high_pass_rate", "school_city_houston"]);
+                      setPage(1);
+                    }}
+                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <Search className="h-3 w-3 inline-block mr-1.5 opacity-50" />
+                    Best barber schools in Houston by Pass Rate
                   </button>
                 </div>
               )}
@@ -235,13 +381,7 @@ function SearchContent() {
                 {ALL_TABS.map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => {
-                      setFilterTab(tab);
-                      setPage(1);
-                      if (tab === 'AI Mode' && (window as any).innerG?.track) {
-                        (window as any).innerG.track('ai_mode_activated');
-                      }
-                    }}
+                    onClick={() => handleTabClick(tab)}
                     className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
                       filterTab === tab
                         ? (tab === 'AI Mode' ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-blue-50 border-blue-200 text-blue-700')
@@ -259,14 +399,7 @@ function SearchContent() {
                 {PRIMARY_MOBILE_TABS.map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => {
-                      setFilterTab(tab);
-                      setPage(1);
-                      setShowMoreTabs(false);
-                      if (tab === 'AI Mode' && (window as any).innerG?.track) {
-                        (window as any).innerG.track('ai_mode_activated');
-                      }
-                    }}
+                    onClick={() => handleTabClick(tab)}
                     className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
                       filterTab === tab
                         ? (tab === 'AI Mode' ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-blue-50 border-blue-200 text-blue-700')
@@ -320,22 +453,19 @@ function SearchContent() {
                 )}
               </div>
 
-              {/* Faceted Filters (Intent Tags) */}
-              {(filterTab === 'All' || filterTab === 'Barbershops') && (
+              {/* Faceted Filters (Intent Tags) — each tab surfaces the facets that
+                  actually matter for that entity type, since a barbershop's
+                  "Booth Rent" filter means nothing on the Schools tab. */}
+              {FILTERS_BY_TAB[filterTab] && (
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide px-2">
                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-2 shrink-0">Filters:</span>
-                  {[
-                    { id: 'hiring_now', label: 'Hiring Now' },
-                    { id: 'booth_rent', label: 'Booth Rent' },
-                    { id: 'commission', label: 'Commission' },
-                    { id: 'rating_4.5', label: '4.5+ Stars' }
-                  ].map((filter) => {
+                  {FILTERS_BY_TAB[filterTab].map((filter) => {
                     const isActive = activeFilters.includes(filter.id);
                     return (
                       <button
                         key={filter.id}
                         onClick={() => {
-                          setActiveFilters(prev => 
+                          setActiveFilters(prev =>
                             isActive ? prev.filter(f => f !== filter.id) : [...prev, filter.id]
                           );
                           setPage(1);
@@ -376,8 +506,8 @@ function SearchContent() {
                 
                 {chatMessages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-800 shadow-sm rounded-tl-sm'}`}>
-                      {msg.content}
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-3 whitespace-pre-wrap ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-800 shadow-sm rounded-tl-sm'}`}>
+                      {msg.role === 'user' ? msg.content : renderChatContent(msg.content, `msg-${i}`)}
                     </div>
                   </div>
                 ))}
@@ -656,6 +786,10 @@ function SearchContent() {
                         <span className="font-medium text-green-700 mr-1">
                           {Math.round(item.written_pass_rate_2026 * 100)}% 2026 Written Pass Rate
                           {item.practical_pass_rate_2026 != null ? ` · ${Math.round(item.practical_pass_rate_2026 * 100)}% Practical` : ''}.
+                        </span>
+                      ) : item.practical_pass_rate_2026 != null ? (
+                        <span className="font-medium text-green-700 mr-1">
+                          {Math.round(item.practical_pass_rate_2026 * 100)}% 2026 Practical Pass Rate.
                         </span>
                       ) : item.state_pass_rate ? (
                         <span className="font-medium text-green-700 mr-1">{item.state_pass_rate} State Board Pass Rate.</span>

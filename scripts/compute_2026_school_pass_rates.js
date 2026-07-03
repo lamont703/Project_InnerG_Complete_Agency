@@ -28,7 +28,27 @@ async function fetchAll(table, columns, filters = (q) => q) {
   return all;
 }
 
+async function resetStaleValues() {
+  // Schools get re-matched/re-imported periodically (dedup fixes, backfills),
+  // which can leave a school's matched_school_id reassigned elsewhere while
+  // its old pass-rate columns still hold stats from a previous run — this
+  // clears everyone first so a school with zero current matches doesn't keep
+  // showing stale numbers forever.
+  const resetFields = {
+    written_pass_rate_2026: null,
+    written_test_takers_2026: null,
+    practical_pass_rate_2026: null,
+    practical_test_takers_2026: null,
+    pass_rates_2026_updated_at: null,
+  };
+  await supabase.from('agent_barber_school_leads').update(resetFields).not('id', 'is', null);
+  await supabase.from('agent_cosmetology_school_leads').update(resetFields).not('id', 'is', null);
+}
+
 async function run() {
+  console.log('Resetting existing 2026 pass-rate columns before recomputing...');
+  await resetStaleValues();
+
   console.log('Loading latest-attempt student records...');
   const records = await fetchAll(
     'agent_barber_student_leads',

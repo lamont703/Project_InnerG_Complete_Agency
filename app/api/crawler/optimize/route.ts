@@ -37,9 +37,7 @@ export async function POST(request: Request) {
       { label: "Shop Day Requests", href: "/shop-day-requests" },
       { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },
       { label: "Texas Barber Instructor Intelligence Dashboard", href: "/tools/texas-barber-instructor-intelligence-dashboard" },
-      { label: "Texas Barber School Benchmarking Intelligence", href: "/texas-school-benchmarking" },
-      { label: "Texas Barber School Historical Performance Tracker", href: "/texas-barber-school-historical-performance" },
-      { label: "Texas Barbershop Placement Matcher & Agent", href: "/texas-barbershop-placement-matcher" },
+      { label: "Texas Barber & Cosmetology School Leaderboard", href: "/texas-school-leaderboard" },
       { label: "Texas Barber & Cosmetology Continuing Education Portal", href: "/barber-cos-continuing-education" },
       { label: "Pixel Analytics", href: "/pixel-analytics" },
       { label: "Shop Day Connections", href: "/shop-day-connections" },
@@ -61,7 +59,7 @@ ${JSON.stringify(internalPages)}
 
 Your job is to return a JSON object with three arrays:
 1. "new_stop_words": an array of conversational fluff words (e.g. "what", "are", "the", "offers", "best", "use") that we should strip from queries.
-2. "internal_routing_rules": If a failed query (e.g. "how to find good barbers") implies the user is looking for one of our proprietary tools (e.g. "Texas Barbershop Placement Matcher & Agent"), map it! Return an object: { "phrase": "find good barbers", "target_href": "/texas-barbershop-placement-matcher" }. Provide multiple variations if necessary.
+2. "internal_routing_rules": If a failed query (e.g. "how to find good barbers") implies the user is looking for one of our proprietary tools (e.g. "Barbershop Search Engine"), map it! Return an object: { "phrase": "find good barbers", "target_href": "/tools/barbershop-search" }. Provide multiple variations if necessary.
 3. "missing_knowledge_searches": an array of optimal web Search query strings to find missing information. ONLY suggest searches for factual knowledge the engine lacks (e.g. "best barber clippers 2026"). DO NOT suggest searches if you mapped the intent to an internal_routing_rule.
 
 Return ONLY valid JSON. Format:

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
-import { Brain, MapPin, BarChart3, GraduationCap, LayoutDashboard, Target, ArrowRight, Shield } from "lucide-react"
+import { Brain, BarChart3, GraduationCap, LayoutDashboard, ArrowRight, Shield } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -26,28 +26,12 @@ const solutions = [
     roles: ["School Instructors", "School Administrators"]
   },
   {
-    title: "Texas Barbershop Placement Matcher & Agent",
-    label: "Job Placement Tool",
-    description: "Help your graduates find jobs quickly. Our tool maps over 35,000 local shops and automatically sends out text messages to set up interviews.",
-    icon: MapPin,
-    href: "/texas-barbershop-placement-matcher",
-    roles: ["School Students", "School Administrators"]
-  },
-  {
-    title: "Texas Barber School Benchmarking Intelligence",
+    title: "Texas Barber & Cosmetology School Leaderboard",
     label: "School Comparison Tool",
-    description: "Compare your school against local competitors. Easily view tuition costs, graduate earnings, and federal student aid data.",
+    description: "Compare schools by real 2026 licensing exam outcomes — pass rates, first-attempt success, and retest burden, not just a raw score.",
     icon: BarChart3,
-    href: "/texas-school-benchmarking",
-    roles: ["School Administrators"]
-  },
-  {
-    title: "Texas Barber School Historical Performance Tracker",
-    label: "Pass Rate Tracker",
-    description: "Look at decades of past state board exam results. Find out exactly where students struggle the most so you can improve your lesson plans.",
-    icon: Target,
-    href: "/texas-barber-school-historical-performance",
-    roles: ["School Administrators", "School Instructors"]
+    href: "/texas-school-leaderboard",
+    roles: ["School Students", "School Administrators", "School Instructors"]
   },
   {
     title: "Texas Barber & Cosmetology Continuing Education Portal",
