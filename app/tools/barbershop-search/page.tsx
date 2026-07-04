@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useSearchParams } from "next/navigation";
 
-const ALL_TABS = ['AI Mode', 'All', 'Schools', 'Salons', 'Barbershops', 'Barbers', 'Cosmetologist', 'Stores', 'Articles', 'Videos', 'Tools'];
+const ALL_TABS = ['AI Mode', 'All', 'Schools', 'Salons', 'Barbershops', 'Barbers', 'Cosmetologist', 'Stores', 'Articles', 'Videos', 'Images', 'Tools'];
 const PRIMARY_MOBILE_TABS = ['AI Mode', 'All'];
 
 // Each tab surfaces the facets that matter for that entity type. 'All' reuses
@@ -130,6 +130,15 @@ function SearchContent() {
     setFilterTab(tab);
     setPage(1);
     setShowMoreTabs(false);
+    // Tab clicks are discrete, deliberate actions (unlike keystrokes), so the
+    // debounced search effect doesn't need to wait — but it still does before
+    // firing. Without clearing results here, the previous tab's stale items
+    // stay on screen for that ~300ms+ window while the container has already
+    // switched layout (e.g. Images' grid vs. the list view), so mismatched
+    // content briefly renders in the wrong layout before "snapping" correct.
+    setResults([]);
+    setTotal(0);
+    setIsLoading(true);
     if (tab === 'AI Mode') {
       if ((window as any).innerG?.track) {
         (window as any).innerG.track('ai_mode_activated');
@@ -504,7 +513,13 @@ function SearchContent() {
         </div>
 
         {/* Results Area / AI Chat */}
-        <div className={`w-full max-w-3xl flex flex-col ${filterTab === 'AI Mode' ? 'mt-4 pb-4 flex-1' : 'mt-12 space-y-4 pb-20'}`}>
+        <div className={
+          filterTab === 'AI Mode'
+            ? 'w-full max-w-3xl flex flex-col mt-4 pb-4 flex-1'
+            : filterTab === 'Images'
+            ? 'w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-12 pb-20'
+            : 'w-full max-w-3xl flex flex-col mt-12 space-y-4 pb-20'
+        }>
           
           {filterTab === 'AI Mode' ? (
             <div className="flex flex-col w-full" style={{ height: 'calc(100dvh - 170px)', maxHeight: '850px' }}>
@@ -595,6 +610,28 @@ function SearchContent() {
                     </p>
                   </div>
                 </div>
+              );
+            }
+
+            if (item.resultType === 'image') {
+              return (
+                <a
+                  key={`image-${item.id}`}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm hover:shadow-md transition-all block relative group/imgtile"
+                >
+                  <img
+                    src={item.url}
+                    alt="Image result"
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover/imgtile:scale-105"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover/imgtile:opacity-100 transition-opacity">
+                    <span className="text-white text-[11px] truncate block">{generateBreadcrumb(item.url)}</span>
+                  </div>
+                </a>
               );
             }
 
@@ -980,7 +1017,7 @@ function SearchContent() {
 
           {/* Pagination Controls */}
           {total > 10 && (
-            <div className="flex justify-center items-center gap-2 mt-12 pt-6 border-t border-slate-200 w-full flex-wrap">
+            <div className={`flex justify-center items-center gap-2 mt-12 pt-6 border-t border-slate-200 w-full flex-wrap ${filterTab === 'Images' ? 'col-span-full' : ''}`}>
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1 || isLoading}
@@ -1030,7 +1067,7 @@ function SearchContent() {
 
           {/* Empty State */}
           {results.length === 0 && query.trim().length >= 2 && !isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className={`text-center py-12 text-muted-foreground ${filterTab === 'Images' ? 'col-span-full' : ''}`}>
               No results found for "{query}". Try a different term.
             </div>
           ) : null}

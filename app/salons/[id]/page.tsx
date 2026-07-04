@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
+import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
+import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
 import {
   MapPin,
   Star,
@@ -104,6 +106,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ id: st
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">
@@ -212,6 +215,16 @@ export default async function SalonProfilePage(props: { params: Promise<{ id: st
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               )}
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
+                Not ready to reach out yet?
+              </p>
+              <RequestShopDayButton
+                shop={salon}
+                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-pink-600/20"
+              />
             </div>
 
             {directionsHref && (

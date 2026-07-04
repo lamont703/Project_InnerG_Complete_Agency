@@ -163,24 +163,32 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
 
     // 2. Web Results (Postgres Full-Text + Semantic Hybrid Search)
     let webMatches: any[] = [];
-    if (filterTab === 'All' || filterTab === 'Articles' || filterTab === 'Videos') {
+    if (filterTab === 'All' || filterTab === 'Articles' || filterTab === 'Videos' || filterTab === 'Images') {
       let isVideoFilter: boolean | null = null;
-      if (filterTab === 'Articles') isVideoFilter = false;
+      let isImageFilter: boolean | null = null;
+      // 'All' and 'Articles' both exclude raw image links (is_image_filter:
+      // false) — a direct link to an image file has no article content or
+      // reliable og_image, so it rendered as a broken-looking card. Those
+      // links now only ever surface in the dedicated Images tab.
+      if (filterTab === 'Articles') { isVideoFilter = false; isImageFilter = false; }
+      if (filterTab === 'All') { isImageFilter = false; }
       if (filterTab === 'Videos') isVideoFilter = true;
+      if (filterTab === 'Images') isImageFilter = true;
 
       const { data: webRes, error: webErr } = await supabase.rpc('search_web_pages_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
         limit_val: filterTab === 'All' ? webLim : ITEMS_PER_PAGE,
         offset_val: filterTab === 'All' ? (page - 1) * webLim : fromIndex,
-        is_video_filter: isVideoFilter
+        is_video_filter: isVideoFilter,
+        is_image_filter: isImageFilter
       });
 
       if (!webErr && webRes) {
         webMatches = webRes.map((page: any) => {
           const matchIndex = page.raw_text ? page.raw_text.toLowerCase().indexOf(cleanQuery) : -1;
           let snippet = page.raw_text || '';
-          
+
           if (matchIndex !== -1 && cleanQuery.length >= 2) {
             const start = Math.max(0, matchIndex - 60);
             const end = Math.min(snippet.length, matchIndex + cleanQuery.length + 60);
@@ -188,15 +196,15 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
           } else {
             snippet = snippet.substring(0, 150) + '...';
           }
-          
-          return { 
-            id: page.id, 
-            url: page.url, 
-            domain_url: page.domain_url, 
-            snippet, 
-            og_image_url: page.og_image_url, 
+
+          return {
+            id: page.id,
+            url: page.url,
+            domain_url: page.domain_url,
+            snippet,
+            og_image_url: page.og_image_url,
             is_video: page.is_video,
-            resultType: 'web',
+            resultType: page.is_image ? 'image' : 'web',
             match_score: page.match_score,
             total_matched: page.total_matched
           };
@@ -509,7 +517,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       } else if (filterTab === 'Barbers') {
          totalResults = (barberMatches.length > 0 && barberMatches[0].total_matched) ? Number(barberMatches[0].total_matched) : barberMatches.length;
          pageResults = barberMatches;
-      } else if (filterTab === 'Articles' || filterTab === 'Videos') {
+      } else if (filterTab === 'Articles' || filterTab === 'Videos' || filterTab === 'Images') {
          totalResults = (webMatches.length > 0 && webMatches[0].total_matched) ? Number(webMatches[0].total_matched) : webMatches.length;
          pageResults = webMatches;
       } else if (filterTab === 'Barbershops') {

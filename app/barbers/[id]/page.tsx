@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
+import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
+import { CreatePassportButton } from "@/components/shared/create-passport-button";
 import {
   MapPin,
   Star,
@@ -147,6 +149,7 @@ export default async function BarberProfilePage(props: { params: Promise<{ id: s
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">
@@ -342,6 +345,17 @@ export default async function BarberProfilePage(props: { params: Promise<{ id: s
                 </a>
               </div>
             )}
+
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
+                Is this you?
+              </p>
+              <CreatePassportButton
+                label="Create Your Career Passport"
+                subtext="Get discovered by shops looking to hire"
+                className="w-full inline-flex flex-col items-center justify-center gap-1 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-md shadow-indigo-600/20"
+              />
+            </div>
 
             {directionsHref && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
