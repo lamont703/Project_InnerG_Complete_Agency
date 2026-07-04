@@ -432,6 +432,16 @@ export default async function ShopProfilePage({ params }: Props) {
                 <Lock className="w-3 h-3" />
                 Secure contact via Barber & Beauty Network
               </div>
+
+              <div className="mt-6 pt-6 border-t border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
+                  Not ready to reach out yet?
+                </p>
+                <RequestShopDayButton
+                  shop={shop}
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-indigo-600/20"
+                />
+              </div>
             </div>
           </div>
         </div>

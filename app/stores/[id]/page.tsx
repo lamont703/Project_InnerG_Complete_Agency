@@ -1,7 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
+import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import {
   MapPin,
   Star,
@@ -11,6 +13,7 @@ import {
   Navigation,
   Store,
   ExternalLink,
+  Search,
 } from "lucide-react";
 
 export const revalidate = 3600;
@@ -127,6 +130,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">
@@ -240,6 +244,19 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               )}
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
+                Nearby
+              </p>
+              <Link
+                href={`/tools/barbershop-search?tab=Barbershops${store.city ? `&q=${encodeURIComponent(store.city)}` : ""}`}
+                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-extrabold text-sm uppercase tracking-wider transition-colors"
+              >
+                <Search className="w-4 h-4" />
+                Find Shops Near This Store
+              </Link>
             </div>
 
             {directionsHref && (

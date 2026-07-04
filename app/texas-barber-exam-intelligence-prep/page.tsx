@@ -1,5 +1,3 @@
-import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { 
@@ -41,9 +39,7 @@ const metrics = [
 
 export default function TexasBarberExamPrep() {
   return (
-    <main className="min-h-screen bg-white light text-slate-950 flex flex-col pt-20 selection:bg-primary/20">
-      <Navbar />
-
+    <main className="min-h-screen bg-white light text-slate-950 flex flex-col selection:bg-primary/20">
       {/* Hero Section */}
       <section className="relative flex items-center justify-center overflow-hidden pt-12 pb-16 lg:pt-32 lg:pb-40 border-b border-slate-900 bg-slate-950">
         {/* Background Image Container */}
@@ -603,9 +599,6 @@ export default function TexasBarberExamPrep() {
           </div>
         </div>
       </section>
-
-      {/* Footer Branding Override */}
-      <Footer />
     </main>
   )
 }
