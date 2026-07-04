@@ -3,8 +3,6 @@ import { fetchAnalyticsData } from "./actions"
 import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
-import HotLeadsSection from "./components/HotLeadsSection"
-import HotProfessionalsSection from "./components/HotProfessionalsSection"
 
 export const metadata = {
   title: "Pixel Analytics | Inner G Complete",
@@ -205,12 +203,6 @@ export default async function PixelAnalyticsPage(
             <p className="text-sm text-rose-300 mt-2">Users hitting the 5-message cap</p>
           </div>
         </div>
-
-        {/* Identified CRM Leads */}
-        <HotLeadsSection leads={data.identifiedLeads} />
-
-        {/* Identified Professionals */}
-        <HotProfessionalsSection professionals={data.identifiedProfessionals} />
 
         {/* Tables Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
