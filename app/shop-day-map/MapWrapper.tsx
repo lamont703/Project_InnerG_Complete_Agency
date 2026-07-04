@@ -21,11 +21,15 @@ interface MapWrapperProps {
   initialShops: any[];
   initialSchools: any[];
   initialBarbers: any[];
+  initialCosmetologySchools: any[];
+  initialCosmetologists: any[];
+  initialSalons: any[];
+  initialSupplyStores: any[];
   invitesCount: number;
   requestsCount: number;
   claimedShopsCount: number;
 }
 
-export default function MapWrapper({ initialShops, initialSchools, initialBarbers, invitesCount, requestsCount, claimedShopsCount }: MapWrapperProps) {
-  return <MapComponent initialShops={initialShops} initialSchools={initialSchools} initialBarbers={initialBarbers} invitesCount={invitesCount} requestsCount={requestsCount} claimedShopsCount={claimedShopsCount} />;
+export default function MapWrapper(props: MapWrapperProps) {
+  return <MapComponent {...props} />;
 }

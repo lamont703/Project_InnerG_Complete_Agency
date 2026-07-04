@@ -3,7 +3,8 @@ import { Metadata, ResolvingMetadata } from "next";
 import { Footer } from "@/components/layout/footer";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Star, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft, Map as MapIcon, Mail, Phone, Info } from "lucide-react";
+import { MapPin, Star, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft, Map as MapIcon, Mail, Phone, Info, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles } from "lucide-react";
+import { computeShopEcosystemReport } from "@/lib/shop-ecosystem";
 import Image from "next/image";
 import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
@@ -16,6 +17,25 @@ type Props = {
   params: { id: string }
 };
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Node's fetch (undici) occasionally throws a bare "TypeError: fetch
+// failed" on a one-off connection blip — unrelated to the request itself,
+// and gone on the very next attempt. A couple of quick retries turns that
+// into an invisible hiccup instead of a 500 page.
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fetch(url, options);
+    } catch (err) {
+      lastError = err;
+      if (attempt < maxRetries) await sleep(300 * (attempt + 1));
+    }
+  }
+  throw lastError;
+}
+
 // Create a standard client for public SSR fetches
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
@@ -23,7 +43,7 @@ const supabase = createClient(
   {
     global: {
       fetch: (url, options) => {
-        return fetch(url, { ...options, cache: 'no-store' });
+        return fetchWithRetry(url as string, { ...options, cache: 'no-store' });
       }
     }
   }
@@ -36,7 +56,7 @@ export async function generateMetadata(
   const resolvedParams = await params;
   
   const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agent_barbershop_leads?id=eq.${resolvedParams.id}&select=shop_name,city,shop_image_url`;
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     headers: {
       apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
       Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""}`,
@@ -79,7 +99,7 @@ export default async function ShopProfilePage({ params }: Props) {
   
   // Use native fetch to bypass any Supabase client caching bugs in Next.js 15+
   const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agent_barbershop_leads?id=eq.${resolvedParams.id}&select=*`;
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     headers: {
       apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
       Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""}`,
@@ -94,7 +114,9 @@ export default async function ShopProfilePage({ params }: Props) {
     notFound();
   }
 
-  const tagList = shop.place_types 
+  const ecosystemReport = await computeShopEcosystemReport(supabase, shop);
+
+  const tagList = shop.place_types
     ? shop.place_types.split('|').map((t: string) => t.trim().replace('_', ' ')).filter((t: string) => t !== 'point of interest' && t !== 'establishment' && t !== 'service' && t !== 'health')
     : [];
 
@@ -233,6 +255,134 @@ export default async function ShopProfilePage({ params }: Props) {
                 )}
               </div>
             </div>
+
+            {/* Your Market Ecosystem */}
+            {ecosystemReport && (() => {
+              const { talentPipeline, laborSupply, competition, laborMarketRatio, supplyChain, rentBenchmark } = ecosystemReport;
+              const marketLabel = laborMarketRatio == null
+                ? { label: "Not Enough Data", tone: "slate" as const }
+                : laborMarketRatio >= 2
+                ? { label: "Talent-Rich — Easy to Hire", tone: "green" as const }
+                : laborMarketRatio >= 0.5
+                ? { label: "Balanced Market", tone: "amber" as const }
+                : { label: "Competitive for Talent", tone: "red" as const };
+              const toneClasses: Record<string, string> = {
+                green: "bg-green-50 text-green-700 border-green-200",
+                amber: "bg-amber-50 text-amber-700 border-amber-200",
+                red: "bg-red-50 text-red-700 border-red-200",
+                slate: "bg-slate-50 text-slate-600 border-slate-200",
+              };
+              const scoreTone = (score: number) => score >= 85 ? "text-green-600" : score >= 70 ? "text-amber-600" : "text-red-600";
+
+              return (
+                <div className="pb-10 border-b border-slate-200">
+                  <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+                    <h2 className="text-2xl font-black text-slate-900">Your Market Ecosystem</h2>
+                    <Link
+                      href={`/tools/barbershop-search?ecosystemShopId=${shop.id}&ecosystemShopName=${encodeURIComponent(shop.shop_name)}`}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-sm"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Ask AI About This Market
+                    </Link>
+                  </div>
+                  <p className="text-slate-500 text-sm mb-6 -mt-3">
+                    Computed from every school, professional, competitor, and supply store within {ecosystemReport.radiusMiles} miles.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Talent Pipeline */}
+                    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                      <div className="flex items-center gap-2 text-slate-900 font-bold mb-3">
+                        <GraduationCap className="w-4 h-4" />
+                        Talent Pipeline
+                      </div>
+                      <p className="text-sm text-slate-600 mb-3">
+                        <span className="font-black text-slate-900 text-lg">{talentPipeline.schoolCount}</span> barber &amp; cosmetology schools nearby
+                        {talentPipeline.avgLeaderboardScore != null && (
+                          <> · avg 2026 score <span className={`font-bold ${scoreTone(talentPipeline.avgLeaderboardScore)}`}>{Math.round(talentPipeline.avgLeaderboardScore)}</span></>
+                        )}
+                      </p>
+                      {talentPipeline.topSchools.length > 0 && (
+                        <div className="space-y-1.5">
+                          {talentPipeline.topSchools.map((s) => (
+                            <div key={s.name} className="flex items-center justify-between text-xs">
+                              <span className="text-slate-700 font-semibold truncate pr-2">{s.name}</span>
+                              <span className={`font-black shrink-0 ${scoreTone(s.score)}`}>{Math.round(s.score)} · {s.distanceMiles.toFixed(1)}mi</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Labor Market */}
+                    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                      <div className="flex items-center gap-2 text-slate-900 font-bold mb-3">
+                        <Users className="w-4 h-4" />
+                        Labor Market
+                      </div>
+                      <p className="text-sm text-slate-600 mb-3">
+                        <span className="font-black text-slate-900 text-lg">{laborSupply.barbersSeekingPlacement}</span> barbers seeking placement,{' '}
+                        <span className="font-black text-slate-900 text-lg">{laborSupply.cosmetologistsInArea}</span> cosmetologists in area
+                      </p>
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border ${toneClasses[marketLabel.tone]}`}>
+                        {marketLabel.label}
+                      </span>
+                    </div>
+
+                    {/* Competition */}
+                    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                      <div className="flex items-center gap-2 text-slate-900 font-bold mb-3">
+                        <Scissors className="w-4 h-4" />
+                        Competitive Landscape
+                      </div>
+                      <p className="text-sm text-slate-600">
+                        <span className="font-black text-slate-900 text-lg">{competition.nearbyShopCount}</span> competing shops
+                        {' '}(<span className="font-bold text-green-600">{competition.nearbyShopsHiring} hiring</span>) ·{' '}
+                        <span className="font-black text-slate-900 text-lg">{competition.nearbySalonCount}</span> salons nearby
+                      </p>
+                    </div>
+
+                    {/* Supply Chain */}
+                    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                      <div className="flex items-center gap-2 text-slate-900 font-bold mb-3">
+                        <ShoppingBag className="w-4 h-4" />
+                        Supply Chain
+                      </div>
+                      <p className="text-sm text-slate-600">
+                        <span className="font-black text-slate-900 text-lg">{supplyChain.supplyStoreCount}</span> supply stores nearby
+                        {supplyChain.nearestSupplyStoreName && supplyChain.nearestSupplyStoreMiles != null && (
+                          <> · nearest is <span className="font-semibold text-slate-800">{supplyChain.nearestSupplyStoreName}</span> ({supplyChain.nearestSupplyStoreMiles.toFixed(1)}mi)</>
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Rent Benchmark */}
+                    {rentBenchmark.localMedianWeeklyRent != null && (
+                      <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 md:col-span-2">
+                        <div className="flex items-center gap-2 text-slate-900 font-bold mb-3">
+                          <Award className="w-4 h-4" />
+                          Rent Benchmark
+                        </div>
+                        <p className="text-sm text-slate-600">
+                          Local median weekly booth rent (from {rentBenchmark.sampleSize} nearby listings): <span className="font-black text-slate-900">${rentBenchmark.localMedianWeeklyRent}</span>
+                          {rentBenchmark.thisShopWeeklyRent != null && rentBenchmark.percentDiff != null ? (
+                            <>
+                              {' '}— this shop is <span className={`font-bold inline-flex items-center gap-0.5 ${rentBenchmark.percentDiff > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                {rentBenchmark.percentDiff > 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                                {Math.abs(Math.round(rentBenchmark.percentDiff))}% {rentBenchmark.percentDiff > 0 ? 'above' : 'below'}
+                              </span> the local median.
+                            </>
+                          ) : (
+                            " — this shop's own rent couldn't be parsed from its listing for comparison."
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
           </div>
 

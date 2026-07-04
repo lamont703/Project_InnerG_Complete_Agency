@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Award,
   Users,
+  AlertCircle,
 } from "lucide-react";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 
@@ -53,6 +54,10 @@ const PUBLIC_COLUMNS = [
   "written_test_takers_2026",
   "practical_pass_rate_2026",
   "practical_test_takers_2026",
+  "cosmetology_written_pass_rate_2026",
+  "cosmetology_written_test_takers_2026",
+  "cosmetology_practical_pass_rate_2026",
+  "cosmetology_practical_test_takers_2026",
 ].join(", ");
 
 // Barber schools and cosmetology schools live in separate tables (agent_barber_school_leads /
@@ -78,11 +83,16 @@ async function getSchool(id: string) {
   return { ...cosmet, school_category: cosmet.license_type || "Cosmetology School", _matchType: "cosmetology" as const };
 }
 
-// 2026 TDLR exam cohort summary for this school. Aggregate-only by design —
-// individual student names/scores aren't surfaced on the public profile.
-async function getStudentCohortStats(schoolId: string, schoolType: "barber" | "cosmetology") {
+type StudentTable = "agent_barber_student_leads" | "agent_cosmetology_student_leads";
+
+// 2026 TDLR exam cohort summary for this school. A school can have students
+// in both exam tables if it's dual-licensed (e.g. a cosmetology school that
+// also runs a Barber program), so this is called once per table and each
+// result is rendered as its own clearly-labeled section — never merged,
+// since they're two different exams with two different licenses at stake.
+async function getStudentCohortStats(table: StudentTable, schoolId: string, schoolType: "barber" | "cosmetology") {
   const { data, error } = await supabase
-    .from("agent_barber_student_leads")
+    .from(table)
     .select("student_key, test_type, attempt_number, result")
     .eq("matched_school_id", schoolId)
     .eq("matched_school_type", schoolType);
@@ -103,6 +113,49 @@ async function getStudentCohortStats(schoolId: string, schoolType: "barber" | "c
     writtenFirstAttempt: firstAttemptStats("Written"),
     practicalFirstAttempt: firstAttemptStats("Practical"),
   };
+}
+
+type ExamStatus = "passed" | "failed" | "not_attempted";
+
+// Deliberately selects test_type/result (PASS or FAIL) but never score — the
+// state board requires 70%+ on both written and practical to be licensed,
+// and result already reflects that threshold, so we can show licensing
+// status ("passed both parts" or not, across all attempts) without ever
+// exposing an actual numeric score.
+//
+// Most students in a given year have only sat one of the two required exams
+// so far (not both), which is normal — written is typically completed before
+// practical. Tracking attempted-vs-passed separately (not just pass/fail)
+// lets the UI tell "hasn't gotten to the other exam yet" apart from "tried
+// and hasn't passed it," instead of lumping both into one alarming bucket.
+async function getStudentNames(table: StudentTable, schoolId: string, schoolType: "barber" | "cosmetology") {
+  const { data, error } = await supabase
+    .from(table)
+    .select("student_key, first_name, last_name, test_type, result")
+    .eq("matched_school_id", schoolId)
+    .eq("matched_school_type", schoolType);
+
+  if (error || !data || data.length === 0) return [];
+
+  const byStudent = new Map<string, { name: string; written: ExamStatus; practical: ExamStatus }>();
+  for (const row of data) {
+    if (!byStudent.has(row.student_key)) {
+      byStudent.set(row.student_key, {
+        name: `${row.first_name} ${row.last_name}`.trim(),
+        written: "not_attempted",
+        practical: "not_attempted",
+      });
+    }
+    const student = byStudent.get(row.student_key)!;
+    const field = row.test_type === "Written" ? "written" : "practical";
+    if (row.result === "PASS") {
+      student[field] = "passed";
+    } else if (student[field] !== "passed") {
+      student[field] = "failed";
+    }
+  }
+
+  return Array.from(byStudent.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -145,7 +198,19 @@ export default async function SchoolProfilePage(props: { params: Promise<{ id: s
 
   if (!school) notFound();
 
-  const cohortStats = await getStudentCohortStats(school.id, school._matchType);
+  const examConfigs = [
+    { examLabel: "Barber", table: "agent_barber_student_leads" as const },
+    { examLabel: "Cosmetology Operator", table: "agent_cosmetology_student_leads" as const },
+  ];
+  const examCohorts = (
+    await Promise.all(
+      examConfigs.map(async ({ examLabel, table }) => ({
+        examLabel,
+        cohortStats: await getStudentCohortStats(table, school.id, school._matchType),
+        studentNames: await getStudentNames(table, school.id, school._matchType),
+      }))
+    )
+  ).filter((c) => c.cohortStats);
 
   const gallery: string[] = Array.isArray(school.google_photos) ? school.google_photos : [];
   const heroPhoto = gallery[0] || null;
@@ -169,6 +234,15 @@ export default async function SchoolProfilePage(props: { params: Promise<{ id: s
       : `https://${school.website}`
     : null;
 
+  // A dual-licensed school can have real 2026 pass-rate data for both exams
+  // — when both are present, prefix each label with the exam name so they
+  // aren't mistaken for the same number.
+  const hasBothExamTypes =
+    (school.written_pass_rate_2026 != null || school.practical_pass_rate_2026 != null) &&
+    (school.cosmetology_written_pass_rate_2026 != null || school.cosmetology_practical_pass_rate_2026 != null);
+  const barberPrefix = hasBothExamTypes ? "Barber " : "";
+  const cosmetPrefix = hasBothExamTypes ? "Cosmetology " : "";
+
   const stats = [
     school.annual_tuition != null && {
       label: "Annual Tuition",
@@ -186,20 +260,34 @@ export default async function SchoolProfilePage(props: { params: Promise<{ id: s
       Icon: DollarSign,
     },
     school.written_pass_rate_2026 != null && {
-      label: `2026 Written Pass Rate${school.written_test_takers_2026 ? ` (${school.written_test_takers_2026} students)` : ''}`,
+      label: `2026 ${barberPrefix}Written Pass Rate${school.written_test_takers_2026 ? ` (${school.written_test_takers_2026} students)` : ''}`,
       value: formatPercent(school.written_pass_rate_2026),
       Icon: Award,
     },
     school.practical_pass_rate_2026 != null && {
-      label: `2026 Practical Pass Rate${school.practical_test_takers_2026 ? ` (${school.practical_test_takers_2026} students)` : ''}`,
+      label: `2026 ${barberPrefix}Practical Pass Rate${school.practical_test_takers_2026 ? ` (${school.practical_test_takers_2026} students)` : ''}`,
       value: formatPercent(school.practical_pass_rate_2026),
       Icon: Award,
     },
-    school.written_pass_rate_2026 == null && school.practical_pass_rate_2026 == null && school.state_pass_rate && {
-      label: "State Board Pass Rate",
-      value: school.state_pass_rate,
+    school.cosmetology_written_pass_rate_2026 != null && {
+      label: `2026 ${cosmetPrefix}Written Pass Rate${school.cosmetology_written_test_takers_2026 ? ` (${school.cosmetology_written_test_takers_2026} students)` : ''}`,
+      value: formatPercent(school.cosmetology_written_pass_rate_2026),
       Icon: Award,
     },
+    school.cosmetology_practical_pass_rate_2026 != null && {
+      label: `2026 ${cosmetPrefix}Practical Pass Rate${school.cosmetology_practical_test_takers_2026 ? ` (${school.cosmetology_practical_test_takers_2026} students)` : ''}`,
+      value: formatPercent(school.cosmetology_practical_pass_rate_2026),
+      Icon: Award,
+    },
+    school.written_pass_rate_2026 == null &&
+      school.practical_pass_rate_2026 == null &&
+      school.cosmetology_written_pass_rate_2026 == null &&
+      school.cosmetology_practical_pass_rate_2026 == null &&
+      school.state_pass_rate && {
+        label: "State Board Pass Rate",
+        value: school.state_pass_rate,
+        Icon: Award,
+      },
     school.student_body_size != null && {
       label: "Student Body Size",
       value: String(school.student_body_size),
@@ -312,40 +400,90 @@ export default async function SchoolProfilePage(props: { params: Promise<{ id: s
               </div>
             )}
 
-            {/* 2026 Student Cohort */}
-            {cohortStats && (
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
-                <h2 className="text-lg font-black text-slate-900 mb-1">2026 Student Cohort</h2>
-                <p className="text-xs text-slate-500 font-medium mb-4">
-                  Aggregated from Texas Department of Licensing &amp; Regulation exam records — {cohortStats.distinctStudents} student{cohortStats.distinctStudents === 1 ? "" : "s"} tested in 2026.
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <Users className="w-4 h-4 text-indigo-600 mb-2" />
-                    <p className="text-lg font-black text-slate-900">{cohortStats.distinctStudents}</p>
-                    <p className="text-xs text-slate-500 font-semibold mt-0.5">Students Tested</p>
-                  </div>
-                  {cohortStats.writtenFirstAttempt && (
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <Award className="w-4 h-4 text-indigo-600 mb-2" />
-                      <p className="text-lg font-black text-slate-900">{formatPercent(cohortStats.writtenFirstAttempt.rate)}</p>
-                      <p className="text-xs text-slate-500 font-semibold mt-0.5">
-                        Written — Passed on 1st Try ({cohortStats.writtenFirstAttempt.total})
-                      </p>
+            {/* 2026 Student Cohort + 2026 Students, once per exam type this school has data for */}
+            {examCohorts.map(({ examLabel, cohortStats, studentNames }) => {
+              if (!cohortStats) return null;
+              const examNoun = examLabel === "Barber" ? "Class A Barber" : "Cosmetology Operator";
+
+              const passedBoth = studentNames.filter((s) => s.written === "passed" && s.practical === "passed");
+              const onlyNeedsPractical = studentNames.filter((s) => s.written === "passed" && s.practical === "not_attempted");
+              const onlyNeedsWritten = studentNames.filter((s) => s.practical === "passed" && s.written === "not_attempted");
+              const hasNotPassed = studentNames.filter((s) => s.written === "failed" || s.practical === "failed");
+
+              const groups: { label: string; icon: typeof CheckCircle2; colorClass: string; students: typeof studentNames }[] = [
+                { label: "Has Not Passed", icon: AlertCircle, colorClass: "text-red-700", students: hasNotPassed },
+                { label: "Only Needs Practical Exam", icon: Clock, colorClass: "text-amber-700", students: onlyNeedsPractical },
+                { label: "Only Needs Written Exam", icon: Clock, colorClass: "text-amber-700", students: onlyNeedsWritten },
+                { label: "Passed Both Parts", icon: CheckCircle2, colorClass: "text-green-700", students: passedBoth },
+              ];
+
+              return (
+                <div key={examLabel} className="space-y-4">
+                  <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
+                    <h2 className="text-lg font-black text-slate-900 mb-1">2026 {examLabel} Student Cohort</h2>
+                    <p className="text-xs text-slate-500 font-medium mb-4">
+                      Aggregated from Texas Department of Licensing &amp; Regulation exam records — {cohortStats.distinctStudents} student{cohortStats.distinctStudents === 1 ? "" : "s"} tested in 2026.
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <Users className="w-4 h-4 text-indigo-600 mb-2" />
+                        <p className="text-lg font-black text-slate-900">{cohortStats.distinctStudents}</p>
+                        <p className="text-xs text-slate-500 font-semibold mt-0.5">Students Tested</p>
+                      </div>
+                      {cohortStats.writtenFirstAttempt && (
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <Award className="w-4 h-4 text-indigo-600 mb-2" />
+                          <p className="text-lg font-black text-slate-900">{formatPercent(cohortStats.writtenFirstAttempt.rate)}</p>
+                          <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                            Written — Passed on 1st Try ({cohortStats.writtenFirstAttempt.total})
+                          </p>
+                        </div>
+                      )}
+                      {cohortStats.practicalFirstAttempt && (
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <Award className="w-4 h-4 text-indigo-600 mb-2" />
+                          <p className="text-lg font-black text-slate-900">{formatPercent(cohortStats.practicalFirstAttempt.rate)}</p>
+                          <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                            Practical — Passed on 1st Try ({cohortStats.practicalFirstAttempt.total})
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {cohortStats.practicalFirstAttempt && (
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <Award className="w-4 h-4 text-indigo-600 mb-2" />
-                      <p className="text-lg font-black text-slate-900">{formatPercent(cohortStats.practicalFirstAttempt.rate)}</p>
-                      <p className="text-xs text-slate-500 font-semibold mt-0.5">
-                        Practical — Passed on 1st Try ({cohortStats.practicalFirstAttempt.total})
+                  </div>
+
+                  {studentNames.length > 0 && (
+                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
+                      <h2 className="text-lg font-black text-slate-900 mb-1">2026 {examLabel} Students</h2>
+                      <p className="text-xs text-slate-500 font-medium mb-4">
+                        Students who took the Texas {examNoun} licensing exam through this school in 2026, per public
+                        TDLR records. The state requires 70%+ on both the written and practical exam to be licensed —
+                        individual scores aren&apos;t shown, only exam progress. Most students complete written before
+                        practical, so "only needs" one exam is normal progress, not a concern.
                       </p>
+
+                      {groups.map(
+                        (group, i) =>
+                          group.students.length > 0 && (
+                            <div key={group.label} className={i < groups.length - 1 ? "mb-5" : ""}>
+                              <h3 className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide mb-2 ${group.colorClass}`}>
+                                <group.icon className="w-3.5 h-3.5" />
+                                {group.label} ({group.students.length})
+                              </h3>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+                                {group.students.map((s) => (
+                                  <p key={s.name} className="text-sm text-slate-700 truncate">
+                                    {s.name}
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                      )}
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              );
+            })}
           </div>
 
           {/* Sidebar */}
