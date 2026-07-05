@@ -48,13 +48,25 @@ export async function POST(req: Request) {
     if (shopId) {
       const { data: shopRow } = await supabase
         .from('agent_barbershop_leads')
-        .select('id, shop_name, city, latitude, longitude, rent_rate')
+        .select('id, shop_name, city, latitude, longitude, rent_rate, census_median_household_income, census_population, school_district_name')
         .eq('id', shopId)
-        .single() as { data: { id: string; shop_name: string; city: string | null; latitude: number | null; longitude: number | null; rent_rate: string | null } | null };
+        .single() as { data: { id: string; shop_name: string; city: string | null; latitude: number | null; longitude: number | null; rent_rate: string | null; census_median_household_income: number | null; census_population: number | null; school_district_name: string | null } | null };
       if (shopRow) {
         const report = await computeShopEcosystemReport(supabase as any, shopRow);
         if (report) {
-          shopEcosystemContext = { shop_name: shopRow.shop_name, city: shopRow.city, profile_url: `/shop/${shopRow.id}`, ...report };
+          shopEcosystemContext = {
+            shop_name: shopRow.shop_name,
+            city: shopRow.city,
+            profile_url: `/shop/${shopRow.id}`,
+            // Direct properties of the shop's own location, not a radius
+            // computation — median_household_income is Census ACS 5-Year
+            // data for the shop's tract, used for pricing-vs-local-income
+            // reasoning; school_district is a community/cultural anchor.
+            local_census_tract_median_household_income: shopRow.census_median_household_income,
+            local_census_tract_population: shopRow.census_population,
+            school_district: shopRow.school_district_name,
+            ...report,
+          };
         }
       }
     }
@@ -99,6 +111,7 @@ export async function POST(req: Request) {
       platformTools,
       testingLeaderboard,
       cosmetologyTestingLeaderboard,
+      districtBarbershopRankings,
     ] = await Promise.all([
       rpcCall('search_barbershops_ranked', {
         query_text: latestMessage,
@@ -205,6 +218,10 @@ export async function POST(req: Request) {
           .sort((a: any, b: any) => (b.cosmetology_written_test_takers_2026 || 0) - (a.cosmetology_written_test_takers_2026 || 0))
           .slice(0, 8);
       })(),
+      // "Which school district has the best barbershops" is an aggregate
+      // across ALL shops grouped by district — a top-3 similarity search
+      // can't answer that, same reasoning as the exam leaderboards above.
+      rpcCall('get_school_district_barbershop_rankings', {}),
     ]);
 
     // search_schools_ranked also returns 2026 pass-rate/test-taker fields
@@ -232,6 +249,7 @@ export async function POST(req: Request) {
       ...(shopEcosystemContext ? { my_shop_ecosystem_report: shopEcosystemContext } : {}),
       texas_2026_exam_school_leaderboard: withProfileUrl(testingLeaderboard, '/schools'),
       texas_2026_cosmetology_exam_school_leaderboard: withProfileUrl(cosmetologyTestingLeaderboard, '/schools'),
+      school_district_barbershop_rankings: districtBarbershopRankings,
       barbershops: withProfileUrl(shops, '/shop'),
       professionals: withProfileUrl(barbers, '/barbers'),
       barber_and_cosmetology_schools: withProfileUrl(schoolsForLookup, '/schools'),
@@ -253,6 +271,16 @@ The ONE exception is articles_and_videos: each entry's "url" field IS meant to b
 Use each link only once per response.
 
 MY_SHOP_ECOSYSTEM_REPORT RULE: If my_shop_ecosystem_report is present, the user is that shop's owner asking about their own local market — it has real computed stats (talent pipeline, labor supply, competition, supply chain, rent) within a radius of their shop, not a search result. Given the 100-word limit, lead with the single most decision-relevant insight (e.g. a tight labor market, a standout nearby school, or rent well above/below the local median) rather than listing every number. If they ask a strategic follow-up (e.g. "should I raise my rent," "should I hire now") that the report's numbers directly speak to, give a concrete, data-grounded answer using those numbers (e.g. rent sitting well below the local median directly supports room to raise it) — don't deflect to "I don't have enough information" when the relevant number is already in my_shop_ecosystem_report. Only decline if the question needs information genuinely outside this data (e.g. their specific finances, lease terms, or customer base).
+local_census_tract_median_household_income and school_district (also inside my_shop_ecosystem_report, when present — some shops haven't been enriched yet) are two more direct signals about the shop's own location, not a radius computation. Use school_district only when it's actually relevant to what they're asking (e.g. marketing, target clientele, "who are my customers") — Texas barbershops are neighborhood/community hubs, so being in a specific ISD is a real identity signal, but don't force it into every answer.
+
+INCOME/POPULATION: my_shop_ecosystem_report has TWO distinct pairs of figures — don't conflate them. (1) local_census_tract_median_household_income and local_census_tract_population describe ONLY the shop's own immediate census tract, a small area (often just a couple thousand people) — the single most precise figure for its exact block, but not representative of its full trade area. (2) marketDemographics.weightedAvgMedianHouseholdIncome and marketDemographics.estimatedPopulation are aggregated across every census tract found within the SAME radiusMiles as the rest of this report (see marketDemographics.tractsSampled for how many tracts that covers) — this is the right figure for "how many people/what income level is in my market" since it matches the scope of every other stat in this report (competition, labor supply, schools). Prefer marketDemographics for general "my market/my area" questions; use the tract-level figure only when they're specifically asking about their immediate block. If marketDemographics values are null (tractsSampled is 0), fall back to the tract-level figures and say so.
+Outside of my_shop_ecosystem_report entirely (no shop context at all), there is no general area/city-wide income or population lookup. Say clearly that you have income/population data scoped to a specific shop's market (via its profile page) but not as a standalone general lookup — don't just say "I don't have information on income data" as if the concept doesn't exist at all, since that's misleading about what the platform can actually do.
+
+RADIUS IS FIXED: my_shop_ecosystem_report.radiusMiles is a fixed value computed once for this report (10 miles by default) — you cannot recompute it at a different radius, and there is no live tool call available to do so mid-conversation. If asked for a different radius (e.g. "what about a 5-mile radius"), say plainly that this report is fixed at radiusMiles and you don't have the ability to recompute it at a different distance — do NOT say "we can adjust this" or otherwise imply that's possible.
+
+SCHOOL_DISTRICT_NAME RULE: barbershops, salons, professionals, and cosmetologists in the general lookup context (not just my_shop_ecosystem_report) may include a school_district_name field — mention it when relevant (e.g. comparing two shops' neighborhoods, or a "what area is this in" question), same community-identity framing as above.
+
+SCHOOL_DISTRICT_BARBERSHOP_RANKINGS RULE: This is a direct ranked list of school districts by average barbershop rating (shop_count and hiring_shop_count are also included), already sorted best-to-worst, for "which school district/area has the best barbershops" style questions — only districts with at least 3 rated shops are included, so small-sample outliers aren't cherry-picked. Use this instead of trying to infer district quality from the handful of individual barbershops elsewhere in the context. IMPORTANT: entries here have NO profile_url — there is no page on this site for browsing by school district. Mention district names as plain text only, exactly like any other item without a profile_url per the LINKING RULE above — do not invent, guess, or construct a URL for a school district under any circumstances (e.g. never write something like "/school-districts/...").
 
 Context Data (JSON):
 ${JSON.stringify(mergedContext).substring(0, 120000)}

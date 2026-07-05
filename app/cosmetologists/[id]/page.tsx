@@ -15,6 +15,7 @@ import {
   Music2,
   Users,
   Navigation,
+  Landmark,
 } from "lucide-react";
 
 export const revalidate = 3600;
@@ -44,6 +45,7 @@ const PUBLIC_COLUMNS = [
   "booksy_price_range",
   "booksy_rating",
   "booksy_review_count",
+  "school_district_name",
 ].join(", ");
 
 async function getCosmetologist(id: string) {
@@ -178,6 +180,12 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
                 <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5" />
                   {person.address}
+                </p>
+              )}
+              {person.school_district_name && (
+                <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
+                  <Landmark className="w-3.5 h-3.5" />
+                  Located in {person.school_district_name}
                 </p>
               )}
 

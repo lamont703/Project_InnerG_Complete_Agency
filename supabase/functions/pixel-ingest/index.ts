@@ -37,7 +37,23 @@ export default createHandler(async ({ adminClient, body, req }) => {
     const city = headers["cf-ipcity"]
 
     logger.info(`Received pixel event: ${body.event} for project: ${body.projectId} | Visitor: ${body.visitorId}`)
-    
+
+    // -- BOT BLOCKLIST LOGIC --
+    // Original patterns matched the one-time pixel_events cleanup DELETE,
+    // but real traffic showed real gaps: "GoogleOther" (Google's secondary
+    // crawler, confirmed via its 66.249.x.x IP range) and
+    // "facebookexternalhit" (Facebook's link-preview fetcher) both slipped
+    // through — neither contains "bot," "crawl," "spider," "headless," or
+    // "lighthouse." Added those plus a few other common non-"bot"-named
+    // crawlers/preview-fetchers as defensive coverage even though they
+    // haven't shown up yet.
+    const BOT_USER_AGENT_PATTERN = /bot|crawl|spider|headless|lighthouse|GoogleOther|Google-InspectionTool|Google-Safety|APIs-Google|bingpreview|facebookexternalhit|WhatsApp|Slack-ImgProxy|TelegramBot|Discordbot/i
+
+    if (userAgent && BOT_USER_AGENT_PATTERN.test(userAgent)) {
+        logger.info(`Blocked pixel ingestion for bot user agent: ${userAgent}`)
+        return okResponse({ success: true, received: true, note: "Bot blocked" })
+    }
+
     // -- DOMAIN BLOCKLIST LOGIC --
     const BLOCKED_DOMAINS = [
         "onlycrypto.io"
@@ -88,14 +104,28 @@ export default createHandler(async ({ adminClient, body, req }) => {
         }
 
         // 3. Upsert Visitor
-        // This ensures the visitor exists and updates their profile information if provided
+        // This ensures the visitor exists and updates their profile information if provided.
+        // Some inbound links carry an unresolved GoHighLevel merge field
+        // (e.g. a campaign template's {{contact.id}} that never got
+        // substituted before the link was sent or crawled) — treating that
+        // literal placeholder text as real identity data pollutes this
+        // table with garbage records (confirmed: 215 existing rows, ~4% of
+        // the table, all with the exact literal email "ghl_{{contact.id}}").
+        // Reject any identity field that still contains an unresolved
+        // {{...}} template rather than storing it verbatim.
+        const hasUnresolvedMergeField = (value: unknown) => typeof value === "string" && /\{\{.*\}\}/.test(value)
+        const rawEmail = body.metadata?.email
+        const rawFullName = body.metadata?.fullName || body.metadata?.name
+        const cleanEmail = hasUnresolvedMergeField(rawEmail) ? undefined : rawEmail
+        const cleanFullName = hasUnresolvedMergeField(rawFullName) ? undefined : rawFullName
+
         const { error: visitorError } = await adminClient
             .from("pixel_visitors")
             .upsert({
                 visitor_id: body.visitorId,
                 project_id: body.projectId,
-                email: body.metadata?.email,
-                full_name: body.metadata?.fullName || body.metadata?.name,
+                email: cleanEmail,
+                full_name: cleanFullName,
                 last_seen: new Date().toISOString()
             }, { 
                 onConflict: "visitor_id, project_id" 

@@ -25,11 +25,19 @@ export async function generateMetadata(
   const resolvedParams = await params;
   const slug = resolvedParams.shop_slug;
 
+  // city is stored as "Houston 77023" (city + zip) for the vast majority of
+  // rows, not a bare "Houston" — an exact match here silently missed 95% of
+  // shops (confirmed: 28 of 584 Houston shops match exactly, vs 584 with
+  // ilike), falling back to the generic title for nearly every page.
+  // No "state" column exists on this table (this feature is Houston/Texas-
+  // only, so it's hardcoded below) — selecting it errored on every request,
+  // silently masking the fallback title regardless of whether the shop
+  // lookup itself succeeded.
   const { data: shop } = await supabase
     .from('agent_barbershop_leads')
-    .select('shop_name, city, state')
+    .select('shop_name, city')
     .ilike('chair_pricing_tool_url', `%/${slug}%`)
-    .eq('city', 'Houston')
+    .ilike('city', '%houston%')
     .limit(1)
     .single();
 
@@ -37,7 +45,7 @@ export async function generateMetadata(
 
   return {
     title: `${shop.shop_name} - Houston Barbershop Market Analysis & Foot Traffic`,
-    description: `Deep market analysis and foot traffic radar for ${shop.shop_name} in ${shop.city}, ${shop.state}. See hiring status, booth rent pricing, and competitor density.`,
+    description: `Deep market analysis and foot traffic radar for ${shop.shop_name} in ${shop.city}, TX. See hiring status, booth rent pricing, and competitor density.`,
   }
 }
 

@@ -13,6 +13,7 @@ import {
   Navigation,
   Users,
   ExternalLink,
+  Landmark,
 } from "lucide-react";
 
 export const revalidate = 3600;
@@ -36,6 +37,7 @@ const PUBLIC_COLUMNS = [
   "business_status",
   "google_images",
   "site_config",
+  "school_district_name",
 ].join(", ");
 
 async function getSalon(id: string) {
@@ -147,6 +149,12 @@ export default async function SalonProfilePage(props: { params: Promise<{ id: st
                 <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5" />
                   {salon.formatted_address}
+                </p>
+              )}
+              {salon.school_district_name && (
+                <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
+                  <Landmark className="w-3.5 h-3.5" />
+                  Located in {salon.school_district_name}
                 </p>
               )}
 

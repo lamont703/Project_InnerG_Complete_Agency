@@ -3,7 +3,7 @@ import { Metadata, ResolvingMetadata } from "next";
 import { Footer } from "@/components/layout/footer";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Star, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft, Map as MapIcon, Mail, Phone, Info, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles } from "lucide-react";
+import { MapPin, Star, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft, Map as MapIcon, Mail, Phone, Info, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles, Landmark } from "lucide-react";
 import { computeShopEcosystemReport } from "@/lib/shop-ecosystem";
 import Image from "next/image";
 import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
@@ -151,6 +151,12 @@ export default async function ShopProfilePage({ params }: Props) {
                 <span className="font-bold text-slate-900">{shop.rating || "4.8"}</span>
                 <span className="text-slate-500 underline decoration-slate-300 underline-offset-4 cursor-pointer">({shop.total_reviews || 0} reviews)</span>
               </span>
+              {shop.school_district_name && (
+                <span className="flex items-center gap-1.5">
+                  <Landmark className="w-4 h-4" />
+                  Located in {shop.school_district_name}
+                </span>
+              )}
             </div>
           </div>
 

@@ -13,6 +13,7 @@ export type AnalyticsData = {
   activeUsers: number
   engagedUsers: number
   returningUsers: number
+  qualifiedVisitors: number
   totalSearches: number
   uniqueSearchers: number
   outboundLeads: number
@@ -47,7 +48,7 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
     console.error("Error fetching pixel RPC summary:", summaryError);
     // Return empty fallback if the RPC fails
     return {
-      totalViews: 0, totalClicks: 0, activeUsers: 0, engagedUsers: 0, returningUsers: 0,
+      totalViews: 0, totalClicks: 0, activeUsers: 0, engagedUsers: 0, returningUsers: 0, qualifiedVisitors: 0,
       totalSearches: 0, uniqueSearchers: 0, outboundLeads: 0, shopClaims: 0,
       aiModeActivations: 0, aiMessagesSent: 0, aiRateLimitHits: 0,
       topPages: [], topInsights: [], topReferrers: [], topFilters: [], recentEvents: []
@@ -74,6 +75,7 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
     activeUsers: summary.activeUsers || 0,
     engagedUsers: summary.engagedUsers || 0,
     returningUsers: summary.returningUsers || 0,
+    qualifiedVisitors: summary.qualifiedVisitors || 0,
     totalSearches: summary.totalSearches || 0,
     uniqueSearchers: summary.uniqueSearchers || 0,
     outboundLeads: summary.outboundLeads || 0,
