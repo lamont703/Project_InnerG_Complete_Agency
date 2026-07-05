@@ -70,6 +70,20 @@ export interface ShopEcosystemReport {
     percentDiff: number | null;
     sampleSize: number;
   };
+  marketDemographics: {
+    // Estimated by summing population (and population-weighting income)
+    // across every DISTINCT census tract our tracked shops/salons/barbers/
+    // cosmetologists within the radius happen to fall into — the same
+    // "count what's in our database within the radius" methodology as
+    // every other section here (schoolCount, nearbyShopCount, etc. are
+    // equally just OUR tracked universe, not an independent ground truth).
+    // Not a substitute for the shop's own single-tract income (still the
+    // most precise figure for its immediate block), but this is what
+    // actually matches the 10-mile scope the rest of the report uses.
+    estimatedPopulation: number | null;
+    weightedAvgMedianHouseholdIncome: number | null;
+    tractsSampled: number;
+  };
 }
 
 // Computes a barbershop's local market position: talent pipeline quality,
@@ -105,16 +119,16 @@ export async function computeShopEcosystemReport(
       "id, latitude, longitude, school_name, cosmetology_school_leaderboard_score_2026",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
     fetchAllRows(supabase, "agent_barber_leads",
-      "id, latitude, longitude, status",
+      "id, latitude, longitude, status, census_tract_geoid, census_population, census_median_household_income",
       (q) => q.eq("status", "interested_in_placement").not("latitude", "is", null).not("longitude", "is", null)),
     fetchAllRows(supabase, "agent_cosmetologist_leads",
-      "id, latitude, longitude",
+      "id, latitude, longitude, census_tract_geoid, census_population, census_median_household_income",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
     fetchAllRows(supabase, "agent_barbershop_leads",
-      "id, latitude, longitude, hiring_need, booth_count_available, rent_rate",
+      "id, latitude, longitude, hiring_need, booth_count_available, rent_rate, census_tract_geoid, census_population, census_median_household_income",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
     fetchAllRows(supabase, "agent_salon_leads",
-      "id, latitude, longitude, hiring_need, booth_count_available, rent_rate",
+      "id, latitude, longitude, hiring_need, booth_count_available, rent_rate, census_tract_geoid, census_population, census_median_household_income",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
     fetchAllRows(supabase, "agent_barber_supply_store_leads",
       "id, latitude, longitude, name",
@@ -162,6 +176,25 @@ export async function computeShopEcosystemReport(
     ? ((thisShopWeeklyRent - localMedianWeeklyRent) / localMedianWeeklyRent) * 100
     : null;
 
+  // Aggregate population/income across every DISTINCT census tract that any
+  // tracked shop/salon/barber/cosmetologist within the radius falls into —
+  // gives a population and income figure actually scoped to the same
+  // 10-mile radius as everything else above, instead of just the shop's own
+  // single tract (which stays available separately, still the most precise
+  // figure for its immediate block).
+  const tractMap = new Map<string, { population: number; income: number | null }>();
+  for (const r of [...nearbyShops, ...nearbySalons, ...nearbyBarbers, ...nearbyCosmetologists] as any[]) {
+    if (r.census_tract_geoid && r.census_population != null && !tractMap.has(r.census_tract_geoid)) {
+      tractMap.set(r.census_tract_geoid, { population: r.census_population, income: r.census_median_household_income });
+    }
+  }
+  const tracts = Array.from(tractMap.values());
+  const estimatedPopulation = tracts.length > 0 ? tracts.reduce((sum, t) => sum + t.population, 0) : null;
+  const incomeWeightedPool = tracts.filter((t) => t.income != null);
+  const weightedAvgMedianHouseholdIncome = incomeWeightedPool.length > 0
+    ? incomeWeightedPool.reduce((sum, t) => sum + t.income! * t.population, 0) / incomeWeightedPool.reduce((sum, t) => sum + t.population, 0)
+    : null;
+
   return {
     shopId: shop.id,
     radiusMiles,
@@ -191,6 +224,11 @@ export async function computeShopEcosystemReport(
       localMedianWeeklyRent,
       percentDiff,
       sampleSize: rentPool.length,
+    },
+    marketDemographics: {
+      estimatedPopulation,
+      weightedAvgMedianHouseholdIncome: weightedAvgMedianHouseholdIncome != null ? Math.round(weightedAvgMedianHouseholdIncome) : null,
+      tractsSampled: tracts.length,
     },
   };
 }

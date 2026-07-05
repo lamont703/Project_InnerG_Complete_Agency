@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { fetchAnalyticsData } from "./actions"
-import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target } from "lucide-react"
+import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target, ShieldCheck } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 
@@ -35,7 +35,7 @@ export default async function PixelAnalyticsPage(
                 Pixel <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-500">Analytics</span>
               </h1>
               <p className="text-slate-500 dark:text-slate-400 max-w-2xl text-lg">
-                Real-time domain intelligence and visitor telemetry. Showing data exclusively for <code className="bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-sm">localhost</code> and <code className="bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-sm">innergcomplete.com</code>.
+                Real-time domain intelligence and visitor telemetry. Showing data exclusively for <code className="bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-sm">innergcomplete.com</code>.
               </p>
             </div>
 
@@ -68,7 +68,7 @@ export default async function PixelAnalyticsPage(
         </header>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6 mb-12">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400">
@@ -87,6 +87,16 @@ export default async function PixelAnalyticsPage(
               <h3 className="font-semibold text-sm text-slate-600 dark:text-slate-400">Unique Browsers</h3>
             </div>
             <p className="text-3xl font-black">{data.activeUsers.toLocaleString()}</p>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2.5 bg-teal-50 dark:bg-teal-900/20 rounded-xl text-teal-600 dark:text-teal-400">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <h3 className="font-semibold text-sm text-slate-600 dark:text-slate-400">Qualified Visitors</h3>
+            </div>
+            <p className="text-3xl font-black">{data.qualifiedVisitors.toLocaleString()}</p>
           </div>
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">

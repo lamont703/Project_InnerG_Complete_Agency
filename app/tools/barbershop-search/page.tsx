@@ -72,6 +72,13 @@ function SearchContent() {
   const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
+  // Sticks for the rest of the conversation once an "Ask AI About This
+  // Market" session starts — without this, only the kickoff message
+  // included shopId (it's passed explicitly there), so every follow-up
+  // question lost access to that shop's ecosystem report (rent, labor
+  // supply, income, school district) even though the conversation was
+  // still clearly about the same shop.
+  const [activeEcosystemShopId, setActiveEcosystemShopId] = useState<string | undefined>(undefined);
   
   const { setTheme } = useTheme();
 
@@ -123,7 +130,7 @@ function SearchContent() {
 
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    sendChatMessage(chatInput);
+    sendChatMessage(chatInput, activeEcosystemShopId);
   };
 
   const handleTabClick = (tab: string) => {
@@ -163,6 +170,7 @@ function SearchContent() {
     const ecosystemShopName = searchParams.get("ecosystemShopName");
     if (ecosystemShopId && chatMessages.length === 0) {
       setFilterTab("AI Mode");
+      setActiveEcosystemShopId(ecosystemShopId);
       const shopLabel = ecosystemShopName || "my shop";
       sendChatMessage(`Tell me about the market ecosystem around ${shopLabel} — talent pipeline, labor supply, competition, and rent.`, ecosystemShopId);
     }
@@ -207,6 +215,12 @@ function SearchContent() {
           if (!ignore) {
             setResults(parsed.results);
             setTotal(parsed.total);
+            // A cache hit resolves synchronously — nothing is actually
+            // loading. Without this, isLoading can be stuck at whatever a
+            // prior handleTabClick() left it as (it unconditionally sets
+            // isLoading(true) on every tab switch), and this early return
+            // was the one path that never got a chance to clear it.
+            setIsLoading(false);
           }
           return;
         }
@@ -226,6 +240,10 @@ function SearchContent() {
       } else {
         setResults([]);
         setTotal(0);
+        // Same reasoning as the cache-hit branch above: a query that's too
+        // short to search isn't "loading" anything, but handleTabClick()
+        // may have already set isLoading(true) before this ran.
+        setIsLoading(false);
       }
     }, 300);
 

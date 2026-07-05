@@ -18,6 +18,7 @@ import {
   Users,
   Clock,
   Navigation,
+  Landmark,
 } from "lucide-react";
 
 export const revalidate = 3600;
@@ -55,6 +56,7 @@ const PUBLIC_COLUMNS = [
   "booksy_rating",
   "booksy_review_count",
   "booksy_hours",
+  "school_district_name",
 ].join(", ");
 
 async function getBarber(id: string) {
@@ -198,6 +200,12 @@ export default async function BarberProfilePage(props: { params: Promise<{ id: s
                 <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5" />
                   {barber.address}
+                </p>
+              )}
+              {barber.school_district_name && (
+                <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
+                  <Landmark className="w-3.5 h-3.5" />
+                  Located in {barber.school_district_name}
                 </p>
               )}
 
