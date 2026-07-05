@@ -137,6 +137,15 @@ function SearchContent() {
     setFilterTab(tab);
     setPage(1);
     setShowMoreTabs(false);
+    // Filters are tab-specific (e.g. "Hair Stylist" only exists for
+    // Cosmetologist) — without this, a filter selected on one tab silently
+    // rides along to the next. The receiving tab's own filter logic usually
+    // just ignores an ID it doesn't recognize, so search results aren't
+    // wrong, but the filter pill stays stuck "active" if the user lands
+    // back on a tab where it happens to apply again, and it pollutes the
+    // Top Search Filters analytics with filters attached to searches they
+    // don't actually describe.
+    setActiveFilters([]);
     // Tab clicks are discrete, deliberate actions (unlike keystrokes), so the
     // debounced search effect doesn't need to wait — but it still does before
     // firing. Without clearing results here, the previous tab's stale items
@@ -479,11 +488,7 @@ function SearchContent() {
                       {ALL_TABS.filter((tab) => !PRIMARY_MOBILE_TABS.includes(tab)).map((tab) => (
                         <button
                           key={tab}
-                          onClick={() => {
-                            setFilterTab(tab);
-                            setPage(1);
-                            setShowMoreTabs(false);
-                          }}
+                          onClick={() => handleTabClick(tab)}
                           className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
                             filterTab === tab ? 'text-blue-700 bg-blue-50' : 'text-slate-700 hover:bg-slate-50'
                           }`}
