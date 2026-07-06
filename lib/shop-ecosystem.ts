@@ -287,9 +287,11 @@ export interface ProfessionalEmploymentMatch {
   professionalType: string;
   professionalName: string;
   professionalHref: string | null;
+  professionalAddress: string | null;
   venueType: string;
   venueName: string;
   venueHref: string | null;
+  venueAddress: string | null;
   distanceMiles: number;
   confidenceScore: number;
   nameMatchScore: number;
@@ -316,9 +318,11 @@ export async function findProfessionalEmployment(supabase: SupabaseClient, name:
     professionalType: r.professional_type,
     professionalName: r.professional_name,
     professionalHref: PROFESSIONAL_PATH[r.professional_type] ? `${PROFESSIONAL_PATH[r.professional_type]}/${r.professional_id}` : null,
+    professionalAddress: r.professional_address || null,
     venueType: r.venue_type,
     venueName: r.venue_name,
     venueHref: VENUE_PATH[r.venue_type] ? `${VENUE_PATH[r.venue_type]}/${r.venue_id}` : null,
+    venueAddress: r.venue_address || null,
     distanceMiles: Number(r.distance_miles),
     confidenceScore: Number(r.confidence_score),
     nameMatchScore: Number(r.name_match_score),
