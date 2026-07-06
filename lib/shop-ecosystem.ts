@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "@/lib/supabase-fetch-all";
+import { extractZip } from "@/lib/geo-enrichment";
 
 const DEFAULT_RADIUS_MILES = 10;
 
@@ -230,5 +231,54 @@ export async function computeShopEcosystemReport(
       weightedAvgMedianHouseholdIncome: weightedAvgMedianHouseholdIncome != null ? Math.round(weightedAvgMedianHouseholdIncome) : null,
       tractsSampled: tracts.length,
     },
+  };
+}
+
+export interface RentStatsByZip {
+  zip: string;
+  medianWeeklyRent: number | null;
+  minWeeklyRent: number | null;
+  maxWeeklyRent: number | null;
+  sampleSize: number;
+  shopCount: number;
+  salonCount: number;
+}
+
+// Booth rent has no queryable numeric column anywhere — it's only ever
+// free text (rent_rate), parsed on demand via parseWeeklyRent. This is the
+// AI chat's rent-by-zip tool: a question like "which zip has the highest
+// rent" can't be answered from the fixed RAG context (nothing in it is
+// zip-scoped rent data), so the model calls this directly instead.
+export async function getRentStatsByZip(supabase: SupabaseClient, zip: string): Promise<RentStatsByZip | null> {
+  const [shops, salons] = await Promise.all([
+    fetchAllRows(supabase, "agent_barbershop_leads", "city, rent_rate", (q) => q.not("rent_rate", "is", null)),
+    fetchAllRows(supabase, "agent_salon_leads", "city, formatted_address, rent_rate", (q) => q.not("rent_rate", "is", null)),
+  ]);
+
+  const rentsInZip: number[] = [];
+  let shopCount = 0;
+  let salonCount = 0;
+
+  for (const s of shops as any[]) {
+    if (extractZip(s.city) !== zip) continue;
+    const rent = parseWeeklyRent(s.rent_rate);
+    if (rent != null) { rentsInZip.push(rent); shopCount++; }
+  }
+  for (const s of salons as any[]) {
+    if (extractZip(s.formatted_address || s.city) !== zip) continue;
+    const rent = parseWeeklyRent(s.rent_rate);
+    if (rent != null) { rentsInZip.push(rent); salonCount++; }
+  }
+
+  if (rentsInZip.length === 0) return null;
+
+  return {
+    zip,
+    medianWeeklyRent: median(rentsInZip),
+    minWeeklyRent: Math.min(...rentsInZip),
+    maxWeeklyRent: Math.max(...rentsInZip),
+    sampleSize: rentsInZip.length,
+    shopCount,
+    salonCount,
   };
 }

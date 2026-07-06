@@ -1,32 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "@/lib/supabase-fetch-all";
+import { extractZip } from "@/lib/geo-enrichment";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const HOUSTON_FILTER = "%houston%";
-
-// Only barbershops, barbers, and both supply-store tables embed a zip code
-// directly in city/metro_area ("Houston 77096"). Salons, cosmetologists, and
-// both school tables only ever store the bare city name there — but their
-// formatted_address/address field ("..., Houston, TX 77096, USA") has the
-// same zip, just in a different field. Extracting from whichever field
-// actually has it is what makes zip segmentation possible for every entity
-// type, not just the four that happened to have it in the obvious column.
-function extractZip(value: string | null | undefined): string | null {
-  if (!value) return null;
-  // "123 Main St, Houston, TX 77034, USA" — the zip directly follows "TX ",
-  // which distinguishes it from a street number earlier in the same string
-  // (e.g. "12344 Gulf Fwy..." would otherwise wrongly match as the zip).
-  // Checked before the trailing-digits fallback for that reason.
-  const txMatch = value.match(/\bTX\s+(\d{5})/i);
-  if (txMatch) return txMatch[1];
-  // "Houston 77096" — bare city + zip, no street number present to confuse it.
-  const trailingMatch = value.match(/(\d{5})\s*$/);
-  if (trailingMatch) return trailingMatch[1];
-  return null;
-}
 
 export interface HoustonEntity {
   id: string;

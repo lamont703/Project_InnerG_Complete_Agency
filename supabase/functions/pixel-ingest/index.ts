@@ -80,7 +80,7 @@ export default createHandler(async ({ adminClient, body, req }) => {
         const elementType = body.metadata?.tag
 
         // 3. Insert Raw Event
-        const { error: eventError } = await adminClient
+        const { data: insertedEvent, error: eventError } = await adminClient
             .from("pixel_events")
             .insert({
                 project_id: body.projectId,
@@ -97,10 +97,50 @@ export default createHandler(async ({ adminClient, body, req }) => {
                 element_name: elementName,
                 element_type: elementType
             })
+            .select("id, created_at")
+            .single()
 
         if (eventError) {
             logger.error(`Failed to insert pixel event: ${eventError.message}`)
             return okResponse({ success: false, code: "STORAGE_ERROR", message: eventError.message })
+        }
+
+        // 3b. Recompute page_leave's duration_seconds from server-recorded
+        // timestamps instead of trusting the client's self-reported value.
+        // The pixel script computes it as Date.now() minus its own
+        // page-load timestamp, entirely client-side — but that origin
+        // point can drift from when the matching page_view event actually
+        // reached this server (network latency, keepalive queueing, etc.),
+        // so a fast page_leave's duration_seconds could read meaningfully
+        // higher than the real gap between the two rows' created_at values.
+        // engagedUsers' 60-second threshold is the only thing that reads
+        // this field, so making it match the server clock can only make
+        // that check more reliable, never break it.
+        if (body.event === "page_leave" && body.metadata?.session_id) {
+            const { data: matchingPageView } = await adminClient
+                .from("pixel_events")
+                .select("created_at")
+                .eq("visitor_id", body.visitorId)
+                .eq("project_id", body.projectId)
+                .eq("event_name", "page_view")
+                .eq("page_url", body.url)
+                .filter("metadata->>session_id", "eq", body.metadata.session_id)
+                .lt("created_at", insertedEvent.created_at)
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle()
+
+            if (matchingPageView) {
+                const serverDurationSeconds = Math.round(
+                    (new Date(insertedEvent.created_at).getTime() - new Date(matchingPageView.created_at).getTime()) / 1000
+                )
+                await adminClient
+                    .from("pixel_events")
+                    .update({ metadata: { ...(body.metadata || {}), duration_seconds: serverDurationSeconds } })
+                    .eq("id", insertedEvent.id)
+            }
+            // No matching page_view found (rare — e.g. it failed to send) —
+            // leave the client-reported duration_seconds as the fallback.
         }
 
         // 3. Upsert Visitor
