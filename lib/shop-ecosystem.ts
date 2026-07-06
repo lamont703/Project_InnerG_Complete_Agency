@@ -282,3 +282,32 @@ export async function getRentStatsByZip(supabase: SupabaseClient, zip: string): 
     salonCount,
   };
 }
+
+export interface ProfessionalEmploymentMatch {
+  professionalType: string;
+  professionalName: string;
+  venueType: string;
+  venueName: string;
+  distanceMiles: number;
+  confidenceScore: number;
+  nameMatchScore: number;
+}
+
+// Backs the AI Mode "where does X work" tool. Returns ranked candidates,
+// not a single answer — see find_professional_employment's own comment
+// for why a name search can plausibly match more than one person, and
+// why some real people won't be found at all (their booking handle may
+// share nothing textually with their real name).
+export async function findProfessionalEmployment(supabase: SupabaseClient, name: string): Promise<ProfessionalEmploymentMatch[]> {
+  const { data, error } = await supabase.rpc("find_professional_employment", { p_name_query: name });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    professionalType: r.professional_type,
+    professionalName: r.professional_name,
+    venueType: r.venue_type,
+    venueName: r.venue_name,
+    distanceMiles: Number(r.distance_miles),
+    confidenceScore: Number(r.confidence_score),
+    nameMatchScore: Number(r.name_match_score),
+  }));
+}

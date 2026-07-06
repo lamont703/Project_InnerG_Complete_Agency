@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { computeShopEcosystemReport, getRentStatsByZip } from '@/lib/shop-ecosystem';
+import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment } from '@/lib/shop-ecosystem';
 
 // Next.js patches the global fetch() to cache responses by default, which
 // can end up caching the Gemini SDK's own internal fetch calls (identical
@@ -316,6 +316,8 @@ SCHOOL_DISTRICT_BARBERSHOP_RANKINGS RULE: This is a direct ranked list of school
 
 GET_RENT_STATS_BY_ZIP TOOL RULE: Booth rent is NOT in the context above for any zip code — it only exists as free text on individual shop records, never pre-aggregated. If asked about rent, pricing, or affordability for a specific zip code (e.g. "what's rent like in 77099," "which zip has the highest rent"), call get_rent_stats_by_zip with that zip rather than guessing or saying you don't have the data. If the tool returns null, say plainly that there's no rent data on file for that zip — don't invent a number. sampleSize in the result is often small (rent is rarely reported) — if it's 1 or 2, say so explicitly (e.g. "based on the one shop with rent data on file") rather than presenting it as a reliable market rate. This tool only accepts one zip at a time — for a "which zip is highest" question, you may need to call it for a few specific zips mentioned in conversation, but don't call it more than 3-4 times in one turn.
 
+FIND_PROFESSIONAL_EMPLOYMENT TOOL RULE: For "where does [person's name] work" style questions (e.g. from a school confirming a graduate's placement), call find_professional_employment with that name. This is a GEOCODED INFERENCE, not a confirmed fact — booking-platform listings are usually a personal brand handle ("KamKutz", "T0nyfad3s"), not the person's real name, so results are ranked candidates, never a certainty. Always state the confidenceScore in plain terms (e.g. "high confidence" for 70+, "low confidence, worth double-checking" below 40) and name it as unconfirmed — never say flatly "X works at Y." If multiple candidates come back, say so explicitly rather than picking one silently — the name may match more than one person. If the tool returns an empty array, say plainly that no match was found on file — don't guess or invent a shop/salon name. This tool has no profile_url in its results — per the LINKING RULE, mention venue names as plain text only, never construct a link for one.
+
 Context Data (JSON):
 ${JSON.stringify(mergedContext).substring(0, 120000)}
 `;
@@ -338,6 +340,17 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
               zip: { type: 'string', description: "A 5-digit US zip code, e.g. '77099'" },
             },
             required: ['zip'],
+          },
+        },
+        {
+          name: 'find_professional_employment',
+          description: "Look up where a named barber or cosmetologist currently works, inferred from geocoded proximity between their booking-platform listing and shop/salon locations. Returns ranked candidates with a confidence score, never a certainty — call this whenever a specific person's name and current employer/workplace is asked about.",
+          parametersJsonSchema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: "The person's name to search for, e.g. 'Lamont Evans'" },
+            },
+            required: ['name'],
           },
         },
       ],
@@ -382,6 +395,9 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
           if (fc.name === 'get_rent_stats_by_zip') {
             const zip = fc.args?.zip as string | undefined;
             result = zip ? await getRentStatsByZip(supabase as any, zip) : null;
+          } else if (fc.name === 'find_professional_employment') {
+            const name = fc.args?.name as string | undefined;
+            result = name ? await findProfessionalEmployment(supabase as any, name) : [];
           }
           return { functionResponse: { name: fc.name, response: { result } } };
         })
