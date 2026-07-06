@@ -31,7 +31,12 @@ function collectValidLinks(obj: any, links: Set<string>) {
     for (const item of obj) collectValidLinks(item, links);
   } else if (obj && typeof obj === 'object') {
     for (const [key, value] of Object.entries(obj)) {
-      if ((key === 'profile_url' || key === 'profileUrl' || key === 'url' || key === 'href') && typeof value === 'string' && value) {
+      // Matches profile_url/profileUrl/url/href AND tool-specific fields
+      // like professionalHref/venueHref — any key ending in "url" or
+      // "href" (case-insensitive) is treated as a link field, so a new
+      // tool doesn't need this function edited every time it adds one.
+      const k = key.toLowerCase();
+      if ((k.endsWith('url') || k.endsWith('href')) && typeof value === 'string' && value) {
         links.add(value);
       } else {
         collectValidLinks(value, links);
@@ -316,7 +321,9 @@ SCHOOL_DISTRICT_BARBERSHOP_RANKINGS RULE: This is a direct ranked list of school
 
 GET_RENT_STATS_BY_ZIP TOOL RULE: Booth rent is NOT in the context above for any zip code — it only exists as free text on individual shop records, never pre-aggregated. If asked about rent, pricing, or affordability for a specific zip code (e.g. "what's rent like in 77099," "which zip has the highest rent"), call get_rent_stats_by_zip with that zip rather than guessing or saying you don't have the data. If the tool returns null, say plainly that there's no rent data on file for that zip — don't invent a number. sampleSize in the result is often small (rent is rarely reported) — if it's 1 or 2, say so explicitly (e.g. "based on the one shop with rent data on file") rather than presenting it as a reliable market rate. This tool only accepts one zip at a time — for a "which zip is highest" question, you may need to call it for a few specific zips mentioned in conversation, but don't call it more than 3-4 times in one turn.
 
-FIND_PROFESSIONAL_EMPLOYMENT TOOL RULE: For "where does [person's name] work" style questions (e.g. from a school confirming a graduate's placement), call find_professional_employment with that name. This is a GEOCODED INFERENCE, not a confirmed fact — booking-platform listings are usually a personal brand handle ("KamKutz", "T0nyfad3s"), not the person's real name, so results are ranked candidates, never a certainty. Always state the confidenceScore in plain terms (e.g. "high confidence" for 70+, "low confidence, worth double-checking" below 40) and name it as unconfirmed — never say flatly "X works at Y." If multiple candidates come back, say so explicitly rather than picking one silently — the name may match more than one person. If the tool returns an empty array, say plainly that no match was found on file — don't guess or invent a shop/salon name. This tool has no profile_url in its results — per the LINKING RULE, mention venue names as plain text only, never construct a link for one.
+FIND_PROFESSIONAL_EMPLOYMENT TOOL RULE: For "where does [person's name] work" style questions (e.g. from a school confirming a graduate's placement), call find_professional_employment with that name. This is a GEOCODED INFERENCE, not a confirmed fact — booking-platform listings are usually a personal brand handle ("KamKutz", "T0nyfad3s"), not the person's real name, so results are ranked candidates, never a certainty. Always state the confidenceScore in plain terms (e.g. "high confidence" for 70+, "low confidence, worth double-checking" below 40) and name it as unconfirmed — never say flatly "X works at Y." If multiple candidates come back, say so explicitly rather than picking one silently — the name may match more than one person. If the tool returns an empty array, say plainly that no match was found on file — don't guess or invent a shop/salon name. Each result includes professionalHref and venueHref — per the LINKING RULE, hyperlink BOTH the professional and the venue using these exact values whenever you mention them (either can be null if that entity type has no profile page — in that case mention that one by plain name only).
+
+ENTITY LINKING IS NOT OPTIONAL: AI Mode doubles as navigation into the rest of the site, not just an answer — so the LINKING RULE above applies every single time you mention a specific barbershop/barber/school/salon/cosmetologist/store/tool that has a profile_url (or an equivalent href from a tool result like find_professional_employment), with no exceptions. Don't drop a link just because you've already mentioned that entity earlier in the conversation — link it again each time.
 
 Context Data (JSON):
 ${JSON.stringify(mergedContext).substring(0, 120000)}
@@ -365,7 +372,14 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
     ];
 
     const generationConfig = {
-      maxOutputTokens: 250, // Strict output limit
+      // Raised from 250 — a multi-candidate find_professional_employment
+      // response now includes two markdown links per candidate (person +
+      // venue), and 250 was observed truncating mid-link for a 3-candidate
+      // answer (confirmed live: response cut off inside an unclosed
+      // markdown link). Still a real ceiling, just sized for the longer,
+      // now-mandatory-linking responses rather than the plain-text ones
+      // this was originally tuned for.
+      maxOutputTokens: 400,
       // Gemini 2.5 Flash's internal "thinking" tokens count against
       // maxOutputTokens by default — for this simple RAG-lookup-and-
       // summarize task, thinking was eating 200+ of the 250 token budget
@@ -403,6 +417,13 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
         })
       );
       contents.push({ role: 'user', parts: functionResponseParts });
+
+      // validLinks was built from the fixed context before this tool ever
+      // ran, so hrefs a tool result introduces (professionalHref/venueHref)
+      // aren't in it yet — without this, the sanitizer below would strip a
+      // real link just because it came from a tool call instead of the
+      // static context.
+      collectValidLinks(functionResponseParts, validLinks);
 
       response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',

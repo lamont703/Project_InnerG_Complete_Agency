@@ -286,26 +286,39 @@ export async function getRentStatsByZip(supabase: SupabaseClient, zip: string): 
 export interface ProfessionalEmploymentMatch {
   professionalType: string;
   professionalName: string;
+  professionalHref: string | null;
   venueType: string;
   venueName: string;
+  venueHref: string | null;
   distanceMiles: number;
   confidenceScore: number;
   nameMatchScore: number;
 }
+
+const PROFESSIONAL_PATH: Record<string, string> = { barber: "/barbers", cosmetologist: "/cosmetologists" };
+const VENUE_PATH: Record<string, string> = { shop: "/shop", salon: "/salons" };
 
 // Backs the AI Mode "where does X work" tool. Returns ranked candidates,
 // not a single answer — see find_professional_employment's own comment
 // for why a name search can plausibly match more than one person, and
 // why some real people won't be found at all (their booking handle may
 // share nothing textually with their real name).
+//
+// professionalHref/venueHref are real, constructed from the underlying
+// ids — the chat route must add these to its validLinks set before
+// sanitizing the model's response, since they're introduced by this
+// tool call, not present in the fixed context validLinks is normally
+// built from.
 export async function findProfessionalEmployment(supabase: SupabaseClient, name: string): Promise<ProfessionalEmploymentMatch[]> {
   const { data, error } = await supabase.rpc("find_professional_employment", { p_name_query: name });
   if (error || !data) return [];
   return (data as any[]).map((r) => ({
     professionalType: r.professional_type,
     professionalName: r.professional_name,
+    professionalHref: PROFESSIONAL_PATH[r.professional_type] ? `${PROFESSIONAL_PATH[r.professional_type]}/${r.professional_id}` : null,
     venueType: r.venue_type,
     venueName: r.venue_name,
+    venueHref: VENUE_PATH[r.venue_type] ? `${VENUE_PATH[r.venue_type]}/${r.venue_id}` : null,
     distanceMiles: Number(r.distance_miles),
     confidenceScore: Number(r.confidence_score),
     nameMatchScore: Number(r.name_match_score),
