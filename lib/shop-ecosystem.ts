@@ -328,3 +328,30 @@ export async function findProfessionalEmployment(supabase: SupabaseClient, name:
     nameMatchScore: Number(r.name_match_score),
   }));
 }
+
+export interface TopVenueByWorkerCount {
+  venueType: string;
+  venueName: string;
+  venueHref: string | null;
+  venueAddress: string | null;
+  workerCount: number;
+  avgConfidence: number;
+}
+
+// Backs the AI Mode "which shop has the most workers" tool — an
+// aggregate over professional_employment_matches, distinct from
+// findProfessionalEmployment's per-name lookup above. Same "unconfirmed
+// inference" caveat applies: these are geocoded matches, not confirmed
+// employment records.
+export async function getTopVenuesByWorkerCount(supabase: SupabaseClient, limit = 10, venueType?: "shop" | "salon"): Promise<TopVenueByWorkerCount[]> {
+  const { data, error } = await supabase.rpc("get_top_venues_by_worker_count", { p_limit: limit, p_venue_type: venueType || null });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    venueType: r.venue_type,
+    venueName: r.venue_name,
+    venueHref: VENUE_PATH[r.venue_type] ? `${VENUE_PATH[r.venue_type]}/${r.venue_id}` : null,
+    venueAddress: r.venue_address || null,
+    workerCount: Number(r.worker_count),
+    avgConfidence: Number(r.avg_confidence),
+  }));
+}

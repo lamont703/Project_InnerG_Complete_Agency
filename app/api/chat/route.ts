@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment } from '@/lib/shop-ecosystem';
+import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount } from '@/lib/shop-ecosystem';
 
 // Next.js patches the global fetch() to cache responses by default, which
 // can end up caching the Gemini SDK's own internal fetch calls (identical
@@ -325,6 +325,8 @@ FIND_PROFESSIONAL_EMPLOYMENT TOOL RULE: For "where does [person's name] work" st
 
 DO NOT INVENT FACTS — THIS INCLUDES ADDRESSES, NOT JUST LINKS: a real conversation showed the model fabricating a business address on a follow-up turn ("do you have their address?") that didn't exist anywhere in the data, instead of saying it didn't have one. The link-sanitization system only catches invented markdown links — it does NOT catch an invented address, phone number, rating, or any other fact written as plain text. If a follow-up question asks for a specific detail (address, contact info, rating, etc.) about something mentioned earlier and that field isn't present anywhere in the context above or in a tool result already returned this conversation, say plainly you don't have it on file — do not produce a plausible-sounding value from general knowledge of what a real address/phone/etc. looks like.
 
+GET_TOP_VENUES_BY_WORKER_COUNT TOOL RULE: For aggregate questions about professional_employment_matches — "which shop/salon has the most workers," "who employs the most people" — call get_top_venues_by_worker_count. This is a DIFFERENT tool from find_professional_employment: that one looks up a single named person, this one ranks venues by how many matched professionals they have. Do not try to answer this kind of question from find_professional_employment or by counting entries elsewhere in context — call this tool instead. Same "unconfirmed inference" framing applies: mention avgConfidence in plain terms and note these are geocoded matches, not confirmed employment records. Hyperlink each venue using its venueHref per the LINKING RULE.
+
 ENTITY LINKING IS NOT OPTIONAL: AI Mode doubles as navigation into the rest of the site, not just an answer — so the LINKING RULE above applies every single time you mention a specific barbershop/barber/school/salon/cosmetologist/store/tool that has a profile_url (or an equivalent href from a tool result like find_professional_employment), with no exceptions. Don't drop a link just because you've already mentioned that entity earlier in the conversation — link it again each time.
 
 Context Data (JSON):
@@ -360,6 +362,17 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
               name: { type: 'string', description: "The name to search for, exactly as given — a full name ('Lamont Evans'), a single first name, or a nickname ('Kam') are all valid and should be searched as-is. The underlying match is fuzzy (token + trigram similarity against booking-platform handles), so even one word is enough to try." },
             },
             required: ['name'],
+          },
+        },
+        {
+          name: 'get_top_venues_by_worker_count',
+          description: "Rank shops/salons by how many matched professionals (from geocoded employment-match data) work there. Use for aggregate questions like 'which shop has the most workers' or 'who employs the most people' — this is an aggregate over all venues, not a lookup for one named person (use find_professional_employment for that instead).",
+          parametersJsonSchema: {
+            type: 'object',
+            properties: {
+              limit: { type: 'number', description: "How many top venues to return. Defaults to 10 if not specified." },
+              venueType: { type: 'string', enum: ['shop', 'salon'], description: "Restrict to only barbershops ('shop') or only salons ('salon'). Omit to rank across both combined — e.g. a question about 'which shop' should pass 'shop', 'which salon' should pass 'salon', a general 'who has the most workers' should omit this entirely." },
+            },
           },
         },
       ],
@@ -414,6 +427,10 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
           } else if (fc.name === 'find_professional_employment') {
             const name = fc.args?.name as string | undefined;
             result = name ? await findProfessionalEmployment(supabase as any, name) : [];
+          } else if (fc.name === 'get_top_venues_by_worker_count') {
+            const limit = (fc.args?.limit as number | undefined) || 10;
+            const venueType = fc.args?.venueType as ('shop' | 'salon' | undefined);
+            result = await getTopVenuesByWorkerCount(supabase as any, limit, venueType);
           }
           return { functionResponse: { name: fc.name, response: { result } } };
         })
