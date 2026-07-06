@@ -18,7 +18,7 @@ export async function submitNewBarbershopLead(formData: any) {
     let contactId = null;
 
     if (formData.id) {
-      const { data } = await supabase.from('agent_barbershop_leads').select('id, contact_id').eq('id', formData.id).maybeSingle();
+      const { data } = await supabase.from('agent_barbershop_leads').select('id, contact_id, claimed_at').eq('id', formData.id).maybeSingle();
       if (data) {
         existingShop = data;
         contactId = data.contact_id;
@@ -95,7 +95,7 @@ export async function submitNewBarbershopLead(formData: any) {
     if (!existingShop) {
       const { data: dbShop } = await supabase
         .from('agent_barbershop_leads')
-        .select('id, contact_id')
+        .select('id, contact_id, claimed_at')
         .or(`contact_id.eq.${contactId},phone.eq.${formData.phone}`)
         .limit(1)
         .maybeSingle();
@@ -140,6 +140,16 @@ export async function submitNewBarbershopLead(formData: any) {
       utm_campaign: formData.utm_campaign || null,
       updated_at: new Date().toISOString()
     };
+
+    // Only a claim of an existing (pre-populated/scraped) listing counts
+    // toward "claimed" — a brand new shop submitted from scratch isn't
+    // reclaiming anything. Not verified ownership, just a state flag at
+    // the same trust level this lead-gen form already operates at.
+    // Preserves the original claim timestamp on re-submission (e.g. an
+    // owner updating their info later) rather than bumping it every time.
+    if (existingShop && !existingShop.claimed_at) {
+      payload.claimed_at = new Date().toISOString();
+    }
     
     // Set image if provided
     if (formData.shop_image_url) {

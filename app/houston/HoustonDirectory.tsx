@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag } from "lucide-react";
+import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign } from "lucide-react";
 import type { HoustonData } from "./data";
 
 const ZIP_SIGNAL_COLORS = {
@@ -50,14 +50,34 @@ export function HoustonDirectory({
           <p className="text-slate-600">{subtitle}</p>
         </div>
 
-        {data.avgSchoolScore != null && (
-          <div className="max-w-md mx-auto mb-10 bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-4 flex items-center gap-3 justify-center">
-            <Award className="w-5 h-5 text-indigo-600 shrink-0" />
-            <p className="text-sm text-slate-600">
-              Schools here average a{" "}
-              <span className={`font-black ${scoreColor(data.avgSchoolScore)}`}>{Math.round(data.avgSchoolScore)}</span>{" "}
-              2026 leaderboard score.
-            </p>
+        {(data.avgSchoolScore != null || data.openChairs > 0 || data.medianWeeklyRent != null) && (
+          <div className="max-w-2xl mx-auto mb-10 flex flex-wrap gap-3 justify-center">
+            {data.avgSchoolScore != null && (
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-5 py-3 flex items-center gap-2.5">
+                <Award className="w-5 h-5 text-indigo-600 shrink-0" />
+                <p className="text-sm text-slate-600">
+                  Schools average a{" "}
+                  <span className={`font-black ${scoreColor(data.avgSchoolScore)}`}>{Math.round(data.avgSchoolScore)}</span>{" "}
+                  2026 score
+                </p>
+              </div>
+            )}
+            {data.openChairs > 0 && (
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-5 py-3 flex items-center gap-2.5">
+                <Armchair className="w-5 h-5 text-emerald-600 shrink-0" />
+                <p className="text-sm text-slate-600">
+                  <span className="font-black text-slate-900">{data.openChairs.toLocaleString()}</span> open chairs right now
+                </p>
+              </div>
+            )}
+            {data.medianWeeklyRent != null && (
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-5 py-3 flex items-center gap-2.5">
+                <DollarSign className="w-5 h-5 text-amber-600 shrink-0" />
+                <p className="text-sm text-slate-600">
+                  <span className="font-black text-slate-900">${data.medianWeeklyRent.toLocaleString()}</span>/wk median booth rent
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -139,9 +159,13 @@ export function HoustonDirectory({
             <div className="flex flex-wrap gap-2 mb-4">
               {data.zipCounts.map((z) => {
                 const dot = z.signal ? ZIP_SIGNAL_COLORS[z.signal.label] : "bg-slate-300";
-                const title = z.signal
+                const signalPart = z.signal
                   ? `${z.signal.label} — ${z.signal.professionals} professionals, ${z.signal.venues} venues (${z.signal.hiringVenues} hiring)`
                   : "Not enough data to classify";
+                const rentPart = z.openChairs > 0 || z.medianWeeklyRent != null
+                  ? ` | ${z.openChairs} open chairs${z.medianWeeklyRent != null ? `, $${z.medianWeeklyRent}/wk median rent` : ""}`
+                  : "";
+                const title = signalPart + rentPart;
                 return (
                   <Link
                     key={z.zip}

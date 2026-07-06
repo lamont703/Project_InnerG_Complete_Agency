@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { computeShopEcosystemReport } from '@/lib/shop-ecosystem';
+import { computeShopEcosystemReport, getRentStatsByZip } from '@/lib/shop-ecosystem';
 
 // Next.js patches the global fetch() to cache responses by default, which
 // can end up caching the Gemini SDK's own internal fetch calls (identical
@@ -14,6 +14,35 @@ export const dynamic = 'force-dynamic';
 // Simple Rate Limit: 5 per 24 hours
 const MAX_REQUESTS = 5;
 const RATE_LIMIT_RESET_HOURS = 24;
+
+// The LINKING RULE in the system prompt tells the model never to invent a
+// URL for an item without a profile_url — but prompting alone isn't
+// reliable (confirmed: retested against the pre-tool-calling code and it
+// invented a link for a school district, which has no profile_url at all,
+// in 3 of 3 attempts — "/school-districts/...", "null", literal "None").
+// This is the deterministic backstop: collect every real URL actually
+// present in the context we gave the model, then strip any markdown link
+// in its response that doesn't exactly match one of them back to plain
+// text. Catches invented paths, "null"/"None" artifacts, AND wrong-ID
+// swaps (a link to a real-looking but uncontexted URL), not just missing
+// ones.
+function collectValidLinks(obj: any, links: Set<string>) {
+  if (Array.isArray(obj)) {
+    for (const item of obj) collectValidLinks(item, links);
+  } else if (obj && typeof obj === 'object') {
+    for (const [key, value] of Object.entries(obj)) {
+      if ((key === 'profile_url' || key === 'profileUrl' || key === 'url' || key === 'href') && typeof value === 'string' && value) {
+        links.add(value);
+      } else {
+        collectValidLinks(value, links);
+      }
+    }
+  }
+}
+
+function sanitizeMarkdownLinks(text: string, validLinks: Set<string>): string {
+  return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => (validLinks.has(url) ? match : label));
+}
 
 export async function POST(req: Request) {
   try {
@@ -260,6 +289,9 @@ export async function POST(req: Request) {
       software_tools: platformTools,
     };
 
+    const validLinks = new Set<string>();
+    collectValidLinks(mergedContext, validLinks);
+
     // 4. Construct System Prompt
     const systemPrompt = `You are the Inner G Complete AI Assistant, deeply knowledgeable about the barber, beauty and wellness industry — including barbershops, salons, individual barbers and cosmetologists, barber/cosmetology schools, supply stores, and 2026 Texas Class A Barber and Cosmetology Operator licensing exam outcomes (pass/fail rates and student testing volume per school, for each exam separately).
 You MUST answer the user's questions based ONLY on the following context data fetched directly from our database.
@@ -282,36 +314,93 @@ SCHOOL_DISTRICT_NAME RULE: barbershops, salons, professionals, and cosmetologist
 
 SCHOOL_DISTRICT_BARBERSHOP_RANKINGS RULE: This is a direct ranked list of school districts by average barbershop rating (shop_count and hiring_shop_count are also included), already sorted best-to-worst, for "which school district/area has the best barbershops" style questions — only districts with at least 3 rated shops are included, so small-sample outliers aren't cherry-picked. Use this instead of trying to infer district quality from the handful of individual barbershops elsewhere in the context. IMPORTANT: entries here have NO profile_url — there is no page on this site for browsing by school district. Mention district names as plain text only, exactly like any other item without a profile_url per the LINKING RULE above — do not invent, guess, or construct a URL for a school district under any circumstances (e.g. never write something like "/school-districts/...").
 
+GET_RENT_STATS_BY_ZIP TOOL RULE: Booth rent is NOT in the context above for any zip code — it only exists as free text on individual shop records, never pre-aggregated. If asked about rent, pricing, or affordability for a specific zip code (e.g. "what's rent like in 77099," "which zip has the highest rent"), call get_rent_stats_by_zip with that zip rather than guessing or saying you don't have the data. If the tool returns null, say plainly that there's no rent data on file for that zip — don't invent a number. sampleSize in the result is often small (rent is rarely reported) — if it's 1 or 2, say so explicitly (e.g. "based on the one shop with rent data on file") rather than presenting it as a reliable market rate. This tool only accepts one zip at a time — for a "which zip is highest" question, you may need to call it for a few specific zips mentioned in conversation, but don't call it more than 3-4 times in one turn.
+
 Context Data (JSON):
 ${JSON.stringify(mergedContext).substring(0, 120000)}
 `;
 
     // 5. Generate Response (Limit output tokens to keep costs cheap!)
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [
-        { role: 'user', parts: [{ text: systemPrompt }] },
-        ...messages.map((m: any) => ({
-            role: m.role === 'user' ? 'user' : 'model',
-            parts: [{ text: m.content }]
-        }))
+    // Rent-by-zip is the one real gap in the fixed RAG context above — it's
+    // never pre-fetched for any zip since rent has no queryable numeric
+    // column, only free text on individual shop rows. Rather than rebuild
+    // the whole context-assembly pattern into a dynamic tool-calling loop,
+    // this adds exactly one real tool for exactly that gap and leaves the
+    // rest of the (already-tuned) fixed-context approach untouched.
+    const RENT_STATS_TOOL = {
+      functionDeclarations: [
+        {
+          name: 'get_rent_stats_by_zip',
+          description: "Look up booth rent statistics (median/min/max weekly rent in USD, sample size, and shop/salon counts) for a specific 5-digit zip code. This data is never pre-loaded into context for any zip — call this tool whenever rent/pricing/affordability for a specific zip comes up.",
+          parametersJsonSchema: {
+            type: 'object',
+            properties: {
+              zip: { type: 'string', description: "A 5-digit US zip code, e.g. '77099'" },
+            },
+            required: ['zip'],
+          },
+        },
       ],
-      config: {
-        maxOutputTokens: 250, // Strict output limit
-        // Gemini 2.5 Flash's internal "thinking" tokens count against
-        // maxOutputTokens by default — for this simple RAG-lookup-and-
-        // summarize task, thinking was eating 200+ of the 250 token budget
-        // before generating any visible text, silently truncating almost
-        // every response. Disabled since no multi-step reasoning is needed.
-        thinkingConfig: { thinkingBudget: 0 },
-      }
+    };
+
+    const contents: any[] = [
+      { role: 'user', parts: [{ text: systemPrompt }] },
+      ...messages.map((m: any) => ({
+          role: m.role === 'user' ? 'user' : 'model',
+          parts: [{ text: m.content }]
+      }))
+    ];
+
+    const generationConfig = {
+      maxOutputTokens: 250, // Strict output limit
+      // Gemini 2.5 Flash's internal "thinking" tokens count against
+      // maxOutputTokens by default — for this simple RAG-lookup-and-
+      // summarize task, thinking was eating 200+ of the 250 token budget
+      // before generating any visible text, silently truncating almost
+      // every response. Disabled since no multi-step reasoning is needed.
+      thinkingConfig: { thinkingBudget: 0 },
+    };
+
+    let response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents,
+      config: { ...generationConfig, tools: [RENT_STATS_TOOL] },
     });
+
+    // Single round of tool-calling: if the model asked for rent data,
+    // execute it, hand the result back, and let it produce the real
+    // answer. Not a full agentic loop — one round covers this one tool.
+    if (response.functionCalls && response.functionCalls.length > 0) {
+      contents.push({
+        role: 'model',
+        parts: response.functionCalls.map((fc) => ({ functionCall: fc })),
+      });
+
+      const functionResponseParts = await Promise.all(
+        response.functionCalls.map(async (fc) => {
+          let result: any = null;
+          if (fc.name === 'get_rent_stats_by_zip') {
+            const zip = fc.args?.zip as string | undefined;
+            result = zip ? await getRentStatsByZip(supabase as any, zip) : null;
+          }
+          return { functionResponse: { name: fc.name, response: { result } } };
+        })
+      );
+      contents.push({ role: 'user', parts: functionResponseParts });
+
+      response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents,
+        config: generationConfig,
+      });
+    }
 
     // Update rate limit cookies
     const newCount = usageCount + 1;
     const nextReset = resetTime && new Date() > new Date(resetTime) ? resetTime : new Date(Date.now() + RATE_LIMIT_RESET_HOURS * 60 * 60 * 1000).toISOString();
 
-    const res = NextResponse.json({ text: response.text });
+    const finalText = response.text ? sanitizeMarkdownLinks(response.text, validLinks) : response.text;
+    const res = NextResponse.json({ text: finalText });
     res.cookies.set('ai_chat_count', newCount.toString(), { path: '/' });
     res.cookies.set('ai_chat_reset', nextReset, { path: '/' });
 

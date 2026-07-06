@@ -17,12 +17,18 @@ const FILTERS_BY_TAB: Record<string, { id: string; label: string }[]> = {
     { id: 'hiring_now', label: 'Hiring Now' },
     { id: 'booth_rent', label: 'Booth Rent' },
     { id: 'commission', label: 'Commission' },
+    { id: 'rent_under_150', label: 'Under $150/wk' },
+    { id: 'rent_under_200', label: 'Under $200/wk' },
+    { id: 'rent_under_250', label: 'Under $250/wk' },
     { id: 'rating_4.5', label: '4.5+ Stars' },
   ],
   Barbershops: [
     { id: 'hiring_now', label: 'Hiring Now' },
     { id: 'booth_rent', label: 'Booth Rent' },
     { id: 'commission', label: 'Commission' },
+    { id: 'rent_under_150', label: 'Under $150/wk' },
+    { id: 'rent_under_200', label: 'Under $200/wk' },
+    { id: 'rent_under_250', label: 'Under $250/wk' },
     { id: 'rating_4.5', label: '4.5+ Stars' },
   ],
   Schools: [
@@ -89,6 +95,28 @@ function SearchContent() {
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
     setPage(1);
+  };
+
+  // Analytics only for now — not read anywhere that affects ranking.
+  // Batched as one event per search (an array of shown results) rather
+  // than one event per result, since a 10-result page firing 10 separate
+  // writes per search is unnecessary load for something loggable in one
+  // shot. Position is 1-based since that's how a person would describe
+  // "this showed up 3rd," not how an array index would.
+  const trackImpressions = (searchResults: any[], q: string, tab: string, pageNum: number) => {
+    if (!searchResults || searchResults.length === 0) return;
+    if ((window as any).innerG?.track) {
+      (window as any).innerG.track('search_impression', {
+        query: q,
+        filter: tab,
+        page: pageNum,
+        results: searchResults.map((r, i) => ({
+          resultType: r.resultType,
+          entityId: r.id || r.href || null,
+          position: i + 1,
+        })),
+      });
+    }
   };
 
   const sendChatMessage = async (messageText: string, shopId?: string) => {
@@ -230,6 +258,7 @@ function SearchContent() {
             // isLoading(true) on every tab switch), and this early return
             // was the one path that never got a chance to clear it.
             setIsLoading(false);
+            trackImpressions(parsed.results, query.trim(), filterTab, page);
           }
           return;
         }
@@ -242,6 +271,7 @@ function SearchContent() {
             setResults(res.data.results || []);
             setTotal(res.data.total || 0);
             sessionStorage.setItem(cacheKey, JSON.stringify({ results: res.data.results, total: res.data.total }));
+            trackImpressions(res.data.results || [], query.trim(), filterTab, page);
           }
         }).finally(() => {
           if (!ignore) setIsLoading(false);

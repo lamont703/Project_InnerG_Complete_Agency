@@ -4,6 +4,25 @@
 // written — see the FCC, Census ACS, and ArcGIS-hosted NCES school district
 // FeatureServer calls this wraps.
 
+// City fields are inconsistently formatted across tables ("Houston 77096",
+// bare "Houston" with the zip only in formatted_address/address, etc.) —
+// this extracts a zip from whichever field actually has one. Originally
+// lived in app/houston/data.ts; moved here so the rent-by-zip AI tool can
+// share the same tested logic instead of duplicating it.
+export function extractZip(value: string | null | undefined): string | null {
+  if (!value) return null;
+  // "123 Main St, Houston, TX 77034, USA" — the zip directly follows "TX ",
+  // which distinguishes it from a street number earlier in the same string
+  // (e.g. "12344 Gulf Fwy..." would otherwise wrongly match as the zip).
+  // Checked before the trailing-digits fallback for that reason.
+  const txMatch = value.match(/\bTX\s+(\d{5})/i);
+  if (txMatch) return txMatch[1];
+  // "Houston 77096" — bare city + zip, no street number present to confuse it.
+  const trailingMatch = value.match(/(\d{5})\s*$/);
+  if (trailingMatch) return trailingMatch[1];
+  return null;
+}
+
 export interface CensusGeography {
   stateFips: string;
   countyFips: string;

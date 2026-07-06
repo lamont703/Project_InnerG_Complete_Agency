@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { fetchAnalyticsData } from "./actions"
-import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target, ShieldCheck } from "lucide-react"
+import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target, ShieldCheck, TrendingUp } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 
@@ -299,6 +299,51 @@ export default async function PixelAnalyticsPage(
                 <div className="text-slate-500 text-center py-8">No filter data yet</div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Top Search Performers */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm mb-12">
+          <div className="flex items-center gap-3 mb-2">
+            <TrendingUp className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold">Top Search Performers</h2>
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            Impressions, click-throughs, and average position in search results. Analytics only — does not currently affect ranking.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                  <th className="pb-4 font-medium px-4">Profile</th>
+                  <th className="pb-4 font-medium px-4">Type</th>
+                  <th className="pb-4 font-medium px-4 text-right">Impressions</th>
+                  <th className="pb-4 font-medium px-4 text-right">Avg. Position</th>
+                  <th className="pb-4 font-medium px-4 text-right">Clicks</th>
+                  <th className="pb-4 font-medium px-4 text-right">CTR</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {data.topSearchPerformers.length > 0 ? data.topSearchPerformers.map((p, i) => (
+                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="py-4 px-4 font-medium text-primary max-w-[220px] truncate">
+                      <Link href={p.href} className="hover:underline">{p.name}</Link>
+                    </td>
+                    <td className="py-4 px-4 text-slate-500 capitalize">{p.resultType}</td>
+                    <td className="py-4 px-4 text-right">{p.impressions.toLocaleString()}</td>
+                    <td className="py-4 px-4 text-right">{p.avgPosition}</td>
+                    <td className="py-4 px-4 text-right">{p.clicks.toLocaleString()}</td>
+                    <td className="py-4 px-4 text-right font-semibold">{p.ctr}%</td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-500">
+                      Not enough search activity yet to compute performance
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
