@@ -17,12 +17,18 @@ const FILTERS_BY_TAB: Record<string, { id: string; label: string }[]> = {
     { id: 'hiring_now', label: 'Hiring Now' },
     { id: 'booth_rent', label: 'Booth Rent' },
     { id: 'commission', label: 'Commission' },
+    { id: 'rent_under_150', label: 'Under $150/wk' },
+    { id: 'rent_under_200', label: 'Under $200/wk' },
+    { id: 'rent_under_250', label: 'Under $250/wk' },
     { id: 'rating_4.5', label: '4.5+ Stars' },
   ],
   Barbershops: [
     { id: 'hiring_now', label: 'Hiring Now' },
     { id: 'booth_rent', label: 'Booth Rent' },
     { id: 'commission', label: 'Commission' },
+    { id: 'rent_under_150', label: 'Under $150/wk' },
+    { id: 'rent_under_200', label: 'Under $200/wk' },
+    { id: 'rent_under_250', label: 'Under $250/wk' },
     { id: 'rating_4.5', label: '4.5+ Stars' },
   ],
   Schools: [

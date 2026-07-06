@@ -2,6 +2,18 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenAI } from "@google/genai";
+import { parseWeeklyRent } from "@/lib/shop-ecosystem";
+
+// rent_rate is free text ("$175/week", "40% for 5 months then $300/wk",
+// etc.) with no queryable numeric column, so a rent filter has to fetch a
+// large batch and filter client-side with the same parser already used
+// for the shop ecosystem report and the AI chat's rent-by-zip tool —
+// consistent with how school_affordable (tuition) already works below.
+const RENT_THRESHOLDS: Record<string, number> = {
+  rent_under_150: 150,
+  rent_under_200: 200,
+  rent_under_250: 250,
+};
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -465,7 +477,12 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     }
 
     // 3. Shop Results
-    const shopFilterActive = activeFilters.includes('rating_4.5');
+    const activeRentThresholds = Object.keys(RENT_THRESHOLDS).filter((f) => activeFilters.includes(f)).map((f) => RENT_THRESHOLDS[f]);
+    // Most restrictive wins if more than one is somehow active at once
+    // (e.g. "Under $150" and "Under $250" both checked) — a shop passing
+    // the tighter threshold already satisfies the looser one too.
+    const rentThreshold = activeRentThresholds.length > 0 ? Math.min(...activeRentThresholds) : null;
+    const shopFilterActive = activeFilters.includes('rating_4.5') || rentThreshold != null;
 
     async function fetchShopResults(): Promise<{ matches: any[]; count: number }> {
       let matches: any[] = [];
@@ -499,7 +516,18 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       }
 
       if (shopFilterActive) {
-        matches = matches.filter(s => s.rating && s.rating >= 4.5);
+        // Each condition below only applies if its own filter is actually
+        // active — shopFilterActive just means "at least one of these needs
+        // client-side filtering," not that every condition should apply.
+        if (activeFilters.includes('rating_4.5')) {
+          matches = matches.filter(s => s.rating && s.rating >= 4.5);
+        }
+        if (rentThreshold != null) {
+          matches = matches.filter(s => {
+            const rent = parseWeeklyRent(s.rent_rate);
+            return rent != null && rent <= rentThreshold;
+          });
+        }
         const pageOffset = filterTab === 'All' ? (page - 1) * shopLim : fromIndex;
         const pageSize = filterTab === 'All' ? shopLim : ITEMS_PER_PAGE;
         const filteredTotal = matches.length;
