@@ -178,20 +178,26 @@
     }, { passive: true });
 
     // 8. Session Duration (Time on Page)
-    // Use an object to avoid tracking multiple times if visibility changes rapidly
+    // visibilitychange->hidden and pagehide both fire on a real tab close/
+    // navigate-away (almost always, not just as a rare edge case), so both
+    // calling the same handler produced an exact duplicate page_leave for
+    // most real departures. Tracked=true is set immediately and reset on
+    // visibilitychange->visible, so returning to the tab still allows a
+    // later, genuinely separate departure to track again (SPA feel).
     let pageLeaveTracked = false;
     const handlePageLeave = () => {
         if (!pageLeaveTracked) {
+            pageLeaveTracked = true;
             const durationSeconds = Math.round((Date.now() - pageLoadTime) / 1000);
             track("page_leave", { duration_seconds: durationSeconds });
-            // Don't mark tracked=true if we want them to re-track on return.
-            // But typical page_leave implies they left. We'll leave it re-trackable for SPA feel.
         }
     };
 
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "hidden") {
             handlePageLeave();
+        } else if (document.visibilityState === "visible") {
+            pageLeaveTracked = false;
         }
     });
 
