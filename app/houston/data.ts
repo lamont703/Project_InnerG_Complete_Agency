@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "@/lib/supabase-fetch-all";
 import { extractZip } from "@/lib/geo-enrichment";
+import { parseWeeklyRent, median } from "@/lib/shop-ecosystem";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -39,7 +40,14 @@ export interface HoustonData {
   sections: HoustonSection[];
   totalEntities: number;
   avgSchoolScore: number | null;
-  zipCounts: { zip: string; count: number; signal: HoustonZipSignal | null }[];
+  // Scoped by matchesZip like avgSchoolScore — citywide when no zip filter
+  // is applied, single-zip when one is. openChairs sums
+  // booth_count_available across shops+salons; medianWeeklyRent parses
+  // free-text rent_rate the same way the shop ecosystem report and the AI
+  // chat's rent-by-zip tool already do.
+  openChairs: number;
+  medianWeeklyRent: number | null;
+  zipCounts: { zip: string; count: number; signal: HoustonZipSignal | null; openChairs: number; medianWeeklyRent: number | null }[];
 }
 
 // Fetches every Houston-area row across all 7 entity types, extracts a zip
@@ -49,7 +57,7 @@ export interface HoustonData {
 export async function getHoustonData(zip?: string): Promise<HoustonData> {
   const [shops, barberSchools, cosmetSchools, barbers, cosmetologists, salons, barberSupply, beautySupply] = await Promise.all([
     fetchAllRows(supabase, "agent_barbershop_leads",
-      "id, shop_name, city, rating, total_reviews, hiring_need, booth_count_available",
+      "id, shop_name, city, rating, total_reviews, hiring_need, booth_count_available, rent_rate",
       (q) => q.ilike("city", HOUSTON_FILTER)),
     fetchAllRows(supabase, "agent_barber_school_leads",
       "id, school_name, city, formatted_address, rating, school_leaderboard_score_2026, accreditation_status",
@@ -64,7 +72,7 @@ export async function getHoustonData(zip?: string): Promise<HoustonData> {
       "id, name, metro_area, address, booksy_rating, booksy_review_count, specialty_type",
       (q) => q.ilike("metro_area", HOUSTON_FILTER)),
     fetchAllRows(supabase, "agent_salon_leads",
-      "id, shop_name, city, formatted_address, rating, total_reviews, hiring_need, booth_count_available",
+      "id, shop_name, city, formatted_address, rating, total_reviews, hiring_need, booth_count_available, rent_rate",
       (q) => q.ilike("city", HOUSTON_FILTER)),
     fetchAllRows(supabase, "agent_barber_supply_store_leads",
       "id, name, city, rating, total_reviews",
@@ -190,6 +198,20 @@ export async function getHoustonData(zip?: string): Promise<HoustonData> {
   for (const b of barbersZ) bumpPro(b.zip);
   for (const c of cosmetologistsZ) bumpPro(c.zip);
 
+  const chairsByZip = new Map<string, number>();
+  const rentsByZip = new Map<string, number[]>();
+  const bumpChairsAndRent = (z: string | null, chairs: number | null, rentRate: string | null) => {
+    if (!z) return;
+    if (chairs) chairsByZip.set(z, (chairsByZip.get(z) || 0) + chairs);
+    const rent = parseWeeklyRent(rentRate);
+    if (rent != null) {
+      if (!rentsByZip.has(z)) rentsByZip.set(z, []);
+      rentsByZip.get(z)!.push(rent);
+    }
+  };
+  for (const s of shopsZ) bumpChairsAndRent(s.zip, s.booth_count_available, s.rent_rate);
+  for (const s of salonsZ) bumpChairsAndRent(s.zip, s.booth_count_available, s.rent_rate);
+
   const MIN_VENUES_TO_CLASSIFY = 5;
   const classifyZip = (z: string): HoustonZipSignal | null => {
     const venues = venuesByZip.get(z);
@@ -207,13 +229,31 @@ export async function getHoustonData(zip?: string): Promise<HoustonData> {
   };
 
   const zipCounts = Array.from(zipCountMap.entries())
-    .map(([z, count]) => ({ zip: z, count, signal: classifyZip(z) }))
+    .map(([z, count]) => ({
+      zip: z,
+      count,
+      signal: classifyZip(z),
+      openChairs: chairsByZip.get(z) || 0,
+      medianWeeklyRent: median(rentsByZip.get(z) || []),
+    }))
     .sort((a, b) => b.count - a.count);
+
+  // Same matchesZip scoping as avgSchoolScore — citywide total/median when
+  // no zip filter is applied, single-zip when one is.
+  const chairsInScope = [...shopsZ, ...salonsZ]
+    .filter((r) => matchesZip(r.zip))
+    .reduce((sum, r: any) => sum + (r.booth_count_available || 0), 0);
+  const rentsInScope = [...shopsZ, ...salonsZ]
+    .filter((r) => matchesZip(r.zip))
+    .map((r: any) => parseWeeklyRent(r.rent_rate))
+    .filter((v): v is number => v != null);
 
   return {
     sections,
     totalEntities: sections.reduce((sum, s) => sum + s.count, 0),
     avgSchoolScore,
+    openChairs: chairsInScope,
+    medianWeeklyRent: median(rentsInScope),
     zipCounts,
   };
 }
