@@ -355,3 +355,125 @@ export async function getTopVenuesByWorkerCount(supabase: SupabaseClient, limit 
     avgConfidence: Number(r.avg_confidence),
   }));
 }
+
+export interface VenueWorker {
+  professionalType: string;
+  professionalName: string;
+  professionalHref: string | null;
+  venueType: string;
+  venueName: string;
+  venueHref: string | null;
+  distanceMiles: number;
+  confidenceScore: number;
+  confirmationStatus: string;
+}
+
+// The inverse of findProfessionalEmployment — venue name in, list of its
+// matched professionals out. Resolves to the single best-matching venue
+// (or top 2, on a genuine name collision — e.g. two distinct venues both
+// named "Legends Barbershop") rather than a flat, independently-scored
+// list, so results read as "here's who works at THIS place" not a
+// grab-bag of loosely similar names.
+export async function getWorkersAtVenue(supabase: SupabaseClient, venueQuery: string): Promise<VenueWorker[]> {
+  const { data, error } = await supabase.rpc("get_workers_at_venue", { p_venue_query: venueQuery });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    professionalType: r.professional_type,
+    professionalName: r.professional_name,
+    professionalHref: PROFESSIONAL_PATH[r.professional_type] ? `${PROFESSIONAL_PATH[r.professional_type]}/${r.professional_id}` : null,
+    venueType: r.venue_type,
+    venueName: r.venue_name,
+    venueHref: VENUE_PATH[r.venue_type] ? `${VENUE_PATH[r.venue_type]}/${r.venue_id}` : null,
+    distanceMiles: Number(r.distance_miles),
+    confidenceScore: Number(r.confidence_score),
+    confirmationStatus: r.confirmation_status,
+  }));
+}
+
+export interface ConfirmationStats {
+  totalMatches: number;
+  confirmedCount: number;
+  deniedCount: number;
+  unconfirmedCount: number;
+  confirmedPct: number;
+  avgConfidence: number;
+}
+
+// All matches are 'unconfirmed' today (no confirmation/outreach flow
+// exists yet) — confirmedPct will honestly read 0 until that's built,
+// not a bug.
+export async function getConfirmationStats(supabase: SupabaseClient): Promise<ConfirmationStats | null> {
+  const { data, error } = await supabase.rpc("get_confirmation_stats", {});
+  if (error || !data || !data[0]) return null;
+  const r = data[0];
+  return {
+    totalMatches: Number(r.total_matches),
+    confirmedCount: Number(r.confirmed_count),
+    deniedCount: Number(r.denied_count),
+    unconfirmedCount: Number(r.unconfirmed_count),
+    confirmedPct: Number(r.confirmed_pct) || 0,
+    avgConfidence: Number(r.avg_confidence),
+  };
+}
+
+export interface UnconfirmedMatch {
+  professionalType: string;
+  professionalName: string;
+  professionalHref: string | null;
+  venueType: string;
+  venueName: string;
+  venueHref: string | null;
+  distanceMiles: number;
+  confidenceScore: number;
+}
+
+// An outreach worklist, highest confidence first — the most-likely-
+// correct matches get confirmed before lower-confidence ones.
+export async function listUnconfirmedMatches(supabase: SupabaseClient, limit = 20, minConfidence = 0): Promise<UnconfirmedMatch[]> {
+  const { data, error } = await supabase.rpc("list_unconfirmed_matches", { p_limit: limit, p_min_confidence: minConfidence });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    professionalType: r.professional_type,
+    professionalName: r.professional_name,
+    professionalHref: PROFESSIONAL_PATH[r.professional_type] ? `${PROFESSIONAL_PATH[r.professional_type]}/${r.professional_id}` : null,
+    venueType: r.venue_type,
+    venueName: r.venue_name,
+    venueHref: VENUE_PATH[r.venue_type] ? `${VENUE_PATH[r.venue_type]}/${r.venue_id}` : null,
+    distanceMiles: Number(r.distance_miles),
+    confidenceScore: Number(r.confidence_score),
+  }));
+}
+
+export interface EmploymentMatchOverview {
+  totalMatches: number;
+  barberMatches: number;
+  cosmetologistMatches: number;
+  shopMatches: number;
+  salonMatches: number;
+  avgConfidence: number;
+  avgDistanceMiles: number;
+  highConfidenceCount: number;
+  lowConfidenceCount: number;
+  unmatchedEligibleCount: number;
+}
+
+// Data-quality/audit overview — totals, breakdowns, and how many
+// eligible professionals (had lat/lng, real name) never landed a match
+// within 3 miles of anywhere, not just how many were never attempted.
+export async function getEmploymentMatchOverview(supabase: SupabaseClient): Promise<EmploymentMatchOverview | null> {
+  const { data, error } = await supabase.rpc("get_employment_match_overview", {});
+  if (error || !data || !data[0]) return null;
+  const r = data[0];
+  return {
+    totalMatches: Number(r.total_matches),
+    barberMatches: Number(r.barber_matches),
+    cosmetologistMatches: Number(r.cosmetologist_matches),
+    shopMatches: Number(r.shop_matches),
+    salonMatches: Number(r.salon_matches),
+    avgConfidence: Number(r.avg_confidence),
+    avgDistanceMiles: Number(r.avg_distance_miles),
+    highConfidenceCount: Number(r.high_confidence_count),
+    lowConfidenceCount: Number(r.low_confidence_count),
+    unmatchedEligibleCount: Number(r.unmatched_eligible_count),
+  };
+}

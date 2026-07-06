@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount } from '@/lib/shop-ecosystem';
+import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview } from '@/lib/shop-ecosystem';
 
 // Next.js patches the global fetch() to cache responses by default, which
 // can end up caching the Gemini SDK's own internal fetch calls (identical
@@ -327,6 +327,16 @@ DO NOT INVENT FACTS — THIS INCLUDES ADDRESSES, NOT JUST LINKS: a real conversa
 
 GET_TOP_VENUES_BY_WORKER_COUNT TOOL RULE: For aggregate questions about professional_employment_matches — "which shop/salon has the most workers," "who employs the most people" — call get_top_venues_by_worker_count. This is a DIFFERENT tool from find_professional_employment: that one looks up a single named person, this one ranks venues by how many matched professionals they have. Do not try to answer this kind of question from find_professional_employment or by counting entries elsewhere in context — call this tool instead. Same "unconfirmed inference" framing applies: mention avgConfidence in plain terms and note these are geocoded matches, not confirmed employment records. Hyperlink each venue using its venueHref per the LINKING RULE.
 
+GET_WORKERS_AT_VENUE TOOL RULE: For "who works at [shop/salon name]" / "list the workers at [venue]" style questions — the INVERSE of find_professional_employment (that's person->venue, this is venue->people) — ALWAYS call get_workers_at_venue with whatever venue name was given, however short or partial (even a single word like "Legends" for "Legends Barbershop"). Do NOT decline or ask for the "full business name" before trying — the tool is built to fuzzy-match a partial name, exactly like find_professional_employment does for people, and refusing to try defeats the purpose. Call it first; only ask a clarifying question afterward if it actually returns an empty array. It can return workers from TWO distinct venues if the name is genuinely ambiguous (e.g. two different real shops both called "Legends Barbershop") — if you see more than one distinct venueName in the results, say so explicitly and group workers under their correct venue rather than presenting them as one list. Hyperlink every professional and the venue per the LINKING RULE. If empty, say plainly no workers were found for that venue name — don't guess. IF THE RESULT HAS MORE THAN 6 WORKERS: don't list every single one — name the top 5-6 by confidence (with their links) and then say "and N more" for the rest, rather than producing an exhaustive list. This keeps the answer readable and avoids running into the output length limit on large rosters.
+
+GET_CONFIRMATION_STATS TOOL RULE: For "how many placements are confirmed," "what's our confirmation rate," or similar aggregate audit questions, call get_confirmation_stats. It's fine, and currently accurate, for confirmedCount/confirmedPct to be 0 — no confirmation/outreach step exists yet, so every match is genuinely still unconfirmed. State this plainly (e.g. "0 of X have been confirmed yet — all are still unconfirmed inferences") rather than treating a 0 as an error or omitting it.
+
+LIST_UNCONFIRMED_MATCHES TOOL RULE: For "show me the matches that need confirming" / "give me a list to follow up on" style requests, call list_unconfirmed_matches. This is a worklist for a human to act on, not a factual answer — frame it that way (e.g. "here are the highest-confidence unconfirmed matches to start with"), and hyperlink every professional and venue per the LINKING RULE. This defaults to returning up to 20 — IF THE RESULT HAS MORE THAN 6, list only the top 5-6 (with links) and say "and N more" for the rest, same reasoning as GET_WORKERS_AT_VENUE: keeps the answer readable and avoids the output length limit.
+
+GET_EMPLOYMENT_MATCH_OVERVIEW TOOL RULE: For broad audit/data-quality questions — "how many total matches do we have," "what's the breakdown by profession type," "how many professionals have no match at all" — call get_employment_match_overview. unmatchedEligibleCount is the count of professionals who had enough data to be searched (address, real name) but weren't within 3 miles of any shop/salon — distinct from professionals who were simply never eligible to search in the first place.
+
+SCHOOL-LEVEL PLACEMENT RATE — NOT SUPPORTED: If asked for a specific school's placement rate or how many of a named school's graduates are employed, say plainly that school affiliation isn't reliably on file for enough professionals to answer that yet (it's self-reported and very sparse) — do not attempt to compute or estimate a per-school rate from context or any tool here.
+
 ENTITY LINKING IS NOT OPTIONAL: AI Mode doubles as navigation into the rest of the site, not just an answer — so the LINKING RULE above applies every single time you mention a specific barbershop/barber/school/salon/cosmetologist/store/tool that has a profile_url (or an equivalent href from a tool result like find_professional_employment), with no exceptions. Don't drop a link just because you've already mentioned that entity earlier in the conversation — link it again each time.
 
 Context Data (JSON):
@@ -375,6 +385,38 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
             },
           },
         },
+        {
+          name: 'get_workers_at_venue',
+          description: "List the professionals matched to a specific shop or salon by name — the inverse of find_professional_employment (that's person-to-venue, this is venue-to-people). Use for 'who works at X' or 'list the workers at X' questions. The venue name match is fuzzy/partial, same as find_professional_employment.",
+          parametersJsonSchema: {
+            type: 'object',
+            properties: {
+              venueName: { type: 'string', description: "The shop or salon name to search for, exactly as given, however partial or short. A single word IS a valid, sufficient input on its own — e.g. if asked 'who works at Legends', pass 'Legends' directly; it will correctly match 'Legends Barbershop' via fuzzy search. Never wait for or ask for the full business name first." },
+            },
+            required: ['venueName'],
+          },
+        },
+        {
+          name: 'get_confirmation_stats',
+          description: "Get the overall confirmation-status breakdown across all employment matches — total matches, how many are confirmed/denied/unconfirmed, and the confirmation rate. Use for 'how many placements are confirmed' or 'what's our confirmation rate' style questions.",
+          parametersJsonSchema: { type: 'object', properties: {} },
+        },
+        {
+          name: 'list_unconfirmed_matches',
+          description: "Get a worklist of unconfirmed employment matches, highest confidence first, for outreach/follow-up. Use for 'show me matches that need confirming' or 'give me a list to follow up on' style requests.",
+          parametersJsonSchema: {
+            type: 'object',
+            properties: {
+              limit: { type: 'number', description: "How many to return. Defaults to 20 if not specified." },
+              minConfidence: { type: 'number', description: "Only include matches at or above this confidence score (0-100). Omit to include all." },
+            },
+          },
+        },
+        {
+          name: 'get_employment_match_overview',
+          description: "Get overall data-quality stats for the employment-match dataset: total matches, breakdown by profession type (barber/cosmetologist) and venue type (shop/salon), average confidence and distance, and how many eligible professionals had no match found nearby. Use for broad audit questions like 'how many total matches do we have' or 'what's the breakdown by type.'",
+          parametersJsonSchema: { type: 'object', properties: {} },
+        },
       ],
     };
 
@@ -391,10 +433,12 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
       // response now includes two markdown links per candidate (person +
       // venue), and 250 was observed truncating mid-link for a 3-candidate
       // answer (confirmed live: response cut off inside an unclosed
-      // markdown link). Still a real ceiling, just sized for the longer,
-      // now-mandatory-linking responses rather than the plain-text ones
-      // this was originally tuned for.
-      maxOutputTokens: 400,
+      // markdown link). Raised again to 600 after get_workers_at_venue
+      // (a venue with 14 matched workers) also truncated at 400 — paired
+      // with a "summarize past 6" instruction on that tool's rule so this
+      // is a safety margin, not the only thing preventing truncation on
+      // an even larger roster.
+      maxOutputTokens: 600,
       // Gemini 2.5 Flash's internal "thinking" tokens count against
       // maxOutputTokens by default — for this simple RAG-lookup-and-
       // summarize task, thinking was eating 200+ of the 250 token budget
@@ -431,6 +475,17 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
             const limit = (fc.args?.limit as number | undefined) || 10;
             const venueType = fc.args?.venueType as ('shop' | 'salon' | undefined);
             result = await getTopVenuesByWorkerCount(supabase as any, limit, venueType);
+          } else if (fc.name === 'get_workers_at_venue') {
+            const venueName = fc.args?.venueName as string | undefined;
+            result = venueName ? await getWorkersAtVenue(supabase as any, venueName) : [];
+          } else if (fc.name === 'get_confirmation_stats') {
+            result = await getConfirmationStats(supabase as any);
+          } else if (fc.name === 'list_unconfirmed_matches') {
+            const limit = (fc.args?.limit as number | undefined) || 20;
+            const minConfidence = (fc.args?.minConfidence as number | undefined) || 0;
+            result = await listUnconfirmedMatches(supabase as any, limit, minConfidence);
+          } else if (fc.name === 'get_employment_match_overview') {
+            result = await getEmploymentMatchOverview(supabase as any);
           }
           return { functionResponse: { name: fc.name, response: { result } } };
         })
