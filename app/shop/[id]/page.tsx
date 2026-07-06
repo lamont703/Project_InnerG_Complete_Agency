@@ -116,6 +116,19 @@ export default async function ShopProfilePage({ params }: Props) {
 
   const ecosystemReport = await computeShopEcosystemReport(supabase, shop);
 
+  // Rolling 30-day window for a "found this month" framing that stays
+  // meaningful going forward rather than an all-time count that only ever
+  // grows. Analytics only — does not affect trust_score (that reads
+  // claimed_at directly in search_barbershops_ranked).
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: searchPerfRows } = await supabase.rpc('get_search_performance_by_entity', {
+    p_entity_id: shop.id,
+    p_result_type: 'shop',
+    p_cutoff: thirtyDaysAgo,
+  });
+  const searchPerformance = (searchPerfRows && searchPerfRows[0]) || null;
+  const isClaimed = !!shop.claimed_at;
+
   const tagList = shop.place_types
     ? shop.place_types.split('|').map((t: string) => t.trim().replace('_', ' ')).filter((t: string) => t !== 'point of interest' && t !== 'establishment' && t !== 'service' && t !== 'health')
     : [];
@@ -161,7 +174,14 @@ export default async function ShopProfilePage({ params }: Props) {
           </div>
 
           <div className="flex gap-3">
-            <ClaimShopButton shop={shop} />
+            {isClaimed ? (
+              <span className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-100 px-6 py-3 rounded-xl font-bold text-sm">
+                <CheckCircle2 className="w-4 h-4" />
+                Claimed
+              </span>
+            ) : (
+              <ClaimShopButton shop={shop} />
+            )}
           </div>
         </div>
 
@@ -433,6 +453,53 @@ export default async function ShopProfilePage({ params }: Props) {
                   </div>
                 )}
               </div>
+
+              {/* Search Performance — teaser for unclaimed shops (encourages
+                  claiming), full breakdown once claimed. claimed_at is a
+                  self-reported flag set by the claim form, not verified
+                  ownership — same trust level that form already operates at. */}
+              {!isClaimed ? (
+                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="w-4 h-4 text-indigo-600" />
+                    <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Search Visibility</p>
+                  </div>
+                  {searchPerformance ? (
+                    <p className="text-sm text-slate-700 font-semibold mb-3">
+                      <span className="font-black text-slate-900">{searchPerformance.impressions}</span> people found this shop through search in the last 30 days.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-slate-700 font-semibold mb-3">
+                      This shop is visible in search results right now.
+                    </p>
+                  )}
+                  <p className="text-xs text-slate-500">
+                    Claim this shop to see your click-through rate, average search position, and boost your ranking.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-emerald-600" />
+                      <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Search Performance</p>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">
+                      <CheckCircle2 className="w-3 h-3" /> Claimed
+                    </span>
+                  </div>
+                  {searchPerformance ? (
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div><p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Impressions</p><p className="font-black text-slate-900">{searchPerformance.impressions}</p></div>
+                      <div><p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Avg. Position</p><p className="font-black text-slate-900">{searchPerformance.avg_position}</p></div>
+                      <div><p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Clicks</p><p className="font-black text-slate-900">{searchPerformance.clicks}</p></div>
+                      <div><p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">CTR</p><p className="font-black text-slate-900">{searchPerformance.ctr}%</p></div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-600">Not enough search activity yet in the last 30 days.</p>
+                  )}
+                </div>
+              )}
 
               <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
                 <Lock className="w-3 h-3" />
