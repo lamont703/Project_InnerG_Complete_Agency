@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Compass, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
+import { Compass, ArrowRight, ArrowUp, ArrowDown, Send, CheckCircle2, Loader2 } from "lucide-react";
 import type { EmploymentMatchRow } from "./data";
+import { requestEmploymentVerification } from "./actions";
 
 type ConfTier = "high" | "mid" | "low";
 
@@ -22,12 +23,49 @@ const TIER_LABELS: Record<ConfTier, string> = { high: "High", mid: "Medium", low
 
 type SortKey = "professionalName" | "professionalType" | "venueName" | "venueType" | "distanceMiles" | "confidenceScore";
 
-export function EmploymentMatchReview({ data }: { data: EmploymentMatchRow[] }) {
+function rowKey(r: { professionalType: string; professionalId: string }) {
+  return `${r.professionalType}:${r.professionalId}`;
+}
+
+export function EmploymentMatchReview({ data: initialData }: { data: EmploymentMatchRow[] }) {
+  const [data, setData] = useState(initialData);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "barber" | "cosmetologist">("all");
   const [confFilter, setConfFilter] = useState<"all" | ConfTier>("all");
+  const [verificationFilter, setVerificationFilter] = useState<"all" | "requested" | "not_requested">("all");
   const [sortKey, setSortKey] = useState<SortKey>("confidenceScore");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [pending, setPending] = useState<Set<string>>(new Set());
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+
+  const requestOne = async (r: EmploymentMatchRow) => {
+    const key = rowKey(r);
+    setPending((p) => new Set(p).add(key));
+    setRowErrors((e) => { const next = { ...e }; delete next[key]; return next; });
+    const result = await requestEmploymentVerification(r.professionalType, r.professionalId);
+    setPending((p) => { const next = new Set(p); next.delete(key); return next; });
+    if (result.success) {
+      setData((d) => d.map((row) => (rowKey(row) === key ? { ...row, verificationRequestedAt: new Date().toISOString() } : row)));
+    } else {
+      setRowErrors((e) => ({ ...e, [key]: result.error || "Request failed." }));
+    }
+  };
+
+  const requestSelected = async () => {
+    const rows = data.filter((r) => selected.has(rowKey(r)) && !r.verificationRequestedAt);
+    await Promise.all(rows.map((r) => requestOne(r)));
+    setSelected(new Set());
+  };
+
+  const toggleSelected = (key: string) => {
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const total = data.length;
   const barberCount = useMemo(() => data.filter((d) => d.professionalType === "barber").length, [data]);
@@ -52,6 +90,8 @@ export function EmploymentMatchReview({ data }: { data: EmploymentMatchRow[] }) 
     let rows = data;
     if (typeFilter !== "all") rows = rows.filter((r) => r.professionalType === typeFilter);
     if (confFilter !== "all") rows = rows.filter((r) => confTier(r.confidenceScore) === confFilter);
+    if (verificationFilter === "requested") rows = rows.filter((r) => !!r.verificationRequestedAt);
+    if (verificationFilter === "not_requested") rows = rows.filter((r) => !r.verificationRequestedAt);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       rows = rows.filter((r) => r.professionalName.toLowerCase().includes(q) || r.venueName.toLowerCase().includes(q));
@@ -64,7 +104,7 @@ export function EmploymentMatchReview({ data }: { data: EmploymentMatchRow[] }) 
       else cmp = (av as number) - (bv as number);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [data, typeFilter, confFilter, search, sortKey, sortDir]);
+  }, [data, typeFilter, confFilter, verificationFilter, search, sortKey, sortDir]);
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -172,7 +212,32 @@ export function EmploymentMatchReview({ data }: { data: EmploymentMatchRow[] }) 
               {c === "all" ? "Any confidence" : c === "high" ? "High (70+)" : c === "mid" ? "Medium (40–70)" : "Low (<40)"}
             </button>
           ))}
+          {(["all", "not_requested", "requested"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setVerificationFilter(v)}
+              className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-colors ${
+                verificationFilter === v ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              {v === "all" ? "Any verification status" : v === "not_requested" ? "Not requested" : "Requested"}
+            </button>
+          ))}
         </div>
+
+        {selected.size > 0 && (
+          <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 mb-4">
+            <p className="text-sm font-semibold text-indigo-900">{selected.size} selected</p>
+            <button
+              onClick={requestSelected}
+              disabled={[...selected].every((k) => pending.has(k))}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold disabled:opacity-50"
+            >
+              <Send className="w-3.5 h-3.5" />
+              Request Verification for Selected
+            </button>
+          </div>
+        )}
 
         <p className="text-xs text-slate-400 mb-3">
           Showing {filtered.length.toLocaleString()} of {total.toLocaleString()} matches
@@ -184,6 +249,21 @@ export function EmploymentMatchReview({ data }: { data: EmploymentMatchRow[] }) 
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-white z-10 border-b border-slate-200">
                 <tr>
+                  <th className="px-4 py-3 w-8">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all visible rows"
+                      checked={filtered.length > 0 && filtered.every((r) => selected.has(rowKey(r)))}
+                      onChange={(e) => {
+                        setSelected((s) => {
+                          const next = new Set(s);
+                          if (e.target.checked) filtered.forEach((r) => next.add(rowKey(r)));
+                          else filtered.forEach((r) => next.delete(rowKey(r)));
+                          return next;
+                        });
+                      }}
+                    />
+                  </th>
                   <SortHeader label="Professional" k="professionalName" />
                   <SortHeader label="Type" k="professionalType" />
                   <th></th>
@@ -191,20 +271,32 @@ export function EmploymentMatchReview({ data }: { data: EmploymentMatchRow[] }) 
                   <SortHeader label="Venue Type" k="venueType" />
                   <SortHeader label="Distance" k="distanceMiles" />
                   <SortHeader label="Confidence" k="confidenceScore" />
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Verification</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-slate-400">
+                    <td colSpan={9} className="text-center py-12 text-slate-400">
                       No matches for this filter combination.
                     </td>
                   </tr>
                 ) : (
                   filtered.map((r, i) => {
                     const tier = confTier(r.confidenceScore);
+                    const key = rowKey(r);
+                    const isPending = pending.has(key);
+                    const rowError = rowErrors[key];
                     return (
                       <tr key={i} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${r.professionalName}`}
+                            checked={selected.has(key)}
+                            onChange={() => toggleSelected(key)}
+                          />
+                        </td>
                         <td className="px-4 py-2.5 font-medium text-slate-900 max-w-[220px] truncate" title={r.professionalName}>
                           {r.professionalName}
                         </td>
@@ -225,6 +317,24 @@ export function EmploymentMatchReview({ data }: { data: EmploymentMatchRow[] }) 
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${TIER_STYLES[tier]}`}>
                             {r.confidenceScore.toFixed(1)} · {TIER_LABELS[tier]}
                           </span>
+                        </td>
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          {r.verificationRequestedAt ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Requested {new Date(r.verificationRequestedAt).toLocaleDateString()}
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => requestOne(r)}
+                              disabled={isPending}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:border-indigo-300 hover:text-indigo-700 text-xs font-bold text-slate-600 disabled:opacity-50"
+                            >
+                              {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                              {isPending ? "Requesting…" : "Request Verification"}
+                            </button>
+                          )}
+                          {rowError && <p className="text-[11px] text-rose-600 mt-1">{rowError}</p>}
                         </td>
                       </tr>
                     );

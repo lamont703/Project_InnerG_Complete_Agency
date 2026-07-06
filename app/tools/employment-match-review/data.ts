@@ -7,12 +7,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export interface EmploymentMatchRow {
   professionalType: "barber" | "cosmetologist";
+  professionalId: string;
   professionalName: string;
   venueType: "shop" | "salon";
   venueName: string;
   distanceMiles: number;
   confidenceScore: number;
   confirmationStatus: string;
+  verificationRequestedAt: string | null;
 }
 
 // professional_employment_matches has no anon/authenticated RLS policy
@@ -22,16 +24,18 @@ export async function getEmploymentMatches(): Promise<EmploymentMatchRow[]> {
   const rows = await fetchAllRows(
     supabase,
     "professional_employment_matches",
-    "professional_type, professional_name, venue_type, venue_name, distance_miles, confidence_score, confirmation_status"
+    "professional_type, professional_id, professional_name, venue_type, venue_name, distance_miles, confidence_score, confirmation_status, verification_requested_at"
   );
 
   return rows.map((r: any) => ({
     professionalType: r.professional_type,
+    professionalId: r.professional_id,
     professionalName: r.professional_name,
     venueType: r.venue_type,
     venueName: r.venue_name,
     distanceMiles: Number(r.distance_miles),
     confidenceScore: Number(r.confidence_score),
     confirmationStatus: r.confirmation_status,
+    verificationRequestedAt: r.verification_requested_at || null,
   }));
 }
