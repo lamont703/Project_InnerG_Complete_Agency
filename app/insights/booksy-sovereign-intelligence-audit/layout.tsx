@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Why Booksy is Failing Barbers in 2026 | Sovereign Audit',
-  description: 'We audited Booksy\'s algorithm. Discover why top barbers are abandoning legacy booking apps for autonomous AI concierges.',
+  title: 'Booksy for Barbershops: 2026 Review — Pricing, Limits & Alternatives',
+  description: 'An independent look at Booksy\'s booking platform for barbershops in 2026 — what it does well, where it falls short, and what AI-driven alternatives now offer.',
   keywords: [
     'Booksy alternatives 2026',
     'why barbers are leaving booksy',
@@ -10,8 +10,8 @@ export const metadata: Metadata = {
     'Booksy platform audit',
   ],
   openGraph: {
-    title: 'Why Booksy is Failing Barbers in 2026 | Sovereign Audit',
-    description: 'We audited Booksy\'s algorithm. Discover why top barbers are abandoning legacy booking apps for autonomous AI concierges.',
+    title: 'Booksy for Barbershops: 2026 Review — Pricing, Limits & Alternatives',
+    description: 'An independent look at Booksy\'s booking platform for barbershops in 2026 — what it does well, where it falls short, and what AI-driven alternatives now offer.',
     type: 'article',
     url: 'https://agency.innergcomplete.com/insights/booksy-sovereign-intelligence-audit',
     siteName: 'Inner G Complete Agency',
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Booksy's Intelligence Ceiling",
+    title: "Booksy for Barbershops: 2026 Review",
     images: ['/booksy_sovereign_intelligence_audit.png'],
   },
   alternates: {

@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'ABC Fitness Software Audit: Too Big to Innovate? | Sovereign Audit',
-  description: 'We analyzed ABC Fitness\'s enterprise architecture. Discover why boutique fitness owners are ditching it for sovereign AI solutions.',
+  title: 'ABC Fitness Software Review 2026: Features, Cost & Better Fits for Boutique Studios',
+  description: 'What ABC Fitness gets right for large gym chains — and why boutique studio owners are increasingly looking elsewhere.',
   openGraph: {
-    title: 'ABC Fitness Software Audit: Too Big to Innovate? | Sovereign Audit',
-    description: 'We analyzed ABC Fitness\'s enterprise architecture. Discover why boutique fitness owners are ditching it for sovereign AI solutions.',
+    title: 'ABC Fitness Software Review 2026: Features, Cost & Better Fits for Boutique Studios',
+    description: 'What ABC Fitness gets right for large gym chains — and why boutique studio owners are increasingly looking elsewhere.',
     type: 'article',
     url: 'https://agency.innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit',
     siteName: 'Inner G Complete Agency',
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ABC Fitness's Intelligence Ceiling",
+    title: "ABC Fitness Software Review 2026",
     images: ['/abc_fitness_sovereign_intelligence_audit.png'],
   },
   alternates: {

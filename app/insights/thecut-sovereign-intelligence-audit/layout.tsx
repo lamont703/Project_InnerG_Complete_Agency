@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'TheCut App Review 2026: Why Barbers Are Leaving | Sovereign Audit',
-  description: 'A brutal audit of TheCut platform. See why the top 1% of barbers are replacing it with custom AI-powered booking funnels.',
+  title: 'TheCut App Review 2026: Features, Pricing & What Barbers Are Saying',
+  description: 'An honest look at TheCut\'s booking app for barbers — what works, common complaints, and how it compares to newer AI-driven tools.',
   keywords: [
     'theCut alternatives 2026',
     'thecut app review',
@@ -10,8 +10,8 @@ export const metadata: Metadata = {
     'theCut strategic audit',
   ],
   openGraph: {
-    title: 'TheCut App Review 2026: Why Barbers Are Leaving | Sovereign Audit',
-    description: 'A brutal audit of TheCut platform. See why the top 1% of barbers are replacing it with custom AI-powered booking funnels.',
+    title: 'TheCut App Review 2026: Features, Pricing & What Barbers Are Saying',
+    description: 'An honest look at TheCut\'s booking app for barbers — what works, common complaints, and how it compares to newer AI-driven tools.',
     type: 'article',
     url: 'https://agency.innergcomplete.com/insights/thecut-sovereign-intelligence-audit',
     siteName: 'Inner G Complete Agency',
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "theCut's Intelligence Ceiling",
+    title: "TheCut App Review 2026",
     images: ['/thecut_sovereign_intelligence_audit.png'],
   },
   alternates: {

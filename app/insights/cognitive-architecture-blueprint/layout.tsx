@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'The Cognitive Architecture Blueprint | ADI Methodology',
-  description: 'How Inner G Complete applies the PMI-certified CPMAI framework to architect governance-first Aesthetic Domain Intelligence (ADI) models.',
+  title: 'How We Build AI Systems for Barbershops: Our Framework Explained',
+  description: 'A behind-the-scenes look at the framework we use to design reliable, governance-first AI tools for the barber and beauty industry.',
   keywords: ['CPMAI framework', 'cognitive architecture', 'ADI methodology', 'AI project management'],
   openGraph: {
-    title: 'The Cognitive Architecture Blueprint | Inner G Complete',
+    title: 'How We Build AI Systems for Barbershops: Our Framework Explained',
+    description: 'A behind-the-scenes look at the framework we use to design reliable, governance-first AI tools for the barber and beauty industry.',
     type: 'article',
     url: 'https://innergcomplete.com/insights/cognitive-architecture-blueprint',
     siteName: 'Inner G Complete Agency',
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Cognitive Architecture Blueprint",
+    title: "How We Build AI Systems for Barbershops",
     images: ['/cpmai_framework_cover.png'],
   },
   alternates: {
