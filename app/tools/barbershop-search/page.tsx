@@ -247,10 +247,35 @@ function SearchContent() {
   // that specific shop already asked, so they don't have to re-explain
   // which shop they mean. shopId rides along in the chat request so the
   // backend can compute (not embed-search) that shop's ecosystem report.
+  //
+  // Also restores a persisted conversation here, before the kickoff check
+  // below — clicking a hyperlink out of AI Mode (e.g. to a barber/shop
+  // profile) fully unmounts this page, wiping plain React state, so
+  // hitting Back previously landed on an empty chat. sessionStorage
+  // survives that the same way the search-results cache already does.
+  // Uses a local `restored` flag rather than chatMessages.length, since
+  // setChatMessages here hasn't triggered a re-render yet within this
+  // same effect pass — reading component state would still see stale 0.
   useEffect(() => {
+    let restored = false;
+    try {
+      const savedMessages = sessionStorage.getItem('aiModeChatMessages');
+      if (savedMessages) {
+        const parsed = JSON.parse(savedMessages);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setChatMessages(parsed);
+          restored = true;
+        }
+      }
+      const savedShopId = sessionStorage.getItem('aiModeEcosystemShopId');
+      if (savedShopId) setActiveEcosystemShopId(savedShopId);
+      const savedVerified = sessionStorage.getItem('aiModeVerificationRequested');
+      if (savedVerified) setVerificationRequested(new Set(JSON.parse(savedVerified)));
+    } catch {}
+
     const ecosystemShopId = searchParams.get("ecosystemShopId");
     const ecosystemShopName = searchParams.get("ecosystemShopName");
-    if (ecosystemShopId && chatMessages.length === 0) {
+    if (!restored && ecosystemShopId && chatMessages.length === 0) {
       setFilterTab("AI Mode");
       setActiveEcosystemShopId(ecosystemShopId);
       const shopLabel = ecosystemShopName || "my shop";
@@ -258,6 +283,33 @@ function SearchContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Persist as the conversation grows — sessionStorage (not localStorage)
+  // so it survives a back-navigation within this tab/session but doesn't
+  // resurrect a stale conversation on a future, unrelated visit.
+  useEffect(() => {
+    try {
+      if (chatMessages.length > 0) sessionStorage.setItem('aiModeChatMessages', JSON.stringify(chatMessages));
+    } catch {}
+  }, [chatMessages]);
+
+  useEffect(() => {
+    try {
+      if (activeEcosystemShopId) sessionStorage.setItem('aiModeEcosystemShopId', activeEcosystemShopId);
+    } catch {}
+  }, [activeEcosystemShopId]);
+
+  useEffect(() => {
+    // Guard on size > 0, same reasoning as the two effects above — without
+    // it, this fires on the very first render (before the restore effect's
+    // setVerificationRequested has actually applied) with the initial
+    // empty Set, clobbering the just-restored sessionStorage value back to
+    // "[]" a moment after it was read (confirmed live: restored data was
+    // present immediately post-restore, then wiped by this effect).
+    try {
+      if (verificationRequested.size > 0) sessionStorage.setItem('aiModeVerificationRequested', JSON.stringify([...verificationRequested]));
+    } catch {}
+  }, [verificationRequested]);
 
   useEffect(() => {
     // `ignore` guards against a stale in-flight search resolving after the
