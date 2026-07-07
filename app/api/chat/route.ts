@@ -456,6 +456,17 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
     // Single round of tool-calling: if the model asked for rent data,
     // execute it, hand the result back, and let it produce the real
     // answer. Not a full agentic loop — one round covers this one tool.
+    //
+    // employmentMatches collects raw results from the three employment
+    // tools that return individually-actionable matches (not the
+    // aggregate ones) — passed back to the frontend alongside the text
+    // so it can render a "Request Verification" button per match
+    // without parsing it back out of prose. Deliberately NOT tool
+    // calling: the model only ever answers the question, it never
+    // decides to trigger a verification request — that stays a
+    // deterministic UI action tied to structured data, not something an
+    // unauthenticated chat surface can be talked into doing.
+    const employmentMatches: any[] = [];
     if (response.functionCalls && response.functionCalls.length > 0) {
       contents.push({
         role: 'model',
@@ -471,6 +482,7 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
           } else if (fc.name === 'find_professional_employment') {
             const name = fc.args?.name as string | undefined;
             result = name ? await findProfessionalEmployment(supabase as any, name) : [];
+            employmentMatches.push(...(result as any[]));
           } else if (fc.name === 'get_top_venues_by_worker_count') {
             const limit = (fc.args?.limit as number | undefined) || 10;
             const venueType = fc.args?.venueType as ('shop' | 'salon' | undefined);
@@ -478,12 +490,14 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
           } else if (fc.name === 'get_workers_at_venue') {
             const venueName = fc.args?.venueName as string | undefined;
             result = venueName ? await getWorkersAtVenue(supabase as any, venueName) : [];
+            employmentMatches.push(...(result as any[]));
           } else if (fc.name === 'get_confirmation_stats') {
             result = await getConfirmationStats(supabase as any);
           } else if (fc.name === 'list_unconfirmed_matches') {
             const limit = (fc.args?.limit as number | undefined) || 20;
             const minConfidence = (fc.args?.minConfidence as number | undefined) || 0;
             result = await listUnconfirmedMatches(supabase as any, limit, minConfidence);
+            employmentMatches.push(...(result as any[]));
           } else if (fc.name === 'get_employment_match_overview') {
             result = await getEmploymentMatchOverview(supabase as any);
           }
@@ -511,7 +525,7 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
     const nextReset = resetTime && new Date() > new Date(resetTime) ? resetTime : new Date(Date.now() + RATE_LIMIT_RESET_HOURS * 60 * 60 * 1000).toISOString();
 
     const finalText = response.text ? sanitizeMarkdownLinks(response.text, validLinks) : response.text;
-    const res = NextResponse.json({ text: finalText });
+    const res = NextResponse.json({ text: finalText, employmentMatches });
     res.cookies.set('ai_chat_count', newCount.toString(), { path: '/' });
     res.cookies.set('ai_chat_reset', nextReset, { path: '/' });
 

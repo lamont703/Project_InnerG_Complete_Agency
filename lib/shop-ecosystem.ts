@@ -285,6 +285,7 @@ export async function getRentStatsByZip(supabase: SupabaseClient, zip: string): 
 
 export interface ProfessionalEmploymentMatch {
   professionalType: string;
+  professionalId: string;
   professionalName: string;
   professionalHref: string | null;
   professionalAddress: string | null;
@@ -295,6 +296,7 @@ export interface ProfessionalEmploymentMatch {
   distanceMiles: number;
   confidenceScore: number;
   nameMatchScore: number;
+  verificationRequestedAt: string | null;
 }
 
 const PROFESSIONAL_PATH: Record<string, string> = { barber: "/barbers", cosmetologist: "/cosmetologists" };
@@ -316,6 +318,7 @@ export async function findProfessionalEmployment(supabase: SupabaseClient, name:
   if (error || !data) return [];
   return (data as any[]).map((r) => ({
     professionalType: r.professional_type,
+    professionalId: r.professional_id,
     professionalName: r.professional_name,
     professionalHref: PROFESSIONAL_PATH[r.professional_type] ? `${PROFESSIONAL_PATH[r.professional_type]}/${r.professional_id}` : null,
     professionalAddress: r.professional_address || null,
@@ -326,6 +329,7 @@ export async function findProfessionalEmployment(supabase: SupabaseClient, name:
     distanceMiles: Number(r.distance_miles),
     confidenceScore: Number(r.confidence_score),
     nameMatchScore: Number(r.name_match_score),
+    verificationRequestedAt: r.verification_requested_at || null,
   }));
 }
 
@@ -358,6 +362,7 @@ export async function getTopVenuesByWorkerCount(supabase: SupabaseClient, limit 
 
 export interface VenueWorker {
   professionalType: string;
+  professionalId: string;
   professionalName: string;
   professionalHref: string | null;
   venueType: string;
@@ -366,6 +371,7 @@ export interface VenueWorker {
   distanceMiles: number;
   confidenceScore: number;
   confirmationStatus: string;
+  verificationRequestedAt: string | null;
 }
 
 // The inverse of findProfessionalEmployment — venue name in, list of its
@@ -379,6 +385,7 @@ export async function getWorkersAtVenue(supabase: SupabaseClient, venueQuery: st
   if (error || !data) return [];
   return (data as any[]).map((r) => ({
     professionalType: r.professional_type,
+    professionalId: r.professional_id,
     professionalName: r.professional_name,
     professionalHref: PROFESSIONAL_PATH[r.professional_type] ? `${PROFESSIONAL_PATH[r.professional_type]}/${r.professional_id}` : null,
     venueType: r.venue_type,
@@ -387,6 +394,7 @@ export async function getWorkersAtVenue(supabase: SupabaseClient, venueQuery: st
     distanceMiles: Number(r.distance_miles),
     confidenceScore: Number(r.confidence_score),
     confirmationStatus: r.confirmation_status,
+    verificationRequestedAt: r.verification_requested_at || null,
   }));
 }
 
@@ -418,6 +426,7 @@ export async function getConfirmationStats(supabase: SupabaseClient): Promise<Co
 
 export interface UnconfirmedMatch {
   professionalType: string;
+  professionalId: string;
   professionalName: string;
   professionalHref: string | null;
   venueType: string;
@@ -425,6 +434,7 @@ export interface UnconfirmedMatch {
   venueHref: string | null;
   distanceMiles: number;
   confidenceScore: number;
+  verificationRequestedAt: string | null;
 }
 
 // An outreach worklist, highest confidence first — the most-likely-
@@ -434,6 +444,7 @@ export async function listUnconfirmedMatches(supabase: SupabaseClient, limit = 2
   if (error || !data) return [];
   return (data as any[]).map((r) => ({
     professionalType: r.professional_type,
+    professionalId: r.professional_id,
     professionalName: r.professional_name,
     professionalHref: PROFESSIONAL_PATH[r.professional_type] ? `${PROFESSIONAL_PATH[r.professional_type]}/${r.professional_id}` : null,
     venueType: r.venue_type,
@@ -441,6 +452,7 @@ export async function listUnconfirmedMatches(supabase: SupabaseClient, limit = 2
     venueHref: VENUE_PATH[r.venue_type] ? `${VENUE_PATH[r.venue_type]}/${r.venue_id}` : null,
     distanceMiles: Number(r.distance_miles),
     confidenceScore: Number(r.confidence_score),
+    verificationRequestedAt: r.verification_requested_at || null,
   }));
 }
 
