@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
@@ -29,6 +29,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const PUBLIC_COLUMNS = [
   "id",
+  "slug",
   "name",
   "address",
   "latitude",
@@ -59,20 +60,30 @@ const PUBLIC_COLUMNS = [
   "school_district_name",
 ].join(", ");
 
-async function getBarber(id: string) {
-  const { data, error } = await supabase
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function getBarber(param: string) {
+  const { data: bySlug, error: slugErr } = await supabase
     .from("agent_barber_leads")
     .select(PUBLIC_COLUMNS)
-    .eq("id", id)
+    .eq("slug", param)
     .single();
+  if (!slugErr && bySlug) return bySlug as any;
 
-  if (error || !data) return null;
-  return data as any;
+  if (!UUID_RE.test(param)) return null;
+
+  const { data: byId, error: idErr } = await supabase
+    .from("agent_barber_leads")
+    .select(PUBLIC_COLUMNS)
+    .eq("id", param)
+    .single();
+  if (idErr || !byId) return null;
+  return { ...(byId as any), _resolvedByLegacyId: true };
 }
 
-export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  const { id } = await props.params;
-  const barber = await getBarber(id);
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await props.params;
+  const barber = await getBarber(slug);
   if (!barber) return { title: "Barber Profile Not Found" };
 
   const title = `${barber.name} — ${barber.specialty_type || "Professional Barber"}${barber.metro_area ? ` in ${barber.metro_area}` : ""}`;
@@ -95,13 +106,44 @@ function formatPrice(price: number, currency: string) {
   return `${price} ${currency}`;
 }
 
+// Person schema — a barber is an individual professional, not a business
+// entity, so LocalBusiness would misrepresent the data. Every field is
+// conditional on real data; nothing here is guessed.
+function buildBarberJsonLd(barber: any) {
+  const person: Record<string, any> = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: barber.name,
+    jobTitle: barber.specialty_type || "Barber",
+  };
+  if (barber.address) person.address = { "@type": "PostalAddress", streetAddress: barber.address, addressRegion: "TX", addressCountry: "US" };
+  if (barber.metro_area) person.homeLocation = { "@type": "Place", name: barber.metro_area };
+  if (barber.website_url) person.url = barber.website_url.startsWith("http") ? barber.website_url : `https://${barber.website_url}`;
+  if (barber.booksy_rating && barber.booksy_review_count) {
+    person.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: Number(barber.booksy_rating),
+      reviewCount: Number(barber.booksy_review_count),
+    };
+  }
+  const sameAs = [
+    barber.instagram_handle && `https://instagram.com/${barber.instagram_handle.replace("@", "")}`,
+    barber.tiktok_handle && `https://tiktok.com/@${barber.tiktok_handle.replace("@", "")}`,
+    barber.youtube_channel && `https://youtube.com/@${barber.youtube_channel.replace("@", "")}`,
+  ].filter(Boolean);
+  if (sameAs.length > 0) person.sameAs = sameAs;
+
+  return person;
+}
+
 const TODAY_INDEX = (new Date().getDay() + 6) % 7; // 0 = Monday, matches DAY_ORDER
 
-export default async function BarberProfilePage(props: { params: Promise<{ id: string }> }) {
-  const { id } = await props.params;
-  const barber = await getBarber(id);
+export default async function BarberProfilePage(props: { params: Promise<{ slug: string }> }) {
+  const { slug } = await props.params;
+  const barber = await getBarber(slug);
 
   if (!barber) notFound();
+  if (barber._resolvedByLegacyId) permanentRedirect(`/barbers/${barber.slug}`);
 
   const gallery: string[] = Array.isArray(barber.booksy_gallery_urls) ? barber.booksy_gallery_urls : [];
   const heroPhoto = gallery[0] || barber.booksy_photo_url || barber.passport_image_url || null;
@@ -148,8 +190,11 @@ export default async function BarberProfilePage(props: { params: Promise<{ id: s
     },
   ].filter(Boolean) as { label: string; href: string; Icon: any }[];
 
+  const barberJsonLd = buildBarberJsonLd(barber);
+
   return (
     <div className="min-h-screen bg-slate-50">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(barberJsonLd) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

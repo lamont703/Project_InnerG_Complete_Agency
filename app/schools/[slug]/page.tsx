@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -30,6 +30,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const PUBLIC_COLUMNS = [
   "id",
+  "slug",
   "school_name",
   "city",
   "formatted_address",
@@ -63,27 +64,50 @@ const PUBLIC_COLUMNS = [
   "cosmetology_practical_test_takers_2026",
 ].join(", ");
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Barber schools and cosmetology schools live in separate tables (agent_barber_school_leads /
 // agent_cosmetology_school_leads); the unified search Schools tab returns ids from either, so
 // this route checks both. UUIDs are generated independently per table and won't collide.
-async function getSchool(id: string) {
-  const { data: barberRow, error: barberErr } = await supabase
+//
+// Lookup is slug-primary with a legacy-UUID fallback: old /schools/{uuid} links (from
+// before the slug migration) still resolve, tagged with _resolvedByLegacyId so the page
+// component can 308-redirect to the canonical slug URL instead of silently dual-serving it.
+async function getSchool(param: string) {
+  const { data: barberBySlug, error: barberSlugErr } = await supabase
     .from("agent_barber_school_leads")
     .select(PUBLIC_COLUMNS)
-    .eq("id", id)
+    .eq("slug", param)
     .single();
+  if (!barberSlugErr && barberBySlug) return { ...(barberBySlug as any), school_category: "Barber School", _matchType: "barber" as const };
 
-  if (!barberErr && barberRow) return { ...(barberRow as any), school_category: "Barber School", _matchType: "barber" as const };
-
-  const { data: cosmetRow, error: cosmetErr } = await supabase
+  const { data: cosmetBySlug, error: cosmetSlugErr } = await supabase
     .from("agent_cosmetology_school_leads")
     .select(`${PUBLIC_COLUMNS}, license_type`)
-    .eq("id", id)
+    .eq("slug", param)
     .single();
+  if (!cosmetSlugErr && cosmetBySlug) {
+    const cosmet = cosmetBySlug as any;
+    return { ...cosmet, school_category: cosmet.license_type || "Cosmetology School", _matchType: "cosmetology" as const };
+  }
 
-  if (cosmetErr || !cosmetRow) return null;
-  const cosmet = cosmetRow as any;
-  return { ...cosmet, school_category: cosmet.license_type || "Cosmetology School", _matchType: "cosmetology" as const };
+  if (!UUID_RE.test(param)) return null;
+
+  const { data: barberById, error: barberIdErr } = await supabase
+    .from("agent_barber_school_leads")
+    .select(PUBLIC_COLUMNS)
+    .eq("id", param)
+    .single();
+  if (!barberIdErr && barberById) return { ...(barberById as any), school_category: "Barber School", _matchType: "barber" as const, _resolvedByLegacyId: true };
+
+  const { data: cosmetById, error: cosmetIdErr } = await supabase
+    .from("agent_cosmetology_school_leads")
+    .select(`${PUBLIC_COLUMNS}, license_type`)
+    .eq("id", param)
+    .single();
+  if (cosmetIdErr || !cosmetById) return null;
+  const cosmet = cosmetById as any;
+  return { ...cosmet, school_category: cosmet.license_type || "Cosmetology School", _matchType: "cosmetology" as const, _resolvedByLegacyId: true };
 }
 
 type StudentTable = "agent_barber_student_leads" | "agent_cosmetology_student_leads";
@@ -161,14 +185,25 @@ async function getStudentNames(table: StudentTable, schoolId: string, schoolType
   return Array.from(byStudent.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  const { id } = await props.params;
-  const school = await getSchool(id);
+// Searchers use "cosmetology school," "beauty school," and "hair school"
+// interchangeably (confirmed via autocomplete: "beauty schools in houston",
+// "hair schools in houston" both surface for a "cosmetology schools" seed
+// query) — cosmetology listings should carry all three terms in their
+// title/description so they match regardless of which word someone typed.
+function synonymSuffix(matchType: "barber" | "cosmetology") {
+  return matchType === "cosmetology" ? " (Beauty & Hair School)" : "";
+}
+
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await props.params;
+  const school = await getSchool(slug);
   if (!school) return { title: "School Not Found" };
 
-  const title = `${school.school_name}${school.city ? ` — ${school.school_category} in ${school.city}` : ""}`;
-  const description = `${school.school_category}${school.city ? ` in ${school.city}` : ""}.${
-    school.annual_tuition ? ` Tuition ~$${Number(school.annual_tuition).toLocaleString()}.` : ""
+  const title = `${school.school_name}${synonymSuffix(school._matchType)}${school.city ? ` — ${school.school_category} in ${school.city}` : ""}`;
+  const description = `${school.school_category}${school._matchType === "cosmetology" ? " (also known as a beauty school or hair school)" : ""}${
+    school.city ? ` in ${school.city}` : ""
+  }.${school.annual_tuition ? ` Tuition ~$${Number(school.annual_tuition).toLocaleString()}.` : ""}${
+    school.pell_grant_rate != null ? ` ${Math.round(school.pell_grant_rate * 100)}% of students receive financial aid.` : ""
   }${school.state_pass_rate ? ` State board pass rate: ${school.state_pass_rate}.` : ""}`;
   const heroImage = Array.isArray(school.google_photos) ? school.google_photos[0] : null;
 
@@ -183,6 +218,98 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
   };
 }
 
+// Builds schema.org JSON-LD for the school (EducationalOrganization) and an
+// FAQPage covering exactly the questions autocomplete data shows people ask
+// at this decision point — financial aid, cost, pass rate, accreditation.
+// Two audiences benefit from the same markup: search engines get eligible
+// for rich results, and LLM/AI-answer crawlers (which increasingly read
+// JSON-LD directly rather than parsing rendered UI) get clean, unambiguous
+// facts instead of having to infer numbers from a stat-card grid.
+// Every FAQ entry is conditional on real data being present — no entry is
+// ever emitted with a guessed or placeholder answer.
+function buildSchoolJsonLd(school: any, websiteHref: string | null) {
+  const address = school.formatted_address
+    ? { "@type": "PostalAddress", streetAddress: school.formatted_address, addressRegion: "TX", addressCountry: "US" }
+    : undefined;
+
+  const org: Record<string, any> = {
+    "@context": "https://schema.org",
+    "@type": "EducationalOrganization",
+    name: school.school_name,
+    description: `${school.school_category}${school._matchType === "cosmetology" ? " / beauty school / hair school" : ""}${
+      school.city ? ` in ${school.city}, Texas` : ""
+    }`,
+  };
+  if (address) org.address = address;
+  if (websiteHref) org.url = websiteHref;
+  if (school.phone) org.telephone = school.phone;
+  if (school.rating && school.google_review_count) {
+    org.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: Number(school.rating),
+      reviewCount: Number(school.google_review_count),
+    };
+  }
+
+  const additionalProperty: { "@type": "PropertyValue"; name: string; value: string | number }[] = [];
+  if (school.annual_tuition != null) additionalProperty.push({ "@type": "PropertyValue", name: "Annual Tuition (USD)", value: Number(school.annual_tuition) });
+  if (school.pell_grant_rate != null) additionalProperty.push({ "@type": "PropertyValue", name: "Pell Grant Recipient Rate", value: `${Math.round(school.pell_grant_rate * 100)}%` });
+  if (school.federal_loan_rate != null) additionalProperty.push({ "@type": "PropertyValue", name: "Federal Loan Rate", value: `${Math.round(school.federal_loan_rate * 100)}%` });
+  if (school.completion_rate != null) additionalProperty.push({ "@type": "PropertyValue", name: "Completion Rate", value: `${Math.round(school.completion_rate * 100)}%` });
+  if (school.written_pass_rate_2026 != null) additionalProperty.push({ "@type": "PropertyValue", name: "2026 Written Exam Pass Rate", value: `${Math.round(school.written_pass_rate_2026 * 100)}%` });
+  if (school.practical_pass_rate_2026 != null) additionalProperty.push({ "@type": "PropertyValue", name: "2026 Practical Exam Pass Rate", value: `${Math.round(school.practical_pass_rate_2026 * 100)}%` });
+  if (additionalProperty.length > 0) org.additionalProperty = additionalProperty;
+
+  const faqEntries: { q: string; a: string }[] = [];
+  if (school.pell_grant_rate != null || school.federal_loan_rate != null) {
+    faqEntries.push({
+      q: `Does ${school.school_name} accept financial aid?`,
+      a: [
+        school.pell_grant_rate != null ? `${Math.round(school.pell_grant_rate * 100)}% of students receive Pell Grants.` : null,
+        school.federal_loan_rate != null ? `${Math.round(school.federal_loan_rate * 100)}% of students take federal student loans.` : null,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    });
+  }
+  if (school.annual_tuition != null) {
+    faqEntries.push({
+      q: `How much does ${school.school_name} cost?`,
+      a: `Annual tuition is approximately $${Number(school.annual_tuition).toLocaleString()}${
+        school.median_student_debt != null ? `, with a median student debt of $${Number(school.median_student_debt).toLocaleString()} among borrowers who complete the program.` : "."
+      }`,
+    });
+  }
+  if (school.written_pass_rate_2026 != null || school.state_pass_rate) {
+    const rate = school.written_pass_rate_2026 != null ? `${Math.round(school.written_pass_rate_2026 * 100)}%` : school.state_pass_rate;
+    faqEntries.push({
+      q: `What is the exam pass rate at ${school.school_name}?`,
+      a: `${rate} of students who tested in 2026 passed their licensing exam${school.written_test_takers_2026 ? ` (based on ${school.written_test_takers_2026} test-takers)` : ""}, per Texas Department of Licensing & Regulation records.`,
+    });
+  }
+  if (school.accreditation_status) {
+    faqEntries.push({
+      q: `Is ${school.school_name} accredited?`,
+      a: `${school.school_name} is ${school.accreditation_status.toLowerCase()}${school.accreditor_name ? ` by ${school.accreditor_name}` : ""}.`,
+    });
+  }
+
+  const faqPage =
+    faqEntries.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqEntries.map(({ q, a }) => ({
+            "@type": "Question",
+            name: q,
+            acceptedAnswer: { "@type": "Answer", text: a },
+          })),
+        }
+      : null;
+
+  return { org, faqPage };
+}
+
 function formatPercent(val: number | null) {
   if (val === null || val === undefined) return null;
   return `${Math.round(val * 100)}%`;
@@ -195,11 +322,12 @@ function formatCurrency(val: number | null) {
 
 const TODAY_INDEX = (new Date().getDay() + 6) % 7; // 0 = Monday, matches Google's weekdayDescriptions order
 
-export default async function SchoolProfilePage(props: { params: Promise<{ id: string }> }) {
-  const { id } = await props.params;
-  const school = await getSchool(id);
+export default async function SchoolProfilePage(props: { params: Promise<{ slug: string }> }) {
+  const { slug } = await props.params;
+  const school = await getSchool(slug);
 
   if (!school) notFound();
+  if (school._resolvedByLegacyId) permanentRedirect(`/schools/${school.slug}`);
 
   const examConfigs = [
     { examLabel: "Barber", table: "agent_barber_student_leads" as const },
@@ -236,6 +364,8 @@ export default async function SchoolProfilePage(props: { params: Promise<{ id: s
       ? school.website
       : `https://${school.website}`
     : null;
+
+  const { org: schoolJsonLd, faqPage: faqJsonLd } = buildSchoolJsonLd(school, websiteHref);
 
   // A dual-licensed school can have real 2026 pass-rate data for both exams
   // — when both are present, prefix each label with the exam name so they
@@ -300,6 +430,12 @@ export default async function SchoolProfilePage(props: { params: Promise<{ id: s
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Structured data: EducationalOrganization facts + FAQPage, read by
+          both search engines (rich results) and LLM/AI-answer crawlers
+          (direct fact extraction) — every value here also renders visibly
+          in the page below, this just makes it machine-parseable too. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schoolJsonLd) }} />
+      {faqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -335,6 +471,9 @@ export default async function SchoolProfilePage(props: { params: Promise<{ id: s
                 <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-0.5">
                   {school.school_category}
                 </span>
+                {school._matchType === "cosmetology" && (
+                  <span className="text-xs font-medium text-slate-400">also called a beauty school or hair school</span>
+                )}
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{school.school_name}</h1>
               {school.formatted_address && (

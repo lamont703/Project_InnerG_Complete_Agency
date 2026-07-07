@@ -82,16 +82,16 @@ export async function POST(req: Request) {
     if (shopId) {
       const { data: shopRow } = await supabase
         .from('agent_barbershop_leads')
-        .select('id, shop_name, city, latitude, longitude, rent_rate, census_median_household_income, census_population, school_district_name')
+        .select('id, slug, shop_name, city, latitude, longitude, rent_rate, census_median_household_income, census_population, school_district_name')
         .eq('id', shopId)
-        .single() as { data: { id: string; shop_name: string; city: string | null; latitude: number | null; longitude: number | null; rent_rate: string | null; census_median_household_income: number | null; census_population: number | null; school_district_name: string | null } | null };
+        .single() as { data: { id: string; slug: string; shop_name: string; city: string | null; latitude: number | null; longitude: number | null; rent_rate: string | null; census_median_household_income: number | null; census_population: number | null; school_district_name: string | null } | null };
       if (shopRow) {
         const report = await computeShopEcosystemReport(supabase as any, shopRow);
         if (report) {
           shopEcosystemContext = {
             shop_name: shopRow.shop_name,
             city: shopRow.city,
-            profile_url: `/shop/${shopRow.id}`,
+            profile_url: `/shop/${shopRow.slug}`,
             // Direct properties of the shop's own location, not a radius
             // computation — median_household_income is Census ACS 5-Year
             // data for the shop's tract, used for pricing-vs-local-income
@@ -272,7 +272,7 @@ export async function POST(req: Request) {
     // it can just copy a real path into a markdown link instead of guessing
     // or inventing one.
     const withProfileUrl = (items: any[], basePath: string) =>
-      items.map((item) => ({ ...item, profile_url: item.id ? `${basePath}/${item.id}` : undefined }));
+      items.map((item) => ({ ...item, profile_url: item.slug ? `${basePath}/${item.slug}` : undefined }));
 
     // 3. Merge Context Data. texas_2026_exam_school_leaderboard is listed
     // first (defense in depth) since with 9 grounded sources the combined

@@ -13,6 +13,18 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: '.env.local' });
 
+// Mirrors lib/slug.ts — scripts run as plain CommonJS and can't import from lib/.
+function slugify(input) {
+  return (input || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+}
+function buildSlug(name, city, id) {
+  return `${slugify(name || 'entity')}-${slugify(city || 'tx')}-${id.replace(/-/g, '').slice(0, 8)}`;
+}
+
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const SCRATCHPAD = '/private/tmp/claude-502/-Users-lamontevans-Desktop-AI-Blockchain-Enterprise-Services/76b49128-14b9-4dfc-8547-027b7a33f313/scratchpad';
@@ -149,6 +161,8 @@ async function run() {
         console.log(`insert failed: ${insertErr.message}`);
         failed++;
       } else {
+        const slug = buildSlug(insertRow.school_name, insertRow.city, inserted.id);
+        await supabase.from('agent_barber_school_leads').update({ slug }).eq('id', inserted.id);
         codeToSchool.set(school_code, { id: inserted.id, type: 'barber' });
         console.log(`added (${insertRow.google_photos.length} photos, rating ${insertRow.rating ?? 'n/a'})`);
         added++;

@@ -863,7 +863,7 @@ function SearchContent() {
               return (
                 <div key={`shop-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
                   {item.google_images && Array.isArray(item.google_images) && item.google_images.length > 0 && (
-                    <Link href={`/shop/${item.id}`} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
+                    <Link href={`/shop/${item.slug}`} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
                       <img src={item.google_images[0]} alt={item.shop_name} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
                     </Link>
                   )}
@@ -878,7 +878,7 @@ function SearchContent() {
                     </div>
 
                     {/* Prominent Title Link */}
-                    <Link href={`/shop/${item.id}`} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
+                    <Link href={`/shop/${item.slug}`} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
                       {item.shop_name || "Unknown Shop"}
                     </Link>
 
@@ -910,7 +910,7 @@ function SearchContent() {
             if (item.resultType === 'barber') {
               const isLooking = item.status === 'interested_in_placement' && item.is_actively_looking === true;
               const barberPhoto = item.booksy_photo_url || item.passport_image_url;
-              const barberHref = `/barbers/${item.id}`;
+              const barberHref = `/barbers/${item.slug}`;
               return (
                 <div key={`barber-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
                   {barberPhoto ? (
@@ -972,7 +972,7 @@ function SearchContent() {
 
             if (item.resultType === 'school') {
               const schoolPhoto = Array.isArray(item.google_photos) ? item.google_photos[0] : null;
-              const schoolHref = `/schools/${item.id}`;
+              const schoolHref = `/schools/${item.slug}`;
               return (
                 <div key={`school-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
                   {schoolPhoto ? (
@@ -1044,7 +1044,7 @@ function SearchContent() {
 
             if (item.resultType === 'store') {
               const storePhoto = Array.isArray(item.google_images) ? item.google_images[0] : null;
-              const storeHref = `/stores/${item.id}`;
+              const storeHref = `/stores/${item.slug}`;
               const isBeautyStore = item.store_type === 'beauty_supply';
               return (
                 <div key={`store-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
@@ -1098,7 +1098,7 @@ function SearchContent() {
 
             if (item.resultType === 'salon') {
               const salonPhoto = Array.isArray(item.google_images) ? item.google_images[0] : null;
-              const salonHref = `/salons/${item.id}`;
+              const salonHref = `/salons/${item.slug}`;
               return (
                 <div key={`salon-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
                   {salonPhoto ? (
@@ -1148,7 +1148,7 @@ function SearchContent() {
             }
 
             if (item.resultType === 'event') {
-              const eventHref = `/events/${item.id}`;
+              const eventHref = `/events/${item.slug}`;
               const eventDateLabel = item.event_date
                 ? new Date(item.event_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                 : null;
@@ -1203,7 +1203,7 @@ function SearchContent() {
 
             if (item.resultType === 'cosmetologist') {
               const cosmetPhoto = item.booksy_photo_url || (Array.isArray(item.booksy_gallery_urls) ? item.booksy_gallery_urls[0] : null);
-              const cosmetHref = `/cosmetologists/${item.id}`;
+              const cosmetHref = `/cosmetologists/${item.slug}`;
               return (
                 <div key={`cosmetologist-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
                   {cosmetPhoto ? (

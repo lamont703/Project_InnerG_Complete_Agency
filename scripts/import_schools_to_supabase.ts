@@ -10,6 +10,19 @@ const supabaseUrl = Deno.env.get("NEXT_PUBLIC_SUPABASE_URL") || Deno.env.get("SU
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+// Mirrors lib/slug.ts — this script runs under Deno, not the Next app, so it
+// can't import from lib/.
+function slugify(input: string): string {
+  return (input || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-")
+}
+function buildSlug(name: string, city: string, id: string): string {
+  return `${slugify(name || "entity")}-${slugify(city || "tx")}-${id.replace(/-/g, "").slice(0, 8)}`
+}
+
 async function importCSV() {
   console.log("🚀 Starting Bulk Import of Barber Schools to Supabase...")
   const filePath = "public/Texas Accredited Barber Schools/2026 Texas Accredited Barber Schools.csv"
@@ -55,7 +68,7 @@ async function importCSV() {
       }
 
       // Insert new school lead record
-      const { error } = await supabase
+      const { data: row, error } = await supabase
         .from("agent_barber_school_leads")
         .insert({
           school_name: schoolName,
@@ -63,27 +76,33 @@ async function importCSV() {
           city: city,
           accreditation_status: status,
           contact_id: crypto.randomUUID(),
-          
+
           // Existing CRM Columns (initialized)
           placement_rate_deficit: false,
           interested_in_placement: false,
           current_student_count: 0,
           system_used: null,
           email: null,
-          
+
           // AI Context
           last_conversation_history: "",
           conversation_turns: [],
-          
+
           // Telemetry Tracking
           outreach_status: "pending",
           outreach_attempts: 0
         })
+        .select("id")
+        .single()
 
       if (error) {
         console.error(`❌ Error inserting ${schoolName}:`, error.message)
         errorCount++
       } else {
+        if (row) {
+          const slug = buildSlug(schoolName, city, row.id)
+          await supabase.from("agent_barber_school_leads").update({ slug }).eq("id", row.id)
+        }
         successCount++
       }
     }

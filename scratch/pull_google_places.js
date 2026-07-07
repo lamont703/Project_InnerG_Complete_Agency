@@ -6,6 +6,18 @@ async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Mirrors lib/slug.ts — scripts run as plain CommonJS and can't import from lib/.
+function slugify(input) {
+  return (input || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+}
+function buildSlug(name, city, id) {
+  return `${slugify(name || 'entity')}-${slugify(city || 'tx')}-${id.replace(/-/g, '').slice(0, 8)}`;
+}
+
 // Simple CSV row formatting utility
 function formatCSVRow(columns) {
   return columns.map(col => {
@@ -159,7 +171,7 @@ async function pullGooglePlacesNewWithContacts() {
        continue;
     }
 
-    const { error } = await supabase
+    const { data: row, error } = await supabase
       .from("agent_barbershop_leads")
       .insert({
         shop_name: place.name,
@@ -184,7 +196,14 @@ async function pullGooglePlacesNewWithContacts() {
         total_reviews: place.reviews ? parseInt(place.reviews, 10) : 0,
         place_types: place.types || null,
         business_status: place.status || null
-      });
+      })
+      .select('id')
+      .single();
+
+    if (!error && row) {
+      const slug = buildSlug(place.name, place.cityHub, row.id);
+      await supabase.from("agent_barbershop_leads").update({ slug }).eq('id', row.id);
+    }
 
     if (error) {
       console.error(`❌ Error inserting ${place.name}:`, error.message);

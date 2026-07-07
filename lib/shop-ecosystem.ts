@@ -114,10 +114,10 @@ export async function computeShopEcosystemReport(
     beautySupply,
   ] = await Promise.all([
     fetchAllRows(supabase, "agent_barber_school_leads",
-      "id, latitude, longitude, school_name, school_leaderboard_score_2026",
+      "id, slug, latitude, longitude, school_name, school_leaderboard_score_2026",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
     fetchAllRows(supabase, "agent_cosmetology_school_leads",
-      "id, latitude, longitude, school_name, cosmetology_school_leaderboard_score_2026",
+      "id, slug, latitude, longitude, school_name, cosmetology_school_leaderboard_score_2026",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
     fetchAllRows(supabase, "agent_barber_leads",
       "id, latitude, longitude, status, census_tract_geoid, census_population, census_median_household_income",
@@ -132,10 +132,10 @@ export async function computeShopEcosystemReport(
       "id, latitude, longitude, hiring_need, booth_count_available, rent_rate, census_tract_geoid, census_population, census_median_household_income",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
     fetchAllRows(supabase, "agent_barber_supply_store_leads",
-      "id, latitude, longitude, name",
+      "id, slug, latitude, longitude, name",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
     fetchAllRows(supabase, "agent_beauty_supply_store_leads",
-      "id, latitude, longitude, name",
+      "id, slug, latitude, longitude, name",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
   ]);
 
@@ -147,8 +147,8 @@ export async function computeShopEcosystemReport(
   const nearbyBarberSchools = within(barberSchools).filter((s: any) => s.school_leaderboard_score_2026 != null);
   const nearbyCosmetSchools = within(cosmetologySchools).filter((s: any) => s.cosmetology_school_leaderboard_score_2026 != null);
   const allNearbySchools = [
-    ...nearbyBarberSchools.map((s: any) => ({ name: s.school_name, score: s.school_leaderboard_score_2026, distanceMiles: s.distanceMiles, type: "Barber" as const, profileUrl: `/schools/${s.id}` })),
-    ...nearbyCosmetSchools.map((s: any) => ({ name: s.school_name, score: s.cosmetology_school_leaderboard_score_2026, distanceMiles: s.distanceMiles, type: "Cosmetology" as const, profileUrl: `/schools/${s.id}` })),
+    ...nearbyBarberSchools.map((s: any) => ({ name: s.school_name, score: s.school_leaderboard_score_2026, distanceMiles: s.distanceMiles, type: "Barber" as const, profileUrl: `/schools/${s.slug}` })),
+    ...nearbyCosmetSchools.map((s: any) => ({ name: s.school_name, score: s.cosmetology_school_leaderboard_score_2026, distanceMiles: s.distanceMiles, type: "Cosmetology" as const, profileUrl: `/schools/${s.slug}` })),
   ];
   const schoolCountTotal = within(barberSchools).length + within(cosmetologySchools).length;
   const avgLeaderboardScore = allNearbySchools.length > 0
@@ -218,7 +218,7 @@ export async function computeShopEcosystemReport(
       supplyStoreCount: nearbySupplyStores.length,
       nearestSupplyStoreMiles: nearestSupply ? nearestSupply.distanceMiles : null,
       nearestSupplyStoreName: nearestSupply ? nearestSupply.name : null,
-      nearestSupplyStoreProfileUrl: nearestSupply ? `/stores/${(nearestSupply as any).id}` : null,
+      nearestSupplyStoreProfileUrl: nearestSupply ? `/stores/${(nearestSupply as any).slug}` : null,
     },
     rentBenchmark: {
       thisShopWeeklyRent,
@@ -751,7 +751,7 @@ export async function getUpcomingEvents(
   if (error || !data) return [];
   return (data as any[]).map((r) => ({
     eventId: r.id,
-    eventHref: `/events/${r.id}`,
+    eventHref: `/events/${r.slug}`,
     title: r.title,
     description: r.description,
     eventDate: r.event_date,

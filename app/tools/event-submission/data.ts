@@ -6,6 +6,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export interface RecentEventRow {
   id: string;
+  slug: string;
   title: string;
   eventDate: string;
   city: string | null;
@@ -17,12 +18,13 @@ export interface RecentEventRow {
 export async function getRecentEvents(): Promise<RecentEventRow[]> {
   const { data, error } = await supabase
     .from("events")
-    .select("id, title, event_date, city, category, source_url, created_at")
+    .select("id, slug, title, event_date, city, category, source_url, created_at")
     .order("created_at", { ascending: false })
     .limit(20);
   if (error || !data) return [];
   return data.map((r) => ({
     id: r.id,
+    slug: r.slug,
     title: r.title,
     eventDate: r.event_date,
     city: r.city,

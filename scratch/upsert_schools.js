@@ -1,6 +1,18 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: '.env.local' });
 
+// Mirrors lib/slug.ts — scripts run as plain CommonJS and can't import from lib/.
+function slugify(input) {
+  return (input || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+}
+function buildSlug(name, city, id) {
+  return `${slugify(name || 'entity')}-${slugify(city || 'tx')}-${id.replace(/-/g, '').slice(0, 8)}`;
+}
+
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -211,6 +223,10 @@ async function upsertBarberSchools() {
       } else {
         insertedCount++;
         const newId = insertedData?.[0]?.id;
+        if (newId) {
+          const slug = buildSlug(school.name, school.city, newId);
+          await supabase.from('agent_barber_school_leads').update({ slug }).eq('id', newId);
+        }
         existingMap.set(normKey, { ...school, id: newId });
         existingContactIdSet.add(school.placeId);
       }

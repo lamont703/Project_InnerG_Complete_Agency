@@ -22,7 +22,7 @@ const PixelEventSchema = z.object({
 
 export default createHandler(async ({ adminClient, body, req }) => {
     const logger = new Logger("pixel-ingest")
-    
+
     // 1. Extract Metadata from Headers
     const headers = Object.fromEntries(req.headers.entries())
     const userAgent = headers["user-agent"]

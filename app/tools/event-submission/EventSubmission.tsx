@@ -35,12 +35,14 @@ export function EventSubmission({ recentEvents }: { recentEvents: RecentEventRow
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishedId, setPublishedId] = useState<string | null>(null);
+  const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
 
   const runExtraction = async () => {
     if (!url.trim()) return;
     setExtracting(true);
     setExtractError(null);
     setPublishedId(null);
+    setPublishedSlug(null);
     setPublishError(null);
     try {
       const res = await fetch("/api/events/extract", {
@@ -85,6 +87,7 @@ export function EventSubmission({ recentEvents }: { recentEvents: RecentEventRow
     setPublishing(false);
     if (result.success && result.id) {
       setPublishedId(result.id);
+      setPublishedSlug(result.slug || null);
       setForm(null);
       setUrl("");
     } else {
@@ -146,7 +149,7 @@ export function EventSubmission({ recentEvents }: { recentEvents: RecentEventRow
             <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
             <p className="text-sm text-emerald-700">
               Event published.{" "}
-              <a href={`/events/${publishedId}`} target="_blank" rel="noopener noreferrer" className="font-bold underline inline-flex items-center gap-1">
+              <a href={`/events/${publishedSlug || publishedId}`} target="_blank" rel="noopener noreferrer" className="font-bold underline inline-flex items-center gap-1">
                 View profile page <ExternalLink className="w-3 h-3" />
               </a>
             </p>
@@ -254,7 +257,7 @@ export function EventSubmission({ recentEvents }: { recentEvents: RecentEventRow
               {recentEvents.map((e) => (
                 <div key={e.id} className="flex items-center justify-between gap-3 py-1.5 text-sm border-b border-slate-100 last:border-0">
                   <div className="min-w-0">
-                    <a href={`/events/${e.id}`} target="_blank" rel="noopener noreferrer" className="font-bold text-slate-900 hover:text-indigo-600 truncate block">
+                    <a href={`/events/${e.slug}`} target="_blank" rel="noopener noreferrer" className="font-bold text-slate-900 hover:text-indigo-600 truncate block">
                       {e.title}
                     </a>
                     <p className="text-xs text-slate-400">{e.eventDate}{e.city ? ` • ${e.city}` : ""}{e.category ? ` • ${e.category}` : ""}</p>

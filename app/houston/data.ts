@@ -57,28 +57,28 @@ export interface HoustonData {
 export async function getHoustonData(zip?: string): Promise<HoustonData> {
   const [shops, barberSchools, cosmetSchools, barbers, cosmetologists, salons, barberSupply, beautySupply] = await Promise.all([
     fetchAllRows(supabase, "agent_barbershop_leads",
-      "id, shop_name, city, rating, total_reviews, hiring_need, booth_count_available, rent_rate",
+      "id, slug, shop_name, city, rating, total_reviews, hiring_need, booth_count_available, rent_rate",
       (q) => q.ilike("city", HOUSTON_FILTER)),
     fetchAllRows(supabase, "agent_barber_school_leads",
-      "id, school_name, city, formatted_address, rating, school_leaderboard_score_2026, accreditation_status",
+      "id, slug, school_name, city, formatted_address, rating, school_leaderboard_score_2026, accreditation_status",
       (q) => q.ilike("city", HOUSTON_FILTER)),
     fetchAllRows(supabase, "agent_cosmetology_school_leads",
-      "id, school_name, city, formatted_address, rating, cosmetology_school_leaderboard_score_2026, accreditation_status",
+      "id, slug, school_name, city, formatted_address, rating, cosmetology_school_leaderboard_score_2026, accreditation_status",
       (q) => q.ilike("city", HOUSTON_FILTER)),
     fetchAllRows(supabase, "agent_barber_leads",
-      "id, name, metro_area, booksy_rating, booksy_review_count, specialty_type",
+      "id, slug, name, metro_area, booksy_rating, booksy_review_count, specialty_type",
       (q) => q.ilike("metro_area", HOUSTON_FILTER)),
     fetchAllRows(supabase, "agent_cosmetologist_leads",
-      "id, name, metro_area, address, booksy_rating, booksy_review_count, specialty_type",
+      "id, slug, name, metro_area, address, booksy_rating, booksy_review_count, specialty_type",
       (q) => q.ilike("metro_area", HOUSTON_FILTER)),
     fetchAllRows(supabase, "agent_salon_leads",
       "id, shop_name, city, formatted_address, rating, total_reviews, hiring_need, booth_count_available, rent_rate",
       (q) => q.ilike("city", HOUSTON_FILTER)),
     fetchAllRows(supabase, "agent_barber_supply_store_leads",
-      "id, name, city, rating, total_reviews",
+      "id, slug, name, city, rating, total_reviews",
       (q) => q.ilike("city", HOUSTON_FILTER)),
     fetchAllRows(supabase, "agent_beauty_supply_store_leads",
-      "id, name, city, rating, total_reviews",
+      "id, slug, name, city, rating, total_reviews",
       (q) => q.ilike("city", HOUSTON_FILTER)),
   ]);
 
@@ -125,35 +125,35 @@ export async function getHoustonData(zip?: string): Promise<HoustonData> {
 
   const sections: HoustonSection[] = [
     buildSection("shops", "Barbershops", "blue", "Barbershops", shopsZ, (s) => ({
-      id: s.id, name: s.shop_name, href: `/shop/${s.id}`, zip: s.zip,
+      id: s.id, name: s.shop_name, href: `/shop/${s.slug}`, zip: s.zip,
       rating: s.rating, reviews: s.total_reviews,
       badge: s.hiring_need || (s.booth_count_available || 0) >= 1 ? "Hiring" : null,
     }), "rating"),
     buildSection("salons", "Salons", "orange", "Salons", salonsZ, (s) => ({
-      id: s.id, name: s.shop_name, href: `/salons/${s.id}`, zip: s.zip,
+      id: s.id, name: s.shop_name, href: `/salons/${s.slug}`, zip: s.zip,
       rating: s.rating, reviews: s.total_reviews,
     }), "rating"),
     buildSection("barbers", "Barbers", "green", "Barbers", barbersZ, (b) => ({
-      id: b.id, name: b.name, href: `/barbers/${b.id}`, zip: b.zip,
+      id: b.id, name: b.name, href: `/barbers/${b.slug}`, zip: b.zip,
       rating: b.booksy_rating, reviews: b.booksy_review_count, badge: b.specialty_type,
     }), "rating"),
     buildSection("cosmetologists", "Cosmetologists", "pink", "Cosmetologist", cosmetologistsZ, (c) => ({
-      id: c.id, name: c.name, href: `/cosmetologists/${c.id}`, zip: c.zip,
+      id: c.id, name: c.name, href: `/cosmetologists/${c.slug}`, zip: c.zip,
       rating: c.booksy_rating, reviews: c.booksy_review_count, badge: c.specialty_type,
     }), "rating"),
     buildSection("barberSchools", "Barber Schools", "red", "Schools", barberSchoolsZ, (s) => ({
-      id: s.id, name: s.school_name, href: `/schools/${s.id}`, zip: s.zip,
+      id: s.id, name: s.school_name, href: `/schools/${s.slug}`, zip: s.zip,
       score: s.school_leaderboard_score_2026, badge: s.accreditation_status,
     }), "score"),
     buildSection("cosmetSchools", "Cosmetology Schools", "purple", "Schools", cosmetSchoolsZ, (s) => ({
-      id: s.id, name: s.school_name, href: `/schools/${s.id}`, zip: s.zip,
+      id: s.id, name: s.school_name, href: `/schools/${s.slug}`, zip: s.zip,
       score: s.cosmetology_school_leaderboard_score_2026, badge: s.accreditation_status,
     }), "score"),
     (() => {
       const combined = [...barberSupplyZ, ...beautySupplyZ];
       const filtered = combined.filter((r) => matchesZip(r.zip));
       const items = filtered
-        .map((s) => ({ id: s.id, name: s.name, href: `/stores/${s.id}`, zip: s.zip, rating: s.rating, reviews: s.total_reviews }))
+        .map((s) => ({ id: s.id, name: s.name, href: `/stores/${s.slug}`, zip: s.zip, rating: s.rating, reviews: s.total_reviews }))
         .filter((it) => it.rating != null)
         .sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.reviews || 0) - (a.reviews || 0))
         .slice(0, 6);

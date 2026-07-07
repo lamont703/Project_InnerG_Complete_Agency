@@ -105,21 +105,96 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       };
     });
 
-    // Programmatic SEO: Generate URLs for the /shop/[id] public profiles
+    // Programmatic SEO: Generate URLs for the /shop/[slug] public profiles
     // We limit to 20,000 to ensure the Vercel Serverless Function doesn't timeout while generating the XML
     const { data: allShops } = await supabase
       .from('agent_barbershop_leads')
-      .select('id')
+      .select('slug')
       .limit(20000);
 
     const shopProfileSitemap = (allShops || []).map((shop: any) => ({
-      url: `${baseUrl}/shop/${shop.id}`,
+      url: `${baseUrl}/shop/${shop.slug}`,
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.6, // Lower priority than core static pages
     }));
 
-    return [...staticSitemap, ...dynamicSitemap, ...shopProfileSitemap];
+    // Programmatic SEO: Generate URLs for every school profile page
+    // (/schools/[slug]) across both the barber and cosmetology directories.
+    // These were previously invisible to the sitemap entirely — Google could
+    // only discover them via internal links/crawl, not a submitted URL list.
+    const [{ data: barberSchools }, { data: cosmetologySchools }] = await Promise.all([
+      supabase.from('agent_barber_school_leads').select('slug').limit(10000),
+      supabase.from('agent_cosmetology_school_leads').select('slug').limit(10000),
+    ]);
+
+    const schoolProfileSitemap = [...(barberSchools || []), ...(cosmetologySchools || [])].map((school: any) => ({
+      url: `${baseUrl}/schools/${school.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.65,
+    }));
+
+    // Programmatic SEO: Generate URLs for every barber profile page
+    const { data: allBarbers } = await supabase.from('agent_barber_leads').select('slug').limit(20000);
+    const barberProfileSitemap = (allBarbers || []).map((barber: any) => ({
+      url: `${baseUrl}/barbers/${barber.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    }));
+
+    // Programmatic SEO: Generate URLs for every supply store profile page
+    // (barber supply + beauty supply, both served by the shared /stores/[slug] route)
+    const [{ data: barberSupplyStores }, { data: beautySupplyStores }] = await Promise.all([
+      supabase.from('agent_barber_supply_store_leads').select('slug').limit(10000),
+      supabase.from('agent_beauty_supply_store_leads').select('slug').limit(10000),
+    ]);
+    const storeProfileSitemap = [...(barberSupplyStores || []), ...(beautySupplyStores || [])].map((store: any) => ({
+      url: `${baseUrl}/stores/${store.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.55,
+    }));
+
+    // Programmatic SEO: Generate URLs for every salon profile page (/salons/[slug])
+    const { data: allSalons } = await supabase.from('agent_salon_leads').select('slug').limit(10000);
+    const salonProfileSitemap = (allSalons || []).map((salon: any) => ({
+      url: `${baseUrl}/salons/${salon.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    }));
+
+    // Programmatic SEO: Generate URLs for every cosmetologist profile page (/cosmetologists/[slug])
+    const { data: allCosmetologists } = await supabase.from('agent_cosmetologist_leads').select('slug').limit(10000);
+    const cosmetologistProfileSitemap = (allCosmetologists || []).map((person: any) => ({
+      url: `${baseUrl}/cosmetologists/${person.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    }));
+
+    // Programmatic SEO: Generate URLs for every event page (/events/[slug])
+    const { data: allEvents } = await supabase.from('events').select('slug').limit(10000);
+    const eventProfileSitemap = (allEvents || []).map((event: any) => ({
+      url: `${baseUrl}/events/${event.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.5,
+    }));
+
+    return [
+      ...staticSitemap,
+      ...dynamicSitemap,
+      ...shopProfileSitemap,
+      ...schoolProfileSitemap,
+      ...barberProfileSitemap,
+      ...storeProfileSitemap,
+      ...salonProfileSitemap,
+      ...cosmetologistProfileSitemap,
+      ...eventProfileSitemap,
+    ];
   } catch (error) {
     // Fallback static array just in case the production serverless environment strips the source folder
     console.warn("Autonomous sitemap crawler failed. Falling back to static route map.", error)

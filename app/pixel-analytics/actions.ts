@@ -44,32 +44,32 @@ async function resolveEntityNames(rows: { entity_id: string; result_type: string
   const lookups: PromiseLike<void>[] = []
 
   if (idsByType.shop?.length) {
-    lookups.push(supabase.from('agent_barbershop_leads').select('id, shop_name').in('id', idsByType.shop)
-      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('shop', d.id), { name: d.shop_name, href: `/shop/${d.id}` }))))
+    lookups.push(supabase.from('agent_barbershop_leads').select('id, slug, shop_name').in('id', idsByType.shop)
+      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('shop', d.id), { name: d.shop_name, href: `/shop/${d.slug}` }))))
   }
   if (idsByType.salon?.length) {
-    lookups.push(supabase.from('agent_salon_leads').select('id, shop_name').in('id', idsByType.salon)
-      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('salon', d.id), { name: d.shop_name, href: `/salons/${d.id}` }))))
+    lookups.push(supabase.from('agent_salon_leads').select('id, slug, shop_name').in('id', idsByType.salon)
+      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('salon', d.id), { name: d.shop_name, href: `/salons/${d.slug}` }))))
   }
   if (idsByType.barber?.length) {
-    lookups.push(supabase.from('agent_barber_leads').select('id, name').in('id', idsByType.barber)
-      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('barber', d.id), { name: d.name, href: `/barbers/${d.id}` }))))
+    lookups.push(supabase.from('agent_barber_leads').select('id, slug, name').in('id', idsByType.barber)
+      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('barber', d.id), { name: d.name, href: `/barbers/${d.slug}` }))))
   }
   if (idsByType.cosmetologist?.length) {
-    lookups.push(supabase.from('agent_cosmetologist_leads').select('id, name').in('id', idsByType.cosmetologist)
-      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('cosmetologist', d.id), { name: d.name, href: `/cosmetologists/${d.id}` }))))
+    lookups.push(supabase.from('agent_cosmetologist_leads').select('id, slug, name').in('id', idsByType.cosmetologist)
+      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('cosmetologist', d.id), { name: d.name, href: `/cosmetologists/${d.slug}` }))))
   }
   if (idsByType.school?.length) {
-    lookups.push(supabase.from('agent_barber_school_leads').select('id, school_name').in('id', idsByType.school)
-      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('school', d.id), { name: d.school_name, href: `/schools/${d.id}` }))))
-    lookups.push(supabase.from('agent_cosmetology_school_leads').select('id, school_name').in('id', idsByType.school)
-      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('school', d.id), { name: d.school_name, href: `/schools/${d.id}` }))))
+    lookups.push(supabase.from('agent_barber_school_leads').select('id, slug, school_name').in('id', idsByType.school)
+      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('school', d.id), { name: d.school_name, href: `/schools/${d.slug}` }))))
+    lookups.push(supabase.from('agent_cosmetology_school_leads').select('id, slug, school_name').in('id', idsByType.school)
+      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('school', d.id), { name: d.school_name, href: `/schools/${d.slug}` }))))
   }
   if (idsByType.store?.length) {
-    lookups.push(supabase.from('agent_barber_supply_store_leads').select('id, name').in('id', idsByType.store)
-      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('store', d.id), { name: d.name, href: `/stores/${d.id}` }))))
-    lookups.push(supabase.from('agent_beauty_supply_store_leads').select('id, name').in('id', idsByType.store)
-      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('store', d.id), { name: d.name, href: `/stores/${d.id}` }))))
+    lookups.push(supabase.from('agent_barber_supply_store_leads').select('id, slug, name').in('id', idsByType.store)
+      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('store', d.id), { name: d.name, href: `/stores/${d.slug}` }))))
+    lookups.push(supabase.from('agent_beauty_supply_store_leads').select('id, slug, name').in('id', idsByType.store)
+      .then(({ data }) => data?.forEach((d: any) => nameMap.set(key('store', d.id), { name: d.name, href: `/stores/${d.slug}` }))))
   }
 
   await Promise.all(lookups);

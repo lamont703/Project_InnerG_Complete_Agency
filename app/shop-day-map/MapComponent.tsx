@@ -107,25 +107,25 @@ export default function ShopDayMap({
     }));
     const barberSchools = (initialSchools || []).map((s: any) => ({
       ...s, layerKey: "barberSchool" as LayerKey, name: s.school_name, addr: s.formatted_address || `${s.city}, TX`,
-      profileUrl: `/schools/${s.id}`,
+      profileUrl: `/schools/${s.slug}`,
     }));
     const cosmetologySchools = (initialCosmetologySchools || []).map((s: any) => ({
       ...s, layerKey: "cosmetologySchool" as LayerKey, name: s.school_name, addr: s.formatted_address || `${s.city}, TX`,
-      profileUrl: `/schools/${s.id}`,
+      profileUrl: `/schools/${s.slug}`,
     }));
     const barbers = (initialBarbers || []).map((b: any) => ({
-      ...b, layerKey: "barber" as LayerKey, name: b.name, addr: b.address, profileUrl: `/barbers/${b.id}`,
+      ...b, layerKey: "barber" as LayerKey, name: b.name, addr: b.address, profileUrl: `/barbers/${b.slug}`,
     }));
     const cosmetologists = (initialCosmetologists || []).map((c: any) => ({
-      ...c, layerKey: "cosmetologist" as LayerKey, name: c.name, addr: c.address, profileUrl: `/cosmetologists/${c.id}`,
+      ...c, layerKey: "cosmetologist" as LayerKey, name: c.name, addr: c.address, profileUrl: `/cosmetologists/${c.slug}`,
     }));
     const salons = (initialSalons || []).map((s: any) => ({
       ...s, layerKey: "salon" as LayerKey, name: s.shop_name, addr: s.formatted_address || `${s.city}, TX`,
-      phone: s.phone, email: s.email, rating: s.rating, total_reviews: s.total_reviews, profileUrl: `/salons/${s.id}`,
+      phone: s.phone, email: s.email, rating: s.rating, total_reviews: s.total_reviews, profileUrl: `/salons/${s.slug}`,
     }));
     const supplyStores = (initialSupplyStores || []).map((s: any) => ({
       ...s, layerKey: "supplyStore" as LayerKey, name: s.name, addr: s.formatted_address || `${s.city}, TX`,
-      phone: s.phone, website: s.website, rating: s.rating, total_reviews: s.total_reviews, profileUrl: `/stores/${s.id}`,
+      phone: s.phone, website: s.website, rating: s.rating, total_reviews: s.total_reviews, profileUrl: `/stores/${s.slug}`,
     }));
     return [...shops, ...barberSchools, ...cosmetologySchools, ...barbers, ...cosmetologists, ...salons, ...supplyStores];
   }, [initialShops, initialSchools, initialCosmetologySchools, initialBarbers, initialCosmetologists, initialSalons, initialSupplyStores]);

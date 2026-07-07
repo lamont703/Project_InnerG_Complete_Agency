@@ -1133,7 +1133,7 @@ export default function BarberBeautyNetworkPage() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  const url = `${window.location.origin}/shop/${shop.id}`;
+                                  const url = `${window.location.origin}/shop/${shop.slug}`;
                                   navigator.clipboard.writeText(url).then(() => {
                                     alert(`Link copied to clipboard! Share ${shop.shop_name} with your friends.`);
                                   }).catch((err) => {

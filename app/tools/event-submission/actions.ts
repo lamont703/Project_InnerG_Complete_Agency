@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenAI } from "@google/genai";
+import { buildSlug } from "@/lib/slug";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -64,7 +65,7 @@ async function generateEventEmbedding(text: string): Promise<string | null> {
 // Publishes only after an admin has reviewed/edited the extracted preview
 // in the UI — nothing is ever written to the table before a human has
 // seen it, so there's no separate draft/needs-review state to manage.
-export async function publishEvent(form: EventFormData): Promise<{ success: boolean; error?: string; id?: string }> {
+export async function publishEvent(form: EventFormData): Promise<{ success: boolean; error?: string; id?: string; slug?: string }> {
   try {
     if (!form.title || !form.eventDate || !form.sourceUrl) {
       return { success: false, error: "Title, event date, and source URL are required." };
@@ -102,7 +103,7 @@ export async function publishEvent(form: EventFormData): Promise<{ success: bool
     const { data, error } = await supabase
       .from("events")
       .upsert(payload, { onConflict: "source_url" })
-      .select("id")
+      .select("id, slug")
       .single();
 
     if (error) {
@@ -110,7 +111,16 @@ export async function publishEvent(form: EventFormData): Promise<{ success: bool
       return { success: false, error: error.message };
     }
 
-    return { success: true, id: data.id };
+    // New rows (and re-submissions that predate the slug column) won't have
+    // one yet — compute and persist it now rather than leaving it null.
+    let slug = data.slug;
+    if (!slug) {
+      slug = buildSlug(form.title, form.city, data.id);
+      const { error: slugError } = await supabase.from("events").update({ slug }).eq("id", data.id);
+      if (slugError) console.error("publishEvent slug backfill error:", slugError);
+    }
+
+    return { success: true, id: data.id, slug };
   } catch (err: any) {
     console.error("publishEvent error:", err);
     return { success: false, error: err.message || "Unexpected error." };

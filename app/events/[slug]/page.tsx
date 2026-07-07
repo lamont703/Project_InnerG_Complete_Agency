@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
@@ -22,6 +22,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const PUBLIC_COLUMNS = [
   "id",
+  "slug",
   "title",
   "description",
   "event_date",
@@ -41,15 +42,25 @@ const PUBLIC_COLUMNS = [
   "price_info",
 ].join(", ");
 
-async function getEvent(id: string) {
-  const { data, error } = await supabase
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function getEvent(param: string) {
+  const { data: bySlug, error: slugErr } = await supabase
     .from("events")
     .select(PUBLIC_COLUMNS)
-    .eq("id", id)
+    .eq("slug", param)
     .single();
+  if (!slugErr && bySlug) return bySlug as any;
 
-  if (error || !data) return null;
-  return data as any;
+  if (!UUID_RE.test(param)) return null;
+
+  const { data: byId, error: idErr } = await supabase
+    .from("events")
+    .select(PUBLIC_COLUMNS)
+    .eq("id", param)
+    .single();
+  if (idErr || !byId) return null;
+  return { ...(byId as any), _resolvedByLegacyId: true };
 }
 
 function formatEventDate(dateStr: string, endDateStr: string | null): string {
@@ -69,9 +80,9 @@ function formatTime(time: string | null): string | null {
   return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  const { id } = await props.params;
-  const event = await getEvent(id);
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await props.params;
+  const event = await getEvent(slug);
   if (!event) return { title: "Event Not Found" };
 
   const title = `${event.title}${event.city ? ` — ${event.city} Barber & Beauty Event` : ""}`;
@@ -88,11 +99,45 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
   };
 }
 
-export default async function EventProfilePage(props: { params: Promise<{ id: string }> }) {
-  const { id } = await props.params;
-  const event = await getEvent(id);
+// Event — only 3 rows exist today, but the same page file is already being
+// touched for the slug rename, so this ships correct from day one rather
+// than needing a second pass once the events table grows.
+function buildEventJsonLd(event: any) {
+  const ld: Record<string, any> = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: event.title,
+    startDate: event.start_time ? `${event.event_date}T${event.start_time}` : event.event_date,
+  };
+  if (event.end_date || event.end_time) {
+    ld.endDate = event.end_time ? `${event.end_date || event.event_date}T${event.end_time}` : event.end_date;
+  }
+  if (event.description) ld.description = event.description;
+  if (event.venue_name || event.address) {
+    ld.location = {
+      "@type": "Place",
+      name: event.venue_name || event.city,
+      address: event.address ? { "@type": "PostalAddress", streetAddress: event.address, addressRegion: "TX", addressCountry: "US" } : undefined,
+    };
+  }
+  if (event.organizer_name) ld.organizer = { "@type": "Organization", name: event.organizer_name };
+  if (event.image_url) ld.image = event.image_url;
+  if (event.ticket_url || event.price_info) {
+    ld.offers = {
+      "@type": "Offer",
+      url: event.ticket_url || undefined,
+      description: event.price_info || undefined,
+    };
+  }
+  return ld;
+}
+
+export default async function EventProfilePage(props: { params: Promise<{ slug: string }> }) {
+  const { slug } = await props.params;
+  const event = await getEvent(slug);
 
   if (!event) notFound();
+  if (event._resolvedByLegacyId) permanentRedirect(`/events/${event.slug}`);
 
   const isPast = new Date(event.event_date + "T23:59:59") < new Date();
   const dateLabel = formatEventDate(event.event_date, event.end_date);
@@ -106,8 +151,11 @@ export default async function EventProfilePage(props: { params: Promise<{ id: st
       ? `https://www.google.com/maps?q=${encodeURIComponent(event.address)}`
       : null;
 
+  const eventJsonLd = buildEventJsonLd(event);
+
   return (
     <div className="min-h-screen bg-slate-50">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
