@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate } from '@/lib/shop-ecosystem';
+import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers } from '@/lib/shop-ecosystem';
 
 // Next.js patches the global fetch() to cache responses by default, which
 // can end up caching the Gemini SDK's own internal fetch calls (identical
@@ -358,6 +358,8 @@ GET_SCHOOL_RANKINGS_BY_REGION TOOL RULE: For "which schools in [city] have the b
 
 GET_TOP_SCHOOLS_BY_PASS_RATE TOOL RULE: For "which schools statewide have the best/worst pass rates" (ranked by RATE, not by test volume like the fixed leaderboard), call get_top_schools_by_pass_rate with direction 'best' or 'worst' based on what's asked.
 
+GET_SCHOOL_TEST_TAKERS TOOL RULE: For "who were those test takers" / "list the students at [school]" style questions, call get_school_test_takers with the school name. Each result includes isK12School — if true, firstName/lastName are already null (these test-takers are plausibly minors in a K-12 vocational program); say plainly that individual names aren't shown for that school and only give the aggregate result/score breakdown. If isK12School is false, hyperlink the school via schoolHref and list names freely. If there are more than 6 results, list the top 6 (by result/score, whichever is more relevant to what was asked) and say "and N more" for the rest, same reasoning as the employment-match tools — keeps the answer readable and avoids the output length limit.
+
 ENTITY LINKING IS NOT OPTIONAL: AI Mode doubles as navigation into the rest of the site, not just an answer — so the LINKING RULE above applies every single time you mention a specific barbershop/barber/school/salon/cosmetologist/store/tool that has a profile_url (or an equivalent href from a tool result like find_professional_employment), with no exceptions. Don't drop a link just because you've already mentioned that entity earlier in the conversation — link it again each time.
 
 Context Data (JSON):
@@ -487,6 +489,17 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
             },
           },
         },
+        {
+          name: 'get_school_test_takers',
+          description: "List individual test-takers at a specific school with their result/score, however partial the school name given. Names are automatically redacted (returned as null) for schools whose name indicates a K-12 high school program, since those test-takers are plausibly minors — this is handled server-side, not something to ask permission for.",
+          parametersJsonSchema: {
+            type: 'object',
+            properties: {
+              schoolName: { type: 'string', description: "The school name to search for, exactly as given, however partial." },
+            },
+            required: ['schoolName'],
+          },
+        },
       ],
     };
 
@@ -585,6 +598,9 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
             const limit = (fc.args?.limit as number | undefined) || 10;
             const direction = (fc.args?.direction as 'best' | 'worst' | undefined) || 'best';
             result = await getTopSchoolsByPassRate(supabase as any, limit, direction);
+          } else if (fc.name === 'get_school_test_takers') {
+            const schoolName = fc.args?.schoolName as string | undefined;
+            result = schoolName ? await getSchoolTestTakers(supabase as any, schoolName) : [];
           }
           return { functionResponse: { name: fc.name, response: { result } } };
         })

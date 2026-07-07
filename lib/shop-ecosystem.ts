@@ -676,3 +676,42 @@ export async function getTopSchoolsByPassRate(supabase: SupabaseClient, limit = 
     leaderboardScore: r.leaderboard_score,
   }));
 }
+
+export interface SchoolTestTaker {
+  schoolId: string;
+  schoolHref: string;
+  schoolName: string;
+  isK12School: boolean;
+  programType: string;
+  firstName: string | null;
+  lastName: string | null;
+  testType: string;
+  result: string;
+  score: number | null;
+  attemptNumber: number;
+  isLatestAttempt: boolean;
+}
+
+// "Who were those test takers" — names are redacted (null, isK12School
+// true) for schools whose name indicates a K-12 program ("High School"
+// or the "Hs" abbreviation), since those test-takers are plausibly
+// minors — a meaningfully different sensitivity tier than adult
+// students at a dedicated trade school, where full names are returned.
+export async function getSchoolTestTakers(supabase: SupabaseClient, schoolQuery: string): Promise<SchoolTestTaker[]> {
+  const { data, error } = await supabase.rpc("get_school_test_takers", { p_school_query: schoolQuery });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    schoolId: r.school_id,
+    schoolHref: `/schools/${r.school_id}`,
+    schoolName: r.school_name,
+    isK12School: !!r.is_k12_school,
+    programType: r.program_type,
+    firstName: r.first_name,
+    lastName: r.last_name,
+    testType: r.test_type,
+    result: r.result,
+    score: r.score,
+    attemptNumber: Number(r.attempt_number),
+    isLatestAttempt: !!r.is_latest_attempt,
+  }));
+}
