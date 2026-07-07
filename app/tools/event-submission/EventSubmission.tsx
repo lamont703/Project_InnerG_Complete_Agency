@@ -17,7 +17,12 @@ function labelCls() {
   return "text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block";
 }
 function inputCls() {
-  return "w-full px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500";
+  // text-slate-900 is required here, not decorative — the site's :root
+  // CSS variables default to a dark theme (near-white --foreground) and
+  // no .light class is ever applied anywhere in the layout tree, so an
+  // input with no explicit text color inherits near-white text on this
+  // page's white background: invisible while typing.
+  return "w-full px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500";
 }
 
 export function EventSubmission({ recentEvents }: { recentEvents: RecentEventRow[] }) {
