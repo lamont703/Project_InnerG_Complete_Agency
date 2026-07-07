@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview } from '@/lib/shop-ecosystem';
+import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate } from '@/lib/shop-ecosystem';
 
 // Next.js patches the global fetch() to cache responses by default, which
 // can end up caching the Gemini SDK's own internal fetch calls (identical
@@ -337,6 +337,18 @@ GET_EMPLOYMENT_MATCH_OVERVIEW TOOL RULE: For broad audit/data-quality questions 
 
 SCHOOL-LEVEL PLACEMENT RATE — NOT SUPPORTED: If asked for a specific school's placement rate or how many of a named school's graduates are employed, say plainly that school affiliation isn't reliably on file for enough professionals to answer that yet (it's self-reported and very sparse) — do not attempt to compute or estimate a per-school rate from context or any tool here.
 
+The tools below are for 2026 TDLR exam data — for school administrators asking about pass rates and student testing performance. They're DIFFERENT from texas_2026_exam_school_leaderboard/texas_2026_cosmetology_exam_school_leaderboard already in context above: those are a fixed top-8 list sorted by test VOLUME, statewide, prebuilt once per conversation — they won't include a mid-size school at all. These tools look up ANY specific school, student, or region on demand.
+
+GET_SCHOOL_EXAM_STATS TOOL RULE: For "what's [school]'s pass rate / how many students tested / what's our leaderboard score" style questions, call get_school_exam_stats with the school name, however partial. Not every school has 2026 data (148 of 205 barber schools do) — if a field is null, say plainly there's no data on file for that exam/program at that school, don't guess. Pass rates are already percentages (0-100) here, not decimals. Some school names span multiple real, distinct campuses (confirmed: "Milan Institute" has separate Houston/San Antonio/Amarillo locations, each with its own stats) — if more than one row comes back, present them as separate campuses using their city to distinguish, never average or merge them into one answer. Hyperlink each school via schoolHref.
+
+GET_STATEWIDE_EXAM_STATS TOOL RULE: For "what's the statewide average pass rate," "how does my school compare to the state," or any benchmark/comparison question, call get_statewide_exam_stats (no arguments). It returns barber and cosmetology numbers separately, and written vs. practical separately — written exams are meaningfully harder than practical (confirmed: ~66-72% written pass rate vs. ~93-97% practical), so don't blend them into one figure. This is student-weighted across the whole state, not an average of school-level rates.
+
+FIND_STUDENT_EXAM_RECORD TOOL RULE: For "did [student name] pass," "what was [name]'s score," "how many attempts did [name] take" — call find_student_exam_record with whatever name was given, full or partial, same as the other name-lookup tools (don't ask for a full name before trying). Returns every attempt for that person — if they have more than one, mention the retake history (attemptNumber, whether isLatestAttempt) rather than only the most recent. If schoolMatchConfidence is "fuzzy" or "ambiguous" for a result, mention the school pairing is less certain. If more than one distinct person could match, say so explicitly rather than picking one silently.
+
+GET_SCHOOL_RANKINGS_BY_REGION TOOL RULE: For "which schools in [city] have the best pass rates" or "how do schools near me compare," call get_school_rankings_by_region with the city name. Already floored at a minimum sample size, so every result shown is a real, meaningful sample — no need to caveat sample size unless asked.
+
+GET_TOP_SCHOOLS_BY_PASS_RATE TOOL RULE: For "which schools statewide have the best/worst pass rates" (ranked by RATE, not by test volume like the fixed leaderboard), call get_top_schools_by_pass_rate with direction 'best' or 'worst' based on what's asked.
+
 ENTITY LINKING IS NOT OPTIONAL: AI Mode doubles as navigation into the rest of the site, not just an answer — so the LINKING RULE above applies every single time you mention a specific barbershop/barber/school/salon/cosmetologist/store/tool that has a profile_url (or an equivalent href from a tool result like find_professional_employment), with no exceptions. Don't drop a link just because you've already mentioned that entity earlier in the conversation — link it again each time.
 
 Context Data (JSON):
@@ -416,6 +428,55 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
           name: 'get_employment_match_overview',
           description: "Get overall data-quality stats for the employment-match dataset: total matches, breakdown by profession type (barber/cosmetologist) and venue type (shop/salon), average confidence and distance, and how many eligible professionals had no match found nearby. Use for broad audit questions like 'how many total matches do we have' or 'what's the breakdown by type.'",
           parametersJsonSchema: { type: 'object', properties: {} },
+        },
+        {
+          name: 'get_school_exam_stats',
+          description: "Look up a specific barber or cosmetology school's 2026 TDLR exam pass rates, test-taker counts, first-attempt pass rate, and leaderboard score, for both the barber and cosmetology programs if the school teaches both. Call this for any question about a specific school's exam performance — it looks up ANY school on demand, unlike the fixed top-8-by-volume leaderboard already in context.",
+          parametersJsonSchema: {
+            type: 'object',
+            properties: {
+              schoolName: { type: 'string', description: "The school name to search for, exactly as given, however partial — fuzzy matched, no need for the full/exact name." },
+            },
+            required: ['schoolName'],
+          },
+        },
+        {
+          name: 'get_statewide_exam_stats',
+          description: "Get the real statewide 2026 TDLR exam benchmark — pass rate, first-attempt pass rate, and average attempts-to-pass, separately for barber and cosmetology programs and for written vs. practical exams. Call this for 'what's the statewide average' or 'how does my school compare to the state' style questions.",
+          parametersJsonSchema: { type: 'object', properties: {} },
+        },
+        {
+          name: 'find_student_exam_record',
+          description: "Look up a specific student's 2026 TDLR exam record(s) by name — result (pass/fail), score, attempt number, and whether it was their latest attempt. Returns every attempt on file for that person, not just the most recent, so retakes are visible.",
+          parametersJsonSchema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: "The student's name to search for, exactly as given, however partial — a full name, first name only, or partial name are all valid and should be tried as-is, never ask for a full name first." },
+            },
+            required: ['name'],
+          },
+        },
+        {
+          name: 'get_school_rankings_by_region',
+          description: "Rank barber/cosmetology schools by 2026 written exam pass rate within a specific city. Call this for 'which schools in my area/city have the best pass rates' style questions.",
+          parametersJsonSchema: {
+            type: 'object',
+            properties: {
+              city: { type: 'string', description: "The city to search within, e.g. 'Houston'." },
+            },
+            required: ['city'],
+          },
+        },
+        {
+          name: 'get_top_schools_by_pass_rate',
+          description: "Rank ALL schools statewide by 2026 written exam pass rate, best or worst — distinct from the fixed leaderboard already in context, which ranks by test VOLUME, not pass rate. Call this for 'which schools have the best/worst pass rates statewide' style questions.",
+          parametersJsonSchema: {
+            type: 'object',
+            properties: {
+              limit: { type: 'number', description: "How many schools to return. Defaults to 10 if not specified." },
+              direction: { type: 'string', enum: ['best', 'worst'], description: "'best' for highest pass rates, 'worst' for lowest. Defaults to 'best'." },
+            },
+          },
         },
       ],
     };
@@ -500,6 +561,21 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
             employmentMatches.push(...(result as any[]));
           } else if (fc.name === 'get_employment_match_overview') {
             result = await getEmploymentMatchOverview(supabase as any);
+          } else if (fc.name === 'get_school_exam_stats') {
+            const schoolName = fc.args?.schoolName as string | undefined;
+            result = schoolName ? await getSchoolExamStats(supabase as any, schoolName) : [];
+          } else if (fc.name === 'get_statewide_exam_stats') {
+            result = await getStatewideExamStats(supabase as any);
+          } else if (fc.name === 'find_student_exam_record') {
+            const name = fc.args?.name as string | undefined;
+            result = name ? await findStudentExamRecord(supabase as any, name) : [];
+          } else if (fc.name === 'get_school_rankings_by_region') {
+            const city = fc.args?.city as string | undefined;
+            result = city ? await getSchoolRankingsByRegion(supabase as any, city) : [];
+          } else if (fc.name === 'get_top_schools_by_pass_rate') {
+            const limit = (fc.args?.limit as number | undefined) || 10;
+            const direction = (fc.args?.direction as 'best' | 'worst' | undefined) || 'best';
+            result = await getTopSchoolsByPassRate(supabase as any, limit, direction);
           }
           return { functionResponse: { name: fc.name, response: { result } } };
         })

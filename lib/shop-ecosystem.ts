@@ -489,3 +489,190 @@ export async function getEmploymentMatchOverview(supabase: SupabaseClient): Prom
     unmatchedEligibleCount: Number(r.unmatched_eligible_count),
   };
 }
+
+// Pass rates are stored as 0-1 decimals on the school tables — converted
+// to 0-100 here so every exam-stats field displays consistently
+// regardless of whether it came from a school-level or statewide query.
+function pct(v: number | null): number | null {
+  return v == null ? null : Math.round(v * 1000) / 10;
+}
+
+export interface SchoolExamStats {
+  schoolId: string;
+  schoolType: string;
+  schoolHref: string;
+  schoolName: string;
+  city: string | null;
+  barberWrittenPassRate: number | null;
+  barberWrittenTestTakers: number | null;
+  barberPracticalPassRate: number | null;
+  barberPracticalTestTakers: number | null;
+  barberFirstAttemptPassRate: number | null;
+  barberAvgAttemptsToPass: number | null;
+  barberLeaderboardScore: number | null;
+  cosmetologyWrittenPassRate: number | null;
+  cosmetologyWrittenTestTakers: number | null;
+  cosmetologyPracticalPassRate: number | null;
+  cosmetologyPracticalTestTakers: number | null;
+  cosmetologyFirstAttemptPassRate: number | null;
+  cosmetologyAvgAttemptsToPass: number | null;
+  cosmetologyLeaderboardScore: number | null;
+}
+
+// Single-school lookup for a school administrator asking about their own
+// school — fuzzy name match, distinct from the fixed top-8-by-volume
+// leaderboard already in the general chat context, which won't surface a
+// mid-size school at all. Can return more than one row on a genuine
+// multi-campus collision (e.g. "Milan Institute" has 3 separate Texas
+// campuses, confirmed live) — never silently picks one.
+export async function getSchoolExamStats(supabase: SupabaseClient, schoolQuery: string): Promise<SchoolExamStats[]> {
+  const { data, error } = await supabase.rpc("get_school_exam_stats", { p_school_query: schoolQuery });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    schoolId: r.school_id,
+    schoolType: r.school_type,
+    schoolHref: `/schools/${r.school_id}`,
+    schoolName: r.school_name,
+    city: r.city,
+    barberWrittenPassRate: pct(r.barber_written_pass_rate),
+    barberWrittenTestTakers: r.barber_written_test_takers,
+    barberPracticalPassRate: pct(r.barber_practical_pass_rate),
+    barberPracticalTestTakers: r.barber_practical_test_takers,
+    barberFirstAttemptPassRate: pct(r.barber_first_attempt_pass_rate),
+    barberAvgAttemptsToPass: r.barber_avg_attempts_to_pass,
+    barberLeaderboardScore: r.barber_leaderboard_score,
+    cosmetologyWrittenPassRate: pct(r.cosmetology_written_pass_rate),
+    cosmetologyWrittenTestTakers: r.cosmetology_written_test_takers,
+    cosmetologyPracticalPassRate: pct(r.cosmetology_practical_pass_rate),
+    cosmetologyPracticalTestTakers: r.cosmetology_practical_test_takers,
+    cosmetologyFirstAttemptPassRate: pct(r.cosmetology_first_attempt_pass_rate),
+    cosmetologyAvgAttemptsToPass: r.cosmetology_avg_attempts_to_pass,
+    cosmetologyLeaderboardScore: r.cosmetology_leaderboard_score,
+  }));
+}
+
+export interface StatewideExamStats {
+  programType: string;
+  testType: string;
+  totalTestTakers: number;
+  passCount: number;
+  passRate: number;
+  firstAttemptPassRate: number;
+  avgAttemptsToPass: number;
+}
+
+// The genuinely missing benchmark — student-weighted (not an average of
+// per-school rates, so large and small schools aren't counted equally),
+// computed live from raw pass/fail records.
+export async function getStatewideExamStats(supabase: SupabaseClient): Promise<StatewideExamStats[]> {
+  const { data, error } = await supabase.rpc("get_statewide_exam_stats", {});
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    programType: r.program_type,
+    testType: r.test_type,
+    totalTestTakers: Number(r.total_test_takers),
+    passCount: Number(r.pass_count),
+    passRate: Number(r.pass_rate),
+    firstAttemptPassRate: Number(r.first_attempt_pass_rate),
+    avgAttemptsToPass: Number(r.avg_attempts_to_pass),
+  }));
+}
+
+export interface StudentExamRecord {
+  programType: string;
+  firstName: string;
+  lastName: string;
+  schoolName: string;
+  schoolHref: string | null;
+  testType: string;
+  testDate: string | null;
+  result: string;
+  score: number | null;
+  attemptNumber: number;
+  isLatestAttempt: boolean;
+  schoolMatchConfidence: string;
+}
+
+const SCHOOL_TYPE_TO_PATH: Record<string, string> = { barber: "/schools", cosmetology: "/schools" };
+
+// Fuzzy name match across both student tables, grouped to the best-
+// matching person(s) — requires matching at least 2 of a 2+-word query's
+// tokens (confirmed live: a looser threshold let an unrelated same-first-
+// name person through). Returns every attempt for that person, not just
+// the latest, so retakes are visible via attemptNumber/isLatestAttempt.
+export async function findStudentExamRecord(supabase: SupabaseClient, name: string): Promise<StudentExamRecord[]> {
+  const { data, error } = await supabase.rpc("find_student_exam_record", { p_name_query: name });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    programType: r.program_type,
+    firstName: r.first_name,
+    lastName: r.last_name,
+    schoolName: r.school_name,
+    schoolHref: r.matched_school_id && SCHOOL_TYPE_TO_PATH[r.matched_school_type] ? `${SCHOOL_TYPE_TO_PATH[r.matched_school_type]}/${r.matched_school_id}` : null,
+    testType: r.test_type,
+    testDate: r.test_date,
+    result: r.result,
+    score: r.score,
+    attemptNumber: Number(r.attempt_number),
+    isLatestAttempt: !!r.is_latest_attempt,
+    schoolMatchConfidence: r.school_match_confidence,
+  }));
+}
+
+export interface SchoolRegionRanking {
+  schoolId: string;
+  schoolType: string;
+  schoolHref: string;
+  schoolName: string;
+  city: string | null;
+  writtenPassRate: number | null;
+  writtenTestTakers: number | null;
+  leaderboardScore: number | null;
+}
+
+// "Which schools in my area have the best pass rates" — city-scoped,
+// distinct from the statewide fixed leaderboard. Floors at 3 test-takers
+// to avoid a 1-student 100%/0% school skewing the ranking.
+export async function getSchoolRankingsByRegion(supabase: SupabaseClient, city: string, limit = 10): Promise<SchoolRegionRanking[]> {
+  const { data, error } = await supabase.rpc("get_school_rankings_by_region", { p_city: city, p_limit: limit });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    schoolId: r.school_id,
+    schoolType: r.school_type,
+    schoolHref: `/schools/${r.school_id}`,
+    schoolName: r.school_name,
+    city: r.city,
+    writtenPassRate: pct(r.written_pass_rate),
+    writtenTestTakers: r.written_test_takers,
+    leaderboardScore: r.leaderboard_score,
+  }));
+}
+
+export interface TopSchoolByPassRate {
+  schoolId: string;
+  schoolType: string;
+  schoolHref: string;
+  schoolName: string;
+  city: string | null;
+  writtenPassRate: number | null;
+  writtenTestTakers: number | null;
+  leaderboardScore: number | null;
+}
+
+// Statewide best/worst performers by pass rate, distinct from the fixed
+// volume-sorted leaderboard already in general context. Floors at 5
+// test-takers by default for the same small-sample reason.
+export async function getTopSchoolsByPassRate(supabase: SupabaseClient, limit = 10, direction: "best" | "worst" = "best"): Promise<TopSchoolByPassRate[]> {
+  const { data, error } = await supabase.rpc("get_top_schools_by_pass_rate", { p_limit: limit, p_direction: direction });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    schoolId: r.school_id,
+    schoolType: r.school_type,
+    schoolHref: `/schools/${r.school_id}`,
+    schoolName: r.school_name,
+    city: r.city,
+    writtenPassRate: pct(r.written_pass_rate),
+    writtenTestTakers: r.written_test_takers,
+    leaderboardScore: r.leaderboard_score,
+  }));
+}
