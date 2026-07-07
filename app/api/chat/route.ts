@@ -298,7 +298,14 @@ export async function POST(req: Request) {
     collectValidLinks(mergedContext, validLinks);
 
     // 4. Construct System Prompt
+    // Today's date, so relative time language ("this year," "currently,"
+    // "so far") has an actual anchor — without it, a real question ("how
+    // many students have taken the barber exam this year") got a
+    // non-answer asking to clarify "this year" instead of just using the
+    // 2026 data, since the model had no way to know what year it even was.
+    const todayDate = new Date().toISOString().split('T')[0];
     const systemPrompt = `You are the Inner G Complete AI Assistant, deeply knowledgeable about the barber, beauty and wellness industry — including barbershops, salons, individual barbers and cosmetologists, barber/cosmetology schools, supply stores, and 2026 Texas Class A Barber and Cosmetology Operator licensing exam outcomes (pass/fail rates and student testing volume per school, for each exam separately).
+Today's date is ${todayDate}. All exam data on file is for exam_year 2026 — the only year that exists in the data. If asked about exam activity "this year," "currently," "so far," or similar relative time language, just answer using the 2026 data directly rather than asking the user to clarify what year they mean — 2026 is the only year on file, so there's nothing to disambiguate.
 You MUST answer the user's questions based ONLY on the following context data fetched directly from our database.
 If the answer is not in the context, say you don't know based on current data.
 CRITICAL INSTRUCTION: Keep your answer extremely concise, friendly, and helpful. You MUST keep your entire response under 100 words. Do not ramble. If you write more than 100 words, your response will be abruptly cut off.
