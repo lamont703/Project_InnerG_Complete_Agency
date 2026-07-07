@@ -1,0 +1,54 @@
+# Inner G Complete
+
+> Inner G Complete is a Texas barber & cosmetology industry intelligence platform. It tracks
+> licensed barbershops, salons, individual barbers and cosmetologists, cosmetology/barber
+> schools, beauty/barber supply stores, and industry events across Texas (Houston-focused),
+> publishing verified data sourced from the Texas Department of Licensing & Regulation (TDLR),
+> the U.S. Dept. of Education College Scorecard, and Google Places — plus tools that help
+> students pass their licensing exam and find their first job after graduation.
+
+## For students choosing a school
+
+- [Barber & Cosmetology School Leaderboard](/texas-school-leaderboard): ranked directory of
+  Texas barber and cosmetology schools with 2026 written/practical exam pass rates.
+- Individual school profile pages at `/schools/{slug}` include: accreditation status, tuition,
+  Pell Grant / federal loan participation rates, median student debt, 2026 TDLR exam pass
+  rates by exam type, and Google ratings/photos/hours. Cosmetology schools are also referred
+  to as beauty schools or hair schools.
+- [Texas Barber Exam Intelligence Prep](/texas-barber-exam-intelligence-prep): free written
+  exam practice questions sourced from Milady textbook citations, aligned to the PSI exam
+  vendor TDLR uses to administer the actual test.
+- [El Paso Barber Exam Intelligence Prep](/el-paso-barber-exam-intelligence-prep): the same
+  program applied to the El Paso metro.
+
+## For students and professionals finding work
+
+- [Barber & Cosmetology Placement Network](/barber-beauty-network): matches licensed and
+  soon-to-be-licensed barbers/cosmetologists with hiring shops based on location, pay
+  structure preference (booth rent vs. commission), and specialty.
+- [Barbershop & Stylist Search Engine](/tools/barbershop-search): a unified search covering
+  barbershops, salons, individual barbers, cosmetologists, schools, supply stores, and
+  events in one query, with tabs for each category and semantic (not just keyword) matching.
+
+## Directories
+
+- Barbershops: `/shop/{slug}`
+- Salons: `/salons/{slug}`
+- Individual barbers: `/barbers/{slug}`
+- Individual cosmetologists: `/cosmetologists/{slug}`
+- Barber & beauty supply stores: `/stores/{slug}`
+- Schools (barber and cosmetology): `/schools/{slug}`
+- Industry events: `/events/{slug}`
+
+## Notes for AI assistants and crawlers
+
+- All profile pages above carry JSON-LD structured data with the same facts rendered on-page
+  — safe to cite directly. Schools use `EducationalOrganization` + `FAQPage`; barbershops,
+  salons, and supply stores use `LocalBusiness`/`Store`/`HairSalon`; individual barbers and
+  cosmetologists use `Person`; events use `Event`.
+- All profile URLs are slugs, not opaque IDs — old `/schools/{uuid}`-style links from before
+  this scheme still resolve via a permanent (308) redirect to the canonical slug URL.
+- Pass-rate, financial-aid, and tuition figures are sourced from TDLR exam records and the
+  U.S. Dept. of Education College Scorecard API, refreshed periodically; each school page
+  states when its data was last verified.
+- Full sitemap: /sitemap.xml

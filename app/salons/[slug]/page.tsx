@@ -1,9 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
+import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
 import {
   MapPin,
   Star,
@@ -11,9 +11,9 @@ import {
   Globe,
   Clock,
   Navigation,
-  Store,
+  Users,
   ExternalLink,
-  Search,
+  Landmark,
 } from "lucide-react";
 
 export const revalidate = 3600;
@@ -24,7 +24,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const PUBLIC_COLUMNS = [
   "id",
-  "name",
+  "slug",
+  "shop_name",
   "formatted_address",
   "city",
   "phone",
@@ -35,41 +36,40 @@ const PUBLIC_COLUMNS = [
   "total_reviews",
   "place_types",
   "business_status",
-  "price_level",
   "google_images",
-  "hours",
+  "site_config",
+  "school_district_name",
 ].join(", ");
 
-async function getStore(id: string): Promise<{ store: any; storeType: "barber_supply" | "beauty_supply" } | null> {
-  const { data: barberStore, error: barberError } = await supabase
-    .from("agent_barber_supply_store_leads")
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function getSalon(param: string) {
+  const { data: bySlug, error: slugErr } = await supabase
+    .from("agent_salon_leads")
     .select(PUBLIC_COLUMNS)
-    .eq("id", id)
+    .eq("slug", param)
     .single();
+  if (!slugErr && bySlug) return bySlug as any;
 
-  if (!barberError && barberStore) return { store: barberStore, storeType: "barber_supply" };
+  if (!UUID_RE.test(param)) return null;
 
-  const { data: beautyStore, error: beautyError } = await supabase
-    .from("agent_beauty_supply_store_leads")
+  const { data: byId, error: idErr } = await supabase
+    .from("agent_salon_leads")
     .select(PUBLIC_COLUMNS)
-    .eq("id", id)
+    .eq("id", param)
     .single();
-
-  if (!beautyError && beautyStore) return { store: beautyStore, storeType: "beauty_supply" };
-
-  return null;
+  if (idErr || !byId) return null;
+  return { ...(byId as any), _resolvedByLegacyId: true };
 }
 
-export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  const { id } = await props.params;
-  const result = await getStore(id);
-  if (!result) return { title: "Supply Store Not Found" };
-  const { store, storeType } = result;
-  const storeLabel = storeType === "beauty_supply" ? "Beauty Supply Store" : "Barber Supply Store";
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await props.params;
+  const salon = await getSalon(slug);
+  if (!salon) return { title: "Salon Not Found" };
 
-  const title = `${store.name} — ${storeLabel}${store.city ? ` in ${store.city}` : ""}`;
-  const description = `${store.name}${store.formatted_address ? ` at ${store.formatted_address}` : ""}. View photos, hours, ratings, and contact info.`;
-  const heroImage = Array.isArray(store.google_images) ? store.google_images[0] : undefined;
+  const title = `${salon.shop_name} — Hair & Beauty Salon${salon.city ? ` in ${salon.city}` : ""}`;
+  const description = `${salon.shop_name}${salon.formatted_address ? ` at ${salon.formatted_address}` : ""}. View photos, hours, ratings, and contact info.`;
+  const heroImage = Array.isArray(salon.google_images) ? salon.google_images[0] : undefined;
 
   return {
     title,
@@ -84,51 +84,66 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
 
 const TODAY_INDEX = (new Date().getDay() + 6) % 7; // 0 = Monday, matches Google's weekdayDescriptions order
 
-export default async function SupplyStoreProfilePage(props: { params: Promise<{ id: string }> }) {
-  const { id } = await props.params;
-  const result = await getStore(id);
+// LocalBusiness — a salon is a physical business, distinct from the
+// individual-professional Person schema used on barber/cosmetologist pages.
+function buildSalonJsonLd(salon: any, websiteHref: string | null) {
+  const ld: Record<string, any> = {
+    "@context": "https://schema.org",
+    "@type": "HairSalon",
+    name: salon.shop_name,
+  };
+  if (salon.formatted_address) ld.address = { "@type": "PostalAddress", streetAddress: salon.formatted_address, addressRegion: "TX", addressCountry: "US" };
+  if (salon.latitude && salon.longitude) ld.geo = { "@type": "GeoCoordinates", latitude: salon.latitude, longitude: salon.longitude };
+  if (salon.phone) ld.telephone = salon.phone;
+  if (websiteHref) ld.url = websiteHref;
+  if (salon.rating && salon.total_reviews) {
+    ld.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: Number(salon.rating),
+      reviewCount: Number(salon.total_reviews),
+    };
+  }
+  return ld;
+}
 
-  if (!result) notFound();
-  const { store, storeType } = result;
-  const storeLabel = storeType === "beauty_supply" ? "Beauty Supply Store" : "Barber Supply Store";
-  const aboutBlurb =
-    storeType === "beauty_supply"
-      ? "Visit for hair care products, wigs, extensions, and professional styling supplies."
-      : "Visit for professional clippers, shears, chemicals, and grooming supplies.";
+export default async function SalonProfilePage(props: { params: Promise<{ slug: string }> }) {
+  const { slug } = await props.params;
+  const salon = await getSalon(slug);
 
-  const images: string[] = Array.isArray(store.google_images) ? store.google_images : [];
+  if (!salon) notFound();
+  if (salon._resolvedByLegacyId) permanentRedirect(`/salons/${salon.slug}`);
+
+  const images: string[] = Array.isArray(salon.google_images) ? salon.google_images : [];
   const heroPhoto = images[0] || null;
   const thumbnails = images.slice(1, 5);
 
-  const tagList: string[] = store.place_types
-    ? store.place_types
+  const tagList: string[] = salon.place_types
+    ? salon.place_types
         .split("|")
         .map((t: string) => t.trim().replace(/_/g, " "))
         .filter((t: string) => t && !["point of interest", "establishment", "store"].includes(t))
     : [];
 
-  const hours: string[] = Array.isArray(store.hours) ? store.hours : [];
+  const hours: string[] = Array.isArray(salon.site_config?.hours) ? salon.site_config.hours : [];
 
   const directionsHref =
-    store.latitude && store.longitude
-      ? `https://www.google.com/maps?q=${store.latitude},${store.longitude}`
-      : store.formatted_address
-      ? `https://www.google.com/maps?q=${encodeURIComponent(store.formatted_address)}`
+    salon.latitude && salon.longitude
+      ? `https://www.google.com/maps?q=${salon.latitude},${salon.longitude}`
+      : salon.formatted_address
+      ? `https://www.google.com/maps?q=${encodeURIComponent(salon.formatted_address)}`
       : null;
 
-  const websiteHref = store.website
-    ? store.website.startsWith("http")
-      ? store.website
-      : `https://${store.website}`
+  const websiteHref = salon.website
+    ? salon.website.startsWith("http")
+      ? salon.website
+      : `https://${salon.website}`
     : null;
 
-  const priceLabel =
-    store.price_level && typeof store.price_level === "string"
-      ? store.price_level.replace("PRICE_LEVEL_", "").replace(/_/g, " ")
-      : null;
+  const salonJsonLd = buildSalonJsonLd(salon, websiteHref);
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(salonJsonLd) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -139,7 +154,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
               <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
                 <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={heroPhoto} alt={store.name} className="w-full h-full object-cover" />
+                  <img src={heroPhoto} alt={salon.shop_name} className="w-full h-full object-cover" />
                 </a>
                 {thumbnails.length > 0 && (
                   <div className="grid grid-cols-4 gap-0.5 p-0.5 bg-slate-100">
@@ -152,48 +167,49 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
                         className="relative aspect-square overflow-hidden bg-slate-200 group"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt={`${store.name} photo ${i + 2}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <img src={url} alt={`${salon.shop_name} photo ${i + 2}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       </a>
                     ))}
                   </div>
                 )}
               </div>
             ) : (
-              <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-emerald-600 to-slate-800 aspect-[16/7] flex items-center justify-center">
-                <Store className="w-16 h-16 text-white/40" />
+              <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-pink-600 to-slate-800 aspect-[16/7] flex items-center justify-center">
+                <Users className="w-16 h-16 text-white/40" />
               </div>
             )}
 
             {/* Header Block */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{store.name}</h1>
-              {store.formatted_address && (
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{salon.shop_name}</h1>
+              {salon.formatted_address && (
                 <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5" />
-                  {store.formatted_address}
+                  {salon.formatted_address}
+                </p>
+              )}
+              {salon.school_district_name && (
+                <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
+                  <Landmark className="w-3.5 h-3.5" />
+                  Located in {salon.school_district_name}
                 </p>
               )}
 
               <div className="flex flex-wrap items-center gap-2 mt-3">
-                {store.rating && (
+                {salon.rating && (
                   <span className="inline-flex items-center gap-1 text-sm font-bold text-slate-900">
                     <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-                    {Number(store.rating).toFixed(1)}
-                    {store.total_reviews ? (
+                    {Number(salon.rating).toFixed(1)}
+                    {salon.total_reviews ? (
                       <span className="text-slate-500 font-medium underline decoration-slate-300 underline-offset-2">
-                        {store.total_reviews} reviews
+                        {salon.total_reviews} reviews
                       </span>
                     ) : null}
                   </span>
                 )}
-                {priceLabel && (
-                  <span className="inline-flex items-center text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 rounded-full px-2.5 py-1 capitalize">
-                    {priceLabel.toLowerCase()}
-                  </span>
-                )}
-                {store.business_status && store.business_status !== "OPERATIONAL" && (
+                {salon.business_status && salon.business_status !== "OPERATIONAL" && (
                   <span className="inline-flex items-center text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-full px-2.5 py-1 capitalize">
-                    {store.business_status.replace(/_/g, " ").toLowerCase()}
+                    {salon.business_status.replace(/_/g, " ").toLowerCase()}
                   </span>
                 )}
               </div>
@@ -201,7 +217,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
               {tagList.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-4">
                   {tagList.map((t) => (
-                    <span key={t} className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 capitalize">
+                    <span key={t} className="text-xs font-bold text-pink-700 bg-pink-50 border border-pink-100 rounded-full px-3 py-1 capitalize">
                       {t}
                     </span>
                   ))}
@@ -211,11 +227,11 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
 
             {/* About */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
-              <h2 className="text-lg font-black text-slate-900 mb-3">About this store</h2>
+              <h2 className="text-lg font-black text-slate-900 mb-3">About this salon</h2>
               <p className="text-sm text-slate-600 leading-relaxed">
-                {store.name} is a {storeLabel.toLowerCase()}{store.city ? ` serving the ${store.city} area` : ""}
-                {store.rating ? `, rated ${Number(store.rating).toFixed(1)} stars across ${store.total_reviews || 0} reviews` : ""}.
-                {" "}{aboutBlurb}
+                {salon.shop_name} is a hair & beauty salon{salon.city ? ` serving the ${salon.city} area` : ""}
+                {salon.rating ? `, rated ${Number(salon.rating).toFixed(1)} stars across ${salon.total_reviews || 0} reviews` : ""}.
+                {" "}Visit for haircuts, styling, coloring, and other hair & beauty services.
               </p>
             </div>
           </div>
@@ -223,13 +239,13 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
           {/* Sidebar */}
           <div className="space-y-4">
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-3">
-              {store.phone && (
+              {salon.phone && (
                 <a
-                  href={`tel:${store.phone}`}
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-emerald-600/20"
+                  href={`tel:${salon.phone}`}
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-pink-600/20"
                 >
                   <Phone className="w-4 h-4" />
-                  Call Store
+                  Call Salon
                 </a>
               )}
               {websiteHref && (
@@ -248,26 +264,23 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
 
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
-                Nearby
+                Not ready to reach out yet?
               </p>
-              <Link
-                href={`/tools/barbershop-search?tab=Barbershops${store.city ? `&q=${encodeURIComponent(store.city)}` : ""}`}
-                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-extrabold text-sm uppercase tracking-wider transition-colors"
-              >
-                <Search className="w-4 h-4" />
-                Find Shops Near This Store
-              </Link>
+              <RequestShopDayButton
+                shop={salon}
+                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-pink-600/20"
+              />
             </div>
 
             {directionsHref && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-3">Location</h3>
-                <p className="text-sm text-slate-600 font-medium mb-3">{store.formatted_address || store.city}</p>
+                <p className="text-sm text-slate-600 font-medium mb-3">{salon.formatted_address || salon.city}</p>
                 <a
                   href={directionsHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600 hover:underline"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-pink-600 hover:underline"
                 >
                   <Navigation className="w-4 h-4" />
                   Get Directions
@@ -304,8 +317,8 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
 
         <div className="text-center mt-8">
           <BackToSearchLink
-            fallbackHref="/tools/barbershop-search?tab=Stores"
-            className="text-sm font-bold text-slate-500 hover:text-emerald-600 transition-colors"
+            fallbackHref="/tools/barbershop-search?tab=Salons"
+            className="text-sm font-bold text-slate-500 hover:text-pink-600 transition-colors"
           />
         </div>
       </div>

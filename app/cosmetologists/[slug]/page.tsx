@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
@@ -26,6 +26,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const PUBLIC_COLUMNS = [
   "id",
+  "slug",
   "name",
   "address",
   "latitude",
@@ -48,20 +49,30 @@ const PUBLIC_COLUMNS = [
   "school_district_name",
 ].join(", ");
 
-async function getCosmetologist(id: string) {
-  const { data, error } = await supabase
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function getCosmetologist(param: string) {
+  const { data: bySlug, error: slugErr } = await supabase
     .from("agent_cosmetologist_leads")
     .select(PUBLIC_COLUMNS)
-    .eq("id", id)
+    .eq("slug", param)
     .single();
+  if (!slugErr && bySlug) return bySlug as any;
 
-  if (error || !data) return null;
-  return data as any;
+  if (!UUID_RE.test(param)) return null;
+
+  const { data: byId, error: idErr } = await supabase
+    .from("agent_cosmetologist_leads")
+    .select(PUBLIC_COLUMNS)
+    .eq("id", param)
+    .single();
+  if (idErr || !byId) return null;
+  return { ...(byId as any), _resolvedByLegacyId: true };
 }
 
-export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  const { id } = await props.params;
-  const person = await getCosmetologist(id);
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await props.params;
+  const person = await getCosmetologist(slug);
   if (!person) return { title: "Cosmetologist Profile Not Found" };
 
   const title = `${person.name} — ${person.specialty_type || "Beauty Professional"}${person.metro_area ? ` in ${person.metro_area}` : ""}`;
@@ -79,11 +90,41 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
   };
 }
 
-export default async function CosmetologistProfilePage(props: { params: Promise<{ id: string }> }) {
-  const { id } = await props.params;
-  const person = await getCosmetologist(id);
+// Person schema — mirrors the barber profile's treatment; a cosmetologist is
+// an individual professional, not a business entity.
+function buildCosmetologistJsonLd(person: any) {
+  const ld: Record<string, any> = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: person.name,
+    jobTitle: person.specialty_type || "Cosmetologist",
+  };
+  if (person.address) ld.address = { "@type": "PostalAddress", streetAddress: person.address, addressRegion: "TX", addressCountry: "US" };
+  if (person.metro_area) ld.homeLocation = { "@type": "Place", name: person.metro_area };
+  if (person.website_url) ld.url = person.website_url.startsWith("http") ? person.website_url : `https://${person.website_url}`;
+  if (person.booksy_rating && person.booksy_review_count) {
+    ld.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: Number(person.booksy_rating),
+      reviewCount: Number(person.booksy_review_count),
+    };
+  }
+  const sameAs = [
+    person.instagram_handle && `https://instagram.com/${person.instagram_handle.replace("@", "")}`,
+    person.tiktok_handle && `https://tiktok.com/@${person.tiktok_handle.replace("@", "")}`,
+    person.youtube_channel && `https://youtube.com/@${person.youtube_channel.replace("@", "")}`,
+  ].filter(Boolean);
+  if (sameAs.length > 0) ld.sameAs = sameAs;
+
+  return ld;
+}
+
+export default async function CosmetologistProfilePage(props: { params: Promise<{ slug: string }> }) {
+  const { slug } = await props.params;
+  const person = await getCosmetologist(slug);
 
   if (!person) notFound();
+  if (person._resolvedByLegacyId) permanentRedirect(`/cosmetologists/${person.slug}`);
 
   const gallery: string[] = Array.isArray(person.booksy_gallery_urls) ? person.booksy_gallery_urls : [];
   const heroPhoto = gallery[0] || person.booksy_photo_url || null;
@@ -128,8 +169,11 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
     },
   ].filter(Boolean) as { label: string; href: string; Icon: any }[];
 
+  const cosmetologistJsonLd = buildCosmetologistJsonLd(person);
+
   return (
     <div className="min-h-screen bg-slate-50">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(cosmetologistJsonLd) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

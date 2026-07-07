@@ -15,6 +15,18 @@ const { createClient } = require('@supabase/supabase-js');
 // Load from root .env.local (where Booksy credentials live)
 require('dotenv').config({ path: path.join(__dirname, '../../.env.local') });
 
+// Mirrors lib/slug.ts — scripts run as plain CommonJS and can't import from lib/.
+function slugify(input) {
+  return (input || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+}
+function buildSlug(name, city, id) {
+  return `${slugify(name || 'entity')}-${slugify(city || 'tx')}-${id.replace(/-/g, '').slice(0, 8)}`;
+}
+
 // ─── Config ──────────────────────────────────────────────────────────────────
 const EMAIL    = process.env.BOOKSY_LOGIN;
 const PASSWORD = process.env.BOOKSY_PASSWORD;
@@ -327,7 +339,7 @@ if (!EMAIL || !PASSWORD) {
         // Insert into database if phone exists
         if (leadData.phone !== 'No phone found' && supabaseUrl && supabaseKey) {
           try {
-            const { error } = await supabase
+            const { data: row, error } = await supabase
               .from('agent_barber_leads')
               .upsert(
                 {
@@ -338,11 +350,17 @@ if (!EMAIL || !PASSWORD) {
                   source: leadData.source,
                   status: leadData.status,
                   updated_at: new Date().toISOString()
-                }, 
+                },
                 { onConflict: 'phone' }
-              );
+              )
+              .select('id, slug')
+              .single();
 
             if (error) throw error;
+            if (row && !row.slug) {
+              const slug = buildSlug(leadData.name, leadData.address, row.id);
+              await supabase.from('agent_barber_leads').update({ slug }).eq('id', row.id);
+            }
             console.log(`   💾 Saved to agent_barber_leads in Supabase!`);
           } catch (dbErr) {
             console.log(`   ⚠️ Failed to save to DB: ${dbErr.message}`);

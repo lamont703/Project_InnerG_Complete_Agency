@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers } from '@/lib/shop-ecosystem';
+import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
 
 // Next.js patches the global fetch() to cache responses by default, which
 // can end up caching the Gemini SDK's own internal fetch calls (identical
@@ -82,16 +82,16 @@ export async function POST(req: Request) {
     if (shopId) {
       const { data: shopRow } = await supabase
         .from('agent_barbershop_leads')
-        .select('id, shop_name, city, latitude, longitude, rent_rate, census_median_household_income, census_population, school_district_name')
+        .select('id, slug, shop_name, city, latitude, longitude, rent_rate, census_median_household_income, census_population, school_district_name')
         .eq('id', shopId)
-        .single() as { data: { id: string; shop_name: string; city: string | null; latitude: number | null; longitude: number | null; rent_rate: string | null; census_median_household_income: number | null; census_population: number | null; school_district_name: string | null } | null };
+        .single() as { data: { id: string; slug: string; shop_name: string; city: string | null; latitude: number | null; longitude: number | null; rent_rate: string | null; census_median_household_income: number | null; census_population: number | null; school_district_name: string | null } | null };
       if (shopRow) {
         const report = await computeShopEcosystemReport(supabase as any, shopRow);
         if (report) {
           shopEcosystemContext = {
             shop_name: shopRow.shop_name,
             city: shopRow.city,
-            profile_url: `/shop/${shopRow.id}`,
+            profile_url: `/shop/${shopRow.slug}`,
             // Direct properties of the shop's own location, not a radius
             // computation — median_household_income is Census ACS 5-Year
             // data for the shop's tract, used for pricing-vs-local-income
@@ -272,7 +272,7 @@ export async function POST(req: Request) {
     // it can just copy a real path into a markdown link instead of guessing
     // or inventing one.
     const withProfileUrl = (items: any[], basePath: string) =>
-      items.map((item) => ({ ...item, profile_url: item.id ? `${basePath}/${item.id}` : undefined }));
+      items.map((item) => ({ ...item, profile_url: item.slug ? `${basePath}/${item.slug}` : undefined }));
 
     // 3. Merge Context Data. texas_2026_exam_school_leaderboard is listed
     // first (defense in depth) since with 9 grounded sources the combined
@@ -359,6 +359,8 @@ GET_SCHOOL_RANKINGS_BY_REGION TOOL RULE: For "which schools in [city] have the b
 GET_TOP_SCHOOLS_BY_PASS_RATE TOOL RULE: For "which schools statewide have the best/worst pass rates" (ranked by RATE, not by test volume like the fixed leaderboard), call get_top_schools_by_pass_rate with direction 'best' or 'worst' based on what's asked.
 
 GET_SCHOOL_TEST_TAKERS TOOL RULE: For "who were those test takers" / "list the students at [school]" style questions, call get_school_test_takers with the school name. Each result includes isK12School — if true, firstName/lastName are already null (these test-takers are plausibly minors in a K-12 vocational program); say plainly that individual names aren't shown for that school and only give the aggregate result/score breakdown. If isK12School is false, hyperlink the school via schoolHref and list names freely. If there are more than 6 results, list the top 6 (by result/score, whichever is more relevant to what was asked) and say "and N more" for the rest, same reasoning as the employment-match tools — keeps the answer readable and avoids the output length limit.
+
+GET_UPCOMING_EVENTS TOOL RULE: For any question about barber/beauty/wellness industry events — expos, trade shows, competitions, education/CEU classes, networking, charity events — call get_upcoming_events. This is a completely separate, unrelated dataset from exam data and employment matches — "event" language here means an actual scheduled happening (a date, a venue), never confuse it with a "test event" or "employment match." Always upcoming-only; if asked about past events, say plainly that only upcoming events are tracked. Hyperlink every event via eventHref, and its ticketHref too if present (label that one "tickets" or "buy tickets", not the event name itself, so the two links aren't confused). If more than 6 results come back, list the soonest 6 and say "and N more" for the rest.
 
 ENTITY LINKING IS NOT OPTIONAL: AI Mode doubles as navigation into the rest of the site, not just an answer — so the LINKING RULE above applies every single time you mention a specific barbershop/barber/school/salon/cosmetologist/store/tool that has a profile_url (or an equivalent href from a tool result like find_professional_employment), with no exceptions. Don't drop a link just because you've already mentioned that entity earlier in the conversation — link it again each time.
 
@@ -500,6 +502,18 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
             required: ['schoolName'],
           },
         },
+        {
+          name: 'get_upcoming_events',
+          description: "Find upcoming barber/beauty/wellness industry events (trade shows, competitions, education/CEU classes, networking, charity) — always excludes past events automatically. Call this for ANY question about industry events, however phrased, e.g. 'what barber events are coming up', 'any expos in Houston', 'competitions this year' — try calling with the city/keyword as the query even for a short or partial location name, don't ask for clarification first.",
+          parametersJsonSchema: {
+            type: 'object',
+            properties: {
+              query: { type: 'string', description: "Free-text to match against event title/description/venue/city — a SPECIFIC term like 'Houston' or a single keyword. For a broad/generic question with no specific city or keyword (e.g. 'any barber events coming up', 'what industry events are there') pass an EMPTY STRING here, not the literal question text — confirmed live: passing a whole descriptive phrase like 'barber industry events' fails to match real events since that exact phrase isn't in any event's data, while an empty string correctly lists everything upcoming." },
+              category: { type: 'string', enum: ['Trade Show', 'Competition', 'Education/CEU', 'Networking', 'Charity', 'Other'], description: "Optional exact category filter." },
+              limit: { type: 'number', description: "How many events to return. Defaults to 10 if not specified." },
+            },
+          },
+        },
       ],
     };
 
@@ -601,6 +615,12 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
           } else if (fc.name === 'get_school_test_takers') {
             const schoolName = fc.args?.schoolName as string | undefined;
             result = schoolName ? await getSchoolTestTakers(supabase as any, schoolName) : [];
+          } else if (fc.name === 'get_upcoming_events') {
+            result = await getUpcomingEvents(supabase as any, {
+              query: fc.args?.query as string | undefined,
+              category: fc.args?.category as string | undefined,
+              limit: fc.args?.limit as number | undefined,
+            });
           }
           return { functionResponse: { name: fc.name, response: { result } } };
         })

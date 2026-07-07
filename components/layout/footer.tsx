@@ -23,6 +23,7 @@ const footerLinks = {
   "Internal Tools": [
     { label: "Pixel Analytics", href: "/pixel-analytics" },
     { label: "Employment Match Review", href: "/tools/employment-match-review" },
+    { label: "Event Submission", href: "/tools/event-submission" },
     { label: "Web Crawler Domain Management", href: "/tools/domain-management" },
     { label: "Shop Day Map", href: "/shop-day-map" },
     { label: "Shop Day Connections", href: "/shop-day-connections" },

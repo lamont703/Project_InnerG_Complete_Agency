@@ -10,6 +10,19 @@ const supabaseUrl = Deno.env.get("NEXT_PUBLIC_SUPABASE_URL") || Deno.env.get("SU
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+// Mirrors lib/slug.ts — this script runs under Deno, not the Next app, so it
+// can't import from lib/.
+function slugify(input: string): string {
+  return (input || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-")
+}
+function buildSlug(name: string, city: string, id: string): string {
+  return `${slugify(name || "entity")}-${slugify(city || "tx")}-${id.replace(/-/g, "").slice(0, 8)}`
+}
+
 async function importCSV() {
   console.log("🚀 Starting Bulk Import of Google_Texas_Barbershops.csv to Supabase...")
   const filePath = "public/Google_Texas_Barbershops.csv"
@@ -47,7 +60,7 @@ async function importCSV() {
       }
 
       // Insert new lead record
-      const { error } = await supabase
+      const { data: row, error } = await supabase
         .from("agent_barbershop_leads")
         .insert({
           shop_name: r.BusinessName,
@@ -75,11 +88,17 @@ async function importCSV() {
           place_types: r.PlaceTypes || null,
           business_status: r.BusinessStatus || null
         })
+        .select("id")
+        .single()
 
       if (error) {
         console.error(`❌ Error inserting ${r.BusinessName}:`, error.message)
         errorCount++
       } else {
+        if (row) {
+          const slug = buildSlug(r.BusinessName, r.CityHub, row.id)
+          await supabase.from("agent_barbershop_leads").update({ slug }).eq("id", row.id)
+        }
         successCount++
         if (successCount % 10 === 0) {
            console.log(`✅ Inserted ${successCount} shops so far...`)

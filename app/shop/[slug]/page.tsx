@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { Metadata, ResolvingMetadata } from "next";
 import { Footer } from "@/components/layout/footer";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Star, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft, Map as MapIcon, Mail, Phone, Info, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles, Landmark } from "lucide-react";
 import { computeShopEcosystemReport } from "@/lib/shop-ecosystem";
@@ -14,8 +14,10 @@ import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 export const dynamic = 'force-dynamic';
 
 type Props = {
-  params: { id: string }
+  params: { slug: string }
 };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -54,18 +56,31 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const resolvedParams = await params;
-  
-  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agent_barbershop_leads?id=eq.${resolvedParams.id}&select=shop_name,city,shop_image_url`;
-  const response = await fetchWithRetry(url, {
+
+  const metaSelect = "shop_name,city,shop_image_url";
+  const slugUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agent_barbershop_leads?slug=eq.${resolvedParams.slug}&select=${metaSelect}`;
+  const slugResponse = await fetchWithRetry(slugUrl, {
     headers: {
       apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
       Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""}`,
     },
     cache: 'no-store'
   });
+  const slugData = await slugResponse.json();
+  let shop = slugData && slugData.length > 0 ? slugData[0] : null;
 
-  const data = await response.json();
-  const shop = data && data.length > 0 ? data[0] : null;
+  if (!shop && UUID_RE.test(resolvedParams.slug)) {
+    const idUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agent_barbershop_leads?id=eq.${resolvedParams.slug}&select=${metaSelect}`;
+    const idResponse = await fetchWithRetry(idUrl, {
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""}`,
+      },
+      cache: 'no-store'
+    });
+    const idData = await idResponse.json();
+    shop = idData && idData.length > 0 ? idData[0] : null;
+  }
 
   if (!shop) {
     return {
@@ -96,19 +111,36 @@ export async function generateMetadata(
 
 export default async function ShopProfilePage({ params }: Props) {
   const resolvedParams = await params;
-  
+
   // Use native fetch to bypass any Supabase client caching bugs in Next.js 15+
-  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agent_barbershop_leads?id=eq.${resolvedParams.id}&select=*`;
-  const response = await fetchWithRetry(url, {
+  const slugUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agent_barbershop_leads?slug=eq.${resolvedParams.slug}&select=*`;
+  const slugResponse = await fetchWithRetry(slugUrl, {
     headers: {
       apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
       Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""}`,
     },
     cache: 'no-store'
   });
+  const slugData = await slugResponse.json();
+  let shop = slugData && Array.isArray(slugData) && slugData.length > 0 ? slugData[0] : null;
 
-  const data = await response.json();
-  let shop = data && Array.isArray(data) && data.length > 0 ? data[0] : null;
+  // Legacy /shop/{uuid} links: fall back to an id lookup, then 308-redirect
+  // to the canonical slug URL so old links consolidate instead of dual-serving.
+  if ((!shop || Object.keys(shop).length === 0) && UUID_RE.test(resolvedParams.slug)) {
+    const idUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agent_barbershop_leads?id=eq.${resolvedParams.slug}&select=*`;
+    const idResponse = await fetchWithRetry(idUrl, {
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""}`,
+      },
+      cache: 'no-store'
+    });
+    const idData = await idResponse.json();
+    shop = idData && Array.isArray(idData) && idData.length > 0 ? idData[0] : null;
+    if (shop && Object.keys(shop).length > 0) {
+      permanentRedirect(`/shop/${shop.slug}`);
+    }
+  }
 
   if (!shop || Object.keys(shop).length === 0) {
     notFound();
@@ -141,8 +173,27 @@ export default async function ShopProfilePage({ params }: Props) {
     ? shop.google_images
     : [shop.shop_image_url || "/images/default_shop_image.png"];
 
+  // LocalBusiness — a barbershop is a physical business entity.
+  const shopJsonLd: Record<string, any> = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: shop.shop_name,
+  };
+  if (shop.formatted_address) shopJsonLd.address = { "@type": "PostalAddress", streetAddress: shop.formatted_address, addressRegion: "TX", addressCountry: "US" };
+  if (shop.latitude && shop.longitude) shopJsonLd.geo = { "@type": "GeoCoordinates", latitude: shop.latitude, longitude: shop.longitude };
+  if (shop.phone) shopJsonLd.telephone = shop.phone;
+  if (shop.rating && shop.total_reviews) {
+    shopJsonLd.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: Number(shop.rating),
+      reviewCount: Number(shop.total_reviews),
+    };
+  }
+  if (images[0]) shopJsonLd.image = images[0];
+
   return (
     <div className="min-h-screen bg-white text-slate-900 selection:bg-blue-500/20 flex flex-col overflow-x-hidden">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(shopJsonLd) }} />
 
       <div className="flex-grow pt-8 pb-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
         

@@ -4,6 +4,18 @@ async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Mirrors lib/slug.ts — scripts run as plain CommonJS and can't import from lib/.
+function slugify(input) {
+  return (input || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+}
+function buildSlug(name, city, id, suffixLength = 8) {
+  return `${slugify(name || 'entity')}-${slugify(city || 'tx')}-${id.replace(/-/g, '').slice(0, suffixLength)}`;
+}
+
 async function pullGooglePlacesBeautySupplyStores() {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -161,7 +173,7 @@ async function pullGooglePlacesBeautySupplyStores() {
     if (cleanPhone.length === 10) cleanPhone = "+1" + cleanPhone;
     else if (cleanPhone.length === 11 && cleanPhone.startsWith("1")) cleanPhone = "+" + cleanPhone;
 
-    const { error } = await supabase
+    const { data: row, error } = await supabase
       .from("agent_beauty_supply_store_leads")
       .upsert({
         place_id: place.placeId,
@@ -179,7 +191,16 @@ async function pullGooglePlacesBeautySupplyStores() {
         price_level: place.priceLevel,
         hours: place.hours,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'place_id' });
+      }, { onConflict: 'place_id' })
+      .select('id, slug')
+      .single();
+
+    if (!error && row && !row.slug) {
+      let slug = buildSlug(place.name, place.cityHub, row.id);
+      const { data: collision } = await supabase.from("agent_barber_supply_store_leads").select('id').eq('slug', slug).limit(1);
+      if (collision && collision.length > 0) slug = buildSlug(place.name, place.cityHub, row.id, 16);
+      await supabase.from("agent_beauty_supply_store_leads").update({ slug }).eq('id', row.id);
+    }
 
     if (error) {
       console.error(`❌ Error upserting ${place.name}:`, error.message);

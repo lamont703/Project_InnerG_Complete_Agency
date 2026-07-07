@@ -8,7 +8,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const SHARED_COLUMNS = ["id", "school_name", "city", "rating", "google_review_count", "accreditation_status", "annual_tuition"];
+const SHARED_COLUMNS = ["id", "slug", "school_name", "city", "rating", "google_review_count", "accreditation_status", "annual_tuition"];
 
 const BARBER_EXAM_COLUMNS = [
   "written_pass_rate_2026",
@@ -35,6 +35,7 @@ const COSMETOLOGY_EXAM_COLUMNS = [
 
 export interface LeaderboardSchool {
   id: string;
+  slug: string;
   school_name: string;
   city: string | null;
   rating: string | null;
@@ -54,6 +55,7 @@ export interface LeaderboardSchool {
 function mapCosmetologyColumns(row: any): LeaderboardSchool {
   return {
     id: row.id,
+    slug: row.slug,
     school_name: row.school_name,
     city: row.city,
     rating: row.rating,

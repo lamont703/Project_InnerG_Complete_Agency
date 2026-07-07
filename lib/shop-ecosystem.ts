@@ -114,10 +114,10 @@ export async function computeShopEcosystemReport(
     beautySupply,
   ] = await Promise.all([
     fetchAllRows(supabase, "agent_barber_school_leads",
-      "id, latitude, longitude, school_name, school_leaderboard_score_2026",
+      "id, slug, latitude, longitude, school_name, school_leaderboard_score_2026",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
     fetchAllRows(supabase, "agent_cosmetology_school_leads",
-      "id, latitude, longitude, school_name, cosmetology_school_leaderboard_score_2026",
+      "id, slug, latitude, longitude, school_name, cosmetology_school_leaderboard_score_2026",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
     fetchAllRows(supabase, "agent_barber_leads",
       "id, latitude, longitude, status, census_tract_geoid, census_population, census_median_household_income",
@@ -132,10 +132,10 @@ export async function computeShopEcosystemReport(
       "id, latitude, longitude, hiring_need, booth_count_available, rent_rate, census_tract_geoid, census_population, census_median_household_income",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
     fetchAllRows(supabase, "agent_barber_supply_store_leads",
-      "id, latitude, longitude, name",
+      "id, slug, latitude, longitude, name",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
     fetchAllRows(supabase, "agent_beauty_supply_store_leads",
-      "id, latitude, longitude, name",
+      "id, slug, latitude, longitude, name",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
   ]);
 
@@ -147,8 +147,8 @@ export async function computeShopEcosystemReport(
   const nearbyBarberSchools = within(barberSchools).filter((s: any) => s.school_leaderboard_score_2026 != null);
   const nearbyCosmetSchools = within(cosmetologySchools).filter((s: any) => s.cosmetology_school_leaderboard_score_2026 != null);
   const allNearbySchools = [
-    ...nearbyBarberSchools.map((s: any) => ({ name: s.school_name, score: s.school_leaderboard_score_2026, distanceMiles: s.distanceMiles, type: "Barber" as const, profileUrl: `/schools/${s.id}` })),
-    ...nearbyCosmetSchools.map((s: any) => ({ name: s.school_name, score: s.cosmetology_school_leaderboard_score_2026, distanceMiles: s.distanceMiles, type: "Cosmetology" as const, profileUrl: `/schools/${s.id}` })),
+    ...nearbyBarberSchools.map((s: any) => ({ name: s.school_name, score: s.school_leaderboard_score_2026, distanceMiles: s.distanceMiles, type: "Barber" as const, profileUrl: `/schools/${s.slug}` })),
+    ...nearbyCosmetSchools.map((s: any) => ({ name: s.school_name, score: s.cosmetology_school_leaderboard_score_2026, distanceMiles: s.distanceMiles, type: "Cosmetology" as const, profileUrl: `/schools/${s.slug}` })),
   ];
   const schoolCountTotal = within(barberSchools).length + within(cosmetologySchools).length;
   const avgLeaderboardScore = allNearbySchools.length > 0
@@ -218,7 +218,7 @@ export async function computeShopEcosystemReport(
       supplyStoreCount: nearbySupplyStores.length,
       nearestSupplyStoreMiles: nearestSupply ? nearestSupply.distanceMiles : null,
       nearestSupplyStoreName: nearestSupply ? nearestSupply.name : null,
-      nearestSupplyStoreProfileUrl: nearestSupply ? `/stores/${(nearestSupply as any).id}` : null,
+      nearestSupplyStoreProfileUrl: nearestSupply ? `/stores/${(nearestSupply as any).slug}` : null,
     },
     rentBenchmark: {
       thisShopWeeklyRent,
@@ -713,5 +713,57 @@ export async function getSchoolTestTakers(supabase: SupabaseClient, schoolQuery:
     score: r.score,
     attemptNumber: Number(r.attempt_number),
     isLatestAttempt: !!r.is_latest_attempt,
+  }));
+}
+
+export interface UpcomingEvent {
+  eventId: string;
+  eventHref: string;
+  title: string;
+  description: string | null;
+  eventDate: string;
+  endDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  venueName: string | null;
+  address: string | null;
+  city: string | null;
+  category: string | null;
+  organizerName: string | null;
+  ticketHref: string | null;
+  priceInfo: string | null;
+}
+
+// Always upcoming-only (search_events_ranked hard-filters event_date >=
+// CURRENT_DATE) — a free-text query (e.g. "Houston" or "trade show")
+// matches the same 20%-keyword/80%-semantic blend the search page uses,
+// since city isn't a separate RPC parameter; passing it as query_text
+// naturally matches events whose city/venue/description mention it.
+export async function getUpcomingEvents(
+  supabase: SupabaseClient,
+  opts: { query?: string; category?: string; limit?: number } = {}
+): Promise<UpcomingEvent[]> {
+  const { data, error } = await supabase.rpc("search_events_ranked", {
+    query_text: opts.query || "",
+    category_filter: opts.category || null,
+    limit_val: opts.limit || 10,
+  });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    eventId: r.id,
+    eventHref: `/events/${r.slug}`,
+    title: r.title,
+    description: r.description,
+    eventDate: r.event_date,
+    endDate: r.end_date,
+    startTime: r.start_time,
+    endTime: r.end_time,
+    venueName: r.venue_name,
+    address: r.address,
+    city: r.city,
+    category: r.category,
+    organizerName: r.organizer_name,
+    ticketHref: r.ticket_url,
+    priceInfo: r.price_info,
   }));
 }

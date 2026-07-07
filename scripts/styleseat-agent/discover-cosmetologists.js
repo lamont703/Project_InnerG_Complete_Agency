@@ -20,6 +20,18 @@ const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: path.join(__dirname, '../../.env.local') });
 
+// Mirrors lib/slug.ts — scripts run as plain CommonJS and can't import from lib/.
+function slugify(input) {
+  return (input || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+}
+function buildSlug(name, city, id) {
+  return `${slugify(name || 'entity')}-${slugify(city || 'tx')}-${id.replace(/-/g, '').slice(0, 8)}`;
+}
+
 const SESSION_FILE = path.join(__dirname, 'auth.json');
 const TARGET_TABLE = 'agent_cosmetologist_leads';
 
@@ -276,7 +288,7 @@ async function run() {
         const prices = data.services.map((s) => s.price).filter((p) => p > 0);
         const priceRange = prices.length ? `USD ${Math.min(...prices)} - ${Math.max(...prices)}` : null;
 
-        const { error } = await supabase.from(TARGET_TABLE).upsert(
+        const { data: row, error } = await supabase.from(TARGET_TABLE).upsert(
           {
             name: data.name,
             phone: data.phone,
@@ -295,7 +307,14 @@ async function run() {
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'phone' }
-        );
+        )
+          .select('id, slug')
+          .single();
+
+        if (!error && row && !row.slug) {
+          const slug = buildSlug(data.name, 'Houston', row.id);
+          await supabase.from(TARGET_TABLE).update({ slug }).eq('id', row.id);
+        }
 
         if (error) {
           console.log(`db error: ${error.message}`);

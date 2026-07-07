@@ -220,7 +220,7 @@ export function LeaderboardTable({
                 <tr key={school.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                   <td className="px-4 py-3 text-slate-400 font-medium">{(rankedPage - 1) * PAGE_SIZE + i + 1}</td>
                   <td className="px-4 py-3">
-                    <Link href={`/schools/${school.id}`} className="font-semibold text-slate-900 hover:text-blue-600 transition-colors">
+                    <Link href={`/schools/${school.slug}`} className="font-semibold text-slate-900 hover:text-blue-600 transition-colors">
                       {school.school_name}
                     </Link>
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500">
@@ -284,7 +284,7 @@ export function LeaderboardTable({
                   {emergingPageItems.map((school) => (
                     <tr key={school.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                       <td className="px-4 py-3">
-                        <Link href={`/schools/${school.id}`} className="font-medium text-slate-700 hover:text-blue-600 transition-colors">
+                        <Link href={`/schools/${school.slug}`} className="font-medium text-slate-700 hover:text-blue-600 transition-colors">
                           {school.school_name}
                         </Link>
                       </td>
