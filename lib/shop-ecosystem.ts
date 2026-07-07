@@ -715,3 +715,55 @@ export async function getSchoolTestTakers(supabase: SupabaseClient, schoolQuery:
     isLatestAttempt: !!r.is_latest_attempt,
   }));
 }
+
+export interface UpcomingEvent {
+  eventId: string;
+  eventHref: string;
+  title: string;
+  description: string | null;
+  eventDate: string;
+  endDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  venueName: string | null;
+  address: string | null;
+  city: string | null;
+  category: string | null;
+  organizerName: string | null;
+  ticketHref: string | null;
+  priceInfo: string | null;
+}
+
+// Always upcoming-only (search_events_ranked hard-filters event_date >=
+// CURRENT_DATE) — a free-text query (e.g. "Houston" or "trade show")
+// matches the same 20%-keyword/80%-semantic blend the search page uses,
+// since city isn't a separate RPC parameter; passing it as query_text
+// naturally matches events whose city/venue/description mention it.
+export async function getUpcomingEvents(
+  supabase: SupabaseClient,
+  opts: { query?: string; category?: string; limit?: number } = {}
+): Promise<UpcomingEvent[]> {
+  const { data, error } = await supabase.rpc("search_events_ranked", {
+    query_text: opts.query || "",
+    category_filter: opts.category || null,
+    limit_val: opts.limit || 10,
+  });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    eventId: r.id,
+    eventHref: `/events/${r.id}`,
+    title: r.title,
+    description: r.description,
+    eventDate: r.event_date,
+    endDate: r.end_date,
+    startTime: r.start_time,
+    endTime: r.end_time,
+    venueName: r.venue_name,
+    address: r.address,
+    city: r.city,
+    category: r.category,
+    organizerName: r.organizer_name,
+    ticketHref: r.ticket_url,
+    priceInfo: r.price_info,
+  }));
+}

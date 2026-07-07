@@ -137,38 +137,42 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     cleanQuery = cleanQuery.replace(/\s+/g, ' ').trim();
 
     // --- Dynamic Bento Box Ratios ---
-    let shopLim = 3, barberLim = 3, webLim = 2, toolLim = 2, schoolLim = 2, storeLim = 2, salonLim = 2, cosmetologistLim = 2; // Default (Unbiased)
+    let shopLim = 3, barberLim = 3, webLim = 2, toolLim = 2, schoolLim = 2, storeLim = 2, salonLim = 2, cosmetologistLim = 2, eventLim = 2; // Default (Unbiased)
     let intentType = 'default';
     const qRaw = query.toLowerCase();
 
     if (/\b(cosmetologist|makeup artist|nail tech|nail technician|esthetician|eyelash|lash artist|lash tech|manicure|pedicure|facial)\b/.test(qRaw)) {
       // Cosmetologist / Beauty Professional Intent
       intentType = 'cosmetologists';
-      cosmetologistLim = 5; shopLim = 1; barberLim = 1; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1;
+      cosmetologistLim = 5; shopLim = 1; barberLim = 1; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; eventLim = 1;
     } else if (/\b(salons?|hair salon|beauty salon|hairstylist|blowout|updo|balayage)\b/.test(qRaw)) {
       // Salon Intent
       intentType = 'salons';
-      salonLim = 5; shopLim = 1; barberLim = 1; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; cosmetologistLim = 1;
+      salonLim = 5; shopLim = 1; barberLim = 1; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; cosmetologistLim = 1; eventLim = 1;
     } else if (/\b(schools?|academy|academies|college|colleges|enroll|tuition|accredited|financial aid|barber program|cosmetology)\b/.test(qRaw)) {
       // School / Enrollment Intent
       intentType = 'schools';
-      schoolLim = 5; webLim = 2; barberLim = 1; shopLim = 1; toolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1;
+      schoolLim = 5; webLim = 2; barberLim = 1; shopLim = 1; toolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1; eventLim = 1;
     } else if (/\b(supply|supplies|clippers?|shears?|wholesale|products?|equipment)\b/.test(qRaw)) {
       // Supply Store Intent
       intentType = 'supplies';
-      storeLim = 5; webLim = 1; barberLim = 1; shopLim = 1; toolLim = 1; schoolLim = 1; salonLim = 1; cosmetologistLim = 1;
+      storeLim = 5; webLim = 1; barberLim = 1; shopLim = 1; toolLim = 1; schoolLim = 1; salonLim = 1; cosmetologistLim = 1; eventLim = 1;
+    } else if (/\b(events?|expo|expos|convention|trade show|competitions?|battle|battles|seminar|conference|bootcamp)\b/.test(qRaw)) {
+      // Event Intent
+      intentType = 'events';
+      eventLim = 5; shopLim = 1; barberLim = 1; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1;
     } else if (/\b(how|why|what is|best way|guide|tutorial|tips|learn)\b/.test(qRaw)) {
       // Educational Intent
       intentType = 'educational';
-      webLim = 5; toolLim = 2; barberLim = 2; shopLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1;
+      webLim = 5; toolLim = 2; barberLim = 2; shopLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1; eventLim = 1;
     } else if (/\b(shops?|barbershops?|studios?|suites?|places?|hiring|near me|booth|commission)\b/.test(qRaw)) {
       // Employment / Location Intent
       intentType = 'location';
-      shopLim = 5; barberLim = 3; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1;
+      shopLim = 5; barberLim = 3; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1; eventLim = 1;
     } else if (/\b(barbers?|stylists?|braiders?|locticians?|people|someone)\b/.test(qRaw)) {
       // Networking / People Intent
       intentType = 'networking';
-      barberLim = 5; shopLim = 3; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1;
+      barberLim = 5; shopLim = 3; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1; eventLim = 1;
     }
     // --------------------------------
 
@@ -476,6 +480,45 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       return matches;
     }
 
+    // 2.98 Event Results — always upcoming-only, soonest-first when
+    // browsing (no query), relevance-first when there is one; enforced
+    // inside search_events_ranked itself, not here.
+    const EVENT_CATEGORY_FILTER_MAP: Record<string, string> = {
+      event_trade_show: 'Trade Show',
+      event_competition: 'Competition',
+      event_education: 'Education/CEU',
+      event_networking: 'Networking',
+      event_charity: 'Charity',
+    };
+    async function fetchEventMatches(): Promise<any[]> {
+      if (!(filterTab === 'All' || filterTab === 'Events')) return [];
+
+      const eventLimBase = filterTab === 'All' ? eventLim : ITEMS_PER_PAGE;
+      const eventFilterActive = Object.keys(EVENT_CATEGORY_FILTER_MAP).some((f) => activeFilters.includes(f));
+      const { data: eventRes, error: eventErr } = await supabase.rpc('search_events_ranked', {
+        query_text: cleanQuery.length >= 2 ? cleanQuery : '',
+        query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
+        limit_val: eventFilterActive ? FILTERED_FETCH_LIMIT : eventLimBase,
+        offset_val: eventFilterActive ? 0 : (filterTab === 'All' ? (page - 1) * eventLim : fromIndex)
+      });
+
+      let matches: any[] = [];
+      if (!eventErr && eventRes) {
+        matches = eventRes.map((e: any) => ({ ...e, resultType: 'event' }));
+      }
+      const activeCategories = Object.keys(EVENT_CATEGORY_FILTER_MAP)
+        .filter((f) => activeFilters.includes(f))
+        .map((f) => EVENT_CATEGORY_FILTER_MAP[f]);
+      if (activeCategories.length > 0) {
+        matches = matches.filter((e) => activeCategories.includes(e.category));
+      }
+      if (eventFilterActive) {
+        const pageOffset = filterTab === 'All' ? (page - 1) * eventLim : fromIndex;
+        matches = paginateFiltered(matches, pageOffset, eventLimBase);
+      }
+      return matches;
+    }
+
     // 3. Shop Results
     const activeRentThresholds = Object.keys(RENT_THRESHOLDS).filter((f) => activeFilters.includes(f)).map((f) => RENT_THRESHOLDS[f]);
     // Most restrictive wins if more than one is somehow active at once
@@ -546,6 +589,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       storeMatches,
       salonMatches,
       cosmetologistMatches,
+      eventMatches,
       shopResults,
     ] = await Promise.all([
       fetchInternalMatches(),
@@ -555,6 +599,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       fetchStoreMatches(),
       fetchSalonMatches(),
       fetchCosmetologistMatches(),
+      fetchEventMatches(),
       fetchShopResults(),
     ]);
 
@@ -570,26 +615,29 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       let interleaved: any[] = [];
 
       if (intentType === 'cosmetologists') {
-        // Cosmetologist Anchor: All Cosmetologists -> All Salons -> All Shops -> All Barbers -> All Articles -> All Stores -> All Schools -> All Tools
-        interleaved = [...cosmetologistMatches, ...salonMatches, ...shopMatches, ...barberMatches, ...webMatches, ...storeMatches, ...schoolMatches, ...internalMatches];
+        // Cosmetologist Anchor: All Cosmetologists -> All Salons -> All Shops -> All Barbers -> All Articles -> All Stores -> All Schools -> All Events -> All Tools
+        interleaved = [...cosmetologistMatches, ...salonMatches, ...shopMatches, ...barberMatches, ...webMatches, ...storeMatches, ...schoolMatches, ...eventMatches, ...internalMatches];
       } else if (intentType === 'salons') {
-        // Salon Anchor: All Salons -> All Shops -> All Barbers -> All Articles -> All Stores -> All Schools -> All Cosmetologists -> All Tools
-        interleaved = [...salonMatches, ...shopMatches, ...barberMatches, ...webMatches, ...storeMatches, ...schoolMatches, ...cosmetologistMatches, ...internalMatches];
+        // Salon Anchor: All Salons -> All Shops -> All Barbers -> All Articles -> All Stores -> All Schools -> All Cosmetologists -> All Events -> All Tools
+        interleaved = [...salonMatches, ...shopMatches, ...barberMatches, ...webMatches, ...storeMatches, ...schoolMatches, ...cosmetologistMatches, ...eventMatches, ...internalMatches];
       } else if (intentType === 'schools') {
-        // School Anchor: All Schools -> All Articles -> All Barbers -> All Shops -> All Stores -> All Salons -> All Cosmetologists -> All Tools
-        interleaved = [...schoolMatches, ...webMatches, ...barberMatches, ...shopMatches, ...storeMatches, ...salonMatches, ...cosmetologistMatches, ...internalMatches];
+        // School Anchor: All Schools -> All Articles -> All Barbers -> All Shops -> All Stores -> All Salons -> All Cosmetologists -> All Events -> All Tools
+        interleaved = [...schoolMatches, ...webMatches, ...barberMatches, ...shopMatches, ...storeMatches, ...salonMatches, ...cosmetologistMatches, ...eventMatches, ...internalMatches];
       } else if (intentType === 'supplies') {
-        // Supply Store Anchor: All Stores -> All Shops -> All Barbers -> All Articles -> All Salons -> All Cosmetologists -> All Tools
-        interleaved = [...storeMatches, ...shopMatches, ...barberMatches, ...webMatches, ...schoolMatches, ...salonMatches, ...cosmetologistMatches, ...internalMatches];
+        // Supply Store Anchor: All Stores -> All Shops -> All Barbers -> All Articles -> All Salons -> All Cosmetologists -> All Events -> All Tools
+        interleaved = [...storeMatches, ...shopMatches, ...barberMatches, ...webMatches, ...schoolMatches, ...salonMatches, ...cosmetologistMatches, ...eventMatches, ...internalMatches];
+      } else if (intentType === 'events') {
+        // Event Anchor: All Events -> All Schools -> All Shops -> All Barbers -> All Salons -> All Cosmetologists -> All Articles -> All Stores -> All Tools
+        interleaved = [...eventMatches, ...schoolMatches, ...shopMatches, ...barberMatches, ...salonMatches, ...cosmetologistMatches, ...webMatches, ...storeMatches, ...internalMatches];
       } else if (intentType === 'educational') {
-        // Educational Anchor: All Articles -> All Tools -> All Barbers -> All Shops -> All Schools -> All Stores -> All Salons -> All Cosmetologists
-        interleaved = [...webMatches, ...internalMatches, ...barberMatches, ...shopMatches, ...schoolMatches, ...storeMatches, ...salonMatches, ...cosmetologistMatches];
+        // Educational Anchor: All Articles -> All Tools -> All Barbers -> All Shops -> All Schools -> All Stores -> All Salons -> All Cosmetologists -> All Events
+        interleaved = [...webMatches, ...internalMatches, ...barberMatches, ...shopMatches, ...schoolMatches, ...storeMatches, ...salonMatches, ...cosmetologistMatches, ...eventMatches];
       } else if (intentType === 'networking') {
-        // Networking Anchor: All Barbers -> All Cosmetologists -> All Shops -> All Tools -> All Articles -> All Schools -> All Stores -> All Salons
-        interleaved = [...barberMatches, ...cosmetologistMatches, ...shopMatches, ...internalMatches, ...webMatches, ...schoolMatches, ...storeMatches, ...salonMatches];
+        // Networking Anchor: All Barbers -> All Cosmetologists -> All Shops -> All Tools -> All Articles -> All Schools -> All Stores -> All Salons -> All Events
+        interleaved = [...barberMatches, ...cosmetologistMatches, ...shopMatches, ...internalMatches, ...webMatches, ...schoolMatches, ...storeMatches, ...salonMatches, ...eventMatches];
       } else {
-        // Default / Location Anchor: All Shops -> All Barbers -> All Salons -> All Cosmetologists -> All Articles -> All Schools -> All Stores -> All Tools
-        interleaved = [...shopMatches, ...barberMatches, ...salonMatches, ...cosmetologistMatches, ...webMatches, ...schoolMatches, ...storeMatches, ...internalMatches];
+        // Default / Location Anchor: All Shops -> All Barbers -> All Salons -> All Cosmetologists -> All Articles -> All Schools -> All Stores -> All Events -> All Tools
+        interleaved = [...shopMatches, ...barberMatches, ...salonMatches, ...cosmetologistMatches, ...webMatches, ...schoolMatches, ...storeMatches, ...eventMatches, ...internalMatches];
       }
 
       // Calculate the total number of pages needed for each category based on its consumption rate
@@ -608,9 +656,11 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       const salonPages = Math.ceil(salonTotal / salonLim);
       const cosmetologistTotal = cosmetologistMatches.length > 0 && cosmetologistMatches[0].total_matched ? Number(cosmetologistMatches[0].total_matched) : 0;
       const cosmetologistPages = Math.ceil(cosmetologistTotal / cosmetologistLim);
+      const eventTotal = eventMatches.length > 0 && eventMatches[0].total_matched ? Number(eventMatches[0].total_matched) : 0;
+      const eventPages = Math.ceil(eventTotal / eventLim);
 
       // Find the deepest category in terms of total pages required
-      const maxPagesRequired = Math.max(shopPages, barberPages, webPages, toolPages, schoolPages, storePages, salonPages, cosmetologistPages);
+      const maxPagesRequired = Math.max(shopPages, barberPages, webPages, toolPages, schoolPages, storePages, salonPages, cosmetologistPages, eventPages);
 
       // Trick the frontend into generating exactly maxPagesRequired by providing a total that divides by ITEMS_PER_PAGE (10)
       totalResults = maxPagesRequired * ITEMS_PER_PAGE;
@@ -641,6 +691,9 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       } else if (filterTab === 'Cosmetologist') {
          totalResults = (cosmetologistMatches.length > 0 && cosmetologistMatches[0].total_matched) ? Number(cosmetologistMatches[0].total_matched) : cosmetologistMatches.length;
          pageResults = cosmetologistMatches;
+      } else if (filterTab === 'Events') {
+         totalResults = (eventMatches.length > 0 && eventMatches[0].total_matched) ? Number(eventMatches[0].total_matched) : eventMatches.length;
+         pageResults = eventMatches;
       }
     }
 

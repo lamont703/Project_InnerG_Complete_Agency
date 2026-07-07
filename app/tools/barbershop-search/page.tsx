@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, Suspense } from "react";
-import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight, Send, CheckCircle2, Loader2 } from "lucide-react";
+import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight, Send, CheckCircle2, Loader2, CalendarDays } from "lucide-react";
 import { searchBarbershops } from "./actions";
 import { requestEmploymentVerification } from "@/app/tools/employment-match-review/actions";
 import Link from "next/link";
@@ -17,7 +17,7 @@ interface EmploymentMatchForVerification {
   verificationRequestedAt: string | null;
 }
 
-const ALL_TABS = ['AI Mode', 'All', 'Schools', 'Salons', 'Barbershops', 'Barbers', 'Cosmetologist', 'Stores', 'Articles', 'Videos', 'Images', 'Tools'];
+const ALL_TABS = ['AI Mode', 'All', 'Schools', 'Salons', 'Barbershops', 'Barbers', 'Cosmetologist', 'Events', 'Stores', 'Articles', 'Videos', 'Images', 'Tools'];
 const PRIMARY_MOBILE_TABS = ['AI Mode', 'All'];
 
 // Each tab surfaces the facets that matter for that entity type. 'All' reuses
@@ -70,6 +70,13 @@ const FILTERS_BY_TAB: Record<string, { id: string; label: string }[]> = {
     { id: 'rating_4.5', label: '4.5+ Stars' },
     { id: 'store_budget', label: 'Budget-Friendly' },
     { id: 'store_moderate', label: 'Mid-Range' },
+  ],
+  Events: [
+    { id: 'event_trade_show', label: 'Trade Show' },
+    { id: 'event_competition', label: 'Competition' },
+    { id: 'event_education', label: 'Education/CEU' },
+    { id: 'event_networking', label: 'Networking' },
+    { id: 'event_charity', label: 'Charity' },
   ],
 };
 
@@ -1134,6 +1141,60 @@ function SearchContent() {
                     {/* Details Snippet */}
                     <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
                       Hair & beauty salon{item.city ? ` in ${item.city}` : ''}.
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+
+            if (item.resultType === 'event') {
+              const eventHref = `/events/${item.id}`;
+              const eventDateLabel = item.event_date
+                ? new Date(item.event_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                : null;
+              return (
+                <div key={`event-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
+                  {item.image_url ? (
+                    <Link href={eventHref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
+                      <img src={item.image_url} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                    </Link>
+                  ) : (
+                    <Link href={eventHref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative flex items-center justify-center group/thumbnail">
+                      <CalendarDays className="h-8 w-8 text-slate-400 transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                    </Link>
+                  )}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+
+                    {/* Breadcrumb (Google Style) */}
+                    <div className="flex items-center gap-1.5 text-xs sm:text-[13px] text-slate-700 mb-1 truncate">
+                      <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                        <CalendarDays className="h-3 w-3 text-slate-500" />
+                      </div>
+                      <span className="truncate opacity-80">barberbeauty.net › events › {(item.city || 'texas').toLowerCase().replace(/\s+/g, '-')}</span>
+                    </div>
+
+                    {/* Prominent Title Link */}
+                    <Link href={eventHref} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
+                      {item.title || "Industry Event"}
+                    </Link>
+
+                    {/* Date & Location Snippet */}
+                    <div className="flex items-center gap-1.5 text-sm text-slate-600 mb-1.5 flex-wrap">
+                      {eventDateLabel && (
+                        <span className="flex items-center text-[13px] font-medium text-slate-700">
+                          {eventDateLabel}
+                          <span className="mx-1.5 opacity-50">·</span>
+                        </span>
+                      )}
+                      {item.category && (
+                        <span className="text-[13px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">{item.category}</span>
+                      )}
+                      <span className="truncate max-w-[180px] sm:max-w-xs">{item.venue_name || item.city}</span>
+                    </div>
+
+                    {/* Details Snippet */}
+                    <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
+                      {item.description || `Barber/beauty industry event${item.city ? ` in ${item.city}` : ''}.`}
                     </p>
                   </div>
                 </div>
