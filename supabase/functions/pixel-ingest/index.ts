@@ -47,7 +47,7 @@ export default createHandler(async ({ adminClient, body, req }) => {
     // "lighthouse." Added those plus a few other common non-"bot"-named
     // crawlers/preview-fetchers as defensive coverage even though they
     // haven't shown up yet.
-    const BOT_USER_AGENT_PATTERN = /bot|crawl|spider|headless|lighthouse|GoogleOther|Google-InspectionTool|Google-Safety|APIs-Google|bingpreview|facebookexternalhit|WhatsApp|Slack-ImgProxy|TelegramBot|Discordbot/i
+    const BOT_USER_AGENT_PATTERN = /bot|crawl|spider|headless|lighthouse|GoogleOther|Google-InspectionTool|Google-Safety|APIs-Google|bingpreview|facebookexternalhit|WhatsApp|Slack-ImgProxy|TelegramBot|Discordbot|Shap-User/i
 
     if (userAgent && BOT_USER_AGENT_PATTERN.test(userAgent)) {
         logger.info(`Blocked pixel ingestion for bot user agent: ${userAgent}`)

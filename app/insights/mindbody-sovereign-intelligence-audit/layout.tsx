@@ -1,16 +1,16 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Mindbody is Dead for Salons in 2026 | Sovereign Audit',
-  description: 'An explosive audit of Mindbody\'s legacy infrastructure and why elite salon owners are migrating to AI-driven sovereign architecture.',
+  title: 'Mindbody for Salons in 2026: Is It Still Worth It? (Honest Review)',
+  description: 'A practical look at Mindbody\'s platform for salon owners — pricing, limitations, and where AI-driven alternatives are gaining ground.',
   keywords: [
     'mindbody alternatives 2026',
     'mindbody reviews',
     'wellness software ADI layers',
   ],
   openGraph: {
-    title: 'Mindbody is Dead for Salons in 2026 | Sovereign Audit',
-    description: 'An explosive audit of Mindbody\'s legacy infrastructure and why elite salon owners are migrating to AI-driven sovereign architecture.',
+    title: 'Mindbody for Salons in 2026: Is It Still Worth It? (Honest Review)',
+    description: 'A practical look at Mindbody\'s platform for salon owners — pricing, limitations, and where AI-driven alternatives are gaining ground.',
     type: 'article',
     url: 'https://agency.innergcomplete.com/insights/mindbody-sovereign-intelligence-audit',
     siteName: 'Inner G Complete Agency',
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "MindBody's Intelligence Ceiling",
+    title: "Mindbody for Salons in 2026: Honest Review",
     images: ['/mindbody_sovereign_intelligence_audit.png'],
   },
   alternates: {

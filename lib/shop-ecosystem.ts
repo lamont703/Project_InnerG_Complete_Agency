@@ -282,3 +282,436 @@ export async function getRentStatsByZip(supabase: SupabaseClient, zip: string): 
     salonCount,
   };
 }
+
+export interface ProfessionalEmploymentMatch {
+  professionalType: string;
+  professionalId: string;
+  professionalName: string;
+  professionalHref: string | null;
+  professionalAddress: string | null;
+  venueType: string;
+  venueName: string;
+  venueHref: string | null;
+  venueAddress: string | null;
+  distanceMiles: number;
+  confidenceScore: number;
+  nameMatchScore: number;
+  verificationRequestedAt: string | null;
+}
+
+const PROFESSIONAL_PATH: Record<string, string> = { barber: "/barbers", cosmetologist: "/cosmetologists" };
+const VENUE_PATH: Record<string, string> = { shop: "/shop", salon: "/salons" };
+
+// Backs the AI Mode "where does X work" tool. Returns ranked candidates,
+// not a single answer — see find_professional_employment's own comment
+// for why a name search can plausibly match more than one person, and
+// why some real people won't be found at all (their booking handle may
+// share nothing textually with their real name).
+//
+// professionalHref/venueHref are real, constructed from the underlying
+// ids — the chat route must add these to its validLinks set before
+// sanitizing the model's response, since they're introduced by this
+// tool call, not present in the fixed context validLinks is normally
+// built from.
+export async function findProfessionalEmployment(supabase: SupabaseClient, name: string): Promise<ProfessionalEmploymentMatch[]> {
+  const { data, error } = await supabase.rpc("find_professional_employment", { p_name_query: name });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    professionalType: r.professional_type,
+    professionalId: r.professional_id,
+    professionalName: r.professional_name,
+    professionalHref: PROFESSIONAL_PATH[r.professional_type] ? `${PROFESSIONAL_PATH[r.professional_type]}/${r.professional_id}` : null,
+    professionalAddress: r.professional_address || null,
+    venueType: r.venue_type,
+    venueName: r.venue_name,
+    venueHref: VENUE_PATH[r.venue_type] ? `${VENUE_PATH[r.venue_type]}/${r.venue_id}` : null,
+    venueAddress: r.venue_address || null,
+    distanceMiles: Number(r.distance_miles),
+    confidenceScore: Number(r.confidence_score),
+    nameMatchScore: Number(r.name_match_score),
+    verificationRequestedAt: r.verification_requested_at || null,
+  }));
+}
+
+export interface TopVenueByWorkerCount {
+  venueType: string;
+  venueName: string;
+  venueHref: string | null;
+  venueAddress: string | null;
+  workerCount: number;
+  avgConfidence: number;
+}
+
+// Backs the AI Mode "which shop has the most workers" tool — an
+// aggregate over professional_employment_matches, distinct from
+// findProfessionalEmployment's per-name lookup above. Same "unconfirmed
+// inference" caveat applies: these are geocoded matches, not confirmed
+// employment records.
+export async function getTopVenuesByWorkerCount(supabase: SupabaseClient, limit = 10, venueType?: "shop" | "salon"): Promise<TopVenueByWorkerCount[]> {
+  const { data, error } = await supabase.rpc("get_top_venues_by_worker_count", { p_limit: limit, p_venue_type: venueType || null });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    venueType: r.venue_type,
+    venueName: r.venue_name,
+    venueHref: VENUE_PATH[r.venue_type] ? `${VENUE_PATH[r.venue_type]}/${r.venue_id}` : null,
+    venueAddress: r.venue_address || null,
+    workerCount: Number(r.worker_count),
+    avgConfidence: Number(r.avg_confidence),
+  }));
+}
+
+export interface VenueWorker {
+  professionalType: string;
+  professionalId: string;
+  professionalName: string;
+  professionalHref: string | null;
+  venueType: string;
+  venueName: string;
+  venueHref: string | null;
+  distanceMiles: number;
+  confidenceScore: number;
+  confirmationStatus: string;
+  verificationRequestedAt: string | null;
+}
+
+// The inverse of findProfessionalEmployment — venue name in, list of its
+// matched professionals out. Resolves to the single best-matching venue
+// (or top 2, on a genuine name collision — e.g. two distinct venues both
+// named "Legends Barbershop") rather than a flat, independently-scored
+// list, so results read as "here's who works at THIS place" not a
+// grab-bag of loosely similar names.
+export async function getWorkersAtVenue(supabase: SupabaseClient, venueQuery: string): Promise<VenueWorker[]> {
+  const { data, error } = await supabase.rpc("get_workers_at_venue", { p_venue_query: venueQuery });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    professionalType: r.professional_type,
+    professionalId: r.professional_id,
+    professionalName: r.professional_name,
+    professionalHref: PROFESSIONAL_PATH[r.professional_type] ? `${PROFESSIONAL_PATH[r.professional_type]}/${r.professional_id}` : null,
+    venueType: r.venue_type,
+    venueName: r.venue_name,
+    venueHref: VENUE_PATH[r.venue_type] ? `${VENUE_PATH[r.venue_type]}/${r.venue_id}` : null,
+    distanceMiles: Number(r.distance_miles),
+    confidenceScore: Number(r.confidence_score),
+    confirmationStatus: r.confirmation_status,
+    verificationRequestedAt: r.verification_requested_at || null,
+  }));
+}
+
+export interface ConfirmationStats {
+  totalMatches: number;
+  confirmedCount: number;
+  deniedCount: number;
+  unconfirmedCount: number;
+  confirmedPct: number;
+  avgConfidence: number;
+}
+
+// All matches are 'unconfirmed' today (no confirmation/outreach flow
+// exists yet) — confirmedPct will honestly read 0 until that's built,
+// not a bug.
+export async function getConfirmationStats(supabase: SupabaseClient): Promise<ConfirmationStats | null> {
+  const { data, error } = await supabase.rpc("get_confirmation_stats", {});
+  if (error || !data || !data[0]) return null;
+  const r = data[0];
+  return {
+    totalMatches: Number(r.total_matches),
+    confirmedCount: Number(r.confirmed_count),
+    deniedCount: Number(r.denied_count),
+    unconfirmedCount: Number(r.unconfirmed_count),
+    confirmedPct: Number(r.confirmed_pct) || 0,
+    avgConfidence: Number(r.avg_confidence),
+  };
+}
+
+export interface UnconfirmedMatch {
+  professionalType: string;
+  professionalId: string;
+  professionalName: string;
+  professionalHref: string | null;
+  venueType: string;
+  venueName: string;
+  venueHref: string | null;
+  distanceMiles: number;
+  confidenceScore: number;
+  verificationRequestedAt: string | null;
+}
+
+// An outreach worklist, highest confidence first — the most-likely-
+// correct matches get confirmed before lower-confidence ones.
+export async function listUnconfirmedMatches(supabase: SupabaseClient, limit = 20, minConfidence = 0): Promise<UnconfirmedMatch[]> {
+  const { data, error } = await supabase.rpc("list_unconfirmed_matches", { p_limit: limit, p_min_confidence: minConfidence });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    professionalType: r.professional_type,
+    professionalId: r.professional_id,
+    professionalName: r.professional_name,
+    professionalHref: PROFESSIONAL_PATH[r.professional_type] ? `${PROFESSIONAL_PATH[r.professional_type]}/${r.professional_id}` : null,
+    venueType: r.venue_type,
+    venueName: r.venue_name,
+    venueHref: VENUE_PATH[r.venue_type] ? `${VENUE_PATH[r.venue_type]}/${r.venue_id}` : null,
+    distanceMiles: Number(r.distance_miles),
+    confidenceScore: Number(r.confidence_score),
+    verificationRequestedAt: r.verification_requested_at || null,
+  }));
+}
+
+export interface EmploymentMatchOverview {
+  totalMatches: number;
+  barberMatches: number;
+  cosmetologistMatches: number;
+  shopMatches: number;
+  salonMatches: number;
+  avgConfidence: number;
+  avgDistanceMiles: number;
+  highConfidenceCount: number;
+  lowConfidenceCount: number;
+  unmatchedEligibleCount: number;
+}
+
+// Data-quality/audit overview — totals, breakdowns, and how many
+// eligible professionals (had lat/lng, real name) never landed a match
+// within 3 miles of anywhere, not just how many were never attempted.
+export async function getEmploymentMatchOverview(supabase: SupabaseClient): Promise<EmploymentMatchOverview | null> {
+  const { data, error } = await supabase.rpc("get_employment_match_overview", {});
+  if (error || !data || !data[0]) return null;
+  const r = data[0];
+  return {
+    totalMatches: Number(r.total_matches),
+    barberMatches: Number(r.barber_matches),
+    cosmetologistMatches: Number(r.cosmetologist_matches),
+    shopMatches: Number(r.shop_matches),
+    salonMatches: Number(r.salon_matches),
+    avgConfidence: Number(r.avg_confidence),
+    avgDistanceMiles: Number(r.avg_distance_miles),
+    highConfidenceCount: Number(r.high_confidence_count),
+    lowConfidenceCount: Number(r.low_confidence_count),
+    unmatchedEligibleCount: Number(r.unmatched_eligible_count),
+  };
+}
+
+// Pass rates are stored as 0-1 decimals on the school tables — converted
+// to 0-100 here so every exam-stats field displays consistently
+// regardless of whether it came from a school-level or statewide query.
+function pct(v: number | null): number | null {
+  return v == null ? null : Math.round(v * 1000) / 10;
+}
+
+export interface SchoolExamStats {
+  schoolId: string;
+  schoolType: string;
+  schoolHref: string;
+  schoolName: string;
+  city: string | null;
+  barberWrittenPassRate: number | null;
+  barberWrittenTestTakers: number | null;
+  barberPracticalPassRate: number | null;
+  barberPracticalTestTakers: number | null;
+  barberFirstAttemptPassRate: number | null;
+  barberAvgAttemptsToPass: number | null;
+  barberLeaderboardScore: number | null;
+  cosmetologyWrittenPassRate: number | null;
+  cosmetologyWrittenTestTakers: number | null;
+  cosmetologyPracticalPassRate: number | null;
+  cosmetologyPracticalTestTakers: number | null;
+  cosmetologyFirstAttemptPassRate: number | null;
+  cosmetologyAvgAttemptsToPass: number | null;
+  cosmetologyLeaderboardScore: number | null;
+}
+
+// Single-school lookup for a school administrator asking about their own
+// school — fuzzy name match, distinct from the fixed top-8-by-volume
+// leaderboard already in the general chat context, which won't surface a
+// mid-size school at all. Can return more than one row on a genuine
+// multi-campus collision (e.g. "Milan Institute" has 3 separate Texas
+// campuses, confirmed live) — never silently picks one.
+export async function getSchoolExamStats(supabase: SupabaseClient, schoolQuery: string): Promise<SchoolExamStats[]> {
+  const { data, error } = await supabase.rpc("get_school_exam_stats", { p_school_query: schoolQuery });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    schoolId: r.school_id,
+    schoolType: r.school_type,
+    schoolHref: `/schools/${r.school_id}`,
+    schoolName: r.school_name,
+    city: r.city,
+    barberWrittenPassRate: pct(r.barber_written_pass_rate),
+    barberWrittenTestTakers: r.barber_written_test_takers,
+    barberPracticalPassRate: pct(r.barber_practical_pass_rate),
+    barberPracticalTestTakers: r.barber_practical_test_takers,
+    barberFirstAttemptPassRate: pct(r.barber_first_attempt_pass_rate),
+    barberAvgAttemptsToPass: r.barber_avg_attempts_to_pass,
+    barberLeaderboardScore: r.barber_leaderboard_score,
+    cosmetologyWrittenPassRate: pct(r.cosmetology_written_pass_rate),
+    cosmetologyWrittenTestTakers: r.cosmetology_written_test_takers,
+    cosmetologyPracticalPassRate: pct(r.cosmetology_practical_pass_rate),
+    cosmetologyPracticalTestTakers: r.cosmetology_practical_test_takers,
+    cosmetologyFirstAttemptPassRate: pct(r.cosmetology_first_attempt_pass_rate),
+    cosmetologyAvgAttemptsToPass: r.cosmetology_avg_attempts_to_pass,
+    cosmetologyLeaderboardScore: r.cosmetology_leaderboard_score,
+  }));
+}
+
+export interface StatewideExamStats {
+  programType: string;
+  testType: string;
+  totalTestTakers: number;
+  passCount: number;
+  passRate: number;
+  firstAttemptPassRate: number;
+  avgAttemptsToPass: number;
+}
+
+// The genuinely missing benchmark — student-weighted (not an average of
+// per-school rates, so large and small schools aren't counted equally),
+// computed live from raw pass/fail records.
+export async function getStatewideExamStats(supabase: SupabaseClient): Promise<StatewideExamStats[]> {
+  const { data, error } = await supabase.rpc("get_statewide_exam_stats", {});
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    programType: r.program_type,
+    testType: r.test_type,
+    totalTestTakers: Number(r.total_test_takers),
+    passCount: Number(r.pass_count),
+    passRate: Number(r.pass_rate),
+    firstAttemptPassRate: Number(r.first_attempt_pass_rate),
+    avgAttemptsToPass: Number(r.avg_attempts_to_pass),
+  }));
+}
+
+export interface StudentExamRecord {
+  programType: string;
+  firstName: string;
+  lastName: string;
+  schoolName: string;
+  schoolHref: string | null;
+  testType: string;
+  testDate: string | null;
+  result: string;
+  score: number | null;
+  attemptNumber: number;
+  isLatestAttempt: boolean;
+  schoolMatchConfidence: string;
+}
+
+const SCHOOL_TYPE_TO_PATH: Record<string, string> = { barber: "/schools", cosmetology: "/schools" };
+
+// Fuzzy name match across both student tables, grouped to the best-
+// matching person(s) — requires matching at least 2 of a 2+-word query's
+// tokens (confirmed live: a looser threshold let an unrelated same-first-
+// name person through). Returns every attempt for that person, not just
+// the latest, so retakes are visible via attemptNumber/isLatestAttempt.
+export async function findStudentExamRecord(supabase: SupabaseClient, name: string): Promise<StudentExamRecord[]> {
+  const { data, error } = await supabase.rpc("find_student_exam_record", { p_name_query: name });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    programType: r.program_type,
+    firstName: r.first_name,
+    lastName: r.last_name,
+    schoolName: r.school_name,
+    schoolHref: r.matched_school_id && SCHOOL_TYPE_TO_PATH[r.matched_school_type] ? `${SCHOOL_TYPE_TO_PATH[r.matched_school_type]}/${r.matched_school_id}` : null,
+    testType: r.test_type,
+    testDate: r.test_date,
+    result: r.result,
+    score: r.score,
+    attemptNumber: Number(r.attempt_number),
+    isLatestAttempt: !!r.is_latest_attempt,
+    schoolMatchConfidence: r.school_match_confidence,
+  }));
+}
+
+export interface SchoolRegionRanking {
+  schoolId: string;
+  schoolType: string;
+  schoolHref: string;
+  schoolName: string;
+  city: string | null;
+  writtenPassRate: number | null;
+  writtenTestTakers: number | null;
+  leaderboardScore: number | null;
+}
+
+// "Which schools in my area have the best pass rates" — city-scoped,
+// distinct from the statewide fixed leaderboard. Floors at 3 test-takers
+// to avoid a 1-student 100%/0% school skewing the ranking.
+export async function getSchoolRankingsByRegion(supabase: SupabaseClient, city: string, limit = 10): Promise<SchoolRegionRanking[]> {
+  const { data, error } = await supabase.rpc("get_school_rankings_by_region", { p_city: city, p_limit: limit });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    schoolId: r.school_id,
+    schoolType: r.school_type,
+    schoolHref: `/schools/${r.school_id}`,
+    schoolName: r.school_name,
+    city: r.city,
+    writtenPassRate: pct(r.written_pass_rate),
+    writtenTestTakers: r.written_test_takers,
+    leaderboardScore: r.leaderboard_score,
+  }));
+}
+
+export interface TopSchoolByPassRate {
+  schoolId: string;
+  schoolType: string;
+  schoolHref: string;
+  schoolName: string;
+  city: string | null;
+  writtenPassRate: number | null;
+  writtenTestTakers: number | null;
+  leaderboardScore: number | null;
+}
+
+// Statewide best/worst performers by pass rate, distinct from the fixed
+// volume-sorted leaderboard already in general context. Floors at 5
+// test-takers by default for the same small-sample reason.
+export async function getTopSchoolsByPassRate(supabase: SupabaseClient, limit = 10, direction: "best" | "worst" = "best"): Promise<TopSchoolByPassRate[]> {
+  const { data, error } = await supabase.rpc("get_top_schools_by_pass_rate", { p_limit: limit, p_direction: direction });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    schoolId: r.school_id,
+    schoolType: r.school_type,
+    schoolHref: `/schools/${r.school_id}`,
+    schoolName: r.school_name,
+    city: r.city,
+    writtenPassRate: pct(r.written_pass_rate),
+    writtenTestTakers: r.written_test_takers,
+    leaderboardScore: r.leaderboard_score,
+  }));
+}
+
+export interface SchoolTestTaker {
+  schoolId: string;
+  schoolHref: string;
+  schoolName: string;
+  isK12School: boolean;
+  programType: string;
+  firstName: string | null;
+  lastName: string | null;
+  testType: string;
+  result: string;
+  score: number | null;
+  attemptNumber: number;
+  isLatestAttempt: boolean;
+}
+
+// "Who were those test takers" — names are redacted (null, isK12School
+// true) for schools whose name indicates a K-12 program ("High School"
+// or the "Hs" abbreviation), since those test-takers are plausibly
+// minors — a meaningfully different sensitivity tier than adult
+// students at a dedicated trade school, where full names are returned.
+export async function getSchoolTestTakers(supabase: SupabaseClient, schoolQuery: string): Promise<SchoolTestTaker[]> {
+  const { data, error } = await supabase.rpc("get_school_test_takers", { p_school_query: schoolQuery });
+  if (error || !data) return [];
+  return (data as any[]).map((r) => ({
+    schoolId: r.school_id,
+    schoolHref: `/schools/${r.school_id}`,
+    schoolName: r.school_name,
+    isK12School: !!r.is_k12_school,
+    programType: r.program_type,
+    firstName: r.first_name,
+    lastName: r.last_name,
+    testType: r.test_type,
+    result: r.result,
+    score: r.score,
+    attemptNumber: Number(r.attempt_number),
+    isLatestAttempt: !!r.is_latest_attempt,
+  }));
+}

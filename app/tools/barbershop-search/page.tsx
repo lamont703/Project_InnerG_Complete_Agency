@@ -1,11 +1,21 @@
 "use client";
 
 import { useState, useTransition, useEffect, Suspense } from "react";
-import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight } from "lucide-react";
+import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight, Send, CheckCircle2, Loader2 } from "lucide-react";
 import { searchBarbershops } from "./actions";
+import { requestEmploymentVerification } from "@/app/tools/employment-match-review/actions";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useSearchParams } from "next/navigation";
+
+interface EmploymentMatchForVerification {
+  professionalType: string;
+  professionalId: string;
+  professionalName: string;
+  venueName: string;
+  confidenceScore: number;
+  verificationRequestedAt: string | null;
+}
 
 const ALL_TABS = ['AI Mode', 'All', 'Schools', 'Salons', 'Barbershops', 'Barbers', 'Cosmetologist', 'Stores', 'Articles', 'Videos', 'Images', 'Tools'];
 const PRIMARY_MOBILE_TABS = ['AI Mode', 'All'];
@@ -75,9 +85,16 @@ function SearchContent() {
   const [showMoreTabs, setShowMoreTabs] = useState(false);
   
   // AI Chat State
-  const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([]);
+  const [chatMessages, setChatMessages] = useState<{role: string, content: string, employmentMatches?: EmploymentMatchForVerification[]}[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
+  // Verification-request state lives here, not per-message — a match can
+  // appear in more than one message (e.g. asked about twice), and the
+  // button should reflect ONE shared "already requested" state across
+  // all of them, not track it independently per message instance.
+  const [verificationPending, setVerificationPending] = useState<Set<string>>(new Set());
+  const [verificationRequested, setVerificationRequested] = useState<Set<string>>(new Set());
+  const [verificationErrors, setVerificationErrors] = useState<Record<string, string>>({});
   // Sticks for the rest of the conversation once an "Ask AI About This
   // Market" session starts — without this, only the kickoff message
   // included shopId (it's passed explicitly there), so every follow-up
@@ -144,7 +161,16 @@ function SearchContent() {
           (window as any).innerG.track('ai_rate_limit_hit', { limit: 5 });
         }
       } else {
-        setChatMessages([...newHistory, { role: 'model', content: data.text }]);
+        setChatMessages([...newHistory, { role: 'model', content: data.text, employmentMatches: data.employmentMatches }]);
+        if (Array.isArray(data.employmentMatches)) {
+          setVerificationRequested((s) => {
+            const next = new Set(s);
+            data.employmentMatches.forEach((m: EmploymentMatchForVerification) => {
+              if (m.verificationRequestedAt) next.add(`${m.professionalType}:${m.professionalId}`);
+            });
+            return next;
+          });
+        }
         if ((window as any).innerG?.track) {
           (window as any).innerG.track('ai_chat_message_sent', { query_length: trimmed.length });
         }
@@ -153,6 +179,25 @@ function SearchContent() {
       setChatMessages([...newHistory, { role: 'model', content: 'Connection error.' }]);
     } finally {
       setIsAiLoading(false);
+    }
+  };
+
+  // Deliberately NOT tool calling — the model never decides to trigger
+  // this, it's a plain button tied to structured data from the tool
+  // result, calling the same server action the Employment Match Review
+  // page uses. Keeps a real-world-consequence action (creating/tagging a
+  // GHL contact) off of non-deterministic model judgment on an
+  // unauthenticated chat surface.
+  const requestVerificationFromChat = async (match: EmploymentMatchForVerification) => {
+    const key = `${match.professionalType}:${match.professionalId}`;
+    setVerificationPending((s) => new Set(s).add(key));
+    setVerificationErrors((e) => { const next = { ...e }; delete next[key]; return next; });
+    const result = await requestEmploymentVerification(match.professionalType, match.professionalId);
+    setVerificationPending((s) => { const next = new Set(s); next.delete(key); return next; });
+    if (result.success) {
+      setVerificationRequested((s) => new Set(s).add(key));
+    } else {
+      setVerificationErrors((e) => ({ ...e, [key]: result.error || "Request failed." }));
     }
   };
 
@@ -202,10 +247,35 @@ function SearchContent() {
   // that specific shop already asked, so they don't have to re-explain
   // which shop they mean. shopId rides along in the chat request so the
   // backend can compute (not embed-search) that shop's ecosystem report.
+  //
+  // Also restores a persisted conversation here, before the kickoff check
+  // below — clicking a hyperlink out of AI Mode (e.g. to a barber/shop
+  // profile) fully unmounts this page, wiping plain React state, so
+  // hitting Back previously landed on an empty chat. sessionStorage
+  // survives that the same way the search-results cache already does.
+  // Uses a local `restored` flag rather than chatMessages.length, since
+  // setChatMessages here hasn't triggered a re-render yet within this
+  // same effect pass — reading component state would still see stale 0.
   useEffect(() => {
+    let restored = false;
+    try {
+      const savedMessages = sessionStorage.getItem('aiModeChatMessages');
+      if (savedMessages) {
+        const parsed = JSON.parse(savedMessages);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setChatMessages(parsed);
+          restored = true;
+        }
+      }
+      const savedShopId = sessionStorage.getItem('aiModeEcosystemShopId');
+      if (savedShopId) setActiveEcosystemShopId(savedShopId);
+      const savedVerified = sessionStorage.getItem('aiModeVerificationRequested');
+      if (savedVerified) setVerificationRequested(new Set(JSON.parse(savedVerified)));
+    } catch {}
+
     const ecosystemShopId = searchParams.get("ecosystemShopId");
     const ecosystemShopName = searchParams.get("ecosystemShopName");
-    if (ecosystemShopId && chatMessages.length === 0) {
+    if (!restored && ecosystemShopId && chatMessages.length === 0) {
       setFilterTab("AI Mode");
       setActiveEcosystemShopId(ecosystemShopId);
       const shopLabel = ecosystemShopName || "my shop";
@@ -213,6 +283,33 @@ function SearchContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Persist as the conversation grows — sessionStorage (not localStorage)
+  // so it survives a back-navigation within this tab/session but doesn't
+  // resurrect a stale conversation on a future, unrelated visit.
+  useEffect(() => {
+    try {
+      if (chatMessages.length > 0) sessionStorage.setItem('aiModeChatMessages', JSON.stringify(chatMessages));
+    } catch {}
+  }, [chatMessages]);
+
+  useEffect(() => {
+    try {
+      if (activeEcosystemShopId) sessionStorage.setItem('aiModeEcosystemShopId', activeEcosystemShopId);
+    } catch {}
+  }, [activeEcosystemShopId]);
+
+  useEffect(() => {
+    // Guard on size > 0, same reasoning as the two effects above — without
+    // it, this fires on the very first render (before the restore effect's
+    // setVerificationRequested has actually applied) with the initial
+    // empty Set, clobbering the just-restored sessionStorage value back to
+    // "[]" a moment after it was read (confirmed live: restored data was
+    // present immediately post-restore, then wiped by this effect).
+    try {
+      if (verificationRequested.size > 0) sessionStorage.setItem('aiModeVerificationRequested', JSON.stringify([...verificationRequested]));
+    } catch {}
+  }, [verificationRequested]);
 
   useEffect(() => {
     // `ignore` guards against a stale in-flight search resolving after the
@@ -592,6 +689,36 @@ function SearchContent() {
                   <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[85%] rounded-2xl px-4 py-3 whitespace-pre-wrap ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-800 shadow-sm rounded-tl-sm'}`}>
                       {msg.role === 'user' ? msg.content : renderChatContent(msg.content, `msg-${i}`)}
+                      {msg.role !== 'user' && msg.employmentMatches && msg.employmentMatches.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-2">
+                          {msg.employmentMatches.map((match, mi) => {
+                            const key = `${match.professionalType}:${match.professionalId}`;
+                            const isRequested = !!match.verificationRequestedAt || verificationRequested.has(key);
+                            const isPending = verificationPending.has(key);
+                            const error = verificationErrors[key];
+                            return (
+                              <div key={mi}>
+                                {isRequested ? (
+                                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    Verification requested for {match.professionalName}
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => requestVerificationFromChat(match)}
+                                    disabled={isPending}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:border-indigo-300 hover:text-indigo-700 text-xs font-bold text-slate-600 disabled:opacity-50"
+                                  >
+                                    {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                                    {isPending ? "Requesting…" : `Request Verification for ${match.professionalName}`}
+                                  </button>
+                                )}
+                                {error && <p className="text-[11px] text-rose-600 mt-1">{error}</p>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
