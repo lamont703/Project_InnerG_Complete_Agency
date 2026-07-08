@@ -89,12 +89,20 @@ export async function generateMetadata(
   }
 
   const title = `${shop.shop_name} is Hiring on Shop Day Network`;
-  const description = `Check out ${shop.shop_name} in ${shop.city} on the Barber & Beauty Network. Request a Shop Day to try out a chair today!`;
+  const descParts = [
+    `${shop.shop_name} in ${shop.city}`,
+    shop.booth_count_available ? `— ${shop.booth_count_available} chair${shop.booth_count_available > 1 ? 's' : ''} available` : null,
+    shop.rent_type ? `(${shop.rent_type}${shop.rent_rate ? ` at $${shop.rent_rate}/week` : ''})` : null,
+    shop.rating ? `Rated ${shop.rating}★` : null,
+    shop.total_reviews ? `(${shop.total_reviews} reviews)` : null,
+  ].filter(Boolean);
+  const description = `${descParts.join('. ')}. View photos and request a Shop Day.`;
   const image = shop.shop_image_url || "/shop_day_card.jpg";
 
   return {
     title,
     description,
+    alternates: { canonical: `https://agency.innergcomplete.com/shop/${resolvedParams.slug}` },
     openGraph: {
       title,
       description,
@@ -191,9 +199,42 @@ export default async function ShopProfilePage({ params }: Props) {
   }
   if (images[0]) shopJsonLd.image = images[0];
 
+  // FAQPage — answers the exact questions searchers ask at this decision point.
+  const shopFaqEntries: { q: string; a: string }[] = [];
+  if (shop.rent_rate || shop.rent_type) {
+    shopFaqEntries.push({
+      q: `How much is booth rent at ${shop.shop_name}?`,
+      a: `${shop.shop_name} offers ${shop.rent_type || 'booth rent'}${shop.rent_rate ? ` at $${shop.rent_rate} per week` : ' — contact the shop for current pricing'}.`,
+    });
+  }
+  if (shop.booth_count_available != null) {
+    shopFaqEntries.push({
+      q: `Is ${shop.shop_name} hiring barbers?`,
+      a: shop.booth_count_available >= 1
+        ? `Yes — ${shop.shop_name} currently has ${shop.booth_count_available} chair${shop.booth_count_available > 1 ? 's' : ''} available for rent.`
+        : `${shop.shop_name} does not currently have open chairs listed. Check back or contact the shop directly.`,
+    });
+  }
+  if (shop.rating && shop.total_reviews) {
+    shopFaqEntries.push({
+      q: `What is the rating for ${shop.shop_name}?`,
+      a: `${shop.shop_name} is rated ${shop.rating} stars based on ${shop.total_reviews} reviews.`,
+    });
+  }
+  const shopFaqJsonLd = shopFaqEntries.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: shopFaqEntries.map(({ q, a }) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: { "@type": "Answer", text: a },
+    })),
+  } : null;
+
   return (
     <div className="min-h-screen bg-white text-slate-900 selection:bg-blue-500/20 flex flex-col overflow-x-hidden">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(shopJsonLd) }} />
+      {shopFaqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(shopFaqJsonLd) }} />}
 
       <div className="flex-grow pt-8 pb-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
         
@@ -239,7 +280,7 @@ export default async function ShopProfilePage({ params }: Props) {
         {/* Real Estate Image Gallery (Masonry on Desktop, Swipe Carousel on Mobile) */}
         <div className="flex md:grid overflow-x-auto md:overflow-hidden snap-x snap-mandatory md:snap-none md:grid-cols-4 md:grid-rows-2 gap-2 h-64 md:h-[60vh] rounded-none md:rounded-3xl mb-8 md:mb-12 scrollbar-hide -mx-4 md:mx-0 px-4 md:px-0">
           <div className="md:col-span-2 row-span-2 relative h-full shrink-0 aspect-square md:aspect-auto md:w-auto snap-center rounded-2xl md:rounded-none overflow-hidden border border-slate-200 md:border-none shadow-sm md:shadow-none">
-            <img src={images[0]} alt="Shop Primary" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700 cursor-pointer" />
+            <Image src={images[0]} alt={`${shop.shop_name} primary photo`} fill className="object-cover hover:scale-105 transition-transform duration-700 cursor-pointer" sizes="(max-width: 768px) 100vw, 50vw" unoptimized={!images[0].startsWith('https://')} />
             <div className="absolute top-4 left-4 z-10 flex gap-2">
               {shop.hiring_need || (shop.booth_count_available && shop.booth_count_available >= 1) ? (
                 <span className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-sm">
@@ -254,7 +295,7 @@ export default async function ShopProfilePage({ params }: Props) {
           </div>
           {images.slice(1, 5).map((imgUrl: string, idx: number) => (
             <div key={idx} className="relative h-full overflow-hidden shrink-0 aspect-square md:aspect-auto md:w-auto snap-center rounded-2xl md:rounded-none border border-slate-200 md:border-none shadow-sm md:shadow-none">
-              <img src={imgUrl} alt={`Shop view ${idx + 2}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700 cursor-pointer" />
+              <Image src={imgUrl} alt={`${shop.shop_name} view ${idx + 2}`} fill className="object-cover hover:scale-105 transition-transform duration-700 cursor-pointer" sizes="(max-width: 768px) 50vw, 25vw" unoptimized={!imgUrl.startsWith('https://')} />
             </div>
           ))}
           {/* Fill empty spots if less than 5 images (Desktop Only) */}

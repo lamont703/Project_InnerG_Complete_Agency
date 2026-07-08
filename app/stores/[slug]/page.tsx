@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
+import Image from "next/image";
 import {
   MapPin,
   Star,
@@ -85,12 +86,19 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const storeLabel = storeType === "beauty_supply" ? "Beauty Supply Store" : "Barber Supply Store";
 
   const title = `${store.name} — ${storeLabel}${store.city ? ` in ${store.city}` : ""}`;
-  const description = `${store.name}${store.formatted_address ? ` at ${store.formatted_address}` : ""}. View photos, hours, ratings, and contact info.`;
+  const descParts = [
+    store.name,
+    store.city ? `${storeLabel.toLowerCase()} in ${store.city}` : storeLabel.toLowerCase(),
+    store.rating ? `Rated ${Number(store.rating).toFixed(1)}★` : null,
+    store.total_reviews ? `(${store.total_reviews} reviews)` : null,
+  ].filter(Boolean);
+  const description = `${descParts.join('. ')}. View hours, photos, and find nearby shops.`;
   const heroImage = Array.isArray(store.google_images) ? store.google_images[0] : undefined;
 
   return {
     title,
     description,
+    alternates: { canonical: `https://agency.innergcomplete.com/stores/${slug}` },
     openGraph: {
       title,
       description,
@@ -119,6 +127,8 @@ function buildStoreJsonLd(store: any, websiteHref: string | null) {
       reviewCount: Number(store.total_reviews),
     };
   }
+  const heroImg = Array.isArray(store.google_images) ? store.google_images[0] : null;
+  if (heroImg) ld.image = heroImg;
   return ld;
 }
 
@@ -179,9 +189,8 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
             {/* Photo Gallery */}
             {heroPhoto ? (
               <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
-                <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={heroPhoto} alt={store.name} className="w-full h-full object-cover" />
+                <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100 relative">
+                  <Image src={heroPhoto} alt={store.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 66vw" unoptimized={!heroPhoto.startsWith('https://')} />
                 </a>
                 {thumbnails.length > 0 && (
                   <div className="grid grid-cols-4 gap-0.5 p-0.5 bg-slate-100">
@@ -193,8 +202,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
                         rel="noopener noreferrer"
                         className="relative aspect-square overflow-hidden bg-slate-200 group"
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt={`${store.name} photo ${i + 2}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <Image src={url} alt={`${store.name} photo ${i + 2}`} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="25vw" unoptimized={!url.startsWith('https://')} />
                       </a>
                     ))}
                   </div>

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
+import Image from "next/image";
 
 export const revalidate = 3600;
 
@@ -210,6 +211,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   return {
     title,
     description,
+    alternates: { canonical: `https://agency.innergcomplete.com/schools/${slug}` },
     openGraph: {
       title,
       description,
@@ -243,6 +245,9 @@ function buildSchoolJsonLd(school: any, websiteHref: string | null) {
   if (address) org.address = address;
   if (websiteHref) org.url = websiteHref;
   if (school.phone) org.telephone = school.phone;
+  if (school.latitude && school.longitude) org.geo = { "@type": "GeoCoordinates", latitude: school.latitude, longitude: school.longitude };
+  const heroImg = Array.isArray(school.google_photos) ? school.google_photos[0] : null;
+  if (heroImg) org.image = heroImg;
   if (school.rating && school.google_review_count) {
     org.aggregateRating = {
       "@type": "AggregateRating",
@@ -444,16 +449,14 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
             {/* Photo Gallery */}
             {heroPhoto ? (
               <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
-                <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={heroPhoto} alt={school.school_name} className="w-full h-full object-cover" />
+                <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100 relative">
+                  <Image src={heroPhoto} alt={school.school_name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 66vw" unoptimized={!heroPhoto.startsWith('https://')} />
                 </a>
                 {thumbnails.length > 0 && (
                   <div className="grid grid-cols-4 gap-0.5 p-0.5 bg-slate-100">
                     {thumbnails.map((url, i) => (
                       <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="relative aspect-square overflow-hidden bg-slate-200 group">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt={`${school.school_name} photo ${i + 2}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <Image src={url} alt={`${school.school_name} photo ${i + 2}`} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="25vw" unoptimized={!url.startsWith('https://')} />
                       </a>
                     ))}
                   </div>
