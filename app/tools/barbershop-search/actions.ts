@@ -305,7 +305,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       if (!(filterTab === 'All' || filterTab === 'Schools')) return [];
 
       const schoolLimBase = filterTab === 'All' ? schoolLim : ITEMS_PER_PAGE;
-      const schoolFilterActive = ['school_accredited', 'school_high_pass_rate', 'school_affordable', 'rating_4.5', 'school_city_houston'].some((f) => activeFilters.includes(f));
+      const schoolFilterActive = ['school_accredited', 'school_high_pass_rate', 'school_affordable', 'school_financial_aid', 'rating_4.5', 'school_city_houston'].some((f) => activeFilters.includes(f));
       const { data: schoolRes, error: schoolErr } = await supabase.rpc('search_schools_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
@@ -340,6 +340,13 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       }
       if (activeFilters.includes('school_affordable')) {
         matches = matches.filter((s) => s.annual_tuition != null && Number(s.annual_tuition) <= 10000);
+      }
+      if (activeFilters.includes('school_financial_aid')) {
+        // A populated Pell/federal-loan rate means the school reported real
+        // Title-IV financial-aid participation data (via College Scorecard
+        // or NCES) — that's the actual "accepts financial aid" signal, not
+        // a guess or a marketing claim.
+        matches = matches.filter((s) => s.pell_grant_rate != null || s.federal_loan_rate != null);
       }
       if (activeFilters.includes('school_city_houston')) {
         // Keyword relevance alone doesn't reliably keep Houston schools

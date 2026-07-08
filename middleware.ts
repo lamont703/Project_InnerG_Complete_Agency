@@ -31,6 +31,18 @@ export default async function proxy(request: NextRequest) {
         return NextResponse.next()
     }
 
+    // Only PROTECTED_ROUTES and AUTH_ROUTES actually need a session check.
+    // Every other path (the vast majority of traffic — /shop, /barbers,
+    // /tools/barbershop-search, etc.) previously paid for an unconditional
+    // Supabase auth round-trip on every single navigation regardless of
+    // whether the destination needed auth at all. On a slow mobile
+    // connection that round-trip is real, visible latency before the page
+    // even starts loading — skip it entirely for public routes.
+    const needsAuthCheck = PROTECTED_ROUTES.some((route) => pathname.startsWith(route)) || AUTH_ROUTES.includes(pathname)
+    if (!needsAuthCheck) {
+        return NextResponse.next()
+    }
+
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -95,7 +107,6 @@ export default async function proxy(request: NextRequest) {
         // Refresh session if expired - also handles auth check
         const { data: { user } } = await supabase.auth.getUser()
 
-        const { pathname } = request.nextUrl
         const isAuthenticated = !!user
 
         // 1. Protect private routes

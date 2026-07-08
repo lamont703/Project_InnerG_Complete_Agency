@@ -28,6 +28,25 @@ import {
   trackExamRetake
 } from "@/lib/analytics"
 
+const PRACTICE_DECK_FAQS = [
+  {
+    q: "What exam vendor administers the Texas barber written exam?",
+    a: "PSI Services, on behalf of TDLR. These practice questions are aligned to the same Milady textbook citations and question style PSI uses on the actual Class A Barber written exam.",
+  },
+  {
+    q: "What score do I need to pass the Texas barber written exam?",
+    a: "70%. The written exam is the harder of the two exams statewide — roughly 46% of first-time takers pass it, compared to about 84% for the practical exam.",
+  },
+  {
+    q: "Is this practice deck based on real exam content?",
+    a: "The questions are sourced from Milady textbook citations aligned to PSI's published exam content outline, not scraped from leaked exam questions. It's built to test the same knowledge areas, not to reproduce specific exam questions.",
+  },
+  {
+    q: "What should I do after I pass the written exam?",
+    a: "Schedule your practical exam and review the exact kit list and station order — see our Barber Practical Exam Kit List for the official PSI/TDLR requirements.",
+  },
+]
+
 const practiceQuestions = [
   {
     id: 1,
@@ -275,6 +294,9 @@ export default function PublicSwipeDeckPage() {
                   <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-slate-950 leading-tight">
                     Texas Barber Exam <br className="sm:hidden" />Intelligence Deck™
                   </h1>
+                  <p className="text-[11px] font-bold text-slate-500 mt-1">
+                    Practice questions aligned to the PSI written exam — the vendor TDLR contracts to administer the actual Class A Barber license test.
+                  </p>
               </div>
               <div className="flex items-center gap-4 w-full sm:w-auto">
                 <div className="bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-sm flex-1 sm:flex-none text-center">
@@ -577,8 +599,35 @@ export default function PublicSwipeDeckPage() {
               Back to Search
             </Link>
           </div>
+
+          <div className="max-w-xl mx-auto border-t border-slate-200 pt-10 mb-16 text-left">
+            <h2 className="text-xl font-black text-slate-900 mb-6 text-center">Common Questions</h2>
+            <div className="space-y-6">
+              {PRACTICE_DECK_FAQS.map((faq) => (
+                <div key={faq.q}>
+                  <h3 className="text-sm font-black text-slate-900 mb-1.5">{faq.q}</h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">{faq.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: PRACTICE_DECK_FAQS.map((faq) => ({
+              "@type": "Question",
+              name: faq.q,
+              acceptedAnswer: { "@type": "Answer", text: faq.a },
+            })),
+          }),
+        }}
+      />
     </main>
   )
 }

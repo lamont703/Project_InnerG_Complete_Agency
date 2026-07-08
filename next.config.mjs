@@ -12,6 +12,29 @@ const nextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      // Google Places / Maps photo CDN (shop, salon, school, store galleries)
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
+      {
+        protocol: "https",
+        hostname: "maps.googleapis.com",
+      },
+      {
+        protocol: "https",
+        hostname: "streetviewpixels-pa.googleapis.com",
+      },
+      // Booksy CDN via CloudFront (barber & cosmetologist portfolio photos)
+      {
+        protocol: "https",
+        hostname: "d2zdpiztbgorvt.cloudfront.net",
+      },
+      // Google Places photos alternate CDN
+      {
+        protocol: "https",
+        hostname: "places.googleapis.com",
+      },
     ],
   },
 

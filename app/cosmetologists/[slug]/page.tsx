@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { CreatePassportButton } from "@/components/shared/create-passport-button";
+import Image from "next/image";
 import {
   MapPin,
   Star,
@@ -76,12 +77,21 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   if (!person) return { title: "Cosmetologist Profile Not Found" };
 
   const title = `${person.name} — ${person.specialty_type || "Beauty Professional"}${person.metro_area ? ` in ${person.metro_area}` : ""}`;
-  const description = `Book with ${person.name}${person.metro_area ? ` in ${person.metro_area}` : ""}. View photos, services, pricing, and reviews.`;
+  const descParts = [
+    person.name,
+    person.specialty_type || "Beauty Professional",
+    person.metro_area ? `in ${person.metro_area}` : null,
+    person.booksy_rating ? `Rated ${Number(person.booksy_rating).toFixed(1)}★` : null,
+    person.booksy_review_count ? `(${person.booksy_review_count} reviews)` : null,
+    person.booksy_price_range || null,
+  ].filter(Boolean);
+  const description = `${descParts.join('. ')}. View gallery, services, and book online.`;
   const heroImage = person.booksy_gallery_urls?.[0] || person.booksy_photo_url;
 
   return {
     title,
     description,
+    alternates: { canonical: `https://agency.innergcomplete.com/cosmetologists/${slug}` },
     openGraph: {
       title,
       description,
@@ -101,6 +111,7 @@ function buildCosmetologistJsonLd(person: any) {
   };
   if (person.address) ld.address = { "@type": "PostalAddress", streetAddress: person.address, addressRegion: "TX", addressCountry: "US" };
   if (person.metro_area) ld.homeLocation = { "@type": "Place", name: person.metro_area };
+  if (person.latitude && person.longitude) ld.geo = { "@type": "GeoCoordinates", latitude: person.latitude, longitude: person.longitude };
   if (person.website_url) ld.url = person.website_url.startsWith("http") ? person.website_url : `https://${person.website_url}`;
   if (person.booksy_rating && person.booksy_review_count) {
     ld.aggregateRating = {
@@ -109,6 +120,8 @@ function buildCosmetologistJsonLd(person: any) {
       reviewCount: Number(person.booksy_review_count),
     };
   }
+  const heroImg = person.booksy_gallery_urls?.[0] || person.booksy_photo_url;
+  if (heroImg) ld.image = heroImg;
   const sameAs = [
     person.instagram_handle && `https://instagram.com/${person.instagram_handle.replace("@", "")}`,
     person.tiktok_handle && `https://tiktok.com/@${person.tiktok_handle.replace("@", "")}`,
@@ -182,9 +195,8 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
             {/* Photo Gallery */}
             {heroPhoto ? (
               <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
-                <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={heroPhoto} alt={person.name} className="w-full h-full object-cover" />
+                <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100 relative">
+                  <Image src={heroPhoto} alt={person.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 66vw" unoptimized={!heroPhoto.startsWith('https://')} />
                 </a>
                 {thumbnails.length > 0 && (
                   <div className="grid grid-cols-6 gap-0.5 p-0.5 bg-slate-100">
@@ -198,8 +210,7 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
                           rel="noopener noreferrer"
                           className="relative aspect-square overflow-hidden bg-slate-200 group"
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={url} alt={`${person.name} photo ${i + 2}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          <Image src={url} alt={`${person.name} photo ${i + 2}`} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="16vw" unoptimized={!url.startsWith('https://')} />
                           {isLast && (
                             <div className="absolute inset-0 bg-black/55 flex items-center justify-center text-white font-bold text-sm">
                               +{remainingCount}

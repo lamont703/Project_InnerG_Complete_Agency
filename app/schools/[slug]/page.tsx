@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
+import Image from "next/image";
 
 export const revalidate = 3600;
 
@@ -210,6 +211,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   return {
     title,
     description,
+    alternates: { canonical: `https://agency.innergcomplete.com/schools/${slug}` },
     openGraph: {
       title,
       description,
@@ -243,6 +245,9 @@ function buildSchoolJsonLd(school: any, websiteHref: string | null) {
   if (address) org.address = address;
   if (websiteHref) org.url = websiteHref;
   if (school.phone) org.telephone = school.phone;
+  if (school.latitude && school.longitude) org.geo = { "@type": "GeoCoordinates", latitude: school.latitude, longitude: school.longitude };
+  const heroImg = Array.isArray(school.google_photos) ? school.google_photos[0] : null;
+  if (heroImg) org.image = heroImg;
   if (school.rating && school.google_review_count) {
     org.aggregateRating = {
       "@type": "AggregateRating",
@@ -444,16 +449,14 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
             {/* Photo Gallery */}
             {heroPhoto ? (
               <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
-                <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={heroPhoto} alt={school.school_name} className="w-full h-full object-cover" />
+                <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100 relative">
+                  <Image src={heroPhoto} alt={school.school_name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 66vw" unoptimized={!heroPhoto.startsWith('https://')} />
                 </a>
                 {thumbnails.length > 0 && (
                   <div className="grid grid-cols-4 gap-0.5 p-0.5 bg-slate-100">
                     {thumbnails.map((url, i) => (
                       <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="relative aspect-square overflow-hidden bg-slate-200 group">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt={`${school.school_name} photo ${i + 2}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <Image src={url} alt={`${school.school_name} photo ${i + 2}`} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="25vw" unoptimized={!url.startsWith('https://')} />
                       </a>
                     ))}
                   </div>
@@ -596,32 +599,27 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
 
                   {studentNames.length > 0 && (
                     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
-                      <h2 className="text-lg font-black text-slate-900 mb-1">2026 {examLabel} Students</h2>
+                      <h2 className="text-lg font-black text-slate-900 mb-1">2026 {examLabel} Student Exam Progress</h2>
                       <p className="text-xs text-slate-500 font-medium mb-4">
-                        Students who took the Texas {examNoun} licensing exam through this school in 2026, per public
-                        TDLR records. The state requires 70%+ on both the written and practical exam to be licensed —
-                        individual scores aren&apos;t shown, only exam progress. Most students complete written before
-                        practical, so "only needs" one exam is normal progress, not a concern.
+                        Breakdown of students who took the Texas {examNoun} licensing exam through this school in
+                        2026, per public TDLR records. The state requires 70%+ on both the written and practical
+                        exam to be licensed — individual student names and scores aren&apos;t shown, only aggregate
+                        exam progress. Most students complete written before practical, so "only needs" one exam is
+                        normal progress, not a concern.
                       </p>
 
-                      {groups.map(
-                        (group, i) =>
-                          group.students.length > 0 && (
-                            <div key={group.label} className={i < groups.length - 1 ? "mb-5" : ""}>
-                              <h3 className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide mb-2 ${group.colorClass}`}>
-                                <group.icon className="w-3.5 h-3.5" />
-                                {group.label} ({group.students.length})
-                              </h3>
-                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
-                                {group.students.map((s) => (
-                                  <p key={s.name} className="text-sm text-slate-700 truncate">
-                                    {s.name}
-                                  </p>
-                                ))}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {groups.map(
+                          (group) =>
+                            group.students.length > 0 && (
+                              <div key={group.label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <group.icon className={`w-4 h-4 mb-2 ${group.colorClass}`} />
+                                <p className="text-lg font-black text-slate-900">{group.students.length}</p>
+                                <p className={`text-xs font-semibold mt-0.5 ${group.colorClass}`}>{group.label}</p>
                               </div>
-                            </div>
-                          )
-                      )}
+                            )
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

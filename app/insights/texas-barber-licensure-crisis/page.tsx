@@ -103,6 +103,33 @@ const metrics = [
   { label: "Passing Threshold", value: "70.00%", sub: "Score required by PSI/TDLR to achieve licensure", variant: "neutral" },
 ]
 
+export const metadata = {
+  title: "The Texas Barber Licensure Crisis: A $15M Institutional Risk Analysis | Inner G Complete",
+  description: "Texas barber schools face a 'Licensure Cliff' with written fail rates exceeding 45% in major metros. An audit of why school accreditation is at risk and how the Texas ADI Pilot defends it.",
+  keywords: [
+    "Texas barber licensure crisis",
+    "Texas barber written exam fail rate",
+    "TDLR barber exam pass rate",
+    "barber school accreditation risk Texas",
+    "Texas barber industry report 2026",
+    "NACCAS pass rate threshold",
+  ],
+  openGraph: {
+    title: "The Texas Barber Licensure Crisis: A $15M Institutional Risk Analysis",
+    description: "A 37.25% aggregate written pass rate is putting Texas barber school accreditation at risk. A full data audit and the ADI Pilot response.",
+    url: "https://innergcomplete.com/insights/texas-barber-licensure-crisis",
+    type: "article",
+    images: [{ url: "/texas_barber_crisis_cover.png", width: 1200, height: 630, alt: "The Texas Barber Licensure Crisis" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "The Texas Barber Licensure Crisis: A $15M Institutional Risk Analysis",
+    description: "37.25% aggregate written pass rate. A data audit of the Texas barber licensure crisis and the ADI Pilot response.",
+    images: ["/texas_barber_crisis_cover.png"],
+  },
+  alternates: { canonical: "https://innergcomplete.com/insights/texas-barber-licensure-crisis" },
+}
+
 export default function TexasBarberCrisis() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
+import Image from "next/image";
 import {
   MapPin,
   Star,
@@ -68,12 +69,19 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   if (!salon) return { title: "Salon Not Found" };
 
   const title = `${salon.shop_name} — Hair & Beauty Salon${salon.city ? ` in ${salon.city}` : ""}`;
-  const description = `${salon.shop_name}${salon.formatted_address ? ` at ${salon.formatted_address}` : ""}. View photos, hours, ratings, and contact info.`;
+  const descParts = [
+    salon.shop_name,
+    salon.city ? `hair & beauty salon in ${salon.city}` : "hair & beauty salon",
+    salon.rating ? `Rated ${Number(salon.rating).toFixed(1)}★` : null,
+    salon.total_reviews ? `(${salon.total_reviews} reviews)` : null,
+  ].filter(Boolean);
+  const description = `${descParts.join('. ')}. View photos, hours, and contact info.`;
   const heroImage = Array.isArray(salon.google_images) ? salon.google_images[0] : undefined;
 
   return {
     title,
     description,
+    alternates: { canonical: `https://agency.innergcomplete.com/salons/${slug}` },
     openGraph: {
       title,
       description,
@@ -103,6 +111,8 @@ function buildSalonJsonLd(salon: any, websiteHref: string | null) {
       reviewCount: Number(salon.total_reviews),
     };
   }
+  const heroImg = Array.isArray(salon.google_images) ? salon.google_images[0] : null;
+  if (heroImg) ld.image = heroImg;
   return ld;
 }
 
@@ -152,9 +162,8 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
             {/* Photo Gallery */}
             {heroPhoto ? (
               <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
-                <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={heroPhoto} alt={salon.shop_name} className="w-full h-full object-cover" />
+                <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100 relative">
+                  <Image src={heroPhoto} alt={salon.shop_name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 66vw" unoptimized={!heroPhoto.startsWith('https://')} />
                 </a>
                 {thumbnails.length > 0 && (
                   <div className="grid grid-cols-4 gap-0.5 p-0.5 bg-slate-100">
@@ -166,8 +175,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
                         rel="noopener noreferrer"
                         className="relative aspect-square overflow-hidden bg-slate-200 group"
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt={`${salon.shop_name} photo ${i + 2}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <Image src={url} alt={`${salon.shop_name} photo ${i + 2}`} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="25vw" unoptimized={!url.startsWith('https://')} />
                       </a>
                     ))}
                   </div>

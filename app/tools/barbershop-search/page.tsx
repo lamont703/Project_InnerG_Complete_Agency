@@ -46,6 +46,7 @@ const FILTERS_BY_TAB: Record<string, { id: string; label: string }[]> = {
     { id: 'school_accredited', label: 'Accredited' },
     { id: 'school_high_pass_rate', label: '80%+ Pass Rate' },
     { id: 'school_affordable', label: 'Under $10k Tuition' },
+    { id: 'school_financial_aid', label: 'Accepts Financial Aid' },
     { id: 'rating_4.5', label: '4.5+ Stars' },
   ],
   Barbers: [
@@ -860,10 +861,11 @@ function SearchContent() {
             }
 
             if (item.resultType === 'shop') {
+              const shopHref = `/shop/${item.slug || item.id}`;
               return (
                 <div key={`shop-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
                   {item.google_images && Array.isArray(item.google_images) && item.google_images.length > 0 && (
-                    <Link href={`/shop/${item.slug}`} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
+                    <Link href={shopHref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
                       <img src={item.google_images[0]} alt={item.shop_name} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
                     </Link>
                   )}
@@ -878,7 +880,7 @@ function SearchContent() {
                     </div>
 
                     {/* Prominent Title Link */}
-                    <Link href={`/shop/${item.slug}`} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
+                    <Link href={shopHref} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
                       {item.shop_name || "Unknown Shop"}
                     </Link>
 
@@ -910,7 +912,7 @@ function SearchContent() {
             if (item.resultType === 'barber') {
               const isLooking = item.status === 'interested_in_placement' && item.is_actively_looking === true;
               const barberPhoto = item.booksy_photo_url || item.passport_image_url;
-              const barberHref = `/barbers/${item.slug}`;
+              const barberHref = `/barbers/${item.slug || item.id}`;
               return (
                 <div key={`barber-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
                   {barberPhoto ? (
@@ -972,7 +974,7 @@ function SearchContent() {
 
             if (item.resultType === 'school') {
               const schoolPhoto = Array.isArray(item.google_photos) ? item.google_photos[0] : null;
-              const schoolHref = `/schools/${item.slug}`;
+              const schoolHref = `/schools/${item.slug || item.id}`;
               return (
                 <div key={`school-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
                   {schoolPhoto ? (
@@ -1044,7 +1046,7 @@ function SearchContent() {
 
             if (item.resultType === 'store') {
               const storePhoto = Array.isArray(item.google_images) ? item.google_images[0] : null;
-              const storeHref = `/stores/${item.slug}`;
+              const storeHref = `/stores/${item.slug || item.id}`;
               const isBeautyStore = item.store_type === 'beauty_supply';
               return (
                 <div key={`store-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
@@ -1098,7 +1100,7 @@ function SearchContent() {
 
             if (item.resultType === 'salon') {
               const salonPhoto = Array.isArray(item.google_images) ? item.google_images[0] : null;
-              const salonHref = `/salons/${item.slug}`;
+              const salonHref = `/salons/${item.slug || item.id}`;
               return (
                 <div key={`salon-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
                   {salonPhoto ? (
@@ -1148,7 +1150,7 @@ function SearchContent() {
             }
 
             if (item.resultType === 'event') {
-              const eventHref = `/events/${item.slug}`;
+              const eventHref = `/events/${item.slug || item.id}`;
               const eventDateLabel = item.event_date
                 ? new Date(item.event_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                 : null;
@@ -1203,7 +1205,7 @@ function SearchContent() {
 
             if (item.resultType === 'cosmetologist') {
               const cosmetPhoto = item.booksy_photo_url || (Array.isArray(item.booksy_gallery_urls) ? item.booksy_gallery_urls[0] : null);
-              const cosmetHref = `/cosmetologists/${item.slug}`;
+              const cosmetHref = `/cosmetologists/${item.slug || item.id}`;
               return (
                 <div key={`cosmetologist-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
                   {cosmetPhoto ? (

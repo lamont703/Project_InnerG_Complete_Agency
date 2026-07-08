@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { CreatePassportButton } from "@/components/shared/create-passport-button";
+import Image from "next/image";
 import {
   MapPin,
   Star,
@@ -87,12 +88,21 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   if (!barber) return { title: "Barber Profile Not Found" };
 
   const title = `${barber.name} — ${barber.specialty_type || "Professional Barber"}${barber.metro_area ? ` in ${barber.metro_area}` : ""}`;
-  const description = `Book with ${barber.name}${barber.metro_area ? ` in ${barber.metro_area}` : ""}. View photos, services, pricing, and reviews.`;
+  const descParts = [
+    `${barber.name}`,
+    barber.specialty_type ? barber.specialty_type : "Professional Barber",
+    barber.metro_area ? `in ${barber.metro_area}` : null,
+    barber.booksy_rating ? `Rated ${Number(barber.booksy_rating).toFixed(1)}★` : null,
+    barber.booksy_review_count ? `(${barber.booksy_review_count} reviews)` : null,
+    barber.booksy_price_range ? barber.booksy_price_range : null,
+  ].filter(Boolean);
+  const description = `${descParts.join('. ')}. View gallery, services, and book online.`;
   const heroImage = barber.booksy_gallery_urls?.[0] || barber.booksy_photo_url;
 
   return {
     title,
     description,
+    alternates: { canonical: `https://agency.innergcomplete.com/barbers/${slug}` },
     openGraph: {
       title,
       description,
@@ -118,6 +128,7 @@ function buildBarberJsonLd(barber: any) {
   };
   if (barber.address) person.address = { "@type": "PostalAddress", streetAddress: barber.address, addressRegion: "TX", addressCountry: "US" };
   if (barber.metro_area) person.homeLocation = { "@type": "Place", name: barber.metro_area };
+  if (barber.latitude && barber.longitude) person.geo = { "@type": "GeoCoordinates", latitude: barber.latitude, longitude: barber.longitude };
   if (barber.website_url) person.url = barber.website_url.startsWith("http") ? barber.website_url : `https://${barber.website_url}`;
   if (barber.booksy_rating && barber.booksy_review_count) {
     person.aggregateRating = {
@@ -126,6 +137,8 @@ function buildBarberJsonLd(barber: any) {
       reviewCount: Number(barber.booksy_review_count),
     };
   }
+  const heroImg = barber.booksy_gallery_urls?.[0] || barber.booksy_photo_url;
+  if (heroImg) person.image = heroImg;
   const sameAs = [
     barber.instagram_handle && `https://instagram.com/${barber.instagram_handle.replace("@", "")}`,
     barber.tiktok_handle && `https://tiktok.com/@${barber.tiktok_handle.replace("@", "")}`,
@@ -134,6 +147,40 @@ function buildBarberJsonLd(barber: any) {
   if (sameAs.length > 0) person.sameAs = sameAs;
 
   return person;
+}
+
+function buildBarberFaqJsonLd(barber: any, services: { name: string; price: number; currency: string }[]) {
+  const faqEntries: { q: string; a: string }[] = [];
+  if (barber.address || barber.metro_area) {
+    faqEntries.push({
+      q: `Where is ${barber.name} located?`,
+      a: `${barber.name} is located${barber.address ? ` at ${barber.address}` : ''}${barber.metro_area ? ` in the ${barber.metro_area} area` : ''}.`,
+    });
+  }
+  if (services.length > 0) {
+    const topServices = services.slice(0, 3).map(s => s.name).join(', ');
+    faqEntries.push({
+      q: `What services does ${barber.name} offer?`,
+      a: `${barber.name} offers ${services.length} services including ${topServices}.`,
+    });
+    const priceRange = services.map(s => s.price).filter(p => p > 0);
+    if (priceRange.length > 0) {
+      faqEntries.push({
+        q: `What are ${barber.name}'s prices?`,
+        a: `Prices range from $${Math.min(...priceRange)} to $${Math.max(...priceRange)}.`,
+      });
+    }
+  }
+  if (faqEntries.length === 0) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqEntries.map(({ q, a }) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: { "@type": "Answer", text: a },
+    })),
+  };
 }
 
 const TODAY_INDEX = (new Date().getDay() + 6) % 7; // 0 = Monday, matches DAY_ORDER
@@ -191,10 +238,12 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
   ].filter(Boolean) as { label: string; href: string; Icon: any }[];
 
   const barberJsonLd = buildBarberJsonLd(barber);
+  const barberFaqJsonLd = buildBarberFaqJsonLd(barber, services);
 
   return (
     <div className="min-h-screen bg-slate-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(barberJsonLd) }} />
+      {barberFaqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(barberFaqJsonLd) }} />}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -203,9 +252,8 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
             {/* Photo Gallery */}
             {heroPhoto ? (
               <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
-                <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={heroPhoto} alt={barber.name} className="w-full h-full object-cover" />
+                <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100 relative">
+                  <Image src={heroPhoto} alt={barber.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 66vw" unoptimized={!heroPhoto.startsWith('https://')} />
                 </a>
                 {thumbnails.length > 0 && (
                   <div className="grid grid-cols-6 gap-0.5 p-0.5 bg-slate-100">
@@ -219,8 +267,7 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
                           rel="noopener noreferrer"
                           className="relative aspect-square overflow-hidden bg-slate-200 group"
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={url} alt={`${barber.name} photo ${i + 2}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          <Image src={url} alt={`${barber.name} photo ${i + 2}`} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="16vw" unoptimized={!url.startsWith('https://')} />
                           {isLast && (
                             <div className="absolute inset-0 bg-black/55 flex items-center justify-center text-white font-bold text-sm">
                               +{remainingCount}
