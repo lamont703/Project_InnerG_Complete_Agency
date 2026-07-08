@@ -8,6 +8,7 @@ const footerLinks = {
     { label: "Barbershop Search Engine", href: "/tools/barbershop-search" },
   ],
   "Industry Tools": [
+    { label: "Barbershop Apprentice Jobs Houston", href: "/barbershop-apprentice-jobs-houston" },
     { label: "Shop Day Matches", href: "/shop-day-matches" },
     { label: "Shop Day Requests", href: "/shop-day-requests" },
     { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },

@@ -596,32 +596,27 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
 
                   {studentNames.length > 0 && (
                     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
-                      <h2 className="text-lg font-black text-slate-900 mb-1">2026 {examLabel} Students</h2>
+                      <h2 className="text-lg font-black text-slate-900 mb-1">2026 {examLabel} Student Exam Progress</h2>
                       <p className="text-xs text-slate-500 font-medium mb-4">
-                        Students who took the Texas {examNoun} licensing exam through this school in 2026, per public
-                        TDLR records. The state requires 70%+ on both the written and practical exam to be licensed —
-                        individual scores aren&apos;t shown, only exam progress. Most students complete written before
-                        practical, so "only needs" one exam is normal progress, not a concern.
+                        Breakdown of students who took the Texas {examNoun} licensing exam through this school in
+                        2026, per public TDLR records. The state requires 70%+ on both the written and practical
+                        exam to be licensed — individual student names and scores aren&apos;t shown, only aggregate
+                        exam progress. Most students complete written before practical, so "only needs" one exam is
+                        normal progress, not a concern.
                       </p>
 
-                      {groups.map(
-                        (group, i) =>
-                          group.students.length > 0 && (
-                            <div key={group.label} className={i < groups.length - 1 ? "mb-5" : ""}>
-                              <h3 className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide mb-2 ${group.colorClass}`}>
-                                <group.icon className="w-3.5 h-3.5" />
-                                {group.label} ({group.students.length})
-                              </h3>
-                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
-                                {group.students.map((s) => (
-                                  <p key={s.name} className="text-sm text-slate-700 truncate">
-                                    {s.name}
-                                  </p>
-                                ))}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {groups.map(
+                          (group) =>
+                            group.students.length > 0 && (
+                              <div key={group.label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <group.icon className={`w-4 h-4 mb-2 ${group.colorClass}`} />
+                                <p className="text-lg font-black text-slate-900">{group.students.length}</p>
+                                <p className={`text-xs font-semibold mt-0.5 ${group.colorClass}`}>{group.label}</p>
                               </div>
-                            </div>
-                          )
-                      )}
+                            )
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

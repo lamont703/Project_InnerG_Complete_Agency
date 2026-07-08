@@ -110,6 +110,33 @@ const metrics = [
   { label: "Wage Delay Penalty", value: "$5K+", sub: "Est. lost income resulting from testing backlog", variant: "neutral" },
 ]
 
+export const metadata = {
+  title: "Overcoming the Blockade: Barber Education Intelligence | Inner G Complete",
+  description: "Barber students invest $16,800+ into an education that prepares them physically but repeatedly fails them theoretically. A definitive ROI analysis on the Cognitive RAG solution to guarantee licensure velocity.",
+  keywords: [
+    "barber education ROI",
+    "barber school theory fail rate",
+    "Texas barber exam Cognitive RAG",
+    "barber licensure velocity",
+    "barber school investment analysis",
+    "AI barber exam prep ROI",
+  ],
+  openGraph: {
+    title: "Overcoming the Blockade: Barber Education Intelligence",
+    description: "A $16,800+ education preparing students physically but failing them theoretically. The ROI case for a Cognitive RAG solution.",
+    url: "https://innergcomplete.com/insights/barber-education-intelligence-roi",
+    type: "article",
+    images: [{ url: "/barber_education_adi_vision_cover.png", width: 1200, height: 630, alt: "Overcoming the Blockade: Barber Education Intelligence" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Overcoming the Blockade: Barber Education Intelligence",
+    description: "A definitive ROI analysis on the Cognitive RAG solution to guarantee barber licensure velocity.",
+    images: ["/barber_education_adi_vision_cover.png"],
+  },
+  alternates: { canonical: "https://innergcomplete.com/insights/barber-education-intelligence-roi" },
+}
+
 export default function BarberEducationADI() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">

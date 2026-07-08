@@ -42,6 +42,32 @@ function GlowOrb({ className }: { className: string }) {
   )
 }
 
+export const metadata = {
+  title: "ABC Fitness's Intelligence Ceiling | Inner G Complete",
+  description: "ABC Fitness built the operational backbone for enterprise gym networks. But managing members is not the same as understanding them. A strategic audit of the intelligence gap at the heart of the world's largest fitness platform.",
+  keywords: [
+    "ABC Fitness platform audit",
+    "gym management software AI",
+    "ABC Fitness intelligence layer",
+    "fitness platform competitive analysis",
+    "sovereign AI fitness industry",
+  ],
+  openGraph: {
+    title: "ABC Fitness's Intelligence Ceiling",
+    description: "A strategic audit of the intelligence gap at the heart of the world's largest fitness platform.",
+    url: "https://innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit",
+    type: "article",
+    images: [{ url: "/abc_fitness_sovereign_intelligence_audit.png", width: 1200, height: 630, alt: "ABC Fitness's Intelligence Ceiling" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ABC Fitness's Intelligence Ceiling",
+    description: "A strategic audit of the intelligence gap at the heart of the world's largest fitness platform.",
+    images: ["/abc_fitness_sovereign_intelligence_audit.png"],
+  },
+  alternates: { canonical: "https://innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit" },
+}
+
 export default function AbcFitnessSovereignIntelligenceAudit() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">

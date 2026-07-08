@@ -40,6 +40,32 @@ function GlowOrb({ className }: { className: string }) {
   )
 }
 
+export const metadata = {
+  title: "Booksy's Intelligence Ceiling | Inner G Complete",
+  description: "Booksy processes $10B+ in annual GMV across 140,000 global businesses and 40 million consumers. A strategic audit of the intelligence layer that this data is ready to support — and why the platform that builds it first defines the category that comes after booking.",
+  keywords: [
+    "Booksy platform audit",
+    "salon booking app AI",
+    "Booksy intelligence layer",
+    "beauty booking platform competitive analysis",
+    "sovereign AI beauty industry",
+  ],
+  openGraph: {
+    title: "Booksy's Intelligence Ceiling",
+    description: "A strategic audit of the intelligence layer Booksy's $10B+ GMV data is ready to support.",
+    url: "https://innergcomplete.com/insights/booksy-sovereign-intelligence-audit",
+    type: "article",
+    images: [{ url: "/booksy_sovereign_intelligence_audit.png", width: 1200, height: 630, alt: "Booksy's Intelligence Ceiling" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Booksy's Intelligence Ceiling",
+    description: "A strategic audit of Booksy's $10B+ GMV platform and the intelligence layer opportunity.",
+    images: ["/booksy_sovereign_intelligence_audit.png"],
+  },
+  alternates: { canonical: "https://innergcomplete.com/insights/booksy-sovereign-intelligence-audit" },
+}
+
 export default function BookSySovereignIntelligenceAudit() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">

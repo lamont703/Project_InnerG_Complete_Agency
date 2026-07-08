@@ -11,6 +11,25 @@ const GHL_API_BASE = "https://services.leadconnectorhq.com";
 const ghlApiKey = process.env.GHL_API_KEY || "pit-96f9b0b9-c512-4066-81b6-d74ac075d8d4";
 const locationId = "QLyYYRoOhCg65lKW9HDX";
 
+const CHAIR_PRICING_BASE_URL = "https://agency.innergcomplete.com/tools/ai-booth-station";
+
+// Matches the slug shape scripts/update_chair_pricing_urls.ts already used
+// to backfill all existing shops — kept identical so both old and newly
+// self-served URLs resolve through the same [shop_name] ilike lookup.
+async function buildChairPricingUrl(shopName: string, excludeId: string | null, contactId: string | null) {
+  const baseSlug = shopName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
+  let query = supabase
+    .from("agent_barbershop_leads")
+    .select("id")
+    .ilike("chair_pricing_tool_url", `%/${baseSlug}%`);
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data: collision } = await query.limit(1).maybeSingle();
+
+  const finalSlug = collision ? `${baseSlug}-${Math.random().toString(36).slice(2, 8)}` : baseSlug;
+  const url = `${CHAIR_PRICING_BASE_URL}/${finalSlug}`;
+  return contactId ? `${url}?ghl_contact_id=${contactId}` : url;
+}
+
 export async function submitNewBarbershopLead(formData: any) {
   try {
     // 1. Try to find existing shop first if we have an ID
@@ -18,7 +37,7 @@ export async function submitNewBarbershopLead(formData: any) {
     let contactId = null;
 
     if (formData.id) {
-      const { data } = await supabase.from('agent_barbershop_leads').select('id, contact_id, claimed_at').eq('id', formData.id).maybeSingle();
+      const { data } = await supabase.from('agent_barbershop_leads').select('id, contact_id, claimed_at, chair_pricing_tool_url').eq('id', formData.id).maybeSingle();
       if (data) {
         existingShop = data;
         contactId = data.contact_id;
@@ -95,7 +114,7 @@ export async function submitNewBarbershopLead(formData: any) {
     if (!existingShop) {
       const { data: dbShop } = await supabase
         .from('agent_barbershop_leads')
-        .select('id, contact_id, claimed_at')
+        .select('id, contact_id, claimed_at, chair_pricing_tool_url')
         .or(`contact_id.eq.${contactId},phone.eq.${formData.phone}`)
         .limit(1)
         .maybeSingle();
@@ -154,6 +173,20 @@ export async function submitNewBarbershopLead(formData: any) {
     // Set image if provided
     if (formData.shop_image_url) {
       payload.shop_image_url = formData.shop_image_url;
+    }
+
+    // A brand new shop has no chair_pricing_tool_url yet, and previously
+    // only got one from a manual batch script run after the fact — that's
+    // the exact gap that left self-served signups without a working
+    // dashboard link. Generate it here instead, at signup time. Never
+    // overwrite an already-set URL (an existing shop's link may already be
+    // live in GHL/SMS messaging sent to that owner).
+    if (formData.shop_name && !existingShop?.chair_pricing_tool_url) {
+      payload.chair_pricing_tool_url = await buildChairPricingUrl(
+        formData.shop_name,
+        existingShop?.id || null,
+        contactId
+      );
     }
 
     let leadData, dbError;

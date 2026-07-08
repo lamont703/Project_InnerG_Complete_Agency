@@ -188,9 +188,22 @@ export default function MatchesClient() {
                 required
               />
             </div>
-            {error && <p className="text-red-500 text-sm mt-2 font-medium px-2">{error}</p>}
+            {error && (
+              <p className="text-red-500 text-sm mt-2 font-medium px-2">
+                {error}{" "}
+                {error.toLowerCase().includes("could not find a profile") && (
+                  <>
+                    New here?{" "}
+                    <Link href="/barbershop-apprentice-jobs-houston" className="font-bold underline">
+                      Try the free shop-match quiz
+                    </Link>{" "}
+                    instead — no existing profile needed.
+                  </>
+                )}
+              </p>
+            )}
           </div>
-          
+
           <button
             type="submit"
             disabled={loading}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
+import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { 
@@ -244,6 +245,16 @@ export default function BarberBeautyNetworkPage() {
   // New Shop Claim Modal States
   const [isNewShopModalOpen, setIsNewShopModalOpen] = useState(false);
   const [selectedShopToClaim, setSelectedShopToClaim] = useState<any>(null);
+
+  // Deep-link support so external CTAs (e.g. the Opening Your Own Shop
+  // guide) can land a visitor straight into the claim flow via
+  // /barber-beauty-network?claim=true instead of requiring an extra click.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('claim') === 'true') {
+      setIsNewShopModalOpen(true);
+    }
+  }, []);
   // OTP Verification States
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
@@ -691,6 +702,19 @@ export default function BarberBeautyNetworkPage() {
               Browse Shops
             </button>
           </motion.div>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-sm text-slate-500 font-medium"
+          >
+            Just want a quick answer? Try the{" "}
+            <Link href="/barbershop-apprentice-jobs-houston" className="font-bold text-blue-600 hover:underline">
+              free Houston shop-match quiz
+            </Link>{" "}
+            — no account needed.
+          </motion.p>
         </div>
       </section>
 

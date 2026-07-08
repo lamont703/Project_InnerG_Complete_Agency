@@ -19,6 +19,24 @@ function GlowOrb({ className }: { className: string }) {
 
 const reports = [
   {
+    slug: "texas-barber-cosmetology-license-requirements",
+    title: "Texas Barber & Cosmetology License Requirements: Application, Renewal, Reciprocity",
+    excerpt: "The canonical guide to getting and keeping a Texas barber or cosmetology license — application, the 2-year renewal cycle, new CE and lawful-presence requirements, and reciprocity from other states. Sourced directly from TDLR.",
+    date: "July 8, 2026",
+    readingTime: "9 min read",
+    category: "Technical Brief",
+    featured: true,
+  },
+  {
+    slug: "opening-your-own-shop-in-texas",
+    title: "Opening Your Own Shop in Texas: TDLR Establishment License Requirements",
+    excerpt: "What TDLR actually requires to open a barbershop or salon in Texas — establishment license, premises and equipment rules, required postings, and how inspections work. Sourced directly from TDLR.",
+    date: "July 8, 2026",
+    readingTime: "8 min read",
+    category: "Technical Brief",
+    featured: true,
+  },
+  {
     slug: "national-ai-classroom-accreditation-impact-report",
     title: "The National AI Classroom Impact Report: Protecting NACCAS & ACCSC Accreditation Standards",
     excerpt: "How classroom AI is transforming trade school pass rates and NACCAS/ACCSC accreditation compliance. Discover the data behind Title-IV safety.",

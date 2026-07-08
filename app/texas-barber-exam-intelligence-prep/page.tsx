@@ -95,6 +95,17 @@ export default function TexasBarberExamPrep() {
             >
               <Link href="/tools/texas-barber-exam-practice-deck">Launch Barber Practice Questions</Link>
             </Button>
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-2">
+              <Link href="/texas-barber-practical-exam-kit-list" className="text-xs font-bold text-white/70 hover:text-white underline decoration-white/30 underline-offset-4">
+                Barber Practical Exam Kit List
+              </Link>
+              <Link href="/texas-cosmetology-practical-exam-kit-list" className="text-xs font-bold text-white/70 hover:text-white underline decoration-white/30 underline-offset-4">
+                Cosmetology Practical Exam Kit List
+              </Link>
+              <Link href="/barbershop-apprentice-jobs-houston" className="text-xs font-bold text-white/70 hover:text-white underline decoration-white/30 underline-offset-4">
+                Find Shops Hiring in Houston
+              </Link>
+            </div>
           </div>
         </div>
       </section>

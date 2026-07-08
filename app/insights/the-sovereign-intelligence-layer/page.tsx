@@ -62,6 +62,32 @@ const pillars = [
   },
 ]
 
+export const metadata = {
+  title: "The Sovereign Intelligence Layer: Why ADI Wins | Inner G Complete",
+  description: "The enterprise that builds a proprietary Artificial Domain Intelligence doesn't just win market share — it becomes the industry standard that everyone else licenses.",
+  keywords: [
+    "Artificial Domain Intelligence",
+    "sovereign AI layer wellness industry",
+    "proprietary AI market standard",
+    "ADI grooming wellness strategy",
+    "Inner G Complete strategic view",
+  ],
+  openGraph: {
+    title: "The Sovereign Intelligence Layer: Why ADI Wins",
+    description: "Why the enterprise that builds a proprietary Artificial Domain Intelligence becomes the industry standard everyone else licenses.",
+    url: "https://innergcomplete.com/insights/the-sovereign-intelligence-layer",
+    type: "article",
+    images: [{ url: "/adi_sovereign_layer_cover_1776108008232.png", width: 1200, height: 630, alt: "The Sovereign Intelligence Layer" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "The Sovereign Intelligence Layer: Why ADI Wins",
+    description: "Why a proprietary Artificial Domain Intelligence becomes the industry standard everyone else licenses.",
+    images: ["/adi_sovereign_layer_cover_1776108008232.png"],
+  },
+  alternates: { canonical: "https://innergcomplete.com/insights/the-sovereign-intelligence-layer" },
+}
+
 export default function SovereignIntelligenceLayer() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">

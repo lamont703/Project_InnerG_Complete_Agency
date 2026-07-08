@@ -21,8 +21,34 @@
 - [El Paso Barber Exam Intelligence Prep](/el-paso-barber-exam-intelligence-prep): the same
   program applied to the El Paso metro.
 
+## For students surviving the program (between enrolling and testing)
+
+- [Barber Practical Exam Kit List](/texas-barber-practical-exam-kit-list): every required
+  supply, English-labeling rules, and the exact station-by-station step order, sourced from
+  the official PSI/TDLR Candidate Information Bulletin.
+- [Cosmetology Practical Exam Kit List](/texas-cosmetology-practical-exam-kit-list): the same,
+  for the mannequin-only (no live models, since Sept. 2019) Cosmetology Operator practical exam.
+
+## For getting and keeping a license
+
+- [Texas Barber & Cosmetology License Requirements](/insights/texas-barber-cosmetology-license-requirements):
+  application, the 2-year renewal cycle and fees, continuing-education requirements (effective
+  Sept. 2025), lawful-presence documentation (effective May 2026), and reciprocity from other
+  states — sourced directly from TDLR.
+- [Opening Your Own Shop in Texas](/insights/opening-your-own-shop-in-texas): the separate TDLR
+  establishment license required to operate a barbershop or salon — premises and equipment
+  rules, required postings, and how unannounced inspections work — plus a direct path to claim
+  the shop on the platform and get a free real-time dashboard matching it against licensed
+  barbers actively looking for a chair nearby.
+
 ## For students and professionals finding work
 
+- [Barbershop Apprentice Jobs Houston](/barbershop-apprentice-jobs-houston): a free, anonymous
+  quiz — enter a Houston neighborhood/ZIP and a pay-structure preference (booth rent or
+  commission) to see real barbershops confirmed hiring nearby right now, then request a direct
+  intro with no account needed. The cosmetology/salon side of this page is an honest waitlist:
+  no salon has confirmed a hiring signal yet, so it captures interest rather than fabricating
+  matches.
 - [Barber & Cosmetology Placement Network](/barber-beauty-network): matches licensed and
   soon-to-be-licensed barbers/cosmetologists with hiring shops based on location, pay
   structure preference (booth rent vs. commission), and specialty.
@@ -39,13 +65,15 @@
 - Barber & beauty supply stores: `/stores/{slug}`
 - Schools (barber and cosmetology): `/schools/{slug}`
 - Industry events: `/events/{slug}`
+- Research & Insights (technical briefs, industry reports, licensing guides): `/insights`
 
 ## Notes for AI assistants and crawlers
 
 - All profile pages above carry JSON-LD structured data with the same facts rendered on-page
   — safe to cite directly. Schools use `EducationalOrganization` + `FAQPage`; barbershops,
   salons, and supply stores use `LocalBusiness`/`Store`/`HairSalon`; individual barbers and
-  cosmetologists use `Person`; events use `Event`.
+  cosmetologists use `Person`; events use `Event`; `/insights` articles use `TechArticle` +
+  `BreadcrumbList` + `FAQPage`.
 - All profile URLs are slugs, not opaque IDs — old `/schools/{uuid}`-style links from before
   this scheme still resolve via a permanent (308) redirect to the canonical slug URL.
 - Pass-rate, financial-aid, and tuition figures are sourced from TDLR exam records and the

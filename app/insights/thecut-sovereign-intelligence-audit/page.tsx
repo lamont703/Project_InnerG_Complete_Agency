@@ -40,6 +40,32 @@ function GlowOrb({ className }: { className: string }) {
   )
 }
 
+export const metadata = {
+  title: "theCut's Intelligence Ceiling | Inner G Complete",
+  description: "theCut processed over $2 billion in barber transactions and became the most trusted booking platform in Black and Brown barbershop culture. A strategic audit of what the model that doesn't exist yet would change for every professional on the platform.",
+  keywords: [
+    "theCut app platform audit",
+    "barber booking app AI",
+    "theCut intelligence layer",
+    "Black barbershop booking platform",
+    "sovereign AI barber industry",
+  ],
+  openGraph: {
+    title: "theCut's Intelligence Ceiling",
+    description: "A strategic audit of theCut, the $2B+ booking platform trusted across Black and Brown barbershop culture.",
+    url: "https://innergcomplete.com/insights/thecut-sovereign-intelligence-audit",
+    type: "article",
+    images: [{ url: "/thecut_sovereign_intelligence_audit.png", width: 1200, height: 630, alt: "theCut's Intelligence Ceiling" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "theCut's Intelligence Ceiling",
+    description: "A strategic audit of theCut's $2B+ barber booking platform and its intelligence ceiling.",
+    images: ["/thecut_sovereign_intelligence_audit.png"],
+  },
+  alternates: { canonical: "https://innergcomplete.com/insights/thecut-sovereign-intelligence-audit" },
+}
+
 export default function TheCutSovereignIntelligenceAudit() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">

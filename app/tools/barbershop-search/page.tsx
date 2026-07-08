@@ -46,6 +46,7 @@ const FILTERS_BY_TAB: Record<string, { id: string; label: string }[]> = {
     { id: 'school_accredited', label: 'Accredited' },
     { id: 'school_high_pass_rate', label: '80%+ Pass Rate' },
     { id: 'school_affordable', label: 'Under $10k Tuition' },
+    { id: 'school_financial_aid', label: 'Accepts Financial Aid' },
     { id: 'rating_4.5', label: '4.5+ Stars' },
   ],
   Barbers: [
