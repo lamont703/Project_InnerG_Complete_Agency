@@ -53,9 +53,15 @@ const nextConfig = {
   // Required for Vercel deployment — disable x-powered-by header
   poweredByHeader: false,
 
-  // Security headers
+  // Security headers and asset indexing controls
   async headers() {
     return [
+      {
+        source: "/Texas%20Barber%20Bulletin.pdf",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex" }
+        ]
+      },
       {
         source: "/(.*)",
         headers: [

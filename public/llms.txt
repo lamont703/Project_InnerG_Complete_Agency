@@ -56,6 +56,22 @@
   barbershops, salons, individual barbers, cosmetologists, schools, supply stores, and
   events in one query, with tabs for each category and semantic (not just keyword) matching.
 
+## For barbers and cosmetologists looking for a chair or booth
+
+- [Barber Booth Rent & Chairs for Rent in Houston](/barber-booth-rent-houston): real,
+  currently-listed barbershop booth-rent availability — weekly rent, chairs open, shop
+  details — with a direct way to contact any shop, no account needed.
+- [Salon Suites for Rent in Houston](/salon-suites-for-rent-houston): the same marketplace for
+  salon suites. Real inventory is currently zero (salons haven't been run through outreach
+  yet), so this page is an honest waitlist rather than fabricated listings, and links out to
+  the barbershop booth-rent listings in the meantime.
+- [Booth Rent vs. Commission](/insights/booth-rent-vs-commission): a real-data comparison of
+  both pay structures using live Houston rent/commission figures, plus an interactive
+  breakeven calculator.
+- [Booth Rental Requirements in Texas](/insights/booth-rental-contract-requirements-texas):
+  the TDLR Mini-Establishment license that actually governs booth/suite rental, what belongs
+  in a rental contract, and the insurance shop owners typically require.
+
 ## Directories
 
 - Barbershops: `/shop/{slug}`

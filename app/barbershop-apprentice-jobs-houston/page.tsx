@@ -227,6 +227,13 @@ export default function BarbershopApprenticeJobsPage() {
                   </button>
                 ))}
               </div>
+              <p className="text-xs text-slate-400 font-medium mt-2">
+                Not sure which one pays more?{" "}
+                <Link href="/insights/booth-rent-vs-commission" className="text-indigo-600 font-bold hover:underline">
+                  See the real Houston numbers
+                </Link>
+                .
+              </p>
             </div>
 
             {error && <p className="text-sm text-red-600 font-medium">{error}</p>}
