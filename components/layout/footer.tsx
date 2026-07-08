@@ -9,6 +9,8 @@ const footerLinks = {
   ],
   "Industry Tools": [
     { label: "Barbershop Apprentice Jobs Houston", href: "/barbershop-apprentice-jobs-houston" },
+    { label: "Barber Booth Rent & Chairs for Rent Houston", href: "/barber-booth-rent-houston" },
+    { label: "Salon Suites for Rent Houston", href: "/salon-suites-for-rent-houston" },
     { label: "Shop Day Matches", href: "/shop-day-matches" },
     { label: "Shop Day Requests", href: "/shop-day-requests" },
     { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },

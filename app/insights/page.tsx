@@ -19,6 +19,24 @@ function GlowOrb({ className }: { className: string }) {
 
 const reports = [
   {
+    slug: "booth-rent-vs-commission",
+    title: "Booth Rent vs. Commission: What the Real Houston Numbers Say",
+    excerpt: "Booth rent vs. commission, decided with real Houston barbershop data — median weekly rent, typical commission splits, and the exact breakeven revenue where one model beats the other. Includes a free calculator.",
+    date: "July 9, 2026",
+    readingTime: "7 min read",
+    category: "Technical Brief",
+    featured: true,
+  },
+  {
+    slug: "booth-rental-contract-requirements-texas",
+    title: "Booth Rental Requirements in Texas: Mini-Establishment License, Contract & Insurance",
+    excerpt: "What Texas actually requires for booth rental — the TDLR Mini-Establishment license, who applies for it, what belongs in your rental contract, and the insurance shop owners expect you to carry.",
+    date: "July 9, 2026",
+    readingTime: "8 min read",
+    category: "Technical Brief",
+    featured: true,
+  },
+  {
     slug: "texas-barber-cosmetology-license-requirements",
     title: "Texas Barber & Cosmetology License Requirements: Application, Renewal, Reciprocity",
     excerpt: "The canonical guide to getting and keeping a Texas barber or cosmetology license — application, the 2-year renewal cycle, new CE and lawful-presence requirements, and reciprocity from other states. Sourced directly from TDLR.",

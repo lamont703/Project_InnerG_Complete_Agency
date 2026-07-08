@@ -357,7 +357,7 @@ export default function OpeningYourOwnShopGuide() {
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
               <Link
-                href="/tools/barbershop-search?tab=Barbershops&filters=booth_rent"
+                href="/barber-booth-rent-houston"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-border bg-white font-black text-xs uppercase tracking-wider text-foreground hover:border-primary/40 transition-colors"
               >
                 Browse Booth-Rent Listings
