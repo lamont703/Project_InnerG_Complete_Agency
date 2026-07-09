@@ -81,21 +81,31 @@ async function downloadImage(url) {
   }
 }
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function run() {
   const args = process.argv.slice(2);
   const limitArgIdx = args.indexOf('--limit');
-  const limit = limitArgIdx !== -1 ? parseInt(args[limitArgIdx + 1], 10) : 5; // Default to 5 records for safety
+  const limit = limitArgIdx !== -1 ? parseInt(args[limitArgIdx + 1], 10) : 5; // Attempt at most 5 records per category
 
   console.log("🚀 Launching Headless Browser Agent...");
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-infobars',
+      '--window-position=0,0',
+      '--ignore-certifcate-errors',
+      '--ignore-certifcate-errors-spki-list'
+    ]
   });
   
   const page = await browser.newPage();
   await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36');
+  await page.setViewport({ width: 1280, height: 800 });
 
-  console.log(`\nProcessing up to ${limit} records missing cached images...`);
+  console.log(`\nProcessing up to ${limit} records missing cached images per table target...`);
 
   for (const target of TARGETS) {
     console.log(`\nChecking table: ${target.table}...`);
@@ -109,10 +119,10 @@ async function run() {
       continue;
     }
 
-    let processed = 0;
+    let attempts = 0;
 
     for (const row of rows) {
-      if (processed >= limit) break;
+      if (attempts >= limit) break;
 
       const id = row[target.idCol];
       const name = row[target.nameCol];
@@ -123,13 +133,17 @@ async function run() {
       const hasSupabaseImage = Array.isArray(images) && images.some(url => url && url.includes('supabase.co'));
       if (hasSupabaseImage) continue;
 
-      console.log(`\n🔎 [Scraping] Searching for: "${name} - ${address || ''}"`);
+      attempts++; // Count this record attempt
+      console.log(`\n🔎 [Scraping] [Attempt ${attempts}/${limit}] Searching for: "${name} - ${address || ''}"`);
 
       // Search Bing Images with Name + Address to target the actual business location
       const query = `${name} ${address || ''}`.trim();
       const searchUrl = `https://www.bing.com/images/search?q=${encodeURIComponent(query)}`;
       
       try {
+        // Sleep to avoid bot detection rate limits
+        await sleep(3000);
+        
         await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
         
         // Extract image urls from Bing search results page
@@ -193,7 +207,6 @@ async function run() {
             console.error(`  ❌ Failed to update database row:`, updateError.message);
           } else {
             console.log(`  ✅ Successfully cached ${cachedUrls.length} images for "${name}"!`);
-            processed++;
           }
         }
       } catch (err) {
