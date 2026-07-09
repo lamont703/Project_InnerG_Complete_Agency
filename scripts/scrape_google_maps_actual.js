@@ -114,7 +114,7 @@ async function run() {
             }
           });
           
-          return Array.from(urls).slice(0, 3); // Max 3 images per place
+          return Array.from(urls).slice(0, 5); // Max 5 images per place
         });
 
         if (scrapedUrls.length === 0) {
