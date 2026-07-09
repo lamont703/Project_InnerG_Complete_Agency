@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { sendMetaConversionEvent, hashData, hashPhone } from "@/lib/meta-capi";
+import { geocode } from "@/lib/geocoding";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -123,20 +124,9 @@ export async function submitNewBarbershopLead(formData: any) {
 
     const parsedCity = extractMetroArea(formData.formatted_address) || "";
     
-    let lat = null;
-    let lng = null;
-    if (formData.formatted_address && process.env.GOOGLE_MAPS_API_KEY) {
-      try {
-        const geoRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.formatted_address)}&key=${process.env.GOOGLE_MAPS_API_KEY}`);
-        const geoData = await geoRes.json();
-        if (geoData.status === 'OK' && geoData.results && geoData.results.length > 0) {
-          lat = geoData.results[0].geometry.location.lat;
-          lng = geoData.results[0].geometry.location.lng;
-        }
-      } catch (err) {
-        console.error("Geocoding failed:", err);
-      }
-    }
+    const coords = formData.formatted_address ? await geocode(formData.formatted_address) : null;
+    const lat = coords?.lat ?? null;
+    const lng = coords?.lng ?? null;
 
     const payload: any = {
       contact_id: contactId,
@@ -384,20 +374,9 @@ export async function submitCareerPassport(payload: {
     const randomPassportNum = Math.floor(1000000000000 + Math.random() * 9000000000000).toString();
     const computedMetroArea = extractMetroArea(payload.address);
     
-    let lat = null;
-    let lng = null;
-    if (payload.address && process.env.GOOGLE_MAPS_API_KEY) {
-      try {
-        const geoRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(payload.address)}&key=${process.env.GOOGLE_MAPS_API_KEY}`);
-        const geoData = await geoRes.json();
-        if (geoData.status === 'OK' && geoData.results && geoData.results.length > 0) {
-          lat = geoData.results[0].geometry.location.lat;
-          lng = geoData.results[0].geometry.location.lng;
-        }
-      } catch (err) {
-        console.error("Geocoding failed:", err);
-      }
-    }
+    const coords = payload.address ? await geocode(payload.address) : null;
+    const lat = coords?.lat ?? null;
+    const lng = coords?.lng ?? null;
     
     // Lazy matching for phone number
     const digits = payload.phone.replace(/\D/g, '').slice(-10);
