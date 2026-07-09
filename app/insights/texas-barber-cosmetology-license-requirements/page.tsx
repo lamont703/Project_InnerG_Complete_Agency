@@ -4,6 +4,7 @@ import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
+import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
@@ -19,6 +20,10 @@ import {
   RefreshCw,
   Globe2,
   IdCard,
+  Medal,
+  Search,
+  ScrollText,
+  Sparkles,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -60,6 +65,38 @@ const references = [
     year: "2026",
     url: "https://www.tdlr.texas.gov/barbering-and-cosmetology/laws-rules.htm",
   },
+  {
+    id: 5,
+    authors: "Texas Department of Licensing and Regulation (TDLR)",
+    title: "Military Licensing Homepage",
+    source: "TDLR.Texas.gov",
+    year: "2026",
+    url: "https://www.tdlr.texas.gov/military/?audience=servicemembers",
+  },
+  {
+    id: 6,
+    authors: "Texas Department of Licensing and Regulation (TDLR)",
+    title: "Guidelines for License Applicants with Criminal Convictions",
+    source: "TDLR.Texas.gov",
+    year: "2026",
+    url: "https://www.tdlr.texas.gov/crimconvict.htm",
+  },
+  {
+    id: 7,
+    authors: "Texas Department of Licensing and Regulation (TDLR)",
+    title: "Search / Verify Licenses or Projects",
+    source: "TDLR.Texas.gov",
+    year: "2026",
+    url: "https://www.tdlr.texas.gov/verify.htm",
+  },
+  {
+    id: 8,
+    authors: "Texas Department of Licensing and Regulation (TDLR)",
+    title: "Apply for an Esthetician License",
+    source: "TDLR.Texas.gov",
+    year: "2026",
+    url: "https://www.tdlr.texas.gov/barbering-and-cosmetology/individuals/apply-esthetician.htm",
+  },
 ]
 
 export const metadata = {
@@ -73,6 +110,10 @@ export const metadata = {
     "Texas barber license renewal fee",
     "TDLR license by equivalence",
     "Texas barber continuing education requirements",
+    "military spouse barber license Texas",
+    "TDLR license lookup",
+    "barber license criminal record Texas",
+    "esthetician vs cosmetologist license Texas",
   ],
   openGraph: {
     title: "Texas Barber & Cosmetology License Requirements (2026)",
@@ -363,6 +404,132 @@ export default function LicenseRequirementsGuide() {
             </div>
           </section>
 
+          {/* Military Spouse Licensing */}
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <Medal className="h-5 w-5 text-primary" />
+              <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">
+                Military Spouse Licensing
+              </h2>
+            </div>
+            <div className="prose prose-lg max-w-none text-muted-foreground font-medium leading-relaxed space-y-4">
+              <p>
+                Military spouses relocating to Texas have several paths that skip the usual training-from-scratch
+                requirement. If you already hold an active barber or cosmetology license from another state, you can:
+              </p>
+              <ul className="space-y-2 not-prose list-none pl-0">
+                {[
+                  "Notify TDLR of your intent to practice in Texas and receive a confirmation letter",
+                  "Obtain a one-time, non-renewable 3-year license",
+                  "Apply for a full Texas license with expedited processing",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-foreground font-medium">
+                    <span className="text-primary shrink-0 mt-0.5">•</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <p>
+                Beyond reciprocity, TDLR also offers a supplemental application for military service members,
+                veterans, and military spouses that can waive application fees and expedite processing when your
+                military training or education substantially meets Texas&apos; requirements — submitted alongside
+                your regular license application. Note that PSI&apos;s exam fee itself can&apos;t be waived, only
+                TDLR&apos;s own application fees.
+                <Cite id={5} />
+              </p>
+            </div>
+          </section>
+
+          {/* Criminal History */}
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <ScrollText className="h-5 w-5 text-primary" />
+              <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">
+                Licensing With a Criminal Record
+              </h2>
+            </div>
+            <div className="prose prose-lg max-w-none text-muted-foreground font-medium leading-relaxed space-y-4">
+              <p>
+                A past conviction doesn&apos;t automatically disqualify you. If you&apos;ve been convicted of a
+                felony or misdemeanor (beyond a minor traffic violation), or pleaded guilty/no-contest to a deferred
+                adjudication, you&apos;re required to submit a Criminal History Questionnaire with your
+                application — TDLR reviews it case-by-case, weighing the nature of the offense and how long ago it
+                occurred.
+                <Cite id={6} />
+              </p>
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 flex gap-4">
+                <AlertTriangle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-900 leading-relaxed">
+                  You don&apos;t have to wait until you&apos;ve finished school to find out where you stand. TDLR
+                  will review your criminal background before you apply — through the same process used for a real
+                  application — so you can get a Criminal History Evaluation Letter before investing in a program.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* License Lookup */}
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <Search className="h-5 w-5 text-primary" />
+              <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">
+                Checking a License Status
+              </h2>
+            </div>
+            <div className="prose prose-lg max-w-none text-muted-foreground font-medium leading-relaxed space-y-4">
+              <p>
+                TDLR&apos;s public license search lets anyone — a client, an employer, or you checking your own
+                status — look up a barber or cosmetology license by name or license number, showing current
+                status, license type, and expiration date.
+                <Cite id={7} />
+              </p>
+              <p>
+                If you&apos;re the license holder and want more than a status check — your continuing-education
+                hours logged, your renewal window, everything in one place — log in directly at TDLR&apos;s own
+                account portal rather than relying on the public search.
+              </p>
+            </div>
+          </section>
+
+          {/* Esthetician vs Cosmetologist */}
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">
+                Esthetician vs. Cosmetologist License
+              </h2>
+            </div>
+            <div className="prose prose-lg max-w-none text-muted-foreground font-medium leading-relaxed space-y-4">
+              <p>
+                These are two separate, non-overlapping licenses — a cosmetology license doesn&apos;t authorize
+                esthetician services, and an esthetician license doesn&apos;t cover hair cutting or chemical hair
+                services.
+                <Cite id={8} />
+              </p>
+              <div className="grid sm:grid-cols-2 gap-4 not-prose">
+                <div className="rounded-2xl border border-border bg-white p-6">
+                  <p className="text-xs font-black text-primary uppercase tracking-widest mb-2">Esthetician</p>
+                  <p className="text-3xl font-black text-foreground tracking-tighter mb-2">750 hrs</p>
+                  <p className="text-sm text-muted-foreground">
+                    Facials, skincare, waxing, hair removal, and lash/brow services. License valid 2 years, 4 CE
+                    hours per renewal.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-border bg-white p-6">
+                  <p className="text-xs font-black text-primary uppercase tracking-widest mb-2">Cosmetologist</p>
+                  <p className="text-3xl font-black text-foreground tracking-tighter mb-2">1,500 hrs</p>
+                  <p className="text-sm text-muted-foreground">
+                    Hair cutting, coloring, chemical services, plus the broader scope covered earlier on this page.
+                  </p>
+                </div>
+              </div>
+              <p>
+                If your goal is strictly skincare and waxing rather than hair services, the esthetician path is
+                the shorter, more specialized route — not a subset of the cosmetology license.
+              </p>
+            </div>
+          </section>
+
           {/* Methodology */}
           <div className="pt-16 border-t border-border">
             <div className="flex items-center gap-3 mb-6">
@@ -414,6 +581,31 @@ export default function LicenseRequirementsGuide() {
                 answer:
                   "Late renewal within 3 years of expiration carries an increasing fee ($75 under 90 days, $100 from 90 days to 3 years). Beyond 3 years, you may need to re-establish eligibility rather than simply pay a late fee — confirm your specific situation with TDLR directly.",
               },
+              {
+                question: "What happens if I fail the written or practical exam?",
+                answer:
+                  "You can retest — cosmetology exam eligibility lasts 5 years from approval, and there's no cap on how many times you can retake either exam within that window. Every unpaid week between finishing school and passing is a real income gap, so retesting as soon as possible is worth prioritizing.",
+              },
+              {
+                question: "Are there licensing benefits for military spouses moving to Texas?",
+                answer:
+                  "Yes. If you hold an active license from another state, you can notify TDLR of your intent to practice and get a confirmation letter, obtain a one-time 3-year non-renewable license, or apply for a full license with expedited processing. A separate military supplemental application can also waive TDLR's own application fees.",
+              },
+              {
+                question: "Can I get a barber or cosmetology license with a criminal record?",
+                answer:
+                  "It depends on the offense and how long ago it occurred — TDLR reviews criminal history case-by-case, not as an automatic bar. You can request a pre-application Criminal History Evaluation Letter before enrolling in school, so you know where you stand before spending tuition money.",
+              },
+              {
+                question: "How do I check if my barber or cosmetology license is active?",
+                answer:
+                  "Use TDLR's public license search at tdlr.texas.gov/verify.htm — it shows current status, license type, and expiration date for any license by name or number. License holders wanting CE hours and renewal details too should log in directly at TDLR's own account portal.",
+              },
+              {
+                question: "What's the difference between an esthetician license and a cosmetology license?",
+                answer:
+                  "They're separate, non-overlapping licenses. Esthetician (750 hours) covers facials, skincare, waxing, and lash/brow services but not hair cutting or chemical services. Cosmetology (1,500 hours) covers hair cutting, coloring, and chemical services plus the broader scope. Neither license substitutes for the other.",
+              },
             ]}
           />
 
@@ -422,10 +614,14 @@ export default function LicenseRequirementsGuide() {
               { source: "TDLR", label: "Apply for a Barber or Cosmetologist License", url: "https://www.tdlr.texas.gov/barbering-and-cosmetology/individuals/apply.htm" },
               { source: "TDLR", label: "Renew Your Barbering or Cosmetology License", url: "https://www.tdlr.texas.gov/barbering-and-cosmetology/individuals/renew/" },
               { source: "Texas Administrative Code", label: "Chapters 82 & 83 — Barbers & Cosmetologists", url: "https://www.tdlr.texas.gov/barbering-and-cosmetology/laws-rules.htm" },
+              { source: "TDLR", label: "Military Licensing Homepage", url: "https://www.tdlr.texas.gov/military/?audience=servicemembers" },
+              { source: "TDLR", label: "Guidelines for License Applicants with Criminal Convictions", url: "https://www.tdlr.texas.gov/crimconvict.htm" },
             ]}
           />
 
           <AuthorBio />
+
+          <RelatedArticles currentSlug="texas-barber-cosmetology-license-requirements" />
 
           <div className="pt-12 border-t border-border">
             <div className="flex items-center gap-3 mb-8">
@@ -463,6 +659,10 @@ function Cite({ id }: { id: number }) {
     1: "https://www.tdlr.texas.gov/barbering-and-cosmetology/individuals/apply.htm",
     2: "https://www.tdlr.texas.gov/barbering-and-cosmetology/individuals/renew/",
     3: "https://www.tdlr.texas.gov/barbering-and-cosmetology/individuals/",
+    5: "https://www.tdlr.texas.gov/military/?audience=servicemembers",
+    6: "https://www.tdlr.texas.gov/crimconvict.htm",
+    7: "https://www.tdlr.texas.gov/verify.htm",
+    8: "https://www.tdlr.texas.gov/barbering-and-cosmetology/individuals/apply-esthetician.htm",
   }
   return (
     <a

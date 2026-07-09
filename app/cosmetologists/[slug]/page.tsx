@@ -5,6 +5,9 @@ import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { CreatePassportButton } from "@/components/shared/create-passport-button";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
+import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
+import { fetchNearbyEntities } from "@/lib/nearby-entities";
+import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import Image from "next/image";
 import {
   MapPin,
@@ -18,6 +21,7 @@ import {
   Users,
   Navigation,
   Landmark,
+  GraduationCap,
 } from "lucide-react";
 
 export const revalidate = 3600;
@@ -160,6 +164,15 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
       ? `https://www.google.com/maps?q=${encodeURIComponent(person.address)}`
       : null;
 
+  const cosmetCenter =
+    person.latitude && person.longitude ? { lat: Number(person.latitude), lng: Number(person.longitude) } : null;
+  const [nearbySalons, nearbyCosmetSchools] = cosmetCenter
+    ? await Promise.all([
+        fetchNearbyEntities(supabase, "salons", cosmetCenter, { limit: 5 }),
+        fetchNearbyEntities(supabase, "cosmetologySchools", cosmetCenter, { limit: 5 }),
+      ])
+    : [[], []];
+
   const socialLinks = [
     person.instagram_handle && {
       label: "Instagram",
@@ -188,6 +201,7 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
   return (
     <div className="min-h-screen bg-slate-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(cosmetologistJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildEntityBreadcrumbJsonLd("Cosmetologists", "/cosmetologists", person.name, person.slug)) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -364,6 +378,9 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
                 </a>
               </div>
             )}
+
+            <NearbyEntitiesSection title="Nearby Salons" icon={Sparkles} entities={nearbySalons} />
+            <NearbyEntitiesSection title="Nearby Cosmetology Schools" icon={GraduationCap} entities={nearbyCosmetSchools} />
           </div>
         </div>
 

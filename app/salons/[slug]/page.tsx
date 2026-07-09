@@ -5,6 +5,9 @@ import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
+import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
+import { fetchNearbyEntities } from "@/lib/nearby-entities";
+import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import Image from "next/image";
 import {
   MapPin,
@@ -16,6 +19,7 @@ import {
   Users,
   ExternalLink,
   Landmark,
+  Store,
 } from "lucide-react";
 
 export const revalidate = 3600;
@@ -144,6 +148,15 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
       ? `https://www.google.com/maps?q=${encodeURIComponent(salon.formatted_address)}`
       : null;
 
+  const salonCenter =
+    salon.latitude && salon.longitude ? { lat: Number(salon.latitude), lng: Number(salon.longitude) } : null;
+  const [nearbyCosmetologists, nearbyStores] = salonCenter
+    ? await Promise.all([
+        fetchNearbyEntities(supabase, "cosmetologists", salonCenter, { limit: 5 }),
+        fetchNearbyEntities(supabase, "beautySupplyStores", salonCenter, { limit: 5 }),
+      ])
+    : [[], []];
+
   const websiteHref = salon.website
     ? salon.website.startsWith("http")
       ? salon.website
@@ -155,6 +168,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
   return (
     <div className="min-h-screen bg-slate-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(salonJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildEntityBreadcrumbJsonLd("Salons", "/salons", salon.shop_name, salon.slug)) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -277,6 +291,9 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
                 </a>
               </div>
             )}
+
+            <NearbyEntitiesSection title="Nearby Cosmetologists" icon={Users} entities={nearbyCosmetologists} />
+            <NearbyEntitiesSection title="Nearby Beauty Supply Stores" icon={Store} entities={nearbyStores} />
 
             {hours.length > 0 && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">

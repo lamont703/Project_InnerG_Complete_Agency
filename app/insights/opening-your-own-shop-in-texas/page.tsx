@@ -4,6 +4,7 @@ import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
+import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
@@ -19,6 +20,8 @@ import {
   ExternalLink,
   BookOpen,
   Home,
+  DollarSign,
+  Truck,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -60,6 +63,14 @@ const references = [
     year: "2026",
     url: "https://www.tdlr.texas.gov/barbering-and-cosmetology/establishments/apply-mobile-establishment.htm",
   },
+  {
+    id: 5,
+    authors: "Texas Department of Licensing and Regulation (TDLR)",
+    title: "Barbering and Cosmetology Fee Schedule",
+    source: "TDLR.Texas.gov",
+    year: "2026",
+    url: "https://www.tdlr.texas.gov/barbering-and-cosmetology/feechanges.htm",
+  },
 ]
 
 export const metadata = {
@@ -75,6 +86,8 @@ export const metadata = {
     "opening a home salon Texas",
     "Texas cosmetology establishment license",
     "booth rent shop Houston",
+    "cost to open a barbershop in Texas",
+    "mobile barbershop license Texas",
   ],
   openGraph: {
     title: "Opening Your Own Shop in Texas (2026)",
@@ -232,9 +245,88 @@ export default function OpeningYourOwnShopGuide() {
               </p>
               <p>
                 Running your business out of a mobile unit (a trailer or vehicle) instead of a fixed location
-                requires its own separate Mobile Establishment license, with its own equipment and sanitation
-                rules.
+                requires its own separate Mobile Establishment license, covered in its own section below.
                 <Cite id={4} />
+              </p>
+            </div>
+          </section>
+
+          {/* How Much Does It Cost */}
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">
+                How Much Does It Cost to Open a Barbershop?
+              </h2>
+            </div>
+            <div className="prose prose-lg max-w-none text-muted-foreground font-medium leading-relaxed space-y-4">
+              <p>
+                The TDLR establishment license fee itself is small — $78, whether you&apos;re licensing a
+                full-service shop, a specialty establishment, or a mobile unit.
+                <Cite id={5} />
+                The real cost of opening a shop is almost entirely buildout and equipment, not paperwork.
+              </p>
+              <div className="grid sm:grid-cols-3 gap-4 not-prose">
+                <div className="rounded-2xl border border-border bg-white p-5">
+                  <p className="text-xs font-black text-primary uppercase tracking-widest mb-2">Basic (3 chairs)</p>
+                  <p className="text-2xl font-black text-foreground tracking-tighter">$50k–$80k</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-white p-5">
+                  <p className="text-xs font-black text-primary uppercase tracking-widest mb-2">Mid-Range (4–5 chairs)</p>
+                  <p className="text-2xl font-black text-foreground tracking-tighter">$80k–$150k</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-white p-5">
+                  <p className="text-xs font-black text-primary uppercase tracking-widest mb-2">Upscale Build-Out</p>
+                  <p className="text-2xl font-black text-foreground tracking-tighter">$200k+</p>
+                </div>
+              </div>
+              <p>
+                Build-out (renovation, plumbing, electrical, flooring) is typically the single largest line item —
+                30-40% of total cost. Equipment runs another 20-25%: a quality hydraulic barber chair costs roughly
+                $900-$1,700, and hand tools (clippers, trimmers, shears) for each chair run another $500-$1,400.
+                The remaining 15-20% is working capital to cover rent and payroll before the shop is generating
+                steady revenue.
+              </p>
+              <p>
+                These figures come from general industry cost guides, not TDLR — they&apos;ll vary significantly by
+                city, lease terms, and how much of the buildout you do yourself versus hire out.
+              </p>
+            </div>
+          </section>
+
+          {/* Mobile Establishments */}
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <Truck className="h-5 w-5 text-primary" />
+              <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">Mobile Establishments</h2>
+            </div>
+            <div className="prose prose-lg max-w-none text-muted-foreground font-medium leading-relaxed space-y-4">
+              <p>
+                A Mobile Establishment license covers a self-contained, self-supporting, enclosed mobile unit —
+                a trailer or vehicle — where barbering or cosmetology services are practiced. It carries the same
+                $78 application fee and 2-year validity as a standard establishment license, but with real
+                additional requirements standard shops don&apos;t have to meet.
+                <Cite id={4} />
+              </p>
+              <ul className="space-y-2 not-prose list-none pl-0">
+                {[
+                  "A permanent address where the unit is dispatched from and stored — TDLR must be notified of address changes within 10 days",
+                  "Location tracking, either via GPS available to TDLR during operation, or a weekly itinerary submitted at least 7 days in advance",
+                  "Anchored furniture and securely stored chemicals",
+                  "License number and business name displayed on both sides of the vehicle",
+                  "An onboard water heater providing continuous, on-demand hot water, plus sufficient freshwater tanks for a full day of service",
+                  "Restroom access available at each service location",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-foreground font-medium">
+                    <span className="text-primary shrink-0 mt-0.5">✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <p>
+                All licensing requirements must be satisfied within one year of TDLR receiving the application, or
+                it becomes void — mobile setups take real lead time to get compliant, so don&apos;t assume a quick
+                approval.
               </p>
             </div>
           </section>
@@ -416,6 +508,16 @@ export default function OpeningYourOwnShopGuide() {
                   "Yes. In addition to a work station, styling chair, covered waste receptacle, and sanitation equipment per practitioner, establishments offering nail services need an autoclave, dry heat sterilizer, or ultraviolet sanitizer.",
               },
               {
+                question: "How much does it cost to open a barbershop in Texas?",
+                answer:
+                  "The TDLR establishment license itself is just $78. The real cost is buildout and equipment: a basic 3-chair shop typically runs $50k-$80k, a mid-range 4-5 chair shop $80k-$150k, and an upscale build-out $200k or more, according to general industry cost guides.",
+              },
+              {
+                question: "Can I open a mobile barbershop or salon in Texas?",
+                answer:
+                  "Yes, through a separate Mobile Establishment license ($78 fee, same as a standard establishment). It requires GPS or itinerary-based location tracking, anchored furniture, secured chemical storage, an onboard hot water system, and license/business name displayed on the vehicle.",
+              },
+              {
                 question: "I already have my TDLR shop requirements sorted — what's next?",
                 answer:
                   "Fill your chairs. Claim your shop on Inner G Complete and you get a free, real-time dashboard matching you against licensed barbers actively looking for a chair nearby, plus the ability to reach out to them directly — no separate hiring platform needed.",
@@ -428,10 +530,13 @@ export default function OpeningYourOwnShopGuide() {
               { source: "TDLR", label: "Apply for an Establishment License", url: "https://www.tdlr.texas.gov/barbering-and-cosmetology/establishments/apply.htm" },
               { source: "TDLR", label: "Barbering and Cosmetology Establishments", url: "https://www.tdlr.texas.gov/barbering-and-cosmetology/establishments/" },
               { source: "TDLR", label: "Inspections Guide", url: "https://www.tdlr.texas.gov/barbering-and-cosmetology/inspections-guide/" },
+              { source: "TDLR", label: "Mobile Establishment License", url: "https://www.tdlr.texas.gov/barbering-and-cosmetology/establishments/apply-mobile-establishment.htm" },
             ]}
           />
 
           <AuthorBio />
+
+          <RelatedArticles currentSlug="opening-your-own-shop-in-texas" />
 
           <div className="pt-12 border-t border-border">
             <div className="flex items-center gap-3 mb-8">
@@ -470,6 +575,7 @@ function Cite({ id }: { id: number }) {
     2: "https://www.tdlr.texas.gov/barbering-and-cosmetology/establishments/",
     3: "https://www.tdlr.texas.gov/barbering-and-cosmetology/inspections-guide/",
     4: "https://www.tdlr.texas.gov/barbering-and-cosmetology/establishments/apply-mobile-establishment.htm",
+    5: "https://www.tdlr.texas.gov/barbering-and-cosmetology/feechanges.htm",
   }
   return (
     <a

@@ -7,6 +7,7 @@ import { MapPin, Star, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, 
 import { computeShopEcosystemReport } from "@/lib/shop-ecosystem";
 import Image from "next/image";
 import { ShopPhotoGallery } from "@/components/shared/shop-photo-gallery";
+import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { PassportCarousel } from "@/components/shared/passport-carousel";
@@ -236,6 +237,7 @@ export default async function ShopProfilePage({ params }: Props) {
     <div className="min-h-screen bg-white text-slate-900 selection:bg-blue-500/20 flex flex-col overflow-x-hidden">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(shopJsonLd) }} />
       {shopFaqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(shopFaqJsonLd) }} />}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildEntityBreadcrumbJsonLd("Barbershops", "/shop", shop.shop_name, shop.slug)) }} />
 
       <div className="flex-grow pt-8 pb-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
         
@@ -408,10 +410,14 @@ export default async function ShopProfilePage({ params }: Props) {
                       {talentPipeline.topSchools.length > 0 && (
                         <div className="space-y-1.5">
                           {talentPipeline.topSchools.map((s) => (
-                            <div key={s.name} className="flex items-center justify-between text-xs">
-                              <span className="text-slate-700 font-semibold truncate pr-2">{s.name}</span>
+                            <Link
+                              key={s.name}
+                              href={s.profileUrl}
+                              className="flex items-center justify-between text-xs hover:bg-slate-100 -mx-1 px-1 py-0.5 rounded transition-colors"
+                            >
+                              <span className="text-slate-700 font-semibold truncate pr-2 hover:text-primary hover:underline">{s.name}</span>
                               <span className={`font-black shrink-0 ${scoreTone(s.score)}`}>{Math.round(s.score)} · {s.distanceMiles.toFixed(1)}mi</span>
-                            </div>
+                            </Link>
                           ))}
                         </div>
                       )}

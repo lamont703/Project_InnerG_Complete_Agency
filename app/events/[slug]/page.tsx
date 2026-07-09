@@ -3,6 +3,8 @@ import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
+import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
+import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import {
   MapPin,
   CalendarDays,
@@ -12,6 +14,8 @@ import {
   Ticket,
   Tag,
   User,
+  Scissors,
+  Sparkles,
 } from "lucide-react";
 
 export const revalidate = 3600;
@@ -245,6 +249,15 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
       ? `https://www.google.com/maps?q=${encodeURIComponent(event.address)}`
       : null;
 
+  const eventCenter =
+    event.latitude && event.longitude ? { lat: Number(event.latitude), lng: Number(event.longitude) } : null;
+  const [nearbyShopsForAttendees, nearbySalonsForAttendees] = eventCenter
+    ? await Promise.all([
+        fetchNearbyEntities(supabase, "shops", eventCenter, { limit: 5 }),
+        fetchNearbyEntities(supabase, "salons", eventCenter, { limit: 5 }),
+      ])
+    : [[], []];
+
   const eventJsonLd = buildEventJsonLd(event, isPast);
   const breadcrumbJsonLd = buildEventBreadcrumbJsonLd(event);
   const faqs = buildEventFaqs(event, dateLabel, startTimeLabel);
@@ -434,6 +447,9 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
                 </a>
               </div>
             )}
+
+            <NearbyEntitiesSection title="Get Ready: Shops Near the Venue" icon={Scissors} entities={nearbyShopsForAttendees} />
+            <NearbyEntitiesSection title="Salons Near the Venue" icon={Sparkles} entities={nearbySalonsForAttendees} />
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
+import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
@@ -589,6 +590,8 @@ export default function AutonomousConciergeROI() {
 
           <FAQSection faqs={[{"question":"How does an AI Concierge provide a measurable ROI?","answer":"The ROI is calculated by measuring the recovery of revenue formerly lost to un-captured no-shows and silent churn. Our analysis shows ADI-driven concierges can recover 14-22% of previously lost floor revenue."},{"question":"What is the primary difference between a chatbot and an AI Concierge?","answer":"A chatbot responds to queries; an ADI Concierge proactively predicts needs using the full clinical and operational feedstock of the enterprise to trigger high-probability rebookings."}]} />
       <AuthorBio />
+
+          <RelatedArticles currentSlug="autonomous-concierge-roi-analysis" />
       <Footer />
     </main>
   )

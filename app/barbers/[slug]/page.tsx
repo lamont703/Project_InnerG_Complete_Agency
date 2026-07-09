@@ -5,6 +5,9 @@ import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { CreatePassportButton } from "@/components/shared/create-passport-button";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
+import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
+import { fetchNearbyEntities } from "@/lib/nearby-entities";
+import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import Image from "next/image";
 import {
   MapPin,
@@ -215,6 +218,15 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
       ? `https://www.google.com/maps?q=${encodeURIComponent(barber.address)}`
       : null;
 
+  const hasGeo = barber.latitude && barber.longitude;
+  const center = hasGeo ? { lat: Number(barber.latitude), lng: Number(barber.longitude) } : null;
+  const [nearbyShops, nearbySchools] = center
+    ? await Promise.all([
+        fetchNearbyEntities(supabase, "shops", center, { limit: 5 }),
+        fetchNearbyEntities(supabase, "barberSchools", center, { limit: 5 }),
+      ])
+    : [[], []];
+
   const socialLinks = [
     barber.instagram_handle && {
       label: "Instagram",
@@ -240,11 +252,13 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
 
   const barberJsonLd = buildBarberJsonLd(barber);
   const barberFaqJsonLd = buildBarberFaqJsonLd(barber, services);
+  const barberBreadcrumbJsonLd = buildEntityBreadcrumbJsonLd("Barbers", "/barbers", barber.name, barber.slug);
 
   return (
     <div className="min-h-screen bg-slate-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(barberJsonLd) }} />
       {barberFaqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(barberFaqJsonLd) }} />}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(barberBreadcrumbJsonLd) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -447,6 +461,9 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
                 </a>
               </div>
             )}
+
+            <NearbyEntitiesSection title="Nearby Shops" icon={Scissors} entities={nearbyShops} />
+            <NearbyEntitiesSection title="Nearby Barber Schools" icon={GraduationCap} entities={nearbySchools} />
 
             {hours.length > 0 && hours.some((h) => h.ranges.length > 0) && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">

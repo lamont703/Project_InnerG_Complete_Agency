@@ -9,6 +9,7 @@ import { ProcessSection } from "@/components/landing/process-section"
 import { FeatureHighlight } from "@/components/landing/feature-highlight"
 import { FoundersVision } from "@/components/landing/founders-vision"
 import { SolutionsSection } from "@/components/landing/solutions-section"
+import { PlatformResourcesSection } from "@/components/landing/platform-resources-section"
 import { ResultsSection } from "@/components/landing/results-section"
 import { TestimonialsSection } from "@/components/landing/testimonials-section"
 import { CtaSection } from "@/components/landing/cta-section"
@@ -30,6 +31,7 @@ export default function Home() {
       <FeatureHighlight />
       <FoundersVision />
       <SolutionsSection />
+      <PlatformResourcesSection />
       <ResultsSection />
       <TestimonialsSection />
       <CtaSection />

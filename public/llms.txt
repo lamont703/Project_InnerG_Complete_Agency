@@ -20,6 +20,9 @@
   vendor TDLR uses to administer the actual test.
 - [El Paso Barber Exam Intelligence Prep](/el-paso-barber-exam-intelligence-prep): the same
   program applied to the El Paso metro.
+- [How Long Does Barber School Take in Texas?](/insights/texas-barber-school-length-vs-apprenticeship):
+  1,000 hours for barbers, 1,500 for cosmetology, and a note that Texas has no apprenticeship
+  pathway at all — with a real 300-hour accelerated path for already-licensed cosmetologists.
 
 ## For students surviving the program (between enrolling and testing)
 
@@ -71,6 +74,13 @@
 - [Booth Rental Requirements in Texas](/insights/booth-rental-contract-requirements-texas):
   the TDLR Mini-Establishment license that actually governs booth/suite rental, what belongs
   in a rental contract, and the insurance shop owners typically require.
+- [Highest Paying Barbershops in Houston](/insights/highest-paying-barbershops-houston): real,
+  named Houston shops with the lowest listed booth rent and highest listed commission splits —
+  framed honestly as pay-terms data, not earnings data nobody actually tracks.
+- [Booth Rent Taxes & Do You Need an LLC in Texas?](/insights/booth-rent-taxes-and-llc-texas):
+  booth renters are 1099 independent contractors, not employees — deductions, self-employment
+  tax, and why Texas doesn't actually require an LLC to rent a booth. Sourced from IRS
+  Publication 4902.
 
 ## Directories
 

@@ -4,6 +4,7 @@ import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
+import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
@@ -655,6 +656,8 @@ export default function DataSourcesBrief() {
 
           <FAQSection faqs={[{"question":"What is 'Cognitive Feedstock'?","answer":"Feedstock consists of the 15+ specialized data streams (booking cycles, intake summaries, technical formulas, etc.) required to train a model that performs with domain competence in wellness."}]} />
       <AuthorBio />
+
+          <RelatedArticles currentSlug="cognitive-feedstock-15-data-sources" />
       <Footer />
     </main>
   )

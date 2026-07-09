@@ -4,6 +4,7 @@ import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
+import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
@@ -566,6 +567,8 @@ export default function CognitiveArchitectureBlueprint() {
 
           <FAQSection faqs={[{"question":"What are the three tiers of the ADI architecture?","answer":"Tier 1 is the Operational Foundation (raw booking data); Tier 2 is the Signal Layer (behavioral and sentiment fingerprints); Tier 3 is the Intelligence Layer (autonomous decision-making and execution)."},{"question":"Is this architecture HIPAA compliant?","answer":"Yes. By following CPMAI governance, we architect PHI isolation protocols that ensure sensitive data is protected while still fueling the intelligence model."}]} />
       <AuthorBio />
+
+          <RelatedArticles currentSlug="cognitive-architecture-blueprint" />
       <Footer />
     </main>
   )

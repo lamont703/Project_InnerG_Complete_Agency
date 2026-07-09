@@ -5,6 +5,9 @@ import Link from "next/link";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
+import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
+import { fetchNearbyEntities } from "@/lib/nearby-entities";
+import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import Image from "next/image";
 import {
   MapPin,
@@ -16,6 +19,8 @@ import {
   Store,
   ExternalLink,
   Search,
+  Scissors,
+  Sparkles,
 } from "lucide-react";
 
 export const revalidate = 3600;
@@ -166,6 +171,15 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
       ? `https://www.google.com/maps?q=${encodeURIComponent(store.formatted_address)}`
       : null;
 
+  const storeCenter =
+    store.latitude && store.longitude ? { lat: Number(store.latitude), lng: Number(store.longitude) } : null;
+  const [nearbyShops, nearbySalons] = storeCenter
+    ? await Promise.all([
+        fetchNearbyEntities(supabase, "shops", storeCenter, { limit: 5 }),
+        fetchNearbyEntities(supabase, "salons", storeCenter, { limit: 5 }),
+      ])
+    : [[], []];
+
   const websiteHref = store.website
     ? store.website.startsWith("http")
       ? store.website
@@ -182,6 +196,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
   return (
     <div className="min-h-screen bg-slate-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(storeJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildEntityBreadcrumbJsonLd("Stores", "/stores", store.name, store.slug)) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -307,6 +322,9 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
                 </a>
               </div>
             )}
+
+            <NearbyEntitiesSection title="Nearby Shops" icon={Scissors} entities={nearbyShops} />
+            <NearbyEntitiesSection title="Nearby Salons" icon={Sparkles} entities={nearbySalons} />
 
             {hours.length > 0 && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
