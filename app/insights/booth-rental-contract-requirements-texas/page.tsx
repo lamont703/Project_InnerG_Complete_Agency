@@ -17,6 +17,7 @@ import {
   ClipboardList,
   Scale,
 } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 
 function GlowOrb({ className }: { className: string }) {
@@ -60,13 +61,13 @@ export const metadata = {
       "The TDLR Mini-Establishment license, contract terms, and insurance every Texas booth renter should know before signing.",
     url: "https://innergcomplete.com/insights/booth-rental-contract-requirements-texas",
     type: "article",
-    images: [{ url: "/insights-library-cover.png", width: 1200, height: 630, alt: "Booth Rental Requirements in Texas" }],
+    images: [{ url: "/booth_rental_texas_contract_cover.png", width: 1024, height: 1024, alt: "Booth Rental Requirements in Texas" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Booth Rental Requirements in Texas (2026)",
     description: "The Mini-Establishment license, contract terms, and insurance every Texas booth renter should know.",
-    images: ["/insights-library-cover.png"],
+    images: ["/booth_rental_texas_contract_cover.png"],
   },
   alternates: { canonical: "https://innergcomplete.com/insights/booth-rental-contract-requirements-texas" },
 }
@@ -176,6 +177,20 @@ export default function BoothRentalRequirementsGuide() {
             </div>
           </div>
         </header>
+
+        {/* Cover Image */}
+        <div className="mx-auto max-w-7xl px-6 -mt-12 mb-20 relative z-10">
+          <div className="aspect-[21/9] rounded-3xl overflow-hidden shadow-2xl border-4 border-white dark:border-zinc-900 relative">
+            <Image
+              src="/booth_rental_texas_contract_cover.png"
+              alt="Booth Rental Requirements in Texas — premium contract document on barbershop station styling table"
+              fill
+              className="object-cover"
+              sizes="(max-width: 1200px) 100vw, 1200px"
+              priority
+            />
+          </div>
+        </div>
 
         <div className="mx-auto max-w-4xl px-6 py-16 space-y-16">
           {/* Mini-Establishment License */}
