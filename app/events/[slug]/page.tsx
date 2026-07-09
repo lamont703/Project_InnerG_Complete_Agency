@@ -87,10 +87,21 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
 
   const title = `${event.title}${event.city ? ` — ${event.city} Barber & Beauty Event` : ""}`;
   const description = event.description || `${event.title}${event.venue_name ? ` at ${event.venue_name}` : ""}${event.city ? ` in ${event.city}` : ""}.`;
+  const year = event.event_date ? new Date(event.event_date + "T00:00:00").getFullYear() : undefined;
+
+  const keywords = [
+    event.title,
+    `${event.title} tickets`,
+    event.venue_name ? `${event.title} ${event.venue_name}` : null,
+    event.city ? `${event.title} ${event.city}` : null,
+    year ? `${event.title} ${year}` : null,
+  ].filter(Boolean) as string[];
 
   return {
     title,
     description,
+    keywords,
+    alternates: { canonical: `https://innergcomplete.com/events/${slug}` },
     openGraph: {
       title,
       description,
@@ -99,15 +110,30 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   };
 }
 
+// Parses price_info strings like "2594.29 USD" into schema.org's structured
+// price/priceCurrency fields. Falls back to a free-text description when the
+// shape doesn't match (e.g. "Free", "Contact organizer") rather than forcing
+// a bad parse — Google's Event rich-result validator wants the structured
+// fields when a real numeric price is available, but a wrong guess is worse
+// than no price field at all.
+function parsePriceInfo(priceInfo: string | null): { price: string; priceCurrency: string } | null {
+  if (!priceInfo) return null;
+  const match = priceInfo.trim().match(/^([\d,]+(?:\.\d{1,2})?)\s*([A-Z]{3})$/);
+  if (!match) return null;
+  return { price: match[1].replace(/,/g, ""), priceCurrency: match[2] };
+}
+
 // Event — only 3 rows exist today, but the same page file is already being
 // touched for the slug rename, so this ships correct from day one rather
 // than needing a second pass once the events table grows.
-function buildEventJsonLd(event: any) {
+function buildEventJsonLd(event: any, isPast: boolean) {
   const ld: Record<string, any> = {
     "@context": "https://schema.org",
     "@type": "Event",
     name: event.title,
     startDate: event.start_time ? `${event.event_date}T${event.start_time}` : event.event_date,
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
   };
   if (event.end_date || event.end_time) {
     ld.endDate = event.end_time ? `${event.end_date || event.event_date}T${event.end_time}` : event.end_date;
@@ -117,19 +143,87 @@ function buildEventJsonLd(event: any) {
     ld.location = {
       "@type": "Place",
       name: event.venue_name || event.city,
-      address: event.address ? { "@type": "PostalAddress", streetAddress: event.address, addressRegion: "TX", addressCountry: "US" } : undefined,
+      address: event.address
+        ? {
+            "@type": "PostalAddress",
+            streetAddress: event.address,
+            addressLocality: event.city || undefined,
+            addressRegion: "TX",
+            addressCountry: "US",
+          }
+        : undefined,
     };
   }
   if (event.organizer_name) ld.organizer = { "@type": "Organization", name: event.organizer_name };
   if (event.image_url) ld.image = event.image_url;
   if (event.ticket_url || event.price_info) {
+    const parsedPrice = parsePriceInfo(event.price_info);
     ld.offers = {
       "@type": "Offer",
       url: event.ticket_url || undefined,
-      description: event.price_info || undefined,
+      availability: isPast ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+      ...(parsedPrice ? parsedPrice : { description: event.price_info || undefined }),
     };
   }
   return ld;
+}
+
+function buildEventBreadcrumbJsonLd(event: any) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://innergcomplete.com" },
+      { "@type": "ListItem", position: 2, name: "Events", item: "https://innergcomplete.com/events" },
+      { "@type": "ListItem", position: 3, name: event.title, item: `https://innergcomplete.com/events/${event.slug}` },
+    ],
+  };
+}
+
+// Only asks questions the real submitted data can actually answer — no
+// fabricated schedule/vendor/speaker details invented to pad content.
+function buildEventFaqs(event: any, dateLabel: string, startTimeLabel: string | null): { question: string; answer: string }[] {
+  const faqs: { question: string; answer: string }[] = [];
+
+  faqs.push({
+    question: `When is ${event.title}?`,
+    answer: startTimeLabel ? `${dateLabel}, starting at ${startTimeLabel}.` : dateLabel,
+  });
+
+  if (event.venue_name || event.address) {
+    faqs.push({
+      question: `Where is ${event.title} held?`,
+      answer: `${event.venue_name || "The venue"}${event.address ? `, ${event.address}` : event.city ? ` in ${event.city}` : ""}.`,
+    });
+  }
+
+  if (event.price_info) {
+    faqs.push({
+      question: `How much are tickets to ${event.title}?`,
+      answer: `${event.price_info}${event.ticket_url ? " — see the official ticket link on this page for current pricing and availability." : "."}`,
+    });
+  } else if (event.ticket_url) {
+    faqs.push({
+      question: `How do I get tickets to ${event.title}?`,
+      answer: `Tickets are available through the official ticket link on this page.`,
+    });
+  }
+
+  if (event.organizer_name) {
+    faqs.push({
+      question: `Who is organizing ${event.title}?`,
+      answer: `${event.title} is organized by ${event.organizer_name}.`,
+    });
+  }
+
+  if (event.end_date && event.end_date !== event.event_date) {
+    faqs.push({
+      question: `Is ${event.title} a multi-day event?`,
+      answer: `Yes — it runs ${dateLabel}.`,
+    });
+  }
+
+  return faqs;
 }
 
 export default async function EventProfilePage(props: { params: Promise<{ slug: string }> }) {
@@ -151,11 +245,24 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
       ? `https://www.google.com/maps?q=${encodeURIComponent(event.address)}`
       : null;
 
-  const eventJsonLd = buildEventJsonLd(event);
+  const eventJsonLd = buildEventJsonLd(event, isPast);
+  const breadcrumbJsonLd = buildEventBreadcrumbJsonLd(event);
+  const faqs = buildEventFaqs(event, dateLabel, startTimeLabel);
+  const faqJsonLd = faqs.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: { "@type": "Answer", text: faq.answer },
+    })),
+  } : null;
 
   return (
     <div className="min-h-screen bg-slate-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      {faqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <DynamicBackButton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -221,6 +328,62 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
                 <h2 className="text-lg font-black text-slate-900 mb-3">About this event</h2>
                 <p className="text-sm text-slate-600 leading-relaxed">{event.description}</p>
+              </div>
+            )}
+
+            {/* What to Expect — only real, submitted facts, no invented programming details */}
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
+              <h2 className="text-lg font-black text-slate-900 mb-3">What to Expect</h2>
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li className="flex items-start gap-2">
+                  <CalendarDays className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <span>{dateLabel}{startTimeLabel ? `, starting at ${startTimeLabel}` : ""}{isPast ? " (this event has already taken place)" : ""}.</span>
+                </li>
+                {event.category && (
+                  <li className="flex items-start gap-2">
+                    <Tag className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <span>Listed as a {event.category.toLowerCase()} event.</span>
+                  </li>
+                )}
+                {event.organizer_name && (
+                  <li className="flex items-start gap-2">
+                    <User className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <span>Organized by {event.organizer_name}.</span>
+                  </li>
+                )}
+                {event.ticket_url && (
+                  <li className="flex items-start gap-2">
+                    <Ticket className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <span>{event.price_info ? `Tickets: ${event.price_info}.` : "Ticket details available via the official link."}</span>
+                  </li>
+                )}
+              </ul>
+            </div>
+
+            {/* Getting There */}
+            {(event.venue_name || event.address) && (
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
+                <h2 className="text-lg font-black text-slate-900 mb-3">Getting There</h2>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  {event.title} is held at {event.venue_name || "the venue"}
+                  {event.address ? `, ${event.address}` : event.city ? ` in ${event.city}` : ""}.
+                  {directionsHref ? " Use the directions link in the sidebar for turn-by-turn navigation." : ""}
+                </p>
+              </div>
+            )}
+
+            {/* FAQ */}
+            {faqs.length > 0 && (
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
+                <h2 className="text-lg font-black text-slate-900 mb-4">Common Questions</h2>
+                <div className="space-y-4">
+                  {faqs.map((faq) => (
+                    <div key={faq.question}>
+                      <h3 className="text-sm font-black text-slate-900 mb-1">{faq.question}</h3>
+                      <p className="text-sm text-slate-600 leading-relaxed">{faq.answer}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

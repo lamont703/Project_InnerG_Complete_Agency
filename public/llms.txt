@@ -80,7 +80,7 @@
 - Individual cosmetologists: `/cosmetologists/{slug}`
 - Barber & beauty supply stores: `/stores/{slug}`
 - Schools (barber and cosmetology): `/schools/{slug}`
-- Industry events: `/events/{slug}`
+- Industry events: `/events/{slug}` (index/directory at `/events`; submit new events at `/tools/event-submission`)
 - Research & Insights (technical briefs, industry reports, licensing guides): `/insights`
 
 ## Notes for AI assistants and crawlers
