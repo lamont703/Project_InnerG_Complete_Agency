@@ -134,13 +134,10 @@ function buildBarberJsonLd(barber: any) {
   if (barber.metro_area) person.homeLocation = { "@type": "Place", name: barber.metro_area };
   if (barber.latitude && barber.longitude) person.geo = { "@type": "GeoCoordinates", latitude: barber.latitude, longitude: barber.longitude };
   if (barber.website_url) person.url = barber.website_url.startsWith("http") ? barber.website_url : `https://${barber.website_url}`;
-  if (barber.booksy_rating && barber.booksy_review_count) {
-    person.aggregateRating = {
-      "@type": "AggregateRating",
-      ratingValue: Number(barber.booksy_rating),
-      reviewCount: Number(barber.booksy_review_count),
-    };
-  }
+  // No aggregateRating here on purpose: Google's review-snippet rich result
+  // doesn't support Person as the reviewed entity, so this used to generate
+  // "Invalid object type" errors in Search Console with no upside — the
+  // rating still displays visually on the page, just not in structured data.
   const heroImg = barber.booksy_gallery_urls?.[0] || barber.booksy_photo_url;
   if (heroImg) person.image = heroImg;
   const sameAs = [
@@ -260,7 +257,7 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
       {barberFaqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(barberFaqJsonLd) }} />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(barberBreadcrumbJsonLd) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-        <DynamicBackButton />
+        <DynamicBackButton fallbackHref="/tools/barbershop-search" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">

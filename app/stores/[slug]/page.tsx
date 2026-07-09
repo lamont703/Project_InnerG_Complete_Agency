@@ -198,7 +198,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(storeJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildEntityBreadcrumbJsonLd("Stores", "/stores", store.name, store.slug)) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-        <DynamicBackButton />
+        <DynamicBackButton fallbackHref="/tools/barbershop-search?tab=Stores" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">

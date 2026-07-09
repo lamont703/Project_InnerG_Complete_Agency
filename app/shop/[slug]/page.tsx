@@ -241,7 +241,7 @@ export default async function ShopProfilePage({ params }: Props) {
 
       <div className="flex-grow pt-8 pb-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
         
-        <DynamicBackButton />
+        <DynamicBackButton fallbackHref="/tools/barbershop-search" />
 
         {/* Header Title & Badges */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">

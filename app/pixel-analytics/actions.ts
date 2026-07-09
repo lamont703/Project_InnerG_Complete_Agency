@@ -165,3 +165,52 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
   }
 }
 
+export type ClickBreakdownItem = { label: string; elementType: string; count: number };
+
+// Per-entity button labels like "REQUEST A SHOP DAY AT MIRIAM J BEAUTY
+// SALON" would otherwise count as a different button for every single
+// entity page — this collapses them back to the one conceptual button
+// ("REQUEST A SHOP DAY") so the drill-down shows what people are actually
+// clicking across the category, not one row per shop/salon/school name.
+function normalizeElementName(raw: string | null): string {
+  if (!raw || !raw.trim()) return "(icon or unlabeled button)";
+  const cleaned = raw.replace(/\s+/g, " ").trim();
+  const atSuffixMatch = cleaned.match(/^(.{3,}?)\s+AT\s+.{4,}$/i);
+  if (atSuffixMatch) return atSuffixMatch[1].trim();
+  return cleaned.length > 60 ? `${cleaned.slice(0, 57)}...` : cleaned;
+}
+
+export async function fetchCategoryClickBreakdown(category: string, days?: number): Promise<ClickBreakdownItem[]> {
+  let cutoffDate: string | undefined;
+  if (days) {
+    const d = new Date();
+    d.setDate(d.getDate() - (days === 1 ? 0 : days));
+    d.setHours(0, 0, 0, 0);
+    cutoffDate = d.toISOString();
+  }
+
+  const { data, error } = await supabase.rpc("get_category_click_breakdown", {
+    p_category: category,
+    p_cutoff: cutoffDate || null,
+  });
+
+  if (error) {
+    console.error("Error fetching category click breakdown:", error);
+    return [];
+  }
+
+  const merged = new Map<string, ClickBreakdownItem>();
+  for (const row of (data as any[]) || []) {
+    const label = normalizeElementName(row.element_name);
+    const key = `${label}__${row.element_type || ""}`;
+    const existing = merged.get(key);
+    if (existing) {
+      existing.count += Number(row.count);
+    } else {
+      merged.set(key, { label, elementType: row.element_type || "", count: Number(row.count) });
+    }
+  }
+
+  return Array.from(merged.values()).sort((a, b) => b.count - a.count);
+}
+

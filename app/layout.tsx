@@ -115,6 +115,7 @@ import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { createServerClient } from "@/lib/supabase/server"
 import { FacebookSDK } from "@/components/providers/facebook-sdk"
+import { SiteNavigationTracker } from "@/components/layout/site-navigation-tracker"
 
 export default async function RootLayout({
   children,
@@ -227,6 +228,7 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Analytics />
+          <SiteNavigationTracker />
           <AnalyticsProvider>
             <FacebookSDK>
               <script

@@ -37,7 +37,7 @@ export default async function EventsIndexPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
-        <DynamicBackButton />
+        <DynamicBackButton fallbackHref="/" />
 
         <div className="text-center mb-10 mt-4">
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950 mb-3">

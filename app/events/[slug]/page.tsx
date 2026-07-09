@@ -44,6 +44,7 @@ const PUBLIC_COLUMNS = [
   "source_url",
   "image_url",
   "price_info",
+  "created_at",
 ].join(", ");
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -122,9 +123,26 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
 // than no price field at all.
 function parsePriceInfo(priceInfo: string | null): { price: string; priceCurrency: string } | null {
   if (!priceInfo) return null;
-  const match = priceInfo.trim().match(/^([\d,]+(?:\.\d{1,2})?)\s*([A-Z]{3})$/);
+  const trimmed = priceInfo.trim();
+  if (/^free$/i.test(trimmed)) return { price: "0", priceCurrency: "USD" };
+  const match = trimmed.match(/^([\d,]+(?:\.\d{1,2})?)\s*([A-Z]{3})$/);
   if (!match) return null;
   return { price: match[1].replace(/,/g, ""), priceCurrency: match[2] };
+}
+
+// Ticketing platforms that host the listing but aren't the organizer's own
+// site — attaching one of these to organizer.url would misattribute a
+// third party's domain as belonging to the organizer.
+const THIRD_PARTY_TICKETING_DOMAINS = ["eventbrite.com", "eventbrite.co.uk", "ticketmaster.com", "eventful.com"];
+
+function isThirdPartyTicketingUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return THIRD_PARTY_TICKETING_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
+  } catch {
+    return false;
+  }
 }
 
 // Event — only 3 rows exist today, but the same page file is already being
@@ -158,15 +176,28 @@ function buildEventJsonLd(event: any, isPast: boolean) {
         : undefined,
     };
   }
-  if (event.organizer_name) ld.organizer = { "@type": "Organization", name: event.organizer_name };
+  if (event.organizer_name) {
+    const organizer: Record<string, any> = { "@type": "Organization", name: event.organizer_name };
+    // Only attribute a URL to the organizer when the event's own link isn't
+    // a third-party ticketing platform — see isThirdPartyTicketingUrl above.
+    const ownSiteUrl = event.source_url || event.ticket_url;
+    if (ownSiteUrl && !isThirdPartyTicketingUrl(ownSiteUrl)) organizer.url = ownSiteUrl;
+    ld.organizer = organizer;
+  }
   if (event.image_url) ld.image = event.image_url;
-  if (event.ticket_url || event.price_info) {
-    const parsedPrice = parsePriceInfo(event.price_info);
+  if (event.ticket_url || event.source_url) ld.url = event.ticket_url || event.source_url;
+
+  // Google's Event guidelines say to omit "offers" entirely when the real
+  // price isn't known, rather than publish an incomplete Offer — the ticket
+  // link is still shown to visitors on the page regardless of this markup.
+  const parsedPrice = parsePriceInfo(event.price_info);
+  if (event.ticket_url && parsedPrice) {
     ld.offers = {
       "@type": "Offer",
-      url: event.ticket_url || undefined,
+      url: event.ticket_url,
       availability: isPast ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
-      ...(parsedPrice ? parsedPrice : { description: event.price_info || undefined }),
+      validFrom: event.created_at ? String(event.created_at).slice(0, 10) : undefined,
+      ...parsedPrice,
     };
   }
   return ld;
@@ -277,7 +308,7 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       {faqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-        <DynamicBackButton />
+        <DynamicBackButton fallbackHref="/events" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">
