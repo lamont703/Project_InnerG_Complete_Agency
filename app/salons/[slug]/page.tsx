@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
+import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import Image from "next/image";
 import {
   MapPin,
@@ -160,32 +161,13 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">
             {/* Photo Gallery */}
-            {heroPhoto ? (
-              <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
-                <a href={heroPhoto} target="_blank" rel="noopener noreferrer" className="block w-full aspect-[16/10] bg-slate-100 relative">
-                  <Image src={heroPhoto} alt={salon.shop_name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 66vw" unoptimized={!heroPhoto.startsWith('https://')} />
-                </a>
-                {thumbnails.length > 0 && (
-                  <div className="grid grid-cols-4 gap-0.5 p-0.5 bg-slate-100">
-                    {thumbnails.map((url, i) => (
-                      <a
-                        key={url}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="relative aspect-square overflow-hidden bg-slate-200 group"
-                      >
-                        <Image src={url} alt={`${salon.shop_name} photo ${i + 2}`} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="25vw" unoptimized={!url.startsWith('https://')} />
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-pink-600 to-slate-800 aspect-[16/7] flex items-center justify-center">
-                <Users className="w-16 h-16 text-white/40" />
-              </div>
-            )}
+            <EntityPhotoGallery
+              heroPhoto={heroPhoto}
+              thumbnails={thumbnails}
+              name={salon.shop_name}
+              gridCols={4}
+              accentFrom="from-pink-600"
+            />
 
             {/* Header Block */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">

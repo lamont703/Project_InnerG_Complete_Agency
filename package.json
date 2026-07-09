@@ -75,6 +75,8 @@
     "pg": "^8.21.0",
     "puppeteer": "^25.1.0",
     "puppeteer-core": "^25.3.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-day-picker": "9.13.2",

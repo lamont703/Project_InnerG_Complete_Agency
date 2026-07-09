@@ -6,6 +6,7 @@ import Link from "next/link";
 import { MapPin, Star, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft, Map as MapIcon, Mail, Phone, Info, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles, Landmark } from "lucide-react";
 import { computeShopEcosystemReport } from "@/lib/shop-ecosystem";
 import Image from "next/image";
+import { ShopPhotoGallery } from "@/components/shared/shop-photo-gallery";
 import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { PassportCarousel } from "@/components/shared/passport-carousel";
@@ -278,33 +279,16 @@ export default async function ShopProfilePage({ params }: Props) {
         </div>
 
         {/* Real Estate Image Gallery (Masonry on Desktop, Swipe Carousel on Mobile) */}
-        <div className="flex md:grid overflow-x-auto md:overflow-hidden snap-x snap-mandatory md:snap-none md:grid-cols-4 md:grid-rows-2 gap-2 h-64 md:h-[60vh] rounded-none md:rounded-3xl mb-8 md:mb-12 scrollbar-hide -mx-4 md:mx-0 px-4 md:px-0">
-          <div className="md:col-span-2 row-span-2 relative h-full shrink-0 aspect-square md:aspect-auto md:w-auto snap-center rounded-2xl md:rounded-none overflow-hidden border border-slate-200 md:border-none shadow-sm md:shadow-none">
-            <Image src={images[0]} alt={`${shop.shop_name} primary photo`} fill className="object-cover hover:scale-105 transition-transform duration-700 cursor-pointer" sizes="(max-width: 768px) 100vw, 50vw" unoptimized={!images[0].startsWith('https://')} />
-            <div className="absolute top-4 left-4 z-10 flex gap-2">
-              {shop.hiring_need || (shop.booth_count_available && shop.booth_count_available >= 1) ? (
-                <span className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-sm">
-                  {shop.booth_count_available || 1} Chairs Available
-                </span>
-              ) : (
-                <span className="px-3 py-1 bg-white text-slate-700 border border-slate-200 text-[10px] font-black uppercase tracking-widest rounded-lg shadow-sm">
-                  Off Market
-                </span>
-              )}
-            </div>
-          </div>
-          {images.slice(1, 5).map((imgUrl: string, idx: number) => (
-            <div key={idx} className="relative h-full overflow-hidden shrink-0 aspect-square md:aspect-auto md:w-auto snap-center rounded-2xl md:rounded-none border border-slate-200 md:border-none shadow-sm md:shadow-none">
-              <Image src={imgUrl} alt={`${shop.shop_name} view ${idx + 2}`} fill className="object-cover hover:scale-105 transition-transform duration-700 cursor-pointer" sizes="(max-width: 768px) 50vw, 25vw" unoptimized={!imgUrl.startsWith('https://')} />
-            </div>
-          ))}
-          {/* Fill empty spots if less than 5 images (Desktop Only) */}
-          {images.length < 5 && Array.from({ length: 5 - images.length }).map((_, idx) => (
-             <div key={`empty-${idx}`} className="hidden md:flex relative h-full bg-slate-100 items-center justify-center border border-slate-200/50">
-               <Scissors className="w-8 h-8 text-slate-300 opacity-50" />
-             </div>
-          ))}
-        </div>
+        <ShopPhotoGallery
+          images={images}
+          shopName={shop.shop_name}
+          badgeLabel={
+            shop.hiring_need || (shop.booth_count_available && shop.booth_count_available >= 1)
+              ? `${shop.booth_count_available || 1} Chairs Available`
+              : "Off Market"
+          }
+          badgeVariant={shop.hiring_need || (shop.booth_count_available && shop.booth_count_available >= 1) ? "available" : "off-market"}
+        />
 
         {/* Main Content Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">

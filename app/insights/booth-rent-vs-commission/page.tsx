@@ -17,6 +17,7 @@ import {
   DollarSign,
   BarChart3,
 } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 
 function GlowOrb({ className }: { className: string }) {
@@ -60,13 +61,13 @@ export const metadata = {
       "Real Houston barbershop data on booth rent and commission splits, plus the exact breakeven revenue where one model beats the other.",
     url: "https://innergcomplete.com/insights/booth-rent-vs-commission",
     type: "article",
-    images: [{ url: "/insights-library-cover.png", width: 1200, height: 630, alt: "Booth Rent vs. Commission" }],
+    images: [{ url: "/booth_vs_commission_cover.png", width: 1024, height: 1024, alt: "Booth Rent vs. Commission" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Booth Rent vs. Commission: What the Real Houston Numbers Say",
     description: "Real data on booth rent and commission splits, plus the exact breakeven revenue between them.",
-    images: ["/insights-library-cover.png"],
+    images: ["/booth_vs_commission_cover.png"],
   },
   alternates: { canonical: "https://innergcomplete.com/insights/booth-rent-vs-commission" },
 }
@@ -172,6 +173,20 @@ export default function BoothRentVsCommissionArticle() {
             </div>
           </div>
         </header>
+
+        {/* Cover Image */}
+        <div className="mx-auto max-w-7xl px-6 -mt-12 mb-20 relative z-10">
+          <div className="aspect-[21/9] rounded-3xl overflow-hidden shadow-2xl border-4 border-white dark:border-zinc-900 relative">
+            <Image
+              src="/booth_vs_commission_cover.png"
+              alt="Booth Rent vs. Commission — modern barbershop and salon split screen comparison"
+              fill
+              className="object-cover"
+              sizes="(max-width: 1200px) 100vw, 1200px"
+              priority
+            />
+          </div>
+        </div>
 
         <div className="mx-auto max-w-4xl px-6 py-16 space-y-16">
           {/* How booth rent works */}

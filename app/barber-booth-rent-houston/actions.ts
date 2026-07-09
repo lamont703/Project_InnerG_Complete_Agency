@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { parseWeeklyRent } from "@/lib/shop-ecosystem";
+import { geocode } from "@/lib/geocoding";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -16,24 +17,6 @@ function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number):
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.asin(Math.sqrt(a));
-}
-
-async function geocode(address: string): Promise<{ lat: number; lng: number } | null> {
-  if (!address || !process.env.GOOGLE_MAPS_API_KEY) return null;
-  try {
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-        address + ", Houston, TX"
-      )}&key=${process.env.GOOGLE_MAPS_API_KEY}`
-    );
-    const data = await res.json();
-    if (data.status === "OK" && data.results?.length > 0) {
-      return { lat: data.results[0].geometry.location.lat, lng: data.results[0].geometry.location.lng };
-    }
-  } catch (err) {
-    console.error("Booth rent listing geocoding failed:", err);
-  }
-  return null;
 }
 
 export interface BoothRentListing {

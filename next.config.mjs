@@ -30,6 +30,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "d2zdpiztbgorvt.cloudfront.net",
       },
+      {
+        protocol: "https",
+        hostname: "d220aniogakg8b.cloudfront.net",
+      },
       // Google Places photos alternate CDN
       {
         protocol: "https",

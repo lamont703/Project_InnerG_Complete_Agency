@@ -3,6 +3,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenAI } from "@google/genai";
 import { buildSlug } from "@/lib/slug";
+import { geocode } from "@/lib/geocoding";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -24,22 +25,6 @@ export interface EventFormData {
   sourceUrl: string;
   imageUrl: string | null;
   priceInfo: string | null;
-}
-
-// Same inline Google Geocoding pattern used in app/barber-beauty-network/actions.ts
-// — best-effort, a failed/missing geocode shouldn't block publishing.
-async function geocodeAddress(address: string): Promise<{ lat: number | null; lng: number | null }> {
-  if (!address || !process.env.GOOGLE_MAPS_API_KEY) return { lat: null, lng: null };
-  try {
-    const geoRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.GOOGLE_MAPS_API_KEY}`);
-    const geoData = await geoRes.json();
-    if (geoData.status === "OK" && geoData.results?.length > 0) {
-      return { lat: geoData.results[0].geometry.location.lat, lng: geoData.results[0].geometry.location.lng };
-    }
-  } catch (err) {
-    console.error("Event geocoding failed:", err);
-  }
-  return { lat: null, lng: null };
 }
 
 // Same gemini-embedding-2 call pattern used in app/api/chat/route.ts, so
@@ -71,7 +56,9 @@ export async function publishEvent(form: EventFormData): Promise<{ success: bool
       return { success: false, error: "Title, event date, and source URL are required." };
     }
 
-    const { lat, lng } = form.address ? await geocodeAddress(form.address) : { lat: null, lng: null };
+    const coords = form.address ? await geocode(form.address) : null;
+    const lat = coords?.lat ?? null;
+    const lng = coords?.lng ?? null;
     const embeddingText = [form.title, form.description, form.venueName, form.city, form.category].filter(Boolean).join(" ");
     const embedding = await generateEventEmbedding(embeddingText);
 
