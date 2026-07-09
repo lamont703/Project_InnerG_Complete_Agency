@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenAI } from "@google/genai";
+import crypto from "crypto";
 import { buildSlug } from "@/lib/slug";
 import { geocode } from "@/lib/geocoding";
 
@@ -62,7 +63,19 @@ export async function publishEvent(form: EventFormData): Promise<{ success: bool
     const embeddingText = [form.title, form.description, form.venueName, form.city, form.category].filter(Boolean).join(" ");
     const embedding = await generateEventEmbedding(embeddingText);
 
+    // Check if the event already exists to preserve its ID and slug
+    const { data: existingEvent } = await supabase
+      .from("events")
+      .select("id, slug")
+      .eq("source_url", form.sourceUrl)
+      .maybeSingle();
+
+    const id = existingEvent?.id || crypto.randomUUID();
+    const slug = existingEvent?.slug || buildSlug(form.title, form.city, id);
+
     const payload = {
+      id,
+      slug,
       title: form.title,
       description: form.description,
       event_date: form.eventDate,
@@ -87,27 +100,16 @@ export async function publishEvent(form: EventFormData): Promise<{ success: bool
     // Re-submitting the same source URL updates the existing row rather
     // than erroring or duplicating — same "duplicated" graceful-reuse
     // spirit as the GHL contact handling in the employment-match tool.
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("events")
-      .upsert(payload, { onConflict: "source_url" })
-      .select("id, slug")
-      .single();
+      .upsert(payload, { onConflict: "source_url" });
 
     if (error) {
       console.error("publishEvent upsert error:", error);
       return { success: false, error: error.message };
     }
 
-    // New rows (and re-submissions that predate the slug column) won't have
-    // one yet — compute and persist it now rather than leaving it null.
-    let slug = data.slug;
-    if (!slug) {
-      slug = buildSlug(form.title, form.city, data.id);
-      const { error: slugError } = await supabase.from("events").update({ slug }).eq("id", data.id);
-      if (slugError) console.error("publishEvent slug backfill error:", slugError);
-    }
-
-    return { success: true, id: data.id, slug };
+    return { success: true, id, slug };
   } catch (err: any) {
     console.error("publishEvent error:", err);
     return { success: false, error: err.message || "Unexpected error." };
