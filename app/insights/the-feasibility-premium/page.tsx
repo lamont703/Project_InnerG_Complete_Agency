@@ -4,6 +4,7 @@ import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
+import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
@@ -460,6 +461,8 @@ export default function FeasibilityPremiumArticle() {
 
           <FAQSection faqs={[{"question":"What is the risk of skipping an AI feasibility audit?","answer":"Skipping the audit leads to the 85% industry failure rate for AI projects. The 'Feasibility Premium' is the certainty and capital preservation achieved by identifying data gaps before development begins."}]} />
       <AuthorBio />
+
+          <RelatedArticles currentSlug="the-feasibility-premium" />
       <Footer />
     </main>
   )

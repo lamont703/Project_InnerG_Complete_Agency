@@ -4,6 +4,7 @@ import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
+import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
@@ -340,6 +341,8 @@ export default function SovereignIntelligenceLayer() {
 
           <FAQSection faqs={[{"question":"What defines a 'Sovereign' AI layer?","answer":"Sovereignty is defined by data ownership, model portability, and the ability to operate across different booking platforms without losing institutional intelligence."}]} />
       <AuthorBio />
+
+          <RelatedArticles currentSlug="the-sovereign-intelligence-layer" />
       <Footer />
     </main>
   )

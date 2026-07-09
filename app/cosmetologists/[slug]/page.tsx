@@ -5,6 +5,9 @@ import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { CreatePassportButton } from "@/components/shared/create-passport-button";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
+import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
+import { fetchNearbyEntities } from "@/lib/nearby-entities";
+import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import Image from "next/image";
 import {
   MapPin,
@@ -18,6 +21,7 @@ import {
   Users,
   Navigation,
   Landmark,
+  GraduationCap,
 } from "lucide-react";
 
 export const revalidate = 3600;
@@ -114,13 +118,10 @@ function buildCosmetologistJsonLd(person: any) {
   if (person.metro_area) ld.homeLocation = { "@type": "Place", name: person.metro_area };
   if (person.latitude && person.longitude) ld.geo = { "@type": "GeoCoordinates", latitude: person.latitude, longitude: person.longitude };
   if (person.website_url) ld.url = person.website_url.startsWith("http") ? person.website_url : `https://${person.website_url}`;
-  if (person.booksy_rating && person.booksy_review_count) {
-    ld.aggregateRating = {
-      "@type": "AggregateRating",
-      ratingValue: Number(person.booksy_rating),
-      reviewCount: Number(person.booksy_review_count),
-    };
-  }
+  // No aggregateRating here on purpose: Google's review-snippet rich result
+  // doesn't support Person as the reviewed entity, so this used to generate
+  // "Invalid object type" errors in Search Console with no upside — the
+  // rating still displays visually on the page, just not in structured data.
   const heroImg = person.booksy_gallery_urls?.[0] || person.booksy_photo_url;
   if (heroImg) ld.image = heroImg;
   const sameAs = [
@@ -160,6 +161,15 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
       ? `https://www.google.com/maps?q=${encodeURIComponent(person.address)}`
       : null;
 
+  const cosmetCenter =
+    person.latitude && person.longitude ? { lat: Number(person.latitude), lng: Number(person.longitude) } : null;
+  const [nearbySalons, nearbyCosmetSchools] = cosmetCenter
+    ? await Promise.all([
+        fetchNearbyEntities(supabase, "salons", cosmetCenter, { limit: 5 }),
+        fetchNearbyEntities(supabase, "cosmetologySchools", cosmetCenter, { limit: 5 }),
+      ])
+    : [[], []];
+
   const socialLinks = [
     person.instagram_handle && {
       label: "Instagram",
@@ -188,8 +198,9 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
   return (
     <div className="min-h-screen bg-slate-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(cosmetologistJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildEntityBreadcrumbJsonLd("Cosmetologists", "/cosmetologists", person.name, person.slug)) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-        <DynamicBackButton />
+        <DynamicBackButton fallbackHref="/tools/barbershop-search?tab=Cosmetologist" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">
@@ -364,6 +375,9 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
                 </a>
               </div>
             )}
+
+            <NearbyEntitiesSection title="Nearby Salons" icon={Sparkles} entities={nearbySalons} />
+            <NearbyEntitiesSection title="Nearby Cosmetology Schools" icon={GraduationCap} entities={nearbyCosmetSchools} />
           </div>
         </div>
 

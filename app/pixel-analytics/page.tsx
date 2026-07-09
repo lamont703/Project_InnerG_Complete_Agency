@@ -3,6 +3,7 @@ import { fetchAnalyticsData } from "./actions"
 import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target, ShieldCheck, TrendingUp } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
+import { CategoryClickBreakdown } from "@/components/pixel-analytics/category-click-breakdown"
 
 export const metadata = {
   title: "Pixel Analytics | Inner G Complete",
@@ -213,6 +214,9 @@ export default async function PixelAnalyticsPage(
             <p className="text-sm text-rose-300 mt-2">Users hitting the 5-message cap</p>
           </div>
         </div>
+
+        {/* Visitors by Page Category */}
+        <CategoryClickBreakdown categoryViews={data.categoryViews} days={days} />
 
         {/* Tables Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">

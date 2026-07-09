@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MapPin, DollarSign, Star, Loader2, CheckCircle2, Users, Search, Scissors } from "lucide-react";
-import { fetchBoothRentListings, type BoothRentListing } from "./actions";
+import { fetchBoothRentListings, fetchNeighborhoodRentSummary, type BoothRentListing, type ZipRentSummary } from "./actions";
 import { requestShopIntro } from "@/app/barbershop-apprentice-jobs-houston/actions";
 
 const FAQS = [
   {
     q: "How much does a barber booth cost to rent in Houston?",
     a: "Based on live, currently-listed Houston barbershops, weekly booth rent ranges from about $125 to $300, with a median around $180/week. See our full breakdown in Booth Rent vs. Commission.",
+  },
+  {
+    q: "What are the best neighborhoods for booth rent in Houston?",
+    a: "It varies — see the ZIP-by-ZIP average rent table on this page, computed live from real current listings. Sample sizes are small in any single ZIP, so treat it as directional rather than a precise citywide ranking.",
   },
   {
     q: "Are these real, currently-available booths?",
@@ -39,6 +43,7 @@ export default function BarberBoothRentHoustonPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [zipSummary, setZipSummary] = useState<ZipRentSummary[]>([]);
 
   const runSearch = async (loc?: string) => {
     setLoading(true);
@@ -50,6 +55,7 @@ export default function BarberBoothRentHoustonPage() {
 
   useEffect(() => {
     runSearch();
+    fetchNeighborhoodRentSummary().then(setZipSummary);
   }, []);
 
   const submitContact = async (e: React.FormEvent) => {
@@ -257,6 +263,38 @@ export default function BarberBoothRentHoustonPage() {
                   </div>
                 </form>
               )}
+            </div>
+          </div>
+        )}
+
+        {zipSummary.length > 0 && (
+          <div className="mb-16">
+            <h2 className="text-lg font-black text-slate-900 mb-1">Best Neighborhoods for Booth Rent in Houston</h2>
+            <p className="text-xs text-slate-400 font-medium mb-4">
+              Average weekly rent by ZIP code, from real currently-listed booth-rent shops. Sample sizes are small —
+              listing counts are shown so a single listing doesn't read as a citywide average.
+            </p>
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left text-slate-500">
+                    <th className="px-4 py-3 font-bold">ZIP Code</th>
+                    <th className="px-4 py-3 font-bold text-right">Avg. Weekly Rent</th>
+                    <th className="px-4 py-3 font-bold text-right">Listings</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {zipSummary.map((z) => (
+                    <tr key={z.zip} className="border-b border-slate-100 last:border-0">
+                      <td className="px-4 py-3 font-bold text-slate-900">{z.zip}</td>
+                      <td className="px-4 py-3 text-right font-bold text-emerald-700">${z.avgWeeklyRent}/wk</td>
+                      <td className="px-4 py-3 text-right text-slate-500">
+                        {z.listingCount} listing{z.listingCount === 1 ? "" : "s"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

@@ -11,6 +11,8 @@ const footerLinks = {
     { label: "Barbershop Apprentice Jobs Houston", href: "/barbershop-apprentice-jobs-houston" },
     { label: "Barber Booth Rent & Chairs for Rent Houston", href: "/barber-booth-rent-houston" },
     { label: "Salon Suites for Rent Houston", href: "/salon-suites-for-rent-houston" },
+    { label: "Texas Barber & Cosmetology Industry Events", href: "/events" },
+    { label: "Submit Your Event", href: "/tools/event-submission" },
     { label: "Shop Day Matches", href: "/shop-day-matches" },
     { label: "Shop Day Requests", href: "/shop-day-requests" },
     { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },
@@ -26,7 +28,6 @@ const footerLinks = {
   "Internal Tools": [
     { label: "Pixel Analytics", href: "/pixel-analytics" },
     { label: "Employment Match Review", href: "/tools/employment-match-review" },
-    { label: "Event Submission", href: "/tools/event-submission" },
     { label: "Web Crawler Domain Management", href: "/tools/domain-management" },
     { label: "Shop Day Map", href: "/shop-day-map" },
     { label: "Shop Day Connections", href: "/shop-day-connections" },

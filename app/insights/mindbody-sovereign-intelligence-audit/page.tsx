@@ -4,6 +4,7 @@ import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
+import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
@@ -585,6 +586,8 @@ export default function MindbodySovereignIntelligenceAudit() {
 
           <FAQSection faqs={[{"question":"Why is a sovereign intelligence layer necessary for MindBody users?","answer":"Because enterprise-scale wellness brands require deep-domain logic that generic tools cannot provide. A sovereign layer allows a brand to own its data intelligence while using MindBody purely for operational plumbing."}]} />
       <AuthorBio />
+
+          <RelatedArticles currentSlug="mindbody-sovereign-intelligence-audit" />
       <Footer />
     </main>
   )

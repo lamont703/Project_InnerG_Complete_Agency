@@ -92,3 +92,46 @@ export async function fetchBoothRentListings(
 
   return { listings: withDistance, centerLabel: neighborhood?.trim() || null };
 }
+
+export interface ZipRentSummary {
+  zip: string;
+  avgWeeklyRent: number;
+  listingCount: number;
+}
+
+// Real, live-computed answer to "best neighborhoods for booth rent in
+// Houston" — the dataset is thin (~27 real listings across many ZIPs), so
+// this groups by ZIP rather than a finer neighborhood label, and always
+// surfaces the listing count alongside the average so a single-listing ZIP
+// doesn't read as a robust average.
+export async function fetchNeighborhoodRentSummary(): Promise<ZipRentSummary[]> {
+  const { data: shops, error } = await supabase
+    .from("agent_barbershop_leads")
+    .select("formatted_address, rent_rate")
+    .ilike("city", "%houston%")
+    .gt("booth_count_available", 0)
+    .not("rent_rate", "is", null);
+
+  if (error || !shops) {
+    console.error("fetchNeighborhoodRentSummary query error:", error);
+    return [];
+  }
+
+  const byZip = new Map<string, number[]>();
+  for (const s of shops) {
+    const zipMatch = s.formatted_address?.match(/\b(77\d{3})\b/);
+    const rent = parseWeeklyRent(s.rent_rate);
+    if (!zipMatch || rent == null) continue;
+    const zip = zipMatch[1];
+    if (!byZip.has(zip)) byZip.set(zip, []);
+    byZip.get(zip)!.push(rent);
+  }
+
+  return Array.from(byZip.entries())
+    .map(([zip, rents]) => ({
+      zip,
+      avgWeeklyRent: Math.round(rents.reduce((a, b) => a + b, 0) / rents.length),
+      listingCount: rents.length,
+    }))
+    .sort((a, b) => a.avgWeeklyRent - b.avgWeeklyRent);
+}

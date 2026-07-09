@@ -18,11 +18,15 @@ import {
   Users,
   AlertCircle,
   BookOpen,
+  Scissors,
+  Store,
 } from "lucide-react";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import Image from "next/image";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
+import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
+import { fetchNearbyEntities } from "@/lib/nearby-entities";
 
 export const revalidate = 3600;
 
@@ -365,6 +369,15 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
       ? `https://www.google.com/maps?q=${encodeURIComponent(school.formatted_address)}`
       : null;
 
+  const schoolCenter =
+    school.latitude && school.longitude ? { lat: Number(school.latitude), lng: Number(school.longitude) } : null;
+  const [nearbyShops, nearbySupplyStores] = schoolCenter
+    ? await Promise.all([
+        fetchNearbyEntities(supabase, "shops", schoolCenter, { limit: 5 }),
+        fetchNearbyEntities(supabase, "barberSupplyStores", schoolCenter, { limit: 5 }),
+      ])
+    : [[], []];
+
   const websiteHref = school.website
     ? school.website.startsWith("http")
       ? school.website
@@ -443,7 +456,7 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schoolJsonLd) }} />
       {faqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-        <DynamicBackButton />
+        <DynamicBackButton fallbackHref="/tools/barbershop-search" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">
@@ -674,6 +687,9 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                 </a>
               </div>
             )}
+
+            <NearbyEntitiesSection title="Nearby Shops" icon={Scissors} entities={nearbyShops} />
+            <NearbyEntitiesSection title="Nearby Supply Stores" icon={Store} entities={nearbySupplyStores} />
 
             {hours.length > 0 && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">

@@ -4,6 +4,7 @@ import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
+import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
@@ -610,6 +611,8 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
 
           <FAQSection faqs={[{"question":"What is the Intelligence Ceiling at ABC Fitness?","answer":"The intelligence ceiling refers to the structural point where a generic fitness management platform can no longer optimize for high-fidelity client retention without a custom domain-specific intelligence layer. ADI bridges this by creating a sovereign layer that interprets behavioral data ABC Fitness ignores."},{"question":"How does ADI integrate with ABC Fitness?","answer":"ADI acts as a 'Sovereign Intelligence Layer' that sits on top of existing ABC Fitness data streams, consuming operational feedstock to drive autonomous rebooking and no-show prediction without disrupting existing workflows."}]} />
       <AuthorBio />
+
+          <RelatedArticles currentSlug="abc-fitness-sovereign-intelligence-audit" />
       <Footer />
     </main>
   )

@@ -4,6 +4,7 @@ import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
+import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
@@ -708,6 +709,8 @@ export default function RebookingIntelligencePilot() {
 
           <FAQSection faqs={[{"question":"How does the rebooking ADI model work?","answer":"The model identifies the exact 'behavioral fingerprint' of a client likely to churn and triggers an autonomous invitation to rebook at the precise moment their interest is highest, maintaining a full book of business without manual outreach."}]} />
       <AuthorBio />
+
+          <RelatedArticles currentSlug="rebooking-intelligence-pilot" />
       <Footer />
     </main>
   )

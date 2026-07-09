@@ -4,6 +4,7 @@ import { StatisticalSignal } from "@/components/insights/statistical-signal"
 import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
+import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
@@ -621,6 +622,8 @@ export default function BookSySovereignIntelligenceAudit() {
 
           <FAQSection faqs={[{"question":"Why should large Booksy franchises build a sovereign layer?","answer":"To avoid platform lock-in and ensure that the intelligence gathered about their personal clients is owned by the franchise, not the platform. This increases the institutional value of the company and protects its primary revenue streams."}]} />
       <AuthorBio />
+
+          <RelatedArticles currentSlug="booksy-sovereign-intelligence-audit" />
       <Footer />
     </main>
   )
