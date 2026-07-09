@@ -26,6 +26,7 @@ export type AnalyticsData = {
   topReferrers: { url: string; count: number }[]
   topFilters: { filter_id: string; count: number }[]
   topSearchPerformers: { name: string; href: string; resultType: string; impressions: number; avgPosition: number; clicks: number; ctr: number }[]
+  categoryViews: { category: string; views: number; visitors: number }[]
   recentEvents: any[]
 }
 
@@ -99,7 +100,7 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
       totalViews: 0, totalClicks: 0, activeUsers: 0, engagedUsers: 0, returningUsers: 0, qualifiedVisitors: 0,
       totalSearches: 0, uniqueSearchers: 0, outboundLeads: 0, shopClaims: 0,
       aiModeActivations: 0, aiMessagesSent: 0, aiRateLimitHits: 0,
-      topPages: [], topInsights: [], topReferrers: [], topFilters: [], topSearchPerformers: [], recentEvents: []
+      topPages: [], topInsights: [], topReferrers: [], topFilters: [], topSearchPerformers: [], categoryViews: [], recentEvents: []
     }
   }
 
@@ -159,6 +160,7 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
     topReferrers: summary.topReferrers || [],
     topFilters: summary.topFilters || [],
     topSearchPerformers,
+    categoryViews: summary.categoryViews || [],
     recentEvents: recentEvents || [],
   }
 }

@@ -1,12 +1,25 @@
 import Link from "next/link"
 import { fetchAnalyticsData } from "./actions"
-import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target, ShieldCheck, TrendingUp } from "lucide-react"
+import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target, ShieldCheck, TrendingUp, Scissors, Sparkles, GraduationCap, Store, CalendarDays, BookOpen, Wrench } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 
 export const metadata = {
   title: "Pixel Analytics | Inner G Complete",
   description: "Advanced domain intelligence tracking pixel analytics.",
+}
+
+const CATEGORY_ICONS: Record<string, typeof Globe> = {
+  Shops: Scissors,
+  Salons: Sparkles,
+  Barbers: Users,
+  Cosmetologists: Sparkles,
+  Schools: GraduationCap,
+  Stores: Store,
+  Events: CalendarDays,
+  Insights: BookOpen,
+  Tools: Wrench,
+  Other: Globe,
 }
 
 export const dynamic = 'force-dynamic'
@@ -212,6 +225,36 @@ export default async function PixelAnalyticsPage(
             <p className="text-4xl font-black">{data.aiRateLimitHits?.toLocaleString() || 0}</p>
             <p className="text-sm text-rose-300 mt-2">Users hitting the 5-message cap</p>
           </div>
+        </div>
+
+        {/* Visitors by Page Category */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm mb-12">
+          <div className="flex items-center gap-3 mb-6">
+            <Globe className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold">Visitors by Page Category</h2>
+          </div>
+          {data.categoryViews?.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              {data.categoryViews.map((cat) => {
+                const Icon = CATEGORY_ICONS[cat.category] || Globe
+                return (
+                  <div
+                    key={cat.category}
+                    className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 mb-2 text-slate-500 dark:text-slate-400">
+                      <Icon className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wide">{cat.category}</span>
+                    </div>
+                    <p className="text-2xl font-black">{cat.visitors.toLocaleString()}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{cat.views.toLocaleString()} views</p>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-slate-500 text-center py-8">No category data available</div>
+          )}
         </div>
 
         {/* Tables Section */}
