@@ -99,6 +99,11 @@ export async function generateMetadata(): Promise<Metadata> {
       ],
       apple: '/apple-icon.png',
     },
+    verification: {
+      other: {
+        'p:domain_verify': 'a5754e83da941bd97520aeb25debc688',
+      },
+    },
   }
 }
 
