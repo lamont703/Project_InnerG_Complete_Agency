@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     images: ['/thecut_sovereign_intelligence_audit.png'],
   },
   alternates: {
-    canonical: "https://innergcomplete.com/insights/thecut-sovereign-intelligence-audit",
+    canonical: "https://agency.innergcomplete.com/insights/thecut-sovereign-intelligence-audit",
   },
 }
 

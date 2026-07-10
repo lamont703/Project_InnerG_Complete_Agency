@@ -95,7 +95,7 @@ export const metadata = {
   openGraph: {
     title: "The Feasibility Premium: Starting with 'No'",
     description: "Why the most successful AI projects in wellness and grooming begin with a ruthless viability audit, not a dev sprint.",
-    url: "https://innergcomplete.com/insights/the-feasibility-premium",
+    url: "https://agency.innergcomplete.com/insights/the-feasibility-premium",
     type: "article",
     images: [{ url: "/the_feasibility_premium_cover_1776042291644.png", width: 1200, height: 630, alt: "The Feasibility Premium: Starting with No" }],
   },
@@ -105,7 +105,7 @@ export const metadata = {
     description: "Why the most successful AI projects begin with a ruthless viability audit, not a dev sprint.",
     images: ["/the_feasibility_premium_cover_1776042291644.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/the-feasibility-premium" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/the-feasibility-premium" },
 }
 
 export default function FeasibilityPremiumArticle() {
@@ -120,21 +120,21 @@ export default function FeasibilityPremiumArticle() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/the-feasibility-premium"
+              "@id": "https://agency.innergcomplete.com/insights/the-feasibility-premium"
             },
             "headline": "The Feasibility Premium | Strategic View | Inner G Complete",
             "description": "Why execution feasibility is the new barrier to entry in enterprise AI integration.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about"
             },
             "publisher": {
               "@type": "Organization",
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
               }
             },
             "datePublished": "2026-04-12T08:00:00Z"

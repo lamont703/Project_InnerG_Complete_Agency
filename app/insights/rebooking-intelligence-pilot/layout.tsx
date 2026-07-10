@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     type: "article",
     url: "https://agency.innergcomplete.com/insights/rebooking-intelligence-pilot",
     publishedTime: "2026-04-14T08:00:00Z",
-    authors: ["https://innergcomplete.com/about"],
+    authors: ["https://agency.innergcomplete.com/about"],
     siteName: 'Inner G Complete Agency',
     images: [
       {
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     images: ['/rebooking_intelligence_pilot_brief.png'],
   },
   alternates: {
-    canonical: "https://innergcomplete.com/insights/rebooking-intelligence-pilot",
+    canonical: "https://agency.innergcomplete.com/insights/rebooking-intelligence-pilot",
   },
 }
 

@@ -132,7 +132,7 @@ export const metadata = {
   openGraph: {
     title: "Autonomous Concierge: ROI Analysis",
     description: "Quantifying the economic impact of AI-driven booking agents on clinical throughput and client retention.",
-    url: "https://innergcomplete.com/insights/autonomous-concierge-roi-analysis",
+    url: "https://agency.innergcomplete.com/insights/autonomous-concierge-roi-analysis",
     type: "article",
     images: [{ url: "/autonomous_concierge_roi_cover_1776043024026.png", width: 1200, height: 630, alt: "Autonomous Concierge: ROI Analysis" }],
   },
@@ -142,7 +142,7 @@ export const metadata = {
     description: "Quantifying the economic impact of AI-driven booking agents on clinical throughput and retention.",
     images: ["/autonomous_concierge_roi_cover_1776043024026.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/autonomous-concierge-roi-analysis" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/autonomous-concierge-roi-analysis" },
 }
 
 export default function AutonomousConciergeROI() {
@@ -157,21 +157,21 @@ export default function AutonomousConciergeROI() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/autonomous-concierge-roi-analysis"
+              "@id": "https://agency.innergcomplete.com/insights/autonomous-concierge-roi-analysis"
             },
             "headline": "Autonomous Concierge ROI Analysis | Inner G Complete",
             "description": "A quantitative breakdown of the revenue recovered through ADI-driven scheduling automations.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about"
             },
             "publisher": {
               "@type": "Organization",
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
               }
             },
             "datePublished": "2026-04-12T08:00:00Z"

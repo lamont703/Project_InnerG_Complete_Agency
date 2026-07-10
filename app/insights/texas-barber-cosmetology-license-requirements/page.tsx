@@ -119,7 +119,7 @@ export const metadata = {
     title: "Texas Barber & Cosmetology License Requirements (2026)",
     description:
       "Application, the 2-year renewal cycle, new CE and lawful-presence rules, and reciprocity from other states — the canonical TDLR licensing guide.",
-    url: "https://innergcomplete.com/insights/texas-barber-cosmetology-license-requirements",
+    url: "https://agency.innergcomplete.com/insights/texas-barber-cosmetology-license-requirements",
     type: "article",
     images: [{ url: "/texas_barber_licensing_requirements_cover.png", width: 1200, height: 630, alt: "Texas Barber & Cosmetology License Requirements" }],
   },
@@ -129,7 +129,7 @@ export const metadata = {
     description: "Application, renewal, CE requirements, and reciprocity — the canonical TDLR licensing guide.",
     images: ["/texas_barber_licensing_requirements_cover.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/texas-barber-cosmetology-license-requirements" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/texas-barber-cosmetology-license-requirements" },
 }
 
 export default function LicenseRequirementsGuide() {
@@ -143,12 +143,12 @@ export default function LicenseRequirementsGuide() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/texas-barber-cosmetology-license-requirements",
+              "@id": "https://agency.innergcomplete.com/insights/texas-barber-cosmetology-license-requirements",
             },
             headline: "Texas Barber & Cosmetology License Requirements: Application, Renewal, Reciprocity",
             description:
               "The canonical guide to getting and keeping a Texas barber or cosmetology license, sourced directly from TDLR — application, the 2-year renewal cycle, continuing education, lawful presence, and reciprocity.",
-            author: { "@type": "Person", name: "Lamont Evans", url: "https://innergcomplete.com/about" },
+            author: { "@type": "Person", name: "Lamont Evans", url: "https://agency.innergcomplete.com/about" },
             publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
             datePublished: "2026-07-08T08:00:00Z",
           }),

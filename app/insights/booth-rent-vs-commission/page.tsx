@@ -60,7 +60,7 @@ export const metadata = {
     title: "Booth Rent vs. Commission: What the Real Houston Numbers Say",
     description:
       "Real Houston barbershop data on booth rent and commission splits, plus the exact breakeven revenue where one model beats the other.",
-    url: "https://innergcomplete.com/insights/booth-rent-vs-commission",
+    url: "https://agency.innergcomplete.com/insights/booth-rent-vs-commission",
     type: "article",
     images: [{ url: "/booth_vs_commission_cover.png", width: 1024, height: 1024, alt: "Booth Rent vs. Commission" }],
   },
@@ -70,7 +70,7 @@ export const metadata = {
     description: "Real data on booth rent and commission splits, plus the exact breakeven revenue between them.",
     images: ["/booth_vs_commission_cover.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/booth-rent-vs-commission" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/booth-rent-vs-commission" },
 }
 
 export default function BoothRentVsCommissionArticle() {
@@ -84,12 +84,12 @@ export default function BoothRentVsCommissionArticle() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/booth-rent-vs-commission",
+              "@id": "https://agency.innergcomplete.com/insights/booth-rent-vs-commission",
             },
             headline: "Booth Rent vs. Commission: What the Real Houston Numbers Say",
             description:
               "A real-data comparison of booth rent and commission pay structures for Texas barbers and cosmetologists, using live Houston barbershop data and an interactive breakeven calculator.",
-            author: { "@type": "Person", name: "Lamont Evans", url: "https://innergcomplete.com/about" },
+            author: { "@type": "Person", name: "Lamont Evans", url: "https://agency.innergcomplete.com/about" },
             publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
             datePublished: "2026-07-09T08:00:00Z",
           }),

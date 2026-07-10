@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Cognitive Feedstock: 15 Data Sources for Aesthetic AI',
     type: 'article',
-    url: 'https://innergcomplete.com/insights/cognitive-feedstock-15-data-sources',
+    url: 'https://agency.innergcomplete.com/insights/cognitive-feedstock-15-data-sources',
     siteName: 'Inner G Complete Agency',
     images: [
       {
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     images: ['/cognitive_feedstock_brief_cover_1776041859371.png'],
   },
   alternates: {
-    canonical: "https://innergcomplete.com/insights/cognitive-feedstock-15-data-sources",
+    canonical: "https://agency.innergcomplete.com/insights/cognitive-feedstock-15-data-sources",
   },
 }
 

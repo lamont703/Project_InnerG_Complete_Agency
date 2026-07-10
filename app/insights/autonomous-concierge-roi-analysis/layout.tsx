@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     images: ['/autonomous_concierge_roi_cover_1776043024026.png'],
   },
   alternates: {
-    canonical: "https://innergcomplete.com/insights/autonomous-concierge-roi-analysis",
+    canonical: "https://agency.innergcomplete.com/insights/autonomous-concierge-roi-analysis",
   },
 }
 

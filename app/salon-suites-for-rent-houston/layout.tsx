@@ -15,10 +15,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Salon Suites for Rent in Houston",
     description: "Real, currently-listed salon suite availability in Houston, plus what a suite rental requires in Texas.",
-    url: "https://innergcomplete.com/salon-suites-for-rent-houston",
+    url: "https://agency.innergcomplete.com/salon-suites-for-rent-houston",
     type: "website",
   },
-  alternates: { canonical: "https://innergcomplete.com/salon-suites-for-rent-houston" },
+  alternates: { canonical: "https://agency.innergcomplete.com/salon-suites-for-rent-houston" },
 };
 
 export default function SalonSuitesLayout({ children }: { children: React.ReactNode }) {

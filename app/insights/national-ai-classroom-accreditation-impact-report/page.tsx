@@ -100,7 +100,7 @@ export const metadata = {
   openGraph: {
     title: "National AI Classroom Impact Report | Inner G Complete",
     description: "How classroom AI is transforming trade school pass rates and NACCAS/ACCSC accreditation compliance. Discover the data behind Title-IV safety.",
-    url: "https://innergcomplete.com/insights/national-ai-classroom-accreditation-impact-report",
+    url: "https://agency.innergcomplete.com/insights/national-ai-classroom-accreditation-impact-report",
     type: "article",
     images: [{ url: "/national_ai_accreditation_report_cover.png", width: 1200, height: 630, alt: "National AI Classroom Impact Report" }],
   },
@@ -110,7 +110,7 @@ export const metadata = {
     description: "Classroom AI vs. Accreditation Standards. Read our national data-backed analysis on safeguarding student outcomes.",
     images: ["/national_ai_accreditation_report_cover.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/national-ai-classroom-accreditation-impact-report" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/national-ai-classroom-accreditation-impact-report" },
 }
 
 export default function NationalAccreditationReport() {
@@ -124,14 +124,14 @@ export default function NationalAccreditationReport() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/national-ai-classroom-accreditation-impact-report"
+              "@id": "https://agency.innergcomplete.com/insights/national-ai-classroom-accreditation-impact-report"
             },
             "headline": "National AI Classroom Impact Report: Protecting NACCAS & ACCSC Standards",
             "description": "A comprehensive data-driven industry report evaluating AI's impact on trade school student performance and accreditation compliance.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about"
             },
             "publisher": {
               "@type": "Organization",

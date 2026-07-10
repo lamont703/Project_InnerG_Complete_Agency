@@ -105,7 +105,7 @@ export const metadata = {
   openGraph: {
     title: "El Paso Barber Market Rescue Report | Inner G Complete",
     description: "58.0% aggregate fail rate. Socorro HS leads El Paso's licensure crisis. A data-backed rescue plan powered by the Barber Exam Prep Pilot Scholarship.",
-    url: "https://innergcomplete.com/insights/el-paso-barber-market-rescue-report",
+    url: "https://agency.innergcomplete.com/insights/el-paso-barber-market-rescue-report",
     type: "article",
     images: [{ url: "/el_paso_barber_rescue_report_cover.png", width: 1200, height: 630, alt: "El Paso Barber Market Rescue Report" }],
   },
@@ -115,7 +115,7 @@ export const metadata = {
     description: "58.0% aggregate fail rate in El Paso. A TDLR-sourced industry rescue report with the Pilot Scholarship solution.",
     images: ["/el_paso_barber_rescue_report_cover.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/el-paso-barber-market-rescue-report" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/el-paso-barber-market-rescue-report" },
 }
 
 export default function ElPasoRescueReport() {
@@ -129,14 +129,14 @@ export default function ElPasoRescueReport() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/el-paso-barber-market-rescue-report"
+              "@id": "https://agency.innergcomplete.com/insights/el-paso-barber-market-rescue-report"
             },
             "headline": "El Paso Barber Market Rescue Report | Regional Failure Rate Analysis",
             "description": "An industry rescue report analyzing the critical 58.0% failure rates in the El Paso barber market and proposing the Pilot Scholarship solution.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about"
             },
             "publisher": {
               "@type": "Organization",

@@ -86,7 +86,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
     title,
     description,
     keywords,
-    alternates: { canonical: `https://innergcomplete.com/events/${slug}` },
+    alternates: { canonical: `https://agency.innergcomplete.com/events/${slug}` },
     openGraph: {
       title,
       description,
@@ -188,9 +188,9 @@ function buildEventBreadcrumbJsonLd(event: any) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "https://innergcomplete.com" },
-      { "@type": "ListItem", position: 2, name: "Events", item: "https://innergcomplete.com/events" },
-      { "@type": "ListItem", position: 3, name: event.title, item: `https://innergcomplete.com/events/${event.slug}` },
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://agency.innergcomplete.com" },
+      { "@type": "ListItem", position: 2, name: "Events", item: "https://agency.innergcomplete.com/events" },
+      { "@type": "ListItem", position: 3, name: event.title, item: `https://agency.innergcomplete.com/events/${event.slug}` },
     ],
   };
 }

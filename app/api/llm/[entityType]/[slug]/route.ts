@@ -28,7 +28,17 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const BASE_URL = "https://innergcomplete.com";
+
+// Mirrors the same host-derivation pattern used in app/layout.tsx and
+// app/robots.ts — the production host is agency.innergcomplete.com, not
+// the bare innergcomplete.com apex, and this endpoint should never
+// hardcode a domain that drifts from whatever the request actually came
+// in on (also correctly resolves to localhost while testing).
+function getBaseUrl(request: NextRequest): string {
+  const host = request.headers.get("host") || "agency.innergcomplete.com";
+  const protocol = host.includes("localhost") ? "http" : "https";
+  return `${protocol}://${host}`;
+}
 
 function notFoundResponse() {
   return new NextResponse("Not found", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
@@ -90,8 +100,8 @@ async function fetchBySlugOrId(table: string, columns: string, param: string) {
   return (byId as any) ?? null;
 }
 
-function formatBarber(b: any): string {
-  return buildDocument(b.name, `${BASE_URL}/barbers/${b.slug}`, [
+function formatBarber(b: any, baseUrl: string): string {
+  return buildDocument(b.name, `${baseUrl}/barbers/${b.slug}`, [
     section("Overview", [
       bullet("Specialty", b.specialty_type),
       bullet("Metro area", b.metro_area),
@@ -120,8 +130,8 @@ function formatBarber(b: any): string {
   ]);
 }
 
-function formatCosmetologist(c: any): string {
-  return buildDocument(c.name, `${BASE_URL}/cosmetologists/${c.slug}`, [
+function formatCosmetologist(c: any, baseUrl: string): string {
+  return buildDocument(c.name, `${baseUrl}/cosmetologists/${c.slug}`, [
     section("Overview", [
       bullet("Specialty", c.specialty_type),
       bullet("Metro area", c.metro_area),
@@ -143,8 +153,8 @@ function formatCosmetologist(c: any): string {
   ]);
 }
 
-function formatSalon(s: any): string {
-  return buildDocument(s.shop_name, `${BASE_URL}/salons/${s.slug}`, [
+function formatSalon(s: any, baseUrl: string): string {
+  return buildDocument(s.shop_name, `${baseUrl}/salons/${s.slug}`, [
     section("Overview", [
       bullet("City", s.city),
       bullet("Business status", s.business_status),
@@ -160,9 +170,9 @@ function formatSalon(s: any): string {
   ]);
 }
 
-function formatStore(s: any, storeType: "barber_supply" | "beauty_supply"): string {
+function formatStore(s: any, storeType: "barber_supply" | "beauty_supply", baseUrl: string): string {
   const label = storeType === "beauty_supply" ? "Beauty Supply Store" : "Barber Supply Store";
-  return buildDocument(s.name, `${BASE_URL}/stores/${s.slug}`, [
+  return buildDocument(s.name, `${baseUrl}/stores/${s.slug}`, [
     section("Overview", [
       bullet("Category", label),
       bullet("City", s.city),
@@ -180,8 +190,8 @@ function formatStore(s: any, storeType: "barber_supply" | "beauty_supply"): stri
   ]);
 }
 
-function formatSchool(s: any, category: string): string {
-  return buildDocument(s.school_name, `${BASE_URL}/schools/${s.slug}`, [
+function formatSchool(s: any, category: string, baseUrl: string): string {
+  return buildDocument(s.school_name, `${baseUrl}/schools/${s.slug}`, [
     section("Overview", [
       bullet("Category", category),
       bullet("City", s.city),
@@ -225,8 +235,8 @@ function formatSchool(s: any, category: string): string {
   ]);
 }
 
-function formatEvent(e: any, isPast: boolean): string {
-  return buildDocument(e.title, `${BASE_URL}/events/${e.slug}`, [
+function formatEvent(e: any, isPast: boolean, baseUrl: string): string {
+  return buildDocument(e.title, `${baseUrl}/events/${e.slug}`, [
     section("Overview", [
       bullet("Status", isPast ? "Past event" : "Upcoming"),
       bullet("Category", e.category),
@@ -246,8 +256,8 @@ function formatEvent(e: any, isPast: boolean): string {
   ]);
 }
 
-function formatShop(s: any): string {
-  return buildDocument(s.shop_name, `${BASE_URL}/shop/${s.slug}`, [
+function formatShop(s: any, baseUrl: string): string {
+  return buildDocument(s.shop_name, `${baseUrl}/shop/${s.slug}`, [
     section("Overview", [
       bullet("City", s.city),
       bullet("Owner", s.owner_name && s.owner_name !== "Unknown Owner" ? s.owner_name : "Unclaimed"),
@@ -270,50 +280,51 @@ function formatShop(s: any): string {
   ]);
 }
 
-export async function GET(_request: NextRequest, props: { params: Promise<{ entityType: string; slug: string }> }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ entityType: string; slug: string }> }) {
   const { entityType, slug } = await props.params;
+  const baseUrl = getBaseUrl(request);
 
   switch (entityType) {
     case "barbers": {
       const row = await fetchBySlugOrId("agent_barber_leads", BARBER_PUBLIC_COLUMNS.join(", "), slug);
       if (!row) return notFoundResponse();
-      return markdownResponse(formatBarber(row));
+      return markdownResponse(formatBarber(row, baseUrl));
     }
     case "cosmetologists": {
       const row = await fetchBySlugOrId("agent_cosmetologist_leads", COSMETOLOGIST_PUBLIC_COLUMNS.join(", "), slug);
       if (!row) return notFoundResponse();
-      return markdownResponse(formatCosmetologist(row));
+      return markdownResponse(formatCosmetologist(row, baseUrl));
     }
     case "salons": {
       const row = await fetchBySlugOrId("agent_salon_leads", SALON_PUBLIC_COLUMNS.join(", "), slug);
       if (!row) return notFoundResponse();
-      return markdownResponse(formatSalon(row));
+      return markdownResponse(formatSalon(row, baseUrl));
     }
     case "stores": {
       const barberRow = await fetchBySlugOrId("agent_barber_supply_store_leads", STORE_PUBLIC_COLUMNS.join(", "), slug);
-      if (barberRow) return markdownResponse(formatStore(barberRow, "barber_supply"));
+      if (barberRow) return markdownResponse(formatStore(barberRow, "barber_supply", baseUrl));
       const beautyRow = await fetchBySlugOrId("agent_beauty_supply_store_leads", STORE_PUBLIC_COLUMNS.join(", "), slug);
-      if (beautyRow) return markdownResponse(formatStore(beautyRow, "beauty_supply"));
+      if (beautyRow) return markdownResponse(formatStore(beautyRow, "beauty_supply", baseUrl));
       return notFoundResponse();
     }
     case "schools": {
       const barberRow = await fetchBySlugOrId("agent_barber_school_leads", SCHOOL_PUBLIC_COLUMNS.join(", "), slug);
-      if (barberRow) return markdownResponse(formatSchool(barberRow, "Barber School"));
+      if (barberRow) return markdownResponse(formatSchool(barberRow, "Barber School", baseUrl));
       const cosmetColumns = [...SCHOOL_PUBLIC_COLUMNS, ...COSMETOLOGY_SCHOOL_EXTRA_COLUMNS].join(", ");
       const cosmetRow = await fetchBySlugOrId("agent_cosmetology_school_leads", cosmetColumns, slug);
-      if (cosmetRow) return markdownResponse(formatSchool(cosmetRow, cosmetRow.license_type || "Cosmetology School"));
+      if (cosmetRow) return markdownResponse(formatSchool(cosmetRow, cosmetRow.license_type || "Cosmetology School", baseUrl));
       return notFoundResponse();
     }
     case "events": {
       const row = await fetchBySlugOrId("events", EVENT_PUBLIC_COLUMNS.join(", "), slug);
       if (!row) return notFoundResponse();
       const isPast = row.event_date < new Date().toISOString().slice(0, 10);
-      return markdownResponse(formatEvent(row, isPast));
+      return markdownResponse(formatEvent(row, isPast, baseUrl));
     }
     case "shop": {
       const row = await fetchBySlugOrId("agent_barbershop_leads", SHOP_PUBLIC_COLUMNS.join(", "), slug);
       if (!row) return notFoundResponse();
-      return markdownResponse(formatShop(row));
+      return markdownResponse(formatShop(row, baseUrl));
     }
     default:
       return notFoundResponse();

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Research & Insights | Inner G Complete Agency',
     description: 'Institutional research mapping the strategic intersection of Aesthetic Domain Intelligence, generative AI, and predictive modeling.',
-    url: 'https://innergcomplete.com/insights',
+    url: 'https://agency.innergcomplete.com/insights',
     type: 'website',
     images: [
       {
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     images: ['/insights-library-cover.png'],
   },
   alternates: {
-    canonical: 'https://innergcomplete.com/insights',
+    canonical: 'https://agency.innergcomplete.com/insights',
   },
 }
 

@@ -54,7 +54,7 @@ export const metadata = {
   openGraph: {
     title: "Booksy's Intelligence Ceiling",
     description: "A strategic audit of the intelligence layer Booksy's $10B+ GMV data is ready to support.",
-    url: "https://innergcomplete.com/insights/booksy-sovereign-intelligence-audit",
+    url: "https://agency.innergcomplete.com/insights/booksy-sovereign-intelligence-audit",
     type: "article",
     images: [{ url: "/booksy_sovereign_intelligence_audit.png", width: 1200, height: 630, alt: "Booksy's Intelligence Ceiling" }],
   },
@@ -64,7 +64,7 @@ export const metadata = {
     description: "A strategic audit of Booksy's $10B+ GMV platform and the intelligence layer opportunity.",
     images: ["/booksy_sovereign_intelligence_audit.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/booksy-sovereign-intelligence-audit" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/booksy-sovereign-intelligence-audit" },
 }
 
 export default function BookSySovereignIntelligenceAudit() {
@@ -79,21 +79,21 @@ export default function BookSySovereignIntelligenceAudit() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/booksy-sovereign-intelligence-audit"
+              "@id": "https://agency.innergcomplete.com/insights/booksy-sovereign-intelligence-audit"
             },
             "headline": "Booksy's Intelligence Ceiling | Strategic View | Inner G Complete",
             "description": "A platform audit of Booksy's architecture, and why its enterprise clients face an intelligence ceiling they must solve themselves.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about"
             },
             "publisher": {
               "@type": "Organization",
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
               }
             },
             "datePublished": "2026-04-12T08:00:00Z"

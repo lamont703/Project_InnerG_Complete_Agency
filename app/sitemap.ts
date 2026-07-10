@@ -82,7 +82,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const { data: shops } = await supabase
       .from('agent_barbershop_leads')
-      .select('chair_pricing_tool_url')
+      .select('chair_pricing_tool_url, updated_at')
       .ilike('city', '%houston%')
       .not('chair_pricing_tool_url', 'is', null);
 
@@ -100,7 +100,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
       return {
         url: `${baseUrl}/houston/insights/market-analysis/${slug}`,
-        lastModified: new Date(),
+        lastModified: shop.updated_at ? new Date(shop.updated_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.85,
       };
@@ -123,20 +123,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       allCosmetologists,
       allEvents,
     ] = await Promise.all([
-      fetchAllRows(supabase, 'agent_barbershop_leads', 'slug'),
-      fetchAllRows(supabase, 'agent_barber_school_leads', 'slug'),
-      fetchAllRows(supabase, 'agent_cosmetology_school_leads', 'slug'),
-      fetchAllRows(supabase, 'agent_barber_leads', 'slug'),
-      fetchAllRows(supabase, 'agent_barber_supply_store_leads', 'slug'),
-      fetchAllRows(supabase, 'agent_beauty_supply_store_leads', 'slug'),
-      fetchAllRows(supabase, 'agent_salon_leads', 'slug'),
-      fetchAllRows(supabase, 'agent_cosmetologist_leads', 'slug'),
-      fetchAllRows(supabase, 'events', 'slug'),
+      fetchAllRows(supabase, 'agent_barbershop_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_barber_school_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_cosmetology_school_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_barber_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_barber_supply_store_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_beauty_supply_store_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_salon_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_cosmetologist_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'events', 'slug, updated_at'),
     ]);
 
+    // lastModified reflects each row's real updated_at (not the moment the
+    // sitemap happens to regenerate) — otherwise every URL claims to have
+    // "just changed" on every request, giving Google no signal for which
+    // pages actually need recrawling and diluting crawl budget across
+    // thousands of unchanged URLs.
     const shopProfileSitemap = allShops.map((shop: any) => ({
       url: `${baseUrl}/shop/${shop.slug}`,
-      lastModified: new Date(),
+      lastModified: shop.updated_at ? new Date(shop.updated_at) : new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.6, // Lower priority than core static pages
     }));
@@ -146,14 +151,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // only discover them via internal links/crawl, not a submitted URL list.
     const schoolProfileSitemap = [...barberSchools, ...cosmetologySchools].map((school: any) => ({
       url: `${baseUrl}/schools/${school.slug}`,
-      lastModified: new Date(),
+      lastModified: school.updated_at ? new Date(school.updated_at) : new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.65,
     }));
 
     const barberProfileSitemap = allBarbers.map((barber: any) => ({
       url: `${baseUrl}/barbers/${barber.slug}`,
-      lastModified: new Date(),
+      lastModified: barber.updated_at ? new Date(barber.updated_at) : new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.6,
     }));
@@ -161,28 +166,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // barber supply + beauty supply, both served by the shared /stores/[slug] route
     const storeProfileSitemap = [...barberSupplyStores, ...beautySupplyStores].map((store: any) => ({
       url: `${baseUrl}/stores/${store.slug}`,
-      lastModified: new Date(),
+      lastModified: store.updated_at ? new Date(store.updated_at) : new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.55,
     }));
 
     const salonProfileSitemap = allSalons.map((salon: any) => ({
       url: `${baseUrl}/salons/${salon.slug}`,
-      lastModified: new Date(),
+      lastModified: salon.updated_at ? new Date(salon.updated_at) : new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.6,
     }));
 
     const cosmetologistProfileSitemap = allCosmetologists.map((person: any) => ({
       url: `${baseUrl}/cosmetologists/${person.slug}`,
-      lastModified: new Date(),
+      lastModified: person.updated_at ? new Date(person.updated_at) : new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.6,
     }));
 
     const eventProfileSitemap = allEvents.map((event: any) => ({
       url: `${baseUrl}/events/${event.slug}`,
-      lastModified: new Date(),
+      lastModified: event.updated_at ? new Date(event.updated_at) : new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.5,
     }));

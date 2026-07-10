@@ -7,9 +7,9 @@ export function buildEntityBreadcrumbJsonLd(sectionLabel: string, sectionPath: s
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "https://innergcomplete.com" },
-      { "@type": "ListItem", position: 2, name: sectionLabel, item: `https://innergcomplete.com${sectionPath}` },
-      { "@type": "ListItem", position: 3, name: entityName, item: `https://innergcomplete.com${sectionPath}/${entitySlug}` },
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://agency.innergcomplete.com" },
+      { "@type": "ListItem", position: 2, name: sectionLabel, item: `https://agency.innergcomplete.com${sectionPath}` },
+      { "@type": "ListItem", position: 3, name: entityName, item: `https://agency.innergcomplete.com${sectionPath}/${entitySlug}` },
     ],
   };
 }

@@ -207,7 +207,7 @@ export const metadata = {
   openGraph: {
     title: "Rebooking Appointment Intelligence: Barber Grooming ADI Pilot",
     description: "A CPMAI-governed pilot for an ADI model that autonomously keeps a barber's calendar full and drives client retention.",
-    url: "https://innergcomplete.com/insights/rebooking-intelligence-pilot",
+    url: "https://agency.innergcomplete.com/insights/rebooking-intelligence-pilot",
     type: "article",
     images: [{ url: "/rebooking_intelligence_pilot_brief.png", width: 1200, height: 630, alt: "Rebooking Appointment Intelligence Pilot" }],
   },
@@ -217,7 +217,7 @@ export const metadata = {
     description: "A CPMAI-governed pilot for an ADI model that autonomously keeps a barber's calendar full.",
     images: ["/rebooking_intelligence_pilot_brief.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/rebooking-intelligence-pilot" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/rebooking-intelligence-pilot" },
 }
 
 export default function RebookingIntelligencePilot() {
@@ -231,21 +231,21 @@ export default function RebookingIntelligencePilot() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/rebooking-intelligence-pilot"
+              "@id": "https://agency.innergcomplete.com/insights/rebooking-intelligence-pilot"
             },
             "headline": "Rebooking Intelligence Pilot | Barber Grooming ADI Architecture",
             "description": "A CPMAI-governed pilot architecture for deploying an ADI model that autonomously triggers client rebooking, eliminates no-shows, and maintains floor revenue.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about"
             },
             "publisher": {
               "@type": "Organization",
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
               }
             },
             "datePublished": "2026-04-14T08:00:00Z"

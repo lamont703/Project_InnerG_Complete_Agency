@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     title: "El Paso Barber Exam Intelligence Prep™ | Inner G Complete",
     description:
       "58% written exam failure rate in El Paso. Our ADI resolves PSI syntax gaps and secures NACCAS compliance for El Paso barber schools.",
-    url: "https://www.innergcomplete.com/el-paso-barber-exam-intelligence-prep",
+    url: "https://agency.innergcomplete.com/el-paso-barber-exam-intelligence-prep",
     siteName: "Inner G Complete Agency",
     images: [{ url: "/el_paso_barber_rescue_report_cover.png", width: 1200, height: 630, alt: "El Paso Barber Exam Intelligence Prep — ADI-Powered Pass Rate Recovery" }],
     type: "website",
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     images: ["/el_paso_barber_rescue_report_cover.png"],
   },
   alternates: {
-    canonical: "https://www.innergcomplete.com/el-paso-barber-exam-intelligence-prep",
+    canonical: "https://agency.innergcomplete.com/el-paso-barber-exam-intelligence-prep",
   },
 }
 
@@ -50,13 +50,13 @@ const courseJsonLd = {
   name: "El Paso Barber Exam Intelligence Prep™",
   description:
     "ADI-powered barber board exam preparation targeting El Paso's 58% failure rate. Covers PSI syntax decoding, NACCAS compliance, and domain-specific mastery across all 75 written exam categories for Texas TDLR licensure.",
-  url: "https://www.innergcomplete.com/el-paso-barber-exam-intelligence-prep",
+  url: "https://agency.innergcomplete.com/el-paso-barber-exam-intelligence-prep",
   datePublished: "2026-04-28",
   provider: {
     "@type": "Organization",
     name: "Inner G Complete Agency",
-    url: "https://www.innergcomplete.com",
-    logo: "https://www.innergcomplete.com/apple-icon.png",
+    url: "https://agency.innergcomplete.com",
+    logo: "https://agency.innergcomplete.com/apple-icon.png",
   },
   educationalLevel: "Professional Certification",
   about: [
@@ -88,9 +88,9 @@ const breadcrumbJsonLd = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home", item: "https://www.innergcomplete.com" },
-    { "@type": "ListItem", position: 2, name: "Solutions", item: "https://www.innergcomplete.com/solutions" },
-    { "@type": "ListItem", position: 3, name: "El Paso Barber Exam Intelligence Prep", item: "https://www.innergcomplete.com/el-paso-barber-exam-intelligence-prep" },
+    { "@type": "ListItem", position: 1, name: "Home", item: "https://agency.innergcomplete.com" },
+    { "@type": "ListItem", position: 2, name: "Solutions", item: "https://agency.innergcomplete.com/solutions" },
+    { "@type": "ListItem", position: 3, name: "El Paso Barber Exam Intelligence Prep", item: "https://agency.innergcomplete.com/el-paso-barber-exam-intelligence-prep" },
   ],
 }
 

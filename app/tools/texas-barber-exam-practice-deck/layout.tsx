@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     description:
       "Free Texas Class A Barber written exam practice questions, aligned to the PSI exam TDLR uses to administer the actual license test.",
   },
-  alternates: { canonical: "https://innergcomplete.com/tools/texas-barber-exam-practice-deck" },
+  alternates: { canonical: "https://agency.innergcomplete.com/tools/texas-barber-exam-practice-deck" },
 };
 
 export default function PracticeDeckLayout({ children }: { children: React.ReactNode }) {

@@ -49,7 +49,7 @@ export const metadata = {
   openGraph: {
     title: "Highest Paying Barbershops in Houston",
     description: "The real, currently-listed pay terms — lowest booth rents and highest commission splits — across Houston barbershops.",
-    url: "https://innergcomplete.com/insights/highest-paying-barbershops-houston",
+    url: "https://agency.innergcomplete.com/insights/highest-paying-barbershops-houston",
     type: "article",
     images: [{ url: "/insights-library-cover.png", width: 1200, height: 630, alt: "Highest Paying Barbershops in Houston" }],
   },
@@ -59,7 +59,7 @@ export const metadata = {
     description: "Real pay-term data — lowest booth rents and highest commission splits — not guesses.",
     images: ["/insights-library-cover.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/highest-paying-barbershops-houston" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/highest-paying-barbershops-houston" },
 }
 
 export default function HighestPayingBarbershopsArticle() {
@@ -73,12 +73,12 @@ export default function HighestPayingBarbershopsArticle() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/highest-paying-barbershops-houston",
+              "@id": "https://agency.innergcomplete.com/insights/highest-paying-barbershops-houston",
             },
             headline: "Highest Paying Barbershops in Houston: Best Pay Terms, Real Listings",
             description:
               "The real, currently-listed pay terms across Houston barbershops — lowest booth rents and highest commission splits — sourced from live platform data, not earnings estimates.",
-            author: { "@type": "Person", name: "Lamont Evans", url: "https://innergcomplete.com/about" },
+            author: { "@type": "Person", name: "Lamont Evans", url: "https://agency.innergcomplete.com/about" },
             publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
             datePublished: "2026-07-10T08:00:00Z",
           }),

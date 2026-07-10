@@ -67,7 +67,7 @@ export const metadata = {
     title: "How Long Does Barber School Take in Texas?",
     description:
       "1,000 hours, no apprenticeship pathway — what Texas actually requires, and the real accelerated path for licensed cosmetologists.",
-    url: "https://innergcomplete.com/insights/texas-barber-school-length-vs-apprenticeship",
+    url: "https://agency.innergcomplete.com/insights/texas-barber-school-length-vs-apprenticeship",
     type: "article",
     images: [{ url: "/insights-library-cover.png", width: 1200, height: 630, alt: "How Long Does Barber School Take in Texas" }],
   },
@@ -77,7 +77,7 @@ export const metadata = {
     description: "1,000 hours, no apprenticeship pathway — what Texas actually requires.",
     images: ["/insights-library-cover.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/texas-barber-school-length-vs-apprenticeship" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/texas-barber-school-length-vs-apprenticeship" },
 }
 
 export default function BarberSchoolLengthArticle() {
@@ -91,12 +91,12 @@ export default function BarberSchoolLengthArticle() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/texas-barber-school-length-vs-apprenticeship",
+              "@id": "https://agency.innergcomplete.com/insights/texas-barber-school-length-vs-apprenticeship",
             },
             headline: "How Long Does Barber School Take in Texas? (And Why There's No Apprenticeship Path)",
             description:
               "Barber school in Texas requires 1,000 hours of instruction — Texas has no apprenticeship pathway to licensure, unlike some other states, but a real 300-hour accelerated path exists for licensed cosmetologists.",
-            author: { "@type": "Person", name: "Lamont Evans", url: "https://innergcomplete.com/about" },
+            author: { "@type": "Person", name: "Lamont Evans", url: "https://agency.innergcomplete.com/about" },
             publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
             datePublished: "2026-07-10T08:00:00Z",
           }),

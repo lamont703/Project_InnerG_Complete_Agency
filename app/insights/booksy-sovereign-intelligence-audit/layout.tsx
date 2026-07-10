@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     images: ['/booksy_sovereign_intelligence_audit.png'],
   },
   alternates: {
-    canonical: "https://innergcomplete.com/insights/booksy-sovereign-intelligence-audit",
+    canonical: "https://agency.innergcomplete.com/insights/booksy-sovereign-intelligence-audit",
   },
 }
 

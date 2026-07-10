@@ -15,10 +15,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Barber Booth Rent & Chairs for Rent in Houston",
     description: "Real, currently-listed booth-rent barbershops in Houston — weekly rent, chairs available, contact directly.",
-    url: "https://innergcomplete.com/barber-booth-rent-houston",
+    url: "https://agency.innergcomplete.com/barber-booth-rent-houston",
     type: "website",
   },
-  alternates: { canonical: "https://innergcomplete.com/barber-booth-rent-houston" },
+  alternates: { canonical: "https://agency.innergcomplete.com/barber-booth-rent-houston" },
 };
 
 export default function BarberBoothRentLayout({ children }: { children: React.ReactNode }) {

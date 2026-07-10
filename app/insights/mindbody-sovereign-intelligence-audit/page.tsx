@@ -53,7 +53,7 @@ export const metadata = {
   openGraph: {
     title: "MindBody's Intelligence Ceiling",
     description: "Why MindBody's 700-integration architecture generates data without generating intelligence — and how a sovereign AI layer changes everything.",
-    url: "https://innergcomplete.com/insights/mindbody-sovereign-intelligence-audit",
+    url: "https://agency.innergcomplete.com/insights/mindbody-sovereign-intelligence-audit",
     type: "article",
     images: [{ url: "/mindbody_sovereign_intelligence_audit.png", width: 1200, height: 630, alt: "MindBody's Intelligence Ceiling" }],
   },
@@ -63,7 +63,7 @@ export const metadata = {
     description: "A strategic audit of MindBody's intelligence ceiling and the sovereign AI layer opportunity.",
     images: ["/mindbody_sovereign_intelligence_audit.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/mindbody-sovereign-intelligence-audit" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/mindbody-sovereign-intelligence-audit" },
 }
 
 export default function MindbodySovereignIntelligenceAudit() {
@@ -78,21 +78,21 @@ export default function MindbodySovereignIntelligenceAudit() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/mindbody-sovereign-intelligence-audit"
+              "@id": "https://agency.innergcomplete.com/insights/mindbody-sovereign-intelligence-audit"
             },
             "headline": "MindBody's Intelligence Ceiling | Strategic View | Inner G Complete",
             "description": "A strategic audit of MindBody's enterprise limits and why the top 1% of wellness brands must build intelligence layers on top of it.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about"
             },
             "publisher": {
               "@type": "Organization",
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
               }
             },
             "datePublished": "2026-04-12T08:00:00Z"

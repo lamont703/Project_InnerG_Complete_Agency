@@ -56,7 +56,7 @@ export const metadata = {
   openGraph: {
     title: "ABC Fitness's Intelligence Ceiling",
     description: "A strategic audit of the intelligence gap at the heart of the world's largest fitness platform.",
-    url: "https://innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit",
+    url: "https://agency.innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit",
     type: "article",
     images: [{ url: "/abc_fitness_sovereign_intelligence_audit.png", width: 1200, height: 630, alt: "ABC Fitness's Intelligence Ceiling" }],
   },
@@ -66,7 +66,7 @@ export const metadata = {
     description: "A strategic audit of the intelligence gap at the heart of the world's largest fitness platform.",
     images: ["/abc_fitness_sovereign_intelligence_audit.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit" },
 }
 
 export default function AbcFitnessSovereignIntelligenceAudit() {
@@ -81,21 +81,21 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit"
+              "@id": "https://agency.innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit"
             },
             "headline": "ABC Fitness's Intelligence Ceiling | Strategic View | Inner G Complete",
             "description": "A strategic audit of the intelligence gap at the heart of the world's largest fitness platform and how ADI bridges it.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about"
             },
             "publisher": {
               "@type": "Organization",
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
               }
             },
             "datePublished": "2026-04-12T08:00:00Z"

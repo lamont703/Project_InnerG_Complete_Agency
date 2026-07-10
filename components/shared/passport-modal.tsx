@@ -419,7 +419,7 @@ export function PassportModal({
                                 instagram: newPassportInstagram ? `https://instagram.com/${newPassportInstagram}` : "https://instagram.com",
                                 tiktok: newPassportTiktok ? `https://tiktok.com/@${newPassportTiktok.replace('@', '')}` : "https://tiktok.com",
                                 youtube: newPassportYoutube ? `https://youtube.com/@${newPassportYoutube.replace('@', '')}` : "https://youtube.com",
-                                portfolio: newPassportPortfolio ? `https://${newPassportPortfolio}` : "https://innergcomplete.com",
+                                portfolio: newPassportPortfolio ? `https://${newPassportPortfolio}` : "https://agency.innergcomplete.com",
                                 pathway: newPassportPathway,
                                 specialties: newPassportSpecialties.split(',').map(s => s.trim()).filter(Boolean)
                               };
