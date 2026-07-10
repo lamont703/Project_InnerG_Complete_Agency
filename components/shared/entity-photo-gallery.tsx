@@ -61,6 +61,7 @@ export function EntityPhotoGallery({
         <button
           type="button"
           onClick={() => setLightboxIndex(0)}
+          aria-label="View main photo in gallery"
           className="block w-full aspect-[16/10] bg-slate-100 relative"
         >
           <Image
@@ -81,6 +82,7 @@ export function EntityPhotoGallery({
                   type="button"
                   key={url}
                   onClick={() => setLightboxIndex(i + 1)}
+                  aria-label={`View photo ${i + 2} in gallery`}
                   className="relative aspect-square overflow-hidden bg-slate-200 group"
                 >
                   <Image
