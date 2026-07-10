@@ -125,9 +125,14 @@
         const target = e.target.closest("button, a, [data-ig-click]");
         if (!target) return;
 
+        let buttonText = target.innerText?.trim();
+        if (!buttonText) {
+            buttonText = target.getAttribute("aria-label") || target.title || "";
+        }
+
         const metadata = {
             tag: target.tagName.toLowerCase(),
-            text: target.innerText?.trim().substring(0, 50),
+            text: buttonText.substring(0, 50),
             id: target.id || undefined,
             classes: target.className || undefined,
             href: target.href || undefined,
