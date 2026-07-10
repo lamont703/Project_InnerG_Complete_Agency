@@ -250,6 +250,29 @@ function SearchContent() {
     }
   };
 
+  // Suggestion chips need to send their own question text straight into AI
+  // Mode, not rely on the `query` state — setQuery() here wouldn't be
+  // visible yet inside this same handler due to React batching, so
+  // handleTabClick's "carry the in-progress query" branch would still see
+  // the old (empty) value. Passing the text explicitly to sendChatMessage
+  // sidesteps that stale-closure gap entirely.
+  const startAiModeQuery = (text: string) => {
+    setQuery(text);
+    setFilterTab("AI Mode");
+    setPage(1);
+    setShowMoreTabs(false);
+    setActiveFilters([]);
+    setResults([]);
+    setTotal(0);
+    setIsLoading(true);
+    if ((window as any).innerG?.track) {
+      (window as any).innerG.track('ai_mode_activated');
+    }
+    if (chatMessages.length === 0) {
+      sendChatMessage(text);
+    }
+  };
+
   // A shop owner arriving via the "Ask AI About This Market" link on their
   // shop's profile page — drop straight into AI Mode with a question about
   // that specific shop already asked, so they don't have to re-explain
@@ -525,35 +548,57 @@ function SearchContent() {
                 </div>
               </div>
 
-              {/* Quick Search Suggestions */}
+              {/* Quick Search Suggestions — each one asks a question that only
+                  resolves against our own live, collected market data (real
+                  booth-rent pricing, hiring signals, Booksy pricing scrapes,
+                  this year's pass-rate data), not something a generic web
+                  search already answers well. Routed into AI Mode so the
+                  platform can actually synthesize an answer from that data,
+                  not just filter a directory. */}
               {query.trim().length === 0 && results.length === 0 && (
                 <div className="flex flex-wrap items-center justify-center gap-3 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
-                  <span className="text-sm text-slate-500 font-medium">Try searching:</span>
+                  <span className="w-full text-center text-sm text-slate-500 font-medium">Ask about real-time market data:</span>
                   <button
-                    onClick={() => { setQuery("Open booth stations in Houston barbershops"); setPage(1); }}
+                    onClick={() => startAiModeQuery("Which Houston neighborhoods have the cheapest barber booth rent right now?")}
                     className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <Search className="h-3 w-3 inline-block mr-1.5 opacity-50" />
-                    Open booth stations in Houston barbershops
+                    <span className="mr-1.5">✨</span>
+                    Cheapest Houston neighborhoods for barber booth rent
                   </button>
                   <button
-                    onClick={() => { setQuery("Barbers in Houston looking for chairs"); setPage(1); }}
+                    onClick={() => startAiModeQuery("Which Houston barbershops are hiring or renting booths this week?")}
                     className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <Search className="h-3 w-3 inline-block mr-1.5 opacity-50" />
-                    Barbers in Houston looking for chairs
+                    <span className="mr-1.5">✨</span>
+                    Houston barbershops hiring or renting booths this week
                   </button>
                   <button
-                    onClick={() => {
-                      setQuery("Barber schools in Houston with the best pass rates");
-                      setFilterTab("Schools");
-                      setActiveFilters(["school_high_pass_rate", "school_city_houston"]);
-                      setPage(1);
-                    }}
+                    onClick={() => startAiModeQuery("Which Texas barber schools actually deliver the highest 2026 pass rates?")}
                     className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <Search className="h-3 w-3 inline-block mr-1.5 opacity-50" />
-                    Best barber schools in Houston by Pass Rate
+                    <span className="mr-1.5">✨</span>
+                    Texas barber schools with the highest 2026 pass rates
+                  </button>
+                  <button
+                    onClick={() => startAiModeQuery("Which highly-rated Houston salons are hiring or renting chairs right now?")}
+                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <span className="mr-1.5">✨</span>
+                    Highly-rated Houston salons hiring or renting chairs
+                  </button>
+                  <button
+                    onClick={() => startAiModeQuery("What are cosmetologists actually charging for services in Houston right now?")}
+                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <span className="mr-1.5">✨</span>
+                    What Houston cosmetologists are actually charging
+                  </button>
+                  <button
+                    onClick={() => startAiModeQuery("Which Texas cosmetology schools actually deliver the highest 2026 pass rates?")}
+                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <span className="mr-1.5">✨</span>
+                    Texas cosmetology schools with the highest 2026 pass rates
                   </button>
                 </div>
               )}

@@ -85,19 +85,18 @@ async function run() {
       const query = `${name} ${address || ''}`.trim();
       const searchUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
       
-      try {
+      const tryScrape = async (url) => {
         await sleep(3000); // Anti-bot pacing
-        await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
         
         // Wait an extra few seconds for the heavy maps DOM to render the side panel images
         await sleep(4000);
         
-        const scrapedUrls = await page.evaluate(() => {
+        return await page.evaluate(() => {
           const urls = new Set();
           
           document.querySelectorAll('img').forEach(img => {
             if (img.src && img.src.includes('googleusercontent.com/') && !img.src.includes('mapslogo')) {
-              // Convert to high-res
               const highResSrc = img.src.split('=')[0] + '=w1000-h1000-k-no';
               urls.add(highResSrc);
             }
@@ -114,11 +113,24 @@ async function run() {
             }
           });
           
-          return Array.from(urls).slice(0, 5); // Max 5 images per place
+          return Array.from(urls).slice(0, 5);
         });
+      };
+
+      try {
+        let scrapedUrls = await tryScrape(searchUrl);
 
         if (scrapedUrls.length === 0) {
-          console.log(`  ⚠️ No images found on Maps for this business.`);
+          console.log(`  ⚠️ No images found for full address. Trying fallback query...`);
+          // Fallback: Just the name and state (useful for schools and suites)
+          const fallbackName = name.replace(/Cosmetology|High School|ISD/ig, '').trim();
+          const fallbackQuery = `${fallbackName} Texas`;
+          const fallbackUrl = `https://www.google.com/maps/search/${encodeURIComponent(fallbackQuery)}`;
+          scrapedUrls = await tryScrape(fallbackUrl);
+        }
+
+        if (scrapedUrls.length === 0) {
+          console.log(`  ⚠️ Still no images found on fallback. Skipping.`);
           continue;
         }
 
