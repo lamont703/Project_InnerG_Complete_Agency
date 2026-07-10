@@ -93,7 +93,7 @@ export const metadata = {
     title: "Opening Your Own Shop in Texas (2026)",
     description:
       "Establishment license application, premises and equipment rules, required postings, and inspections — the canonical TDLR shop-opening guide.",
-    url: "https://innergcomplete.com/insights/opening-your-own-shop-in-texas",
+    url: "https://agency.innergcomplete.com/insights/opening-your-own-shop-in-texas",
     type: "article",
     images: [{ url: "/opening_shop_texas_cover.png", width: 1200, height: 630, alt: "Opening Your Own Shop in Texas" }],
   },
@@ -103,7 +103,7 @@ export const metadata = {
     description: "Establishment license, premises rules, required postings, and inspections — the TDLR shop-opening guide.",
     images: ["/opening_shop_texas_cover.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/opening-your-own-shop-in-texas" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/opening-your-own-shop-in-texas" },
 }
 
 export default function OpeningYourOwnShopGuide() {
@@ -117,12 +117,12 @@ export default function OpeningYourOwnShopGuide() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/opening-your-own-shop-in-texas",
+              "@id": "https://agency.innergcomplete.com/insights/opening-your-own-shop-in-texas",
             },
             headline: "Opening Your Own Shop in Texas: TDLR Establishment License Requirements",
             description:
               "What TDLR requires to open a barbershop or salon in Texas — establishment license, premises and equipment rules, required postings, and inspections.",
-            author: { "@type": "Person", name: "Lamont Evans", url: "https://innergcomplete.com/about" },
+            author: { "@type": "Person", name: "Lamont Evans", url: "https://agency.innergcomplete.com/about" },
             publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
             datePublished: "2026-07-08T08:00:00Z",
           }),

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Barber School Pilot Scholarship Fund | Free Board Exam Prep',
     description: 'Texas barber schools are losing students to the written exam. The Pilot Scholarship gives your students free AI-powered, board-aligned exam prep — at zero cost to your school.',
-    url: 'https://innergcomplete.com/barber-school-pilot-scholarship-fund',
+    url: 'https://agency.innergcomplete.com/barber-school-pilot-scholarship-fund',
     type: 'website',
     images: [
       {
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     images: ['/el_paso_barber_rescue_report_cover.png'],
   },
   alternates: {
-    canonical: 'https://innergcomplete.com/barber-school-pilot-scholarship-fund',
+    canonical: 'https://agency.innergcomplete.com/barber-school-pilot-scholarship-fund',
   },
 }
 
@@ -55,11 +55,11 @@ export default function ScholarshipFundLayout({
             "@type": "EducationalOccupationalProgram",
             "name": "Barber Exam Prep Pilot Scholarship Fund",
             "description": "A sponsored pilot program providing Texas barber students with free AI-enhanced written board exam preparation to close the 58% statewide failure rate.",
-            "url": "https://innergcomplete.com/barber-school-pilot-scholarship-fund",
+            "url": "https://agency.innergcomplete.com/barber-school-pilot-scholarship-fund",
             "provider": {
               "@type": "Organization",
               "name": "Inner G Complete Agency",
-              "url": "https://innergcomplete.com"
+              "url": "https://agency.innergcomplete.com"
             },
             "educationalProgramMode": "online",
             "occupationalCategory": "Barber",
@@ -80,8 +80,8 @@ export default function ScholarshipFundLayout({
             "breadcrumb": {
               "@type": "BreadcrumbList",
               "itemListElement": [
-                { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://innergcomplete.com" },
-                { "@type": "ListItem", "position": 2, "name": "Barber School Pilot Scholarship Fund", "item": "https://innergcomplete.com/barber-school-pilot-scholarship-fund" }
+                { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://agency.innergcomplete.com" },
+                { "@type": "ListItem", "position": 2, "name": "Barber School Pilot Scholarship Fund", "item": "https://agency.innergcomplete.com/barber-school-pilot-scholarship-fund" }
               ]
             }
           })

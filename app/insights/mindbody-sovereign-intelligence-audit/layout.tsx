@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     images: ['/mindbody_sovereign_intelligence_audit.png'],
   },
   alternates: {
-    canonical: "https://innergcomplete.com/insights/mindbody-sovereign-intelligence-audit",
+    canonical: "https://agency.innergcomplete.com/insights/mindbody-sovereign-intelligence-audit",
   },
 }
 

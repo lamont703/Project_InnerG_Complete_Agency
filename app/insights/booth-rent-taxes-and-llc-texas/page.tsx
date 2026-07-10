@@ -51,7 +51,7 @@ export const metadata = {
     title: "Booth Rent Taxes & Do You Need an LLC in Texas?",
     description:
       "What booth renters actually owe, what's deductible, and why Texas doesn't require an LLC to rent a booth.",
-    url: "https://innergcomplete.com/insights/booth-rent-taxes-and-llc-texas",
+    url: "https://agency.innergcomplete.com/insights/booth-rent-taxes-and-llc-texas",
     type: "article",
     images: [{ url: "/insights-library-cover.png", width: 1200, height: 630, alt: "Booth Rent Taxes & LLC in Texas" }],
   },
@@ -61,7 +61,7 @@ export const metadata = {
     description: "What's deductible, what you owe, and why an LLC isn't actually required.",
     images: ["/insights-library-cover.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/booth-rent-taxes-and-llc-texas" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/booth-rent-taxes-and-llc-texas" },
 }
 
 export default function BoothRentTaxesArticle() {
@@ -75,12 +75,12 @@ export default function BoothRentTaxesArticle() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/booth-rent-taxes-and-llc-texas",
+              "@id": "https://agency.innergcomplete.com/insights/booth-rent-taxes-and-llc-texas",
             },
             headline: "Booth Rent Taxes & Do You Need an LLC in Texas?",
             description:
               "Booth renters are independent contractors, not employees — what that means for deductions, 1099s, self-employment tax, and whether an LLC is actually required in Texas.",
-            author: { "@type": "Person", name: "Lamont Evans", url: "https://innergcomplete.com/about" },
+            author: { "@type": "Person", name: "Lamont Evans", url: "https://agency.innergcomplete.com/about" },
             publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
             datePublished: "2026-07-10T08:00:00Z",
           }),

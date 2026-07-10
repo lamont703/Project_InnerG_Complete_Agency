@@ -60,7 +60,7 @@ export const metadata = {
     title: "Booth Rental Requirements in Texas (2026)",
     description:
       "The TDLR Mini-Establishment license, contract terms, and insurance every Texas booth renter should know before signing.",
-    url: "https://innergcomplete.com/insights/booth-rental-contract-requirements-texas",
+    url: "https://agency.innergcomplete.com/insights/booth-rental-contract-requirements-texas",
     type: "article",
     images: [{ url: "/booth_rental_texas_contract_cover.png", width: 1024, height: 1024, alt: "Booth Rental Requirements in Texas" }],
   },
@@ -70,7 +70,7 @@ export const metadata = {
     description: "The Mini-Establishment license, contract terms, and insurance every Texas booth renter should know.",
     images: ["/booth_rental_texas_contract_cover.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/booth-rental-contract-requirements-texas" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/booth-rental-contract-requirements-texas" },
 }
 
 export default function BoothRentalRequirementsGuide() {
@@ -84,12 +84,12 @@ export default function BoothRentalRequirementsGuide() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/booth-rental-contract-requirements-texas",
+              "@id": "https://agency.innergcomplete.com/insights/booth-rental-contract-requirements-texas",
             },
             headline: "Booth Rental Requirements in Texas: Mini-Establishment License, Contract & Insurance",
             description:
               "What Texas requires for booth rental — the TDLR Mini-Establishment license, contract terms, and insurance every booth renter should know before signing.",
-            author: { "@type": "Person", name: "Lamont Evans", url: "https://innergcomplete.com/about" },
+            author: { "@type": "Person", name: "Lamont Evans", url: "https://agency.innergcomplete.com/about" },
             publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
             datePublished: "2026-07-09T08:00:00Z",
           }),

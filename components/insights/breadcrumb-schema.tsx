@@ -14,19 +14,19 @@ export function BreadcrumbSchema({ slug, title }: BreadcrumbSchemaProps) {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://innergcomplete.com"
+        "item": "https://agency.innergcomplete.com"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Insights",
-        "item": "https://innergcomplete.com/insights"
+        "item": "https://agency.innergcomplete.com/insights"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": title,
-        "item": `https://innergcomplete.com/insights/${slug}`
+        "item": `https://agency.innergcomplete.com/insights/${slug}`
       }
     ]
   }

@@ -76,7 +76,7 @@ export const metadata = {
   openGraph: {
     title: "The Sovereign Intelligence Layer: Why ADI Wins",
     description: "Why the enterprise that builds a proprietary Artificial Domain Intelligence becomes the industry standard everyone else licenses.",
-    url: "https://innergcomplete.com/insights/the-sovereign-intelligence-layer",
+    url: "https://agency.innergcomplete.com/insights/the-sovereign-intelligence-layer",
     type: "article",
     images: [{ url: "/adi_sovereign_layer_cover_1776108008232.png", width: 1200, height: 630, alt: "The Sovereign Intelligence Layer" }],
   },
@@ -86,7 +86,7 @@ export const metadata = {
     description: "Why a proprietary Artificial Domain Intelligence becomes the industry standard everyone else licenses.",
     images: ["/adi_sovereign_layer_cover_1776108008232.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/the-sovereign-intelligence-layer" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/the-sovereign-intelligence-layer" },
 }
 
 export default function SovereignIntelligenceLayer() {
@@ -100,21 +100,21 @@ export default function SovereignIntelligenceLayer() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/the-sovereign-intelligence-layer"
+              "@id": "https://agency.innergcomplete.com/insights/the-sovereign-intelligence-layer"
             },
             "headline": "The Sovereign Intelligence Layer | Core Vision",
             "description": "Why the enterprise that builds a proprietary Artificial Domain Intelligence creates an unassailable competitive moat.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about"
             },
             "publisher": {
               "@type": "Organization",
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
               }
             },
             "datePublished": "2026-04-13T08:00:00Z"

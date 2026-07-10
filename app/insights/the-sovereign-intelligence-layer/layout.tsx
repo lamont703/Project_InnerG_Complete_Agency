@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     images: ['/adi_sovereign_layer_cover_1776108008232.png'],
   },
   alternates: {
-    canonical: "https://innergcomplete.com/insights/the-sovereign-intelligence-layer",
+    canonical: "https://agency.innergcomplete.com/insights/the-sovereign-intelligence-layer",
   },
 }
 

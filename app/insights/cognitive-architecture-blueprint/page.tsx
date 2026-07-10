@@ -182,7 +182,7 @@ export const metadata = {
   openGraph: {
     title: "The Cognitive Architecture Blueprint: Delivering Institutional-Grade AI with CPMAI",
     description: "How Inner G Complete applies the PMI-certified CPMAI framework to architect a governance-first Aesthetic Domain Intelligence model.",
-    url: "https://innergcomplete.com/insights/cognitive-architecture-blueprint",
+    url: "https://agency.innergcomplete.com/insights/cognitive-architecture-blueprint",
     type: "article",
     images: [{ url: "/cpmai_framework_cover.png", width: 1200, height: 630, alt: "The Cognitive Architecture Blueprint" }],
   },
@@ -192,7 +192,7 @@ export const metadata = {
     description: "How the PMI-certified CPMAI framework governs the Aesthetic Domain Intelligence model.",
     images: ["/cpmai_framework_cover.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/cognitive-architecture-blueprint" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/cognitive-architecture-blueprint" },
 }
 
 export default function CognitiveArchitectureBlueprint() {
@@ -207,21 +207,21 @@ export default function CognitiveArchitectureBlueprint() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/cognitive-architecture-blueprint"
+              "@id": "https://agency.innergcomplete.com/insights/cognitive-architecture-blueprint"
             },
             "headline": "Cognitive Architecture Blueprint | Technical View | Inner G Complete",
             "description": "The fundamental engineering blueprint for transitioning a wellness enterprise from traditional systems to advanced sovereign AI.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about"
             },
             "publisher": {
               "@type": "Organization",
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
               }
             },
             "datePublished": "2026-04-12T08:00:00Z"

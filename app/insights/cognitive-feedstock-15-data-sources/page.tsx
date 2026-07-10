@@ -239,7 +239,7 @@ export const metadata = {
   openGraph: {
     title: "Cognitive Feedstock: 15 Data Sources for Aesthetic AI",
     description: "Moving beyond booking lists to high-fidelity data that captures the human element of wellness and grooming.",
-    url: "https://innergcomplete.com/insights/cognitive-feedstock-15-data-sources",
+    url: "https://agency.innergcomplete.com/insights/cognitive-feedstock-15-data-sources",
     type: "article",
     images: [{ url: "/cognitive_feedstock_brief_cover_1776041859371.png", width: 1200, height: 630, alt: "Cognitive Feedstock: 15 Data Sources for Aesthetic AI" }],
   },
@@ -249,7 +249,7 @@ export const metadata = {
     description: "High-fidelity data sources that capture the human element of wellness and grooming.",
     images: ["/cognitive_feedstock_brief_cover_1776041859371.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/cognitive-feedstock-15-data-sources" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/cognitive-feedstock-15-data-sources" },
 }
 
 export default function DataSourcesBrief() {
@@ -264,21 +264,21 @@ export default function DataSourcesBrief() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/cognitive-feedstock-15-data-sources"
+              "@id": "https://agency.innergcomplete.com/insights/cognitive-feedstock-15-data-sources"
             },
             "headline": "Cognitive Feedstock: The 15 Enterprise Data Sources | Inner G Complete",
             "description": "A breakdown of the 15 critical data streams that fuel an enterprise Artificial Domain Intelligence model.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about"
             },
             "publisher": {
               "@type": "Organization",
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
               }
             },
             "datePublished": "2026-04-12T08:00:00Z"

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     images: ['/the_feasibility_premium_cover_1776042291644.png'],
   },
   alternates: {
-    canonical: "https://innergcomplete.com/insights/the-feasibility-premium",
+    canonical: "https://agency.innergcomplete.com/insights/the-feasibility-premium",
   },
 }
 

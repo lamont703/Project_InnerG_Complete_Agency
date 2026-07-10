@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     images: ['/abc_fitness_sovereign_intelligence_audit.png'],
   },
   alternates: {
-    canonical: "https://innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit",
+    canonical: "https://agency.innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit",
   },
 }
 

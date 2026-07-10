@@ -118,7 +118,7 @@ export const metadata = {
   openGraph: {
     title: "The Texas Barber Licensure Crisis: A $15M Institutional Risk Analysis",
     description: "A 37.25% aggregate written pass rate is putting Texas barber school accreditation at risk. A full data audit and the ADI Pilot response.",
-    url: "https://innergcomplete.com/insights/texas-barber-licensure-crisis",
+    url: "https://agency.innergcomplete.com/insights/texas-barber-licensure-crisis",
     type: "article",
     images: [{ url: "/texas_barber_crisis_cover.png", width: 1200, height: 630, alt: "The Texas Barber Licensure Crisis" }],
   },
@@ -128,7 +128,7 @@ export const metadata = {
     description: "37.25% aggregate written pass rate. A data audit of the Texas barber licensure crisis and the ADI Pilot response.",
     images: ["/texas_barber_crisis_cover.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/texas-barber-licensure-crisis" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/texas-barber-licensure-crisis" },
 }
 
 export default function TexasBarberCrisis() {
@@ -143,14 +143,14 @@ export default function TexasBarberCrisis() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/texas-barber-licensure-crisis"
+              "@id": "https://agency.innergcomplete.com/insights/texas-barber-licensure-crisis"
             },
             "headline": "The Texas Barber Licensure Crisis | Institutional Pass Rate Analysis",
             "description": "An analysis of the critical 37.25% written pass rates in the Texas barber market (FY 2025) and the 89.8% practical gap.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about"
             },
             "publisher": {
               "@type": "Organization",

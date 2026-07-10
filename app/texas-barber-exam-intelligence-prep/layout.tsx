@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     title: "Texas Barber Exam Intelligence Prep™ | Inner G Complete",
     description:
       "37.25% statewide written exam failure rate. Our Artificial Domain Intelligence resolves PSI syntax gaps and secures NACCAS compliance for Texas barber schools.",
-    url: "https://www.innergcomplete.com/texas-barber-exam-intelligence-prep",
+    url: "https://agency.innergcomplete.com/texas-barber-exam-intelligence-prep",
     siteName: "Inner G Complete Agency",
     images: [
       {
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     images: ["/texas_barber_crisis_cover.png"],
   },
   alternates: {
-    canonical: "https://www.innergcomplete.com/texas-barber-exam-intelligence-prep",
+    canonical: "https://agency.innergcomplete.com/texas-barber-exam-intelligence-prep",
   },
 }
 
@@ -59,13 +59,13 @@ const courseJsonLd = {
   name: "Texas Barber Exam Intelligence Prep™",
   description:
     "ADI-powered barber board exam preparation targeting Texas's 37.25% statewide written failure rate. Covers PSI syntax decoding, NACCAS compliance, and domain-specific mastery across all 75 written exam categories for TDLR licensure.",
-  url: "https://www.innergcomplete.com/texas-barber-exam-intelligence-prep",
+  url: "https://agency.innergcomplete.com/texas-barber-exam-intelligence-prep",
   datePublished: "2026-04-01",
   provider: {
     "@type": "Organization",
     name: "Inner G Complete Agency",
-    url: "https://www.innergcomplete.com",
-    logo: "https://www.innergcomplete.com/apple-icon.png",
+    url: "https://agency.innergcomplete.com",
+    logo: "https://agency.innergcomplete.com/apple-icon.png",
   },
   educationalLevel: "Professional Certification",
   about: [
@@ -98,13 +98,13 @@ const breadcrumbJsonLd = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home", item: "https://www.innergcomplete.com" },
-    { "@type": "ListItem", position: 2, name: "Solutions", item: "https://www.innergcomplete.com/solutions" },
+    { "@type": "ListItem", position: 1, name: "Home", item: "https://agency.innergcomplete.com" },
+    { "@type": "ListItem", position: 2, name: "Solutions", item: "https://agency.innergcomplete.com/solutions" },
     {
       "@type": "ListItem",
       position: 3,
       name: "Texas Barber Exam Intelligence Prep",
-      item: "https://www.innergcomplete.com/texas-barber-exam-intelligence-prep",
+      item: "https://agency.innergcomplete.com/texas-barber-exam-intelligence-prep",
     },
   ],
 }

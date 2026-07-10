@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Contact Inner G Complete Agency | Start Your ADI Deployment',
     description: 'Initiate a CPMAI-governed Artificial Domain Intelligence deployment. Contact our architectural support.',
-    url: 'https://innergcomplete.com/contact',
+    url: 'https://agency.innergcomplete.com/contact',
     type: 'website',
     images: [
       {
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     images: ['/og-image.png'],
   },
   alternates: {
-    canonical: 'https://innergcomplete.com/contact',
+    canonical: 'https://agency.innergcomplete.com/contact',
   },
 }
 

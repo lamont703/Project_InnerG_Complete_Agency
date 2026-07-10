@@ -26,7 +26,7 @@ export const metadata = {
     description:
       "Every required kit item, labeling rule, and station-by-station step order for the Texas Cosmetology Operator practical exam, sourced from the official PSI/TDLR bulletin.",
   },
-  alternates: { canonical: "https://innergcomplete.com/texas-cosmetology-practical-exam-kit-list" },
+  alternates: { canonical: "https://agency.innergcomplete.com/texas-cosmetology-practical-exam-kit-list" },
 };
 
 const FAQS = [

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Careers at Inner G Complete | Build Sovereign Intelligence',
     description: 'We are hiring elite AI product managers, engineers, and strategists to build the intelligence standard for wellness and grooming.',
-    url: 'https://innergcomplete.com/careers',
+    url: 'https://agency.innergcomplete.com/careers',
     type: 'website',
     images: [
       {
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     images: ['/careers-hub-cover.png'],
   },
   alternates: {
-    canonical: 'https://innergcomplete.com/careers',
+    canonical: 'https://agency.innergcomplete.com/careers',
   },
 }
 

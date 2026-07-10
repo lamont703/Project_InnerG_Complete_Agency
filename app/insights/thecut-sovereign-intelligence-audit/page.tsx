@@ -54,7 +54,7 @@ export const metadata = {
   openGraph: {
     title: "theCut's Intelligence Ceiling",
     description: "A strategic audit of theCut, the $2B+ booking platform trusted across Black and Brown barbershop culture.",
-    url: "https://innergcomplete.com/insights/thecut-sovereign-intelligence-audit",
+    url: "https://agency.innergcomplete.com/insights/thecut-sovereign-intelligence-audit",
     type: "article",
     images: [{ url: "/thecut_sovereign_intelligence_audit.png", width: 1200, height: 630, alt: "theCut's Intelligence Ceiling" }],
   },
@@ -64,7 +64,7 @@ export const metadata = {
     description: "A strategic audit of theCut's $2B+ barber booking platform and its intelligence ceiling.",
     images: ["/thecut_sovereign_intelligence_audit.png"],
   },
-  alternates: { canonical: "https://innergcomplete.com/insights/thecut-sovereign-intelligence-audit" },
+  alternates: { canonical: "https://agency.innergcomplete.com/insights/thecut-sovereign-intelligence-audit" },
 }
 
 export default function TheCutSovereignIntelligenceAudit() {
@@ -79,21 +79,21 @@ export default function TheCutSovereignIntelligenceAudit() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://innergcomplete.com/insights/thecut-sovereign-intelligence-audit"
+              "@id": "https://agency.innergcomplete.com/insights/thecut-sovereign-intelligence-audit"
             },
             "headline": "theCut's Intelligence Ceiling | Strategic View | Inner G Complete",
             "description": "An architectural review of theCut's platform dynamics and the necessity for sovereign AI layers for top grooming franchises.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about"
             },
             "publisher": {
               "@type": "Organization",
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://innergcomplete.com/icon-dark-32x32.png"
+                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
               }
             },
             "datePublished": "2026-04-12T08:00:00Z"
