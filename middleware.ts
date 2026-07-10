@@ -15,10 +15,27 @@ const PROTECTED_ROUTES = ["/select-portal", "/dashboard"]
 /** Routes that authenticated users should NOT reach (redirect to portal) */
 const AUTH_ROUTES = ["/login"]
 
+/** Entity route prefixes served by app/api/llm/[entityType]/[slug]/route.ts */
+const LLM_MARKDOWN_ENTITY_TYPES = new Set(["shop", "salons", "barbers", "cosmetologists", "stores", "schools", "events"])
+
 export default async function proxy(request: NextRequest) {
     const host = request.headers.get("host") || ""
     const { pathname } = request.nextUrl
     console.log('--- Proxy Intercept:', { host, pathname })
+
+    // Generative Engine Optimization: AI crawlers (GPTBot, ClaudeBot,
+    // PerplexityBot, etc.) can append .md to any entity profile URL to get
+    // the same facts as the page's JSON-LD, reformatted as plain Markdown.
+    // Standard users/browsers never request this — only bots following the
+    // convention documented in public/llms.txt do. Rewritten (not
+    // redirected) so the visible URL stays the .md one.
+    if (pathname.endsWith('.md')) {
+        const segments = pathname.slice(0, -3).split('/').filter(Boolean)
+        if (segments.length === 2 && LLM_MARKDOWN_ENTITY_TYPES.has(segments[0])) {
+            const [entityType, slug] = segments
+            return NextResponse.rewrite(new URL(`/api/llm/${entityType}/${slug}`, request.url))
+        }
+    }
 
     // Institutional Stealth Routing
     if (host === 'texasbarbering.innergcomplete.com' && pathname === '/') {

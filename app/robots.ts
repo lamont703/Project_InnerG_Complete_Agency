@@ -10,16 +10,27 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const domain = host || 'agency.innergcomplete.com'
 
   return {
-    rules: {
-      userAgent: '*',
-      allow: ['/', '/insights'],
-      disallow: [
-        '/login/',
-        '/select-portal/',
-        '/api/',
-        '/auth/'
-      ],
-    },
+    rules: [
+      {
+        // .md is disallowed for general search engines — those URLs would
+        // otherwise be indexable duplicate content sitting alongside the
+        // real HTML profile pages. Named AI crawlers get an explicit
+        // override below since that's exactly who this endpoint is for.
+        userAgent: '*',
+        allow: ['/', '/insights'],
+        disallow: [
+          '/login/',
+          '/select-portal/',
+          '/api/',
+          '/auth/',
+          '/*.md$',
+        ],
+      },
+      {
+        userAgent: ['GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'anthropic-ai', 'PerplexityBot', 'Google-Extended'],
+        allow: ['/*.md$'],
+      },
+    ],
     sitemap: `${protocol}://${domain}/sitemap.xml`,
   }
 }
