@@ -27,6 +27,7 @@ import Image from "next/image";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
+import { SCHOOL_PUBLIC_COLUMNS } from "@/lib/public-columns";
 
 export const revalidate = 3600;
 
@@ -34,41 +35,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const PUBLIC_COLUMNS = [
-  "id",
-  "slug",
-  "school_name",
-  "city",
-  "formatted_address",
-  "latitude",
-  "longitude",
-  "phone",
-  "website",
-  "rating",
-  "google_review_count",
-  "google_photos",
-  "google_hours",
-  "google_business_status",
-  "accreditation_status",
-  "accreditor_name",
-  "student_body_size",
-  "annual_tuition",
-  "completion_rate",
-  "median_earnings",
-  "default_rate",
-  "pell_grant_rate",
-  "federal_loan_rate",
-  "median_student_debt",
-  "state_pass_rate",
-  "written_pass_rate_2026",
-  "written_test_takers_2026",
-  "practical_pass_rate_2026",
-  "practical_test_takers_2026",
-  "cosmetology_written_pass_rate_2026",
-  "cosmetology_written_test_takers_2026",
-  "cosmetology_practical_pass_rate_2026",
-  "cosmetology_practical_test_takers_2026",
-].join(", ");
+const PUBLIC_COLUMNS = SCHOOL_PUBLIC_COLUMNS.join(", ");
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

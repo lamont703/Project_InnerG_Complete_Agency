@@ -5,6 +5,7 @@ import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
+import { EVENT_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import {
   MapPin,
   CalendarDays,
@@ -24,28 +25,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const PUBLIC_COLUMNS = [
-  "id",
-  "slug",
-  "title",
-  "description",
-  "event_date",
-  "end_date",
-  "start_time",
-  "end_time",
-  "venue_name",
-  "address",
-  "city",
-  "latitude",
-  "longitude",
-  "category",
-  "organizer_name",
-  "ticket_url",
-  "source_url",
-  "image_url",
-  "price_info",
-  "created_at",
-].join(", ");
+const PUBLIC_COLUMNS = EVENT_PUBLIC_COLUMNS.join(", ");
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

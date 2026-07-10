@@ -8,6 +8,7 @@ import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
+import { STORE_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import Image from "next/image";
 import {
   MapPin,
@@ -29,24 +30,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const PUBLIC_COLUMNS = [
-  "id",
-  "slug",
-  "name",
-  "formatted_address",
-  "city",
-  "phone",
-  "website",
-  "latitude",
-  "longitude",
-  "rating",
-  "total_reviews",
-  "place_types",
-  "business_status",
-  "price_level",
-  "google_images",
-  "hours",
-].join(", ");
+const PUBLIC_COLUMNS = STORE_PUBLIC_COLUMNS.join(", ");
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

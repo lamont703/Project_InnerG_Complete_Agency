@@ -8,6 +8,7 @@ import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
+import { BARBER_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import Image from "next/image";
 import {
   MapPin,
@@ -32,38 +33,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const PUBLIC_COLUMNS = [
-  "id",
-  "slug",
-  "name",
-  "address",
-  "latitude",
-  "longitude",
-  "specialty_type",
-  "metro_area",
-  "status",
-  "is_actively_looking",
-  "school_name",
-  "licensure_status",
-  "completed_school_hours",
-  "instagram_handle",
-  "tiktok_handle",
-  "youtube_channel",
-  "website_url",
-  "placement_pathway",
-  "desired_specialties",
-  "profile_url",
-  "passport_image_url",
-  "booksy_photo_url",
-  "booksy_cover_photo_url",
-  "booksy_gallery_urls",
-  "booksy_services",
-  "booksy_price_range",
-  "booksy_rating",
-  "booksy_review_count",
-  "booksy_hours",
-  "school_district_name",
-].join(", ");
+const PUBLIC_COLUMNS = BARBER_PUBLIC_COLUMNS.join(", ");
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

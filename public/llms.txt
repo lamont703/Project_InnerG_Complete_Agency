@@ -100,6 +100,11 @@
   salons, and supply stores use `LocalBusiness`/`Store`/`HairSalon`; individual barbers and
   cosmetologists use `Person`; events use `Event`; `/insights` articles use `TechArticle` +
   `BreadcrumbList` + `FAQPage`.
+- For raw prose ingestion, AI crawlers may append `.md` to any entity profile URL (e.g.,
+  `/shop/{slug}.md`, `/barbers/{slug}.md`, `/schools/{slug}.md`) to receive the same facts as
+  the JSON-LD above, formatted as plain Markdown instead of structured data — useful when a
+  prose summary is preferred over parsing JSON-LD. Both are sourced from the same live record
+  and are always in sync.
 - All profile URLs are slugs, not opaque IDs — old `/schools/{uuid}`-style links from before
   this scheme still resolve via a permanent (308) redirect to the canonical slug URL.
 - Pass-rate, financial-aid, and tuition figures are sourced from TDLR exam records and the
