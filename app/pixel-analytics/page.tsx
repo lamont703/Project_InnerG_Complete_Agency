@@ -1,6 +1,6 @@
 import Link from "next/link"
-import { fetchAnalyticsData } from "./actions"
-import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target, ShieldCheck, TrendingUp } from "lucide-react"
+import { fetchAnalyticsData, fetchBotRequestStats } from "./actions"
+import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target, ShieldCheck, TrendingUp, Bot } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import { CategoryClickBreakdown } from "@/components/pixel-analytics/category-click-breakdown"
@@ -17,7 +17,10 @@ export default async function PixelAnalyticsPage(
 ) {
   const searchParams = await props.searchParams;
   const days = searchParams.days ? parseInt(searchParams.days) : undefined
-  const data = await fetchAnalyticsData(days)
+  const [data, botStats] = await Promise.all([
+    fetchAnalyticsData(days),
+    fetchBotRequestStats(days),
+  ])
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] text-slate-900 dark:text-slate-100 font-sans flex flex-col">
@@ -217,6 +220,60 @@ export default async function PixelAnalyticsPage(
 
         {/* Visitors by Page Category */}
         <CategoryClickBreakdown categoryViews={data.categoryViews} days={days} />
+
+        {/* AI Crawler Traffic */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm mb-12">
+          <div className="flex items-center gap-3 mb-2">
+            <Bot className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold">AI Crawler Traffic (.md Endpoints)</h2>
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            Requests to the AI-crawler Markdown endpoints — separate from the pixel above, since bots fetching raw
+            text never execute the browser-side pixel script.
+          </p>
+
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mb-8">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Total Requests</p>
+              <p className="text-2xl font-black">{botStats.totalRequests.toLocaleString()}</p>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">From Known AI Crawlers</p>
+              <p className="text-2xl font-black">{botStats.knownBotRequests.toLocaleString()}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4">By Crawler</h3>
+              <div className="space-y-2">
+                {botStats.byBotName.length > 0 ? botStats.byBotName.map((b) => (
+                  <div key={b.botName} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{b.botName}</span>
+                    <span className="text-sm font-black text-primary">{b.count.toLocaleString()}</span>
+                  </div>
+                )) : (
+                  <div className="text-slate-500 text-center py-8 text-sm">No known AI crawler hits yet</div>
+                )}
+              </div>
+            </div>
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4">Most-Requested Entities</h3>
+              <div className="space-y-2">
+                {botStats.topEntities.length > 0 ? botStats.topEntities.map((e) => (
+                  <div key={`${e.entityType}/${e.slug}`} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[70%]" title={`/${e.entityType}/${e.slug}.md`}>
+                      /{e.entityType}/{e.slug}.md
+                    </span>
+                    <span className="text-sm font-black text-primary shrink-0">{e.count.toLocaleString()}</span>
+                  </div>
+                )) : (
+                  <div className="text-slate-500 text-center py-8 text-sm">No requests yet</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Tables Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
