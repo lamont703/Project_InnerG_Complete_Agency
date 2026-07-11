@@ -6,6 +6,7 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
+import { LLCDecisionTool } from "@/components/insights/llc-decision-tool"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -109,6 +110,8 @@ export default function BoothRentTaxesArticle() {
               </Link>
               <span className="text-border">|</span>
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Booth Renter Guide</span>
+              <span className="text-border">|</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Verified Jul 2026</span>
             </div>
 
             <ExecutiveSummary
@@ -276,6 +279,17 @@ export default function BoothRentTaxesArticle() {
                 </Link>{" "}
                 — the TDLR Mini-Establishment license is a separate requirement from any of this.
               </p>
+              <p>
+                Before you sign a rental agreement, it&apos;s worth checking{" "}
+                <Link href="/insights/highest-paying-barbershops-houston" className="text-primary font-bold hover:underline">
+                  which real Houston shops currently list the lowest booth rent and highest commission split to barbers
+                </Link>{" "}
+                — the actual pay terms, not customer pricing.
+              </p>
+            </div>
+
+            <div className="mt-8">
+              <LLCDecisionTool />
             </div>
           </section>
 

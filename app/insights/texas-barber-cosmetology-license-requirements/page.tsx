@@ -6,6 +6,7 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
+import { MiniExamQuiz } from "@/components/insights/mini-exam-quiz"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -180,6 +181,8 @@ export default function LicenseRequirementsGuide() {
               </Link>
               <span className="text-border">|</span>
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Licensing Guide</span>
+              <span className="text-border">|</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Verified Jul 2026</span>
             </div>
 
             <ExecutiveSummary
@@ -285,6 +288,52 @@ export default function LicenseRequirementsGuide() {
                 </Link>
                 .
               </p>
+            </div>
+
+            <div className="mt-8 overflow-x-auto rounded-2xl border border-border/50">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-secondary/50 text-left">
+                    <th className="px-4 py-3 font-black uppercase tracking-wide text-xs text-muted-foreground">License</th>
+                    <th className="px-4 py-3 font-black uppercase tracking-wide text-xs text-muted-foreground">School Hours</th>
+                    <th className="px-4 py-3 font-black uppercase tracking-wide text-xs text-muted-foreground">Application Fee</th>
+                    <th className="px-4 py-3 font-black uppercase tracking-wide text-xs text-muted-foreground">Renewal Cycle</th>
+                    <th className="px-4 py-3 font-black uppercase tracking-wide text-xs text-muted-foreground">Exam Format</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  <tr>
+                    <td className="px-4 py-3 font-bold text-foreground">Class A Barber</td>
+                    <td className="px-4 py-3 text-muted-foreground">1,000 hours</td>
+                    <td className="px-4 py-3 text-muted-foreground">$50</td>
+                    <td className="px-4 py-3 text-muted-foreground">2 years</td>
+                    <td className="px-4 py-3 text-muted-foreground">Written + practical (PSI)</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 font-bold text-foreground">Cosmetology Operator</td>
+                    <td className="px-4 py-3 text-muted-foreground">1,500 hours</td>
+                    <td className="px-4 py-3 text-muted-foreground">$50</td>
+                    <td className="px-4 py-3 text-muted-foreground">2 years</td>
+                    <td className="px-4 py-3 text-muted-foreground">Written + practical (PSI)</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 font-bold text-foreground">Esthetician</td>
+                    <td className="px-4 py-3 text-muted-foreground">750 hours</td>
+                    <td className="px-4 py-3 text-muted-foreground">$50</td>
+                    <td className="px-4 py-3 text-muted-foreground">2 years</td>
+                    <td className="px-4 py-3 text-muted-foreground">Written + practical (PSI)</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p className="px-4 py-3 text-xs text-muted-foreground bg-secondary/20 border-t border-border/50">
+                The $50 figure is TDLR&apos;s own application fee. PSI, TDLR&apos;s exam vendor, charges a separate
+                written/practical exam fee on top of this — see PSI&apos;s current Candidate Information Bulletin for
+                the exact amount, since PSI sets and updates it independently of TDLR.
+              </p>
+            </div>
+
+            <div className="mt-8">
+              <MiniExamQuiz />
             </div>
           </section>
 

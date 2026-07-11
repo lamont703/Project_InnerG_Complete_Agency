@@ -249,7 +249,9 @@ export default createHandler(async ({ adminClient, body, user }) => {
                 const postResult = await ghl.publishSocialPost(locationId, {
                     content: draft.content_text,
                     accountIds: accountId ? [accountId] : [],
-                    title: draft.metadata?.title
+                    userId: config.userId || config.ghl_user_id || "",
+                    title: draft.metadata?.title,
+                    mediaUrl: draft.media_url || undefined,
                 })
                 
                 logger.info(`Successfully published to GHL`, { post_id: postResult.id || postResult.postId || "GHL_POST" })

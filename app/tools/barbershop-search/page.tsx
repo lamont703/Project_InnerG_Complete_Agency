@@ -511,20 +511,20 @@ function SearchContent() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex flex-col light bg-slate-50 text-slate-900 selection:bg-blue-500/20">
+    <div className="min-h-dvh flex flex-col light bg-slate-50 text-slate-900 selection:bg-blue-500/20">
       
-      <main className={`flex-1 flex flex-col items-center px-4 sm:px-6 lg:px-8 w-full transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${results.length > 0 || query.trim().length > 0 ? 'justify-start pt-8 sm:pt-16' : 'justify-center pb-32'}`}>
+      <main className={`flex-1 flex flex-col items-center px-4 sm:px-6 lg:px-8 w-full transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${results.length > 0 || query.trim().length > 0 ? 'justify-start pt-8 sm:pt-16' : 'justify-center py-8 pb-8 sm:pb-32'}`}>
         
         {/* Search Header Area */}
         <div className={`w-full transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${results.length > 0 || query.trim().length > 0 ? 'max-w-4xl' : 'max-w-3xl'}`}>
           {filterTab !== 'AI Mode' && (
             <>
-              <div className={`text-center transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'mb-6 sm:mb-8 scale-90 sm:scale-100 transform origin-top' : 'mb-8 sm:mb-10'}`}>
-                <h1 className={`font-extrabold tracking-tight text-primary transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-3xl sm:text-4xl mb-2' : 'text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6'}`}>
+              <div className={`text-center transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'mb-6 sm:mb-8 scale-90 sm:scale-100 transform origin-top' : 'mb-5 sm:mb-10'}`}>
+                <h1 className={`font-extrabold tracking-tight text-primary transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-3xl sm:text-4xl mb-2' : 'text-3xl sm:text-5xl md:text-6xl mb-2 sm:mb-6'}`}>
                   Barber & Cosmetology <br />
                   <span className="text-black">Domain Intelligence</span>
                 </h1>
-                <p className={`text-muted-foreground px-2 transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-sm sm:text-base opacity-0 h-0 overflow-hidden' : 'text-base sm:text-xl opacity-100 h-auto'}`}>
+                <p className={`text-muted-foreground px-2 transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-sm sm:text-base opacity-0 h-0 overflow-hidden' : 'text-sm sm:text-xl opacity-100 h-auto'}`}>
                   Search the worlds largest collection of barber, beauty & wellness data.
                 </p>
               </div>
@@ -556,46 +556,46 @@ function SearchContent() {
                   platform can actually synthesize an answer from that data,
                   not just filter a directory. */}
               {query.trim().length === 0 && results.length === 0 && (
-                <div className="flex flex-wrap items-center justify-center gap-3 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
-                  <span className="w-full text-center text-sm text-slate-500 font-medium">Ask about real-time market data:</span>
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                  <span className="w-full text-center text-xs sm:text-sm text-slate-500 font-medium">Ask about real-time market data:</span>
                   <button
                     onClick={() => startAiModeQuery("Which Houston neighborhoods have the cheapest barber booth rent right now?")}
-                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
                     Cheapest Houston neighborhoods for barber booth rent
                   </button>
                   <button
                     onClick={() => startAiModeQuery("Which Houston barbershops are hiring or renting booths this week?")}
-                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
                     Houston barbershops hiring or renting booths this week
                   </button>
                   <button
                     onClick={() => startAiModeQuery("Which Texas barber schools actually deliver the highest 2026 pass rates?")}
-                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
                     Texas barber schools with the highest 2026 pass rates
                   </button>
                   <button
                     onClick={() => startAiModeQuery("Which highly-rated Houston salons are hiring or renting chairs right now?")}
-                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
                     Highly-rated Houston salons hiring or renting chairs
                   </button>
                   <button
                     onClick={() => startAiModeQuery("What are cosmetologists actually charging for services in Houston right now?")}
-                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
                     What Houston cosmetologists are actually charging
                   </button>
                   <button
                     onClick={() => startAiModeQuery("Which Texas cosmetology schools actually deliver the highest 2026 pass rates?")}
-                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
                     Texas cosmetology schools with the highest 2026 pass rates
@@ -721,6 +721,8 @@ function SearchContent() {
             ? 'w-full max-w-3xl flex flex-col mt-4 pb-4 flex-1'
             : filterTab === 'Images'
             ? 'w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-12 pb-20'
+            : query.trim().length === 0 && results.length === 0
+            ? 'w-full max-w-3xl flex flex-col'
             : 'w-full max-w-3xl flex flex-col mt-12 space-y-4 pb-20'
         }>
           

@@ -23,7 +23,7 @@ const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const GHL_API_BASE = "https://services.leadconnectorhq.com";
-const ghlApiKey = "pit-96f9b0b9-c512-4066-81b6-d74ac075d8d4";
+const ghlApiKey = Deno.env.get("GHL_API_KEY") || "";
 const locationId = "QLyYYRoOhCg65lKW9HDX";
 
 async function uploadMedia(filePath: string): Promise<string> {

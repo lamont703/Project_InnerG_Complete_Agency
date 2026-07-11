@@ -1,4 +1,5 @@
-const ghlApiKey = "pit-96f9b0b9-c512-4066-81b6-d74ac075d8d4"
+require("dotenv").config({ path: ".env.local" });
+const ghlApiKey = process.env.GHL_API_KEY || ""
 const locationId = "QLyYYRoOhCg65lKW9HDX"
 
 async function run() {

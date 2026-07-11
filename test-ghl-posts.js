@@ -6,7 +6,7 @@ envLocal.split('\n').forEach(line => {
     if (parts.length > 1 && !line.startsWith('#')) env[parts[0].trim()] = parts.slice(1).join('=').trim();
 });
 
-const apiKey = 'pit-96f9b0b9-c512-4066-81b6-d74ac075d8d4'; // from user
+const apiKey = env.GHL_API_KEY || ''; // from user
 const locationId = 'QLyYYRoOhCg65lKW9HDX'; // from user
 
 async function run() {

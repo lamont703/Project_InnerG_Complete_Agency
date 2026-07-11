@@ -1,6 +1,6 @@
 import "https://deno.land/std@0.167.0/dotenv/load.ts";
 
-const GHL_API_KEY = "pit-96f9b0b9-c512-4066-81b6-d74ac075d8d4";
+const GHL_API_KEY = Deno.env.get("GHL_API_KEY") || "";
 const LOCATION_ID = "QLyYYRoOhCg65lKW9HDX";
 
 async function run() {

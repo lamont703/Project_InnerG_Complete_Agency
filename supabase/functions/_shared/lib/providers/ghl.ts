@@ -297,29 +297,47 @@ export class GhlProvider {
 
   /**
    * Publishes a post to a social media account via GHL.
+   *
+   * Uses the real v3 Create Post schema (accountIds/summary/media/userId),
+   * confirmed directly against GHL's live API — their public OpenAPI spec
+   * on GitHub was out of date and didn't yet document pinterestPostDetails
+   * when this was written. The v3 Version header is required specifically
+   * for this endpoint; it's passed per-call here rather than added to the
+   * shared `this.headers` getter so it doesn't affect the older
+   * contacts/opportunities endpoints that expect "2021-07-28".
    */
   async publishSocialPost(locationId: string, payload: {
     content: string;
     accountIds: string[];
+    userId: string;
     title?: string;
     mediaUrl?: string;
+    mediaType?: string;
     scheduledAt?: string;
+    status?: "draft" | "scheduled" | "published";
+    pinterestPostDetails?: {
+      title: string;
+      link: string;
+      pinterestBoards: { accountId: string; boards: string[] }[];
+    };
   }) {
     const body: any = {
-      postType: "post",
-      text: payload.content,
-      accounts: payload.accountIds,
+      accountIds: payload.accountIds,
+      summary: payload.content,
+      userId: payload.userId,
+      type: "post",
+      status: payload.scheduledAt ? "scheduled" : payload.status || "published",
     };
 
-    if (payload.title) body.title = payload.title;
-    if (payload.mediaUrl) body.media = [payload.mediaUrl];
-    if (payload.scheduledAt) body.scheduledAt = payload.scheduledAt;
+    if (payload.scheduledAt) body.scheduleDate = payload.scheduledAt;
+    if (payload.mediaUrl) body.media = [{ url: payload.mediaUrl, type: payload.mediaType || "image/png" }];
+    if (payload.pinterestPostDetails) body.pinterestPostDetails = payload.pinterestPostDetails;
 
     const response = await fetch(
-      `${GHL_API_BASE}/social-media-posting/${locationId}/posts`, 
+      `${GHL_API_BASE}/social-media-posting/${locationId}/posts`,
       {
         method: "POST",
-        headers: this.headers,
+        headers: { ...this.headers, Version: "v3" },
         body: JSON.stringify(body),
       }
     );
@@ -329,4 +347,5 @@ export class GhlProvider {
     }
     return await response.json();
   }
+
 }

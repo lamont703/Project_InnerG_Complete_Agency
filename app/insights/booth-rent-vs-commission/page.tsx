@@ -118,6 +118,8 @@ export default function BoothRentVsCommissionArticle() {
               </Link>
               <span className="text-border">|</span>
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Pay Structure Guide</span>
+              <span className="text-border">|</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Verified Jul 2026</span>
             </div>
 
             <ExecutiveSummary
@@ -190,6 +192,42 @@ export default function BoothRentVsCommissionArticle() {
         </div>
 
         <div className="mx-auto max-w-4xl px-6 py-16 space-y-16">
+          {/* Myth-bust framing */}
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <Scale className="h-5 w-5 text-primary" />
+              <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">
+                Two Common Myths, Checked Against the Real Data
+              </h2>
+            </div>
+            <div className="space-y-4 not-prose">
+              <div className="rounded-2xl border border-border bg-white p-6">
+                <p className="text-xs font-black text-red-600 uppercase tracking-widest mb-2">Myth</p>
+                <p className="text-lg font-bold text-foreground mb-3">
+                  &quot;Commission is the standard, safer default in this industry.&quot;
+                </p>
+                <p className="text-xs font-black text-primary uppercase tracking-widest mb-2">Reality</p>
+                <p className="text-muted-foreground font-medium leading-relaxed">
+                  In our live Houston dataset, booth rent outnumbers commission roughly 10 to 1. It&apos;s the
+                  dominant model here, not the riskier alternative — commission is actually the less common
+                  structure in this specific market.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border bg-white p-6">
+                <p className="text-xs font-black text-red-600 uppercase tracking-widest mb-2">Myth</p>
+                <p className="text-lg font-bold text-foreground mb-3">
+                  &quot;One pay structure is objectively better than the other.&quot;
+                </p>
+                <p className="text-xs font-black text-primary uppercase tracking-widest mb-2">Reality</p>
+                <p className="text-muted-foreground font-medium leading-relaxed">
+                  Neither wins outright — there&apos;s a real, calculable revenue crossover point (~$450/week at this
+                  market&apos;s median rates) below which commission pays more, and above which booth rent does. The
+                  right answer depends on your own consistent weekly revenue, not a universal rule.
+                </p>
+              </div>
+            </div>
+          </section>
+
           {/* How booth rent works */}
           <section>
             <div className="flex items-center gap-3 mb-6">
@@ -260,6 +298,13 @@ export default function BoothRentVsCommissionArticle() {
                 $450/week in services, booth rent likely nets you more over time. If your weeks are inconsistent or
                 you&apos;re still building a book, commission's built-in downside protection may be worth more than
                 the extra upside booth rent offers on a strong week.
+              </p>
+              <p>
+                Once you know which structure fits you, see which real Houston shops currently list{" "}
+                <Link href="/insights/highest-paying-barbershops-houston" className="text-primary font-bold hover:underline">
+                  the lowest booth rent and highest commission splits to barbers
+                </Link>{" "}
+                — not customer pricing, the actual pay terms.
               </p>
             </div>
 
