@@ -214,3 +214,63 @@ export async function fetchCategoryClickBreakdown(category: string, days?: numbe
   return Array.from(merged.values()).sort((a, b) => b.count - a.count);
 }
 
+export type BotRequestStats = {
+  totalRequests: number
+  knownBotRequests: number
+  byBotName: { botName: string; count: number }[]
+  topEntities: { entityType: string; slug: string; count: number }[]
+}
+
+// Separate from pixel_events on purpose — this counts hits to the .md
+// AI-crawler endpoints (app/api/llm/[entityType]/[slug]/route.ts), which
+// bots fetch directly with no JS execution, so the browser-side pixel
+// never fires for this traffic at all.
+export async function fetchBotRequestStats(days?: number): Promise<BotRequestStats> {
+  let cutoffDate: string | undefined
+  if (days) {
+    const d = new Date()
+    d.setDate(d.getDate() - (days === 1 ? 0 : days))
+    d.setHours(0, 0, 0, 0)
+    cutoffDate = d.toISOString()
+  }
+
+  let query = supabase.from("llm_bot_requests").select("entity_type, slug, bot_name, is_known_bot")
+  if (cutoffDate) query = query.gte("requested_at", cutoffDate)
+
+  const { data, error } = await query
+  if (error) {
+    console.error("Error fetching llm_bot_requests:", error)
+    return { totalRequests: 0, knownBotRequests: 0, byBotName: [], topEntities: [] }
+  }
+
+  const rows = data || []
+  const byBotNameMap = new Map<string, number>()
+  const byEntityMap = new Map<string, { entityType: string; slug: string; count: number }>()
+
+  let knownBotRequests = 0
+  for (const row of rows) {
+    if (row.is_known_bot && row.bot_name) {
+      knownBotRequests++
+      byBotNameMap.set(row.bot_name, (byBotNameMap.get(row.bot_name) || 0) + 1)
+    }
+    const key = `${row.entity_type}/${row.slug}`
+    const existing = byEntityMap.get(key)
+    if (existing) {
+      existing.count++
+    } else {
+      byEntityMap.set(key, { entityType: row.entity_type, slug: row.slug, count: 1 })
+    }
+  }
+
+  return {
+    totalRequests: rows.length,
+    knownBotRequests,
+    byBotName: Array.from(byBotNameMap.entries())
+      .map(([botName, count]) => ({ botName, count }))
+      .sort((a, b) => b.count - a.count),
+    topEntities: Array.from(byEntityMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10),
+  }
+}
+

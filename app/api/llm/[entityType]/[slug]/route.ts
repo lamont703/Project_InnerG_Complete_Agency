@@ -44,6 +44,45 @@ function notFoundResponse() {
   return new NextResponse("Not found", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
 }
 
+// Substring match against known crawler User-Agents — same names allowed
+// through in app/robots.ts's per-user-agent split, so "known bot" here means
+// exactly the crawlers we've deliberately opened this endpoint to. Anything
+// else (a human pasting the URL, a scraper ignoring robots.txt, a generic
+// browser UA) still gets logged, just bucketed as unknown rather than
+// misattributed to a specific bot.
+const KNOWN_BOTS: { name: string; pattern: RegExp }[] = [
+  { name: "GPTBot", pattern: /GPTBot/i },
+  { name: "OAI-SearchBot", pattern: /OAI-SearchBot/i },
+  { name: "ChatGPT-User", pattern: /ChatGPT-User/i },
+  { name: "ClaudeBot", pattern: /ClaudeBot/i },
+  { name: "anthropic-ai", pattern: /anthropic-ai/i },
+  { name: "PerplexityBot", pattern: /PerplexityBot/i },
+  { name: "Google-Extended", pattern: /Google-Extended/i },
+  { name: "Googlebot", pattern: /Googlebot/i },
+  { name: "Bingbot", pattern: /bingbot/i },
+  { name: "DuckDuckBot", pattern: /DuckDuckBot/i },
+];
+
+function classifyBot(userAgent: string | null): { botName: string | null; isKnownBot: boolean } {
+  if (!userAgent) return { botName: null, isKnownBot: false };
+  const match = KNOWN_BOTS.find((b) => b.pattern.test(userAgent));
+  return match ? { botName: match.name, isKnownBot: true } : { botName: null, isKnownBot: false };
+}
+
+// Fire-and-forget on purpose — logging must never slow down or break the
+// actual response a bot is waiting on. Errors are swallowed with a console
+// warning rather than surfaced, since a logging failure isn't a reason to
+// fail the real request.
+function logBotRequest(entityType: string, slug: string, userAgent: string | null) {
+  const { botName, isKnownBot } = classifyBot(userAgent);
+  supabase
+    .from("llm_bot_requests")
+    .insert({ entity_type: entityType, slug, user_agent: userAgent, bot_name: botName, is_known_bot: isKnownBot })
+    .then(({ error }) => {
+      if (error) console.warn("llm_bot_requests insert failed:", error.message);
+    });
+}
+
 function markdownResponse(body: string) {
   return new NextResponse(body, {
     status: 200,
@@ -283,6 +322,7 @@ function formatShop(s: any, baseUrl: string): string {
 export async function GET(request: NextRequest, props: { params: Promise<{ entityType: string; slug: string }> }) {
   const { entityType, slug } = await props.params;
   const baseUrl = getBaseUrl(request);
+  logBotRequest(entityType, slug, request.headers.get("user-agent"));
 
   switch (entityType) {
     case "barbers": {
