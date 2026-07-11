@@ -40,32 +40,6 @@ function GlowOrb({ className }: { className: string }) {
   )
 }
 
-export const metadata = {
-  title: "MindBody's Intelligence Ceiling | Inner G Complete",
-  description: "A platform audit of why MindBody's 700-integration architecture is generating data without generating intelligence — and how a sovereign AI layer changes everything.",
-  keywords: [
-    "MindBody platform audit",
-    "wellness booking platform AI",
-    "MindBody intelligence layer",
-    "sovereign AI wellness industry",
-    "MindBody competitive analysis",
-  ],
-  openGraph: {
-    title: "MindBody's Intelligence Ceiling",
-    description: "Why MindBody's 700-integration architecture generates data without generating intelligence — and how a sovereign AI layer changes everything.",
-    url: "https://agency.innergcomplete.com/insights/mindbody-sovereign-intelligence-audit",
-    type: "article",
-    images: [{ url: "/mindbody_sovereign_intelligence_audit.png", width: 1200, height: 630, alt: "MindBody's Intelligence Ceiling" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "MindBody's Intelligence Ceiling",
-    description: "A strategic audit of MindBody's intelligence ceiling and the sovereign AI layer opportunity.",
-    images: ["/mindbody_sovereign_intelligence_audit.png"],
-  },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/mindbody-sovereign-intelligence-audit" },
-}
-
 export default function MindbodySovereignIntelligenceAudit() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">

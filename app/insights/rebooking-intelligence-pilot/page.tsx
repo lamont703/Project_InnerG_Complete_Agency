@@ -194,32 +194,6 @@ const phases = [
   },
 ]
 
-export const metadata = {
-  title: "Rebooking Appointment Intelligence: Barber Grooming ADI Pilot | Inner G Complete",
-  description: "A CPMAI-governed pilot architecture for deploying an ADI model that autonomously keeps a barber's calendar full, maintains a floor revenue target per chair, and drives retention through precision-timed client engagement — without changing the barber's daily workflow.",
-  keywords: [
-    "barber rebooking AI",
-    "appointment intelligence pilot",
-    "CPMAI barber grooming",
-    "barber calendar automation",
-    "client retention AI barbershop",
-  ],
-  openGraph: {
-    title: "Rebooking Appointment Intelligence: Barber Grooming ADI Pilot",
-    description: "A CPMAI-governed pilot for an ADI model that autonomously keeps a barber's calendar full and drives client retention.",
-    url: "https://agency.innergcomplete.com/insights/rebooking-intelligence-pilot",
-    type: "article",
-    images: [{ url: "/rebooking_intelligence_pilot_brief.png", width: 1200, height: 630, alt: "Rebooking Appointment Intelligence Pilot" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Rebooking Appointment Intelligence: Barber Grooming ADI Pilot",
-    description: "A CPMAI-governed pilot for an ADI model that autonomously keeps a barber's calendar full.",
-    images: ["/rebooking_intelligence_pilot_brief.png"],
-  },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/rebooking-intelligence-pilot" },
-}
-
 export default function RebookingIntelligencePilot() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">
