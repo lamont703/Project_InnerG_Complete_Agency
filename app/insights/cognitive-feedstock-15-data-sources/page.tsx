@@ -226,32 +226,6 @@ const tierColors: Record<Tier, { bg: string; border: string; text: string; badge
   },
 }
 
-export const metadata = {
-  title: "Cognitive Feedstock: 15 Data Sources for Aesthetic AI | Inner G Complete",
-  description: "Moving beyond simple booking lists to tap into high-fidelity data that captures the 'human' element of wellness and grooming.",
-  keywords: [
-    "aesthetic AI data sources",
-    "wellness industry data architecture",
-    "cognitive feedstock AI",
-    "grooming AI training data",
-    "beauty industry machine learning data",
-  ],
-  openGraph: {
-    title: "Cognitive Feedstock: 15 Data Sources for Aesthetic AI",
-    description: "Moving beyond booking lists to high-fidelity data that captures the human element of wellness and grooming.",
-    url: "https://agency.innergcomplete.com/insights/cognitive-feedstock-15-data-sources",
-    type: "article",
-    images: [{ url: "/cognitive_feedstock_brief_cover_1776041859371.png", width: 1200, height: 630, alt: "Cognitive Feedstock: 15 Data Sources for Aesthetic AI" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Cognitive Feedstock: 15 Data Sources for Aesthetic AI",
-    description: "High-fidelity data sources that capture the human element of wellness and grooming.",
-    images: ["/cognitive_feedstock_brief_cover_1776041859371.png"],
-  },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/cognitive-feedstock-15-data-sources" },
-}
-
 export default function DataSourcesBrief() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">

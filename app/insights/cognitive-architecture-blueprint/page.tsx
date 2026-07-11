@@ -169,32 +169,6 @@ const phases = [
   },
 ]
 
-export const metadata = {
-  title: "The Cognitive Architecture Blueprint: Delivering Institutional-Grade AI with CPMAI | Inner G Complete",
-  description: "How Inner G Complete applies the PMI-certified CPMAI framework across all six phases to architect the Aesthetic Domain Intelligence model — governance-first, enterprise-ready.",
-  keywords: [
-    "CPMAI framework AI",
-    "cognitive architecture blueprint",
-    "PMI-certified AI methodology",
-    "Aesthetic Domain Intelligence governance",
-    "enterprise AI project management",
-  ],
-  openGraph: {
-    title: "The Cognitive Architecture Blueprint: Delivering Institutional-Grade AI with CPMAI",
-    description: "How Inner G Complete applies the PMI-certified CPMAI framework to architect a governance-first Aesthetic Domain Intelligence model.",
-    url: "https://agency.innergcomplete.com/insights/cognitive-architecture-blueprint",
-    type: "article",
-    images: [{ url: "/cpmai_framework_cover.png", width: 1200, height: 630, alt: "The Cognitive Architecture Blueprint" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "The Cognitive Architecture Blueprint: Delivering Institutional-Grade AI with CPMAI",
-    description: "How the PMI-certified CPMAI framework governs the Aesthetic Domain Intelligence model.",
-    images: ["/cpmai_framework_cover.png"],
-  },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/cognitive-architecture-blueprint" },
-}
-
 export default function CognitiveArchitectureBlueprint() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">

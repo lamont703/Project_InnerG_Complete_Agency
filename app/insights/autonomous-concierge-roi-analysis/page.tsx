@@ -119,32 +119,6 @@ const metrics = [
   { label: "Slot Utilization via OAS", value: "+120%", sub: "unused appts dropped 22.7% → 10.3% after digital scheduling (Kammrath et al., 2025)", variant: "primary" },
 ]
 
-export const metadata = {
-  title: "Autonomous Concierge: ROI Analysis | Inner G Complete",
-  description: "Quantifying the economic impact of AI-driven booking agents on clinical throughput and client retention.",
-  keywords: [
-    "autonomous concierge AI ROI",
-    "AI booking agent wellness",
-    "clinical throughput AI",
-    "client retention AI concierge",
-    "AI receptionist ROI analysis",
-  ],
-  openGraph: {
-    title: "Autonomous Concierge: ROI Analysis",
-    description: "Quantifying the economic impact of AI-driven booking agents on clinical throughput and client retention.",
-    url: "https://agency.innergcomplete.com/insights/autonomous-concierge-roi-analysis",
-    type: "article",
-    images: [{ url: "/autonomous_concierge_roi_cover_1776043024026.png", width: 1200, height: 630, alt: "Autonomous Concierge: ROI Analysis" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Autonomous Concierge: ROI Analysis",
-    description: "Quantifying the economic impact of AI-driven booking agents on clinical throughput and retention.",
-    images: ["/autonomous_concierge_roi_cover_1776043024026.png"],
-  },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/autonomous-concierge-roi-analysis" },
-}
-
 export default function AutonomousConciergeROI() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">

@@ -82,32 +82,6 @@ const aiFailureReasons = [
   { pct: "< 30%", label: "of AI tools are still actively used 12 months after deployment", source: "Deloitte, 2023" },
 ]
 
-export const metadata = {
-  title: "The Feasibility Premium: Starting with 'No' | Inner G Complete",
-  description: "Why the most successful AI projects in wellness and grooming begin with a ruthless viability audit, not a dev sprint.",
-  keywords: [
-    "AI feasibility audit",
-    "wellness AI project viability",
-    "grooming industry AI strategy",
-    "AI project risk assessment",
-    "Inner G Complete methodology",
-  ],
-  openGraph: {
-    title: "The Feasibility Premium: Starting with 'No'",
-    description: "Why the most successful AI projects in wellness and grooming begin with a ruthless viability audit, not a dev sprint.",
-    url: "https://agency.innergcomplete.com/insights/the-feasibility-premium",
-    type: "article",
-    images: [{ url: "/the_feasibility_premium_cover_1776042291644.png", width: 1200, height: 630, alt: "The Feasibility Premium: Starting with No" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "The Feasibility Premium: Starting with 'No'",
-    description: "Why the most successful AI projects begin with a ruthless viability audit, not a dev sprint.",
-    images: ["/the_feasibility_premium_cover_1776042291644.png"],
-  },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/the-feasibility-premium" },
-}
-
 export default function FeasibilityPremiumArticle() {
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">
