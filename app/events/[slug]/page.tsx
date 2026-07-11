@@ -6,6 +6,7 @@ import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { EVENT_PUBLIC_COLUMNS } from "@/lib/public-columns";
+import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import {
   MapPin,
   CalendarDays,
@@ -282,6 +283,14 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
     })),
   } : null;
 
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: searchPerfRows } = await supabase.rpc('get_search_performance_by_entity', {
+    p_entity_id: event.id,
+    p_result_type: 'event',
+    p_cutoff: thirtyDaysAgo,
+  });
+  const searchPerformance = (searchPerfRows && searchPerfRows[0]) || null;
+
   return (
     <div className="min-h-screen bg-slate-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }} />
@@ -414,12 +423,15 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
 
           {/* Sidebar */}
           <div className="space-y-4">
+            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={false} entityLabel="event" />
+
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-3">
               {event.ticket_url && (
                 <a
                   href={event.ticket_url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
                   className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-indigo-600/20"
                 >
                   <Ticket className="w-4 h-4" />

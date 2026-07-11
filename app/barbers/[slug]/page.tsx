@@ -6,6 +6,7 @@ import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { CreatePassportButton } from "@/components/shared/create-passport-button";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
+import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import { BARBER_PUBLIC_COLUMNS } from "@/lib/public-columns";
@@ -221,6 +222,14 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
   const barberFaqJsonLd = buildBarberFaqJsonLd(barber, services);
   const barberBreadcrumbJsonLd = buildEntityBreadcrumbJsonLd("Barbers", "/barbers", barber.name, barber.slug);
 
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: searchPerfRows } = await supabase.rpc('get_search_performance_by_entity', {
+    p_entity_id: barber.id,
+    p_result_type: 'barber',
+    p_cutoff: thirtyDaysAgo,
+  });
+  const searchPerformance = (searchPerfRows && searchPerfRows[0]) || null;
+
   return (
     <div className="min-h-screen bg-slate-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(barberJsonLd) }} />
@@ -314,6 +323,7 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={label}
+                      data-ig-click={label === "Website" ? "outbound_lead" : undefined}
                       className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-colors"
                     >
                       <Icon className="w-4.5 h-4.5" />
@@ -388,6 +398,8 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
 
           {/* Sidebar */}
           <div className="space-y-4">
+            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={false} entityLabel="barber" />
+
             {barber.profile_url && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
                 <a

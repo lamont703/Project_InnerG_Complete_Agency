@@ -42,6 +42,89 @@ const COSMET_CATEGORY_PATTERNS: Record<string, RegExp> = {
 // filtered result set.
 const FILTERED_FETCH_LIMIT = 500;
 
+// The 'All' tab used to fetch a tiny fixed quota per category per page and
+// concatenate fixed blocks in a fixed order — a shop with a mediocre match
+// always outranked an excellent salon match, since shops came first in the
+// array regardless of relevance. Real click data confirmed this: shop and
+// barber (the two categories always anchored at the top) were the only
+// categories with ANY recorded clicks across the whole search tool, while
+// salons/schools/stores/cosmetologists/events showed zero despite real
+// impressions — consistent with a position/exposure bias baked into the
+// algorithm rather than genuinely lower demand (external Google Search
+// Console data shows salons are actually the single largest category by
+// real search traffic). This pool size is how many top-scoring candidates
+// per category are pulled before cross-category blending — deep enough to
+// cover realistic pagination, shallow enough to keep the per-search fetch
+// cost reasonable.
+const ALL_TAB_POOL = 30;
+
+// Every ranked-search RPC now returns base_relevance (0-100, same
+// semantic+keyword scale in every category — see the
+// 20260711060000 migration) and quality_bonus (a 0-0.40 capped fraction,
+// each category's own rating/accreditation/etc. signals re-expressed as a
+// bounded multiplier). Shops additionally return hiring_bonus, kept
+// separate from quality_bonus because "this shop wants to hire" is a
+// job-seeking-context signal, not a general relevance one — a person
+// searching for a haircut shouldn't have their results dominated by shops
+// wanting to hire barbers, but someone job-hunting should.
+const HIRING_INTENT_WEIGHT: Record<string, number> = {
+  location: 1.0,
+  networking: 1.0,
+  default: 1.0,
+};
+
+// Maps each detected search intent to the one category it's meant to
+// favor — used as a bounded ranking boost instead of the old hard
+// quota/block-order system, so a strong match in a non-anchored category
+// can still win the top spot instead of losing automatically.
+const INTENT_CATEGORY_MAP: Record<string, string> = {
+  cosmetologists: 'cosmetologist',
+  salons: 'salon',
+  schools: 'school',
+  supplies: 'store',
+  events: 'event',
+  location: 'shop',
+  networking: 'barber',
+};
+
+const INTENT_BOOST = 0.30;
+
+function scoreItemForAllTab(item: any, intentType: string): number {
+  const base = Number(item.base_relevance ?? item.match_score ?? item.trust_score ?? 0);
+  const qualityBonus = Number(item.quality_bonus ?? 0);
+  const hiringWeight = item.resultType === 'shop' ? (HIRING_INTENT_WEIGHT[intentType] ?? 0.15) : 0;
+  const hiringBoost = Number(item.hiring_bonus ?? 0) * hiringWeight;
+  const anchorCategory = INTENT_CATEGORY_MAP[intentType];
+  const intentBoost = anchorCategory && item.resultType === anchorCategory ? INTENT_BOOST : 0;
+  return base * (1 + qualityBonus) * (1 + hiringBoost) * (1 + intentBoost);
+}
+
+// Prevents one strongly-scoring category from monopolizing long runs of
+// the page (e.g. 8 shops in a row) without imposing a hard quota — looks
+// ahead for the next different-type item and swaps it forward whenever a
+// run would otherwise exceed the cap.
+function applyDiversityGuard<T extends { resultType: string }>(sorted: T[], maxConsecutive: number = 3): T[] {
+  const pending = sorted.slice();
+  const result: T[] = [];
+  while (pending.length > 0) {
+    const recentRun = result.slice(-maxConsecutive);
+    const nextType = pending[0].resultType;
+    const wouldExceed = recentRun.length === maxConsecutive && recentRun.every((r) => r.resultType === nextType);
+    if (!wouldExceed) {
+      result.push(pending.shift()!);
+      continue;
+    }
+    const swapIdx = pending.findIndex((r, i) => i > 0 && r.resultType !== nextType);
+    if (swapIdx === -1) {
+      result.push(pending.shift()!);
+    } else {
+      result.push(pending[swapIdx]);
+      pending.splice(swapIdx, 1);
+    }
+  }
+  return result;
+}
+
 // search_engine_rules (stop words, intent mappings, routing rules) is admin
 // config that barely ever changes, but was being re-fetched from the DB on
 // every single search request. A short TTL cache avoids that round-trip for
@@ -75,7 +158,7 @@ function cosmetMatchesCategory(c: any, activeFilters: string[]): boolean {
 export async function searchBarbershops(query: string, page: number = 1, filterTab: string = 'All', activeFilters: string[] = []) {
   try {
     if (!query || query.trim().length < 2) {
-      return { success: true, data: { results: [], total: 0 } };
+      return { success: true, data: { results: [], total: 0, intentType: 'default' } };
     }
 
     const ITEMS_PER_PAGE = 10;
@@ -136,43 +219,31 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     });
     cleanQuery = cleanQuery.replace(/\s+/g, ' ').trim();
 
-    // --- Dynamic Bento Box Ratios ---
-    let shopLim = 3, barberLim = 3, webLim = 2, toolLim = 2, schoolLim = 2, storeLim = 2, salonLim = 2, cosmetologistLim = 2, eventLim = 2; // Default (Unbiased)
+    // --- Intent Detection ---
+    // Used only as a bounded ranking boost now (see INTENT_CATEGORY_MAP /
+    // scoreItemForAllTab above) — no longer allocates fixed per-category
+    // display quotas. Every category fetches the same ALL_TAB_POOL depth
+    // regardless of detected intent; intent just tilts which category's
+    // matches rank higher within the blended list.
     let intentType = 'default';
     const qRaw = query.toLowerCase();
 
     if (/\b(cosmetologist|makeup artist|nail tech|nail technician|esthetician|eyelash|lash artist|lash tech|manicure|pedicure|facial)\b/.test(qRaw)) {
-      // Cosmetologist / Beauty Professional Intent
       intentType = 'cosmetologists';
-      cosmetologistLim = 5; shopLim = 1; barberLim = 1; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; eventLim = 1;
     } else if (/\b(salons?|hair salon|beauty salon|hairstylist|blowout|updo|balayage)\b/.test(qRaw)) {
-      // Salon Intent
       intentType = 'salons';
-      salonLim = 5; shopLim = 1; barberLim = 1; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; cosmetologistLim = 1; eventLim = 1;
     } else if (/\b(schools?|academy|academies|college|colleges|enroll|tuition|accredited|financial aid|barber program|cosmetology)\b/.test(qRaw)) {
-      // School / Enrollment Intent
       intentType = 'schools';
-      schoolLim = 5; webLim = 2; barberLim = 1; shopLim = 1; toolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1; eventLim = 1;
     } else if (/\b(supply|supplies|clippers?|shears?|wholesale|products?|equipment)\b/.test(qRaw)) {
-      // Supply Store Intent
       intentType = 'supplies';
-      storeLim = 5; webLim = 1; barberLim = 1; shopLim = 1; toolLim = 1; schoolLim = 1; salonLim = 1; cosmetologistLim = 1; eventLim = 1;
     } else if (/\b(events?|expo|expos|convention|trade show|competitions?|battle|battles|seminar|conference|bootcamp)\b/.test(qRaw)) {
-      // Event Intent
       intentType = 'events';
-      eventLim = 5; shopLim = 1; barberLim = 1; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1;
     } else if (/\b(how|why|what is|best way|guide|tutorial|tips|learn)\b/.test(qRaw)) {
-      // Educational Intent
       intentType = 'educational';
-      webLim = 5; toolLim = 2; barberLim = 2; shopLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1; eventLim = 1;
     } else if (/\b(shops?|barbershops?|studios?|suites?|places?|hiring|near me|booth|commission)\b/.test(qRaw)) {
-      // Employment / Location Intent
       intentType = 'location';
-      shopLim = 5; barberLim = 3; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1; eventLim = 1;
     } else if (/\b(barbers?|stylists?|braiders?|locticians?|people|someone)\b/.test(qRaw)) {
-      // Networking / People Intent
       intentType = 'networking';
-      barberLim = 5; shopLim = 3; webLim = 1; toolLim = 1; schoolLim = 1; storeLim = 1; salonLim = 1; cosmetologistLim = 1; eventLim = 1;
     }
     // --------------------------------
 
@@ -190,8 +261,8 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       const { data: toolRes, error: toolErr } = await supabase.rpc('search_platform_tools_ranked', {
         query_text: cleanQuery,
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
-        limit_val: filterTab === 'All' ? toolLim : ITEMS_PER_PAGE,
-        offset_val: filterTab === 'All' ? (page - 1) * toolLim : fromIndex
+        limit_val: filterTab === 'All' ? ALL_TAB_POOL : ITEMS_PER_PAGE,
+        offset_val: filterTab === 'All' ? 0 : fromIndex
       });
 
       if (!toolErr && toolRes) {
@@ -226,8 +297,8 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       const { data: webRes, error: webErr } = await supabase.rpc('search_web_pages_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
-        limit_val: filterTab === 'All' ? webLim : ITEMS_PER_PAGE,
-        offset_val: filterTab === 'All' ? (page - 1) * webLim : fromIndex,
+        limit_val: filterTab === 'All' ? ALL_TAB_POOL : ITEMS_PER_PAGE,
+        offset_val: filterTab === 'All' ? 0 : fromIndex,
         is_video_filter: isVideoFilter,
         is_image_filter: isImageFilter
       });
@@ -265,13 +336,13 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     async function fetchBarberMatches(): Promise<any[]> {
       if (!(filterTab === 'All' || filterTab === 'Barbers')) return [];
 
-      const barberLimBase = filterTab === 'All' ? barberLim : ITEMS_PER_PAGE;
+      const barberLimBase = filterTab === 'All' ? ALL_TAB_POOL : ITEMS_PER_PAGE;
       const barberFilterActive = ['barber_actively_looking', 'barber_wants_booth', 'barber_wants_commission', 'rating_4.5'].some((f) => activeFilters.includes(f));
       const { data: barberRes, error: barberErr } = await supabase.rpc('search_barbers_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
         limit_val: barberFilterActive ? FILTERED_FETCH_LIMIT : barberLimBase,
-        offset_val: barberFilterActive ? 0 : (filterTab === 'All' ? (page - 1) * barberLim : fromIndex)
+        offset_val: barberFilterActive ? 0 : (filterTab === 'All' ? 0 : fromIndex)
       });
 
       let matches: any[] = [];
@@ -294,7 +365,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
         matches = matches.filter((b) => b.booksy_rating && b.booksy_rating >= 4.5);
       }
       if (barberFilterActive) {
-        const pageOffset = filterTab === 'All' ? (page - 1) * barberLim : fromIndex;
+        const pageOffset = filterTab === 'All' ? 0 : fromIndex;
         matches = paginateFiltered(matches, pageOffset, barberLimBase);
       }
       return matches;
@@ -304,13 +375,13 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     async function fetchSchoolMatches(): Promise<any[]> {
       if (!(filterTab === 'All' || filterTab === 'Schools')) return [];
 
-      const schoolLimBase = filterTab === 'All' ? schoolLim : ITEMS_PER_PAGE;
+      const schoolLimBase = filterTab === 'All' ? ALL_TAB_POOL : ITEMS_PER_PAGE;
       const schoolFilterActive = ['school_accredited', 'school_high_pass_rate', 'school_affordable', 'school_financial_aid', 'rating_4.5', 'school_city_houston'].some((f) => activeFilters.includes(f));
       const { data: schoolRes, error: schoolErr } = await supabase.rpc('search_schools_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
         limit_val: schoolFilterActive ? FILTERED_FETCH_LIMIT : schoolLimBase,
-        offset_val: schoolFilterActive ? 0 : (filterTab === 'All' ? (page - 1) * schoolLim : fromIndex)
+        offset_val: schoolFilterActive ? 0 : (filterTab === 'All' ? 0 : fromIndex)
       });
 
       let matches: any[] = [];
@@ -358,7 +429,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
         matches = matches.filter((s) => s.rating && parseFloat(s.rating) >= 4.5);
       }
       if (schoolFilterActive) {
-        const pageOffset = filterTab === 'All' ? (page - 1) * schoolLim : fromIndex;
+        const pageOffset = filterTab === 'All' ? 0 : fromIndex;
         matches = paginateFiltered(matches, pageOffset, schoolLimBase);
       }
       return matches;
@@ -369,8 +440,8 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     async function fetchStoreMatches(): Promise<any[]> {
       if (!(filterTab === 'All' || filterTab === 'Stores')) return [];
 
-      const storeLimitVal = filterTab === 'All' ? storeLim : ITEMS_PER_PAGE;
-      const storeOffsetVal = filterTab === 'All' ? (page - 1) * storeLim : fromIndex;
+      const storeLimitVal = filterTab === 'All' ? ALL_TAB_POOL : ITEMS_PER_PAGE;
+      const storeOffsetVal = filterTab === 'All' ? 0 : fromIndex;
       const storeFilterActive = ['rating_4.5', 'store_budget', 'store_moderate'].some((f) => activeFilters.includes(f));
 
       const [
@@ -427,13 +498,13 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     async function fetchSalonMatches(): Promise<any[]> {
       if (!(filterTab === 'All' || filterTab === 'Salons')) return [];
 
-      const salonLimBase = filterTab === 'All' ? salonLim : ITEMS_PER_PAGE;
+      const salonLimBase = filterTab === 'All' ? ALL_TAB_POOL : ITEMS_PER_PAGE;
       const salonFilterActive = ['rating_4.5', 'salon_100_reviews'].some((f) => activeFilters.includes(f));
       const { data: salonRes, error: salonErr } = await supabase.rpc('search_salons_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
         limit_val: salonFilterActive ? FILTERED_FETCH_LIMIT : salonLimBase,
-        offset_val: salonFilterActive ? 0 : (filterTab === 'All' ? (page - 1) * salonLim : fromIndex)
+        offset_val: salonFilterActive ? 0 : (filterTab === 'All' ? 0 : fromIndex)
       });
 
       let matches: any[] = [];
@@ -450,7 +521,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
         matches = matches.filter((s) => s.total_reviews && Number(s.total_reviews) >= 100);
       }
       if (salonFilterActive) {
-        const pageOffset = filterTab === 'All' ? (page - 1) * salonLim : fromIndex;
+        const pageOffset = filterTab === 'All' ? 0 : fromIndex;
         matches = paginateFiltered(matches, pageOffset, salonLimBase);
       }
       return matches;
@@ -460,13 +531,13 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     async function fetchCosmetologistMatches(): Promise<any[]> {
       if (!(filterTab === 'All' || filterTab === 'Cosmetologist')) return [];
 
-      const cosmetologistLimBase = filterTab === 'All' ? cosmetologistLim : ITEMS_PER_PAGE;
+      const cosmetologistLimBase = filterTab === 'All' ? ALL_TAB_POOL : ITEMS_PER_PAGE;
       const cosmetFilterActive = ['rating_4.5', ...Object.keys(COSMET_CATEGORY_PATTERNS)].some((f) => activeFilters.includes(f));
       const { data: cosmetologistRes, error: cosmetologistErr } = await supabase.rpc('search_cosmetologists_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
         limit_val: cosmetFilterActive ? FILTERED_FETCH_LIMIT : cosmetologistLimBase,
-        offset_val: cosmetFilterActive ? 0 : (filterTab === 'All' ? (page - 1) * cosmetologistLim : fromIndex)
+        offset_val: cosmetFilterActive ? 0 : (filterTab === 'All' ? 0 : fromIndex)
       });
 
       let matches: any[] = [];
@@ -481,7 +552,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       }
       matches = matches.filter((c) => cosmetMatchesCategory(c, activeFilters));
       if (cosmetFilterActive) {
-        const pageOffset = filterTab === 'All' ? (page - 1) * cosmetologistLim : fromIndex;
+        const pageOffset = filterTab === 'All' ? 0 : fromIndex;
         matches = paginateFiltered(matches, pageOffset, cosmetologistLimBase);
       }
       return matches;
@@ -500,13 +571,13 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     async function fetchEventMatches(): Promise<any[]> {
       if (!(filterTab === 'All' || filterTab === 'Events')) return [];
 
-      const eventLimBase = filterTab === 'All' ? eventLim : ITEMS_PER_PAGE;
+      const eventLimBase = filterTab === 'All' ? ALL_TAB_POOL : ITEMS_PER_PAGE;
       const eventFilterActive = Object.keys(EVENT_CATEGORY_FILTER_MAP).some((f) => activeFilters.includes(f));
       const { data: eventRes, error: eventErr } = await supabase.rpc('search_events_ranked', {
         query_text: cleanQuery.length >= 2 ? cleanQuery : '',
         query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
         limit_val: eventFilterActive ? FILTERED_FETCH_LIMIT : eventLimBase,
-        offset_val: eventFilterActive ? 0 : (filterTab === 'All' ? (page - 1) * eventLim : fromIndex)
+        offset_val: eventFilterActive ? 0 : (filterTab === 'All' ? 0 : fromIndex)
       });
 
       let matches: any[] = [];
@@ -520,7 +591,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
         matches = matches.filter((e) => activeCategories.includes(e.category));
       }
       if (eventFilterActive) {
-        const pageOffset = filterTab === 'All' ? (page - 1) * eventLim : fromIndex;
+        const pageOffset = filterTab === 'All' ? 0 : fromIndex;
         matches = paginateFiltered(matches, pageOffset, eventLimBase);
       }
       return matches;
@@ -543,8 +614,8 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
           query_text: cleanQuery.length >= 2 ? cleanQuery : '',
           is_hiring_filter: isHiring,
           rent_type_filter: rentTypeFilter || '',
-          limit_val: shopFilterActive ? FILTERED_FETCH_LIMIT : shopLim,
-          offset_val: shopFilterActive ? 0 : (page - 1) * shopLim,
+          limit_val: shopFilterActive ? FILTERED_FETCH_LIMIT : ALL_TAB_POOL,
+          offset_val: shopFilterActive ? 0 : 0,
           query_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null
         });
         if (!error && data) {
@@ -578,8 +649,8 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
             return rent != null && rent <= rentThreshold;
           });
         }
-        const pageOffset = filterTab === 'All' ? (page - 1) * shopLim : fromIndex;
-        const pageSize = filterTab === 'All' ? shopLim : ITEMS_PER_PAGE;
+        const pageOffset = filterTab === 'All' ? 0 : fromIndex;
+        const pageSize = filterTab === 'All' ? ALL_TAB_POOL : ITEMS_PER_PAGE;
         const filteredTotal = matches.length;
         matches = matches.slice(pageOffset, pageOffset + pageSize);
         if (filterTab === 'Barbershops') count = filteredTotal;
@@ -618,60 +689,35 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     let totalResults = 0;
 
     if (filterTab === 'All') {
-      // Grouped Bento Box (Prioritized Concatenation)
-      let interleaved: any[] = [];
+      // Unified blended relevance ranking, replacing the old fixed
+      // quota + block-concatenation approach (see 20260711060000 and the
+      // ALL_TAB_POOL/scoreItemForAllTab comments above for the full
+      // rationale). Every category's candidates get one comparable score
+      // and are merged into a single ranked list — a strong match in any
+      // category can win the top spot instead of losing automatically to
+      // whichever category the old template happened to list first.
+      const allCandidates = [
+        ...shopMatches,
+        ...barberMatches,
+        ...salonMatches,
+        ...cosmetologistMatches,
+        ...schoolMatches,
+        ...storeMatches,
+        ...eventMatches,
+        ...webMatches,
+        ...internalMatches,
+      ];
 
-      if (intentType === 'cosmetologists') {
-        // Cosmetologist Anchor: All Cosmetologists -> All Salons -> All Shops -> All Barbers -> All Articles -> All Stores -> All Schools -> All Events -> All Tools
-        interleaved = [...cosmetologistMatches, ...salonMatches, ...shopMatches, ...barberMatches, ...webMatches, ...storeMatches, ...schoolMatches, ...eventMatches, ...internalMatches];
-      } else if (intentType === 'salons') {
-        // Salon Anchor: All Salons -> All Shops -> All Barbers -> All Articles -> All Stores -> All Schools -> All Cosmetologists -> All Events -> All Tools
-        interleaved = [...salonMatches, ...shopMatches, ...barberMatches, ...webMatches, ...storeMatches, ...schoolMatches, ...cosmetologistMatches, ...eventMatches, ...internalMatches];
-      } else if (intentType === 'schools') {
-        // School Anchor: All Schools -> All Articles -> All Barbers -> All Shops -> All Stores -> All Salons -> All Cosmetologists -> All Events -> All Tools
-        interleaved = [...schoolMatches, ...webMatches, ...barberMatches, ...shopMatches, ...storeMatches, ...salonMatches, ...cosmetologistMatches, ...eventMatches, ...internalMatches];
-      } else if (intentType === 'supplies') {
-        // Supply Store Anchor: All Stores -> All Shops -> All Barbers -> All Articles -> All Salons -> All Cosmetologists -> All Events -> All Tools
-        interleaved = [...storeMatches, ...shopMatches, ...barberMatches, ...webMatches, ...schoolMatches, ...salonMatches, ...cosmetologistMatches, ...eventMatches, ...internalMatches];
-      } else if (intentType === 'events') {
-        // Event Anchor: All Events -> All Schools -> All Shops -> All Barbers -> All Salons -> All Cosmetologists -> All Articles -> All Stores -> All Tools
-        interleaved = [...eventMatches, ...schoolMatches, ...shopMatches, ...barberMatches, ...salonMatches, ...cosmetologistMatches, ...webMatches, ...storeMatches, ...internalMatches];
-      } else if (intentType === 'educational') {
-        // Educational Anchor: All Articles -> All Tools -> All Barbers -> All Shops -> All Schools -> All Stores -> All Salons -> All Cosmetologists -> All Events
-        interleaved = [...webMatches, ...internalMatches, ...barberMatches, ...shopMatches, ...schoolMatches, ...storeMatches, ...salonMatches, ...cosmetologistMatches, ...eventMatches];
-      } else if (intentType === 'networking') {
-        // Networking Anchor: All Barbers -> All Cosmetologists -> All Shops -> All Tools -> All Articles -> All Schools -> All Stores -> All Salons -> All Events
-        interleaved = [...barberMatches, ...cosmetologistMatches, ...shopMatches, ...internalMatches, ...webMatches, ...schoolMatches, ...storeMatches, ...salonMatches, ...eventMatches];
-      } else {
-        // Default / Location Anchor: All Shops -> All Barbers -> All Salons -> All Cosmetologists -> All Articles -> All Schools -> All Stores -> All Events -> All Tools
-        interleaved = [...shopMatches, ...barberMatches, ...salonMatches, ...cosmetologistMatches, ...webMatches, ...schoolMatches, ...storeMatches, ...eventMatches, ...internalMatches];
-      }
+      const scored = allCandidates
+        .map((item) => ({ item, score: scoreItemForAllTab(item, intentType) }))
+        .sort((a, b) => b.score - a.score)
+        .map((s) => s.item);
 
-      // Calculate the total number of pages needed for each category based on its consumption rate
-      const shopPages = Math.ceil((shopCount || 0) / shopLim);
-      const barberTotal = barberMatches.length > 0 && barberMatches[0].total_matched ? Number(barberMatches[0].total_matched) : 0;
-      const barberPages = Math.ceil(barberTotal / barberLim);
-      const webTotal = webMatches.length > 0 && webMatches[0].total_matched ? Number(webMatches[0].total_matched) : 0;
-      const webPages = Math.ceil(webTotal / webLim);
-      const toolTotal = internalMatches.length > 0 && internalMatches[0].total_matched ? Number(internalMatches[0].total_matched) : 0;
-      const toolPages = Math.ceil(toolTotal / toolLim);
-      const schoolTotal = schoolMatches.length > 0 && schoolMatches[0].total_matched ? Number(schoolMatches[0].total_matched) : 0;
-      const schoolPages = Math.ceil(schoolTotal / schoolLim);
-      const storeTotal = storeMatches.length > 0 && storeMatches[0].total_matched ? Number(storeMatches[0].total_matched) : 0;
-      const storePages = Math.ceil(storeTotal / storeLim);
-      const salonTotal = salonMatches.length > 0 && salonMatches[0].total_matched ? Number(salonMatches[0].total_matched) : 0;
-      const salonPages = Math.ceil(salonTotal / salonLim);
-      const cosmetologistTotal = cosmetologistMatches.length > 0 && cosmetologistMatches[0].total_matched ? Number(cosmetologistMatches[0].total_matched) : 0;
-      const cosmetologistPages = Math.ceil(cosmetologistTotal / cosmetologistLim);
-      const eventTotal = eventMatches.length > 0 && eventMatches[0].total_matched ? Number(eventMatches[0].total_matched) : 0;
-      const eventPages = Math.ceil(eventTotal / eventLim);
+      const diversified = applyDiversityGuard(scored, 3);
 
-      // Find the deepest category in terms of total pages required
-      const maxPagesRequired = Math.max(shopPages, barberPages, webPages, toolPages, schoolPages, storePages, salonPages, cosmetologistPages, eventPages);
-
-      // Trick the frontend into generating exactly maxPagesRequired by providing a total that divides by ITEMS_PER_PAGE (10)
-      totalResults = maxPagesRequired * ITEMS_PER_PAGE;
-      pageResults = interleaved; // Return all combined items to preserve depth
+      totalResults = diversified.length;
+      const pageOffset = (page - 1) * ITEMS_PER_PAGE;
+      pageResults = diversified.slice(pageOffset, pageOffset + ITEMS_PER_PAGE);
     } else {
       // Tab-specific logic
       if (filterTab === 'Tools') {
@@ -719,7 +765,12 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       success: true,
       data: {
         results: pageResults,
-        total: totalResults
+        total: totalResults,
+        // Lets the All tab show filter chips that actually apply to what
+        // was searched (e.g. school filters for a schools-intent query)
+        // instead of always showing the Barbershops set regardless of
+        // query — see ALL_TAB_INTENT_FILTER_MAP in page.tsx.
+        intentType
       }
     };
   } catch (err: any) {

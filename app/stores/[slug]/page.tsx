@@ -9,6 +9,7 @@ import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-secti
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import { STORE_PUBLIC_COLUMNS } from "@/lib/public-columns";
+import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import Image from "next/image";
 import {
   MapPin,
@@ -177,6 +178,14 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
 
   const storeJsonLd = buildStoreJsonLd(store, websiteHref);
 
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: searchPerfRows } = await supabase.rpc('get_search_performance_by_entity', {
+    p_entity_id: store.id,
+    p_result_type: 'store',
+    p_cutoff: thirtyDaysAgo,
+  });
+  const searchPerformance = (searchPerfRows && searchPerfRows[0]) || null;
+
   return (
     <div className="min-h-screen bg-slate-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(storeJsonLd) }} />
@@ -258,6 +267,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
               {store.phone && (
                 <a
                   href={`tel:${store.phone}`}
+                  data-ig-click="outbound_lead"
                   className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-emerald-600/20"
                 >
                   <Phone className="w-4 h-4" />
@@ -269,6 +279,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
                   href={websiteHref}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
                   className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-extrabold text-sm uppercase tracking-wider transition-colors"
                 >
                   <Globe className="w-4 h-4" />
@@ -277,6 +288,8 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
                 </a>
               )}
             </div>
+
+            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={false} entityLabel="store" />
 
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">

@@ -28,6 +28,7 @@ import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { SCHOOL_PUBLIC_COLUMNS } from "@/lib/public-columns";
+import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 
 export const revalidate = 3600;
 
@@ -353,6 +354,14 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
 
   const { org: schoolJsonLd, faqPage: faqJsonLd } = buildSchoolJsonLd(school, websiteHref);
 
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: searchPerfRows } = await supabase.rpc('get_search_performance_by_entity', {
+    p_entity_id: school.id,
+    p_result_type: 'school',
+    p_cutoff: thirtyDaysAgo,
+  });
+  const searchPerformance = (searchPerfRows && searchPerfRows[0]) || null;
+
   // A dual-licensed school can have real 2026 pass-rate data for both exams
   // — when both are present, prefix each label with the exam name so they
   // aren't mistaken for the same number.
@@ -605,6 +614,7 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                     href={websiteHref}
                     target="_blank"
                     rel="noopener noreferrer"
+                    data-ig-click="outbound_lead"
                     className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-indigo-600/20"
                   >
                     Visit Website
@@ -614,6 +624,7 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                 {school.phone && (
                   <a
                     href={`tel:${school.phone.replace(/[^0-9+]/g, "")}`}
+                    data-ig-click="outbound_lead"
                     className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-sm transition-colors"
                   >
                     <Phone className="w-4 h-4" />
@@ -622,6 +633,8 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                 )}
               </div>
             )}
+
+            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={false} entityLabel="school" />
 
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
