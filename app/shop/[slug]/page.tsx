@@ -12,6 +12,7 @@ import { RequestShopDayButton } from "@/components/shared/request-shop-day-butto
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { PassportCarousel } from "@/components/shared/passport-carousel";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
+import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 
 export const dynamic = 'force-dynamic';
 
@@ -536,52 +537,7 @@ export default async function ShopProfilePage({ params }: Props) {
                 )}
               </div>
 
-              {/* Search Performance — teaser for unclaimed shops (encourages
-                  claiming), full breakdown once claimed. claimed_at is a
-                  self-reported flag set by the claim form, not verified
-                  ownership — same trust level that form already operates at. */}
-              {!isClaimed ? (
-                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 mb-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="w-4 h-4 text-indigo-600" />
-                    <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Search Visibility</p>
-                  </div>
-                  {searchPerformance ? (
-                    <p className="text-sm text-slate-700 font-semibold mb-3">
-                      <span className="font-black text-slate-900">{searchPerformance.impressions}</span> people found this shop through search in the last 30 days.
-                    </p>
-                  ) : (
-                    <p className="text-sm text-slate-700 font-semibold mb-3">
-                      This shop is visible in search results right now.
-                    </p>
-                  )}
-                  <p className="text-xs text-slate-500">
-                    Claim this shop to see your click-through rate, average search position, and boost your ranking.
-                  </p>
-                </div>
-              ) : (
-                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 mb-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-emerald-600" />
-                      <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Search Performance</p>
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase">
-                      <CheckCircle2 className="w-3 h-3" /> Claimed
-                    </span>
-                  </div>
-                  {searchPerformance ? (
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div><p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Impressions</p><p className="font-black text-slate-900">{searchPerformance.impressions}</p></div>
-                      <div><p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Avg. Position</p><p className="font-black text-slate-900">{searchPerformance.avg_position}</p></div>
-                      <div><p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Clicks</p><p className="font-black text-slate-900">{searchPerformance.clicks}</p></div>
-                      <div><p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">CTR</p><p className="font-black text-slate-900">{searchPerformance.ctr}%</p></div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-600">Not enough search activity yet in the last 30 days.</p>
-                  )}
-                </div>
-              )}
+              <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={isClaimed} entityLabel="shop" />
 
               <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
                 <Lock className="w-3 h-3" />

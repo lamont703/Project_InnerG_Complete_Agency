@@ -531,7 +531,7 @@ export async function getSchoolExamStats(supabase: SupabaseClient, schoolQuery: 
   return (data as any[]).map((r) => ({
     schoolId: r.school_id,
     schoolType: r.school_type,
-    schoolHref: `/schools/${r.school_id}`,
+    schoolHref: `/schools/${r.school_slug || r.school_id}`,
     schoolName: r.school_name,
     city: r.city,
     barberWrittenPassRate: pct(r.barber_written_pass_rate),
@@ -608,7 +608,7 @@ export async function findStudentExamRecord(supabase: SupabaseClient, name: stri
     firstName: r.first_name,
     lastName: r.last_name,
     schoolName: r.school_name,
-    schoolHref: r.matched_school_id && SCHOOL_TYPE_TO_PATH[r.matched_school_type] ? `${SCHOOL_TYPE_TO_PATH[r.matched_school_type]}/${r.matched_school_id}` : null,
+    schoolHref: r.matched_school_id && SCHOOL_TYPE_TO_PATH[r.matched_school_type] ? `${SCHOOL_TYPE_TO_PATH[r.matched_school_type]}/${r.matched_school_slug || r.matched_school_id}` : null,
     testType: r.test_type,
     testDate: r.test_date,
     result: r.result,
@@ -639,7 +639,7 @@ export async function getSchoolRankingsByRegion(supabase: SupabaseClient, city: 
   return (data as any[]).map((r) => ({
     schoolId: r.school_id,
     schoolType: r.school_type,
-    schoolHref: `/schools/${r.school_id}`,
+    schoolHref: `/schools/${r.school_slug || r.school_id}`,
     schoolName: r.school_name,
     city: r.city,
     writtenPassRate: pct(r.written_pass_rate),
@@ -668,7 +668,7 @@ export async function getTopSchoolsByPassRate(supabase: SupabaseClient, limit = 
   return (data as any[]).map((r) => ({
     schoolId: r.school_id,
     schoolType: r.school_type,
-    schoolHref: `/schools/${r.school_id}`,
+    schoolHref: `/schools/${r.school_slug || r.school_id}`,
     schoolName: r.school_name,
     city: r.city,
     writtenPassRate: pct(r.written_pass_rate),
@@ -702,7 +702,7 @@ export async function getSchoolTestTakers(supabase: SupabaseClient, schoolQuery:
   if (error || !data) return [];
   return (data as any[]).map((r) => ({
     schoolId: r.school_id,
-    schoolHref: `/schools/${r.school_id}`,
+    schoolHref: `/schools/${r.school_slug || r.school_id}`,
     schoolName: r.school_name,
     isK12School: !!r.is_k12_school,
     programType: r.program_type,

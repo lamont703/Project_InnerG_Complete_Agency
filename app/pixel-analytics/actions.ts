@@ -26,6 +26,7 @@ export type AnalyticsData = {
   topReferrers: { url: string; count: number }[]
   topFilters: { filter_id: string; count: number }[]
   topSearchPerformers: { name: string; href: string; resultType: string; impressions: number; avgPosition: number; clicks: number; ctr: number }[]
+  topEntityProfiles: { name: string; href: string; entityType: string; visits: number; outboundClicks: number }[]
   categoryViews: { category: string; views: number; visitors: number }[]
   recentEvents: any[]
 }
@@ -100,7 +101,7 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
       totalViews: 0, totalClicks: 0, activeUsers: 0, engagedUsers: 0, returningUsers: 0, qualifiedVisitors: 0,
       totalSearches: 0, uniqueSearchers: 0, outboundLeads: 0, shopClaims: 0,
       aiModeActivations: 0, aiMessagesSent: 0, aiRateLimitHits: 0,
-      topPages: [], topInsights: [], topReferrers: [], topFilters: [], topSearchPerformers: [], categoryViews: [], recentEvents: []
+      topPages: [], topInsights: [], topReferrers: [], topFilters: [], topSearchPerformers: [], topEntityProfiles: [], categoryViews: [], recentEvents: []
     }
   }
 
@@ -141,6 +142,20 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
     })
     .filter((r): r is NonNullable<typeof r> => r != null);
 
+  // 5. Top Entity Profiles — real traffic (page visits + outbound-lead
+  // clicks) to each profile page, independent of search-tool impressions
+  // above. This is the "who's getting found and would want to know it"
+  // leaderboard used for owner outreach.
+  const { data: entityProfileRows } = await supabase
+    .rpc('get_entity_profile_engagement', { p_cutoff: cutoffDate || null, p_limit: 25 });
+  const topEntityProfiles = ((entityProfileRows || []) as any[]).map((r) => ({
+    name: r.name,
+    href: r.href,
+    entityType: r.entity_type,
+    visits: Number(r.visits),
+    outboundClicks: Number(r.outbound_clicks),
+  }));
+
   return {
     totalViews: summary.totalViews || 0,
     totalClicks: summary.totalClicks || 0,
@@ -160,6 +175,7 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
     topReferrers: summary.topReferrers || [],
     topFilters: summary.topFilters || [],
     topSearchPerformers,
+    topEntityProfiles,
     categoryViews: summary.categoryViews || [],
     recentEvents: recentEvents || [],
   }

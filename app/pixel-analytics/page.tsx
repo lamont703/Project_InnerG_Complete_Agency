@@ -408,6 +408,47 @@ export default async function PixelAnalyticsPage(
           </div>
         </div>
 
+        {/* Top Entity Profiles */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm mb-12">
+          <div className="flex items-center gap-3 mb-2">
+            <Users className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold">Top Entity Profiles</h2>
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            Real visits and outbound-lead clicks (call/website/tickets) per profile page — who's actually getting found, for owner outreach.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                  <th className="pb-4 font-medium px-4">Profile</th>
+                  <th className="pb-4 font-medium px-4">Type</th>
+                  <th className="pb-4 font-medium px-4 text-right">Visits</th>
+                  <th className="pb-4 font-medium px-4 text-right">Outbound Clicks</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {data.topEntityProfiles.length > 0 ? data.topEntityProfiles.map((p, i) => (
+                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="py-4 px-4 font-medium text-primary max-w-[220px] truncate">
+                      <Link href={p.href} className="hover:underline">{p.name}</Link>
+                    </td>
+                    <td className="py-4 px-4 text-slate-500 capitalize">{p.entityType}</td>
+                    <td className="py-4 px-4 text-right">{p.visits.toLocaleString()}</td>
+                    <td className="py-4 px-4 text-right font-semibold">{p.outboundClicks.toLocaleString()}</td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-slate-500">
+                      Not enough profile traffic yet to rank
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {/* Recent Activity Feed */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm">
           <h2 className="text-xl font-bold mb-6">Live Event Feed</h2>

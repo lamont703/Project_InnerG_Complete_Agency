@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition, useEffect, Suspense } from "react";
+import { useState, useTransition, useEffect, useRef, Suspense } from "react";
 import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight, Send, CheckCircle2, Loader2, CalendarDays } from "lucide-react";
 import { searchBarbershops } from "./actions";
 import { requestEmploymentVerification } from "@/app/tools/employment-match-review/actions";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useSearchParams } from "next/navigation";
+import { AiOverviewSnippet } from "@/components/shared/ai-overview-snippet";
 
 interface EmploymentMatchForVerification {
   professionalType: string;
@@ -20,18 +21,10 @@ interface EmploymentMatchForVerification {
 const ALL_TABS = ['AI Mode', 'All', 'Schools', 'Salons', 'Barbershops', 'Barbers', 'Cosmetologist', 'Events', 'Stores', 'Articles', 'Videos', 'Images', 'Tools'];
 const PRIMARY_MOBILE_TABS = ['AI Mode', 'All'];
 
-// Each tab surfaces the facets that matter for that entity type. 'All' reuses
-// the Barbershops set since that's the entity its filters were built around.
+// Each tab surfaces the facets that matter for that entity type. The All
+// tab doesn't have its own entry — it borrows whichever set matches the
+// detected search intent instead (see ALL_TAB_INTENT_FILTER_MAP below).
 const FILTERS_BY_TAB: Record<string, { id: string; label: string }[]> = {
-  All: [
-    { id: 'hiring_now', label: 'Hiring Now' },
-    { id: 'booth_rent', label: 'Booth Rent' },
-    { id: 'commission', label: 'Commission' },
-    { id: 'rent_under_150', label: 'Under $150/wk' },
-    { id: 'rent_under_200', label: 'Under $200/wk' },
-    { id: 'rent_under_250', label: 'Under $250/wk' },
-    { id: 'rating_4.5', label: '4.5+ Stars' },
-  ],
   Barbershops: [
     { id: 'hiring_now', label: 'Hiring Now' },
     { id: 'booth_rent', label: 'Booth Rent' },
@@ -81,6 +74,23 @@ const FILTERS_BY_TAB: Record<string, { id: string; label: string }[]> = {
   ],
 };
 
+// The All tab used to always show the Barbershops filter set no matter
+// what was actually searched — "Booth Rent"/"Hiring Now" chips on a
+// schools-intent query ("top pass rates") don't apply to anything shown.
+// Maps the same intent the server already classifies (see actions.ts) to
+// whichever tab's filter set actually matches that query.
+const ALL_TAB_INTENT_FILTER_MAP: Record<string, string> = {
+  cosmetologists: 'Cosmetologist',
+  salons: 'Salons',
+  schools: 'Schools',
+  supplies: 'Stores',
+  events: 'Events',
+  networking: 'Barbers',
+  location: 'Barbershops',
+  default: 'Barbershops',
+  educational: 'Barbershops',
+};
+
 function SearchContent() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") || "");
@@ -91,11 +101,24 @@ function SearchContent() {
   const [activeFilters, setActiveFilters] = useState<string[]>(searchParams.get("filters") ? searchParams.get("filters")!.split(',') : []);
   const [isLoading, setIsLoading] = useState(false);
   const [showMoreTabs, setShowMoreTabs] = useState(false);
+  // Which entity type the server-side intent classifier detected for the
+  // current query — used only to pick which filter chip set to show on
+  // the All tab (see ALL_TAB_INTENT_FILTER_MAP), not to change ranking
+  // (that's handled server-side in actions.ts).
+  const [searchIntentType, setSearchIntentType] = useState("default");
   
   // AI Chat State
   const [chatMessages, setChatMessages] = useState<{role: string, content: string, employmentMatches?: EmploymentMatchForVerification[]}[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
+  // Kept separate from chatMessages rather than pushed in as a fake
+  // "model" turn — a failure (rate limit, Gemini quota, network) isn't
+  // part of the conversation, it's a transient state about it. Keeping it
+  // separate means: (1) the AI Overview snippet on All naturally shows
+  // nothing on failure instead of displaying the error text as if it were
+  // a real answer, and (2) a later successful retry doesn't leave a stray
+  // fake error "turn" permanently baked into the transcript.
+  const [chatError, setChatError] = useState<string | null>(null);
   // Verification-request state lives here, not per-message — a match can
   // appear in more than one message (e.g. asked about twice), and the
   // button should reflect ONE shared "already requested" state across
@@ -152,6 +175,7 @@ function SearchContent() {
     const newHistory = [...chatMessages, newMsg];
     setChatMessages(newHistory);
     setChatInput("");
+    setChatError(null);
     setIsAiLoading(true);
 
     try {
@@ -164,7 +188,7 @@ function SearchContent() {
       const data = await res.json();
 
       if (!res.ok) {
-        setChatMessages([...newHistory, { role: 'model', content: data.error || 'Failed to connect.' }]);
+        setChatError(data.error || 'Failed to connect.');
         if (res.status === 429 && (window as any).innerG?.track) {
           (window as any).innerG.track('ai_rate_limit_hit', { limit: 5 });
         }
@@ -184,7 +208,7 @@ function SearchContent() {
         }
       }
     } catch (err) {
-      setChatMessages([...newHistory, { role: 'model', content: 'Connection error.' }]);
+      setChatError('Connection error.');
     } finally {
       setIsAiLoading(false);
     }
@@ -250,26 +274,26 @@ function SearchContent() {
     }
   };
 
-  // Suggestion chips need to send their own question text straight into AI
-  // Mode, not rely on the `query` state — setQuery() here wouldn't be
-  // visible yet inside this same handler due to React batching, so
-  // handleTabClick's "carry the in-progress query" branch would still see
-  // the old (empty) value. Passing the text explicitly to sendChatMessage
-  // sidesteps that stale-closure gap entirely.
-  const startAiModeQuery = (text: string) => {
+  // Suggestion chips land on All now, not AI Mode directly — the AI
+  // Overview snippet on All already surfaces an answer to the same
+  // question, so there's no need to detour into the dedicated chat tab
+  // before showing real search results too. A chip click is a deliberate,
+  // discrete action (like pressing Enter), so it asks immediately rather
+  // than waiting on the Enter key. Sends the question text straight into
+  // sendChatMessage rather than relying on the `query` state, since
+  // setQuery() here wouldn't be visible yet inside this same handler due
+  // to React batching.
+  const startQuickSearch = (text: string) => {
     setQuery(text);
-    setFilterTab("AI Mode");
+    setFilterTab("All");
     setPage(1);
     setShowMoreTabs(false);
     setActiveFilters([]);
     setResults([]);
     setTotal(0);
     setIsLoading(true);
-    if ((window as any).innerG?.track) {
-      (window as any).innerG.track('ai_mode_activated');
-    }
     if (chatMessages.length === 0) {
-      sendChatMessage(text);
+      askAiOverview(text);
     }
   };
 
@@ -380,6 +404,7 @@ function SearchContent() {
           if (!ignore) {
             setResults(parsed.results);
             setTotal(parsed.total);
+            setSearchIntentType(parsed.intentType || 'default');
             // A cache hit resolves synchronously — nothing is actually
             // loading. Without this, isLoading can be stuck at whatever a
             // prior handleTabClick() left it as (it unconditionally sets
@@ -398,7 +423,8 @@ function SearchContent() {
           if (res.success && res.data) {
             setResults(res.data.results || []);
             setTotal(res.data.total || 0);
-            sessionStorage.setItem(cacheKey, JSON.stringify({ results: res.data.results, total: res.data.total }));
+            setSearchIntentType(res.data.intentType || 'default');
+            sessionStorage.setItem(cacheKey, JSON.stringify({ results: res.data.results, total: res.data.total, intentType: res.data.intentType }));
             trackImpressions(res.data.results || [], query.trim(), filterTab, page);
           }
         }).finally(() => {
@@ -419,6 +445,37 @@ function SearchContent() {
       clearTimeout(delayDebounceFn);
     };
   }, [query, page, filterTab, activeFilters]);
+
+  // The AI Overview snippet (see AiOverviewSnippet) previews the same
+  // conversation the AI Mode tab runs — but it fires a real Gemini call,
+  // and this used to auto-ask on every debounced query change while
+  // typing, which burned through the (tight, 20/day free-tier) quota far
+  // faster than actual usage warranted. Now it only fires on a deliberate
+  // Enter press in the main search bar (see handleSearchKeyDown below),
+  // matching Google's own AI Overview behavior of only fully processing
+  // once a search is actually submitted, not on every keystroke.
+  const lastAutoAskedQueryRef = useRef<string>("");
+
+  const askAiOverview = (text: string) => {
+    const trimmed = text.trim();
+    if (trimmed.length < 2) return;
+    if (trimmed === lastAutoAskedQueryRef.current) return;
+    lastAutoAskedQueryRef.current = trimmed;
+    sendChatMessage(trimmed);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    if (filterTab !== 'All') return;
+    askAiOverview(query);
+  };
+
+  const expandAiSnippet = () => {
+    if ((window as any).innerG?.track) {
+      (window as any).innerG.track('ai_snippet_expanded');
+    }
+    handleTabClick('AI Mode');
+  };
 
   // Renders AI Mode responses with markdown-style [label](url) links turned
   // into real clickable links (relative paths use Next's client-side Link,
@@ -510,6 +567,13 @@ function SearchContent() {
     }
   };
 
+  // On the All tab, show whichever tab's filter set actually matches the
+  // detected intent (e.g. Schools filters for a schools-intent query)
+  // instead of always the Barbershops set. Every other tab keeps its own.
+  const activeFilterSetKey = filterTab === 'All'
+    ? (ALL_TAB_INTENT_FILTER_MAP[searchIntentType] || 'Barbershops')
+    : filterTab;
+
   return (
     <div className="min-h-dvh flex flex-col light bg-slate-50 text-slate-900 selection:bg-blue-500/20">
       
@@ -537,6 +601,7 @@ function SearchContent() {
                     type="text"
                     value={query}
                     onChange={handleQueryChange}
+                    onKeyDown={handleSearchKeyDown}
                     className="block w-full pl-12 pr-4 py-4 sm:text-lg border border-border rounded-full bg-secondary/30 focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm focus:shadow-md outline-none"
                     placeholder="Search shops, barbers & more"
                   />
@@ -559,42 +624,42 @@ function SearchContent() {
                 <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
                   <span className="w-full text-center text-xs sm:text-sm text-slate-500 font-medium">Ask about real-time market data:</span>
                   <button
-                    onClick={() => startAiModeQuery("Which Houston neighborhoods have the cheapest barber booth rent right now?")}
+                    onClick={() => startQuickSearch("Which Houston neighborhoods have the cheapest barber booth rent right now?")}
                     className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
                     Cheapest Houston neighborhoods for barber booth rent
                   </button>
                   <button
-                    onClick={() => startAiModeQuery("Which Houston barbershops are hiring or renting booths this week?")}
+                    onClick={() => startQuickSearch("Which Houston barbershops are hiring or renting booths this week?")}
                     className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
                     Houston barbershops hiring or renting booths this week
                   </button>
                   <button
-                    onClick={() => startAiModeQuery("Which Texas barber schools actually deliver the highest 2026 pass rates?")}
+                    onClick={() => startQuickSearch("Which Texas barber schools actually deliver the highest 2026 pass rates?")}
                     className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
                     Texas barber schools with the highest 2026 pass rates
                   </button>
                   <button
-                    onClick={() => startAiModeQuery("Which highly-rated Houston salons are hiring or renting chairs right now?")}
+                    onClick={() => startQuickSearch("Which highly-rated Houston salons are hiring or renting chairs right now?")}
                     className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
                     Highly-rated Houston salons hiring or renting chairs
                   </button>
                   <button
-                    onClick={() => startAiModeQuery("What are cosmetologists actually charging for services in Houston right now?")}
+                    onClick={() => startQuickSearch("What are cosmetologists actually charging for services in Houston right now?")}
                     className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
                     What Houston cosmetologists are actually charging
                   </button>
                   <button
-                    onClick={() => startAiModeQuery("Which Texas cosmetology schools actually deliver the highest 2026 pass rates?")}
+                    onClick={() => startQuickSearch("Which Texas cosmetology schools actually deliver the highest 2026 pass rates?")}
                     className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
@@ -684,10 +749,10 @@ function SearchContent() {
               {/* Faceted Filters (Intent Tags) — each tab surfaces the facets that
                   actually matter for that entity type, since a barbershop's
                   "Booth Rent" filter means nothing on the Schools tab. */}
-              {FILTERS_BY_TAB[filterTab] && (
+              {FILTERS_BY_TAB[activeFilterSetKey] && (
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide px-2">
                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-2 shrink-0">Filters:</span>
-                  {FILTERS_BY_TAB[filterTab].map((filter) => {
+                  {FILTERS_BY_TAB[activeFilterSetKey].map((filter) => {
                     const isActive = activeFilters.includes(filter.id);
                     return (
                       <button
@@ -787,8 +852,16 @@ function SearchContent() {
                     </div>
                   </div>
                 )}
+
+                {chatError && !isAiLoading && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-3 bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+                      {chatError}
+                    </div>
+                  </div>
+                )}
               </div>
-              
+
               <form onSubmit={handleChatSubmit} className="p-4 bg-transparent pb-safe">
                 <div className="relative">
                   <input
@@ -815,6 +888,13 @@ function SearchContent() {
             </div>
           ) : (
             <>
+              {filterTab === 'All' && query.trim().length >= 2 && (isAiLoading || chatMessages.some((m) => m.role === 'model')) && (
+                <AiOverviewSnippet
+                  responseText={[...chatMessages].reverse().find((m) => m.role === 'model')?.content || null}
+                  isLoading={isAiLoading}
+                  onExpand={expandAiSnippet}
+                />
+              )}
               {results.length > 0 && results.map((item, idx) => {
             if (item.resultType === 'internal') {
               return (

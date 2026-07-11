@@ -6,6 +6,7 @@ import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
+import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import { SALON_PUBLIC_COLUMNS } from "@/lib/public-columns";
@@ -149,6 +150,14 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
 
   const salonJsonLd = buildSalonJsonLd(salon, websiteHref);
 
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: searchPerfRows } = await supabase.rpc('get_search_performance_by_entity', {
+    p_entity_id: salon.id,
+    p_result_type: 'salon',
+    p_cutoff: thirtyDaysAgo,
+  });
+  const searchPerformance = (searchPerfRows && searchPerfRows[0]) || null;
+
   return (
     <div className="min-h-screen bg-slate-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(salonJsonLd) }} />
@@ -230,6 +239,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
               {salon.phone && (
                 <a
                   href={`tel:${salon.phone}`}
+                  data-ig-click="outbound_lead"
                   className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-pink-600/20"
                 >
                   <Phone className="w-4 h-4" />
@@ -241,6 +251,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
                   href={websiteHref}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
                   className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-extrabold text-sm uppercase tracking-wider transition-colors"
                 >
                   <Globe className="w-4 h-4" />
@@ -249,6 +260,8 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
                 </a>
               )}
             </div>
+
+            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={false} entityLabel="salon" />
 
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
