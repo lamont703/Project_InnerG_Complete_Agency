@@ -36,9 +36,9 @@ const references = [
 ]
 
 export const metadata = {
-  title: "Highest Paying Barbershops in Houston (2026): Best Pay Terms, Real Listings | Inner G Complete",
+  title: "Best Commission Splits & Lowest Booth Rent: Highest Paying Barbershops in Houston (2026) | Inner G Complete",
   description:
-    "Not earnings data — the real terms that actually determine what you keep: the lowest booth rents and highest commission splits among Houston barbershops currently reporting pay structure.",
+    "For barbers, not customers: the real, currently-listed lowest booth rents and highest commission splits among Houston barbershops — the pay terms that actually determine what you keep.",
   keywords: [
     "highest paying barbershops in Houston",
     "best pay barbershops Houston",
@@ -107,6 +107,8 @@ export default function HighestPayingBarbershopsArticle() {
               </Link>
               <span className="text-border">|</span>
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Landing the Chair</span>
+              <span className="text-border">|</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Verified Jul 2026</span>
             </div>
 
             <ExecutiveSummary
@@ -166,6 +168,20 @@ export default function HighestPayingBarbershopsArticle() {
         </header>
 
         <div className="mx-auto max-w-4xl px-6 py-16 space-y-16">
+          {/* Disambiguation — this page is for barbers, not customers looking for a fresh cut */}
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 flex items-start gap-3">
+            <DollarSign className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <p className="text-sm text-foreground font-medium leading-relaxed">
+              This page is for <strong>barbers</strong> comparing where to work — the lowest booth rent and highest
+              commission splits currently listed in Houston. Looking for the best place to <em>get</em> a haircut
+              instead? Try our{" "}
+              <Link href="/tools/barbershop-search" className="text-primary font-bold hover:underline">
+                barbershop search
+              </Link>
+              .
+            </p>
+          </div>
+
           {/* Why "highest paying" needs a real definition */}
           <section>
             <div className="flex items-center gap-3 mb-6">

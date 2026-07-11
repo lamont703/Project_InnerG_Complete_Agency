@@ -128,6 +128,8 @@ export default function BarberSchoolLengthArticle() {
               </Link>
               <span className="text-border">|</span>
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Choosing a School</span>
+              <span className="text-border">|</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Verified Jul 2026</span>
             </div>
 
             <ExecutiveSummary
@@ -209,6 +211,51 @@ export default function BarberSchoolLengthArticle() {
                 Texas allows you to sit for the written exam once you&apos;ve completed 900 of the required 1,000
                 hours — but you still need all 1,000 hours finished, and a passing written score, before you&apos;re
                 eligible for the practical exam.
+              </p>
+            </div>
+
+            <div className="mt-8 overflow-x-auto rounded-2xl border border-border/50">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-secondary/50 text-left">
+                    <th className="px-4 py-3 font-black uppercase tracking-wide text-xs text-muted-foreground">License</th>
+                    <th className="px-4 py-3 font-black uppercase tracking-wide text-xs text-muted-foreground">Required Hours</th>
+                    <th className="px-4 py-3 font-black uppercase tracking-wide text-xs text-muted-foreground">Typical Timeline</th>
+                    <th className="px-4 py-3 font-black uppercase tracking-wide text-xs text-muted-foreground">TDLR Application Fee</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  <tr>
+                    <td className="px-4 py-3 font-bold text-foreground">Class A Barber</td>
+                    <td className="px-4 py-3 text-muted-foreground">1,000 hours</td>
+                    <td className="px-4 py-3 text-muted-foreground">6-9 months full-time</td>
+                    <td className="px-4 py-3 text-muted-foreground">$50</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 font-bold text-foreground">Cosmetology Operator</td>
+                    <td className="px-4 py-3 text-muted-foreground">1,500 hours</td>
+                    <td className="px-4 py-3 text-muted-foreground">9-13 months full-time</td>
+                    <td className="px-4 py-3 text-muted-foreground">$50</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 font-bold text-foreground">Esthetician</td>
+                    <td className="px-4 py-3 text-muted-foreground">750 hours</td>
+                    <td className="px-4 py-3 text-muted-foreground">4-6 months full-time</td>
+                    <td className="px-4 py-3 text-muted-foreground">$50</td>
+                  </tr>
+                  <tr className="bg-primary/5">
+                    <td className="px-4 py-3 font-bold text-primary">Cosmetologist → Barber (accelerated)</td>
+                    <td className="px-4 py-3 text-muted-foreground">300 hours</td>
+                    <td className="px-4 py-3 text-muted-foreground">2-3 months full-time</td>
+                    <td className="px-4 py-3 text-muted-foreground">$50</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p className="px-4 py-3 text-xs text-muted-foreground bg-secondary/20 border-t border-border/50">
+                Timelines are typical full-time program pacing, not a fixed TDLR rule — confirm your specific school&apos;s schedule directly.
+                PSI, TDLR&apos;s exam vendor, charges a separate written/practical exam fee on top of the $50 TDLR
+                application fee — see PSI&apos;s current Candidate Information Bulletin for the exact amount, since it&apos;s
+                set by PSI, not TDLR, and changes independently.
               </p>
             </div>
           </section>

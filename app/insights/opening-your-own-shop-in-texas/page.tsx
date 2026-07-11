@@ -22,6 +22,7 @@ import {
   Home,
   DollarSign,
   Truck,
+  MapPin,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -151,6 +152,8 @@ export default function OpeningYourOwnShopGuide() {
               </Link>
               <span className="text-border">|</span>
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Shop Owner Guide</span>
+              <span className="text-border">|</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Verified Jul 2026</span>
             </div>
 
             <ExecutiveSummary
@@ -290,6 +293,49 @@ export default function OpeningYourOwnShopGuide() {
               <p>
                 These figures come from general industry cost guides, not TDLR — they&apos;ll vary significantly by
                 city, lease terms, and how much of the buildout you do yourself versus hire out.
+              </p>
+            </div>
+          </section>
+
+          {/* Real Cost Variation by Metro/Neighborhood */}
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <MapPin className="h-5 w-5 text-primary" />
+              <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">
+                How Booth Rent Actually Varies by Houston Neighborhood
+              </h2>
+            </div>
+            <div className="prose prose-lg max-w-none text-muted-foreground font-medium leading-relaxed space-y-4">
+              <p>
+                Buildout cost isn&apos;t the only number that varies by location — so does ongoing booth rent, if
+                you&apos;re renting out chairs rather than staffing employees. Real, currently-listed weekly booth
+                rent across 25 tracked Houston shops averages <strong>$197/week</strong>, ranging from as low as{" "}
+                <strong>$125/week</strong> to as high as <strong>$300/week</strong> depending on the neighborhood.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-4 not-prose">
+                <div className="rounded-2xl border border-border bg-white p-5">
+                  <p className="text-xs font-black text-primary uppercase tracking-widest mb-2">Cheapest Tracked ZIPs</p>
+                  <p className="text-2xl font-black text-foreground tracking-tighter">$125–150/wk</p>
+                  <p className="text-xs text-muted-foreground mt-1">77071, 77077, 77025, 77338, 77067</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-white p-5">
+                  <p className="text-xs font-black text-primary uppercase tracking-widest mb-2">Highest Tracked ZIPs</p>
+                  <p className="text-2xl font-black text-foreground tracking-tighter">$260–300/wk</p>
+                  <p className="text-xs text-muted-foreground mt-1">77449, 77002, 77079</p>
+                </div>
+              </div>
+              <p>
+                See the full, continuously-updated{" "}
+                <Link href="/barber-booth-rent-houston" className="text-primary font-bold hover:underline">
+                  Houston booth rent listings
+                </Link>{" "}
+                for current availability by neighborhood.
+              </p>
+              <p className="text-sm italic">
+                We track real listings across Texas, but Houston is currently the only metro with enough shops
+                reporting booth rent to show a reliable neighborhood breakdown — Dallas, Austin, and San Antonio
+                coverage is still growing. We&apos;d rather tell you that honestly than publish a city-by-city
+                comparison built on too few data points to trust.
               </p>
             </div>
           </section>

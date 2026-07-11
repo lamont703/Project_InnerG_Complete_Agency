@@ -7,7 +7,7 @@ const supabaseUrl = Deno.env.get("NEXT_PUBLIC_SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const GHL_API_KEY = process.env.GHL_API_KEY || "pit-96f9b0b9-c512-4066-81b6-d74ac075d8d4";
+const GHL_API_KEY = Deno.env.get("GHL_API_KEY") || "";
 const CUSTOM_FIELD_ID = "cCoAAjVEaqRmeQ0fAfl8";
 
 async function syncUrlsToGhl() {

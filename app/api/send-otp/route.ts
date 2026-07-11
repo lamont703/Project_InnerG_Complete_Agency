@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Send SMS via GoHighLevel
-    const ghlApiKey = "pit-96f9b0b9-c512-4066-81b6-d74ac075d8d4";
+    const ghlApiKey = process.env.GHL_API_KEY || "";
     const locationId = "QLyYYRoOhCg65lKW9HDX";
     const GHL_API_BASE = "https://services.leadconnectorhq.com";
 

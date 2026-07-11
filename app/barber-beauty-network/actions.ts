@@ -9,7 +9,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const GHL_API_BASE = "https://services.leadconnectorhq.com";
-const ghlApiKey = process.env.GHL_API_KEY || "pit-96f9b0b9-c512-4066-81b6-d74ac075d8d4";
+const ghlApiKey = process.env.GHL_API_KEY || "";
 const locationId = "QLyYYRoOhCg65lKW9HDX";
 
 const CHAIR_PRICING_BASE_URL = "https://agency.innergcomplete.com/tools/ai-booth-station";

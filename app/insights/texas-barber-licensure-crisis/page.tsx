@@ -105,8 +105,8 @@ const metrics = [
 ]
 
 export const metadata = {
-  title: "The Texas Barber Licensure Crisis: A $15M Institutional Risk Analysis | Inner G Complete",
-  description: "Texas barber schools face a 'Licensure Cliff' with written fail rates exceeding 45% in major metros. An audit of why school accreditation is at risk and how the Texas ADI Pilot defends it.",
+  title: "TDLR Barber Exam Pass Rate: The Texas Barber Licensure Crisis (2026) | Inner G Complete",
+  description: "The TDLR barber exam pass rate is 37.25% (FY 2025) for the written exam, vs. 89.80% practical — a 'Licensure Cliff' putting Texas barber school accreditation at risk. Full data audit and the ADI Pilot response.",
   keywords: [
     "Texas barber licensure crisis",
     "Texas barber written exam fail rate",
@@ -185,6 +185,8 @@ export default function TexasBarberCrisis() {
               </Link>
               <span className="text-border">|</span>
               <span className="text-xs font-bold text-primary uppercase tracking-widest">Regional Market Report</span>
+              <span className="text-border">|</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Verified Jul 2026</span>
             </div>
 
             <ExecutiveSummary data={{
@@ -199,7 +201,9 @@ export default function TexasBarberCrisis() {
             </h1>
 
             <p className="text-xl text-muted-foreground leading-relaxed font-medium text-balance mb-6">
-              A deeply researched validation into the structural failure of written examination pass rates across the Texas metropolitan hubs—Houston, Dallas, and San Antonio—and the catastrophic risk to institutional accreditation.
+              The TDLR barber exam pass rate for Texas&apos;s Class A Barber written exam is 37.25% (FY 2025) — a
+              structural failure across the Houston, Dallas, and San Antonio metro hubs that puts institutional
+              accreditation at real risk.
             </p>
 
             <StatisticalSignal signals={[
