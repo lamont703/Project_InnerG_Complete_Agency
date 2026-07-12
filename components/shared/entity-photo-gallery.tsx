@@ -55,6 +55,15 @@ export function EntityPhotoGallery({
     );
   }
 
+  // unoptimized on every image here — Vercel's Image Optimization has a
+  // monthly quota on distinct source images, and it's been exceeded
+  // (confirmed live: production's /_next/image returns 402
+  // OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED for these), which showed up
+  // as blank thumbnails that only "fixed themselves" when clicked into
+  // the lightbox — that path was already using a raw <img>, bypassing
+  // Vercel's optimizer entirely. These are already served from real CDNs
+  // (Supabase storage, Booksy's CloudFront, Google's photo CDN), so they
+  // don't need Vercel re-optimizing them anyway.
   return (
     <>
       <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
@@ -70,7 +79,7 @@ export function EntityPhotoGallery({
             fill
             className="object-cover"
             sizes="(max-width: 1024px) 100vw, 66vw"
-            unoptimized={!heroPhoto.startsWith("https://")}
+            unoptimized
           />
         </button>
         {thumbnails.length > 0 && (
@@ -91,7 +100,7 @@ export function EntityPhotoGallery({
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     sizes={gridCols === 6 ? "16vw" : "25vw"}
-                    unoptimized={!url.startsWith("https://")}
+                    unoptimized
                   />
                   {isLast && (
                     <div className="absolute inset-0 bg-black/55 flex items-center justify-center text-white font-bold text-sm">
