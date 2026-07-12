@@ -282,11 +282,15 @@ export default function LicenseRequirementsGuide() {
                 <Link href="/texas-cosmetology-practical-exam-kit-list" className="text-primary font-bold hover:underline">
                   Cosmetology Practical Exam Kit List
                 </Link>
-                , and practice the written portion on our{" "}
+                , and practice the written portion on our free{" "}
                 <Link href="/tools/texas-barber-exam-practice-deck" className="text-primary font-bold hover:underline">
-                  free practice deck
-                </Link>
-                .
+                  Barber
+                </Link>{" "}
+                or{" "}
+                <Link href="/tools/texas-cosmetology-exam-practice-deck" className="text-primary font-bold hover:underline">
+                  Cosmetology
+                </Link>{" "}
+                practice deck.
               </p>
             </div>
 

@@ -21,8 +21,9 @@ async function populateShopUrls() {
     // Fetch shops that haven't been updated with tracking yet
     const { data: shops, error: fetchError } = await supabase
       .from("agent_barbershop_leads")
-      .select("id, shop_name, shop_profile_page_url, customizer_url, contact_id")
+      .select("id, slug, shop_name, shop_profile_page_url, customizer_url, contact_id")
       .not("customizer_url", "like", "%ghl_contact_id%")
+      .order("id", { ascending: true })
       .limit(1000);
 
     if (fetchError) {
@@ -40,13 +41,19 @@ async function populateShopUrls() {
     let batchSuccessCount = 0;
 
     for (const shop of shops) {
-      const contactTracking = shop.contact_id ? `?ghl_contact_id=${shop.contact_id}` : `?ghl_contact_id={{contact.id}}`;
+      if (!shop.slug) {
+        console.warn(`⚠️  Skipping ${shop.shop_name} (${shop.id}) — no slug assigned`);
+        continue;
+      }
 
-      let newProfileUrl = `${BASE_PROFILE_URL}${shop.id}`;
-      let newCustomizerUrl = `${BASE_CUSTOMIZER_URL}${shop.id}/customizer`;
+      // Never write the literal "{{contact.id}}" placeholder — GHL only
+      // resolves merge tags inside its own message templates, not ones
+      // already baked into a stored data value, so a null contact_id
+      // here would be a permanently broken URL, not a temporary one.
+      const contactTracking = shop.contact_id ? `?ghl_contact_id=${shop.contact_id}` : "";
 
-      newProfileUrl += contactTracking;
-      newCustomizerUrl += contactTracking;
+      const newProfileUrl = `${BASE_PROFILE_URL}${shop.slug}${contactTracking}`;
+      const newCustomizerUrl = `${BASE_CUSTOMIZER_URL}${shop.slug}/customizer${contactTracking}`;
 
       const { error: updateError } = await supabase
         .from("agent_barbershop_leads")

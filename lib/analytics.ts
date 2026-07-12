@@ -124,12 +124,14 @@ export function trackExamSessionStart(params: {
   deck_type: 'public' | 'enhanced'
   question_count: number
   mode?: 'standard' | 'psi_simulation'
+  program?: 'barber' | 'cosmetology'
 }) {
   gtagEvent('exam_session_start', {
     event_category: 'Exam Intelligence',
     deck_type: params.deck_type,
     question_count: params.question_count,
     mode: params.mode || 'standard',
+    program: params.program || 'barber',
   })
 }
 
@@ -141,6 +143,7 @@ export function trackExamAnswerSubmitted(params: {
   time_spent_ms: number
   changed_answer: boolean
   exam_mode?: 'standard' | 'psi_simulation'
+  program?: 'barber' | 'cosmetology'
 }) {
   gtagEvent('exam_answer_submitted', {
     event_category: 'Exam Intelligence',
@@ -150,6 +153,7 @@ export function trackExamAnswerSubmitted(params: {
     changed_answer: params.changed_answer,
     question_index: params.question_index,
     exam_mode: params.exam_mode || 'standard',
+    program: params.program || 'barber',
   })
 }
 
@@ -160,6 +164,7 @@ export function trackExamSessionComplete(params: {
   total: number
   pass_rate: number
   mode?: 'standard' | 'psi_simulation'
+  program?: 'barber' | 'cosmetology'
 }) {
   gtagEvent('exam_session_complete', {
     event_category: 'Exam Intelligence',
@@ -168,15 +173,17 @@ export function trackExamSessionComplete(params: {
     total: params.total,
     pass_rate: params.pass_rate,
     mode: params.mode || 'standard',
+    program: params.program || 'barber',
     value: params.score, // maps to 'value' in GA4 for scoring
   })
 }
 
 /** User resets/retakes the exam */
-export function trackExamRetake(deck_type: 'public' | 'enhanced') {
+export function trackExamRetake(deck_type: 'public' | 'enhanced', program: 'barber' | 'cosmetology' = 'barber') {
   gtagEvent('exam_retake', {
     event_category: 'Exam Intelligence',
     deck_type,
+    program,
   })
 }
 
