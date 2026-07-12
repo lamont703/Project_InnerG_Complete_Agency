@@ -57,16 +57,38 @@ async function getBarber(param: string) {
   return { ...(byId as any), _resolvedByLegacyId: true };
 }
 
+// metro_area is only populated for ~29% of barbers, so most titles/
+// descriptions used to render with zero location context at all
+// ("{name} — Professional Barber", nothing else) even though address is
+// populated for 100% of rows. Real addresses are messy (suite numbers,
+// duplicated fragments, stray "United States" text), but the city
+// reliably sits in the comma-segment right before the trailing zip —
+// e.g. "9000 Park W Dr, Suite M, Houston, 77063" -> "Houston". Falling
+// back to this gives virtually every barber real location differentiation
+// in search snippets instead of the same generic, location-less title.
+function extractCityFromAddress(address?: string | null): string | null {
+  if (!address) return null;
+  const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
+  if (parts.length < 2) return null;
+  const last = parts[parts.length - 1];
+  const looksLikeZip = /^[A-Z]{0,2}\s*\d{5}(-\d{4})?$/i.test(last);
+  if (!looksLikeZip) return null;
+  const candidate = parts[parts.length - 2];
+  if (!candidate || /^(suite|ste|unit|#|apt)\b/i.test(candidate)) return null;
+  return candidate;
+}
+
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params;
   const barber = await getBarber(slug);
   if (!barber) return { title: "Barber Profile Not Found" };
 
-  const title = `${barber.name} — ${barber.specialty_type || "Professional Barber"}${barber.metro_area ? ` in ${barber.metro_area}` : ""}`;
+  const location = barber.metro_area || extractCityFromAddress(barber.address);
+  const title = `${barber.name} — ${barber.specialty_type || "Professional Barber"}${location ? ` in ${location}` : ""}`;
   const descParts = [
     `${barber.name}`,
     barber.specialty_type ? barber.specialty_type : "Professional Barber",
-    barber.metro_area ? `in ${barber.metro_area}` : null,
+    location ? `in ${location}` : null,
     barber.booksy_rating ? `Rated ${Number(barber.booksy_rating).toFixed(1)}★` : null,
     barber.booksy_review_count ? `(${barber.booksy_review_count} reviews)` : null,
     barber.booksy_price_range ? barber.booksy_price_range : null,
@@ -348,6 +370,7 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
                             href={barber.profile_url}
                             target="_blank"
                             rel="noopener noreferrer"
+                            data-ig-click="outbound_lead"
                             className="text-xs font-extrabold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg px-3 py-1.5 transition-colors"
                           >
                             Book
@@ -361,7 +384,7 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
                 <p className="text-sm text-slate-500 font-medium">
                   Pricing not available yet —{" "}
                   {barber.profile_url ? (
-                    <a href={barber.profile_url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 font-bold hover:underline">
+                    <a href={barber.profile_url} target="_blank" rel="noopener noreferrer" data-ig-click="outbound_lead" className="text-indigo-600 font-bold hover:underline">
                       view current pricing on Booksy
                     </a>
                   ) : (
@@ -406,6 +429,7 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
                   href={barber.profile_url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
                   className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-indigo-600/20"
                 >
                   Book on Booksy
@@ -433,6 +457,7 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
                   href={directionsHref}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
                   className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:underline"
                 >
                   <Navigation className="w-4 h-4" />

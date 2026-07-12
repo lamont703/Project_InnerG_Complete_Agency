@@ -21,6 +21,7 @@ export function BackToSearchLink({ fallbackHref, className }: { fallbackHref: st
           router.push(fallbackHref);
         }
       }}
+      data-ig-click="outbound_lead"
       className={className}
     >
       ← Back to search

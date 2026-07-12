@@ -642,6 +642,7 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
               </p>
               <Link
                 href="/texas-barber-exam-intelligence-prep"
+                data-ig-click="outbound_lead"
                 className="w-full inline-flex flex-col items-center justify-center gap-1 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-md shadow-indigo-600/20"
               >
                 <span className="inline-flex items-center gap-2 font-extrabold text-sm uppercase tracking-wider">
@@ -660,6 +661,7 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                   href={directionsHref}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
                   className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:underline"
                 >
                   <Navigation className="w-4 h-4" />
