@@ -19,6 +19,14 @@ interface ShopPhotoGalleryProps {
 export function ShopPhotoGallery({ images, shopName, badgeLabel, badgeVariant }: ShopPhotoGalleryProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
+  // unoptimized on every image here — Vercel's Image Optimization has a
+  // monthly quota on distinct source images, and it's been exceeded
+  // (confirmed live: production's /_next/image returns 402
+  // OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED for these), which showed up
+  // as blank thumbnails that only "fixed themselves" when clicked into
+  // the lightbox — that path was already using a raw <img>, bypassing
+  // Vercel's optimizer entirely. These are already served from Booksy's
+  // CloudFront CDN, so they don't need Vercel re-optimizing them anyway.
   return (
     <>
       <div className="flex md:grid overflow-x-auto md:overflow-hidden snap-x snap-mandatory md:snap-none md:grid-cols-4 md:grid-rows-2 gap-2 h-64 md:h-[60vh] rounded-none md:rounded-3xl mb-8 md:mb-12 scrollbar-hide -mx-4 md:mx-0 px-4 md:px-0">
@@ -33,7 +41,7 @@ export function ShopPhotoGallery({ images, shopName, badgeLabel, badgeVariant }:
             fill
             className="object-cover hover:scale-105 transition-transform duration-700"
             sizes="(max-width: 768px) 100vw, 50vw"
-            unoptimized={!images[0].startsWith("https://")}
+            unoptimized
           />
           <div className="absolute top-4 left-4 z-10 flex gap-2">
             {badgeVariant === "available" ? (
@@ -60,7 +68,7 @@ export function ShopPhotoGallery({ images, shopName, badgeLabel, badgeVariant }:
               fill
               className="object-cover hover:scale-105 transition-transform duration-700"
               sizes="(max-width: 768px) 50vw, 25vw"
-              unoptimized={!imgUrl.startsWith("https://")}
+              unoptimized
             />
           </button>
         ))}
