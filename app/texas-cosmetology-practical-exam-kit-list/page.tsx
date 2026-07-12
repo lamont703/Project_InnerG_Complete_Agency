@@ -314,7 +314,7 @@ export default function CosmetologyPracticalExamKitListPage() {
 
         <div className="flex flex-wrap gap-3 mb-16">
           <Link
-            href="/tools/texas-barber-exam-practice-deck"
+            href="/tools/texas-cosmetology-exam-practice-deck"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-fuchsia-600/20"
           >
             Practice the Written Exam
