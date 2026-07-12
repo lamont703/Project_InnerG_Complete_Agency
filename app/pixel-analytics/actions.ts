@@ -27,6 +27,7 @@ export type AnalyticsData = {
   topFilters: { filter_id: string; count: number }[]
   topSearchPerformers: { name: string; href: string; resultType: string; impressions: number; avgPosition: number; clicks: number; ctr: number }[]
   topEntityProfiles: { name: string; href: string; entityType: string; visits: number; outboundClicks: number }[]
+  ctrByEntityType: { entityType: string; visits: number; outboundClicks: number; ctr: number }[]
   categoryViews: { category: string; views: number; visitors: number }[]
   recentEvents: any[]
 }
@@ -101,7 +102,7 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
       totalViews: 0, totalClicks: 0, activeUsers: 0, engagedUsers: 0, returningUsers: 0, qualifiedVisitors: 0,
       totalSearches: 0, uniqueSearchers: 0, outboundLeads: 0, shopClaims: 0,
       aiModeActivations: 0, aiMessagesSent: 0, aiRateLimitHits: 0,
-      topPages: [], topInsights: [], topReferrers: [], topFilters: [], topSearchPerformers: [], topEntityProfiles: [], categoryViews: [], recentEvents: []
+      topPages: [], topInsights: [], topReferrers: [], topFilters: [], topSearchPerformers: [], topEntityProfiles: [], ctrByEntityType: [], categoryViews: [], recentEvents: []
     }
   }
 
@@ -156,6 +157,23 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
     outboundClicks: Number(r.outbound_clicks),
   }));
 
+  // 6. CTR By Entity Type — the aggregate version of #5: collectively,
+  // what fraction of visits to all salons pages (etc.) end in a click,
+  // versus just scrolling or reading. outboundClicks is currently EVERY
+  // click on that entity type's pages (same raw count "View Clicks" on
+  // Visitors by Page Category shows — get_category_click_breakdown), not
+  // filtered to any specific CTA yet; narrowing to "which clicks actually
+  // matter" is a deliberate later step. visits stays distinct qualified
+  // visitors, matching the bold number in Visitors by Page Category.
+  const { data: ctrByTypeRows } = await supabase
+    .rpc('get_entity_type_ctr', { p_cutoff: cutoffDate || null });
+  const ctrByEntityType = ((ctrByTypeRows || []) as any[]).map((r) => ({
+    entityType: r.entity_type,
+    visits: Number(r.visits),
+    outboundClicks: Number(r.outbound_clicks),
+    ctr: Number(r.ctr),
+  }));
+
   return {
     totalViews: summary.totalViews || 0,
     totalClicks: summary.totalClicks || 0,
@@ -176,6 +194,7 @@ export async function fetchAnalyticsData(days?: number): Promise<AnalyticsData> 
     topFilters: summary.topFilters || [],
     topSearchPerformers,
     topEntityProfiles,
+    ctrByEntityType,
     categoryViews: summary.categoryViews || [],
     recentEvents: recentEvents || [],
   }

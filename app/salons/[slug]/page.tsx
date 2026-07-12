@@ -281,6 +281,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
                   href={directionsHref}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
                   className="inline-flex items-center gap-1.5 text-sm font-bold text-pink-600 hover:underline"
                 >
                   <Navigation className="w-4 h-4" />

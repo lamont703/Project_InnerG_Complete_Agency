@@ -444,6 +444,7 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
                   href={event.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
                   className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-extrabold text-sm uppercase tracking-wider transition-colors"
                 >
                   View Original Listing
@@ -463,6 +464,7 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
                   href={directionsHref}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
                   className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:underline"
                 >
                   <Navigation className="w-4 h-4" />

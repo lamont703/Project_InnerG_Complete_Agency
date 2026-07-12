@@ -60,7 +60,7 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const resolvedParams = await params;
 
-  const metaSelect = "shop_name,city,shop_image_url";
+  const metaSelect = "shop_name,city,shop_image_url,hiring_need,booth_count_available";
   const slugUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agent_barbershop_leads?slug=eq.${resolvedParams.slug}&select=${metaSelect}`;
   const slugResponse = await fetchWithRetry(slugUrl, {
     headers: {
@@ -91,7 +91,17 @@ export async function generateMetadata(
     };
   }
 
-  const title = `${shop.shop_name} is Hiring on Shop Day Network`;
+  // "is Hiring" used to be hardcoded into every shop's title regardless of
+  // real availability — 1,002 of 1,054 shops (95%) have zero open chairs,
+  // so nearly every page asserted a false, near-duplicate claim. That's
+  // exactly the kind of low-quality-title signal that suppresses Google
+  // indexing (confirmed: /shop/ had the worst indexation rate of any
+  // entity category). Title now matches the same hiring condition already
+  // used correctly by the photo gallery badge below.
+  const isHiring = !!(shop.hiring_need || (shop.booth_count_available && shop.booth_count_available >= 1));
+  const title = isHiring
+    ? `${shop.shop_name} is Hiring on Shop Day Network`
+    : `${shop.shop_name} — Barbershop Profile in ${shop.city}, TX`;
   const descParts = [
     `${shop.shop_name} in ${shop.city}`,
     shop.booth_count_available ? `— ${shop.booth_count_available} chair${shop.booth_count_available > 1 ? 's' : ''} available` : null,
@@ -99,7 +109,9 @@ export async function generateMetadata(
     shop.rating ? `Rated ${shop.rating}★` : null,
     shop.total_reviews ? `(${shop.total_reviews} reviews)` : null,
   ].filter(Boolean);
-  const description = `${descParts.join('. ')}. View photos and request a Shop Day.`;
+  const description = isHiring
+    ? `${descParts.join('. ')}. View photos and request a Shop Day.`
+    : `${shop.shop_name} in ${shop.city}, TX${shop.rating ? ` — rated ${shop.rating}★` : ''}${shop.total_reviews ? ` (${shop.total_reviews} reviews)` : ''}. View photos, hours, and contact details.`;
   const image = shop.shop_image_url || "/shop_day_card.jpg";
 
   return {
@@ -171,6 +183,10 @@ export default async function ShopProfilePage({ params }: Props) {
   });
   const searchPerformance = (searchPerfRows && searchPerfRows[0]) || null;
   const isClaimed = !!shop.claimed_at;
+  // Same condition the photo gallery badge below already uses correctly —
+  // reused here so the title, body copy, and sidebar badge all agree with
+  // each other instead of every shop unconditionally claiming to be hiring.
+  const isHiring = !!(shop.hiring_need || (shop.booth_count_available && shop.booth_count_available >= 1));
 
   const tagList = shop.place_types
     ? shop.place_types.split('|').map((t: string) => t.trim().replace('_', ' ')).filter((t: string) => t !== 'point of interest' && t !== 'establishment' && t !== 'service' && t !== 'health')
@@ -331,18 +347,28 @@ export default async function ShopProfilePage({ params }: Props) {
             {/* Description / Vibe */}
             <div className="pb-10 border-b border-slate-200">
               <h2 className="text-2xl font-black text-slate-900 mb-6">About this shop</h2>
-              <p className="text-slate-600 text-lg leading-relaxed mb-6">
-                Welcome to {shop.shop_name}, a premier grooming destination located in the heart of {shop.city}. We are currently seeking professional, driven individuals to join our growing team.
-                With high foot traffic, excellent local ratings ({shop.rating} stars across {shop.total_reviews} reviews), and a modern atmosphere, this is the perfect location to build and scale your clientele.
-              </p>
-              
-              <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 flex gap-4">
-                <Info className="w-6 h-6 text-blue-600 shrink-0" />
-                <div>
-                  <h4 className="font-bold text-blue-900 mb-1">Why work here?</h4>
-                  <p className="text-blue-800/80 text-sm">We provide an inclusive, professional environment that empowers barbers and stylists to maximize their earning potential. Located in a high-visibility area, this shop is ideal for walk-ins and organic growth.</p>
-                </div>
-              </div>
+              {isHiring ? (
+                <>
+                  <p className="text-slate-600 text-lg leading-relaxed mb-6">
+                    Welcome to {shop.shop_name}, a premier grooming destination located in the heart of {shop.city}. We are currently seeking professional, driven individuals to join our growing team.
+                    With high foot traffic, excellent local ratings ({shop.rating} stars across {shop.total_reviews} reviews), and a modern atmosphere, this is the perfect location to build and scale your clientele.
+                  </p>
+
+                  <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 flex gap-4">
+                    <Info className="w-6 h-6 text-blue-600 shrink-0" />
+                    <div>
+                      <h4 className="font-bold text-blue-900 mb-1">Why work here?</h4>
+                      <p className="text-blue-800/80 text-sm">We provide an inclusive, professional environment that empowers barbers and stylists to maximize their earning potential. Located in a high-visibility area, this shop is ideal for walk-ins and organic growth.</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="text-slate-600 text-lg leading-relaxed mb-6">
+                  {shop.shop_name} is a grooming destination located in {shop.city}, TX
+                  {shop.rating ? `, rated ${shop.rating} stars across ${shop.total_reviews || 0} reviews` : ''}.
+                  This shop isn't currently listed as hiring — request a Shop Day or contact the owner directly to ask about chair availability.
+                </p>
+              )}
             </div>
 
             {/* Amenities & Tags */}
@@ -385,6 +411,7 @@ export default async function ShopProfilePage({ params }: Props) {
                     <h2 className="text-2xl font-black text-slate-900">Your Market Ecosystem</h2>
                     <Link
                       href={`/tools/barbershop-search?ecosystemShopId=${shop.id}&ecosystemShopName=${encodeURIComponent(shop.shop_name)}`}
+                      data-ig-click="outbound_lead"
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-sm"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
@@ -506,8 +533,8 @@ export default async function ShopProfilePage({ params }: Props) {
                   </h3>
                   <p className="text-slate-500 font-semibold">{shop.rent_rate ? "per week" : "Contact Owner"}</p>
                 </div>
-                <div className="bg-green-100 text-green-700 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider">
-                  Available
+                <div className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider ${isHiring ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                  {isHiring ? "Available" : "Off Market"}
                 </div>
               </div>
 

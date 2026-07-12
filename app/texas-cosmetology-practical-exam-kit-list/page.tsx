@@ -148,7 +148,7 @@ export default function CosmetologyPracticalExamKitListPage() {
     <div className="min-h-screen bg-white text-slate-950">
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
         <Link
-          href="/texas-barber-exam-intelligence-prep"
+          href="/texas-cosmetology-exam-intelligence-prep"
           className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-primary hover:underline mb-6"
         >
           <ArrowLeft className="w-3.5 h-3.5" />

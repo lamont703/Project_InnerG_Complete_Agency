@@ -608,6 +608,16 @@ export default function TexasBarberExamPrep() {
               <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
+
+          {/* Cross-link to cosmetology intelligence hub */}
+          <div className="mt-6 p-8 rounded-2xl bg-primary/5 border border-primary/10">
+            <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">Related Program</p>
+            <p className="text-sm font-bold text-slate-700 mb-4 leading-relaxed">Looking for cosmetology exam prep instead? The Texas cosmetology written exam has its own, separate pass-rate data and a dedicated intelligence hub.</p>
+            <Link href="/texas-cosmetology-exam-intelligence-prep" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary hover:underline">
+              View Texas Cosmetology Exam Intelligence Prep
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
         </div>
       </section>
     </main>

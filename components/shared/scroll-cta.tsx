@@ -5,10 +5,39 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
 
+// Dismissal used to be plain component state, which reset on every fresh
+// page load with no memory of a prior dismissal — a visitor who returned
+// to the same (or any other entity) page even minutes later got the exact
+// same banner again. Confirmed live: one visitor dismissed it 19 times
+// across 3 days, some clusters just minutes apart. Persisting to
+// localStorage with a 7-day TTL means a real dismissal actually sticks.
+const DISMISS_STORAGE_KEY = "scrollCtaDismissedAt";
+const DISMISS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+function isDismissalStillActive(): boolean {
+  if (typeof window === "undefined") return false;
+  const stored = window.localStorage.getItem(DISMISS_STORAGE_KEY);
+  if (!stored) return false;
+  const dismissedAt = Number(stored);
+  if (Number.isNaN(dismissedAt)) return false;
+  return Date.now() - dismissedAt < DISMISS_WINDOW_MS;
+}
+
 export function ScrollCTA() {
   const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+
+  // Runs once on mount (this component lives in the root layout, so
+  // "mount" effectively means a fresh page load, not every client-side
+  // navigation between pages) — can't read localStorage during the
+  // initial render without risking a hydration mismatch, so the real
+  // check happens here instead of in useState's initializer.
+  useEffect(() => {
+    if (isDismissalStillActive()) {
+      setIsDismissed(true);
+    }
+  }, []);
 
   // Determine if we should show on the current page path
   const isEntityPage = /^\/(salons|barbers|schools|stores|shop|cosmetologists)\/[^/]+$/.test(pathname);
@@ -77,6 +106,9 @@ export function ScrollCTA() {
   const handleDismiss = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(DISMISS_STORAGE_KEY, Date.now().toString());
+    }
     setIsDismissed(true);
     setIsVisible(false);
   };
@@ -115,6 +147,7 @@ export function ScrollCTA() {
             <button
               onClick={handleDismiss}
               aria-label="Dismiss banner"
+              data-ig-click="outbound_lead"
               className="rounded-lg p-1 text-slate-400 hover:text-white hover:bg-white/5 transition-all"
             >
               <X className="h-4 w-4" />
@@ -131,6 +164,7 @@ export function ScrollCTA() {
             <Link
               href={searchUrl}
               onClick={handleCTAClick}
+              data-ig-click="outbound_lead"
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm px-4 py-3 shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
             >
               Search Directory

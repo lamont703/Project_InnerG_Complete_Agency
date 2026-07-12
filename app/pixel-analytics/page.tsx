@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { fetchAnalyticsData, fetchBotRequestStats } from "./actions"
-import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target, ShieldCheck, TrendingUp, Bot } from "lucide-react"
+import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target, ShieldCheck, TrendingUp, Bot, GraduationCap, Sparkles, Scissors, Store, CalendarDays } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import { CategoryClickBreakdown } from "@/components/pixel-analytics/category-click-breakdown"
@@ -8,6 +8,16 @@ import { CategoryClickBreakdown } from "@/components/pixel-analytics/category-cl
 export const metadata = {
   title: "Pixel Analytics | Inner G Complete",
   description: "Advanced domain intelligence tracking pixel analytics.",
+}
+
+const ENTITY_TYPE_ICONS: Record<string, typeof Globe> = {
+  school: GraduationCap,
+  salon: Sparkles,
+  barber: Users,
+  shop: Scissors,
+  store: Store,
+  cosmetologist: Sparkles,
+  event: CalendarDays,
 }
 
 export const dynamic = 'force-dynamic'
@@ -137,6 +147,44 @@ export default async function PixelAnalyticsPage(
           </div>
         </div>
 
+        {/* Visitors by Page Category */}
+        <CategoryClickBreakdown categoryViews={data.categoryViews} days={days} />
+
+        {/* CTR By Entity Type */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm mb-12">
+          <div className="flex items-center gap-3 mb-2">
+            <Target className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold">CTR By Entity Type</h2>
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            Total button/link clicks per visitor on that type's pages — same raw click count as "View Clicks" above, not filtered to any specific button yet. Visits are distinct qualified visitors, matching the bold number in Visitors by Page Category above.
+          </p>
+          {data.ctrByEntityType.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              {data.ctrByEntityType.map((t) => {
+                const Icon = ENTITY_TYPE_ICONS[t.entityType] || Globe
+                return (
+                  <div
+                    key={t.entityType}
+                    className="text-left p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-transparent"
+                  >
+                    <div className="flex items-center gap-2 mb-2 text-slate-500 dark:text-slate-400">
+                      <Icon className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wide capitalize">{t.entityType}</span>
+                    </div>
+                    <p className="text-2xl font-black">{t.ctr}%</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {t.outboundClicks.toLocaleString()} clicks · {t.visits.toLocaleString()} visitors
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-slate-500 text-center py-8">Not enough profile traffic yet to compute CTR</div>
+          )}
+        </div>
+
         {/* VC / Marketplace Metrics */}
         <h2 className="text-2xl font-bold mb-6">Marketplace Intelligence</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-12">
@@ -217,9 +265,6 @@ export default async function PixelAnalyticsPage(
             <p className="text-sm text-rose-300 mt-2">Users hitting the 5-message cap</p>
           </div>
         </div>
-
-        {/* Visitors by Page Category */}
-        <CategoryClickBreakdown categoryViews={data.categoryViews} days={days} />
 
         {/* AI Crawler Traffic */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm mb-12">

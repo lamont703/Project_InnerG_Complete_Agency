@@ -55,15 +55,48 @@ async function getCosmetologist(param: string) {
   return { ...(byId as any), _resolvedByLegacyId: true };
 }
 
+// specialty_type is populated on 0 of 122 cosmetologist rows, and
+// metro_area is "Houston" on all 122 (a real, single-metro dataset, not a
+// bug) — so every title used to render as the exact same generic
+// "{name} — Beauty Professional in Houston". The role is almost always
+// already sitting right in the Booksy-sourced name itself (e.g. "Nicole
+// English Cosmetologist", "Ashia Brown Stylist") — it just never got
+// split out into specialty_type at ingestion. Extracting it here gives
+// titles real variation (Cosmetologist / Esthetician / Stylist / Makeup
+// Artist / Nail Technician) instead of one identical filler phrase
+// repeated 122 times.
+const KNOWN_BEAUTY_ROLES = [
+  "Makeup Artist",
+  "Nail Technician",
+  "Hair Stylist",
+  "Lash Artist",
+  "Cosmetologist",
+  "Esthetician",
+  "Stylist",
+  "Colorist",
+  "Braider",
+  "Barber",
+];
+
+function extractRoleFromName(name?: string | null): string | null {
+  if (!name) return null;
+  const cleaned = name.replace(/["""'']/g, "").trim();
+  for (const role of KNOWN_BEAUTY_ROLES) {
+    if (new RegExp(`\\b${role}$`, "i").test(cleaned)) return role;
+  }
+  return null;
+}
+
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params;
   const person = await getCosmetologist(slug);
   if (!person) return { title: "Cosmetologist Profile Not Found" };
 
-  const title = `${person.name} — ${person.specialty_type || "Beauty Professional"}${person.metro_area ? ` in ${person.metro_area}` : ""}`;
+  const role = person.specialty_type || extractRoleFromName(person.name) || "Beauty Professional";
+  const title = `${person.name} — ${role}${person.metro_area ? ` in ${person.metro_area}` : ""}`;
   const descParts = [
     person.name,
-    person.specialty_type || "Beauty Professional",
+    role,
     person.metro_area ? `in ${person.metro_area}` : null,
     person.booksy_rating ? `Rated ${Number(person.booksy_rating).toFixed(1)}★` : null,
     person.booksy_review_count ? `(${person.booksy_review_count} reviews)` : null,
@@ -91,7 +124,7 @@ function buildCosmetologistJsonLd(person: any) {
     "@context": "https://schema.org",
     "@type": "Person",
     name: person.name,
-    jobTitle: person.specialty_type || "Cosmetologist",
+    jobTitle: person.specialty_type || extractRoleFromName(person.name) || "Cosmetologist",
   };
   if (person.address) ld.address = { "@type": "PostalAddress", streetAddress: person.address, addressRegion: "TX", addressCountry: "US" };
   if (person.metro_area) ld.homeLocation = { "@type": "Place", name: person.metro_area };
@@ -132,6 +165,7 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
     .split(",")
     .map((s: string) => s.trim())
     .filter(Boolean);
+  const role = person.specialty_type || extractRoleFromName(person.name) || "Beauty Professional";
 
   const directionsHref =
     person.latitude && person.longitude
@@ -239,7 +273,7 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600 font-medium mt-3">
                 <span className="flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5" />
-                  {person.specialty_type || "Beauty Professional"}
+                  {role}
                 </span>
                 {person.metro_area && (
                   <>
@@ -296,6 +330,7 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
                             href={person.profile_url}
                             target="_blank"
                             rel="noopener noreferrer"
+                            data-ig-click="outbound_lead"
                             className="text-xs font-extrabold uppercase tracking-wider text-white bg-fuchsia-600 hover:bg-fuchsia-700 rounded-lg px-3 py-1.5 transition-colors"
                           >
                             Book
@@ -309,7 +344,7 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
                 <p className="text-sm text-slate-500 font-medium">
                   Pricing not available yet —{" "}
                   {person.profile_url ? (
-                    <a href={person.profile_url} target="_blank" rel="noopener noreferrer" className="text-fuchsia-600 font-bold hover:underline">
+                    <a href={person.profile_url} target="_blank" rel="noopener noreferrer" data-ig-click="outbound_lead" className="text-fuchsia-600 font-bold hover:underline">
                       view current pricing on StyleSeat
                     </a>
                   ) : (
@@ -331,6 +366,7 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
                   href={person.profile_url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
                   className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-fuchsia-600/20"
                 >
                   Book on StyleSeat
@@ -358,6 +394,7 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
                   href={directionsHref}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
                   className="inline-flex items-center gap-1.5 text-sm font-bold text-fuchsia-600 hover:underline"
                 >
                   <Navigation className="w-4 h-4" />

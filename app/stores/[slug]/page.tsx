@@ -297,6 +297,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
               </p>
               <Link
                 href={`/tools/barbershop-search?tab=Barbershops${store.city ? `&q=${encodeURIComponent(store.city)}` : ""}`}
+                data-ig-click="outbound_lead"
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-extrabold text-sm uppercase tracking-wider transition-colors"
               >
                 <Search className="w-4 h-4" />
@@ -312,6 +313,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
                   href={directionsHref}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
                   className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600 hover:underline"
                 >
                   <Navigation className="w-4 h-4" />
