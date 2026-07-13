@@ -603,7 +603,7 @@ function SearchContent() {
                     onChange={handleQueryChange}
                     onKeyDown={handleSearchKeyDown}
                     className="block w-full pl-12 pr-4 py-4 sm:text-lg border border-border rounded-full bg-secondary/30 focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm focus:shadow-md outline-none"
-                    placeholder="Search shops, barbers & more"
+                    placeholder="Ask anything beauty or barber"
                   />
                   {isLoading && (
                     <div className="absolute right-4">
