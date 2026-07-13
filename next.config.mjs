@@ -51,8 +51,11 @@ const nextConfig = {
     },
   },
 
-  // Explicitly allow server-only packages to prevent accidental browser bundling
-  serverExternalPackages: [],
+  // Explicitly allow server-only packages to prevent accidental browser bundling.
+  // google-ads-api/google-ads-node ship a ~10MB generated protobuf file that
+  // hangs the Turbopack bundler if it's traced into the route bundle instead
+  // of loaded natively at request time.
+  serverExternalPackages: ["google-ads-api", "google-ads-node"],
 
   // Required for Vercel deployment — disable x-powered-by header
   poweredByHeader: false,
