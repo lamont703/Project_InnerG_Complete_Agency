@@ -126,6 +126,86 @@ async function fetchSalonLeaderboard() {
   return (data || []).map((s) => ({ name: s.shop_name, city: s.city, rating: s.rating, reviewCount: s.total_reviews }));
 }
 
+// Individual professionals (Booksy-sourced) instead of shop/salon
+// businesses — same 50+ review quality bar as the business leaderboards
+// above, verified to leave 100+ qualifying rows before writing this.
+async function fetchIndividualBarberLeaderboard() {
+  const { data } = await supabase
+    .from("agent_barber_leads")
+    .select("name, metro_area, booksy_rating, booksy_review_count")
+    .ilike("metro_area", "%houston%")
+    .not("booksy_rating", "is", null)
+    .gte("booksy_review_count", 50)
+    .order("booksy_rating", { ascending: false })
+    .order("booksy_review_count", { ascending: false })
+    .limit(5);
+  return (data || []).map((b) => ({ name: b.name, city: b.metro_area, rating: b.booksy_rating, reviewCount: b.booksy_review_count }));
+}
+
+async function fetchCosmetologistLeaderboard() {
+  const { data } = await supabase
+    .from("agent_cosmetologist_leads")
+    .select("name, metro_area, booksy_rating, booksy_review_count")
+    .not("booksy_rating", "is", null)
+    .gte("booksy_review_count", 50)
+    .order("booksy_rating", { ascending: false })
+    .order("booksy_review_count", { ascending: false })
+    .limit(5);
+  return (data || []).map((c) => ({ name: c.name, city: c.metro_area, rating: c.booksy_rating, reviewCount: c.booksy_review_count }));
+}
+
+async function fetchSupplyStoreLeaderboard(table) {
+  const { data } = await supabase
+    .from(table)
+    .select("name, city, rating, total_reviews")
+    .ilike("city", "%houston%")
+    .not("rating", "is", null)
+    .gte("total_reviews", 50)
+    .order("rating", { ascending: false })
+    .order("total_reviews", { ascending: false })
+    .limit(5);
+  return (data || []).map((s) => ({ name: s.name, city: s.city, rating: s.rating, reviewCount: s.total_reviews }));
+}
+
+// City-scoped cut of the same statewide school-ranking query — same
+// 15+ test-taker floor, just filtered to one metro instead of all of
+// Texas, so a city pin never surfaces a school on a sample too thin to
+// mean anything.
+async function fetchSchoolRankingByCity(track, city) {
+  if (track === "barber") {
+    const { data } = await supabase
+      .from("agent_barber_school_leads")
+      .select("school_name, city, written_pass_rate_2026, written_test_takers_2026")
+      .ilike("city", `%${city}%`)
+      .not("written_pass_rate_2026", "is", null)
+      .gte("written_test_takers_2026", 15)
+      .order("written_pass_rate_2026", { ascending: false })
+      .limit(5);
+    return (data || []).map((s) => ({
+      school_name: s.school_name,
+      city: s.city,
+      pass_rate: s.written_pass_rate_2026,
+      test_takers: s.written_test_takers_2026,
+      track: "Barber",
+    }));
+  }
+  const { data } = await supabase
+    .from("agent_cosmetology_school_leads")
+    .select("school_name, city, cosmetology_written_pass_rate_2026, cosmetology_written_test_takers_2026")
+    .ilike("city", `%${city}%`)
+    .not("cosmetology_written_pass_rate_2026", "is", null)
+    .gte("cosmetology_written_test_takers_2026", 15)
+    .order("cosmetology_written_pass_rate_2026", { ascending: false })
+    .limit(5);
+  return (data || []).map((s) => ({
+    school_name: s.school_name,
+    city: s.city || city,
+    pass_rate: s.cosmetology_written_pass_rate_2026,
+    test_takers: s.cosmetology_written_test_takers_2026,
+    track: "Cosmetology",
+  }));
+}
+
 // Capped at 15 — a real single barbershop realistically has a handful of
 // chairs, not dozens. One row in this table showed 50 available chairs
 // with no other shop above 13, an isolated outlier consistent with a data
@@ -344,6 +424,77 @@ async function main() {
       imageBuffer,
     });
     mythBustsQueued++;
+  }
+
+  // New individual-professional and supply-store leaderboards — the
+  // existing entity_leaderboard template already supports any {name, city,
+  // rating, reviewCount} rows, so these reuse it with real data slices the
+  // script never queried before (individual Booksy profiles and supply
+  // stores, not just shop/salon businesses).
+  const individualLeaderboardRuns = [
+    {
+      title: "5 Highest-Rated Individual Barbers in Houston (2026)",
+      headline: "5 Highest-Rated Barbers in Houston",
+      fetch: fetchIndividualBarberLeaderboard,
+      link: "/tools/barbershop-search?tab=Barbers",
+    },
+    {
+      title: "5 Highest-Rated Cosmetologists in Houston (2026)",
+      headline: "5 Highest-Rated Cosmetologists in Houston",
+      fetch: fetchCosmetologistLeaderboard,
+      link: "/tools/barbershop-search?tab=Cosmetologist",
+    },
+    {
+      title: "5 Highest-Rated Barber Supply Stores in Houston (2026)",
+      headline: "5 Highest-Rated Barber Supply Stores in Houston",
+      fetch: () => fetchSupplyStoreLeaderboard("agent_barber_supply_store_leads"),
+      link: "/tools/barbershop-search?tab=Stores",
+    },
+    {
+      title: "5 Highest-Rated Beauty Supply Stores in Houston (2026)",
+      headline: "5 Highest-Rated Beauty Supply Stores in Houston",
+      fetch: () => fetchSupplyStoreLeaderboard("agent_beauty_supply_store_leads"),
+      link: "/tools/barbershop-search?tab=Stores",
+    },
+  ];
+  for (const run of individualLeaderboardRuns) {
+    if (await titleAlreadyExists(run.title)) continue;
+    const rows = await run.fetch();
+    if (rows.length === 0) continue;
+    const imageBuffer = await renderImage("entity_leaderboard", { rows, headline: run.headline });
+    await queuePin({
+      templateType: "entity_leaderboard",
+      boardName: BOARDS.ENTITY_LEADERBOARD,
+      title: run.title,
+      description: "Ranked by real customer ratings and review volume, all with 50+ verified reviews. See full profiles, hours, and contact info.",
+      link: run.link,
+      imageBuffer,
+    });
+  }
+
+  // City-scoped school rankings — same statewide query, filtered to one
+  // metro at a time, each still gated at 15+ test takers so a thin sample
+  // never gets presented as a real ranking.
+  const citySchoolRankingRuns = [
+    { track: "barber", city: "Houston", title: "Top Houston Barber Schools by 2026 Pass Rate", headline: "Top Houston Barber Schools by Pass Rate" },
+    { track: "barber", city: "Dallas", title: "Top Dallas Barber Schools by 2026 Pass Rate", headline: "Top Dallas Barber Schools by Pass Rate" },
+    { track: "barber", city: "San Antonio", title: "Top San Antonio Barber Schools by 2026 Pass Rate", headline: "Top San Antonio Barber Schools by Pass Rate" },
+    { track: "cosmetology", city: "Houston", title: "Top Houston Cosmetology Schools by 2026 Pass Rate", headline: "Top Houston Cosmetology Schools by Pass Rate" },
+    { track: "cosmetology", city: "San Antonio", title: "Top San Antonio Cosmetology Schools by 2026 Pass Rate", headline: "Top San Antonio Cosmetology Schools by Pass Rate" },
+  ];
+  for (const run of citySchoolRankingRuns) {
+    if (await titleAlreadyExists(run.title)) continue;
+    const rows = await fetchSchoolRankingByCity(run.track, run.city);
+    if (rows.length === 0) continue;
+    const imageBuffer = await renderImage("school_ranking", { rows, headline: run.headline });
+    await queuePin({
+      templateType: "school_ranking",
+      boardName: BOARDS.SCHOOL_RANKING,
+      title: run.title,
+      description: `Ranked by real 2026 TDLR written exam pass rates for ${run.city} ${run.track.toLowerCase()} schools. Compare tuition, financial aid, and pass rates before you enroll.`,
+      link: "/texas-school-leaderboard",
+      imageBuffer,
+    });
   }
 
   console.log("Done.");
