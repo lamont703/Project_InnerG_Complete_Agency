@@ -20,7 +20,9 @@ import {
     Calendar,
     Smartphone,
     TrendingUp,
-    Brain
+    Brain,
+    Search,
+    Sparkles
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -148,6 +150,8 @@ export function AgencySidebar({ isSidebarOpen, onClose }: AgencySidebarProps) {
         { href: "/admin/token-usage", icon: Layout, label: "Token Usage", active: pathname === "/admin/token-usage" },
         { href: "/admin/connectors", icon: Plug, label: "Connectors", active: pathname === "/admin/connectors" },
         { href: "/admin/pixel", icon: Zap, label: "Agency Pixel", active: pathname === "/admin/pixel" },
+        { href: "/admin/agent-directives", icon: Sparkles, label: "Agent Directives", active: pathname === "/admin/agent-directives" },
+        { href: "/admin/keyword-intelligence", icon: Search, label: "Keyword Intelligence", active: pathname === "/admin/keyword-intelligence" },
         { href: "/admin/swipe-deck", icon: Smartphone, label: "TX Barber Swipe Deck", active: pathname === "/admin/swipe-deck" },
         { href: "/admin/knowledge", icon: BookOpen, label: "Knowledge CMS", active: pathname === "/admin/knowledge" },
         { href: "/admin/settings", icon: Settings, label: "Agency Settings", active: pathname === "/admin/settings" },

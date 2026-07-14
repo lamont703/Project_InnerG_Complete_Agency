@@ -26,6 +26,7 @@ const footerLinks = {
     { label: "Foot Traffic Radar Tool", href: "/tools/foot-traffic-radar" },
   ],
   "Internal Tools": [
+    { label: "Agent Directives", href: "/admin/agent-directives" },
     { label: "Keyword Intelligence", href: "/admin/keyword-intelligence" },
     { label: "Pixel Analytics", href: "/pixel-analytics" },
     { label: "Employment Match Review", href: "/tools/employment-match-review" },

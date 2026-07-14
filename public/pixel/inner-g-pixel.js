@@ -54,6 +54,45 @@
     const sessionId = getSessionId();
     const pageLoadTime = Date.now();
 
+    // 3b. Core Web Vitals (LCP, CLS, a simplified INP proxy) — collected
+    // continuously via PerformanceObserver and attached to the existing
+    // page_leave event below rather than a new event type, since page_leave
+    // already fires once per page at the right moment (page hide) and is
+    // already correctly counted everywhere downstream. INP here is a
+    // simplified "worst single interaction latency" (matches Chrome's own
+    // 40ms duration-threshold filter), not the true spec's 98th-percentile-
+    // across-all-interactions calculation the official web-vitals library
+    // computes — a reasonable proxy without pulling in that dependency for
+    // a plain script-tag pixel with no build step.
+    let lcpValue = null;
+    let clsValue = 0;
+    let inpValue = null;
+    if (typeof PerformanceObserver !== "undefined") {
+        try {
+            new PerformanceObserver((list) => {
+                const entries = list.getEntries();
+                const last = entries[entries.length - 1];
+                if (last) lcpValue = Math.round(last.renderTime || last.loadTime || last.startTime);
+            }).observe({ type: "largest-contentful-paint", buffered: true });
+        } catch (e) {}
+
+        try {
+            new PerformanceObserver((list) => {
+                for (const entry of list.getEntries()) {
+                    if (!entry.hadRecentInput) clsValue += entry.value;
+                }
+            }).observe({ type: "layout-shift", buffered: true });
+        } catch (e) {}
+
+        try {
+            new PerformanceObserver((list) => {
+                for (const entry of list.getEntries()) {
+                    if (inpValue === null || entry.duration > inpValue) inpValue = Math.round(entry.duration);
+                }
+            }).observe({ type: "event", durationThreshold: 40, buffered: true });
+        } catch (e) {}
+    }
+
     // 4. Tracking Method
     function track(eventName, metadata = {}) {
         // Automatically inject session_id into metadata
@@ -194,7 +233,12 @@
         if (!pageLeaveTracked) {
             pageLeaveTracked = true;
             const durationSeconds = Math.round((Date.now() - pageLoadTime) / 1000);
-            track("page_leave", { duration_seconds: durationSeconds });
+            track("page_leave", {
+                duration_seconds: durationSeconds,
+                lcp_ms: lcpValue,
+                cls: clsValue > 0 ? Math.round(clsValue * 1000) / 1000 : null,
+                inp_ms: inpValue,
+            });
         }
     };
 
