@@ -67,6 +67,7 @@
     "framer-motion": "^12.38.0",
     "google-ads-api": "^24.1.0",
     "google-auth-library": "^9.15.1",
+    "googleapis": "^173.0.0",
     "input-otp": "1.4.2",
     "lucide-react": "^0.564.0",
     "mapbox-gl": "^3.25.0",
