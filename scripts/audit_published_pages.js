@@ -31,6 +31,11 @@
 // against a localhost URL would be a false positive on every single page.
 //
 // Usage: node scripts/audit_published_pages.js
+//          Stays running — polls every 20s for newly auto-published pages
+//          and checks them as they appear. Ctrl+C to stop.
+//        node scripts/audit_published_pages.js --once
+//          One-shot — full re-check of every auto-published page (not just
+//          new ones), then exits. Useful right after changing audit logic.
 //        node scripts/audit_published_pages.js --base-url=http://localhost:3001
 
 const { createClient } = require('@supabase/supabase-js');
@@ -50,10 +55,18 @@ const CANONICAL_BASE_URL = 'https://agency.innergcomplete.com';
 const EXPECTED_JSONLD_TYPE = {
   agent_barbershop_leads: 'LocalBusiness',
   agent_salon_leads: 'HairSalon',
+  agent_barber_school_leads: 'EducationalOrganization',
+  agent_cosmetology_school_leads: 'EducationalOrganization',
+  agent_barber_supply_store_leads: 'Store',
+  agent_beauty_supply_store_leads: 'Store',
 };
 const ROUTE_PREFIX = {
   agent_barbershop_leads: 'shop',
   agent_salon_leads: 'salons',
+  agent_barber_school_leads: 'schools',
+  agent_cosmetology_school_leads: 'schools',
+  agent_barber_supply_store_leads: 'stores',
+  agent_beauty_supply_store_leads: 'stores',
 };
 
 // Next.js correctly HTML-escapes special characters inside <title> (e.g.
@@ -249,20 +262,29 @@ async function resolveStaleFindings(scopeSubjectKeys, stillFailingSubjectKeys) {
   return data?.length || 0;
 }
 
-async function run() {
-  const { data: rows, error } = await supabase
+// Stays on by default — matches every other locally-run agent script in
+// this pipeline: once you run it, it keeps polling until you Ctrl+C it,
+// rather than doing one pass and silently exiting. Pass --once for the old
+// one-shot full-recheck behavior (re-checks every auto-published page
+// regardless of prior audit status, then exits — useful right after
+// changing the audit logic itself).
+const ONE_SHOT = process.argv.includes('--once');
+const WATCH_POLL_MS = 20000;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchAutoPublishedEntities({ onlyUnchecked }) {
+  const { data, error } = await supabase
     .from('agent_directives')
     .select('id, evidence')
     .eq('agent_name', SOURCE_AGENT)
     .not('evidence->>publishedSlug', 'is', null);
-
   if (error) {
     console.error('Failed to fetch auto-published entities:', error.message);
-    process.exit(1);
+    return [];
   }
-
-  const entities = (rows || [])
+  return (data || [])
     .filter((r) => r.evidence?.autoPublished === true && r.evidence?.publishedSlug && ROUTE_PREFIX[r.evidence.table])
+    .filter((r) => !onlyUnchecked || r.evidence?.pageAuditPassed === undefined)
     .map((r) => ({
       sourceDirectiveId: r.id,
       sourceEvidence: r.evidence,
@@ -274,12 +296,15 @@ async function run() {
       reviewCount: r.evidence.reviewCount,
       images: r.evidence.images,
     }));
+}
 
-  console.log(`Checking ${entities.length} auto-published page(s) against ${BASE_URL} ...`);
-  if (entities.length === 0) {
-    console.log('Nothing to check — no auto-published entities found yet.');
-    return;
-  }
+// Audits exactly the given entities and writes both kinds of result:
+// pageAuditPassed on each entity's own source directive (see
+// markPageAuditResult), and a separate page_qa_issue directive for
+// anything that's actually broken. Shared by one-shot mode (full re-check)
+// and watch mode (new-entities-only).
+async function auditEntities(entities) {
+  if (entities.length === 0) return { checked: 0, clean: 0, flagged: 0, inserted: 0, resolved: 0 };
 
   let sitemapXml = null;
   try {
@@ -325,13 +350,49 @@ async function run() {
   }
 
   const resolvedCount = await resolveStaleFindings(scopeKeys, stillFailing);
+  return { checked: entities.length, clean, flagged, inserted, resolved: resolvedCount };
+}
 
+async function run() {
+  const entities = await fetchAutoPublishedEntities({ onlyUnchecked: false });
+  console.log(`Checking ${entities.length} auto-published page(s) against ${BASE_URL} ...`);
+  if (entities.length === 0) {
+    console.log('Nothing to check — no auto-published entities found yet.');
+    return;
+  }
+  const summary = await auditEntities(entities);
   console.log('\n\n=== SUMMARY ===');
-  console.log(JSON.stringify({ checked: entities.length, clean, flagged, inserted, resolved: resolvedCount }, null, 2));
+  console.log(JSON.stringify(summary, null, 2));
   console.log('\nReview any flagged pages at /admin/agent-directives.');
 }
 
-run().catch((err) => {
+// Stays running until Ctrl+C — polls for entities Auto-Publish Agent has
+// just published (pageAuditPassed not yet set) and QA-checks them as they
+// appear. Full re-checks of already-passed pages only happen via the
+// one-shot mode (run with --once), not on every poll here.
+async function runWatch() {
+  console.log(`Published Page Auditor Agent — watch mode. Polling every ${WATCH_POLL_MS / 1000}s for newly-published pages. Ctrl+C to stop.\n`);
+  process.on('SIGINT', () => {
+    console.log('\nStopping.');
+    process.exit(0);
+  });
+
+  while (true) {
+    const entities = await fetchAutoPublishedEntities({ onlyUnchecked: true });
+    if (entities.length === 0) {
+      await sleep(WATCH_POLL_MS);
+      continue;
+    }
+    console.log(`\n[${new Date().toLocaleTimeString()}] Found ${entities.length} newly-published page(s) — checking...`);
+    const summary = await auditEntities(entities);
+    console.log(`Done: ${JSON.stringify(summary)}`);
+    console.log('Watching for more... (Ctrl+C to stop)');
+    await sleep(WATCH_POLL_MS);
+  }
+}
+
+const entry = ONE_SHOT ? run() : runWatch();
+entry.catch((err) => {
   console.error(err);
   process.exit(1);
 });

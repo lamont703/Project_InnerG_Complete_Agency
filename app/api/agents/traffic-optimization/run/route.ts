@@ -363,10 +363,10 @@ For each item, write one concise, direct "directive" (2-3 sentences) explaining 
 You have memory of your own past runs. Recently denied findings (a human explicitly said "not this," with a reason if given) — don't re-suggest the same query/page/city unless the situation has clearly changed: ${JSON.stringify(history.recentDenials)}
 Findings still open and recurring (flagged multiple times, not yet resolved) — if today's item matches one, acknowledge it's a repeat (e.g. "still unresolved after N checks"): ${JSON.stringify(history.recurringOpen)}
 
-Data:
+Data (${topFindings.length} items, indices 0 to ${topFindings.length - 1}):
 ${JSON.stringify(topFindings, null, 2)}
 
-Return ONLY valid JSON: an array of objects, each { "index": <0-based position of the item in the array above>, "directive_text": "..." }.`;
+Return ONLY valid JSON: an array of EXACTLY ${topFindings.length} objects — one for every single item above in the same order, none skipped or summarized away, each { "index": <0-based position of the item in the array above>, "directive_text": "..." }.`;
 
   // resolveStaleFindings already committed above, so a transient Gemini
   // outage here only delays this run's fresh findings until the next
@@ -387,6 +387,16 @@ Return ONLY valid JSON: an array of objects, each { "index": <0-based position o
     directives = JSON.parse(response.text || "[]");
   } catch {
     return NextResponse.json({ error: "Failed to parse LLM directive output" }, { status: 500 });
+  }
+
+  // Confirmed live: Gemini has silently returned directive_text for only a
+  // subset of the requested items on a large batch (17 of 25 fell back to
+  // the generic placeholder in one real run) despite the prompt asking for
+  // all of them. The strengthened prompt above should prevent this, but
+  // logging it here means a regression shows up in logs instead of only
+  // being discoverable by counting placeholder text in the dashboard.
+  if (directives.length < topFindings.length) {
+    console.error(`Traffic Optimization Agent: Gemini returned ${directives.length} directive(s) for ${topFindings.length} findings — ${topFindings.length - directives.length} will fall back to placeholder text.`);
   }
 
   let insertedCount = 0;
