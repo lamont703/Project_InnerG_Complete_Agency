@@ -65,7 +65,8 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
     salon.rating ? `Rated ${Number(salon.rating).toFixed(1)}★` : null,
     salon.total_reviews ? `(${salon.total_reviews} reviews)` : null,
   ].filter(Boolean);
-  const description = `${descParts.join('. ')}. View photos, hours, and contact info.`;
+  const nearbyAreas: string[] = Array.isArray(salon.nearby_areas) ? salon.nearby_areas : [];
+  const description = `${descParts.join('. ')}${nearbyAreas.length > 0 ? `. Also serving ${nearbyAreas.join(", ")}` : ""}. View photos, hours, and contact info.`;
   const heroImage = Array.isArray(salon.google_images) ? salon.google_images[0] : undefined;
 
   return {
@@ -103,6 +104,11 @@ function buildSalonJsonLd(salon: any, websiteHref: string | null) {
   }
   const heroImg = Array.isArray(salon.google_images) ? salon.google_images[0] : null;
   if (heroImg) ld.image = heroImg;
+  // Real, computed proximity (lib/nearby-areas.ts), not a claimed service
+  // area — a well-known nearby neighborhood within ~2.5mi, e.g. a real
+  // Drybar in Uptown Park legitimately serving River Oaks searches
+  // without being physically located there.
+  if (Array.isArray(salon.nearby_areas) && salon.nearby_areas.length > 0) ld.areaServed = salon.nearby_areas;
   return ld;
 }
 

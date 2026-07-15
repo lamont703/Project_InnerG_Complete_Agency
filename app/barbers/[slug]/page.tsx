@@ -66,16 +66,25 @@ async function getBarber(param: string) {
 // e.g. "9000 Park W Dr, Suite M, Houston, 77063" -> "Houston". Falling
 // back to this gives virtually every barber real location differentiation
 // in search snippets instead of the same generic, location-less title.
-function extractCityFromAddress(address?: string | null): string | null {
-  if (!address) return null;
+//
+// City alone isn't enough, though — Website Technology Performance Agent
+// caught two genuinely different real barbers both named "Alex Barber," 15
+// miles apart within Houston, rendering an identical title
+// ("Alex barber — Professional Barber in Houston") for both. ZIP is
+// included alongside city/metro for every profile now, not just on
+// collision, since it's cheap, always genuinely distinguishing within a
+// large metro, and doesn't need an extra query to detect a name clash.
+function extractLocationFromAddress(address?: string | null): { city: string | null; zip: string | null } {
+  if (!address) return { city: null, zip: null };
   const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
-  if (parts.length < 2) return null;
+  if (parts.length < 2) return { city: null, zip: null };
   const last = parts[parts.length - 1];
+  const zipMatch = last.match(/(\d{5})(?:-\d{4})?$/);
   const looksLikeZip = /^[A-Z]{0,2}\s*\d{5}(-\d{4})?$/i.test(last);
-  if (!looksLikeZip) return null;
+  if (!looksLikeZip) return { city: null, zip: null };
   const candidate = parts[parts.length - 2];
-  if (!candidate || /^(suite|ste|unit|#|apt)\b/i.test(candidate)) return null;
-  return candidate;
+  const city = !candidate || /^(suite|ste|unit|#|apt)\b/i.test(candidate) ? null : candidate;
+  return { city, zip: zipMatch ? zipMatch[1] : null };
 }
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -83,8 +92,9 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const barber = await getBarber(slug);
   if (!barber) return { title: "Barber Profile Not Found" };
 
-  const location = barber.metro_area || extractCityFromAddress(barber.address);
-  const title = `${barber.name} — ${barber.specialty_type || "Professional Barber"}${location ? ` in ${location}` : ""}`;
+  const { city, zip } = extractLocationFromAddress(barber.address);
+  const location = barber.metro_area || city;
+  const title = `${barber.name} — ${barber.specialty_type || "Professional Barber"}${location ? ` in ${location}` : ""}${zip ? ` ${zip}` : ""}`;
   const descParts = [
     `${barber.name}`,
     barber.specialty_type ? barber.specialty_type : "Professional Barber",

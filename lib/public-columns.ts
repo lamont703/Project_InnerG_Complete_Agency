@@ -82,6 +82,7 @@ export const SALON_PUBLIC_COLUMNS = [
   "google_images",
   "site_config",
   "school_district_name",
+  "nearby_areas",
 ];
 
 export const STORE_PUBLIC_COLUMNS = [
@@ -200,4 +201,5 @@ export const SHOP_PUBLIC_COLUMNS = [
   "google_images",
   "school_district_name",
   "claimed_at",
+  "nearby_areas",
 ];
