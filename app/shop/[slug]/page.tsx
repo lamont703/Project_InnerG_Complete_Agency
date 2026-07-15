@@ -60,7 +60,7 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const resolvedParams = await params;
 
-  const metaSelect = "shop_name,city,shop_image_url,hiring_need,booth_count_available";
+  const metaSelect = "shop_name,city,shop_image_url,hiring_need,booth_count_available,nearby_areas";
   const slugUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agent_barbershop_leads?slug=eq.${resolvedParams.slug}&select=${metaSelect}`;
   const slugResponse = await fetchWithRetry(slugUrl, {
     headers: {
@@ -109,9 +109,11 @@ export async function generateMetadata(
     shop.rating ? `Rated ${shop.rating}★` : null,
     shop.total_reviews ? `(${shop.total_reviews} reviews)` : null,
   ].filter(Boolean);
+  const nearbyAreas: string[] = Array.isArray(shop.nearby_areas) ? shop.nearby_areas : [];
+  const nearbyAreasNote = nearbyAreas.length > 0 ? ` Also serving ${nearbyAreas.join(", ")}.` : "";
   const description = isHiring
-    ? `${descParts.join('. ')}. View photos and request a Shop Day.`
-    : `${shop.shop_name} in ${shop.city}, TX${shop.rating ? ` — rated ${shop.rating}★` : ''}${shop.total_reviews ? ` (${shop.total_reviews} reviews)` : ''}. View photos, hours, and contact details.`;
+    ? `${descParts.join('. ')}. View photos and request a Shop Day.${nearbyAreasNote}`
+    : `${shop.shop_name} in ${shop.city}, TX${shop.rating ? ` — rated ${shop.rating}★` : ''}${shop.total_reviews ? ` (${shop.total_reviews} reviews)` : ''}. View photos, hours, and contact details.${nearbyAreasNote}`;
   const image = shop.shop_image_url || "/shop_day_card.jpg";
 
   return {
@@ -217,6 +219,9 @@ export default async function ShopProfilePage({ params }: Props) {
     };
   }
   if (images[0]) shopJsonLd.image = images[0];
+  // Real, computed proximity (lib/nearby-areas.ts), not a claimed service
+  // area — see app/salons/[slug]/page.tsx for the reasoning.
+  if (Array.isArray(shop.nearby_areas) && shop.nearby_areas.length > 0) shopJsonLd.areaServed = shop.nearby_areas;
 
   // FAQPage — answers the exact questions searchers ask at this decision point.
   const shopFaqEntries: { q: string; a: string }[] = [];
