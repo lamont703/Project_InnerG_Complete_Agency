@@ -14,6 +14,12 @@
 // discover_and_stage_businesses.js (Puppeteer + non-datacenter IP).
 //
 // Usage: node scripts/audit_staged_entities.js
+//          Stays running — polls every 20s for newly staged candidates and
+//          audits them as they appear. Ctrl+C to stop.
+//        node scripts/audit_staged_entities.js --once
+//          One-shot — audits everything currently pending, then exits.
+//        node scripts/audit_staged_entities.js 5
+//          One-shot, limited to the first 5 pending candidates.
 //
 // Also usable as a library — discover_and_stage_businesses.js requires
 // auditOne() to chain straight from "just staged" into "just audited"
@@ -32,7 +38,33 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const SOURCE_AGENT = 'Website Business Discovery Agent';
 const GARBAGE_NAMES = new Set(['results', 'sponsored', 'ad']);
-const RELEVANT_CATEGORY_KEYWORDS = ['barber', 'hair', 'salon', 'beauty', 'spa', 'wax', 'nail', 'extension', 'brow', 'lash', 'cosmetolog', 'groom'];
+// Extended for schools/supply stores (confirmed real gap: a legitimately
+// relevant newly-discovered school or store would otherwise get a false
+// "doesn't look like a barbershop/salon" delete recommendation, since none
+// of the original keywords cover education or retail-supply vocabulary).
+const RELEVANT_CATEGORY_KEYWORDS = [
+  'barber', 'hair', 'salon', 'beauty', 'spa', 'wax', 'nail', 'extension', 'brow', 'lash', 'cosmetolog', 'groom',
+  'school', 'academy', 'institute', 'college',
+  'supply', 'supplies', 'wholesale',
+];
+// Matches STORAGE_DIR_BY_TABLE / CATEGORY_LABEL_BY_TABLE in
+// scripts/discover_and_stage_businesses.js
+const STORAGE_DIR_BY_TABLE = {
+  agent_barbershop_leads: 'shops',
+  agent_salon_leads: 'salons',
+  agent_barber_school_leads: 'schools',
+  agent_cosmetology_school_leads: 'schools',
+  agent_barber_supply_store_leads: 'stores',
+  agent_beauty_supply_store_leads: 'stores',
+};
+const CATEGORY_LABEL_BY_TABLE = {
+  agent_barbershop_leads: 'barbershop',
+  agent_salon_leads: 'salon',
+  agent_barber_school_leads: 'barber school',
+  agent_cosmetology_school_leads: 'cosmetology/beauty school',
+  agent_barber_supply_store_leads: 'barber supply store',
+  agent_beauty_supply_store_leads: 'beauty/hair supply store',
+};
 
 function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -175,8 +207,7 @@ async function auditOne(browser, row) {
       // Images — the actual thing you flagged.
       const hasImages = Array.isArray(ev.images) && ev.images.length > 0;
       if (!hasImages && inspection.freshImages && inspection.freshImages.length > 0) {
-        const isShop = ev.table === 'agent_barbershop_leads';
-        const storageDir = isShop ? 'shops' : 'salons';
+        const storageDir = STORAGE_DIR_BY_TABLE[ev.table] || 'salons';
         const cachedUrls = [];
         for (let i = 0; i < inspection.freshImages.length; i++) {
           const buf = await downloadImage(inspection.freshImages[i]);
@@ -214,7 +245,7 @@ async function auditOne(browser, row) {
     const directiveText =
       recommendation === 'delete'
         ? `AUDIT: "${ev.name}" — recommend deleting this candidate. ${notes.join(' ')} Directive: Review and Deny if you agree.`
-        : `AUDIT: "${ev.name}" — verified as a real ${ev.table === 'agent_barbershop_leads' ? 'barbershop' : 'salon'}. ${notes.length ? notes.join(' ') : 'No changes needed.'} Directive: Ready for your review — Approve to publish.`;
+        : `AUDIT: "${ev.name}" — verified as a real ${CATEGORY_LABEL_BY_TABLE[ev.table] || 'business'}. ${notes.length ? notes.join(' ') : 'No changes needed.'} Directive: Ready for your review — Approve to publish.`;
 
     // Update the SAME staged row — no duplicate directive created.
     await supabase
@@ -252,10 +283,37 @@ async function auditBatch(candidates) {
   return summary;
 }
 
-// Optional: node scripts/audit_staged_entities.js 5 — audit only the first
-// N staged candidates. Useful for a quick spot-check before committing to
-// a full batch.
-const limitArg = parseInt(process.argv[2], 10);
+// Stays on by default — matches every other locally-run agent script in
+// this pipeline: once you run it, it keeps polling for newly staged
+// candidates until you Ctrl+C it, rather than doing one pass and exiting.
+// Pass --once for the old one-shot behavior (audits everything currently
+// pending, regardless of prior audit status, then exits) — optionally
+// with a number (e.g. `--once 5` or just `5`) to limit it to the first N,
+// useful for a quick spot-check before committing to a full batch.
+const limitArgRaw = process.argv.slice(2).find((a) => /^\d+$/.test(a));
+const limitArg = limitArgRaw ? parseInt(limitArgRaw, 10) : NaN;
+const ONE_SHOT = process.argv.includes('--once') || Number.isFinite(limitArg);
+const WATCH_POLL_MS = 20000;
+
+// Only candidates never audited at all — used by watch mode so a long-running
+// session doesn't keep re-checking the same already-processed backlog every
+// poll cycle. One-shot mode (below) intentionally still re-checks
+// everything pending regardless of audited status, since that's a
+// deliberate on-demand full re-check, not a continuous loop.
+async function fetchUnauditedCandidates(limit) {
+  let query = supabase
+    .from('agent_directives')
+    .select('id, evidence, times_recurred')
+    .eq('agent_name', SOURCE_AGENT)
+    .eq('status', 'pending');
+  if (Number.isFinite(limit)) query = query.limit(limit);
+  const { data, error } = await query;
+  if (error) {
+    console.error('Failed to fetch staged candidates:', error.message);
+    return [];
+  }
+  return (data || []).filter((row) => row.evidence?.audited !== true);
+}
 
 async function run() {
   let query = supabase
@@ -279,8 +337,35 @@ async function run() {
   console.log('\nReview updated directives at /admin/agent-directives — nothing was published or deleted automatically.');
 }
 
+// Stays running until Ctrl+C — polls for newly staged, never-audited
+// candidates (from discover_and_stage_businesses.js, run separately/
+// manually whenever you want) and audits them as they show up. Launches a
+// fresh browser only when there's real work, closes it between polls
+// rather than holding one open indefinitely for the whole session.
+async function runWatch() {
+  console.log(`Entity Auditor Agent — watch mode. Polling every ${WATCH_POLL_MS / 1000}s for newly staged candidates. Ctrl+C to stop.\n`);
+  process.on('SIGINT', () => {
+    console.log('\nStopping — no browser left open.');
+    process.exit(0);
+  });
+
+  while (true) {
+    const candidates = await fetchUnauditedCandidates();
+    if (candidates.length === 0) {
+      await sleep(WATCH_POLL_MS);
+      continue;
+    }
+    console.log(`\n[${new Date().toLocaleTimeString()}] Found ${candidates.length} newly staged candidate(s) — auditing...`);
+    const summary = await auditBatch(candidates);
+    console.log(`Done: ${JSON.stringify(summary)}`);
+    console.log(`Watching for more... (Ctrl+C to stop)`);
+    await sleep(WATCH_POLL_MS);
+  }
+}
+
 if (require.main === module) {
-  run().catch((err) => {
+  const entry = ONE_SHOT ? run() : runWatch();
+  entry.catch((err) => {
     console.error(err);
     process.exit(1);
   });
