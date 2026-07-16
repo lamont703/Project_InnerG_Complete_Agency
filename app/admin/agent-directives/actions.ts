@@ -12,6 +12,7 @@ export interface Directive {
   mission: string;
   directive_text: string;
   evidence: Record<string, any>;
+  cleaned_evidence: Record<string, any> | null;
   status: "pending" | "approved" | "denied" | "resolved";
   created_at: string;
   first_seen_at: string | null;
@@ -23,7 +24,7 @@ export interface Directive {
 export async function fetchDirectives(): Promise<Directive[]> {
   const { data, error } = await supabase
     .from("agent_directives")
-    .select("id, agent_name, mission, directive_text, evidence, status, created_at, first_seen_at, times_recurred, deny_reason, subject_key")
+    .select("id, agent_name, mission, directive_text, evidence, cleaned_evidence, status, created_at, first_seen_at, times_recurred, deny_reason, subject_key")
     .order("created_at", { ascending: false })
     .limit(500);
 

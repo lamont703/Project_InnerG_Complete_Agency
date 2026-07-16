@@ -235,7 +235,7 @@ async function markPageAuditResult(sourceDirectiveId, sourceEvidence, passed) {
     pageAuditPassed: passed,
     pageAuditedAt: new Date().toISOString(),
   };
-  const { error } = await supabase.from('agent_directives').update({ evidence: updatedEvidence }).eq('id', sourceDirectiveId);
+  const { error } = await supabase.from('agent_directives').update({ cleaned_evidence: updatedEvidence }).eq('id', sourceDirectiveId);
   if (error) console.error(`  Failed to record audit result on source directive ${sourceDirectiveId}: ${error.message}`);
 }
 
@@ -273,28 +273,32 @@ const WATCH_POLL_MS = 20000;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function fetchAutoPublishedEntities({ onlyUnchecked }) {
+  // publishedSlug gets written to cleaned_evidence now, not evidence — but
+  // rows published before that column existed still have it in evidence.
+  // Check both at the DB level so neither generation gets silently missed.
   const { data, error } = await supabase
     .from('agent_directives')
-    .select('id, evidence')
+    .select('id, evidence, cleaned_evidence')
     .eq('agent_name', SOURCE_AGENT)
-    .not('evidence->>publishedSlug', 'is', null);
+    .or('evidence->>publishedSlug.not.is.null,cleaned_evidence->>publishedSlug.not.is.null');
   if (error) {
     console.error('Failed to fetch auto-published entities:', error.message);
     return [];
   }
   return (data || [])
-    .filter((r) => r.evidence?.autoPublished === true && r.evidence?.publishedSlug && ROUTE_PREFIX[r.evidence.table])
-    .filter((r) => !onlyUnchecked || r.evidence?.pageAuditPassed === undefined)
-    .map((r) => ({
-      sourceDirectiveId: r.id,
-      sourceEvidence: r.evidence,
-      name: r.evidence.name,
-      city: r.evidence.city,
-      table: r.evidence.table,
-      slug: r.evidence.publishedSlug,
-      rating: r.evidence.rating,
-      reviewCount: r.evidence.reviewCount,
-      images: r.evidence.images,
+    .map((r) => ({ id: r.id, ev: r.cleaned_evidence || r.evidence || {} }))
+    .filter(({ ev }) => ev.autoPublished === true && ev.publishedSlug && ROUTE_PREFIX[ev.table])
+    .filter(({ ev }) => !onlyUnchecked || ev.pageAuditPassed === undefined)
+    .map(({ id, ev }) => ({
+      sourceDirectiveId: id,
+      sourceEvidence: ev,
+      name: ev.name,
+      city: ev.city,
+      table: ev.table,
+      slug: ev.publishedSlug,
+      rating: ev.rating,
+      reviewCount: ev.reviewCount,
+      images: ev.images,
     }));
 }
 

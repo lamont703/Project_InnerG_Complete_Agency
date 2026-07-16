@@ -81,9 +81,9 @@ function computeNearbyAreas(lat, lng, cityKey) {
 // app/api/agents/directives/update-status/route.ts exactly — same
 // TABLE_CONFIG shape, same defaults, same table-specific quirks (schools
 // use school_name/google_review_count/google_business_status/
-// google_photos and no place_types column; supply stores use `name` and
-// require a real place_id) — so an auto-published row is indistinguishable
-// from a manually-approved one except for evidence.autoPublished.
+// google_photos and no place_types column; supply stores use `name`) — so
+// an auto-published row is indistinguishable from a manually-approved one
+// except for evidence.autoPublished.
 const TABLE_CONFIG = {
   agent_barbershop_leads: {
     nameField: 'shop_name', reviewCountField: 'total_reviews', businessStatusField: 'business_status',
@@ -95,14 +95,22 @@ const TABLE_CONFIG = {
     imagesField: 'google_images', hasPlaceTypes: true, requiresPlaceId: false, supportsNearbyAreas: true,
     routePrefix: 'salons', defaultPlaceTypes: 'beauty_salon | point_of_interest | establishment',
   },
-  // Unlike its cosmetology sibling below, agent_barber_school_leads started
-  // life as a CRM outreach-tracking table (migration 167) and still carries
-  // a legacy contact_id TEXT UNIQUE NOT NULL column. Confirmed live: every
-  // real row sets contact_id = place_id — requiresPlaceId + mirrorPlaceIdTo
-  // handle that the same way the supply-store tables need a real place_id.
+  // place_id is no longer required for these 3 tables (was: true) — Places
+  // API discovery is dormant, browser-only scraping can't produce a real
+  // place_id, and a full dependency audit confirmed place_id/contact_id are
+  // never read or displayed anywhere in the app, dedup already works on
+  // name+city alone for every sibling table, and the "contact_id mirrors
+  // place_id" invariant wasn't even universal in live data (19% of real
+  // agent_barber_school_leads rows already diverged). The DB NOT NULL
+  // constraints backing this were relaxed in
+  // supabase/migrations/20260715120000_relax_place_id_not_null_constraints.sql
+  // (UNIQUE stays intact). place_id/mirrorPlaceIdTo still get set below
+  // whenever a candidate DOES have one (e.g. if discoverViaPlacesAPI() is
+  // ever re-enabled) — requiresPlaceId now only controls whether publish
+  // hard-rejects a candidate for missing one, not whether it's used at all.
   agent_barber_school_leads: {
     nameField: 'school_name', reviewCountField: 'google_review_count', businessStatusField: 'google_business_status',
-    imagesField: 'google_photos', hasPlaceTypes: false, requiresPlaceId: true, supportsNearbyAreas: false,
+    imagesField: 'google_photos', hasPlaceTypes: false, requiresPlaceId: false, supportsNearbyAreas: false,
     routePrefix: 'schools', defaultPlaceTypes: null, mirrorPlaceIdTo: 'contact_id',
   },
   agent_cosmetology_school_leads: {
@@ -112,19 +120,31 @@ const TABLE_CONFIG = {
   },
   agent_barber_supply_store_leads: {
     nameField: 'name', reviewCountField: 'total_reviews', businessStatusField: 'business_status',
-    imagesField: 'google_images', hasPlaceTypes: true, requiresPlaceId: true, supportsNearbyAreas: false,
+    imagesField: 'google_images', hasPlaceTypes: true, requiresPlaceId: false, supportsNearbyAreas: false,
     routePrefix: 'stores', defaultPlaceTypes: 'store | point_of_interest | establishment',
   },
   agent_beauty_supply_store_leads: {
     nameField: 'name', reviewCountField: 'total_reviews', businessStatusField: 'business_status',
-    imagesField: 'google_images', hasPlaceTypes: true, requiresPlaceId: true, supportsNearbyAreas: false,
+    imagesField: 'google_images', hasPlaceTypes: true, requiresPlaceId: false, supportsNearbyAreas: false,
     routePrefix: 'stores', defaultPlaceTypes: 'store | point_of_interest | establishment',
   },
 };
 
+// Mirrors update-status/route.ts's identical requirement exactly — applies
+// to every table, both publish paths, no override for either. Reuses the
+// existing MIN_IMAGES constant (already 5, already the eligibility bar
+// below) rather than a second constant with the same value.
+const REQUIRED_NON_EMPTY_FIELDS = ['city', 'name', 'phone', 'formatted_address', 'category'];
+
 async function publishEntity(evidence) {
-  const { table, name, city, formatted_address, phone, rating, reviewCount, latitude, longitude, images, place_types, place_id } = evidence;
-  if (!table || !name) return { error: 'Missing table/name in evidence.' };
+  const { table, name, city, formatted_address, phone, rating, reviewCount, latitude, longitude, images, place_types, place_id, category } = evidence;
+  const missingFields = REQUIRED_NON_EMPTY_FIELDS.filter((f) => !evidence?.[f]);
+  if (missingFields.length > 0) {
+    return { error: `Missing required field(s): ${missingFields.join(', ')}. This candidate isn't complete enough to publish.` };
+  }
+  if (!Array.isArray(images) || images.length < MIN_IMAGES) {
+    return { error: `Requires at least ${MIN_IMAGES} real photos to publish (currently has ${Array.isArray(images) ? images.length : 0}).` };
+  }
   const config = TABLE_CONFIG[table];
   if (!config) return { error: `Unsupported table for publishing: ${table}` };
   if (config.requiresPlaceId && !place_id) {
@@ -148,11 +168,12 @@ async function publishEntity(evidence) {
     longitude: longitude ?? null,
     [config.reviewCountField]: reviewCount ?? null,
     [config.imagesField]: images || [],
+    google_category: category || null,
   };
   if (config.businessStatusField) basePayload[config.businessStatusField] = 'OPERATIONAL';
   if (config.hasPlaceTypes) basePayload.place_types = place_types || config.defaultPlaceTypes;
-  if (config.requiresPlaceId) basePayload.place_id = place_id;
-  if (config.mirrorPlaceIdTo) basePayload[config.mirrorPlaceIdTo] = place_id;
+  if (place_id) basePayload.place_id = place_id;
+  if (config.mirrorPlaceIdTo && place_id) basePayload[config.mirrorPlaceIdTo] = place_id;
   if (config.supportsNearbyAreas && nearbyAreas.length > 0) basePayload.nearby_areas = nearbyAreas;
   const insertPayload = isShop ? { ...basePayload, hiring_need: false, booth_count_available: 0 } : basePayload;
 
@@ -172,16 +193,21 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function fetchEligibleCandidates() {
   const { data, error } = await supabase
     .from('agent_directives')
-    .select('id, evidence')
+    .select('id, evidence, cleaned_evidence')
     .eq('agent_name', SOURCE_AGENT)
     .eq('status', 'pending');
   if (error) {
     console.error('Failed to fetch staged candidates:', error.message);
     return [];
   }
+  // audited/auditRecommendation only ever get set on cleaned_evidence now —
+  // fall back to raw evidence for rows audited before that column existed.
+  // Pre-filters the same completeness bar publishEntity() enforces, so a
+  // known-incomplete candidate doesn't even get attempted here.
   return (data || []).filter((d) => {
-    const ev = d.evidence || {};
-    return ev.audited === true && ev.auditRecommendation === 'approve' && Array.isArray(ev.images) && ev.images.length >= MIN_IMAGES;
+    const ev = d.cleaned_evidence || d.evidence || {};
+    const hasRequiredFields = REQUIRED_NON_EMPTY_FIELDS.every((f) => !!ev[f]);
+    return ev.audited === true && ev.auditRecommendation === 'approve' && Array.isArray(ev.images) && ev.images.length >= MIN_IMAGES && hasRequiredFields;
   });
 }
 
@@ -193,7 +219,7 @@ async function publishBatch(eligible) {
   const failed = [];
 
   for (const row of eligible) {
-    const ev = row.evidence;
+    const ev = row.cleaned_evidence || row.evidence;
     const result = await publishEntity(ev);
     if ('error' in result) {
       console.error(`  FAILED "${ev.name}": ${result.error}`);
@@ -206,7 +232,7 @@ async function publishBatch(eligible) {
       .update({
         status: 'approved',
         resolved_at: new Date().toISOString(),
-        evidence: { ...ev, publishedId: result.id, publishedSlug: result.slug, autoPublished: true, autoPublishedAt: new Date().toISOString() },
+        cleaned_evidence: { ...ev, publishedId: result.id, publishedSlug: result.slug, autoPublished: true, autoPublishedAt: new Date().toISOString() },
       })
       .eq('id', row.id);
 
@@ -229,7 +255,7 @@ async function run() {
 
   if (DRY_RUN) {
     for (const row of eligible) {
-      const ev = row.evidence;
+      const ev = row.cleaned_evidence || row.evidence;
       const routePrefix = TABLE_CONFIG[ev.table]?.routePrefix || 'shop';
       console.log(`  [DRY RUN] Would publish "${ev.name}" (${ev.city}) -> /${routePrefix}/${slugify(ev.name)}-${slugify(ev.city || 'tx')}-<id>`);
     }

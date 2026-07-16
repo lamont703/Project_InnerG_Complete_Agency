@@ -87,6 +87,14 @@ async function inspectOnMaps(page, name, city) {
   await page.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}`, { waitUntil: 'domcontentloaded', timeout: 45000 });
   await sleep(4000);
 
+  // Comprehensive field extraction synced with discover_and_stage_
+  // businesses.js's extractFullDetail() — this used to only extract
+  // name/category/address/phone/rating, so the auditor could never
+  // backfill website/hoursStatus/weeklyHours/locatedIn/plusCode/attributes/
+  // ownerDescription/reviewKeywords/peopleAlsoSearchFor the way it already
+  // backfills address/phone/rating/images. Same panel/lines
+  // technique, same regexes — kept in sync deliberately rather than shared,
+  // matching this codebase's per-script config convention.
   const result = await page.evaluate((garbage) => {
     const h1 = document.querySelector('h1');
     const resolvedName = h1 ? h1.textContent.trim() : null;
@@ -99,41 +107,202 @@ async function inspectOnMaps(page, name, city) {
     }
     const panelText = panel ? panel.innerText : '';
     const lines = panelText.split('\n').map((l) => l.trim()).filter(Boolean);
-    const categoryLine = lines.find((l) => l.endsWith('·'));
     const addressLine = lines.find((l) => /\d/.test(l) && /(TX|Texas)\b|\b\d{5}\b/.test(l) && l.length < 90 && !/^\(/.test(l));
     const phoneLine = lines.find((l) => /^\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/.test(l));
     const withCount = panelText.match(/(\d\.\d)\((\d+)\)/);
     const bareRatingLine = lines.find((l) => /^\d\.\d$/.test(l));
 
+    // Category — real <button>, not a line ending in "·" (unreliable: the
+    // category text and the "·" separator sometimes land on different
+    // innerText lines). Found by excluding known static UI button labels
+    // and anything containing a digit (ratings). Button text can carry a
+    // leading icon-font glyph baked into textContent (confirmed live:
+    // Unicode Private Use Area character on the "See Photos" button,
+    // which silently broke an exact-string exclusion match) — stripped here.
+    const stripIconGlyphs = (s) => Array.from(s || '').filter((ch) => {
+      const code = ch.codePointAt(0);
+      return !(code >= 0xE000 && code <= 0xF8FF);
+    }).join('').trim();
+    const KNOWN_UI_BUTTON_LABELS = new Set([
+      'overview', 'about', 'directions', 'save', 'nearby', 'send to phone', 'share',
+      'suggest an edit', 'write a review', 'see photos', 'sign in', 'more info',
+      'suggest new hours', 'add a photo', 'add a label', 'claim this business', 'add website', 'add missing information',
+    ]);
+    const categoryButton = panel
+      ? Array.from(panel.querySelectorAll('button')).find((b) => {
+          const t = stripIconGlyphs(b.textContent);
+          if (!t || t.length > 45) return false;
+          if (KNOWN_UI_BUTTON_LABELS.has(t.toLowerCase())) return false;
+          if (/\d/.test(t)) return false;
+          return true;
+        })
+      : null;
+    const category = categoryButton ? stripIconGlyphs(categoryButton.textContent) : null;
+
+    const hoursStatusLine = lines.find((l) => /^(open|closed|opens soon|closes soon)\b/i.test(l) && l.includes('·'));
+    const hoursStatus = hoursStatusLine || null;
+
+    const locatedInLine = lines.find((l) => /^located in:?/i.test(l));
+    const locatedIn = locatedInLine ? locatedInLine.replace(/^located in:?\s*/i, '').trim() : null;
+
+    const plusCodeLine = lines.find((l) => /\b[23456789CFGHJMPQRVWX]{4}\+[23456789CFGHJMPQRVWX]{2,3}\b/.test(l));
+    const plusCode = plusCodeLine || null;
+
+    const KNOWN_ATTRIBUTE_PHRASES = [
+      'lgbtq+ friendly', 'transgender safespace',
+      'identifies as women-owned', 'identifies as veteran-owned', 'identifies as black-owned',
+      'identifies as asian-owned', 'identifies as latino-owned', 'identifies as lgbtq+ owned',
+      'wheelchair accessible', 'online care', 'online estimates', 'online appointments',
+    ];
+    const attributes = lines.filter((l) => KNOWN_ATTRIBUTE_PHRASES.some((p) => l.toLowerCase().includes(p)));
+
+    const descHeadingIdx = lines.findIndex((l) => /^from the (owner|business)$/i.test(l));
+    const ownerDescription = descHeadingIdx >= 0 && lines[descHeadingIdx + 1] ? lines[descHeadingIdx + 1] : null;
+
+    const claimedLines = new Set([addressLine, phoneLine, hoursStatusLine, locatedInLine, plusCodeLine].filter(Boolean));
+    const reviewKeywords = [];
+    const keywordRe = /^([a-zA-Z][a-zA-Z\s'-]{2,30})\s(\d{1,4})$/;
+    for (const l of lines) {
+      if (claimedLines.has(l)) continue;
+      const m = l.match(keywordRe);
+      if (m) reviewKeywords.push({ phrase: m[1].trim(), count: parseInt(m[2], 10) });
+    }
+
+    const peopleAlsoSearchFor = [];
+    const pasfIdx = lines.findIndex((l) => /^people also search for$/i.test(l));
+    if (pasfIdx >= 0) {
+      for (let i = pasfIdx + 1; i < lines.length && peopleAlsoSearchFor.length < 5; i++) {
+        const ratingMatch = lines[i].match(/^(\d\.\d)\((\d+)\)$/);
+        if (ratingMatch && i > 0) {
+          const catLine = lines[i + 1];
+          peopleAlsoSearchFor.push({
+            name: lines[i - 1],
+            rating: parseFloat(ratingMatch[1]),
+            reviewCount: parseInt(ratingMatch[2], 10),
+            category: catLine && catLine.endsWith('·') ? catLine.replace(/·$/, '').trim() : null,
+          });
+        }
+      }
+    }
+
+    const websiteLink = panel ? panel.querySelector('a[data-item-id="authority"]') : null;
+    const website = websiteLink ? websiteLink.href : null;
+
     return {
       resolvedName,
-      category: categoryLine ? categoryLine.replace(/·$/, '').trim() : null,
+      category,
       address: addressLine || null,
       phone: phoneLine || null,
       rating: withCount ? parseFloat(withCount[1]) : bareRatingLine ? parseFloat(bareRatingLine) : null,
       reviewCount: withCount ? parseInt(withCount[2], 10) : null,
+      website,
+      hoursStatus,
+      locatedIn,
+      plusCode,
+      attributes,
+      ownerDescription,
+      reviewKeywords,
+      peopleAlsoSearchFor,
     };
   }, [...GARBAGE_NAMES]);
 
   if (!result.resolvedName) return result;
 
+  // Full weekly hours — synced with discover_and_stage_businesses.js's
+  // extractFullDetail(): click the element Google marks with a jsaction
+  // containing "openhours" (the clickable current-day summary), which
+  // reveals role="row" entries, one per day. Best-effort, subject to the
+  // same "limited view" restriction that already affects photos.
   await page.evaluate(() => {
-    const buttons = Array.from(document.querySelectorAll('button, a'));
-    const seePhotos = buttons.find((b) => b.textContent && b.textContent.trim().toLowerCase().includes('see photos'));
-    if (seePhotos) seePhotos.click();
+    const h1 = document.querySelector('h1');
+    let panel = h1.parentElement;
+    for (let i = 0; i < 10 && panel; i++) {
+      if ((panel.innerText || '').length >= 300) break;
+      panel = panel.parentElement;
+    }
+    const el = panel ? panel.querySelector('[jsaction*="openhours"]') : null;
+    if (el) el.click();
   });
-  await sleep(2500);
-  const { images, limitedView } = await page.evaluate(() => {
-    const urls = new Set();
-    document.querySelectorAll('img').forEach((img) => {
-      if (img.src && img.src.includes('googleusercontent.com/') && !img.src.includes('mapslogo')) {
-        urls.add(img.src.split('=')[0] + '=w1000-h1000-k-no');
-      }
+  await sleep(1500);
+  const weeklyHours = await page.evaluate(() => {
+    const h1 = document.querySelector('h1');
+    let panel = h1.parentElement;
+    for (let i = 0; i < 10 && panel; i++) {
+      if ((panel.innerText || '').length >= 300) break;
+      panel = panel.parentElement;
+    }
+    if (!panel) return null;
+    const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const byDay = {};
+    Array.from(panel.querySelectorAll('[role="row"]')).forEach((row) => {
+      const t = (row.textContent || '').trim();
+      const day = DAY_NAMES.find((d) => t.startsWith(d));
+      if (day) byDay[day] = t.slice(day.length).trim();
     });
-    return { images: Array.from(urls).slice(0, 5), limitedView: document.body.innerText.includes('limited view') };
+    return Object.keys(byDay).length ? byDay : null;
   });
 
-  return { ...result, freshImages: images, limitedView };
+  // Synced with discover_and_stage_businesses.js's extractFullDetail() —
+  // this used to be a separate, older copy (text-match click, <img>-only
+  // scrape) that never got that fix and had the same yield problem: the
+  // real thumbnail rail renders as CSS background-image on <div> elements,
+  // not <img> tags, and is virtualized (only what's scrolled into view
+  // exists in the DOM), so a naive single-pass <img> scrape after clicking
+  // caught almost nothing even when the listing had plenty of real photos.
+  await page.evaluate(() => {
+    const btn = document.querySelector('button[aria-label^="Photo of"]');
+    if (btn) btn.click();
+  });
+  await sleep(3000);
+
+  const collectImages = () =>
+    page.evaluate(() => {
+      const urls = new Set();
+      const isRealPhoto = (url) => url.includes('googleusercontent.com/') && !url.includes('mapslogo') && !url.includes('/a-/') && !url.includes('/a/');
+      document.querySelectorAll('img').forEach((img) => {
+        if (img.src && isRealPhoto(img.src)) urls.add(img.src.split('=')[0]);
+      });
+      document.querySelectorAll('div').forEach((div) => {
+        const bg = getComputedStyle(div).backgroundImage;
+        const match = bg && bg.match(/url\("([^"]+)"\)/);
+        if (match && isRealPhoto(match[1])) urls.add(match[1].split('=')[0]);
+      });
+      return Array.from(urls);
+    });
+
+  let imageUrls = await collectImages();
+  const TARGET_IMAGE_COUNT = 5;
+  const MAX_SCROLL_ATTEMPTS = 6;
+  for (let attempt = 0; attempt < MAX_SCROLL_ATTEMPTS && imageUrls.length < TARGET_IMAGE_COUNT; attempt++) {
+    const scrolled = await page.evaluate(() => {
+      const isRealPhoto = (url) => url && url.includes('googleusercontent.com/') && !url.includes('/a-/') && !url.includes('/a/');
+      const thumbDivs = Array.from(document.querySelectorAll('div')).filter((d) => {
+        const bg = getComputedStyle(d).backgroundImage;
+        const m = bg && bg.match(/url\("([^"]+)"\)/);
+        return m && isRealPhoto(m[1]);
+      });
+      if (thumbDivs.length === 0) return false;
+      let node = thumbDivs[0];
+      for (let i = 0; i < 15 && node; i++) {
+        if (node.scrollHeight > node.clientHeight + 20 && ['auto', 'scroll'].includes(getComputedStyle(node).overflowY)) {
+          node.scrollTop = node.scrollTop + node.clientHeight * 0.9;
+          return true;
+        }
+        node = node.parentElement;
+      }
+      return false;
+    });
+    if (!scrolled) break;
+    await sleep(1000);
+    const grown = await collectImages();
+    if (grown.length === imageUrls.length) { imageUrls = grown; break; }
+    imageUrls = grown;
+  }
+
+  const images = imageUrls.map((base) => `${base}=w1000-h1000-k-no`).slice(0, TARGET_IMAGE_COUNT);
+  const limitedView = await page.evaluate(() => document.body.innerText.includes('limited view'));
+
+  return { ...result, weeklyHours, freshImages: images, limitedView };
 }
 
 function categoryLooksRelevant(category) {
@@ -147,8 +316,15 @@ function categoryLooksRelevant(category) {
 // the standalone CLI run and the chained call from discover_and_stage_
 // businesses.js provide one) — this function never launches or closes it.
 async function auditOne(browser, row) {
-  const ev = row.evidence || {};
-  if (!ev.name || !ev.city) {
+  // cleaned_evidence (the auditor's own prior pass, if any) is the base for
+  // this pass when it exists — preserves publish bookkeeping (publishedId,
+  // autoPublished, pageAuditPassed, etc.) already recorded there across a
+  // re-audit. Falls back to the raw staged evidence (row.evidence) for a
+  // first-time audit, or for rows audited before this column existed (their
+  // bookkeeping is still sitting in evidence). evidence itself is never
+  // written by this function anymore — only cleaned_evidence is.
+  const priorEvidence = row.cleaned_evidence || row.evidence || {};
+  if (!priorEvidence.name || !priorEvidence.city) {
     console.log(`  Skipping directive ${row.id} — missing name/city in evidence.`);
     return { outcome: 'error' };
   }
@@ -158,10 +334,10 @@ async function auditOne(browser, row) {
   await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
   await page.setViewport({ width: 1366, height: 900 });
 
-  console.log(`\nAuditing "${ev.name}" (${ev.city})...`);
+  console.log(`\nAuditing "${priorEvidence.name}" (${priorEvidence.city})...`);
   let outcome = 'error';
   try {
-    let inspection = await inspectOnMaps(page, ev.name, ev.city);
+    let inspection = await inspectOnMaps(page, priorEvidence.name, priorEvidence.city);
     // A failed name-resolution gets one retry with a longer settle time
     // before it's trusted — confirmed live (Dallas run): a real, normal
     // business ("Lower Greenville Barbershop") failed on the first pass
@@ -171,11 +347,11 @@ async function auditOne(browser, row) {
     if (!inspection.resolvedName) {
       console.log('  First pass found nothing — retrying once before concluding delete...');
       await sleep(3000);
-      inspection = await inspectOnMaps(page, ev.name, ev.city);
+      inspection = await inspectOnMaps(page, priorEvidence.name, priorEvidence.city);
     }
 
     const notes = [];
-    const updatedEvidence = { ...ev, audited: true, auditedAt: new Date().toISOString() };
+    const updatedEvidence = { ...priorEvidence, audited: true, auditedAt: new Date().toISOString() };
     let recommendation = 'approve';
 
     if (!inspection.resolvedName) {
@@ -188,6 +364,14 @@ async function auditOne(browser, row) {
         notes.push(`Google lists this as "${inspection.category}" — doesn't look like a barbershop, hair salon, or beauty salon.`);
       } else if (inspection.category) {
         notes.push(`Confirmed category: "${inspection.category}".`);
+      }
+      // Actually persist the re-confirmed category — this was being checked
+      // for relevance and mentioned in notes but never saved, so every
+      // audited candidate kept whatever (often null) category it staged
+      // with. Refresh whenever we got a real fresh value; never overwrite
+      // a real value with null (e.g. a limited-view pass that found nothing).
+      if (inspection.category) {
+        updatedEvidence.category = inspection.category;
       }
 
       // Backfill missing address/phone/rating opportunistically — the
@@ -204,15 +388,48 @@ async function auditOne(browser, row) {
         updatedEvidence.rating = inspection.rating;
       }
 
+      // Same opportunistic backfill for the comprehensive fields discovery
+      // now captures — matters most for candidates staged before that
+      // rework existed (raw evidence never had these at all) or where the
+      // original scrape simply missed one on a busy DOM.
+      if (!updatedEvidence.website && inspection.website) {
+        updatedEvidence.website = inspection.website;
+        notes.push('Filled in missing website.');
+      }
+      if (!updatedEvidence.hoursStatus && inspection.hoursStatus) {
+        updatedEvidence.hoursStatus = inspection.hoursStatus;
+      }
+      if (!updatedEvidence.weeklyHours && inspection.weeklyHours) {
+        updatedEvidence.weeklyHours = inspection.weeklyHours;
+      }
+      if (!updatedEvidence.locatedIn && inspection.locatedIn) {
+        updatedEvidence.locatedIn = inspection.locatedIn;
+      }
+      if (!updatedEvidence.plusCode && inspection.plusCode) {
+        updatedEvidence.plusCode = inspection.plusCode;
+      }
+      if ((!Array.isArray(updatedEvidence.attributes) || updatedEvidence.attributes.length === 0) && inspection.attributes && inspection.attributes.length > 0) {
+        updatedEvidence.attributes = inspection.attributes;
+      }
+      if (!updatedEvidence.ownerDescription && inspection.ownerDescription) {
+        updatedEvidence.ownerDescription = inspection.ownerDescription;
+      }
+      if ((!Array.isArray(updatedEvidence.reviewKeywords) || updatedEvidence.reviewKeywords.length === 0) && inspection.reviewKeywords && inspection.reviewKeywords.length > 0) {
+        updatedEvidence.reviewKeywords = inspection.reviewKeywords;
+      }
+      if ((!Array.isArray(updatedEvidence.peopleAlsoSearchFor) || updatedEvidence.peopleAlsoSearchFor.length === 0) && inspection.peopleAlsoSearchFor && inspection.peopleAlsoSearchFor.length > 0) {
+        updatedEvidence.peopleAlsoSearchFor = inspection.peopleAlsoSearchFor;
+      }
+
       // Images — the actual thing you flagged.
-      const hasImages = Array.isArray(ev.images) && ev.images.length > 0;
+      const hasImages = Array.isArray(priorEvidence.images) && priorEvidence.images.length > 0;
       if (!hasImages && inspection.freshImages && inspection.freshImages.length > 0) {
-        const storageDir = STORAGE_DIR_BY_TABLE[ev.table] || 'salons';
+        const storageDir = STORAGE_DIR_BY_TABLE[priorEvidence.table] || 'salons';
         const cachedUrls = [];
         for (let i = 0; i < inspection.freshImages.length; i++) {
           const buf = await downloadImage(inspection.freshImages[i]);
           if (!buf) continue;
-          const tempPath = `${storageDir}/pending-${slugify(ev.name)}-${Date.now()}_${i}.jpg`;
+          const tempPath = `${storageDir}/pending-${slugify(priorEvidence.name)}-${Date.now()}_${i}.jpg`;
           const { error: uploadError } = await supabase.storage.from('entity-photos').upload(tempPath, buf, { contentType: 'image/jpeg', upsert: true });
           if (uploadError) continue;
           const { data: { publicUrl } } = supabase.storage.from('entity-photos').getPublicUrl(tempPath);
@@ -244,18 +461,20 @@ async function auditOne(browser, row) {
 
     const directiveText =
       recommendation === 'delete'
-        ? `AUDIT: "${ev.name}" — recommend deleting this candidate. ${notes.join(' ')} Directive: Review and Deny if you agree.`
-        : `AUDIT: "${ev.name}" — verified as a real ${CATEGORY_LABEL_BY_TABLE[ev.table] || 'business'}. ${notes.length ? notes.join(' ') : 'No changes needed.'} Directive: Ready for your review — Approve to publish.`;
+        ? `AUDIT: "${priorEvidence.name}" — recommend deleting this candidate. ${notes.join(' ')} Directive: Review and Deny if you agree.`
+        : `AUDIT: "${priorEvidence.name}" — verified as a real ${CATEGORY_LABEL_BY_TABLE[priorEvidence.table] || 'business'}. ${notes.length ? notes.join(' ') : 'No changes needed.'} Directive: Ready for your review — Approve to publish.`;
 
-    // Update the SAME staged row — no duplicate directive created.
+    // Update the SAME staged row — no duplicate directive created. Writes
+    // to cleaned_evidence only; the original raw evidence column is never
+    // touched by the auditor.
     await supabase
       .from('agent_directives')
-      .update({ evidence: updatedEvidence, directive_text: directiveText, last_seen_at: new Date().toISOString() })
+      .update({ cleaned_evidence: updatedEvidence, directive_text: directiveText, last_seen_at: new Date().toISOString() })
       .eq('id', row.id);
 
     console.log(`  ${recommendation === 'delete' ? 'RECOMMEND DELETE' : 'OK'} — ${notes.join(' ') || 'no changes needed'}`);
   } catch (err) {
-    console.error(`  Error auditing "${ev.name}": ${err.message}`);
+    console.error(`  Error auditing "${priorEvidence.name}": ${err.message}`);
     outcome = 'error';
   }
   await page.close();
@@ -303,7 +522,7 @@ const WATCH_POLL_MS = 20000;
 async function fetchUnauditedCandidates(limit) {
   let query = supabase
     .from('agent_directives')
-    .select('id, evidence, times_recurred')
+    .select('id, evidence, cleaned_evidence, times_recurred')
     .eq('agent_name', SOURCE_AGENT)
     .eq('status', 'pending');
   if (Number.isFinite(limit)) query = query.limit(limit);
@@ -312,13 +531,15 @@ async function fetchUnauditedCandidates(limit) {
     console.error('Failed to fetch staged candidates:', error.message);
     return [];
   }
-  return (data || []).filter((row) => row.evidence?.audited !== true);
+  // Falls back to the raw evidence column for rows audited before
+  // cleaned_evidence existed — their audited flag is still sitting there.
+  return (data || []).filter((row) => (row.cleaned_evidence || row.evidence)?.audited !== true);
 }
 
 async function run() {
   let query = supabase
     .from('agent_directives')
-    .select('id, evidence, times_recurred')
+    .select('id, evidence, cleaned_evidence, times_recurred')
     .eq('agent_name', SOURCE_AGENT)
     .eq('status', 'pending');
   if (Number.isFinite(limitArg)) query = query.limit(limitArg);

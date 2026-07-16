@@ -28,7 +28,7 @@
 //   node scripts/discover_and_stage_businesses.js --all-cities
 //     State-wide sweep — every city in TX_CITIES below, one after another,
 //     for every entity type. This is a genuinely long-running process (30+
-//     cities x up to 6 categories each, with real Puppeteer navigation
+//     cities x 9 categories each, with real Puppeteer navigation
 //     delays) — meant to be started and left running, not a quick command.
 //     No special resume logic needed: the existing cross-run dedup
 //     (fetchExistingCandidateMap, already-live-name checks) means an
@@ -36,20 +36,28 @@
 //     staged.
 //
 // Entity types covered per city: barbershops, hair/beauty salons,
-// cosmetology/hair/beauty schools (all three via the Puppeteer/Maps-UI
-// scrape), plus barber schools AND barber/beauty supply stores via the real
-// Google Places API instead — see discoverViaPlacesAPI below. Barber schools
-// look like they'd fit the Puppeteer path (same as cosmetology schools) but
-// don't: agent_barber_school_leads carries a legacy contact_id TEXT UNIQUE
-// NOT NULL column from its original life as a CRM outreach-tracking table,
-// and every real row sets contact_id = place_id — confirmed live via a
-// failed publish attempt against a Puppeteer-scraped candidate (no place_id
-// available from the Maps-UI results list, same root cause as supply
-// stores). Individual barbers/stylists are NOT covered here —
-// confirmed live that Maps searches for "barbers"/"hair stylists" just
-// return the same shop/salon businesses already found above, not
-// separately-listed individual professionals, and those two entity types
-// are 100% sourced from Booksy/StyleSeat today (scripts/booksy-agent/,
+// cosmetology/hair/beauty schools, barber schools, and barber/beauty supply
+// stores — all 6 now via the same Puppeteer/Maps-UI scrape (browser-only,
+// as of this rework). agent_barber_school_leads/agent_barber_supply_store_leads/
+// agent_beauty_supply_store_leads used to require a real Google place_id at
+// publish time (a DB NOT NULL constraint), which the Maps-UI scrape can
+// never produce — that's why they used to go through the real Google
+// Places API instead (discoverViaPlacesAPI below, now dormant). A full
+// dependency audit found place_id/contact_id were never read or displayed
+// anywhere in the app and dedup already worked fine on name+city alone, so
+// the NOT NULL constraints were relaxed
+// (supabase/migrations/20260715120000_relax_place_id_not_null_constraints.sql)
+// and all 6 tables now share one discovery mechanism. Each candidate's real
+// Google-assigned category label (the short line ending in "·" on a Maps
+// listing, e.g. "Hair salon·") is used as a second signal on top of which
+// search query found it — see TARGET_CATEGORY_ANCHORS below — to decide
+// whether a candidate belongs to a target entity type at all, and if so
+// which one, trusting Google's own label over the search phrase when they
+// disagree. Individual barbers/stylists are NOT covered here — confirmed
+// live that Maps searches for "barbers"/"hair stylists" just return the
+// same shop/salon businesses already found above, not separately-listed
+// individual professionals, and those two entity types are 100% sourced
+// from Booksy/StyleSeat today (scripts/booksy-agent/,
 // scripts/styleseat-agent/) — a different tech stack entirely, not a fit
 // for this Maps-based pipeline.
 //
@@ -116,6 +124,33 @@ const STORAGE_DIR_BY_TABLE = {
   agent_barber_supply_store_leads: 'stores',
   agent_beauty_supply_store_leads: 'stores',
 };
+
+// First-draft taxonomy — built from established Google category vocabulary,
+// validated against only one real listing. Revisit after a real test run.
+// Barber vs. beauty supply stores are kept as distinct, non-overlapping
+// single anchors for now (deliberately narrow) rather than a shared list —
+// if real runs show Google actually labels these more broadly/differently,
+// widen these lists then rather than guessing further now.
+const TARGET_CATEGORY_ANCHORS = {
+  agent_barbershop_leads: ['barber shop', 'barbershop'],
+  agent_salon_leads: ['hair salon', 'beauty salon', 'nail salon', 'day spa', 'spa'],
+  agent_cosmetology_school_leads: ['cosmetology school', 'beauty school', 'hair school'],
+  agent_barber_school_leads: ['barber school', 'barber college'],
+  agent_barber_supply_store_leads: ['barber supply store'],
+  agent_beauty_supply_store_leads: ['beauty supply store'],
+};
+
+// Returns every target table whose anchor list matches — usually 0 or 1,
+// occasionally more if a category label is genuinely ambiguous between two
+// of our target types (not expected under the current distinct anchor sets,
+// but kept defensive in case future anchor additions overlap).
+function matchTargetTablesFromAnchor(anchorText) {
+  if (!anchorText) return [];
+  const lower = anchorText.toLowerCase();
+  return Object.entries(TARGET_CATEGORY_ANCHORS)
+    .filter(([, anchors]) => anchors.some((a) => lower.includes(a)))
+    .map(([table]) => table);
+}
 
 // Same ~35-city real Texas list already established in
 // app/api/agents/traffic-optimization/run/route.ts's TX_CITIES — ported
@@ -206,6 +241,20 @@ async function scrapeResultsList(page, maxScrolls = 6) {
 // near-empty ancestor for many results — the real address/phone text sits
 // several DOM levels higher. Walking up until an ancestor actually has
 // enough real content (>=300 chars) adapts to whatever the real depth is.
+//
+// Extended (this rework) to pull everything else useful off the same panel:
+// the Google-assigned category anchor (drives TARGET_CATEGORY_ANCHORS
+// classification below), website, open/closed status, sub-location, Plus
+// Code, attribute badges, owner description, and best-effort review-derived
+// signals (rating breakdown, review keyword tags, "People also search for").
+// All new fields are independently nullable/empty and use the same
+// panel/lines text-heuristic approach already established here — no new
+// traversal strategy. Individual review text/author/date and the services
+// list are deliberately NOT extracted this round: reviews need a "Reviews"
+// tab click + repeating-card DOM segmentation (a different technique from
+// flat-line scanning), and the services list's real DOM shape hasn't been
+// characterized from a real example yet — both left for a future pass
+// rather than guessed at.
 async function extractFullDetail(page, name, city) {
   const query = `${name} ${city}`;
   await sleep(2000);
@@ -233,12 +282,105 @@ async function extractFullDetail(page, name, city) {
     const phoneLine = lines.find((l) => /^\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/.test(l));
     const withCount = panelText.match(/(\d\.\d)\((\d+)\)/);
     const bareRatingLine = lines.find((l) => /^\d\.\d$/.test(l));
+
+    // Category — confirmed live it's a real <button>, not just a line of
+    // text ending in "·" (that heuristic was unreliable: whether the
+    // category text and the "·" separator land on the same rendered
+    // innerText line is inconsistent). Found by excluding known static UI
+    // button labels and anything containing a digit (ratings). Button text
+    // can carry a leading icon-font glyph baked into textContent (confirmed
+    // live: Unicode Private Use Area character on the "See Photos" button,
+    // which silently broke an exact-string exclusion match) — stripped here.
+    const stripIconGlyphs = (s) => Array.from(s || '').filter((ch) => { const code = ch.codePointAt(0); return !(code >= 0xE000 && code <= 0xF8FF); }).join('').trim();
+    const KNOWN_UI_BUTTON_LABELS = new Set([
+      'overview', 'about', 'directions', 'save', 'nearby', 'send to phone', 'share',
+      'suggest an edit', 'write a review', 'see photos', 'sign in', 'more info',
+      'suggest new hours', 'add a photo', 'add a label', 'claim this business', 'add website', 'add missing information',
+    ]);
+    const categoryButton = panel
+      ? Array.from(panel.querySelectorAll('button')).find((b) => {
+          const t = stripIconGlyphs(b.textContent);
+          if (!t || t.length > 45) return false;
+          if (KNOWN_UI_BUTTON_LABELS.has(t.toLowerCase())) return false;
+          if (/\d/.test(t)) return false;
+          return true;
+        })
+      : null;
+    const category = categoryButton ? stripIconGlyphs(categoryButton.textContent) : null;
+
+    const hoursStatusLine = lines.find((l) => /^(open|closed|opens soon|closes soon)\b/i.test(l) && l.includes('·'));
+    const hoursStatus = hoursStatusLine || null;
+
+    const locatedInLine = lines.find((l) => /^located in:?/i.test(l));
+    const locatedIn = locatedInLine ? locatedInLine.replace(/^located in:?\s*/i, '').trim() : null;
+
+    // Real Open Location Code alphabet (excludes ambiguous chars 0/1/I/L/O/U).
+    const plusCodeLine = lines.find((l) => /\b[23456789CFGHJMPQRVWX]{4}\+[23456789CFGHJMPQRVWX]{2,3}\b/.test(l));
+    const plusCode = plusCodeLine || null;
+
+    // Finite, known Google "about" badge vocabulary — first-draft, worth
+    // expanding once a real run surfaces phrases not covered here.
+    const KNOWN_ATTRIBUTE_PHRASES = [
+      'lgbtq+ friendly', 'transgender safespace',
+      'identifies as women-owned', 'identifies as veteran-owned', 'identifies as black-owned',
+      'identifies as asian-owned', 'identifies as latino-owned', 'identifies as lgbtq+ owned',
+      'wheelchair accessible', 'online care', 'online estimates', 'online appointments',
+    ];
+    const attributes = lines.filter((l) => KNOWN_ATTRIBUTE_PHRASES.some((p) => l.toLowerCase().includes(p)));
+
+    const descHeadingIdx = lines.findIndex((l) => /^from the (owner|business)$/i.test(l));
+    const ownerDescription = descHeadingIdx >= 0 && lines[descHeadingIdx + 1] ? lines[descHeadingIdx + 1] : null;
+
+    // Best-effort, bonus data — treat as non-authoritative. Excludes lines
+    // already claimed by the patterns above to cut down obvious collisions
+    // (an address or hours line won't also get read as a review tag).
+    const claimedLines = new Set([addressLine, phoneLine, hoursStatusLine, locatedInLine, plusCodeLine].filter(Boolean));
+    const reviewKeywords = [];
+    const keywordRe = /^([a-zA-Z][a-zA-Z\s'-]{2,30})\s(\d{1,4})$/;
+    for (const l of lines) {
+      if (claimedLines.has(l)) continue;
+      const m = l.match(keywordRe);
+      if (m) reviewKeywords.push({ phrase: m[1].trim(), count: parseInt(m[2], 10) });
+    }
+
+    // Best-effort, capped at 5 — scans lines after the "People also search
+    // for" heading, reusing the same rating(count) and "·"-suffixed
+    // category patterns already used above.
+    const peopleAlsoSearchFor = [];
+    const pasfIdx = lines.findIndex((l) => /^people also search for$/i.test(l));
+    if (pasfIdx >= 0) {
+      for (let i = pasfIdx + 1; i < lines.length && peopleAlsoSearchFor.length < 5; i++) {
+        const ratingMatch = lines[i].match(/^(\d\.\d)\((\d+)\)$/);
+        if (ratingMatch && i > 0) {
+          const catLine = lines[i + 1];
+          peopleAlsoSearchFor.push({
+            name: lines[i - 1],
+            rating: parseFloat(ratingMatch[1]),
+            reviewCount: parseInt(ratingMatch[2], 10),
+            category: catLine && catLine.endsWith('·') ? catLine.replace(/·$/, '').trim() : null,
+          });
+        }
+      }
+    }
+
+    const websiteLink = panel ? panel.querySelector('a[data-item-id="authority"]') : null;
+    const website = websiteLink ? websiteLink.href : null;
+
     return {
       name: resolvedName,
       address: addressLine || null,
       phone: phoneLine || null,
       rating: withCount ? parseFloat(withCount[1]) : bareRatingLine ? parseFloat(bareRatingLine) : null,
       reviewCount: withCount ? parseInt(withCount[2], 10) : null,
+      category,
+      website,
+      hoursStatus,
+      locatedIn,
+      plusCode,
+      attributes,
+      ownerDescription,
+      reviewKeywords,
+      peopleAlsoSearchFor,
     };
   });
   if (!detail.name) return null;
@@ -248,23 +390,117 @@ async function extractFullDetail(page, name, city) {
   const latitude = coordMatch ? parseFloat(coordMatch[1]) : null;
   const longitude = coordMatch ? parseFloat(coordMatch[2]) : null;
 
+  // Full weekly hours — hoursStatus above is only ever today's summary
+  // ("Open · Closes 8 PM"). The real day-by-day table isn't in the initial
+  // DOM snapshot; confirmed live it only renders after clicking the
+  // element Google marks with a jsaction containing "openhours" (the
+  // clickable current-day summary), which reveals role="row" entries, one
+  // per day. Best-effort: subject to the same "limited view" restriction
+  // that already affects photos — confirmed live that a restricted session
+  // returns at most today's row instead of all 7, same degradation, not a
+  // bug in this extraction.
   await page.evaluate(() => {
-    const buttons = Array.from(document.querySelectorAll('button, a'));
-    const seePhotos = buttons.find((b) => b.textContent && b.textContent.trim().toLowerCase().includes('see photos'));
-    if (seePhotos) seePhotos.click();
+    const h1 = document.querySelector('h1');
+    let panel = h1.parentElement;
+    for (let i = 0; i < 10 && panel; i++) {
+      if ((panel.innerText || '').length >= 300) break;
+      panel = panel.parentElement;
+    }
+    const el = panel ? panel.querySelector('[jsaction*="openhours"]') : null;
+    if (el) el.click();
   });
-  await sleep(2500);
-  const images = await page.evaluate(() => {
-    const urls = new Set();
-    document.querySelectorAll('img').forEach((img) => {
-      if (img.src && img.src.includes('googleusercontent.com/') && !img.src.includes('mapslogo')) {
-        urls.add(img.src.split('=')[0] + '=w1000-h1000-k-no');
-      }
+  await sleep(1500);
+  const weeklyHours = await page.evaluate(() => {
+    const h1 = document.querySelector('h1');
+    let panel = h1.parentElement;
+    for (let i = 0; i < 10 && panel; i++) {
+      if ((panel.innerText || '').length >= 300) break;
+      panel = panel.parentElement;
+    }
+    if (!panel) return null;
+    const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const byDay = {};
+    Array.from(panel.querySelectorAll('[role="row"]')).forEach((row) => {
+      const t = (row.textContent || '').trim();
+      const day = DAY_NAMES.find((d) => t.startsWith(d));
+      if (day) byDay[day] = t.slice(day.length).trim();
     });
-    return Array.from(urls).slice(0, 5);
+    return Object.keys(byDay).length ? byDay : null;
   });
 
-  return { ...detail, latitude, longitude, images };
+  // Clicking the hero photo IS necessary — confirmed live via a real
+  // screenshot: it opens a lightbox with the single large image on the
+  // right AND a full scrollable thumbnail rail on the left, which is where
+  // the real complete photo set actually lives. The mistake in an earlier
+  // version of this function was only ever checking <img src> after the
+  // click — that rail renders its thumbnails as CSS background-image on
+  // <div> elements, not <img> tags, so an <img>-only scrape found almost
+  // nothing there even though the photos were genuinely on the page.
+  await page.evaluate(() => {
+    const btn = document.querySelector('button[aria-label^="Photo of"]');
+    if (btn) btn.click();
+  });
+  await sleep(3000);
+
+  const collectImages = () =>
+    page.evaluate(() => {
+      const urls = new Set();
+      const isRealPhoto = (url) => url.includes('googleusercontent.com/') && !url.includes('mapslogo') && !url.includes('/a-/') && !url.includes('/a/');
+      document.querySelectorAll('img').forEach((img) => {
+        if (img.src && isRealPhoto(img.src)) urls.add(img.src.split('=')[0]);
+      });
+      document.querySelectorAll('div').forEach((div) => {
+        const bg = getComputedStyle(div).backgroundImage;
+        const match = bg && bg.match(/url\("([^"]+)"\)/);
+        if (match && isRealPhoto(match[1])) urls.add(match[1].split('=')[0]);
+      });
+      return Array.from(urls);
+    });
+
+  let imageUrls = await collectImages();
+
+  // The thumbnail rail is virtualized/lazy-loaded — Google only renders
+  // background-image on the divs currently scrolled into view, not the
+  // whole set. Confirmed live: a rail with scrollHeight ~10x its visible
+  // height held way more real photos than the ~3-5 caught in the initial
+  // snapshot (one listing went 4 -> 15 after scrolling). Only bother
+  // scrolling when we've come up short of the target — most candidates
+  // don't need it, and this keeps the common case fast.
+  const TARGET_IMAGE_COUNT = 5;
+  const MAX_SCROLL_ATTEMPTS = 6;
+  for (let attempt = 0; attempt < MAX_SCROLL_ATTEMPTS && imageUrls.length < TARGET_IMAGE_COUNT; attempt++) {
+    const scrolled = await page.evaluate(() => {
+      const isRealPhoto = (url) => url && url.includes('googleusercontent.com/') && !url.includes('/a-/') && !url.includes('/a/');
+      const thumbDivs = Array.from(document.querySelectorAll('div')).filter((d) => {
+        const bg = getComputedStyle(d).backgroundImage;
+        const m = bg && bg.match(/url\("([^"]+)"\)/);
+        return m && isRealPhoto(m[1]);
+      });
+      if (thumbDivs.length === 0) return false;
+      // Walk up from a real thumbnail to find its actual scrollable
+      // ancestor by behavior (scrollHeight > clientHeight + overflow-y
+      // auto/scroll) rather than a hardcoded class name — Google's CSS
+      // classes here are auto-generated/obfuscated and not a stable target.
+      let node = thumbDivs[0];
+      for (let i = 0; i < 15 && node; i++) {
+        if (node.scrollHeight > node.clientHeight + 20 && ['auto', 'scroll'].includes(getComputedStyle(node).overflowY)) {
+          node.scrollTop = node.scrollTop + node.clientHeight * 0.9;
+          return true;
+        }
+        node = node.parentElement;
+      }
+      return false;
+    });
+    if (!scrolled) break; // no scrollable rail found — nothing more to try
+    await sleep(1000);
+    const grown = await collectImages();
+    if (grown.length === imageUrls.length) { imageUrls = grown; break; } // reached the end of the list
+    imageUrls = grown;
+  }
+
+  const images = imageUrls.map((base) => `${base}=w1000-h1000-k-no`).slice(0, TARGET_IMAGE_COUNT);
+
+  return { ...detail, latitude, longitude, weeklyHours, images };
 }
 
 // Cross-category duplicate guard — confirmed live: "Texas Hair Team -
@@ -333,7 +569,8 @@ async function stageFinding({ subjectKey, directiveText, evidence }) {
   return { staged: true, id: inserted?.id };
 }
 
-// Runs full discovery (all 3 categories) for one city. Returns a summary
+// Runs full discovery (all 9 search categories, across 6 target tables) for
+// one city. Returns a summary
 // plus every {id, evidence} row this call staged or bumped this run, so the
 // caller can chain straight into an audit pass without a re-query.
 // candidateMap is shared/mutated across the whole run (see run()) so a
@@ -345,16 +582,31 @@ async function discoverCity(browser, cityArg, cityLabel, candidateMap) {
     { query: `beauty salons in ${cityArg}`, table: 'agent_salon_leads' },
     { query: `cosmetology schools in ${cityArg}`, table: 'agent_cosmetology_school_leads' },
     { query: `beauty schools in ${cityArg}`, table: 'agent_cosmetology_school_leads' },
+    { query: `barber schools in ${cityArg}`, table: 'agent_barber_school_leads' },
+    { query: `barber supply store in ${cityArg}`, table: 'agent_barber_supply_store_leads' },
+    { query: `beauty supply store in ${cityArg}`, table: 'agent_beauty_supply_store_leads' },
+    { query: `hair supply store in ${cityArg}`, table: 'agent_beauty_supply_store_leads' },
   ];
-  // Barber schools deliberately NOT here — unlike agent_cosmetology_school_leads
-  // (clean, school_name-only NOT NULL), agent_barber_school_leads still carries
-  // a legacy contact_id TEXT UNIQUE NOT NULL column from its original life as a
-  // CRM outreach-tracking table (migration 167). Confirmed live: every real row
-  // sets contact_id = place_id (same value in both columns) — the Maps-UI
-  // scrape here never gets a real place_id, so barber schools are discovered
-  // via discoverViaPlacesAPI() below instead, same mechanism as supply stores.
-  const summary = { discovered: 0, alreadyLive: 0, staged: 0, recurred: 0, failed: 0, crossCategoryDuplicate: 0 };
+  // Barber schools + both supply-store tables used to be excluded here (see
+  // discoverViaPlacesAPI below) because they required a real Google
+  // place_id the Maps-UI scrape can't produce — that requirement was
+  // dropped (see TARGET_CATEGORY_ANCHORS comment above), so all 9 search
+  // categories now run through this one Puppeteer path.
+  const summary = { discovered: 0, alreadyLive: 0, staged: 0, recurred: 0, failed: 0, crossCategoryDuplicate: 0, categoryMismatch: 0, categoryRerouted: 0 };
   const stagedRows = [];
+
+  // Prefetched once per city across all 6 active target tables (rather than
+  // per search category) so a candidate whose real anchor category reroutes
+  // it to a different table can still be checked against the RIGHT table's
+  // existing names — a rerouted candidate isn't necessarily new just
+  // because it's new to the table the search query implied.
+  const ACTIVE_TABLES = Object.keys(TARGET_CATEGORY_ANCHORS);
+  const existingNamesByTable = {};
+  for (const table of ACTIVE_TABLES) {
+    const nameColumn = NAME_COLUMN_BY_TABLE[table];
+    const rows = await fetchAllRows(table, nameColumn);
+    existingNamesByTable[table] = new Set(rows.map((r) => normalizeForCompare(r[nameColumn])));
+  }
 
   for (const category of CATEGORIES) {
     console.log(`\n=== Searching: "${category.query}" ===`);
@@ -371,9 +623,7 @@ async function discoverCity(browser, cityArg, cityLabel, candidateMap) {
       console.log(`  Found ${names.length} card(s) in results list.`);
       summary.discovered += names.length;
 
-      const nameColumn = NAME_COLUMN_BY_TABLE[category.table];
-      const existingRows = await fetchAllRows(category.table, nameColumn);
-      const existingNames = new Set(existingRows.map((r) => normalizeForCompare(r[nameColumn])));
+      const existingNames = existingNamesByTable[category.table];
 
       for (const name of names) {
         if (existingNames.has(normalizeForCompare(name))) {
@@ -394,18 +644,42 @@ async function discoverCity(browser, cityArg, cityLabel, candidateMap) {
             continue;
           }
 
-          const categoryLabel = CATEGORY_LABEL_BY_TABLE[category.table];
+          // Anchor-text classification: use the listing's own Google-assigned
+          // category label to decide whether this candidate belongs to any
+          // target entity type, and if so which one — trusting Google's own
+          // label over the search phrase that happened to surface it.
+          const matches = matchTargetTablesFromAnchor(detail.category);
+          if (detail.category && matches.length === 0) {
+            console.log(`    Skipping — Maps category anchor "${detail.category}" doesn't match any entity type we're currently targeting.`);
+            summary.categoryMismatch++;
+            await detailPage.close();
+            continue;
+          }
+          let resolvedTable = category.table;
+          if (matches.length === 1 && matches[0] !== category.table) {
+            console.log(`    Re-routing "${detail.name}" — Maps anchor category "${detail.category}" matches ${CATEGORY_LABEL_BY_TABLE[matches[0]]}, not ${CATEGORY_LABEL_BY_TABLE[category.table]} implied by the search query; trusting Google's own label.`);
+            summary.categoryRerouted++;
+            resolvedTable = matches[0];
+            if (existingNamesByTable[resolvedTable].has(normalizeForCompare(detail.name))) {
+              console.log(`    Skipping — already live under ${CATEGORY_LABEL_BY_TABLE[resolvedTable]} after category re-route.`);
+              summary.alreadyLive++;
+              await detailPage.close();
+              continue;
+            }
+          }
+
+          const categoryLabel = CATEGORY_LABEL_BY_TABLE[resolvedTable];
 
           const candidateKey = `${normalizeForCompare(detail.name)}::${cityLabel.toLowerCase()}`;
           const existingCandidate = candidateMap.get(candidateKey);
-          if (existingCandidate && existingCandidate.table !== category.table) {
+          if (existingCandidate && existingCandidate.table !== resolvedTable) {
             console.log(`    Skipping — already staged as a ${CATEGORY_LABEL_BY_TABLE[existingCandidate.table]} under a different category (cross-category duplicate guard).`);
             summary.crossCategoryDuplicate++;
             await detailPage.close();
             continue;
           }
 
-          const storageDir = STORAGE_DIR_BY_TABLE[category.table];
+          const storageDir = STORAGE_DIR_BY_TABLE[resolvedTable];
           const cachedUrls = [];
           for (let i = 0; i < detail.images.length; i++) {
             const buf = await downloadImage(detail.images[i]);
@@ -419,7 +693,7 @@ async function discoverCity(browser, cityArg, cityLabel, candidateMap) {
 
           const evidence = {
             type: 'new_business_candidate',
-            table: category.table,
+            table: resolvedTable,
             name: detail.name,
             city: cityLabel,
             formatted_address: detail.address,
@@ -429,9 +703,19 @@ async function discoverCity(browser, cityArg, cityLabel, candidateMap) {
             latitude: detail.latitude,
             longitude: detail.longitude,
             images: cachedUrls,
+            category: detail.category,
+            website: detail.website,
+            hoursStatus: detail.hoursStatus,
+            weeklyHours: detail.weeklyHours,
+            locatedIn: detail.locatedIn,
+            plusCode: detail.plusCode,
+            attributes: detail.attributes,
+            ownerDescription: detail.ownerDescription,
+            reviewKeywords: detail.reviewKeywords,
+            peopleAlsoSearchFor: detail.peopleAlsoSearchFor,
           };
           const directiveText = `Found a real ${categoryLabel} not yet in our database: "${detail.name}" in ${cityLabel}${detail.rating ? ` (${detail.rating}★${detail.reviewCount ? `, ${detail.reviewCount} reviews` : ''})` : ''}. Directive: Review the details below and click Approve to publish this as a real profile page.`;
-          const subjectKey = `new_business::${category.table}::${normalizeForCompare(detail.name)}::${cityLabel.toLowerCase()}`;
+          const subjectKey = `new_business::${resolvedTable}::${normalizeForCompare(detail.name)}::${cityLabel.toLowerCase()}`;
 
           const result = await stageFinding({ subjectKey, directiveText, evidence });
           if (result.staged) {
@@ -443,7 +727,7 @@ async function discoverCity(browser, cityArg, cityLabel, candidateMap) {
           }
           if (result.id) {
             stagedRows.push({ id: result.id, evidence });
-            candidateMap.set(candidateKey, { id: result.id, table: category.table });
+            candidateMap.set(candidateKey, { id: result.id, table: resolvedTable });
           }
         } catch (err) {
           console.error(`    Error on "${name}": ${err.message}`);
@@ -460,25 +744,18 @@ async function discoverCity(browser, cityArg, cityLabel, candidateMap) {
   return { summary, stagedRows };
 }
 
-// Supply stores can't go through the Maps-UI Puppeteer path above — both
-// agent_barber_supply_store_leads and agent_beauty_supply_store_leads have
-// a real `place_id TEXT UNIQUE NOT NULL` constraint (confirmed live via a
-// failed test insert), and the Maps search-results-list page Puppeteer
-// navigates to never exposes a real Google place_id (only a specific
-// place's detail-page URL does, and this scraper doesn't reliably land
-// there). The real Google Places API (New) searchText endpoint does
-// return an authoritative place.id — same call shape already proven by
-// scripts/pull_google_places_supply_stores.js /
-// pull_google_places_beauty_supply_stores.js, which upsert directly into
-// these tables today. This reuses that exact call, but STAGES into
-// agent_directives instead, so it goes through the same human-review gate
-// as everything else — one searchText call per city per term (not those
-// scripts' full zip-code sweep, to keep API cost modest for a per-city
-// discovery pass). No photos are fetched here (the field mask below
-// doesn't request them, matching the existing precedent scripts) — a
-// store discovered this way will need manual Approve rather than
-// Auto-Publish's 5-photo bar, same as any barbershop/salon candidate with
-// no photos found.
+// ============================================================================
+// DORMANT — not called from run() as of this rework. Left fully defined so
+// it can be re-enabled with a one-line change (add its call back into
+// run()'s per-target loop) if we ever come back to the Places API. It's no
+// longer structurally necessary for anything to work: agent_barber_school_leads
+// and both supply-store tables used to REQUIRE the real place_id this
+// function is the only source of, but that requirement was dropped (see
+// TARGET_CATEGORY_ANCHORS comment near the top of this file) — the Puppeteer
+// path in discoverCity() now covers all 6 target tables on its own. This
+// stays useful only as an optional trade: real Places API data (authoritative
+// place_id, richer place.types) at the cost of a real API key/quota, versus
+// the Puppeteer path's zero-cost-but-heuristic scrape.
 async function discoverViaPlacesAPI(cityArg, cityLabel, candidateMap) {
   const summary = { discovered: 0, alreadyLive: 0, staged: 0, recurred: 0, failed: 0, crossCategoryDuplicate: 0 };
   const stagedRows = [];
@@ -612,7 +889,7 @@ async function run() {
     targets = TX_CITIES.map((c) => ({ cityArg: `${titleCase(c)} TX`, cityLabel: titleCase(c), sourceDirective: null }));
     console.log(`State-wide sweep mode: ${targets.length} Texas cities queued.`);
     console.log(`Cities: ${targets.map((t) => t.cityLabel).join(', ')}`);
-    console.log('This will take a long time (many cities x up to 6 categories each, with real navigation delays) — safe to start and leave running.\n');
+    console.log('This will take a long time (many cities x 9 categories each, with real navigation delays) — safe to start and leave running.\n');
   } else if (cityArg) {
     targets = [{ cityArg, cityLabel: cityArg.replace(/\s*TX$/i, '').trim(), sourceDirective: null }];
   } else {
@@ -627,7 +904,7 @@ async function run() {
   }
 
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-  const overall = { discovered: 0, alreadyLive: 0, staged: 0, recurred: 0, failed: 0, crossCategoryDuplicate: 0 };
+  const overall = { discovered: 0, alreadyLive: 0, staged: 0, recurred: 0, failed: 0, crossCategoryDuplicate: 0, categoryMismatch: 0, categoryRerouted: 0 };
   // Shared across every city/category this run touches, seeded from
   // whatever's already staged in the DB, so a cross-category duplicate is
   // caught whether the two sightings happen in the same run or a prior one.
@@ -636,9 +913,8 @@ async function run() {
   for (const target of targets) {
     console.log(`\n\n########## City: ${target.cityLabel} ##########`);
     const { summary } = await discoverCity(browser, target.cityArg, target.cityLabel, candidateMap);
-    const { summary: storeSummary } = await discoverViaPlacesAPI(target.cityArg, target.cityLabel, candidateMap);
     for (const key of Object.keys(overall)) {
-      overall[key] += summary[key] + storeSummary[key];
+      overall[key] += summary[key];
     }
 
     if (target.sourceDirective) {
