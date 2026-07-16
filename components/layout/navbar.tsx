@@ -8,11 +8,10 @@ import { Button } from "@/components/ui/button"
 import { trackNavClick, trackCTAClick } from "@/lib/analytics"
 
 const navLinks = [
-  { label: "Prototypes", href: "/ai-solutions" },
-  { label: "Innovation", href: "/#services" },
-  { label: "Lifecycle", href: "/#sdlc" },
-  { label: "Impact", href: "/#results" },
-  { label: "Viability Audit", href: "/#contact" },
+  { label: "Live Directory", href: "/tools/barbershop-search" },
+  { label: "Market Insights", href: "/insights" },
+  { label: "Shop Day", href: "/barber-beauty-network" },
+  { label: "Texas Hub", href: "/houston" },
 ]
 
 export function Navbar() {
@@ -91,9 +90,9 @@ export function Navbar() {
           >
             <Link 
               href="/tools/barbershop-search" 
-              onClick={() => trackCTAClick({ cta_label: 'Launch AI Search', page: 'Navbar', destination: '/tools/barbershop-search' })}
+              onClick={() => trackCTAClick({ cta_label: 'Launch ShearQuery', page: 'Navbar', destination: '/tools/barbershop-search' })}
             >
-              Launch AI Search
+              Launch ShearQuery
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </Button>
@@ -127,10 +126,10 @@ export function Navbar() {
                   href="/tools/barbershop-search" 
                   onClick={() => {
                     setIsMobileOpen(false);
-                    trackCTAClick({ cta_label: 'Launch AI Search (Mobile)', page: 'Navbar', destination: '/tools/barbershop-search' });
+                    trackCTAClick({ cta_label: 'Launch ShearQuery (Mobile)', page: 'Navbar', destination: '/tools/barbershop-search' });
                   }}
                 >
-                  Launch AI Search
+                  Launch ShearQuery
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </Button>

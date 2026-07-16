@@ -26,6 +26,7 @@ export default function Home() {
     <main className="min-h-screen bg-background">
       <Navbar />
       <HeroSection />
+      {/* 
       <ServicesSection />
       <ProcessSection />
       <FeatureHighlight />
@@ -35,6 +36,7 @@ export default function Home() {
       <ResultsSection />
       <TestimonialsSection />
       <CtaSection />
+      */}
       <Footer />
     </main>
   )
