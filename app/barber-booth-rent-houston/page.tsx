@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MapPin, DollarSign, Star, Loader2, CheckCircle2, Users, Search, Scissors } from "lucide-react";
+import { MapPin, DollarSign, Star, Loader2, Users, Search, Scissors, ArrowRight } from "lucide-react";
 import { fetchBoothRentListings, fetchNeighborhoodRentSummary, type BoothRentListing, type ZipRentSummary } from "./actions";
-import { requestShopIntro } from "@/app/barbershop-apprentice-jobs-houston/actions";
 
 const FAQS = [
   {
@@ -36,13 +35,6 @@ export default function BarberBoothRentHoustonPage() {
   const [loading, setLoading] = useState(true);
   const [centerLabel, setCenterLabel] = useState<string | null>(null);
 
-  const [selected, setSelected] = useState<BoothRentListing | null>(null);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
   const [zipSummary, setZipSummary] = useState<ZipRentSummary[]>([]);
 
   const runSearch = async (loc?: string) => {
@@ -58,27 +50,6 @@ export default function BarberBoothRentHoustonPage() {
     fetchNeighborhoodRentSummary().then(setZipSummary);
   }, []);
 
-  const submitContact = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selected) return;
-    setSubmitting(true);
-    setSubmitError(null);
-    const result = await requestShopIntro({
-      name,
-      phone,
-      email,
-      neighborhood: centerLabel || "Houston",
-      desiredPayStructure: "Booth Rent",
-      shopId: selected.id,
-    });
-    setSubmitting(false);
-    if (!result.success) {
-      setSubmitError(result.error);
-      return;
-    }
-    setSubmitted(true);
-  };
-
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
@@ -88,11 +59,11 @@ export default function BarberBoothRentHoustonPage() {
             Live Houston Listings
           </span>
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950 leading-tight mb-3">
-            Barber Booth Rent &amp; Chairs for Rent in Houston
+            Barber Booth Rental Near You in Houston
           </h1>
           <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
-            Real, currently-listed barbershop booths and chairs for rent — weekly rent, chairs available, and a
-            direct way to reach the shop. No account needed to browse.
+            Real, currently-listed barber booth rentals — weekly rent cost, open chairs, and each shop&apos;s full
+            profile. No account needed to browse.
           </p>
         </div>
 
@@ -178,92 +149,15 @@ export default function BarberBoothRentHoustonPage() {
                     ) : null}
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    setSelected(shop);
-                    setSubmitted(false);
-                    setSubmitError(null);
-                  }}
-                  className="shrink-0 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs uppercase tracking-wider transition-colors"
+                <Link
+                  href={`/shop/${shop.slug || shop.id}`}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs uppercase tracking-wider transition-colors"
                 >
-                  Contact Shop
-                </button>
+                  View Profile
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
             ))}
-          </div>
-        )}
-
-        {selected && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={() => setSelected(null)}>
-            <div
-              className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 max-w-md w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {submitted ? (
-                <div className="text-center py-4">
-                  <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
-                  <h2 className="text-lg font-black text-slate-900 mb-1">Request sent!</h2>
-                  <p className="text-sm text-slate-500 font-medium">
-                    {selected.shop_name} has your info. Track it anytime at{" "}
-                    <Link href="/shop-day-requests" className="font-bold text-indigo-600 hover:underline">
-                      /shop-day-requests
-                    </Link>
-                    .
-                  </p>
-                  <button
-                    onClick={() => setSelected(null)}
-                    className="mt-4 text-xs font-bold text-slate-500 hover:text-slate-900"
-                  >
-                    Close
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={submitContact} className="space-y-4">
-                  <h2 className="text-lg font-black text-slate-900">Contact {selected.shop_name}</h2>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Full name"
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Phone number"
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email (optional)"
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  {submitError && <p className="text-sm text-red-600 font-medium">{submitError}</p>}
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelected(null)}
-                      className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs uppercase tracking-wider"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-extrabold text-xs uppercase tracking-wider transition-colors"
-                    >
-                      {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                      Send
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
           </div>
         )}
 
@@ -327,11 +221,38 @@ export default function BarberBoothRentHoustonPage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "FAQPage",
+            name: "Barber Booth Rental in Houston — Rent Cost & Availability FAQ",
             mainEntity: FAQS.map((faq) => ({
               "@type": "Question",
               name: faq.q,
               acceptedAnswer: { "@type": "Answer", text: faq.a },
             })),
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Service",
+            name: "Barber Booth Rental in Houston",
+            serviceType: "Barber booth / chair rental",
+            description:
+              "Real, currently-listed barber booth and chair rentals at independent barbershops across Houston, TX — weekly rent typically $125-$300, median around $180/week.",
+            areaServed: { "@type": "City", name: "Houston", containedInPlace: { "@type": "State", name: "Texas" } },
+            provider: {
+              "@type": "Organization",
+              name: "Inner G Complete",
+              url: "https://agency.innergcomplete.com",
+            },
+            offers: {
+              "@type": "AggregateOffer",
+              priceCurrency: "USD",
+              lowPrice: "125",
+              highPrice: "300",
+              offerCount: listings.length || undefined,
+            },
           }),
         }}
       />
