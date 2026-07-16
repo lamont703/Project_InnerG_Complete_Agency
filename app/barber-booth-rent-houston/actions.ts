@@ -21,6 +21,7 @@ function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number):
 
 export interface BoothRentListing {
   id: string;
+  slug: string | null;
   shop_name: string;
   formatted_address: string | null;
   rating: number | null;
@@ -45,7 +46,7 @@ export async function fetchBoothRentListings(
   const { data: shops, error } = await supabase
     .from("agent_barbershop_leads")
     .select(
-      "id, shop_name, formatted_address, rating, total_reviews, rent_type, rent_rate, booth_count_available, google_images, latitude, longitude"
+      "id, slug, shop_name, formatted_address, rating, total_reviews, rent_type, rent_rate, booth_count_available, google_images, latitude, longitude"
     )
     .ilike("city", "%houston%")
     .gt("booth_count_available", 0)
@@ -63,6 +64,7 @@ export async function fetchBoothRentListings(
 
   const withDistance = shops.map((s: any) => ({
     id: s.id,
+    slug: s.slug,
     shop_name: s.shop_name,
     formatted_address: s.formatted_address,
     rating: s.rating,

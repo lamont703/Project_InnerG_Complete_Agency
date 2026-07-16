@@ -101,33 +101,32 @@ const references = [
 ]
 
 export const metadata = {
-  title: "Texas Barber & Cosmetology License Requirements (2026): Application, Renewal, Reciprocity | Inner G Complete",
+  title: "Texas Cosmetology & Barber License Renewal (2026): Fees, CE Hours, Reciprocity | Inner G Complete",
   description:
-    "The canonical guide to getting and keeping a Texas barber or cosmetology license — application steps, the 2-year renewal cycle and fees, new CE and lawful-presence requirements, and reciprocity from other states. Sourced directly from TDLR.",
+    "Real Texas cosmetology and barber license renewal costs — the 2-year cycle, $50-$100 fee tiers, CE hours, and reciprocity from other states — plus how to get licensed in the first place. Sourced directly from TDLR.",
   keywords: [
-    "how to get a barber license in Texas",
-    "TDLR barber license renewal requirements",
+    "texas cosmetology license renewal",
+    "texas barber license renewal",
+    "tdlr cosmetology license renewal",
+    "cosmetology license requirements texas",
     "Texas cosmetology license reciprocity",
     "Texas barber license renewal fee",
-    "TDLR license by equivalence",
     "Texas barber continuing education requirements",
-    "military spouse barber license Texas",
     "TDLR license lookup",
-    "barber license criminal record Texas",
     "esthetician vs cosmetologist license Texas",
   ],
   openGraph: {
-    title: "Texas Barber & Cosmetology License Requirements (2026)",
+    title: "Texas Cosmetology & Barber License Renewal (2026)",
     description:
-      "Application, the 2-year renewal cycle, new CE and lawful-presence rules, and reciprocity from other states — the canonical TDLR licensing guide.",
+      "Real renewal costs, CE hours, and the 2-year cycle for Texas cosmetology and barber licenses — plus reciprocity from other states. Sourced directly from TDLR.",
     url: "https://agency.innergcomplete.com/insights/texas-barber-cosmetology-license-requirements",
     type: "article",
-    images: [{ url: "/texas_barber_licensing_requirements_cover.png", width: 1200, height: 630, alt: "Texas Barber & Cosmetology License Requirements" }],
+    images: [{ url: "/texas_barber_licensing_requirements_cover.png", width: 1200, height: 630, alt: "Texas Cosmetology & Barber License Renewal" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Texas Barber & Cosmetology License Requirements (2026)",
-    description: "Application, renewal, CE requirements, and reciprocity — the canonical TDLR licensing guide.",
+    title: "Texas Cosmetology & Barber License Renewal (2026)",
+    description: "Renewal fees, CE hours, and the 2-year cycle — the canonical TDLR renewal guide.",
     images: ["/texas_barber_licensing_requirements_cover.png"],
   },
   alternates: { canonical: "https://agency.innergcomplete.com/insights/texas-barber-cosmetology-license-requirements" },
@@ -146,9 +145,9 @@ export default function LicenseRequirementsGuide() {
               "@type": "WebPage",
               "@id": "https://agency.innergcomplete.com/insights/texas-barber-cosmetology-license-requirements",
             },
-            headline: "Texas Barber & Cosmetology License Requirements: Application, Renewal, Reciprocity",
+            headline: "Texas Cosmetology & Barber License Renewal: Fees, CE Hours, Application, Reciprocity",
             description:
-              "The canonical guide to getting and keeping a Texas barber or cosmetology license, sourced directly from TDLR — application, the 2-year renewal cycle, continuing education, lawful presence, and reciprocity.",
+              "The real Texas cosmetology and barber license renewal costs, CE hours, and 2-year cycle, sourced directly from TDLR — plus application steps for those just getting licensed and reciprocity from other states.",
             author: { "@type": "Person", name: "Lamont Evans", url: "https://agency.innergcomplete.com/about" },
             publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
             datePublished: "2026-07-08T08:00:00Z",
@@ -157,7 +156,7 @@ export default function LicenseRequirementsGuide() {
       />
       <BreadcrumbSchema
         slug="texas-barber-cosmetology-license-requirements"
-        title="Texas Barber & Cosmetology License Requirements | Inner G Complete"
+        title="Texas Cosmetology & Barber License Renewal | Inner G Complete"
       />
       <Navbar />
 
@@ -198,12 +197,13 @@ export default function LicenseRequirementsGuide() {
             />
 
             <h1 className="text-4xl font-black tracking-tighter text-foreground sm:text-6xl md:text-7xl uppercase italic leading-[0.95] mb-8">
-              Texas Barber &amp; <br />Cosmetology License <br />Requirements
+              Texas Cosmetology &amp; <br />Barber License <br />Renewal
             </h1>
 
             <p className="text-xl text-muted-foreground leading-relaxed font-medium text-balance mb-6">
-              The canonical guide to getting and keeping a Texas barber or cosmetology license — application,
-              renewal, continuing education, and reciprocity from another state — sourced directly from TDLR.
+              The canonical guide to renewing a Texas cosmetology or barber license — fees, the 2-year cycle,
+              continuing education, and reciprocity from another state — plus how to get licensed in the first
+              place, sourced directly from TDLR.
             </p>
 
             <StatisticalSignal
@@ -266,6 +266,13 @@ export default function LicenseRequirementsGuide() {
                 required school hours, obtain a student permit, then pass a written exam followed by a practical
                 exam — both administered by PSI on behalf of TDLR.
                 <Cite id={1} />
+              </p>
+              <p>
+                New to the field? See our step-by-step{" "}
+                <Link href="/how-to-get-a-barber-license-in-texas" className="text-primary font-bold hover:underline">
+                  How to Get a Barber License in Texas
+                </Link>{" "}
+                guide, including real 2026 pass rates by school, before starting here.
               </p>
               <p>
                 You must pass the written exam before you&apos;re eligible to schedule the practical. Cosmetology
