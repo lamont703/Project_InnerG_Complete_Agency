@@ -75,9 +75,22 @@ const TABLE_CONFIG: Record<
     imagesField: "google_images", hasPlaceTypes: true, requiresPlaceId: false, supportsNearbyAreas: true,
     routePrefix: "salons", defaultPlaceTypes: "beauty_salon | point_of_interest | establishment",
   },
+  // place_id is no longer required for these 3 tables (was: true) — Places
+  // API discovery is dormant, browser-only scraping can't produce a real
+  // place_id, and a full dependency audit confirmed place_id/contact_id are
+  // never read or displayed anywhere in the app, dedup already works on
+  // name+city alone for every sibling table, and the "contact_id mirrors
+  // place_id" invariant wasn't even universal in live data (19% of real
+  // agent_barber_school_leads rows already diverged). The DB NOT NULL
+  // constraints backing this were relaxed in
+  // supabase/migrations/20260715120000_relax_place_id_not_null_constraints.sql
+  // (UNIQUE stays intact). place_id/mirrorPlaceIdTo still get set below
+  // whenever a candidate DOES have one (e.g. if discoverViaPlacesAPI() is
+  // ever re-enabled) — requiresPlaceId now only controls whether publish
+  // hard-rejects a candidate for missing one, not whether it's used at all.
   agent_barber_school_leads: {
     nameField: "school_name", reviewCountField: "google_review_count", businessStatusField: "google_business_status",
-    imagesField: "google_photos", hasPlaceTypes: false, requiresPlaceId: true, supportsNearbyAreas: false,
+    imagesField: "google_photos", hasPlaceTypes: false, requiresPlaceId: false, supportsNearbyAreas: false,
     routePrefix: "schools", defaultPlaceTypes: null, mirrorPlaceIdTo: "contact_id",
   },
   agent_cosmetology_school_leads: {
@@ -87,19 +100,33 @@ const TABLE_CONFIG: Record<
   },
   agent_barber_supply_store_leads: {
     nameField: "name", reviewCountField: "total_reviews", businessStatusField: "business_status",
-    imagesField: "google_images", hasPlaceTypes: true, requiresPlaceId: true, supportsNearbyAreas: false,
+    imagesField: "google_images", hasPlaceTypes: true, requiresPlaceId: false, supportsNearbyAreas: false,
     routePrefix: "stores", defaultPlaceTypes: "store | point_of_interest | establishment",
   },
   agent_beauty_supply_store_leads: {
     nameField: "name", reviewCountField: "total_reviews", businessStatusField: "business_status",
-    imagesField: "google_images", hasPlaceTypes: true, requiresPlaceId: true, supportsNearbyAreas: false,
+    imagesField: "google_images", hasPlaceTypes: true, requiresPlaceId: false, supportsNearbyAreas: false,
     routePrefix: "stores", defaultPlaceTypes: "store | point_of_interest | establishment",
   },
 };
 
+// Applies to every table, both publish paths (manual Approve here, and
+// Auto-Publish's mirror in scripts/auto_publish_audited_entities.js) — no
+// override for either. category only started actually getting saved by the
+// Entity Auditor once this same requirement was added, so an old candidate
+// audited before that fix will correctly fail here until it's re-audited.
+const REQUIRED_NON_EMPTY_FIELDS = ["city", "name", "phone", "formatted_address", "category"];
+const MIN_PUBLISH_IMAGES = 5;
+
 async function publishDiscoveredBusiness(evidence: any): Promise<{ id: string; slug: string } | { error: string }> {
-  const { table, name, city, formatted_address, phone, rating, reviewCount, latitude, longitude, images, place_types, place_id } = evidence;
-  if (!table || !name) return { error: "Staged evidence is missing table/name — can't publish." };
+  const { table, name, city, formatted_address, phone, rating, reviewCount, latitude, longitude, images, place_types, place_id, category } = evidence;
+  const missingFields = REQUIRED_NON_EMPTY_FIELDS.filter((f) => !evidence?.[f]);
+  if (missingFields.length > 0) {
+    return { error: `Missing required field(s): ${missingFields.join(", ")}. This candidate isn't complete enough to publish.` };
+  }
+  if (!Array.isArray(images) || images.length < MIN_PUBLISH_IMAGES) {
+    return { error: `Requires at least ${MIN_PUBLISH_IMAGES} real photos to publish (currently has ${Array.isArray(images) ? images.length : 0}).` };
+  }
   const config = TABLE_CONFIG[table];
   if (!config) return { error: `Unsupported table for publishing: ${table}` };
   if (config.requiresPlaceId && !place_id) {
@@ -123,11 +150,12 @@ async function publishDiscoveredBusiness(evidence: any): Promise<{ id: string; s
     longitude: longitude ?? null,
     [config.reviewCountField]: reviewCount ?? null,
     [config.imagesField]: images || [],
+    google_category: category || null,
   };
   if (config.businessStatusField) basePayload[config.businessStatusField] = "OPERATIONAL";
   if (config.hasPlaceTypes) basePayload.place_types = place_types || config.defaultPlaceTypes;
-  if (config.requiresPlaceId) basePayload.place_id = place_id;
-  if (config.mirrorPlaceIdTo) basePayload[config.mirrorPlaceIdTo] = place_id;
+  if (place_id) basePayload.place_id = place_id;
+  if (config.mirrorPlaceIdTo && place_id) basePayload[config.mirrorPlaceIdTo] = place_id;
   if (config.supportsNearbyAreas && nearbyAreas.length > 0) basePayload.nearby_areas = nearbyAreas;
   const insertPayload = isShop ? { ...basePayload, hiring_need: false, booth_count_available: 0 } : basePayload;
 
@@ -162,7 +190,7 @@ export async function POST(request: Request) {
 
   const { data: directive, error: fetchError } = await supabase
     .from("agent_directives")
-    .select("agent_name, evidence")
+    .select("agent_name, evidence, cleaned_evidence")
     .eq("id", id)
     .single();
   if (fetchError || !directive) {
@@ -176,14 +204,20 @@ export async function POST(request: Request) {
   if (status === "denied" && reason) update.deny_reason = reason;
 
   if (status === "approved" && directive.agent_name === BUSINESS_DISCOVERY_AGENT) {
-    const result = await publishDiscoveredBusiness(directive.evidence);
+    // Entity Auditor writes its findings (backfilled photos, corrected
+    // fields, audit notes) to cleaned_evidence, not evidence — prefer it
+    // when present. Falls back to raw evidence for a candidate approved
+    // without ever being audited, or a row from before cleaned_evidence
+    // existed.
+    const activeEvidence = directive.cleaned_evidence || directive.evidence;
+    const result = await publishDiscoveredBusiness(activeEvidence);
     if ("error" in result) {
       // Status is deliberately NOT flipped on failure — the directive stays
       // pending/actionable so the human sees the real error instead of a
       // silently-lost finding.
       return NextResponse.json({ error: `Publish failed: ${result.error}` }, { status: 500 });
     }
-    update.evidence = { ...directive.evidence, publishedId: result.id, publishedSlug: result.slug };
+    update.cleaned_evidence = { ...activeEvidence, publishedId: result.id, publishedSlug: result.slug };
   }
 
   if (status === "approved" && directive.agent_name === MARKET_EXPANSION_READINESS_AGENT && directive.evidence?.type === "content_page_ready" && directive.evidence?.city) {

@@ -229,7 +229,13 @@ export default function AgentDirectivesPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {visible.map((d) => (
+            {visible.map((d) => {
+              // Entity Auditor writes its findings to cleaned_evidence, not
+              // evidence — prefer it when present. Falls back to raw
+              // evidence for candidates never audited, or rows from before
+              // cleaned_evidence existed (their bookkeeping is still there).
+              const activeEvidence = d.cleaned_evidence || d.evidence;
+              return (
               <div key={d.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
                 <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -247,26 +253,26 @@ export default function AgentDirectivesPage() {
                         seen {d.times_recurred}x
                       </span>
                     )}
-                    {typeof d.evidence?.confidence === "string" && (
+                    {typeof activeEvidence?.confidence === "string" && (
                       <span
-                        className={`text-[10px] font-black uppercase tracking-wide border rounded-full px-2.5 py-0.5 ${confidencePill(d.evidence.confidence)}`}
-                        title={`Based on ${d.evidence.sessionsToday ?? "?"} session(s) today`}
+                        className={`text-[10px] font-black uppercase tracking-wide border rounded-full px-2.5 py-0.5 ${confidencePill(activeEvidence.confidence)}`}
+                        title={`Based on ${activeEvidence.sessionsToday ?? "?"} session(s) today`}
                       >
-                        {d.evidence.confidence} confidence
+                        {activeEvidence.confidence} confidence
                       </span>
                     )}
-                    {d.agent_name === BUSINESS_DISCOVERY_AGENT && d.evidence?.autoPublished === true && (
-                      d.evidence?.pageAuditPassed === true ? (
+                    {d.agent_name === BUSINESS_DISCOVERY_AGENT && activeEvidence?.autoPublished === true && (
+                      activeEvidence?.pageAuditPassed === true ? (
                         <span
                           className="text-[10px] font-black uppercase tracking-wide border rounded-full px-2.5 py-0.5 bg-teal-50 text-teal-700 border-teal-200"
-                          title={d.evidence?.pageAuditedAt ? `Checked ${new Date(d.evidence.pageAuditedAt).toLocaleString()}` : undefined}
+                          title={activeEvidence?.pageAuditedAt ? `Checked ${new Date(activeEvidence.pageAuditedAt).toLocaleString()}` : undefined}
                         >
                           ✓ auto-published & verified clean
                         </span>
-                      ) : d.evidence?.pageAuditPassed === false ? (
+                      ) : activeEvidence?.pageAuditPassed === false ? (
                         <span
                           className="text-[10px] font-black uppercase tracking-wide border rounded-full px-2.5 py-0.5 bg-amber-50 text-amber-700 border-amber-200"
-                          title={d.evidence?.pageAuditedAt ? `Checked ${new Date(d.evidence.pageAuditedAt).toLocaleString()}` : undefined}
+                          title={activeEvidence?.pageAuditedAt ? `Checked ${new Date(activeEvidence.pageAuditedAt).toLocaleString()}` : undefined}
                         >
                           ⚠ auto-published — QA issue found
                         </span>
@@ -276,15 +282,15 @@ export default function AgentDirectivesPage() {
                         </span>
                       )
                     )}
-                    {d.status === "pending" && d.evidence?.auditRecommendation === "delete" && (
+                    {d.status === "pending" && activeEvidence?.auditRecommendation === "delete" && (
                       <span className="text-[10px] font-black uppercase tracking-wide border rounded-full px-2.5 py-0.5 bg-red-50 text-red-700 border-red-200">
                         recommend delete
                       </span>
                     )}
                     {d.status === "pending" &&
-                      d.evidence?.auditRecommendation === "approve" &&
-                      Array.isArray(d.evidence?.images) &&
-                      d.evidence.images.length >= 5 && (
+                      activeEvidence?.auditRecommendation === "approve" &&
+                      Array.isArray(activeEvidence?.images) &&
+                      activeEvidence.images.length >= 5 && (
                         <span
                           className="text-[10px] font-black uppercase tracking-wide border rounded-full px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border-indigo-200"
                           title="Meets Auto-Publish Agent's criteria — will publish on the next run unless denied first"
@@ -300,9 +306,18 @@ export default function AgentDirectivesPage() {
 
                 {d.evidence && Object.keys(d.evidence).length > 0 && (
                   <details className="mb-3">
-                    <summary className="text-xs font-bold text-slate-500 cursor-pointer hover:text-slate-700">Evidence</summary>
+                    <summary className="text-xs font-bold text-slate-500 cursor-pointer hover:text-slate-700">Evidence (raw)</summary>
                     <pre className="mt-2 text-[11px] bg-slate-50 border border-slate-100 rounded-lg p-3 overflow-x-auto text-slate-600">
                       {JSON.stringify(d.evidence, null, 2)}
+                    </pre>
+                  </details>
+                )}
+
+                {d.cleaned_evidence && Object.keys(d.cleaned_evidence).length > 0 && (
+                  <details className="mb-3">
+                    <summary className="text-xs font-bold text-slate-500 cursor-pointer hover:text-slate-700">Cleaned Evidence (auditor)</summary>
+                    <pre className="mt-2 text-[11px] bg-slate-50 border border-slate-100 rounded-lg p-3 overflow-x-auto text-slate-600">
+                      {JSON.stringify(d.cleaned_evidence, null, 2)}
                     </pre>
                   </details>
                 )}
@@ -355,7 +370,8 @@ export default function AgentDirectivesPage() {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
