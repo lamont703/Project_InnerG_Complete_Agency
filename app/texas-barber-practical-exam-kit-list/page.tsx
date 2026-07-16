@@ -14,6 +14,8 @@ export const metadata = {
   description:
     "The complete Texas Class A Barber practical exam kit list, sourced from the official PSI/TDLR Candidate Information Bulletin — every required supply, labeling rules, and the exact station-by-station step order.",
   keywords: [
+    "texas barber practical exam",
+    "barber practical exam texas",
     "texas barber practical exam kit list",
     "texas barber exam kit list pdf",
     "barber state board kit list 2024",

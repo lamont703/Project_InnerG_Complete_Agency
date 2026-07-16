@@ -14,6 +14,9 @@ export const metadata = {
   description:
     "The complete Texas Cosmetology Operator practical exam kit list, sourced from the official PSI/TDLR Candidate Information Bulletin — which items must be labeled in English, which items can't be labeled at all, and the exact station-by-station step order.",
   keywords: [
+    "psi cosmetology practical exam texas",
+    "cosmetology practical exam texas",
+    "texas state board cosmetology practical exam",
     "texas cosmetology practical exam kit list",
     "texas cosmetology practical exam kit list pdf",
     "cosmetology state board kit list 2024",

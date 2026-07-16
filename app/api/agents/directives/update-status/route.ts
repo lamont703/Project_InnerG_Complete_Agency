@@ -118,7 +118,41 @@ const TABLE_CONFIG: Record<
 const REQUIRED_NON_EMPTY_FIELDS = ["city", "name", "phone", "formatted_address", "category"];
 const MIN_PUBLISH_IMAGES = 5;
 
-async function publishDiscoveredBusiness(evidence: any): Promise<{ id: string; slug: string } | { error: string }> {
+// Same normalization used by scripts/deduplication_agent.js,
+// scripts/discover_and_stage_businesses.js, and Auto-Publish's mirror of
+// this function — duplicated per this codebase's existing convention of
+// not sharing small helpers between the Next.js app and the CommonJS
+// scripts.
+function normalizePhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let digits = String(raw).replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
+  return digits.length === 10 ? digits : null;
+}
+
+async function fetchLivePhoneIndex(): Promise<Map<string, { table: string; name: string; id: string }>> {
+  const index = new Map<string, { table: string; name: string; id: string }>();
+  for (const [table, config] of Object.entries(TABLE_CONFIG)) {
+    let from = 0;
+    const PAGE = 1000;
+    while (true) {
+      const { data, error } = await supabase.from(table).select(`id, ${config.nameField}, phone`).range(from, from + PAGE - 1);
+      if (error || !data || data.length === 0) break;
+      for (const row of data as any[]) {
+        const normalized = normalizePhone(row.phone);
+        if (normalized && !index.has(normalized)) index.set(normalized, { table, name: row[config.nameField], id: row.id });
+      }
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+  }
+  return index;
+}
+
+async function publishDiscoveredBusiness(
+  evidence: any,
+  force = false
+): Promise<{ id: string; slug: string } | { error: string } | { duplicateWarning: { table: string; name: string; id: string } }> {
   const { table, name, city, formatted_address, phone, rating, reviewCount, latitude, longitude, images, place_types, place_id, category } = evidence;
   const missingFields = REQUIRED_NON_EMPTY_FIELDS.filter((f) => !evidence?.[f]);
   if (missingFields.length > 0) {
@@ -131,6 +165,21 @@ async function publishDiscoveredBusiness(evidence: any): Promise<{ id: string; s
   if (!config) return { error: `Unsupported table for publishing: ${table}` };
   if (config.requiresPlaceId && !place_id) {
     return { error: `${table} requires a real Google place_id, which this staged candidate doesn't have. This entity type can only be discovered via the Google Places API, not the Maps-UI scraper.` };
+  }
+
+  // A warning, not a hard block — unlike Auto-Publish, a human is right
+  // here making this decision and might have real context (e.g. a
+  // genuine second location). Approving once surfaces the match; the
+  // dashboard re-submits with force=true if the human confirms it's not
+  // actually a duplicate.
+  let duplicateMatch: { table: string; name: string; id: string } | null = null;
+  const normalizedPhone = normalizePhone(phone);
+  if (normalizedPhone) {
+    const livePhoneIndex = await fetchLivePhoneIndex();
+    duplicateMatch = livePhoneIndex.get(normalizedPhone) || null;
+  }
+  if (duplicateMatch && !force) {
+    return { duplicateWarning: duplicateMatch };
   }
 
   const id = crypto.randomUUID();
@@ -182,7 +231,7 @@ async function resolveSourceExpansionDirective(city: string): Promise<void> {
 }
 
 export async function POST(request: Request) {
-  const { id, status, reason } = await request.json().catch(() => ({}));
+  const { id, status, reason, force } = await request.json().catch(() => ({}));
 
   if (!id || !["approved", "denied"].includes(status)) {
     return NextResponse.json({ error: "id and status ('approved'|'denied') are required" }, { status: 400 });
@@ -210,14 +259,25 @@ export async function POST(request: Request) {
     // without ever being audited, or a row from before cleaned_evidence
     // existed.
     const activeEvidence = directive.cleaned_evidence || directive.evidence;
-    const result = await publishDiscoveredBusiness(activeEvidence);
+    const result = await publishDiscoveredBusiness(activeEvidence, !!force);
+    if ("duplicateWarning" in result) {
+      // Not an error — status stays untouched, nothing published. The
+      // dashboard shows this to the human and re-submits with force:true
+      // if they confirm it's not actually a duplicate.
+      return NextResponse.json({ duplicateWarning: result.duplicateWarning }, { status: 409 });
+    }
     if ("error" in result) {
       // Status is deliberately NOT flipped on failure — the directive stays
       // pending/actionable so the human sees the real error instead of a
       // silently-lost finding.
       return NextResponse.json({ error: `Publish failed: ${result.error}` }, { status: 500 });
     }
-    update.cleaned_evidence = { ...activeEvidence, publishedId: result.id, publishedSlug: result.slug };
+    update.cleaned_evidence = {
+      ...activeEvidence,
+      publishedId: result.id,
+      publishedSlug: result.slug,
+      ...(force ? { publishedDespiteDuplicateWarning: true } : {}),
+    };
   }
 
   if (status === "approved" && directive.agent_name === MARKET_EXPANSION_READINESS_AGENT && directive.evidence?.type === "content_page_ready" && directive.evidence?.city) {

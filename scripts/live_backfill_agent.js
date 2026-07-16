@@ -372,7 +372,12 @@ async function runSweep(browser) {
   const summary = { checked: 0, completed: 0, partial: 0, flagged: 0, skipped: 0 };
   for (const table of ACTIVE_TABLES) {
     const incomplete = await fetchIncompleteRows(table);
-    console.log(`\n########## ${TABLE_CONFIG[table].label} (${table}) — ${incomplete.length} incomplete row(s) ##########`);
+    // Deliberately not printed per sweep — this table-wide incomplete count
+    // barely moves cycle to cycle (almost all of it is rows already
+    // flagged and skipped below, waiting on a human at
+    // /admin/agent-directives, not on this agent), so it was just noise.
+    // backfillRow() below already logs every row this agent actually acts
+    // on; that's the real signal.
     for (const { row, missing } of incomplete) {
       if (await hasExistingPendingFlag(table, row.id)) {
         summary.skipped++;
@@ -387,7 +392,7 @@ async function runSweep(browser) {
 }
 
 const ONE_SHOT = process.argv.includes('--once');
-const WATCH_POLL_MS = 60000;
+const WATCH_POLL_MS = 3600000; // 1 hour
 
 async function run() {
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });

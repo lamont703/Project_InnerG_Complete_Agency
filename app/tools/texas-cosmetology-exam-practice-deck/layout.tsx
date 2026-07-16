@@ -6,7 +6,11 @@ export const metadata: Metadata = {
     "Free Texas Cosmetology Operator written exam practice questions, aligned to the PSI exam TDLR uses to administer the actual license test. Milady-cited answers and explanations for every question.",
   keywords: [
     "texas cosmetology exam practice test",
+    "cosmetology practice test texas",
+    "texas cosmetology exam practice",
     "texas cosmetology written exam practice",
+    "texas cosmetology written exam practice test",
+    "texas cosmetology state board practice test",
     "psi cosmetology exam practice questions",
     "tdlr cosmetology exam prep",
     "texas cosmetology exam quizlet",

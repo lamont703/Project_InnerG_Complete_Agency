@@ -86,7 +86,9 @@ export default function TexasCosmetologyExamPrep() {
           </h1>
 
           <p className="mx-auto mt-6 lg:mt-10 max-w-3xl text-lg lg:text-xl leading-relaxed text-slate-200 font-bold sm:text-2xl text-balance drop-shadow-md">
-            Inner G Complete Agency is leading a research and development pilot to close the first-attempt gap in the Texas cosmetology written exam. We architect proprietary Artificial Domain Intelligence (ADI) to decode PSI syntax and protect your NACCAS accreditation.
+            Real 2026 Texas cosmetology written exam pass-rate data, a PSI-aligned study guide, and a free practice
+            test — plus the research pilot Inner G Complete Agency is leading to close the first-attempt gap and
+            protect your NACCAS accreditation.
           </p>
 
           <div className="mt-10 lg:mt-14 flex flex-col items-center justify-center gap-4 lg:gap-6 px-6">
@@ -96,7 +98,7 @@ export default function TexasCosmetologyExamPrep() {
               asChild
             >
               <Link href="/tools/texas-cosmetology-exam-practice-deck" data-ig-click="outbound_lead">
-                Launch Cosmetology Practice Questions
+                Take the Free Cosmetology Practice Test
                 <ArrowRight className="h-5 w-5" />
               </Link>
             </Button>
