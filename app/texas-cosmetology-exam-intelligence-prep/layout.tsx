@@ -1,21 +1,19 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Texas Cosmetology Exam Intelligence Prep™ | Inner G Complete",
+  title: "Texas Cosmetology Written Exam Prep: Pass Rates & Study Guide (2026) | Inner G Complete",
   description:
-    "41% of Texas cosmetology candidates fail the PSI written exam on their first attempt — even though 96.9% pass the practical. Inner G Complete's ADI-powered Texas Cosmetology Exam Intelligence Prep™ targets PSI syntax mastery and NACCAS compliance for Houston, Dallas, San Antonio, and all Texas cosmetology programs.",
+    "Real 2026 Texas cosmetology written exam pass-rate data by city, a PSI-aligned study guide, and free practice questions — everything you need to pass the state board exam on your first try.",
   keywords: [
-    "Texas cosmetology exam prep",
-    "Texas cosmetology written exam",
-    "PSI cosmetology exam Texas",
-    "TDLR cosmetology exam prep",
-    "Texas cosmetology school pass rate",
+    "texas cosmetology exam",
+    "texas cosmetology written exam",
+    "cosmetology written exam texas",
+    "cosmetology state board exam texas",
+    "texas cosmetology exam study guide",
+    "texas cosmetology written exam study guide",
+    "psi cosmetology written exam texas",
+    "texas cosmetology school pass rate",
     "NACCAS accreditation Texas cosmetology school",
-    "cosmetology board exam intelligence prep",
-    "cosmetology exam AI prep",
-    "Inner G Complete Texas",
-    "PSI written exam prep Texas cosmetology",
-    "cosmetology exam study guide Texas",
   ],
   robots: {
     index: true,
@@ -23,9 +21,9 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true },
   },
   openGraph: {
-    title: "Texas Cosmetology Exam Intelligence Prep™ | Inner G Complete",
+    title: "Texas Cosmetology Written Exam Prep: Pass Rates & Study Guide (2026)",
     description:
-      "41% of first-time candidates fail the PSI written exam despite a 96.9% practical pass rate. Our Artificial Domain Intelligence resolves PSI syntax gaps and secures NACCAS compliance for Texas cosmetology schools.",
+      "41% of first-time candidates fail the PSI written exam despite a 96.9% practical pass rate. Real 2026 pass-rate data, a study guide, and free practice questions.",
     url: "https://agency.innergcomplete.com/texas-cosmetology-exam-intelligence-prep",
     siteName: "Inner G Complete Agency",
     type: "website",
@@ -33,9 +31,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Texas Cosmetology Exam Intelligence Prep™ | Inner G Complete",
+    title: "Texas Cosmetology Written Exam Prep: Pass Rates & Study Guide (2026)",
     description:
-      "41% of Texas cosmetology candidates fail the PSI written exam on the first try. ADI-powered prep for PSI board exam mastery and NACCAS compliance.",
+      "41% of Texas cosmetology candidates fail the PSI written exam on the first try. Real pass-rate data, a study guide, and free practice questions.",
   },
   alternates: {
     canonical: "https://agency.innergcomplete.com/texas-cosmetology-exam-intelligence-prep",

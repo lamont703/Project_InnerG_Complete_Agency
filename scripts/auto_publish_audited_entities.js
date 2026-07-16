@@ -46,6 +46,43 @@ function buildSlug(name, city, id) {
   return `${slugify(name || 'entity')}-${slugify(city || 'tx')}-${shortIdSuffix(id)}`;
 }
 
+// Same normalization scripts/deduplication_agent.js and
+// discover_and_stage_businesses.js use, duplicated per this codebase's
+// established CommonJS-script convention. This is the LAST gate before a
+// row becomes permanently live — Entity Auditor never checks this, and for
+// Auto-Publish specifically there's no human review step after this to
+// catch it either, so this is the only chance.
+function normalizePhone(raw) {
+  if (!raw) return null;
+  let digits = String(raw).replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);
+  return digits.length === 10 ? digits : null;
+}
+
+async function fetchLivePhoneIndex() {
+  const index = new Map(); // normalizedPhone -> { table, name, id }
+  for (const table of Object.keys(TABLE_CONFIG)) {
+    const { nameField } = TABLE_CONFIG[table];
+    let from = 0;
+    const PAGE = 1000;
+    while (true) {
+      const { data, error } = await supabase.from(table).select(`id, ${nameField}, phone`).range(from, from + PAGE - 1);
+      if (error) {
+        console.error(`  ! Failed to read ${table} for duplicate check: ${error.message}`);
+        break;
+      }
+      if (!data || data.length === 0) break;
+      for (const row of data) {
+        const normalized = normalizePhone(row.phone);
+        if (normalized && !index.has(normalized)) index.set(normalized, { table, name: row[nameField], id: row.id });
+      }
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+  }
+  return index;
+}
+
 // Mirrors lib/nearby-areas.ts exactly (same CommonJS-duplication idiom).
 const NEIGHBORHOODS_BY_CITY = {
   houston: [
@@ -136,7 +173,7 @@ const TABLE_CONFIG = {
 // below) rather than a second constant with the same value.
 const REQUIRED_NON_EMPTY_FIELDS = ['city', 'name', 'phone', 'formatted_address', 'category'];
 
-async function publishEntity(evidence) {
+async function publishEntity(evidence, livePhoneIndex) {
   const { table, name, city, formatted_address, phone, rating, reviewCount, latitude, longitude, images, place_types, place_id, category } = evidence;
   const missingFields = REQUIRED_NON_EMPTY_FIELDS.filter((f) => !evidence?.[f]);
   if (missingFields.length > 0) {
@@ -149,6 +186,14 @@ async function publishEntity(evidence) {
   if (!config) return { error: `Unsupported table for publishing: ${table}` };
   if (config.requiresPlaceId && !place_id) {
     return { error: `${table} requires a real Google place_id, which this staged candidate doesn't have.` };
+  }
+  const normalizedPhone = normalizePhone(phone);
+  if (normalizedPhone && livePhoneIndex?.has(normalizedPhone)) {
+    const match = livePhoneIndex.get(normalizedPhone);
+    return {
+      error: `Phone ${phone} matches an already-live entity: "${match.name}" in ${match.table} (id: ${match.id}) — skipped as a likely duplicate. Use scripts/deduplication_agent.js --exact to review.`,
+      duplicateMatch: match,
+    };
   }
 
   const id = crypto.randomUUID();
@@ -204,10 +249,23 @@ async function fetchEligibleCandidates() {
   // fall back to raw evidence for rows audited before that column existed.
   // Pre-filters the same completeness bar publishEntity() enforces, so a
   // known-incomplete candidate doesn't even get attempted here.
+  // autoPublishSkippedDuplicate excludes anything already confirmed as a
+  // live duplicate on a prior pass — without this, watch mode would retry
+  // (and re-print) the exact same permanent duplicate every single poll
+  // forever, since a duplicate is never going to stop being a duplicate on
+  // its own. It stays visible on /admin/agent-directives (status is never
+  // flipped away from pending) for a human to review or force through.
   return (data || []).filter((d) => {
     const ev = d.cleaned_evidence || d.evidence || {};
     const hasRequiredFields = REQUIRED_NON_EMPTY_FIELDS.every((f) => !!ev[f]);
-    return ev.audited === true && ev.auditRecommendation === 'approve' && Array.isArray(ev.images) && ev.images.length >= MIN_IMAGES && hasRequiredFields;
+    return (
+      ev.audited === true &&
+      ev.auditRecommendation === 'approve' &&
+      Array.isArray(ev.images) &&
+      ev.images.length >= MIN_IMAGES &&
+      hasRequiredFields &&
+      !ev.autoPublishSkippedDuplicate
+    );
   });
 }
 
@@ -217,13 +275,34 @@ async function fetchEligibleCandidates() {
 async function publishBatch(eligible) {
   const published = [];
   const failed = [];
+  // Built once per batch (not once per row) — a live read of all 6 tables
+  // is cheap, but no need to repeat it per candidate. Updated in-memory as
+  // each publish succeeds so two duplicate candidates in the same batch
+  // don't both slip through before either write lands.
+  const livePhoneIndex = await fetchLivePhoneIndex();
 
   for (const row of eligible) {
     const ev = row.cleaned_evidence || row.evidence;
-    const result = await publishEntity(ev);
+    const result = await publishEntity(ev, livePhoneIndex);
     if ('error' in result) {
       console.error(`  FAILED "${ev.name}": ${result.error}`);
       failed.push({ name: ev.name, city: ev.city, error: result.error });
+      // Only the duplicate case is permanent — a missing-field or DB error
+      // might genuinely resolve itself by the next poll (re-audit, a
+      // transient failure), so those are deliberately left to retry.
+      if (result.duplicateMatch) {
+        await supabase
+          .from('agent_directives')
+          .update({
+            cleaned_evidence: {
+              ...ev,
+              autoPublishSkippedDuplicate: true,
+              autoPublishSkippedAt: new Date().toISOString(),
+              possibleDuplicateOf: result.duplicateMatch,
+            },
+          })
+          .eq('id', row.id);
+      }
       continue;
     }
 
@@ -235,6 +314,9 @@ async function publishBatch(eligible) {
         cleaned_evidence: { ...ev, publishedId: result.id, publishedSlug: result.slug, autoPublished: true, autoPublishedAt: new Date().toISOString() },
       })
       .eq('id', row.id);
+
+    const normalizedPhone = normalizePhone(ev.phone);
+    if (normalizedPhone) livePhoneIndex.set(normalizedPhone, { table: ev.table, name: ev.name, id: result.id });
 
     console.log(`  Published "${ev.name}" (${ev.city}) -> /${result.routePrefix}/${result.slug}`);
     published.push({ name: ev.name, city: ev.city, table: ev.table, slug: result.slug, id: result.id, routePrefix: result.routePrefix });
@@ -254,12 +336,21 @@ async function run() {
   }
 
   if (DRY_RUN) {
+    const livePhoneIndex = await fetchLivePhoneIndex();
+    let wouldPublish = 0;
     for (const row of eligible) {
       const ev = row.cleaned_evidence || row.evidence;
       const routePrefix = TABLE_CONFIG[ev.table]?.routePrefix || 'shop';
+      const normalizedPhone = normalizePhone(ev.phone);
+      const dupMatch = normalizedPhone ? livePhoneIndex.get(normalizedPhone) : null;
+      if (dupMatch) {
+        console.log(`  [DRY RUN] Would SKIP "${ev.name}" (${ev.city}) — phone matches already-live "${dupMatch.name}" in ${dupMatch.table} (id: ${dupMatch.id}).`);
+        continue;
+      }
+      wouldPublish++;
       console.log(`  [DRY RUN] Would publish "${ev.name}" (${ev.city}) -> /${routePrefix}/${slugify(ev.name)}-${slugify(ev.city || 'tx')}-<id>`);
     }
-    console.log(`\n${eligible.length} would be published. Re-run without --dry-run to actually publish.`);
+    console.log(`\n${wouldPublish} would be published, ${eligible.length - wouldPublish} would be skipped as likely duplicates. Re-run without --dry-run to actually publish.`);
     return;
   }
 

@@ -5,6 +5,7 @@ const footerLinks = {
   Solutions: [
     { label: "Barber & Cosmetology Placement", href: "/barber-beauty-network" },
     { label: "Texas Barber Exam Intelligence Prep", href: "/texas-barber-exam-intelligence-prep" },
+    { label: "Texas Cosmetology Exam Intelligence Prep", href: "/texas-cosmetology-exam-intelligence-prep" },
     { label: "Barbershop Search Engine", href: "/tools/barbershop-search" },
   ],
   "Industry Tools": [

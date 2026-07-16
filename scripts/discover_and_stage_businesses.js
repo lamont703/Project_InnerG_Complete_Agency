@@ -89,6 +89,18 @@ function slugify(str) {
 function normalizeForCompare(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
+// Same normalization the Deduplication Agent uses (scripts/deduplication_agent.js)
+// — a phone number is a much harder identifier to accidentally collide on
+// than a name, so it catches real duplicates that slip past
+// normalizeForCompare() (e.g. "RDA Pro Mart" vs "RDA Pro•Mart" — a real
+// pair the Deduplication Agent found by phone that name-matching alone
+// would never have caught).
+function normalizePhone(raw) {
+  if (!raw) return null;
+  let digits = String(raw).replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);
+  return digits.length === 10 ? digits : null;
+}
 function titleCase(str) {
   return str.replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -516,19 +528,50 @@ async function extractFullDetail(page, name, city) {
 // already staged under a different category" and skip it, rather than
 // creating a second row.
 async function fetchExistingCandidateMap() {
-  const { data } = await supabase
-    .from('agent_directives')
-    .select('id, evidence')
-    .eq('agent_name', AGENT_NAME)
-    .in('status', ['pending', 'approved']);
-  const map = new Map();
+  // Paginated via .range() — a plain .select() here silently caps at
+  // PostgREST's 1000-row default. Confirmed live while adding the phone
+  // guard below: this agent has 3,086 real pending/approved rows, so an
+  // unpaginated fetch was missing ~67% of them from both this map and the
+  // pre-existing name-based cross-category guard.
+  const data = [];
+  let from = 0;
+  const PAGE = 1000;
+  while (true) {
+    const { data: page, error } = await supabase
+      .from('agent_directives')
+      .select('id, evidence')
+      .eq('agent_name', AGENT_NAME)
+      .in('status', ['pending', 'approved'])
+      .range(from, from + PAGE - 1);
+    if (error) {
+      console.error('fetchExistingCandidateMap failed:', error.message);
+      break;
+    }
+    if (!page || page.length === 0) break;
+    data.push(...page);
+    if (page.length < PAGE) break;
+    from += PAGE;
+  }
+  const nameMap = new Map();
+  // Cross-table phone guard, same rationale as the name-based map above but
+  // catching what it can't: a real duplicate discovered under a name that
+  // doesn't normalize identically (different spelling/punctuation), which
+  // the Deduplication Agent's first real run found 297 examples of. Keyed
+  // flat across tables (not per-table) since the whole point is catching a
+  // match regardless of which table it landed in.
+  const phoneMap = new Map();
   for (const d of data || []) {
     const ev = d.evidence || {};
-    if (!ev.name || !ev.city || !ev.table) continue;
-    const key = `${normalizeForCompare(ev.name)}::${ev.city.toLowerCase()}`;
-    map.set(key, { id: d.id, table: ev.table });
+    if (ev.name && ev.city && ev.table) {
+      const key = `${normalizeForCompare(ev.name)}::${ev.city.toLowerCase()}`;
+      nameMap.set(key, { id: d.id, table: ev.table });
+    }
+    const normalizedPhone = normalizePhone(ev.phone);
+    if (normalizedPhone && ev.table) {
+      phoneMap.set(normalizedPhone, { id: d.id, table: ev.table, name: ev.name });
+    }
   }
-  return map;
+  return { nameMap, phoneMap };
 }
 
 // Same upsert-by-subject-key behavior as lib/agent-directives.ts —
@@ -575,7 +618,7 @@ async function stageFinding({ subjectKey, directiveText, evidence }) {
 // caller can chain straight into an audit pass without a re-query.
 // candidateMap is shared/mutated across the whole run (see run()) so a
 // cross-category duplicate is caught even within the same city's own pass.
-async function discoverCity(browser, cityArg, cityLabel, candidateMap) {
+async function discoverCity(browser, cityArg, cityLabel, candidateMap, candidatePhoneMap) {
   const CATEGORIES = [
     { query: `barbershops in ${cityArg}`, table: 'agent_barbershop_leads' },
     { query: `hair salons in ${cityArg}`, table: 'agent_salon_leads' },
@@ -592,7 +635,10 @@ async function discoverCity(browser, cityArg, cityLabel, candidateMap) {
   // place_id the Maps-UI scrape can't produce — that requirement was
   // dropped (see TARGET_CATEGORY_ANCHORS comment above), so all 9 search
   // categories now run through this one Puppeteer path.
-  const summary = { discovered: 0, alreadyLive: 0, staged: 0, recurred: 0, failed: 0, crossCategoryDuplicate: 0, categoryMismatch: 0, categoryRerouted: 0 };
+  const summary = {
+    discovered: 0, alreadyLive: 0, staged: 0, recurred: 0, failed: 0, crossCategoryDuplicate: 0,
+    categoryMismatch: 0, categoryRerouted: 0, phoneDuplicateLive: 0, phoneDuplicateStaged: 0,
+  };
   const stagedRows = [];
 
   // Prefetched once per city across all 6 active target tables (rather than
@@ -602,10 +648,20 @@ async function discoverCity(browser, cityArg, cityLabel, candidateMap) {
   // because it's new to the table the search query implied.
   const ACTIVE_TABLES = Object.keys(TARGET_CATEGORY_ANCHORS);
   const existingNamesByTable = {};
+  // Flat across all 6 tables, not per-table like existingNamesByTable —
+  // catches an already-live business regardless of which table it's
+  // published under, same rationale as candidatePhoneMap below.
+  const existingPhoneMap = new Map();
   for (const table of ACTIVE_TABLES) {
     const nameColumn = NAME_COLUMN_BY_TABLE[table];
-    const rows = await fetchAllRows(table, nameColumn);
+    const rows = await fetchAllRows(table, `${nameColumn}, phone`);
     existingNamesByTable[table] = new Set(rows.map((r) => normalizeForCompare(r[nameColumn])));
+    for (const r of rows) {
+      const normalizedPhone = normalizePhone(r.phone);
+      if (normalizedPhone && !existingPhoneMap.has(normalizedPhone)) {
+        existingPhoneMap.set(normalizedPhone, { table, name: r[nameColumn] });
+      }
+    }
   }
 
   for (const category of CATEGORIES) {
@@ -642,6 +698,29 @@ async function discoverCity(browser, cityArg, cityLabel, candidateMap) {
             summary.failed++;
             await detailPage.close();
             continue;
+          }
+
+          // Phone duplicate guard — catches what the name-based checks above
+          // and below can't: the same real business discovered under a name
+          // that doesn't normalize identically (different spelling,
+          // punctuation, or DBA). Checked before category classification
+          // since it's a cheap, decisive early-exit either way.
+          const normalizedPhone = normalizePhone(detail.phone);
+          if (normalizedPhone) {
+            const liveMatch = existingPhoneMap.get(normalizedPhone);
+            if (liveMatch) {
+              console.log(`    Skipping "${detail.name}" — phone ${detail.phone} matches already-live "${liveMatch.name}" (${CATEGORY_LABEL_BY_TABLE[liveMatch.table]}) — phone duplicate guard.`);
+              summary.phoneDuplicateLive++;
+              await detailPage.close();
+              continue;
+            }
+            const stagedMatch = candidatePhoneMap.get(normalizedPhone);
+            if (stagedMatch) {
+              console.log(`    Skipping "${detail.name}" — phone ${detail.phone} matches already-staged "${stagedMatch.name}" (${CATEGORY_LABEL_BY_TABLE[stagedMatch.table]}) — phone duplicate guard.`);
+              summary.phoneDuplicateStaged++;
+              await detailPage.close();
+              continue;
+            }
           }
 
           // Anchor-text classification: use the listing's own Google-assigned
@@ -728,6 +807,7 @@ async function discoverCity(browser, cityArg, cityLabel, candidateMap) {
           if (result.id) {
             stagedRows.push({ id: result.id, evidence });
             candidateMap.set(candidateKey, { id: result.id, table: resolvedTable });
+            if (normalizedPhone) candidatePhoneMap.set(normalizedPhone, { id: result.id, table: resolvedTable, name: detail.name });
           }
         } catch (err) {
           console.error(`    Error on "${name}": ${err.message}`);
@@ -756,8 +836,8 @@ async function discoverCity(browser, cityArg, cityLabel, candidateMap) {
 // stays useful only as an optional trade: real Places API data (authoritative
 // place_id, richer place.types) at the cost of a real API key/quota, versus
 // the Puppeteer path's zero-cost-but-heuristic scrape.
-async function discoverViaPlacesAPI(cityArg, cityLabel, candidateMap) {
-  const summary = { discovered: 0, alreadyLive: 0, staged: 0, recurred: 0, failed: 0, crossCategoryDuplicate: 0 };
+async function discoverViaPlacesAPI(cityArg, cityLabel, candidateMap, candidatePhoneMap) {
+  const summary = { discovered: 0, alreadyLive: 0, staged: 0, recurred: 0, failed: 0, crossCategoryDuplicate: 0, phoneDuplicateLive: 0, phoneDuplicateStaged: 0 };
   const stagedRows = [];
 
   const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -799,9 +879,14 @@ async function discoverViaPlacesAPI(cityArg, cityLabel, candidateMap) {
       summary.discovered += places.length;
 
       const nameColumn = NAME_COLUMN_BY_TABLE[term.table];
-      const existingRows = await fetchAllRows(term.table, `${nameColumn}, place_id`);
+      const existingRows = await fetchAllRows(term.table, `${nameColumn}, place_id, phone`);
       const existingPlaceIds = new Set(existingRows.map((r) => r.place_id).filter(Boolean));
       const existingNames = new Set(existingRows.map((r) => normalizeForCompare(r[nameColumn])));
+      const existingPhones = new Map();
+      for (const r of existingRows) {
+        const normalized = normalizePhone(r.phone);
+        if (normalized && !existingPhones.has(normalized)) existingPhones.set(normalized, r[nameColumn]);
+      }
 
       for (const place of places) {
         const name = place.displayName?.text;
@@ -809,6 +894,23 @@ async function discoverViaPlacesAPI(cityArg, cityLabel, candidateMap) {
         if (existingPlaceIds.has(place.id) || existingNames.has(normalizeForCompare(name))) {
           summary.alreadyLive++;
           continue;
+        }
+
+        // Phone duplicate guard — see discoverCity() for the full rationale.
+        const normalizedPhone = normalizePhone(place.nationalPhoneNumber);
+        if (normalizedPhone) {
+          const liveMatch = existingPhones.get(normalizedPhone);
+          if (liveMatch) {
+            console.log(`    Skipping "${name}" — phone ${place.nationalPhoneNumber} matches already-live "${liveMatch}" — phone duplicate guard.`);
+            summary.phoneDuplicateLive++;
+            continue;
+          }
+          const stagedMatch = candidatePhoneMap.get(normalizedPhone);
+          if (stagedMatch) {
+            console.log(`    Skipping "${name}" — phone ${place.nationalPhoneNumber} matches already-staged "${stagedMatch.name}" (${CATEGORY_LABEL_BY_TABLE[stagedMatch.table]}) — phone duplicate guard.`);
+            summary.phoneDuplicateStaged++;
+            continue;
+          }
         }
 
         const candidateKey = `${normalizeForCompare(name)}::${cityLabel.toLowerCase()}`;
@@ -848,6 +950,7 @@ async function discoverViaPlacesAPI(cityArg, cityLabel, candidateMap) {
         if (result.id) {
           stagedRows.push({ id: result.id, evidence });
           candidateMap.set(candidateKey, { id: result.id, table: term.table });
+          if (normalizedPhone) candidatePhoneMap.set(normalizedPhone, { id: result.id, table: term.table, name });
         }
       }
       await sleep(1000);
@@ -904,15 +1007,18 @@ async function run() {
   }
 
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-  const overall = { discovered: 0, alreadyLive: 0, staged: 0, recurred: 0, failed: 0, crossCategoryDuplicate: 0, categoryMismatch: 0, categoryRerouted: 0 };
+  const overall = {
+    discovered: 0, alreadyLive: 0, staged: 0, recurred: 0, failed: 0, crossCategoryDuplicate: 0,
+    categoryMismatch: 0, categoryRerouted: 0, phoneDuplicateLive: 0, phoneDuplicateStaged: 0,
+  };
   // Shared across every city/category this run touches, seeded from
   // whatever's already staged in the DB, so a cross-category duplicate is
   // caught whether the two sightings happen in the same run or a prior one.
-  const candidateMap = await fetchExistingCandidateMap();
+  const { nameMap: candidateMap, phoneMap: candidatePhoneMap } = await fetchExistingCandidateMap();
 
   for (const target of targets) {
     console.log(`\n\n########## City: ${target.cityLabel} ##########`);
-    const { summary } = await discoverCity(browser, target.cityArg, target.cityLabel, candidateMap);
+    const { summary } = await discoverCity(browser, target.cityArg, target.cityLabel, candidateMap, candidatePhoneMap);
     for (const key of Object.keys(overall)) {
       overall[key] += summary[key];
     }

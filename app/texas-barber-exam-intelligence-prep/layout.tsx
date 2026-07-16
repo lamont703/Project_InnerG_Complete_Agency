@@ -1,22 +1,18 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Texas Barber Exam Intelligence Prep™ | Inner G Complete",
+  title: "Texas Barber Written Exam Prep: Pass Rates & Practice Test (2026) | Inner G Complete",
   description:
-    "Texas barber schools face a statewide 37.25% written exam failure rate. Inner G Complete's ADI-powered Texas Barber Exam Intelligence Prep™ targets PSI syntax mastery, NACCAS compliance, and first-time pass rates for Houston, Dallas, San Antonio, and all Texas barber programs.",
+    "Real 2026 Texas barber written exam pass-rate data by city, a PSI-aligned study guide, and free practice questions — everything you need to pass the state board exam on your first try.",
   keywords: [
-    "Texas barber exam prep",
-    "Texas barber written exam",
+    "texas barber written exam practice test",
+    "barber exam practice test",
+    "barber written exam",
+    "texas barber practice test",
+    "texas class a barber written exam",
     "PSI barber exam Texas",
-    "TDLR barber exam prep",
     "Texas barber school pass rate",
     "NACCAS accreditation Texas barber school",
-    "barber board exam intelligence prep",
-    "Texas barber licensure crisis",
-    "barber exam AI prep",
-    "Inner G Complete Texas",
-    "Texas barber school scholarship",
-    "PSI written exam prep Texas",
     "barber exam study guide Texas",
   ],
   robots: {
@@ -25,9 +21,9 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true },
   },
   openGraph: {
-    title: "Texas Barber Exam Intelligence Prep™ | Inner G Complete",
+    title: "Texas Barber Written Exam Prep: Pass Rates & Practice Test (2026)",
     description:
-      "37.25% statewide written exam failure rate. Our Artificial Domain Intelligence resolves PSI syntax gaps and secures NACCAS compliance for Texas barber schools.",
+      "37.25% statewide written exam failure rate. Real 2026 pass-rate data, a study guide, and free practice questions for the Texas Class A Barber written exam.",
     url: "https://agency.innergcomplete.com/texas-barber-exam-intelligence-prep",
     siteName: "Inner G Complete Agency",
     images: [
@@ -35,7 +31,7 @@ export const metadata: Metadata = {
         url: "/texas_barber_crisis_cover.png",
         width: 1200,
         height: 630,
-        alt: "Texas Barber Exam Intelligence Prep™ — ADI-Powered Pass Rate Recovery for TDLR Licensure",
+        alt: "Texas Barber Written Exam Prep — Pass Rates & Practice Test",
       },
     ],
     type: "website",
@@ -43,9 +39,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Texas Barber Exam Intelligence Prep™ | Inner G Complete",
+    title: "Texas Barber Written Exam Prep: Pass Rates & Practice Test (2026)",
     description:
-      "Texas's 37.25% written exam failure rate demands a new approach. ADI-powered prep for PSI board exam mastery and NACCAS compliance.",
+      "Texas's 37.25% written exam failure rate demands a new approach. Real pass-rate data, a study guide, and free practice questions.",
     images: ["/texas_barber_crisis_cover.png"],
   },
   alternates: {

@@ -73,7 +73,9 @@ export default function TexasBarberExamPrep() {
           </h1>
 
           <p className="mx-auto mt-6 lg:mt-10 max-w-3xl text-lg lg:text-xl leading-relaxed text-slate-200 font-bold sm:text-2xl text-balance drop-shadow-md">
-            Inner G Complete Agency is leading an elite research and development pilot to resolve the structural fail rates in the Texas barbering market. We architect proprietary Artificial Domain Intelligence (ADI) to secure your NACCAS accreditation.
+            Real 2026 Texas barber written exam pass-rate data, a PSI-aligned study guide, and a free practice test —
+            plus the research pilot Inner G Complete Agency is leading to resolve the structural fail rates in the
+            Texas barbering market and secure your NACCAS accreditation.
           </p>
 
           <div className="mt-10 lg:mt-14 flex flex-col items-center justify-center gap-4 lg:gap-6 px-6">
@@ -93,7 +95,7 @@ export default function TexasBarberExamPrep() {
               className="border-white/20 bg-white/5 backdrop-blur-sm text-white hover:bg-white/10 hover:text-white gap-3 h-auto py-6 lg:py-8 px-6 lg:px-12 text-xs lg:text-sm font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] transition-all hover:scale-[1.02] border-2 shadow-sm w-full max-w-lg rounded-2xl"
               asChild
             >
-              <Link href="/tools/texas-barber-exam-practice-deck">Launch Barber Practice Questions</Link>
+              <Link href="/tools/texas-barber-exam-practice-deck">Take the Free Barber Practice Test</Link>
             </Button>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-2">
               <Link href="/texas-barber-practical-exam-kit-list" className="text-xs font-bold text-white/70 hover:text-white underline decoration-white/30 underline-offset-4">

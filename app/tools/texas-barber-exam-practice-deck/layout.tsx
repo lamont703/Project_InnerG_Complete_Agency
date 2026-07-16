@@ -6,7 +6,11 @@ export const metadata: Metadata = {
     "Free Texas Class A Barber written exam practice questions, aligned to the PSI exam TDLR uses to administer the actual license test. Milady-cited answers and explanations for every question.",
   keywords: [
     "texas barber exam practice test",
+    "texas barber written exam practice test",
     "texas barber written exam practice",
+    "barber exam practice test",
+    "practice barber exam",
+    "barber board practice test",
     "psi barber exam practice questions",
     "tdlr barber exam prep",
     "texas barber exam quizlet",

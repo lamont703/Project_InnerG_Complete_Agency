@@ -108,13 +108,40 @@ export default function AgentDirectivesPage() {
     }
   };
 
-  const resolve = async (id: string, status: "approved" | "denied", reason?: string) => {
-    setDirectives((prev) => prev.map((d) => (d.id === id ? { ...d, status, deny_reason: reason || d.deny_reason } : d)));
-    await fetch("/api/agents/directives/update-status", {
+  const resolve = async (id: string, status: "approved" | "denied", reason?: string, force = false) => {
+    if (!force) {
+      setDirectives((prev) => prev.map((d) => (d.id === id ? { ...d, status, deny_reason: reason || d.deny_reason } : d)));
+    }
+    const res = await fetch("/api/agents/directives/update-status", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status, reason }),
+      body: JSON.stringify({ id, status, reason, force }),
     });
+
+    if (res.status === 409) {
+      // Publish paused on a likely duplicate — not an error, a decision for
+      // the human. Revert the optimistic UI update and ask.
+      setDirectives((prev) => prev.map((d) => (d.id === id ? { ...d, status: "pending" } : d)));
+      const body = await res.json().catch(() => ({}));
+      const match = body.duplicateWarning;
+      const proceed = window.confirm(
+        `This phone number matches an already-live entity: "${match?.name}" (${match?.table}, id: ${match?.id}).\n\n` +
+          `This is likely a duplicate. Publish anyway?`
+      );
+      if (proceed) {
+        await resolve(id, status, reason, true);
+      }
+      return;
+    }
+
+    if (!res.ok) {
+      setDirectives((prev) => prev.map((d) => (d.id === id ? { ...d, status: "pending" } : d)));
+      const body = await res.json().catch(() => ({}));
+      window.alert(body.error || "Failed to update directive.");
+      return;
+    }
+
+    load();
   };
 
   const startDeny = (id: string) => {
