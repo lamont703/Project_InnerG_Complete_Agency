@@ -70,15 +70,12 @@ export function HeroSection() {
         {/* Headline */}
         <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
           <span className="text-balance block text-foreground">
-            Architecting Your
-          </span>
-          <span className="text-balance block text-gradient mt-2 relative inline-flex items-center justify-center gap-2">
-            Aesthetic Intelligence™
+            Shear<span className="text-primary">Query</span>
           </span>
         </h1>
 
         <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-white sm:text-xl text-balance">
-          Architecting custom AI Agent Systems for Barber, Cosmetology and Wellness School leaders to drive institutional-grade innovation.
+          The barber, beauty & wellness intelligence layer
         </p>
 
 
@@ -92,7 +89,7 @@ export function HeroSection() {
           >
             <Link href="/tools/barbershop-search">
               <Search className="h-4 w-4" />
-              Launch Our Intelligence
+              Launch ShearQuery
             </Link>
           </Button>
         </div>
@@ -101,23 +98,23 @@ export function HeroSection() {
         <div className="mt-20 glass-panel rounded-2xl p-6 sm:p-8">
           <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-border/50 pb-6">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              Institutional-Grade Intelligence
+              Powered by our ShearQuery Intelligence Model
             </p>
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
                 <Shield className="h-3 w-3" />
-                HIPAA Ready
+                Data Integrity
               </span>
               <span className="rounded-full bg-secondary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-secondary-foreground">
-                NACCAS/ACCSC Trained
+                Real-Time Auditing
               </span>
             </div>
           </div>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
             {[
-              { title: "Smart Admissions", label: "AI agents that talk to interested students 24/7 and qualifies them for admissions team." },
-              { title: "Higher Pass Rates", label: "Our AI systems are designed to help students pass their licensing exams on the first attempt." },
-              { title: "Career Matching", label: "Automate job hunting for your graduates and prove placement rates to accreditors." },
+              { title: "Discover Top Local Talent", label: "Instantly search our verified, real-time database to find the highest-rated barber or beauty professionals in your exact neighborhood." },
+              { title: "Claim Your Professional Profile", label: "Take control of your digital footprint. Claim your autonomously generated listing to dominate local search and capture new clients." },
+              { title: "Access Market Intelligence", label: "Leverage our proprietary data to understand local demand, analyze trends, and make algorithmic business decisions." },
             ].map((item) => (
               <div key={item.title} className="text-center sm:text-left px-4">
                 <div className="text-xl font-bold text-foreground">{item.title}</div>
