@@ -6,6 +6,7 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
+import { EzoicAd } from "@/components/shared/ezoic-ad"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -270,6 +271,8 @@ export default function MindbodySovereignIntelligenceAudit() {
             </blockquote>
           </div>
 
+          <EzoicAd className="my-12" />
+
           {/* Part III: The Strategic Asymmetry */}
           <div className="mb-20">
             <div className="flex items-center gap-4 mb-6">
@@ -387,6 +390,8 @@ export default function MindbodySovereignIntelligenceAudit() {
             </div>
           </div>
 
+          <EzoicAd className="my-12" />
+
           {/* Part V: The CPMAI Methodology */}
           <div className="mb-20">
             <div className="flex items-center gap-4 mb-6">
@@ -482,6 +487,8 @@ export default function MindbodySovereignIntelligenceAudit() {
               ))}
             </div>
           </div>
+
+          <EzoicAd className="my-12" />
 
           {/* Part VII: The Direct Address */}
           <div className="mb-20">

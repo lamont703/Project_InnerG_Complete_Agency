@@ -3,6 +3,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
+import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
@@ -170,6 +171,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildEntityBreadcrumbJsonLd("Salons", "/salons", salon.shop_name, salon.slug)) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <DynamicBackButton fallbackHref="/tools/barbershop-search?tab=Salons" />
+        <EzoicAd className="mb-6" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">

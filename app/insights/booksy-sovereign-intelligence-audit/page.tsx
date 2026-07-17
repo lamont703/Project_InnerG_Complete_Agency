@@ -8,6 +8,7 @@ import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
+import { EzoicAd } from "@/components/shared/ezoic-ad"
 import {
   ArrowLeft,
   Brain,
@@ -206,6 +207,8 @@ export default function BookSySovereignIntelligenceAudit() {
             </p>
           </div>
 
+          <EzoicAd className="my-12" />
+
           {/* Part II */}
           <div className="mb-20">
             <div className="flex items-center gap-4 mb-6">
@@ -356,6 +359,8 @@ export default function BookSySovereignIntelligenceAudit() {
             </div>
           </div>
 
+          <EzoicAd className="my-12" />
+
           {/* Part IV: What a Beauty ADI on Booksy Looks Like */}
           <div className="mb-20">
             <div className="flex items-center gap-4 mb-6">
@@ -460,6 +465,8 @@ export default function BookSySovereignIntelligenceAudit() {
               </p>
             </blockquote>
           </div>
+
+          <EzoicAd className="my-12" />
 
           {/* Part VI: Business Case */}
           <div className="mb-20">

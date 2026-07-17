@@ -11,6 +11,7 @@ import { RequestShopDayButton } from "@/components/shared/request-shop-day-butto
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { PassportCarousel } from "@/components/shared/passport-carousel";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
+import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 
 export const dynamic = 'force-dynamic';
@@ -263,6 +264,8 @@ export default async function ShopProfilePage({ params }: Props) {
       <div className="flex-grow pt-8 pb-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
         
         <DynamicBackButton fallbackHref="/tools/barbershop-search" />
+
+        <EzoicAd className="mb-6" />
 
         {/* Header Title & Badges */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">

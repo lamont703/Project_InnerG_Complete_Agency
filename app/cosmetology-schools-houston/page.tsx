@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { LeaderboardTable } from "@/app/texas-school-leaderboard/leaderboard-table";
 import type { LeaderboardSchool } from "@/app/texas-school-leaderboard/page";
+import { EzoicAd } from "@/components/shared/ezoic-ad";
 
 export const revalidate = 3600;
 
@@ -139,6 +140,8 @@ export default async function CosmetologySchoolsHoustonPage() {
         }}
       />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+        <EzoicAd className="mb-8" />
+
         <div className="text-center max-w-2xl mx-auto mb-10">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-3 py-1 mb-4">
             Real 2026 TDLR Data

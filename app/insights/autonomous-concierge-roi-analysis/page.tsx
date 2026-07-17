@@ -8,6 +8,7 @@ import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
+import { EzoicAd } from "@/components/shared/ezoic-ad"
 import {
   ArrowLeft,
   TrendingUp,
@@ -301,6 +302,8 @@ export default function AutonomousConciergeROI() {
             </p>
           </div>
 
+          <EzoicAd className="my-12" />
+
           {/* Benchmark Metrics */}
           <div>
             <div className="flex items-center gap-4 mb-8">
@@ -392,6 +395,8 @@ export default function AutonomousConciergeROI() {
             </p>
           </div>
 
+          <EzoicAd className="my-12" />
+
           {/* Section 3: CPA vs LTV */}
           <div>
             <div className="flex items-center gap-4 mb-8">
@@ -482,6 +487,8 @@ export default function AutonomousConciergeROI() {
               </p>
             </div>
           </div>
+
+          <EzoicAd className="my-12" />
 
           {/* Verdict */}
           <div>

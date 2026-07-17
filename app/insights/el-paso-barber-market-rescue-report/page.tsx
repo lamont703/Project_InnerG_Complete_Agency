@@ -6,6 +6,7 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
+import { EzoicAd } from "@/components/shared/ezoic-ad"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -286,6 +287,8 @@ export default function ElPasoRescueReport() {
             </div>
           </div>
 
+          <EzoicAd className="my-12" />
+
           {/* Section 2: Regional Failure Pockets */}
           <div>
             <div className="flex items-center gap-4 mb-8">
@@ -371,6 +374,8 @@ export default function ElPasoRescueReport() {
               </div>
             </div>
           </div>
+
+          <EzoicAd className="my-12" />
 
           {/* Section 4: The Rescue Solution */}
           <div>
@@ -484,6 +489,8 @@ export default function ElPasoRescueReport() {
               </Link>
             </p>
           </div>
+
+          <EzoicAd className="my-12" />
 
           {/* Research Methodology */}
           <div className="pt-16 border-t border-border">
