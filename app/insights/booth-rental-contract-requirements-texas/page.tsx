@@ -184,12 +184,13 @@ export default function BoothRentalRequirementsGuide() {
         <div className="mx-auto max-w-7xl px-6 -mt-12 mb-20 relative z-10">
           <div className="aspect-[21/9] rounded-3xl overflow-hidden shadow-2xl border-4 border-white dark:border-zinc-900 relative">
             <Image
-              src="/booth_rental_texas_contract_cover.png"
+              src="/booth_rental_texas_contract_cover.webp"
               alt="Booth Rental Requirements in Texas — premium contract document on barbershop station styling table"
               fill
               className="object-cover"
               sizes="(max-width: 1200px) 100vw, 1200px"
               priority
+              unoptimized
             />
           </div>
         </div>

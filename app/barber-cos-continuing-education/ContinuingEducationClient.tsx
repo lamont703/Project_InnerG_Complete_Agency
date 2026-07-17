@@ -354,6 +354,7 @@ export default function ContinuingEducationClient({ schools, errorMsg }: Continu
                     alt={course.title}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    unoptimized
                   />
                   {/* Category Tag */}
                   <div className="absolute top-4 left-4 flex gap-1.5">
@@ -442,11 +443,12 @@ export default function ContinuingEducationClient({ schools, errorMsg }: Continu
                   {(!isRegistered || !isPlaying) ? (
                     // LOCKED GATED PREVIEW COVER
                     <>
-                      <Image 
+                      <Image
                         src={activeCourse.coverUrl}
                         alt="Course Video Locked Cover"
                         fill
                         className="object-cover opacity-35 filter blur-xs"
+                        unoptimized
                       />
                       <div className="absolute inset-0 bg-slate-900/60" />
                       

@@ -228,11 +228,12 @@ export default function ElPasoRescueReport() {
         <div className="mx-auto max-w-7xl px-6 -mt-12 mb-20 relative z-10">
           <div className="aspect-[21/9] rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-secondary/20">
             <Image
-              src="/el_paso_barber_rescue_report_cover.png"
+              src="/el_paso_barber_rescue_report_cover.webp"
               alt="El Paso Barber Market Rescue Report Analysis"
               width={1400}
               height={600}
               className="w-full h-full object-cover"
+              unoptimized
             />
           </div>
         </div>

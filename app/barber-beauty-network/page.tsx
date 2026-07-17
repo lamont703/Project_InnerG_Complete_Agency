@@ -729,11 +729,12 @@ export default function BarberBeautyNetworkPage() {
               className="bg-white rounded-[2.5rem] p-8 lg:p-10 border border-slate-200 shadow-xl shadow-slate-200/50 flex flex-col group overflow-hidden"
             >
               <div className="relative w-full h-64 lg:h-80 mb-8 rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
-                 <Image 
-                   src="/student_portfolio_ui.png" 
-                   alt="Student Portfolio UI Mockup" 
-                   fill 
-                   className="object-cover object-top group-hover:scale-105 transition-transform duration-700" 
+                 <Image
+                   src="/student_portfolio_ui.webp"
+                   alt="Student Portfolio UI Mockup"
+                   fill
+                   className="object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                   unoptimized
                  />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
               </div>
@@ -777,11 +778,12 @@ export default function BarberBeautyNetworkPage() {
               className="bg-slate-900 rounded-[2.5rem] p-8 lg:p-10 border border-slate-800 shadow-2xl flex flex-col group overflow-hidden"
             >
               <div className="relative w-full h-64 lg:h-80 mb-8 rounded-2xl overflow-hidden border border-slate-800 shadow-lg">
-                 <Image 
-                   src="/shop_listing_ui.png" 
-                   alt="Shop Listing UI Mockup" 
-                   fill 
-                   className="object-cover object-top group-hover:scale-105 transition-transform duration-700" 
+                 <Image
+                   src="/shop_listing_ui.webp"
+                   alt="Shop Listing UI Mockup"
+                   fill
+                   className="object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                   unoptimized
                  />
                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
               </div>

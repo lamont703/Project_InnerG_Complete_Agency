@@ -145,7 +145,7 @@ export default function BoothRentTaxesArticle() {
             />
 
             <div className="mt-8 mb-8 relative w-full aspect-video rounded-3xl overflow-hidden border-4 border-border/50 shadow-2xl">
-              <Image src="/images/booth_rent_taxes.png" alt="Booth Rent Taxes" fill className="object-cover" />
+              <Image src="/images/booth_rent_taxes.webp" alt="Booth Rent Taxes" fill className="object-cover" unoptimized />
             </div>
 
             <div className="flex flex-wrap items-center gap-4 mb-8">

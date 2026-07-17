@@ -150,12 +150,13 @@ function AcceptInviteContent() {
                 <div className="text-center mb-10">
                     <Link href="/" className="inline-flex items-center gap-2 mb-6 group">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105 overflow-hidden">
-                            <Image 
-                                src="/icon-light-32x32.png" 
-                                alt="Inner G Logo" 
-                                width={32} 
+                            <Image
+                                src="/icon-light-32x32.webp"
+                                alt="Inner G Logo"
+                                width={32}
                                 height={32}
                                 className="h-full w-full object-contain"
+                                unoptimized
                             />
                         </div>
                         <span className="text-xl font-bold tracking-tight text-foreground">Inner G Complete</span>
