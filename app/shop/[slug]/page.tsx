@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 import { Metadata, ResolvingMetadata } from "next";
-import { Footer } from "@/components/layout/footer";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Star, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft, Map as MapIcon, Mail, Phone, Info, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles, Landmark } from "lucide-react";
@@ -601,9 +600,6 @@ export default async function ShopProfilePage({ params }: Props) {
         </div>
       </div>
 
-      <div className="light bg-slate-50 text-slate-900">
-        <Footer />
-      </div>
     </div >
   );
 }

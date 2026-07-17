@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "@/lib/supabase-fetch-all";
+import { extractZip } from "@/lib/geo-enrichment";
 import { parseWeeklyRent, median } from "@/lib/shop-ecosystem";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -10,6 +11,7 @@ export interface CityHubEntity {
   id: string;
   name: string;
   href: string;
+  zip?: string | null;
   rating?: number | null;
   reviews?: number | null;
   score?: number | null;
@@ -24,12 +26,25 @@ export interface CityHubSection {
   items: CityHubEntity[];
 }
 
+// Same shape as app/houston/data.ts's HoustonZipSignal — kept as this
+// file's own local copy rather than imported, matching the Houston/
+// city-hub split's existing "duplicate small logic, don't cross-import"
+// convention (see getCityHubData's own header comment on why Houston's
+// data.ts is never touched).
+export interface CityHubZipSignal {
+  label: "Talent-Rich" | "Competitive" | "Hiring, No Local Talent" | "Balanced";
+  venues: number;
+  hiringVenues: number;
+  professionals: number;
+}
+
 export interface CityHubData {
   sections: CityHubSection[];
   totalEntities: number;
   avgSchoolScore: number | null;
   openChairs: number;
   medianWeeklyRent: number | null;
+  zipCounts: { zip: string; count: number; signal: CityHubZipSignal | null; openChairs: number; medianWeeklyRent: number | null }[];
 }
 
 // Generalized version of app/houston/data.ts's getHoustonData() — same
@@ -51,36 +66,70 @@ export interface CityHubData {
 // city/metro_area field Houston's own version already uses — no evidence
 // those have the same defect, so no reason to deviate from the proven
 // pattern there.
-export async function getCityHubData(cityName: string): Promise<CityHubData> {
+// zip is optional — when passed, every section/stat narrows to that single
+// zip (matchesZip below), same scoping contract as
+// app/houston/data.ts's getHoustonData(zip?). zipCounts itself is always
+// computed from the full, unfiltered city pull regardless, so a caller can
+// get both the scoped view and the full zip breakdown from one fetch.
+export async function getCityHubData(cityName: string, zip?: string): Promise<CityHubData> {
   const addressFilter = `%${cityName}%`;
   const cityFilter = `%${cityName}%`;
 
   const [shops, barberSchools, cosmetSchools, barbers, cosmetologists, salons, barberSupply, beautySupply] = await Promise.all([
     fetchAllRows(supabase, "agent_barbershop_leads",
-      "id, slug, shop_name, rating, total_reviews, hiring_need, booth_count_available, rent_rate",
+      "id, slug, shop_name, formatted_address, rating, total_reviews, hiring_need, booth_count_available, rent_rate",
       (q) => q.ilike("formatted_address", addressFilter)),
     fetchAllRows(supabase, "agent_barber_school_leads",
-      "id, slug, school_name, rating, school_leaderboard_score_2026, accreditation_status",
+      "id, slug, school_name, formatted_address, rating, school_leaderboard_score_2026, accreditation_status",
       (q) => q.ilike("city", cityFilter)),
     fetchAllRows(supabase, "agent_cosmetology_school_leads",
-      "id, slug, school_name, rating, cosmetology_school_leaderboard_score_2026, accreditation_status",
+      "id, slug, school_name, formatted_address, rating, cosmetology_school_leaderboard_score_2026, accreditation_status",
       (q) => q.ilike("city", cityFilter)),
     fetchAllRows(supabase, "agent_barber_leads",
-      "id, slug, name, booksy_rating, booksy_review_count, specialty_type",
+      "id, slug, name, metro_area, booksy_rating, booksy_review_count, specialty_type",
       (q) => q.ilike("metro_area", cityFilter)),
     fetchAllRows(supabase, "agent_cosmetologist_leads",
-      "id, slug, name, booksy_rating, booksy_review_count, specialty_type",
+      "id, slug, name, address, booksy_rating, booksy_review_count, specialty_type",
       (q) => q.ilike("metro_area", cityFilter)),
     fetchAllRows(supabase, "agent_salon_leads",
       "id, slug, shop_name, formatted_address, rating, total_reviews, hiring_need, booth_count_available, rent_rate",
       (q) => q.ilike("formatted_address", addressFilter)),
     fetchAllRows(supabase, "agent_barber_supply_store_leads",
-      "id, slug, name, rating, total_reviews",
+      "id, slug, name, city, rating, total_reviews",
       (q) => q.ilike("city", cityFilter)),
     fetchAllRows(supabase, "agent_beauty_supply_store_leads",
-      "id, slug, name, rating, total_reviews",
+      "id, slug, name, city, rating, total_reviews",
       (q) => q.ilike("city", cityFilter)),
   ]);
+
+  const zipCountMap = new Map<string, number>();
+  const bump = (z: string | null) => {
+    if (z) zipCountMap.set(z, (zipCountMap.get(z) || 0) + 1);
+  };
+
+  const withZip = <T extends Record<string, any>>(rows: T[], zipSourceField: string) =>
+    rows.map((r) => {
+      const z = extractZip(r[zipSourceField]);
+      bump(z);
+      return { ...r, zip: z };
+    });
+
+  // Deliberate divergence from Houston's own data.ts: shops/salons here use
+  // formatted_address (not city) as the zip source, same reason they're
+  // already filtered by formatted_address above — city is proven
+  // unreliable outside Houston. Schools/barbers/cosmetologists/stores keep
+  // the same fields Houston's version uses; no evidence of the same defect
+  // there.
+  const shopsZ = withZip(shops, "formatted_address");
+  const barberSchoolsZ = withZip(barberSchools, "formatted_address");
+  const cosmetSchoolsZ = withZip(cosmetSchools, "formatted_address");
+  const barbersZ = withZip(barbers, "metro_area");
+  const cosmetologistsZ = withZip(cosmetologists, "address");
+  const salonsZ = withZip(salons, "formatted_address");
+  const barberSupplyZ = withZip(barberSupply, "city");
+  const beautySupplyZ = withZip(beautySupply, "city");
+
+  const matchesZip = (z: string | null) => !zip || z === zip;
 
   const buildSection = (
     key: string,
@@ -90,63 +139,131 @@ export async function getCityHubData(cityName: string): Promise<CityHubData> {
     mapItem: (r: any) => CityHubEntity,
     sortKey: "rating" | "score"
   ): CityHubSection => {
-    const items = rows
+    const filtered = rows.filter((r) => matchesZip(r.zip));
+    const items = filtered
       .map(mapItem)
       .filter((it) => it[sortKey] != null)
       .sort((a, b) => (b[sortKey] as number) - (a[sortKey] as number) || (b.reviews || 0) - (a.reviews || 0))
       .slice(0, 6);
-    return { key, label, searchTab, count: rows.length, items };
+    return { key, label, searchTab, count: filtered.length, items };
   };
 
   const sections: CityHubSection[] = [
-    buildSection("shops", "Barbershops", "Barbershops", shops, (s) => ({
-      id: s.id, name: s.shop_name, href: `/shop/${s.slug}`,
+    buildSection("shops", "Barbershops", "Barbershops", shopsZ, (s) => ({
+      id: s.id, name: s.shop_name, href: `/shop/${s.slug}`, zip: s.zip,
       rating: s.rating, reviews: s.total_reviews,
       badge: s.hiring_need || (s.booth_count_available || 0) >= 1 ? "Hiring" : null,
     }), "rating"),
-    buildSection("salons", "Salons", "Salons", salons, (s) => ({
-      id: s.id, name: s.shop_name, href: `/salons/${s.slug}`,
+    buildSection("salons", "Salons", "Salons", salonsZ, (s) => ({
+      id: s.id, name: s.shop_name, href: `/salons/${s.slug}`, zip: s.zip,
       rating: s.rating, reviews: s.total_reviews,
     }), "rating"),
-    buildSection("barbers", "Barbers", "Barbers", barbers, (b) => ({
-      id: b.id, name: b.name, href: `/barbers/${b.slug}`,
+    buildSection("barbers", "Barbers", "Barbers", barbersZ, (b) => ({
+      id: b.id, name: b.name, href: `/barbers/${b.slug}`, zip: b.zip,
       rating: b.booksy_rating, reviews: b.booksy_review_count, badge: b.specialty_type,
     }), "rating"),
-    buildSection("cosmetologists", "Cosmetologists", "Cosmetologist", cosmetologists, (c) => ({
-      id: c.id, name: c.name, href: `/cosmetologists/${c.slug}`,
+    buildSection("cosmetologists", "Cosmetologists", "Cosmetologist", cosmetologistsZ, (c) => ({
+      id: c.id, name: c.name, href: `/cosmetologists/${c.slug}`, zip: c.zip,
       rating: c.booksy_rating, reviews: c.booksy_review_count, badge: c.specialty_type,
     }), "rating"),
-    buildSection("barberSchools", "Barber Schools", "Schools", barberSchools, (s) => ({
-      id: s.id, name: s.school_name, href: `/schools/${s.slug}`,
+    buildSection("barberSchools", "Barber Schools", "Schools", barberSchoolsZ, (s) => ({
+      id: s.id, name: s.school_name, href: `/schools/${s.slug}`, zip: s.zip,
       score: s.school_leaderboard_score_2026, badge: s.accreditation_status,
     }), "score"),
-    buildSection("cosmetSchools", "Cosmetology Schools", "Schools", cosmetSchools, (s) => ({
-      id: s.id, name: s.school_name, href: `/schools/${s.slug}`,
+    buildSection("cosmetSchools", "Cosmetology Schools", "Schools", cosmetSchoolsZ, (s) => ({
+      id: s.id, name: s.school_name, href: `/schools/${s.slug}`, zip: s.zip,
       score: s.cosmetology_school_leaderboard_score_2026, badge: s.accreditation_status,
     }), "score"),
     (() => {
-      const combined = [...barberSupply, ...beautySupply];
-      const items = combined
-        .map((s) => ({ id: s.id, name: s.name, href: `/stores/${s.slug}`, rating: s.rating, reviews: s.total_reviews }))
+      const combined = [...barberSupplyZ, ...beautySupplyZ];
+      const filtered = combined.filter((r) => matchesZip(r.zip));
+      const items = filtered
+        .map((s) => ({ id: s.id, name: s.name, href: `/stores/${s.slug}`, zip: s.zip, rating: s.rating, reviews: s.total_reviews }))
         .filter((it) => it.rating != null)
         .sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.reviews || 0) - (a.reviews || 0))
         .slice(0, 6);
-      return { key: "stores", label: "Supply Stores", searchTab: "Stores", count: combined.length, items };
+      return { key: "stores", label: "Supply Stores", searchTab: "Stores", count: filtered.length, items };
     })(),
   ];
 
-  const barberScores = barberSchools.filter((s) => s.school_leaderboard_score_2026 != null);
-  const cosmetScores = cosmetSchools.filter((s) => s.cosmetology_school_leaderboard_score_2026 != null);
+  const barberScoresInScope = barberSchoolsZ.filter((s) => matchesZip(s.zip) && s.school_leaderboard_score_2026 != null);
+  const cosmetScoresInScope = cosmetSchoolsZ.filter((s) => matchesZip(s.zip) && s.cosmetology_school_leaderboard_score_2026 != null);
   const allSchoolScores = [
-    ...barberScores.map((s) => s.school_leaderboard_score_2026),
-    ...cosmetScores.map((s) => s.cosmetology_school_leaderboard_score_2026),
+    ...barberScoresInScope.map((s) => s.school_leaderboard_score_2026),
+    ...cosmetScoresInScope.map((s) => s.cosmetology_school_leaderboard_score_2026),
   ];
   const avgSchoolScore = allSchoolScores.length > 0
     ? allSchoolScores.reduce((a: number, b: number) => a + b, 0) / allSchoolScores.length
     : null;
 
-  const openChairs = [...shops, ...salons].reduce((sum, r: any) => sum + (r.booth_count_available || 0), 0);
-  const rents = [...shops, ...salons].map((r: any) => parseWeeklyRent(r.rent_rate)).filter((v): v is number => v != null);
+  // Same opportunity-signal classification as app/houston/data.ts's
+  // classifyZip — local copy, not imported (see file header comment).
+  const venuesByZip = new Map<string, { total: number; hiring: number }>();
+  const bumpVenue = (z: string | null, isHiring: boolean) => {
+    if (!z) return;
+    if (!venuesByZip.has(z)) venuesByZip.set(z, { total: 0, hiring: 0 });
+    const v = venuesByZip.get(z)!;
+    v.total++;
+    if (isHiring) v.hiring++;
+  };
+  for (const s of shopsZ) bumpVenue(s.zip, !!s.hiring_need || (s.booth_count_available || 0) >= 1);
+  for (const s of salonsZ) bumpVenue(s.zip, !!s.hiring_need || (s.booth_count_available || 0) >= 1);
+
+  const professionalsByZip = new Map<string, number>();
+  const bumpPro = (z: string | null) => {
+    if (!z) return;
+    professionalsByZip.set(z, (professionalsByZip.get(z) || 0) + 1);
+  };
+  for (const b of barbersZ) bumpPro(b.zip);
+  for (const c of cosmetologistsZ) bumpPro(c.zip);
+
+  const chairsByZip = new Map<string, number>();
+  const rentsByZip = new Map<string, number[]>();
+  const bumpChairsAndRent = (z: string | null, chairs: number | null, rentRate: string | null) => {
+    if (!z) return;
+    if (chairs) chairsByZip.set(z, (chairsByZip.get(z) || 0) + chairs);
+    const rent = parseWeeklyRent(rentRate);
+    if (rent != null) {
+      if (!rentsByZip.has(z)) rentsByZip.set(z, []);
+      rentsByZip.get(z)!.push(rent);
+    }
+  };
+  for (const s of shopsZ) bumpChairsAndRent(s.zip, s.booth_count_available, s.rent_rate);
+  for (const s of salonsZ) bumpChairsAndRent(s.zip, s.booth_count_available, s.rent_rate);
+
+  const MIN_VENUES_TO_CLASSIFY = 5;
+  const classifyZip = (z: string): CityHubZipSignal | null => {
+    const venues = venuesByZip.get(z);
+    if (!venues || venues.total < MIN_VENUES_TO_CLASSIFY) return null;
+    const professionals = professionalsByZip.get(z) || 0;
+    const ratio = professionals / venues.total;
+
+    let label: CityHubZipSignal["label"];
+    if (venues.hiring > 0 && professionals === 0) label = "Hiring, No Local Talent";
+    else if (ratio >= 0.3) label = "Talent-Rich";
+    else if (ratio < 0.05) label = "Competitive";
+    else label = "Balanced";
+
+    return { label, venues: venues.total, hiringVenues: venues.hiring, professionals };
+  };
+
+  const zipCounts = Array.from(zipCountMap.entries())
+    .map(([z, count]) => ({
+      zip: z,
+      count,
+      signal: classifyZip(z),
+      openChairs: chairsByZip.get(z) || 0,
+      medianWeeklyRent: median(rentsByZip.get(z) || []),
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const openChairs = [...shopsZ, ...salonsZ]
+    .filter((r) => matchesZip(r.zip))
+    .reduce((sum, r: any) => sum + (r.booth_count_available || 0), 0);
+  const rents = [...shopsZ, ...salonsZ]
+    .filter((r) => matchesZip(r.zip))
+    .map((r: any) => parseWeeklyRent(r.rent_rate))
+    .filter((v): v is number => v != null);
 
   return {
     sections,
@@ -154,5 +271,14 @@ export async function getCityHubData(cityName: string): Promise<CityHubData> {
     avgSchoolScore,
     openChairs,
     medianWeeklyRent: median(rents),
+    zipCounts,
   };
+}
+
+// Zips with at least one real entity, for the sitemap — reuses the same
+// zip-extraction pass without building full section data just to discard
+// most of it.
+export async function getCityZipCodes(cityName: string): Promise<string[]> {
+  const data = await getCityHubData(cityName);
+  return data.zipCounts.map((z) => z.zip);
 }

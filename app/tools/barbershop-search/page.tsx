@@ -584,12 +584,11 @@ function SearchContent() {
           {filterTab !== 'AI Mode' && (
             <>
               <div className={`text-center transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'mb-6 sm:mb-8 scale-90 sm:scale-100 transform origin-top' : 'mb-5 sm:mb-10'}`}>
-                <h1 className={`font-extrabold tracking-tight text-primary transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-3xl sm:text-4xl mb-2' : 'text-3xl sm:text-5xl md:text-6xl mb-2 sm:mb-6'}`}>
-                  Barber & Cosmetology <br />
-                  <span className="text-black">Domain Intelligence</span>
+                <h1 className={`font-extrabold tracking-tight transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-3xl sm:text-4xl mb-2' : 'text-3xl sm:text-5xl md:text-6xl mb-2 sm:mb-6'}`}>
+                  <span className="text-black">Shear</span><span className="text-blue-600">Query</span>
                 </h1>
                 <p className={`text-muted-foreground px-2 transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-sm sm:text-base opacity-0 h-0 overflow-hidden' : 'text-sm sm:text-xl opacity-100 h-auto'}`}>
-                  Search the worlds largest collection of barber, beauty & wellness data.
+                  Search the worlds largest collection of barber, beauty & wellness intelligence.
                 </p>
               </div>
 

@@ -11,7 +11,7 @@ const navLinks = [
   { label: "Live Directory", href: "/tools/barbershop-search" },
   { label: "Market Insights", href: "/insights" },
   { label: "Shop Day", href: "/barber-beauty-network" },
-  { label: "Texas Hub", href: "/houston" },
+  { label: "Texas Hub", href: "/texas" },
 ]
 
 export function Navbar() {
