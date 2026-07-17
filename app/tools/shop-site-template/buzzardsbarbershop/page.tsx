@@ -40,11 +40,12 @@ export default function ShopSiteTemplate() {
       <section className="relative h-screen flex items-center justify-center pt-20">
         <div className="absolute inset-2 md:inset-6 z-0 rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-2xl">
           <Image
-            src="/premium_barbershop_hero.png"
+            src="/premium_barbershop_hero.webp"
             alt="Buzzard's Barbershop Interior"
             fill
             className="object-cover opacity-60 brightness-75 scale-105"
             priority
+            unoptimized
           />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-zinc-900/30 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/80 via-zinc-950/40 to-transparent" />
@@ -114,6 +115,7 @@ export default function ShopSiteTemplate() {
                   alt="Shop Atmosphere"
                   fill
                   className="object-cover object-center"
+                  unoptimized
                 />
               </div>
             </div>

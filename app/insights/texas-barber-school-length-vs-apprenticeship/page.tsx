@@ -163,7 +163,7 @@ export default function BarberSchoolLengthArticle() {
             />
 
             <div className="mt-8 mb-8 relative w-full aspect-video rounded-3xl overflow-hidden border-4 border-border/50 shadow-2xl">
-              <Image src="/images/school_vs_apprenticeship.png" alt="Barber School vs Apprenticeship" fill className="object-cover" />
+              <Image src="/images/school_vs_apprenticeship.webp" alt="Barber School vs Apprenticeship" fill className="object-cover" unoptimized />
             </div>
 
             <div className="flex flex-wrap items-center gap-4 mb-8">

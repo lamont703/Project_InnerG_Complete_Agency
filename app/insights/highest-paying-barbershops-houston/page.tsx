@@ -142,7 +142,7 @@ export default function HighestPayingBarbershopsArticle() {
             />
 
             <div className="mt-8 mb-8 relative w-full aspect-video rounded-3xl overflow-hidden border-4 border-border/50 shadow-2xl">
-              <Image src="/images/highest_paying_barbershops.png" alt="Luxury Barbershop Houston" fill className="object-cover" />
+              <Image src="/images/highest_paying_barbershops.webp" alt="Luxury Barbershop Houston" fill className="object-cover" unoptimized />
             </div>
 
             <div className="flex flex-wrap items-center gap-4 mb-8">

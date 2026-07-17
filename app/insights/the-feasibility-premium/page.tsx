@@ -187,11 +187,12 @@ export default function FeasibilityPremiumArticle() {
         <div className="mx-auto max-w-7xl px-6 -mt-12 mb-20 relative z-10">
           <div className="aspect-[21/9] rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
             <Image
-              src="/the_feasibility_premium_cover_1776042291644.png"
+              src="/the_feasibility_premium_cover_1776042291644.webp"
               alt="Strategic vetting protocols for enterprise AI"
               width={1400}
               height={600}
               className="w-full h-full object-cover"
+              unoptimized
             />
           </div>
         </div>

@@ -45,11 +45,12 @@ export default function TexasBarberExamPrep() {
         {/* Background Image Container */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           <Image
-            src="/barber_exam_prep.png"
+            src="/barber_exam_prep.webp"
             alt="Texas Barber Exam Intelligence Prep Background"
             fill
             className="object-cover scale-105"
             priority
+            unoptimized
           />
           <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[2px]" />
         </div>
@@ -293,12 +294,13 @@ export default function TexasBarberExamPrep() {
               <div className="absolute -inset-4 bg-gradient-to-r from-primary/10 via-transparent to-primary/10 rounded-[3rem] blur-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-700" />
               <div className="relative rounded-[2rem] overflow-hidden shadow-[0_40px_80px_-10px_rgba(0,0,0,0.2)] border border-white/40">
                 <Image
-                  src="/BarberExamAppUI.png"
+                  src="/BarberExamAppUI.webp"
                   alt="Texas Barber Exam Intelligence Hub Terminal — Decoding Mechanism"
                   width={1024}
                   height={640}
                   className="w-full h-auto object-cover"
                   priority
+                  unoptimized
                 />
               </div>
             </div>
@@ -323,12 +325,13 @@ export default function TexasBarberExamPrep() {
             <div className="relative">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
                 <Image
-                  src="/BarberExamAppUI.png"
+                  src="/BarberExamAppUI.webp"
                   alt="Texas Barber Exam Intelligence Hub Terminal — Decoding Mechanism"
                   width={1024}
                   height={640}
                   className="w-full h-auto object-cover"
                   priority
+                  unoptimized
                 />
               </div>
             </div>
@@ -409,11 +412,12 @@ export default function TexasBarberExamPrep() {
                   <div className="absolute -inset-3 bg-gradient-to-br from-red-100 to-primary/10 rounded-[2.5rem] blur-xl opacity-50 group-hover:opacity-80 transition-opacity duration-700" />
                   <div className="relative rounded-[2rem] overflow-hidden shadow-[0_30px_60px_-8px_rgba(0,0,0,0.15)] border-2 border-slate-100">
                     <Image
-                      src="/BarberExamAppUI2.png"
+                      src="/BarberExamAppUI2.webp"
                       alt="AI Performance Analysis Hub"
                       width={1020}
                       height={630}
                       className="w-full h-auto object-cover"
+                      unoptimized
                     />
                     {/* Live Pulse Overlay Badge migrated with the image */}
                     <div className="absolute top-4 right-4 flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-full px-4 py-2 shadow-lg z-20">

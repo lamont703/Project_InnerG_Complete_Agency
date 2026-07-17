@@ -98,12 +98,13 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group" aria-label="Inner G Complete Agency Home">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 text-white transition-transform group-hover:scale-105 overflow-hidden">
-              <Image 
-                src="/icon-light-32x32.png" 
-                alt="Inner G Logo" 
-                width={32} 
+              <Image
+                src="/icon-light-32x32.webp"
+                alt="Inner G Logo"
+                width={32}
                 height={32}
                 className="h-full w-full object-contain"
+                unoptimized
               />
             </div>
             <span className="text-xl font-bold tracking-tight text-zinc-900 sm:block">

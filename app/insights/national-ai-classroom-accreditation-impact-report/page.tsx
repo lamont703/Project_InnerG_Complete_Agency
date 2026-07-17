@@ -223,11 +223,12 @@ export default function NationalAccreditationReport() {
         <div className="mx-auto max-w-7xl px-6 -mt-12 mb-20 relative z-10">
           <div className="aspect-[21/9] rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-secondary/20">
             <Image
-              src="/national_ai_accreditation_report_cover.png"
+              src="/national_ai_accreditation_report_cover.webp"
               alt="National AI Classroom & Accreditation Impact Report"
               width={1400}
               height={600}
               className="w-full h-full object-cover"
+              unoptimized
             />
           </div>
         </div>

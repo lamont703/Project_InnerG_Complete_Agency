@@ -246,11 +246,12 @@ export default function TexasBarberCrisis() {
         <div className="mx-auto max-w-7xl px-6 -mt-12 mb-20 relative z-10">
           <div className="aspect-[21/9] rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
             <Image
-              src="/texas_barber_crisis_cover.png"
+              src="/texas_barber_crisis_cover.webp"
               alt="Texas Barber Licensure Crisis Analysis"
               width={1400}
               height={600}
               className="w-full h-full object-cover"
+              unoptimized
             />
           </div>
         </div>

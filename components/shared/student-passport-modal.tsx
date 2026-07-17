@@ -68,11 +68,12 @@ export function StudentPassportModal({
                   <div className="flex flex-col items-center text-center space-y-4 pt-4">
                     {/* Headshot with Golden Border */}
                     <div className="relative w-32 h-40 rounded-2xl overflow-hidden border-2 border-amber-400/80 shadow-xl bg-slate-800">
-                      <Image 
-                        src={selectedPassportStudent.image} 
-                        alt={selectedPassportStudent.name} 
-                        fill 
-                        className="object-cover object-top" 
+                      <Image
+                        src={selectedPassportStudent.image}
+                        alt={selectedPassportStudent.name}
+                        fill
+                        className="object-cover object-top"
+                        unoptimized
                       />
                       {/* Gold Wax Seal Stamp */}
                       <div className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 border border-amber-300 flex items-center justify-center shadow-lg animate-pulse" title="Board Verified Eligible">

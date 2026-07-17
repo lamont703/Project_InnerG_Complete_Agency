@@ -281,11 +281,12 @@ export default function ElPasoBarberExamPrep() {
                   <div className="absolute -inset-3 bg-gradient-to-br from-primary/20 to-accent/20 rounded-[2.5rem] blur-xl opacity-50 group-hover:opacity-80 transition-opacity duration-700" />
                   <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border-2 border-slate-100 transition-transform duration-500 group-hover:scale-[1.02]">
                     <Image
-                      src="/el_paso_barber_rescue_report_cover.png"
+                      src="/el_paso_barber_rescue_report_cover.webp"
                       alt="El Paso Barber Market Rescue Report — April 2026 TDLR data showing 58% failure rate across Socorro HS, EPCC, and El Paso independent barber schools"
                       width={1020}
                       height={630}
                       className="w-full h-auto object-cover"
+                      unoptimized
                     />
                   </div>
                 </Link>

@@ -8,11 +8,12 @@ export function AuthorBio() {
         <div className="relative shrink-0">
           <div className="h-24 w-24 rounded-2xl overflow-hidden shadow-xl shadow-primary/20 border-2 border-primary/10">
             <Image
-              src="/avatars/lamont.png"
+              src="/avatars/lamont.webp"
               alt="Lamont Evans"
               width={96}
               height={96}
               className="object-cover"
+              unoptimized
             />
           </div>
           <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1 shadow-md border border-border">
