@@ -7,6 +7,7 @@ import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { MiniExamQuiz } from "@/components/insights/mini-exam-quiz"
+import { EzoicAd } from "@/components/shared/ezoic-ad"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -413,6 +414,8 @@ export default function LicenseRequirementsGuide() {
             </div>
           </section>
 
+          <EzoicAd className="my-12" />
+
           {/* Lawful Presence */}
           <section>
             <div className="flex items-center gap-3 mb-6">
@@ -463,6 +466,8 @@ export default function LicenseRequirementsGuide() {
               </p>
             </div>
           </section>
+
+          <EzoicAd className="my-12" />
 
           {/* Military Spouse Licensing */}
           <section>
@@ -550,6 +555,8 @@ export default function LicenseRequirementsGuide() {
               </p>
             </div>
           </section>
+
+          <EzoicAd className="my-12" />
 
           {/* Esthetician vs Cosmetologist */}
           <section>

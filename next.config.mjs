@@ -90,6 +90,35 @@ const nextConfig = {
         destination: "/dashboard/innergcomplete",
         permanent: false,
       },
+      // A real, currently-running Facebook ad campaign is sending paid
+      // clicks to a truncated destination URL — confirmed live via real
+      // pixel-analytics 404 events (fbclid present, referrer facebook.com)
+      // still 404ing today. The ad's actual destination can't be fixed
+      // from here (it lives in Meta Ads Manager), so this catches the
+      // traffic on our side instead of losing it to a dead page. Matches
+      // both truncation variants seen in the real logs ("/barber-beauty"
+      // and "/barber-beauty-", the latter with a trailing hyphen).
+      {
+        source: "/barber-beauty",
+        destination: "/barber-beauty-network",
+        permanent: true,
+      },
+      {
+        source: "/barber-beauty-",
+        destination: "/barber-beauty-network",
+        permanent: true,
+      },
+      // Ezoic's ads.txt Manager is the source of truth for this site's
+      // ads.txt so Ezoic can keep its own demand-partner lines current
+      // without a redeploy here. Per Ezoic's own setup docs, redirect
+      // /ads.txt to their managed URL rather than maintaining the file
+      // by hand. public/ads.txt is left in place but is now unreachable
+      // on the live site (shadowed by this redirect).
+      {
+        source: "/ads.txt",
+        destination: "https://srv.adstxtmanager.com/19390/innergcomplete.com",
+        permanent: true,
+      },
     ]
   },
 }

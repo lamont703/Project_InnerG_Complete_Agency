@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
+import { EzoicAd } from "@/components/shared/ezoic-ad";
 import Image from "next/image";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
@@ -40,6 +41,19 @@ const PUBLIC_COLUMNS = SCHOOL_PUBLIC_COLUMNS.join(", ");
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Known-dead slugs whose underlying row was hard-deleted as part of a real
+// duplicate-row cleanup (the same real business survives under a
+// different slug/city label) — confirmed live case:
+// /schools/colour-beauty-school-katy-b752a038 404'd because that row was
+// removed as a duplicate of the same school already published as
+// colour-beauty-school-houston-bd9ab3b1 (same phone, same real single
+// Clay Rd location, just entered under two different city labels). Add an
+// entry here whenever a live URL is confirmed dead for this same reason,
+// so the old link 301s to the real survivor instead of 404ing.
+const DEAD_SLUG_REDIRECTS: Record<string, string> = {
+  "colour-beauty-school-katy-b752a038": "colour-beauty-school-houston-bd9ab3b1",
+};
+
 // Barber schools and cosmetology schools live in separate tables (agent_barber_school_leads /
 // agent_cosmetology_school_leads); the unified search Schools tab returns ids from either, so
 // this route checks both. UUIDs are generated independently per table and won't collide.
@@ -47,7 +61,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // Lookup is slug-primary with a legacy-UUID fallback: old /schools/{uuid} links (from
 // before the slug migration) still resolve, tagged with _resolvedByLegacyId so the page
 // component can 308-redirect to the canonical slug URL instead of silently dual-serving it.
-async function getSchool(param: string) {
+// A known-dead-slug fallback (DEAD_SLUG_REDIRECTS above) uses the same flag/redirect path.
+async function getSchool(param: string): Promise<any> {
   const { data: barberBySlug, error: barberSlugErr } = await supabase
     .from("agent_barber_school_leads")
     .select(PUBLIC_COLUMNS)
@@ -65,23 +80,30 @@ async function getSchool(param: string) {
     return { ...cosmet, school_category: cosmet.license_type || "Cosmetology School", _matchType: "cosmetology" as const };
   }
 
-  if (!UUID_RE.test(param)) return null;
+  if (UUID_RE.test(param)) {
+    const { data: barberById, error: barberIdErr } = await supabase
+      .from("agent_barber_school_leads")
+      .select(PUBLIC_COLUMNS)
+      .eq("id", param)
+      .single();
+    if (!barberIdErr && barberById) return { ...(barberById as any), school_category: "Barber School", _matchType: "barber" as const, _resolvedByLegacyId: true };
 
-  const { data: barberById, error: barberIdErr } = await supabase
-    .from("agent_barber_school_leads")
-    .select(PUBLIC_COLUMNS)
-    .eq("id", param)
-    .single();
-  if (!barberIdErr && barberById) return { ...(barberById as any), school_category: "Barber School", _matchType: "barber" as const, _resolvedByLegacyId: true };
+    const { data: cosmetById, error: cosmetIdErr } = await supabase
+      .from("agent_cosmetology_school_leads")
+      .select(`${PUBLIC_COLUMNS}, license_type`)
+      .eq("id", param)
+      .single();
+    if (!cosmetIdErr && cosmetById) {
+      const cosmet = cosmetById as any;
+      return { ...cosmet, school_category: cosmet.license_type || "Cosmetology School", _matchType: "cosmetology" as const, _resolvedByLegacyId: true };
+    }
+    return null;
+  }
 
-  const { data: cosmetById, error: cosmetIdErr } = await supabase
-    .from("agent_cosmetology_school_leads")
-    .select(`${PUBLIC_COLUMNS}, license_type`)
-    .eq("id", param)
-    .single();
-  if (cosmetIdErr || !cosmetById) return null;
-  const cosmet = cosmetById as any;
-  return { ...cosmet, school_category: cosmet.license_type || "Cosmetology School", _matchType: "cosmetology" as const, _resolvedByLegacyId: true };
+  const redirectSlug = DEAD_SLUG_REDIRECTS[param];
+  if (!redirectSlug) return null;
+  const target = await getSchool(redirectSlug);
+  return target ? { ...target, _resolvedByLegacyId: true } : null;
 }
 
 type StudentTable = "agent_barber_student_leads" | "agent_cosmetology_student_leads";
@@ -433,6 +455,7 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
       {faqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <DynamicBackButton fallbackHref="/tools/barbershop-search" />
+        <EzoicAd className="mb-6" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">

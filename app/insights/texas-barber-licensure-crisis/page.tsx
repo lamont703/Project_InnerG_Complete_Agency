@@ -6,6 +6,7 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
+import { EzoicAd } from "@/components/shared/ezoic-ad"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -300,6 +301,8 @@ export default function TexasBarberCrisis() {
             </div>
           </div>
 
+          <EzoicAd className="my-12" />
+
           {/* Section 2: The Title IV Danger Zone */}
           <div>
             <div className="flex items-center gap-4 mb-8">
@@ -351,6 +354,8 @@ export default function TexasBarberCrisis() {
               </div>
             </div>
           </div>
+
+          <EzoicAd className="my-12" />
 
           {/* Section 3: The 3-Layer Texas Architecture */}
           <div>
@@ -440,6 +445,8 @@ export default function TexasBarberCrisis() {
                </div>
             </div>
           </div>
+
+          <EzoicAd className="my-12" />
 
           {/* Section 05: Integrated Verdict */}
           <div>

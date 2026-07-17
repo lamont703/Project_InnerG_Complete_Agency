@@ -6,6 +6,7 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
+import { EzoicAd } from "@/components/shared/ezoic-ad"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -209,6 +210,8 @@ export default function HighestPayingBarbershopsArticle() {
             </div>
           </section>
 
+          <EzoicAd className="my-12" />
+
           {/* Lowest Booth Rent */}
           <section>
             <div className="flex items-center gap-3 mb-6">
@@ -247,6 +250,8 @@ export default function HighestPayingBarbershopsArticle() {
               ))}
             </div>
           </section>
+
+          <EzoicAd className="my-12" />
 
           {/* Highest Commission */}
           <section>

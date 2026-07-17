@@ -6,6 +6,7 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
+import { EzoicAd } from "@/components/shared/ezoic-ad"
 
 
 
@@ -344,6 +345,8 @@ export default function CognitiveArchitectureBlueprint() {
             </div>
           </div>
 
+          <EzoicAd className="my-12" />
+
           {/* The 6 Phases */}
           <div className="space-y-12">
             <div className="flex items-center gap-4 mb-2">
@@ -430,6 +433,8 @@ export default function CognitiveArchitectureBlueprint() {
               </div>
             ))}
           </div>
+
+          <EzoicAd className="my-12" />
 
           {/* Trustworthy AI Section */}
           <div>

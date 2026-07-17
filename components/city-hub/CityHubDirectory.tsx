@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign } from "lucide-react";
 import type { CityHubData } from "@/lib/city-hub-data";
+import { EzoicAd } from "@/components/shared/ezoic-ad";
 
 const ZIP_SIGNAL_COLORS = {
   "Talent-Rich": "bg-green-500",
@@ -53,6 +54,8 @@ export function CityHubDirectory({
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+        <EzoicAd className="mb-8" />
+
         <div className="text-center max-w-2xl mx-auto mb-4">
           <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">{title}</h1>
           <p className="text-slate-600">{subtitle}</p>

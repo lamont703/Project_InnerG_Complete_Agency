@@ -9,6 +9,7 @@ import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { LLCDecisionTool } from "@/components/insights/llc-decision-tool"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
+import { EzoicAd } from "@/components/shared/ezoic-ad"
 import {
   ArrowLeft,
   Receipt,
@@ -198,6 +199,8 @@ export default function BoothRentTaxesArticle() {
             </div>
           </section>
 
+          <EzoicAd className="my-12" />
+
           {/* Deductions */}
           <section>
             <div className="flex items-center gap-3 mb-6">
@@ -238,6 +241,8 @@ export default function BoothRentTaxesArticle() {
               </div>
             </div>
           </section>
+
+          <EzoicAd className="my-12" />
 
           {/* LLC */}
           <section>
