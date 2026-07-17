@@ -1,13 +1,6 @@
 import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign } from "lucide-react";
-import type { CityHubData } from "@/lib/city-hub-data";
-
-const ZIP_SIGNAL_COLORS = {
-  "Talent-Rich": "bg-green-500",
-  "Balanced": "bg-blue-400",
-  "Competitive": "bg-red-500",
-  "Hiring, No Local Talent": "bg-amber-500",
-} as const;
+import type { TexasHubData } from "@/lib/texas-hub-data";
 
 const SECTION_ICONS: Record<string, any> = {
   shops: Scissors,
@@ -25,31 +18,28 @@ function scoreColor(score: number) {
   return "text-red-600";
 }
 
-// Generalized version of app/houston/HoustonDirectory.tsx — same section
-// layout, card design, and zip-code drilldown chip grid, now that
-// city-hub-data.ts computes zipCounts for every city, not just Houston.
-// cityLabel feeds the "View All" search-tool link's query param; citySlug
-// feeds the zip-chip hrefs (`/${citySlug}/${zip}`).
-export function CityHubDirectory({
+// Same section layout/card design as components/city-hub/CityHubDirectory.tsx,
+// at statewide scope, plus a "Browse Texas Cities" grid in place of the
+// zip-code drilldown (a state has cities beneath it, not zip codes).
+// Qualifying cities (real page) get a solid card linking to their hub;
+// non-qualifying ones (not enough real data yet) get a muted card linking
+// to the search tool instead — never a dead or thin-content link.
+export function TexasHubDirectory({
   data,
   title,
   subtitle,
-  cityLabel,
-  citySlug,
   backHref,
   backLabel,
-  zipQuerySuffix,
 }: {
-  data: CityHubData;
+  data: TexasHubData;
   title: string;
   subtitle: string;
-  cityLabel: string;
-  citySlug: string;
   backHref: string;
   backLabel: string;
-  /** Appended to "View All" search links so a per-zip page's links stay scoped, e.g. " 77099". */
-  zipQuerySuffix?: string;
 }) {
+  const qualifyingCities = data.cities.filter((c) => c.qualifies);
+  const otherCities = data.cities.filter((c) => !c.qualifies);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
@@ -89,6 +79,49 @@ export function CityHubDirectory({
           </div>
         )}
 
+        {/* Browse Texas Cities */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mb-8">
+          <div className="flex items-center gap-2 mb-1">
+            <MapPin className="w-5 h-5 text-slate-700" />
+            <h2 className="text-lg font-black text-slate-900">Browse Texas Cities</h2>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            {qualifyingCities.length} cities with enough real, verified businesses for their own directory — the rest
+            link straight to the search engine until they do.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {qualifyingCities.map((c) => (
+              <Link
+                key={c.slug}
+                href={c.href}
+                className="rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 transition-colors p-4 block"
+              >
+                <p className="font-bold text-slate-900 text-sm">{c.city}</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {c.total.toLocaleString()} businesses ({c.shops} shops, {c.salons} salons)
+                </p>
+              </Link>
+            ))}
+          </div>
+          {otherCities.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Not enough data yet</p>
+              <div className="flex flex-wrap gap-2">
+                {otherCities.map((c) => (
+                  <Link
+                    key={c.slug}
+                    href={c.href}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-xs font-bold text-slate-500"
+                  >
+                    {c.city}
+                    <span className="text-slate-400 font-medium">({c.total})</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="space-y-8">
           {data.sections.map((section) => (
             <div key={section.key} className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
@@ -102,7 +135,7 @@ export function CityHubDirectory({
                   <span className="text-sm font-bold text-slate-400">({section.count.toLocaleString()})</span>
                 </div>
                 <Link
-                  href={`/tools/barbershop-search?tab=${encodeURIComponent(section.searchTab)}&q=${encodeURIComponent(cityLabel + (zipQuerySuffix || ""))}`}
+                  href={`/tools/barbershop-search?tab=${encodeURIComponent(section.searchTab)}`}
                   className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider"
                 >
                   View All
@@ -151,56 +184,6 @@ export function CityHubDirectory({
             </div>
           ))}
         </div>
-
-        {/* Browse by Zip Code */}
-        {data.zipCounts.length > 0 && (
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mt-8">
-            <div className="flex items-center gap-2 mb-1">
-              <MapPin className="w-5 h-5 text-slate-700" />
-              <h2 className="text-lg font-black text-slate-900">Browse by Zip Code</h2>
-            </div>
-            <p className="text-xs text-slate-500 mb-4">
-              Dot color is an inferred opportunity signal: professionals-per-venue density plus which shops/salons
-              are actively hiring — not a lookup, a computed read on each zip's labor market.
-            </p>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {data.zipCounts.map((z) => {
-                const dot = z.signal ? ZIP_SIGNAL_COLORS[z.signal.label] : "bg-slate-300";
-                const signalPart = z.signal
-                  ? `${z.signal.label} — ${z.signal.professionals} professionals, ${z.signal.venues} venues (${z.signal.hiringVenues} hiring)`
-                  : "Not enough data to classify";
-                const rentPart = z.openChairs > 0 || z.medianWeeklyRent != null
-                  ? ` | ${z.openChairs} open chairs${z.medianWeeklyRent != null ? `, $${z.medianWeeklyRent}/wk median rent` : ""}`
-                  : "";
-                const title = signalPart + rentPart;
-                return (
-                  <Link
-                    key={z.zip}
-                    href={`/${citySlug}/${z.zip}`}
-                    title={title}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-colors text-sm font-bold text-slate-700"
-                  >
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
-                    {z.zip}
-                    <span className="text-slate-400 font-medium">({z.count})</span>
-                  </Link>
-                );
-              })}
-            </div>
-            <div className="flex flex-wrap gap-3 pt-3 border-t border-slate-100">
-              {(Object.keys(ZIP_SIGNAL_COLORS) as (keyof typeof ZIP_SIGNAL_COLORS)[]).map((label) => (
-                <span key={label} className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${ZIP_SIGNAL_COLORS[label]}`} />
-                  {label}
-                </span>
-              ))}
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                <span className="w-2 h-2 rounded-full shrink-0 bg-slate-300" />
-                Not enough data
-              </span>
-            </div>
-          </div>
-        )}
 
         <div className="text-center mt-10">
           <Link href={backHref} className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors">

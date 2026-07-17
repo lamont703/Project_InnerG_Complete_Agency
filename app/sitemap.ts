@@ -4,6 +4,8 @@ import fs from 'fs'
 import path from 'path'
 import { createClient } from '@supabase/supabase-js'
 import { fetchAllRows } from '@/lib/supabase-fetch-all'
+import { getQualifyingCities, BESPOKE_CITY_ROUTES } from '@/lib/city-readiness'
+import { getCityZipCodes } from '@/lib/city-hub-data'
 
 export const dynamic = 'force-dynamic'
 
@@ -106,6 +108,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       };
     });
 
+    // Programmatic SEO: the generic crawler above skips `[bracket]` dynamic
+    // folders entirely (see getRoutes), so /texas's own /[city] and
+    // /[city]/[zip] children never show up on their own — same manual
+    // pattern as the Houston market-analysis block above, generalized to
+    // every qualifying city.
+    const qualifyingCities = await getQualifyingCities(supabase);
+    const nonBespokeQualifying = qualifyingCities.filter((c) => c.qualifies && !BESPOKE_CITY_ROUTES[c.slug]);
+
+    const cityHubSitemap = nonBespokeQualifying.map((c) => ({
+      url: `${baseUrl}/${c.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.75,
+    }));
+
+    const cityZipResults = await Promise.all(
+      nonBespokeQualifying.map(async (c) => ({
+        slug: c.slug,
+        zips: await getCityZipCodes(c.city),
+      }))
+    );
+    const cityZipSitemap = cityZipResults.flatMap(({ slug, zips }) =>
+      zips.map((zip) => ({
+        url: `${baseUrl}/${slug}/${zip}`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly' as const,
+        priority: 0.6,
+      }))
+    );
+
     // Programmatic SEO: Generate URLs for every profile page across all 7
     // entity families. PostgREST caps a single request at 1000 rows
     // (supabase/config.toml max_rows) regardless of .limit() — barbers,
@@ -195,6 +227,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [
       ...staticSitemap,
       ...dynamicSitemap,
+      ...cityHubSitemap,
+      ...cityZipSitemap,
       ...shopProfileSitemap,
       ...schoolProfileSitemap,
       ...barberProfileSitemap,

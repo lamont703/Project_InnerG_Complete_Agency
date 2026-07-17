@@ -9,9 +9,15 @@ type Props = { params: Promise<{ zip: string }> };
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const { zip } = await props.params;
+  const title = `Houston ${zip} Barber & Cosmetology Directory | Inner G Complete`;
+  const description = `Barbershops, salons, licensed pros, and barber/cosmetology schools in the Houston ${zip} zip code — including real 2026 Texas licensing exam pass rates, not available on Google.`;
+  const canonicalUrl = `https://agency.innergcomplete.com/houston/${zip}`;
   return {
-    title: `Houston ${zip} Barber & Cosmetology Directory | Inner G Complete`,
-    description: `Barbershops, salons, licensed pros, and barber/cosmetology schools in the Houston ${zip} zip code — including real 2026 Texas licensing exam pass rates, not available on Google.`,
+    title,
+    description,
+    keywords: [`houston ${zip}`, `barbershops ${zip}`, `salons near ${zip}`, `houston zip ${zip} barber`],
+    openGraph: { title, description, url: canonicalUrl, type: "website" },
+    alternates: { canonical: canonicalUrl },
   };
 }
 
