@@ -13,7 +13,6 @@ const footerLinks = {
     { label: "Barber Booth Rent & Chairs for Rent Houston", href: "/barber-booth-rent-houston" },
     { label: "Salon Suites for Rent Houston", href: "/salon-suites-for-rent-houston" },
     { label: "Texas Barber & Cosmetology Industry Events", href: "/events" },
-    { label: "Submit Your Event", href: "/tools/event-submission" },
     { label: "Shop Day Matches", href: "/shop-day-matches" },
     { label: "Shop Day Requests", href: "/shop-day-requests" },
     { label: "Texas Barber Exam Intelligence Deck", href: "/tools/texas-barber-exam-practice-deck" },
@@ -27,6 +26,7 @@ const footerLinks = {
     { label: "Foot Traffic Radar Tool", href: "/tools/foot-traffic-radar" },
   ],
   "Internal Tools": [
+    { label: "Submit Your Event", href: "/tools/event-submission" },
     { label: "Agent Directives", href: "/admin/agent-directives" },
     { label: "Keyword Intelligence", href: "/admin/keyword-intelligence" },
     { label: "Pixel Analytics", href: "/pixel-analytics" },

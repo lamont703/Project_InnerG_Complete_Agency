@@ -84,7 +84,53 @@ const nextConfig = {
   // Redirect legacy /dashboard route to default project
   // TODO Phase 2: Once auth is connected, redirect to /select-portal if no session
   async redirects() {
+    // City hub pages moved from the app root (/houston, /katy, /dallas,
+    // etc.) to under /texas (/texas/houston, /texas/katy, ...) for URL
+    // organization. These were real, already-indexed pages, so every old
+    // URL needs a permanent redirect rather than just 404ing — preserves
+    // existing bookmarks/backlinks and lets Google transfer ranking signal
+    // to the new URL instead of losing it. Own local copy of TX_CITIES/
+    // slugify here (not imported) since next.config.mjs loads before the
+    // TypeScript/path-alias pipeline is set up — same "duplicate small
+    // logic across layers" convention already used elsewhere in this
+    // codebase (e.g. scripts/discover_and_stage_businesses.js's own copy of
+    // this same city list). Redirects every canonical city slug, including
+    // ones that don't currently qualify for a live hub page — harmless
+    // (both old and new URL 404 the same way for those), and avoids a gap
+    // if a city starts qualifying later without anyone remembering to add
+    // its redirect then.
+    const TX_CITIES = [
+      "houston", "katy", "pearland", "pasadena", "humble", "austin", "dallas",
+      "san antonio", "sugar land", "the woodlands", "spring", "cypress",
+      "missouri city", "baytown", "conroe", "league city", "fort worth",
+      "el paso", "corpus christi", "plano", "laredo", "irving", "garland",
+      "amarillo", "mckinney", "frisco", "brownsville", "pflugerville",
+      "college station", "beaumont", "waco", "tyler", "sherman", "eagle pass",
+    ];
+    const slugify = (input) =>
+      input
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .replace(/-{2,}/g, "-");
+
+    const cityRedirects = TX_CITIES.flatMap((city) => {
+      const slug = slugify(city);
+      return [
+        { source: `/${slug}`, destination: `/texas/${slug}`, permanent: true },
+        { source: `/${slug}/:zip`, destination: `/texas/${slug}/:zip`, permanent: true },
+      ];
+    });
+
     return [
+      ...cityRedirects,
+      // Houston's separate market-analysis sub-feature moved along with
+      // the rest of its URL tree for full consistency.
+      {
+        source: "/houston/insights/:path*",
+        destination: "/texas/houston/insights/:path*",
+        permanent: true,
+      },
       {
         source: "/dashboard",
         destination: "/dashboard/innergcomplete",

@@ -1,7 +1,20 @@
 import Link from "next/link";
-import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign } from "lucide-react";
+import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass, CalendarDays } from "lucide-react";
 import type { CityHubData } from "@/lib/city-hub-data";
 import { EzoicAd } from "@/components/shared/ezoic-ad";
+
+// Real, city-specific landing pages that predate this hub hierarchy — keyed
+// by citySlug so each city's page only shows its own real content, never an
+// empty section. Houston's own equivalent list lives in
+// app/houston/HoustonDirectory.tsx (Houston is bespoke, not rendered
+// through this generalized component) — Katy and Pearland deliberately
+// live here instead of there, since they're qualifying cities in their own
+// right, not Houston sub-pages.
+const CITY_SERVICE_LINKS: Record<string, { href: string; label: string }[]> = {
+  katy: [{ href: "/katy-tx-barbershops-salons", label: "Katy Barbershops & Salons" }],
+  pearland: [{ href: "/pearland-tx-barbershops-salons", label: "Pearland Barbershops & Salons" }],
+  "el-paso": [{ href: "/el-paso-barber-exam-intelligence-prep", label: "El Paso Barber Exam Intelligence Prep" }],
+};
 
 const ZIP_SIGNAL_COLORS = {
   "Talent-Rich": "bg-green-500",
@@ -18,6 +31,7 @@ const SECTION_ICONS: Record<string, any> = {
   barberSchools: GraduationCap,
   cosmetSchools: GraduationCap,
   stores: ShoppingBag,
+  events: CalendarDays,
 };
 
 function scoreColor(score: number) {
@@ -155,6 +169,30 @@ export function CityHubDirectory({
           ))}
         </div>
 
+        {/* Explore [City] Services */}
+        {CITY_SERVICE_LINKS[citySlug] && CITY_SERVICE_LINKS[citySlug].length > 0 && (
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mt-8">
+            <div className="flex items-center gap-2 mb-1">
+              <Compass className="w-5 h-5 text-slate-700" />
+              <h2 className="text-lg font-black text-slate-900">Explore {cityLabel} Services</h2>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">
+              Neighborhood and service-specific guides for {cityLabel}.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {CITY_SERVICE_LINKS[citySlug].map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 transition-colors p-4 block"
+                >
+                  <p className="font-bold text-slate-900 text-sm">{link.label}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Browse by Zip Code */}
         {data.zipCounts.length > 0 && (
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mt-8">
@@ -179,7 +217,7 @@ export function CityHubDirectory({
                 return (
                   <Link
                     key={z.zip}
-                    href={`/${citySlug}/${z.zip}`}
+                    href={`/texas/${citySlug}/${z.zip}`}
                     title={title}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-colors text-sm font-bold text-slate-700"
                   >

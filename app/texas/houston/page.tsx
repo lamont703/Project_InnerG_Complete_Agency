@@ -18,10 +18,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Houston Barbershops, Hair Salons & Hair Stylists Directory",
     description: "Find real hair stylists, hairdressers, barbershops, and hair salons in Houston, TX — plus licensed cosmetology and barber schools ranked by real 2026 exam pass rates.",
-    url: "https://agency.innergcomplete.com/houston",
+    url: "https://agency.innergcomplete.com/texas/houston",
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/houston" },
+  alternates: { canonical: "https://agency.innergcomplete.com/texas/houston" },
 };
 
 export default async function HoustonHubPage() {

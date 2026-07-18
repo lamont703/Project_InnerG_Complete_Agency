@@ -25,7 +25,7 @@ export const MIN_PER_CATEGORY = 5;
 // Cities with their own bespoke, hand-built hub (never routed through the
 // generalized /[city] page) — currently just Houston. Keyed by slug.
 export const BESPOKE_CITY_ROUTES: Record<string, string> = {
-  houston: "/houston",
+  houston: "/texas/houston",
 };
 
 function titleCase(str: string): string {
@@ -36,9 +36,11 @@ export function slugForCity(cityName: string): string {
   return slugify(cityName);
 }
 
-// Strict allow-list reverse lookup — never a fuzzy/loose match, since
-// app/[city]/page.tsx sits at the root of app/ and is the fallback handler
-// for every unmatched single-segment path on the site (see plan for why).
+// Strict allow-list reverse lookup — never a fuzzy/loose match. Was
+// originally load-bearing for safety since app/[city]/page.tsx sat at the
+// app root and caught every unmatched single-segment path on the site; now
+// that it's moved to app/texas/[city]/page.tsx that specific risk is gone,
+// but there's no reason to loosen this now that it's safer.
 export function citySlugToName(slug: string): string | null {
   const match = TX_CITIES.find((c) => slugify(c) === slug);
   return match ? titleCase(match) : null;

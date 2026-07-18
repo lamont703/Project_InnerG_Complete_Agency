@@ -182,7 +182,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
 
       return {
-        url: `${baseUrl}/houston/insights/market-analysis/${slug}`,
+        url: `${baseUrl}/texas/houston/insights/market-analysis/${slug}`,
         lastModified: shop.updated_at ? new Date(shop.updated_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.85,
@@ -195,7 +195,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // pattern as the Houston market-analysis block above, generalized to
     // every qualifying city. (Data now sourced from the cached bundle above.)
     const cityHubSitemap = nonBespokeQualifying.map((c: any) => ({
-      url: `${baseUrl}/${c.slug}`,
+      url: `${baseUrl}/texas/${c.slug}`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.75,
@@ -203,7 +203,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const cityZipSitemap = cityZipResults.flatMap(({ slug, zips }: any) =>
       zips.map((zip: string) => ({
-        url: `${baseUrl}/${slug}/${zip}`,
+        url: `${baseUrl}/texas/${slug}/${zip}`,
         lastModified: new Date(),
         changeFrequency: 'monthly' as const,
         priority: 0.6,

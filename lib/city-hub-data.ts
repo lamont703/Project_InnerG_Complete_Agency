@@ -74,8 +74,9 @@ export interface CityHubData {
 export async function getCityHubData(cityName: string, zip?: string): Promise<CityHubData> {
   const addressFilter = `%${cityName}%`;
   const cityFilter = `%${cityName}%`;
+  const today = new Date().toISOString().slice(0, 10);
 
-  const [shops, barberSchools, cosmetSchools, barbers, cosmetologists, salons, barberSupply, beautySupply] = await Promise.all([
+  const [shops, barberSchools, cosmetSchools, barbers, cosmetologists, salons, barberSupply, beautySupply, events] = await Promise.all([
     fetchAllRows(supabase, "agent_barbershop_leads",
       "id, slug, shop_name, formatted_address, rating, total_reviews, hiring_need, booth_count_available, rent_rate",
       (q) => q.ilike("formatted_address", addressFilter)),
@@ -100,6 +101,9 @@ export async function getCityHubData(cityName: string, zip?: string): Promise<Ci
     fetchAllRows(supabase, "agent_beauty_supply_store_leads",
       "id, slug, name, city, rating, total_reviews",
       (q) => q.ilike("city", cityFilter)),
+    fetchAllRows(supabase, "events",
+      "id, slug, title, event_date, category, venue_name, city",
+      (q) => q.ilike("city", cityFilter).gte("event_date", today)),
   ]);
 
   const zipCountMap = new Map<string, number>();
@@ -186,6 +190,27 @@ export async function getCityHubData(cityName: string, zip?: string): Promise<Ci
     })(),
   ];
 
+  // Events is deliberately NOT counted toward totalEntities below (an event
+  // isn't a business/professional — including it would inflate the "X
+  // businesses across [city]" hero stat) and isn't zip-scoped (events don't
+  // carry a zip, and "Houston Barber Expo" is meaningfully city-wide, not
+  // tied to one zip the way a shop is) — it always shows the full city list
+  // regardless of the `zip` param. Sorted soonest-first, same convention as
+  // /events' own statewide/per-city containers.
+  const eventsSorted = [...events].sort((a: any, b: any) => a.event_date.localeCompare(b.event_date));
+  const eventsSection: CityHubSection = {
+    key: "events",
+    label: "Upcoming Events",
+    searchTab: "Events",
+    count: eventsSorted.length,
+    items: eventsSorted.slice(0, 6).map((e: any) => ({
+      id: e.id,
+      name: e.title,
+      href: `/events/${e.slug}`,
+      badge: e.category || null,
+    })),
+  };
+
   const barberScoresInScope = barberSchoolsZ.filter((s) => matchesZip(s.zip) && s.school_leaderboard_score_2026 != null);
   const cosmetScoresInScope = cosmetSchoolsZ.filter((s) => matchesZip(s.zip) && s.cosmetology_school_leaderboard_score_2026 != null);
   const allSchoolScores = [
@@ -266,7 +291,7 @@ export async function getCityHubData(cityName: string, zip?: string): Promise<Ci
     .filter((v): v is number => v != null);
 
   return {
-    sections,
+    sections: [...sections, eventsSection],
     totalEntities: sections.reduce((sum, s) => sum + s.count, 0),
     avgSchoolScore,
     openChairs,

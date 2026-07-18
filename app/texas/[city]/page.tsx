@@ -53,7 +53,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const description =
     override?.description ||
     `Find real barbershops, hair salons, barbers, and licensed cosmetology/barber schools in ${cityName}, TX — real ratings, real reviews, real data, not available on Google.`;
-  const canonicalUrl = `https://agency.innergcomplete.com/${slug}`;
+  const canonicalUrl = `https://agency.innergcomplete.com/texas/${slug}`;
   const lowerCity = (cityName || slug).toLowerCase();
 
   return {
@@ -74,9 +74,10 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 export default async function CityHubPage(props: Props) {
   const { city: slug } = await props.params;
 
-  // Strict allow-list only — this route sits at the root of app/ and is
-  // the fallback for every unmatched single-segment path on the site, so
-  // resolution must never fuzzy-match (see plan for why).
+  // Strict allow-list only — this route now sits under /texas/[city] (moved
+  // from the app root), so it only intercepts unmatched paths under /texas,
+  // not every single-segment path on the site — but resolution still
+  // shouldn't fuzzy-match, no reason to loosen it now that it's safer.
   const cityName = citySlugToName(slug);
   if (!cityName || BESPOKE_CITY_ROUTES[slug]) notFound();
 

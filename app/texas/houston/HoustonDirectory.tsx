@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass } from "lucide-react";
+import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass, CalendarDays } from "lucide-react";
 import type { HoustonData } from "./data";
 import { EzoicAd } from "@/components/shared/ezoic-ad";
 
@@ -8,10 +8,10 @@ import { EzoicAd } from "@/components/shared/ezoic-ad";
 // surfaced here rather than on /texas since they're neighborhood/service
 // pages specific to this one metro, not statewide content. Keeps the same
 // "solid card = real content" convention as the qualifying-city cards on
-// /texas.
+// /texas. Katy and Pearland moved out to their own city hub pages (see
+// components/city-hub/CityHubDirectory.tsx's CITY_SERVICE_LINKS) since
+// they're qualifying cities in their own right, not Houston sub-pages.
 const HOUSTON_SERVICE_LINKS: { href: string; label: string }[] = [
-  { href: "/katy-tx-barbershops-salons", label: "Katy Barbershops & Salons" },
-  { href: "/pearland-tx-barbershops-salons", label: "Pearland Barbershops & Salons" },
   { href: "/east-end-houston-barbershops", label: "East End Houston Barbershops" },
   { href: "/hair-extensions-houston", label: "Hair Extensions in Houston" },
   { href: "/kids-haircuts-houston", label: "Kids Haircuts in Houston" },
@@ -39,6 +39,7 @@ const SECTION_ICONS: Record<string, any> = {
   barberSchools: GraduationCap,
   cosmetSchools: GraduationCap,
   stores: ShoppingBag,
+  events: CalendarDays,
 };
 
 function scoreColor(score: number) {
@@ -220,7 +221,7 @@ export function HoustonDirectory({
                 return (
                   <Link
                     key={z.zip}
-                    href={`/houston/${z.zip}`}
+                    href={`/texas/houston/${z.zip}`}
                     title={title}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-colors text-sm font-bold text-slate-700"
                   >

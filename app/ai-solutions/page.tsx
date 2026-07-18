@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
-import { Brain, BarChart3, GraduationCap, LayoutDashboard, ArrowRight, Shield } from "lucide-react"
+import { Brain, BarChart3, GraduationCap, LayoutDashboard, ArrowRight, Shield, Users, Calendar, Globe, Armchair, Radar, ClipboardList } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -41,6 +41,94 @@ const solutions = [
     href: "/barber-cos-continuing-education",
     roles: ["School Students", "School Instructors"]
   },
+  {
+    title: "Barber & Cosmetology Placement Network",
+    label: "Career Passport & Placement",
+    description: "Create a digital Career Passport showcasing your portfolio and licensure, or list open chairs and booth availability as a shop owner — direct connections, no cold calling.",
+    icon: Users,
+    href: "/barber-beauty-network",
+    roles: ["Shop Owners", "Barbers & Stylists", "School Students"]
+  },
+  {
+    title: "Shop Day Matches",
+    label: "Live Matching",
+    description: "See real, live-matched shop day visit requests between students and shops in one place.",
+    icon: Users,
+    href: "/shop-day-matches",
+    roles: ["Shop Owners", "Barbers & Stylists"]
+  },
+  {
+    title: "Shop Day Requests",
+    label: "Visit Requests",
+    description: "Browse and manage real shop day visit requests from students looking to gain hands-on experience.",
+    icon: Calendar,
+    href: "/shop-day-requests",
+    roles: ["Shop Owners", "Barbers & Stylists"]
+  },
+  {
+    title: "Shop Website Template",
+    label: "Live Demo",
+    description: "See a live, real example of a fully-built shop website — the same template every claimed shop can customize as their own.",
+    icon: Globe,
+    href: "/tools/shop-site-template/buzzardsbarbershop",
+    roles: ["Shop Owners"]
+  },
+  {
+    title: "AI Booth Station",
+    label: "Operational Dashboard",
+    description: "A live operational dashboard for booth-rent shops — track chair status, payments, and booth availability in real time.",
+    icon: Armchair,
+    href: "/tools/ai-booth-station",
+    roles: ["Shop Owners"]
+  },
+  {
+    title: "Foot Traffic Radar",
+    label: "Competitive Intelligence",
+    description: "Explore competitive intelligence and real local foot-traffic data for barbershops across the network — find the right chair with data-backed confidence.",
+    icon: Radar,
+    href: "/tools/foot-traffic-radar",
+    roles: ["Shop Owners"]
+  },
+  {
+    title: "Texas Cosmetology Exam Intelligence Deck",
+    label: "Interactive Exam Tool",
+    description: "Practice questions aligned to the PSI written exam — the same vendor TDLR contracts to administer the real Cosmetology Operator license test.",
+    icon: Brain,
+    href: "/tools/texas-cosmetology-exam-practice-deck",
+    roles: ["School Students"]
+  },
+  {
+    title: "Accreditation Relationship Auditor",
+    label: "Institutional Compliance",
+    description: "An institutional relationship auditor tracking your school's real accreditation and compliance standing over time.",
+    icon: Shield,
+    href: "/tools/texas-barber-school-accreditation-relationship-auditor",
+    roles: ["School Administrators"]
+  },
+  {
+    title: "Barber School Pilot Scholarship Fund",
+    label: "Free Exam Prep Access",
+    description: "Free board-exam prep access for your students at zero cost to your school — see if your school qualifies for the pilot fund.",
+    icon: GraduationCap,
+    href: "/barber-school-pilot-scholarship-fund",
+    roles: ["School Administrators", "School Students"]
+  },
+  {
+    title: "Texas Barber Practical Exam Kit List",
+    label: "Exam Kit Checklist",
+    description: "The exact tool and product kit list required for the Texas barber practical licensing exam.",
+    icon: ClipboardList,
+    href: "/texas-barber-practical-exam-kit-list",
+    roles: ["School Students"]
+  },
+  {
+    title: "Texas Cosmetology Practical Exam Kit List",
+    label: "Exam Kit Checklist",
+    description: "The exact tool and product kit list required for the Texas Cosmetology Operator practical licensing exam.",
+    icon: ClipboardList,
+    href: "/texas-cosmetology-practical-exam-kit-list",
+    roles: ["School Students"]
+  },
 ]
 
 export default function AISolutionsPage() {
@@ -51,7 +139,7 @@ export default function AISolutionsPage() {
     setTheme("light");
   }, [setTheme]);
 
-  const filterOptions = ["All", "School Administrators", "School Instructors", "School Students"];
+  const filterOptions = ["All", "Shop Owners", "Barbers & Stylists", "School Administrators", "School Instructors", "School Students"];
 
   const filteredSolutions = solutions.filter(s => 
     activeFilter === "All" || s.roles.includes(activeFilter)
