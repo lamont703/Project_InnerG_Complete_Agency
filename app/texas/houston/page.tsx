@@ -18,10 +18,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Houston Barbershops, Hair Salons & Hair Stylists Directory",
     description: "Find real hair stylists, hairdressers, barbershops, and hair salons in Houston, TX — plus licensed cosmetology and barber schools ranked by real 2026 exam pass rates.",
-    url: "https://agency.innergcomplete.com/houston",
+    url: "https://agency.innergcomplete.com/texas/houston",
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/houston" },
+  alternates: { canonical: "https://agency.innergcomplete.com/texas/houston" },
 };
 
 export default async function HoustonHubPage() {
@@ -34,6 +34,7 @@ export default async function HoustonHubPage() {
       subtitle={`${data.totalEntities.toLocaleString()} barbershops, hair salons, hair stylists, schools, and licensed professionals across Houston — including school rankings from real 2026 Texas licensing exam outcomes, not available on Google.`}
       backHref="/tools/barbershop-search?q=Houston"
       backLabel="← Back to Search"
+      showServiceLinks
     />
   );
 }

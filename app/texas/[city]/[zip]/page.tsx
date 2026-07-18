@@ -18,7 +18,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
   const title = `${cityName} ${zip} Barber & Cosmetology Directory | Inner G Complete`;
   const description = `Barbershops, salons, licensed pros, and barber/cosmetology schools in the ${cityName} ${zip} zip code — real ratings and reviews, not available on Google.`;
-  const canonicalUrl = `https://agency.innergcomplete.com/${slug}/${zip}`;
+  const canonicalUrl = `https://agency.innergcomplete.com/texas/${slug}/${zip}`;
 
   return {
     title,
@@ -51,7 +51,7 @@ export default async function CityZipPage(props: Props) {
       subtitle={`${data.totalEntities.toLocaleString()} barbershops, salons, schools, and licensed professionals in the ${zip} zip code.`}
       cityLabel={cityName}
       citySlug={slug}
-      backHref={`/${slug}`}
+      backHref={`/texas/${slug}`}
       backLabel={`← Back to ${cityName}`}
       zipQuerySuffix={` ${zip}`}
     />

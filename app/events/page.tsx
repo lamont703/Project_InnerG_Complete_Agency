@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarDays, MapPin } from "lucide-react";
+import { CalendarDays, MapPin, Compass } from "lucide-react";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 
 export const revalidate = 3600;
@@ -24,6 +24,13 @@ function formatEventDate(dateStr: string): string {
 // this, individual event pages were only reachable via sitemap/search, with
 // no site-wide link pointing Google (or a visitor) at them at all. Scales
 // automatically as more events get submitted, unlike a hardcoded footer list.
+//
+// Same "container" pattern as the city hub pages' service-link sections
+// (see components/city-hub/CityHubDirectory.tsx / app/houston/
+// HoustonDirectory.tsx) — one statewide container plus one per city with
+// real upcoming events, populated with actual event data instead of static
+// links. Grouping is purely presentational (real event_date/city columns,
+// same rows as before) — no new data source.
 export default async function EventsIndexPage() {
   const { data: events } = await supabase
     .from("events")
@@ -33,6 +40,14 @@ export default async function EventsIndexPage() {
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = (events || []).filter((e) => e.event_date >= today);
   const past = (events || []).filter((e) => e.event_date < today).reverse();
+
+  const cityGroups = new Map<string, any[]>();
+  for (const event of upcoming) {
+    const city = event.city || "Other";
+    if (!cityGroups.has(city)) cityGroups.set(city, []);
+    cityGroups.get(city)!.push(event);
+  }
+  const sortedCities = [...cityGroups.entries()].sort((a, b) => b[1].length - a[1].length);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -55,14 +70,38 @@ export default async function EventsIndexPage() {
         </div>
 
         {upcoming.length > 0 && (
-          <section className="mb-12">
-            <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Upcoming</h2>
-            <div className="space-y-3">
-              {upcoming.map((event) => (
-                <EventCard key={event.slug} event={event} />
-              ))}
+          <div className="space-y-6 mb-12">
+            {/* Statewide container — every upcoming event across Texas */}
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Compass className="w-5 h-5 text-slate-700" />
+                <h2 className="text-lg font-black text-slate-900">Texas Events</h2>
+                <span className="text-sm font-bold text-slate-400">({upcoming.length})</span>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">Every upcoming event across the state, soonest first.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {upcoming.map((event) => (
+                  <EventGridCard key={event.slug} event={event} />
+                ))}
+              </div>
             </div>
-          </section>
+
+            {/* Per-city containers — same event rows, grouped by city */}
+            {sortedCities.map(([city, cityEvents]) => (
+              <div key={city} className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <MapPin className="w-5 h-5 text-slate-700" />
+                  <h2 className="text-lg font-black text-slate-900">{city} Events</h2>
+                  <span className="text-sm font-bold text-slate-400">({cityEvents.length})</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+                  {cityEvents.map((event) => (
+                    <EventGridCard key={event.slug} event={event} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
 
         {past.length > 0 && (
@@ -89,6 +128,37 @@ export default async function EventsIndexPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// Grid-card version for the statewide/per-city containers — matches the
+// same "solid card" convention as the city hub sections' item cards.
+function EventGridCard({ event }: { event: any }) {
+  return (
+    <Link
+      href={`/events/${event.slug}`}
+      className="rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-colors p-4 block"
+    >
+      <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+        <span className="text-[11px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2 py-0.5 inline-flex items-center gap-1">
+          <CalendarDays className="w-3 h-3" />
+          {formatEventDate(event.event_date)}
+        </span>
+        {event.category && (
+          <span className="text-[11px] font-bold text-slate-500 bg-white border border-slate-200 rounded-full px-2 py-0.5">
+            {event.category}
+          </span>
+        )}
+      </div>
+      <p className="font-bold text-slate-900 text-sm truncate">{event.title}</p>
+      {(event.venue_name || event.city) && (
+        <p className="text-xs text-slate-500 font-medium mt-1 truncate">
+          {event.venue_name}
+          {event.venue_name && event.city ? " — " : ""}
+          {event.city}
+        </p>
+      )}
+    </Link>
   );
 }
 

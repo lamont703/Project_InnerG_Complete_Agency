@@ -44,9 +44,17 @@ const GARBAGE_NAMES = new Set(['results', 'sponsored', 'ad']);
 // of the original keywords cover education or retail-supply vocabulary).
 const RELEVANT_CATEGORY_KEYWORDS = [
   'barber', 'hair', 'salon', 'beauty', 'spa', 'wax', 'nail', 'extension', 'brow', 'lash', 'cosmetolog', 'groom',
-  'school', 'academy', 'institute', 'college',
   'supply', 'supplies', 'wholesale',
 ];
+// Generic education words, kept separate from the core list above — on
+// their own they're too loose for the two school tables specifically (a
+// "Trade school", "Driving school", or "Vocational school" category would
+// otherwise get waved through as a real barber/cosmetology school just
+// because it says "school"). Still fine for shops/salons/stores, where a
+// stray match here is harmless since it's ORed with real hair/beauty terms
+// they'd also need to match anyway.
+const EDUCATION_KEYWORDS = ['school', 'academy', 'institute', 'college'];
+const SCHOOL_TABLES = new Set(['agent_barber_school_leads', 'agent_cosmetology_school_leads']);
 // Matches STORAGE_DIR_BY_TABLE / CATEGORY_LABEL_BY_TABLE in
 // scripts/discover_and_stage_businesses.js
 const STORAGE_DIR_BY_TABLE = {
@@ -305,10 +313,18 @@ async function inspectOnMaps(page, name, city) {
   return { ...result, weeklyHours, freshImages: images, limitedView };
 }
 
-function categoryLooksRelevant(category) {
+function categoryLooksRelevant(category, table) {
   if (!category) return null; // unknown — don't penalize, just note it
   const lower = category.toLowerCase();
-  return RELEVANT_CATEGORY_KEYWORDS.some((kw) => lower.includes(kw));
+  if (RELEVANT_CATEGORY_KEYWORDS.some((kw) => lower.includes(kw))) return true;
+  // A bare education-word match (no actual barber/cosmetology term) is only
+  // trusted for the two school tables when it's specifically a barber or
+  // cosmetology school — "Trade school", "Driving school", etc. should
+  // still fall through to "not relevant" and get recommended for deletion.
+  const hasEducationWord = EDUCATION_KEYWORDS.some((kw) => lower.includes(kw));
+  if (!hasEducationWord) return false;
+  if (!SCHOOL_TABLES.has(table)) return true;
+  return lower.includes('barber') || lower.includes('cosmetolog') || lower.includes('beauty') || lower.includes('hair');
 }
 
 // Audits a single staged candidate against Google Maps and writes the
@@ -358,10 +374,13 @@ async function auditOne(browser, row) {
       recommendation = 'delete';
       notes.push('Could not re-confirm this as a real, single business on Google Maps after two attempts (garbage name, ad card, or no longer found).');
     } else {
-      const relevant = categoryLooksRelevant(inspection.category);
+      const relevant = categoryLooksRelevant(inspection.category, priorEvidence.table);
       if (relevant === false) {
         recommendation = 'delete';
-        notes.push(`Google lists this as "${inspection.category}" — doesn't look like a barbershop, hair salon, or beauty salon.`);
+        const label = SCHOOL_TABLES.has(priorEvidence.table)
+          ? 'doesn\'t look like a real barber or cosmetology school'
+          : 'doesn\'t look like a barbershop, hair salon, or beauty salon';
+        notes.push(`Google lists this as "${inspection.category}" — ${label}.`);
       } else if (inspection.category) {
         notes.push(`Confirmed category: "${inspection.category}".`);
       }
@@ -514,41 +533,64 @@ const limitArg = limitArgRaw ? parseInt(limitArgRaw, 10) : NaN;
 const ONE_SHOT = process.argv.includes('--once') || Number.isFinite(limitArg);
 const WATCH_POLL_MS = 20000;
 
+// A bare, unlimited `.select()` silently caps at PostgREST's default 1000
+// rows regardless of how many pending rows actually exist (confirmed live:
+// 1,352 real pending candidates, but an unlimited run() only ever saw
+// 1000). Paginate via `.range()` the same way live_backfill_agent.js's own
+// fetchAllRows already does. A caller-provided `limit` is a deliberate,
+// small spot-check cap (e.g. `node scripts/audit_staged_entities.js 5`),
+// not a bug to work around — a single `.limit()` call is correct there.
+async function fetchPendingCandidates(limit) {
+  if (Number.isFinite(limit)) {
+    const { data, error } = await supabase
+      .from('agent_directives')
+      .select('id, evidence, cleaned_evidence, times_recurred')
+      .eq('agent_name', SOURCE_AGENT)
+      .eq('status', 'pending')
+      .limit(limit);
+    if (error) {
+      console.error('Failed to fetch staged candidates:', error.message);
+      return [];
+    }
+    return data || [];
+  }
+
+  let all = [];
+  let from = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data, error } = await supabase
+      .from('agent_directives')
+      .select('id, evidence, cleaned_evidence, times_recurred')
+      .eq('agent_name', SOURCE_AGENT)
+      .eq('status', 'pending')
+      .range(from, from + pageSize - 1);
+    if (error) {
+      console.error('Failed to fetch staged candidates:', error.message);
+      break;
+    }
+    if (!data || data.length === 0) break;
+    all = all.concat(data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
 // Only candidates never audited at all — used by watch mode so a long-running
 // session doesn't keep re-checking the same already-processed backlog every
 // poll cycle. One-shot mode (below) intentionally still re-checks
 // everything pending regardless of audited status, since that's a
 // deliberate on-demand full re-check, not a continuous loop.
 async function fetchUnauditedCandidates(limit) {
-  let query = supabase
-    .from('agent_directives')
-    .select('id, evidence, cleaned_evidence, times_recurred')
-    .eq('agent_name', SOURCE_AGENT)
-    .eq('status', 'pending');
-  if (Number.isFinite(limit)) query = query.limit(limit);
-  const { data, error } = await query;
-  if (error) {
-    console.error('Failed to fetch staged candidates:', error.message);
-    return [];
-  }
+  const data = await fetchPendingCandidates(limit);
   // Falls back to the raw evidence column for rows audited before
   // cleaned_evidence existed — their audited flag is still sitting there.
-  return (data || []).filter((row) => (row.cleaned_evidence || row.evidence)?.audited !== true);
+  return data.filter((row) => (row.cleaned_evidence || row.evidence)?.audited !== true);
 }
 
 async function run() {
-  let query = supabase
-    .from('agent_directives')
-    .select('id, evidence, cleaned_evidence, times_recurred')
-    .eq('agent_name', SOURCE_AGENT)
-    .eq('status', 'pending');
-  if (Number.isFinite(limitArg)) query = query.limit(limitArg);
-  const { data: candidates, error } = await query;
-
-  if (error) {
-    console.error('Failed to fetch staged candidates:', error.message);
-    process.exit(1);
-  }
+  const candidates = await fetchPendingCandidates(limitArg);
   console.log(`Auditing ${candidates.length} staged candidate(s)...`);
 
   const summary = await auditBatch(candidates);

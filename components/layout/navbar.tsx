@@ -2,27 +2,94 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Menu, X, ArrowRight } from "lucide-react"
+import { Menu, X, ArrowRight, ChevronDown, LogOut, User as UserIcon, LayoutGrid } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { trackNavClick, trackCTAClick } from "@/lib/analytics"
+import { createBrowserClient } from "@/lib/supabase/browser"
 
 const navLinks = [
-  { label: "Live Directory", href: "/tools/barbershop-search" },
   { label: "Market Insights", href: "/insights" },
-  { label: "Shop Day", href: "/barber-beauty-network" },
+  { label: "AI Lab", href: "/ai-solutions" },
+  { label: "Membership", href: "/membership" },
   { label: "Texas Hub", href: "/texas" },
 ]
+
+interface AccountProject {
+  slug: string
+  name: string
+  href: string
+}
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [isAccountOpen, setIsAccountOpen] = useState(false)
+  const router = useRouter()
+
+  // Auth state is fetched client-side only — the navbar renders on public,
+  // unauthenticated pages far more often than authenticated ones, so this
+  // deliberately doesn't block first paint on a session check the way
+  // middleware already does for the actually-protected routes.
+  const [authChecked, setAuthChecked] = useState(false)
+  const [accountLabel, setAccountLabel] = useState<string | null>(null)
+  const [accountProjects, setAccountProjects] = useState<AccountProject[]>([])
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20)
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  useEffect(() => {
+    const supabase = createBrowserClient()
+
+    const loadAccount = async (userId: string, email: string | undefined) => {
+      const { data: profile } = await supabase
+        .from("users")
+        .select("full_name, role")
+        .eq("id", userId)
+        .maybeSingle() as any
+
+      setAccountLabel(profile?.full_name || email || "Account")
+
+      // Community members have no project associations at all — this
+      // query just comes back empty for them, which is correct (their
+      // dropdown shows their name + Log Out only, no dashboard links).
+      const role = profile?.role || ""
+      let query = supabase.from("projects").select("slug, name")
+      if (role !== "super_admin" && role !== "developer") {
+        query = query.neq("status", "archived")
+      }
+      const { data: projects } = await query as any
+      setAccountProjects(
+        (projects || []).map((p: any) => ({
+          slug: p.slug,
+          name: p.name || p.slug,
+          href: `/dashboard/${p.slug}`,
+        }))
+      )
+    }
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) loadAccount(user.id, user.email)
+      setAuthChecked(true)
+    })
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        loadAccount(session.user.id, session.user.email)
+      } else {
+        setAccountLabel(null)
+        setAccountProjects([])
+      }
+    })
+
+    return () => subscription.subscription.unsubscribe()
+  }, [])
+
+  const isAuthenticated = authChecked && !!accountLabel
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('/#')) {
@@ -37,6 +104,17 @@ export function Navbar() {
     trackNavClick(e.currentTarget.textContent || href, href);
     setIsMobileOpen(false);
   };
+
+  const handleSignOut = async () => {
+    const supabase = createBrowserClient()
+    await supabase.auth.signOut()
+    setAccountLabel(null)
+    setAccountProjects([])
+    setIsAccountOpen(false)
+    setIsMobileOpen(false)
+    router.push("/login")
+    router.refresh()
+  }
 
   return (
     <header
@@ -76,21 +154,69 @@ export function Navbar() {
         </div>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground"
-            asChild
-          >
-            <Link href="/login" onClick={(e) => handleNavClick(e, '/login')}>Login</Link>
-          </Button>
+          {isAuthenticated ? (
+            <div className="relative">
+              <button
+                onClick={() => setIsAccountOpen((v) => !v)}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
+              >
+                <UserIcon className="h-4 w-4" />
+                Account
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isAccountOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isAccountOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsAccountOpen(false)} />
+                  <div className="absolute top-full right-0 mt-2 z-20 bg-white border border-slate-200 rounded-xl shadow-lg py-2 w-64">
+                    <div className="px-4 py-2 border-b border-slate-100">
+                      <p className="text-xs font-bold text-slate-900 truncate">{accountLabel}</p>
+                    </div>
+                    {accountProjects.length > 0 && (
+                      <div className="py-1 max-h-64 overflow-y-auto">
+                        {accountProjects.map((project) => (
+                          <Link
+                            key={project.slug}
+                            href={project.href}
+                            onClick={() => setIsAccountOpen(false)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-foreground transition-colors"
+                          >
+                            <LayoutGrid className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span className="truncate">{project.name}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                    <div className="pt-1 border-t border-slate-100">
+                      <button
+                        onClick={handleSignOut}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-foreground transition-colors"
+                      >
+                        <LogOut className="h-3.5 w-3.5" />
+                        Log Out
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground"
+              asChild
+            >
+              <Link href="/login" onClick={(e) => handleNavClick(e, '/login')}>Login</Link>
+            </Button>
+          )}
           <Button
             size="sm"
             className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1 lg:gap-2 shadow-[0_0_15px_rgba(209,173,117,0.3)] transition-all hover:shadow-[0_0_25px_rgba(209,173,117,0.5)]"
             asChild
           >
-            <Link 
-              href="/tools/barbershop-search" 
+            <Link
+              href="/tools/barbershop-search"
               onClick={() => trackCTAClick({ cta_label: 'Launch ShearQuery', page: 'Navbar', destination: '/tools/barbershop-search' })}
             >
               Launch ShearQuery
@@ -121,10 +247,30 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
+
+            {isAuthenticated && (
+              <div className="mt-2 border-t border-border pt-2">
+                <p className="px-4 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  {accountLabel}
+                </p>
+                {accountProjects.map((project) => (
+                  <Link
+                    key={project.slug}
+                    href={project.href}
+                    onClick={(e) => handleNavClick(e, project.href)}
+                    className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
+                    {project.name}
+                  </Link>
+                ))}
+              </div>
+            )}
+
             <div className="mt-3 border-t border-border pt-3 flex flex-col gap-2">
               <Button className="w-full bg-primary text-primary-foreground gap-2 shadow-lg" asChild>
-                <Link 
-                  href="/tools/barbershop-search" 
+                <Link
+                  href="/tools/barbershop-search"
                   onClick={() => {
                     setIsMobileOpen(false);
                     trackCTAClick({ cta_label: 'Launch ShearQuery (Mobile)', page: 'Navbar', destination: '/tools/barbershop-search' });
@@ -134,17 +280,24 @@ export function Navbar() {
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </Button>
-              <Button variant="ghost" className="w-full text-muted-foreground" asChild>
-                <Link 
-                  href="/login" 
-                  onClick={() => {
-                    setIsMobileOpen(false);
-                    trackCTAClick({ cta_label: 'Login (Mobile)', page: 'Navbar', destination: '/login' });
-                  }}
-                >
-                  Login
-                </Link>
-              </Button>
+              {isAuthenticated ? (
+                <Button variant="ghost" className="w-full text-muted-foreground gap-2" onClick={handleSignOut}>
+                  <LogOut className="h-3.5 w-3.5" />
+                  Log Out
+                </Button>
+              ) : (
+                <Button variant="ghost" className="w-full text-muted-foreground" asChild>
+                  <Link
+                    href="/login"
+                    onClick={() => {
+                      setIsMobileOpen(false);
+                      trackCTAClick({ cta_label: 'Login (Mobile)', page: 'Navbar', destination: '/login' });
+                    }}
+                  >
+                    Login
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         </div>

@@ -23,6 +23,8 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
           '/select-portal/',
           '/api/',
           '/auth/',
+          '/admin/',
+          '/dashboard/',
           '/*.md$',
         ],
       },

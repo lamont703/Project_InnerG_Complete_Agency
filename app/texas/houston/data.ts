@@ -55,7 +55,8 @@ export interface HoustonData {
 // a single zip. Always computes the full zip breakdown from the unfiltered
 // pull (even when a zip filter is applied) so callers get both in one fetch.
 export async function getHoustonData(zip?: string): Promise<HoustonData> {
-  const [shops, barberSchools, cosmetSchools, barbers, cosmetologists, salons, barberSupply, beautySupply] = await Promise.all([
+  const today = new Date().toISOString().slice(0, 10);
+  const [shops, barberSchools, cosmetSchools, barbers, cosmetologists, salons, barberSupply, beautySupply, events] = await Promise.all([
     fetchAllRows(supabase, "agent_barbershop_leads",
       "id, slug, shop_name, city, rating, total_reviews, hiring_need, booth_count_available, rent_rate",
       (q) => q.ilike("city", HOUSTON_FILTER)),
@@ -80,6 +81,9 @@ export async function getHoustonData(zip?: string): Promise<HoustonData> {
     fetchAllRows(supabase, "agent_beauty_supply_store_leads",
       "id, slug, name, city, rating, total_reviews",
       (q) => q.ilike("city", HOUSTON_FILTER)),
+    fetchAllRows(supabase, "events",
+      "id, slug, title, event_date, category, venue_name, city",
+      (q) => q.ilike("city", HOUSTON_FILTER).gte("event_date", today)),
   ]);
 
   const zipCountMap = new Map<string, number>();
@@ -160,6 +164,25 @@ export async function getHoustonData(zip?: string): Promise<HoustonData> {
       return { key: "stores", label: "Supply Stores", color: "amber", searchTab: "Stores", count: filtered.length, items };
     })(),
   ];
+
+  // Same treatment as the generalized lib/city-hub-data.ts version: not
+  // counted toward totalEntities (an event isn't a business) and not
+  // zip-scoped (events aren't tied to one zip the way a shop is).
+  const eventsSorted = [...events].sort((a: any, b: any) => a.event_date.localeCompare(b.event_date));
+  const eventsSection: HoustonSection = {
+    key: "events",
+    label: "Upcoming Events",
+    color: "indigo",
+    searchTab: "Events",
+    count: eventsSorted.length,
+    items: eventsSorted.slice(0, 6).map((e: any) => ({
+      id: e.id,
+      name: e.title,
+      href: `/events/${e.slug}`,
+      zip: null,
+      badge: e.category || null,
+    })),
+  };
 
   const barberScoresInScope = barberSchoolsZ.filter((s) => matchesZip(s.zip) && s.school_leaderboard_score_2026 != null);
   const cosmetScoresInScope = cosmetSchoolsZ.filter((s) => matchesZip(s.zip) && s.cosmetology_school_leaderboard_score_2026 != null);
@@ -249,7 +272,7 @@ export async function getHoustonData(zip?: string): Promise<HoustonData> {
     .filter((v): v is number => v != null);
 
   return {
-    sections,
+    sections: [...sections, eventsSection],
     totalEntities: sections.reduce((sum, s) => sum + s.count, 0),
     avgSchoolScore,
     openChairs: chairsInScope,

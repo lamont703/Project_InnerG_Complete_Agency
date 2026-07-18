@@ -1,7 +1,28 @@
 import Link from "next/link";
-import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign } from "lucide-react";
+import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass, CalendarDays } from "lucide-react";
 import type { HoustonData } from "./data";
 import { EzoicAd } from "@/components/shared/ezoic-ad";
+
+// These are all real, previously-orphaned Houston-area landing pages (no
+// internal links pointed at them from anywhere in the app before this) —
+// surfaced here rather than on /texas since they're neighborhood/service
+// pages specific to this one metro, not statewide content. Keeps the same
+// "solid card = real content" convention as the qualifying-city cards on
+// /texas. Katy and Pearland moved out to their own city hub pages (see
+// components/city-hub/CityHubDirectory.tsx's CITY_SERVICE_LINKS) since
+// they're qualifying cities in their own right, not Houston sub-pages.
+const HOUSTON_SERVICE_LINKS: { href: string; label: string }[] = [
+  { href: "/east-end-houston-barbershops", label: "East End Houston Barbershops" },
+  { href: "/hair-extensions-houston", label: "Hair Extensions in Houston" },
+  { href: "/kids-haircuts-houston", label: "Kids Haircuts in Houston" },
+  { href: "/late-night-barbers-houston", label: "Late-Night Barbers in Houston" },
+  { href: "/locs-houston", label: "Locs Specialists in Houston" },
+  { href: "/precision-fade-haircuts-houston", label: "Precision Fade Haircuts in Houston" },
+  { href: "/cosmetology-schools-houston", label: "Cosmetology & Barber Schools in Houston" },
+  { href: "/barber-booth-rent-houston", label: "Barber Booth Rent in Houston" },
+  { href: "/salon-suites-for-rent-houston", label: "Salon Suites for Rent in Houston" },
+  { href: "/barbershop-apprentice-jobs-houston", label: "Barbershop Apprentice Jobs in Houston" },
+];
 
 const ZIP_SIGNAL_COLORS = {
   "Talent-Rich": "bg-green-500",
@@ -18,6 +39,7 @@ const SECTION_ICONS: Record<string, any> = {
   barberSchools: GraduationCap,
   cosmetSchools: GraduationCap,
   stores: ShoppingBag,
+  events: CalendarDays,
 };
 
 function scoreColor(score: number) {
@@ -33,6 +55,7 @@ export function HoustonDirectory({
   backHref,
   backLabel,
   zipQuerySuffix,
+  showServiceLinks,
 }: {
   data: HoustonData;
   title: string;
@@ -41,6 +64,8 @@ export function HoustonDirectory({
   backLabel: string;
   /** Appended to "View All" search links so a per-zip page's links stay scoped, e.g. " 77099". */
   zipQuerySuffix?: string;
+  /** Only the top-level /houston page shows this — repeating it on every /houston/[zip] subpage would be noise. */
+  showServiceLinks?: boolean;
 }) {
   return (
     <div className="min-h-screen bg-slate-50">
@@ -148,6 +173,30 @@ export function HoustonDirectory({
           ))}
         </div>
 
+        {/* Explore Houston Services */}
+        {showServiceLinks && (
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mt-8">
+            <div className="flex items-center gap-2 mb-1">
+              <Compass className="w-5 h-5 text-slate-700" />
+              <h2 className="text-lg font-black text-slate-900">Explore Houston Services</h2>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">
+              Neighborhood and service-specific guides across the Houston metro.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {HOUSTON_SERVICE_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 transition-colors p-4 block"
+                >
+                  <p className="font-bold text-slate-900 text-sm">{link.label}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Browse by Zip Code */}
         {data.zipCounts.length > 0 && (
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mt-8">
@@ -172,7 +221,7 @@ export function HoustonDirectory({
                 return (
                   <Link
                     key={z.zip}
-                    href={`/houston/${z.zip}`}
+                    href={`/texas/houston/${z.zip}`}
                     title={title}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-colors text-sm font-bold text-slate-700"
                   >

@@ -11,7 +11,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const { zip } = await props.params;
   const title = `Houston ${zip} Barber & Cosmetology Directory | Inner G Complete`;
   const description = `Barbershops, salons, licensed pros, and barber/cosmetology schools in the Houston ${zip} zip code — including real 2026 Texas licensing exam pass rates, not available on Google.`;
-  const canonicalUrl = `https://agency.innergcomplete.com/houston/${zip}`;
+  const canonicalUrl = `https://agency.innergcomplete.com/texas/houston/${zip}`;
   return {
     title,
     description,
@@ -35,7 +35,7 @@ export default async function HoustonZipPage(props: Props) {
       data={data}
       title={`Houston ${zip} Directory`}
       subtitle={`${data.totalEntities.toLocaleString()} barbershops, salons, schools, and licensed professionals in the ${zip} zip code.`}
-      backHref="/houston"
+      backHref="/texas/houston"
       backLabel="← Back to Houston"
       zipQuerySuffix={` ${zip}`}
     />

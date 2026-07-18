@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { headers } from 'next/headers'
+import { unstable_cache } from 'next/cache'
 import fs from 'fs'
 import path from 'path'
 import { createClient } from '@supabase/supabase-js'
@@ -39,6 +40,86 @@ function getRoutes(dir: string, baseRoute: string = ''): string[] {
   return routes
 }
 
+// The expensive part of this route — a filesystem walk plus 9 full-table
+// Supabase scans (barbershops, both school tables, barbers, both supply
+// store tables, salons, cosmetologists, events) plus the qualifying-cities
+// and per-city zip lookups — was re-run on literally every request because
+// the whole route was `force-dynamic`, including every Googlebot sitemap
+// fetch. That's the real crawl-budget cost here (not sitemap file size,
+// which is nowhere near the 50k/50MB split threshold). Splitting the fetch
+// out into unstable_cache means it only actually re-queries once per
+// revalidate window; `baseUrl` (which varies by which of this site's
+// domains made the request — see the Host-header read below) stays outside
+// the cache entirely so a cached fetch never bakes in the wrong domain's
+// hostname for a different domain's sitemap request.
+const getCachedSitemapData = unstable_cache(
+  async () => {
+    const appDir = path.join(process.cwd(), 'app')
+    const rawRoutes = getRoutes(appDir)
+    const uniqueRoutes = Array.from(new Set(rawRoutes))
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: shops } = await supabase
+      .from('agent_barbershop_leads')
+      .select('chair_pricing_tool_url, updated_at')
+      .ilike('city', '%houston%')
+      .not('chair_pricing_tool_url', 'is', null);
+
+    const qualifyingCities = await getQualifyingCities(supabase);
+    const nonBespokeQualifying = qualifyingCities.filter((c) => c.qualifies && !BESPOKE_CITY_ROUTES[c.slug]);
+
+    const cityZipResults = await Promise.all(
+      nonBespokeQualifying.map(async (c) => ({
+        slug: c.slug,
+        zips: await getCityZipCodes(c.city),
+      }))
+    );
+
+    const [
+      allShops,
+      barberSchools,
+      cosmetologySchools,
+      allBarbers,
+      barberSupplyStores,
+      beautySupplyStores,
+      allSalons,
+      allCosmetologists,
+      allEvents,
+    ] = await Promise.all([
+      fetchAllRows(supabase, 'agent_barbershop_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_barber_school_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_cosmetology_school_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_barber_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_barber_supply_store_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_beauty_supply_store_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_salon_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_cosmetologist_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'events', 'slug, updated_at'),
+    ]);
+
+    return {
+      uniqueRoutes,
+      shops: shops || [],
+      nonBespokeQualifying,
+      cityZipResults,
+      allShops,
+      barberSchools,
+      cosmetologySchools,
+      allBarbers,
+      barberSupplyStores,
+      beautySupplyStores,
+      allSalons,
+      allCosmetologists,
+      allEvents,
+    };
+  },
+  ['sitemap-data'],
+  { revalidate: 3600 }
+);
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const headersList = await headers()
   const host = headersList.get('host')
@@ -46,11 +127,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = `${protocol}://${host || 'agency.innergcomplete.com'}`
 
   try {
-    const appDir = path.join(process.cwd(), 'app')
-    const rawRoutes = getRoutes(appDir)
-    
-    // Deduplicate and filter out redundant trailing slashes
-    const uniqueRoutes = Array.from(new Set(rawRoutes))
+    const {
+      uniqueRoutes,
+      shops,
+      nonBespokeQualifying,
+      cityZipResults,
+      allShops,
+      barberSchools,
+      cosmetologySchools,
+      allBarbers,
+      barberSupplyStores,
+      beautySupplyStores,
+      allSalons,
+      allCosmetologists,
+      allEvents,
+    } = await getCachedSitemapData();
 
     const staticSitemap = uniqueRoutes.map((route) => {
       // Dynamic SEO Prioritization Algorithm based on directory depth
@@ -77,17 +168,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     });
 
-    // Programmatic SEO: Fetch all Houston shops to generate Dynamic Market Analysis URLs
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    const { data: shops } = await supabase
-      .from('agent_barbershop_leads')
-      .select('chair_pricing_tool_url, updated_at')
-      .ilike('city', '%houston%')
-      .not('chair_pricing_tool_url', 'is', null);
-
+    // Programmatic SEO: Houston shops' Dynamic Market Analysis URLs (data now sourced from the cached bundle above)
     const dynamicSitemap = (shops || []).map((shop: any) => {
       // Extract the slug from the URL
       let slug = "";
@@ -101,7 +182,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
 
       return {
-        url: `${baseUrl}/houston/insights/market-analysis/${slug}`,
+        url: `${baseUrl}/texas/houston/insights/market-analysis/${slug}`,
         lastModified: shop.updated_at ? new Date(shop.updated_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.85,
@@ -112,60 +193,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // folders entirely (see getRoutes), so /texas's own /[city] and
     // /[city]/[zip] children never show up on their own — same manual
     // pattern as the Houston market-analysis block above, generalized to
-    // every qualifying city.
-    const qualifyingCities = await getQualifyingCities(supabase);
-    const nonBespokeQualifying = qualifyingCities.filter((c) => c.qualifies && !BESPOKE_CITY_ROUTES[c.slug]);
-
-    const cityHubSitemap = nonBespokeQualifying.map((c) => ({
-      url: `${baseUrl}/${c.slug}`,
+    // every qualifying city. (Data now sourced from the cached bundle above.)
+    const cityHubSitemap = nonBespokeQualifying.map((c: any) => ({
+      url: `${baseUrl}/texas/${c.slug}`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.75,
     }));
 
-    const cityZipResults = await Promise.all(
-      nonBespokeQualifying.map(async (c) => ({
-        slug: c.slug,
-        zips: await getCityZipCodes(c.city),
-      }))
-    );
-    const cityZipSitemap = cityZipResults.flatMap(({ slug, zips }) =>
-      zips.map((zip) => ({
-        url: `${baseUrl}/${slug}/${zip}`,
+    const cityZipSitemap = cityZipResults.flatMap(({ slug, zips }: any) =>
+      zips.map((zip: string) => ({
+        url: `${baseUrl}/texas/${slug}/${zip}`,
         lastModified: new Date(),
         changeFrequency: 'monthly' as const,
         priority: 0.6,
       }))
     );
 
-    // Programmatic SEO: Generate URLs for every profile page across all 7
-    // entity families. PostgREST caps a single request at 1000 rows
-    // (supabase/config.toml max_rows) regardless of .limit() — barbers,
-    // shops, and salons all exceed that, so fetchAllRows pages through with
-    // .range() until a page comes back short, the same helper already used
-    // by scripts/lib/shop-ecosystem.ts to avoid silently truncating results.
-    const [
-      allShops,
-      barberSchools,
-      cosmetologySchools,
-      allBarbers,
-      barberSupplyStores,
-      beautySupplyStores,
-      allSalons,
-      allCosmetologists,
-      allEvents,
-    ] = await Promise.all([
-      fetchAllRows(supabase, 'agent_barbershop_leads', 'slug, updated_at'),
-      fetchAllRows(supabase, 'agent_barber_school_leads', 'slug, updated_at'),
-      fetchAllRows(supabase, 'agent_cosmetology_school_leads', 'slug, updated_at'),
-      fetchAllRows(supabase, 'agent_barber_leads', 'slug, updated_at'),
-      fetchAllRows(supabase, 'agent_barber_supply_store_leads', 'slug, updated_at'),
-      fetchAllRows(supabase, 'agent_beauty_supply_store_leads', 'slug, updated_at'),
-      fetchAllRows(supabase, 'agent_salon_leads', 'slug, updated_at'),
-      fetchAllRows(supabase, 'agent_cosmetologist_leads', 'slug, updated_at'),
-      fetchAllRows(supabase, 'events', 'slug, updated_at'),
-    ]);
-
+    // Programmatic SEO: URLs for every profile page across all 7 entity
+    // families (data now sourced from the cached bundle above — see
+    // fetchAllRows's own comment there for why PostgREST's 1000-row cap
+    // needs the pagination helper in the first place).
     // lastModified reflects each row's real updated_at (not the moment the
     // sitemap happens to regenerate) — otherwise every URL claims to have
     // "just changed" on every request, giving Google no signal for which

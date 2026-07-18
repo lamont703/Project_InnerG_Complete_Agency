@@ -1,7 +1,20 @@
 import Link from "next/link";
-import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign } from "lucide-react";
+import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass } from "lucide-react";
 import type { TexasHubData } from "@/lib/texas-hub-data";
 import { EzoicAd } from "@/components/shared/ezoic-ad";
+import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
+
+// Genuinely statewide resources — unlike the Houston-area service pages
+// (which live on /houston's own "Explore Houston Services" section instead,
+// since they're metro-specific, not statewide), these aren't tied to one city.
+const TEXAS_STATEWIDE_LINKS: { href: string; label: string }[] = [
+  { href: "/texas-school-leaderboard", label: "Texas School Leaderboard" },
+  { href: "/texas-barber-exam-intelligence-prep", label: "Texas Barber Exam Prep" },
+  { href: "/texas-cosmetology-exam-intelligence-prep", label: "Texas Cosmetology Exam Prep" },
+  { href: "/barber-cos-continuing-education", label: "Continuing Education Portal" },
+  { href: "/how-to-get-a-barber-license-in-texas", label: "How to Get a Barber License in Texas" },
+];
 
 const SECTION_ICONS: Record<string, any> = {
   shops: Scissors,
@@ -42,8 +55,9 @@ export function TexasHubDirectory({
   const otherCities = data.cities.filter((c) => !c.qualifies);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+    <div className="min-h-screen bg-slate-50 light flex flex-col">
+      <Navbar />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-12 flex-1 w-full">
         <EzoicAd className="mb-8" />
 
         <div className="text-center max-w-2xl mx-auto mb-4">
@@ -188,12 +202,35 @@ export function TexasHubDirectory({
           ))}
         </div>
 
+        {/* Statewide Resources */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mt-8">
+          <div className="flex items-center gap-2 mb-1">
+            <Compass className="w-5 h-5 text-slate-700" />
+            <h2 className="text-lg font-black text-slate-900">Statewide Resources</h2>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            Tools and guides that apply across Texas, not just one city.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {TEXAS_STATEWIDE_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 transition-colors p-4 block"
+              >
+                <p className="font-bold text-slate-900 text-sm">{link.label}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+
         <div className="text-center mt-10">
           <Link href={backHref} className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors">
             {backLabel}
           </Link>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -8,6 +8,8 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useSearchParams } from "next/navigation";
 import { AiOverviewSnippet } from "@/components/shared/ai-overview-snippet";
+import { Navbar } from "@/components/layout/navbar";
+import { toast } from "sonner";
 
 interface EmploymentMatchForVerification {
   professionalType: string;
@@ -18,7 +20,7 @@ interface EmploymentMatchForVerification {
   verificationRequestedAt: string | null;
 }
 
-const ALL_TABS = ['AI Mode', 'All', 'Schools', 'Salons', 'Barbershops', 'Barbers', 'Cosmetologist', 'Events', 'Stores', 'Articles', 'Videos', 'Images', 'Tools'];
+const ALL_TABS = ['AI Mode', 'All', 'Schools', 'Salons', 'Barbershops', 'Barbers', 'Cosmetologist', 'Members', 'Events', 'Stores', 'Articles', 'Videos', 'Images', 'Tools'];
 const PRIMARY_MOBILE_TABS = ['AI Mode', 'All'];
 
 // Each tab surfaces the facets that matter for that entity type. The All
@@ -139,6 +141,20 @@ function SearchContent() {
   useEffect(() => {
     setTheme("light");
   }, [setTheme]);
+
+  // Landing spot for a fresh community-membership signup (see
+  // /membership and /api/auth/provision) — a query param rather than
+  // component state since the redirect here is a full navigation from an
+  // API route, not a client-side transition.
+  useEffect(() => {
+    if (searchParams.get("welcome") === "1") {
+      toast.success("Welcome to the community! You're now discoverable in ShearQuery search.");
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("welcome");
+      window.history.replaceState(null, '', params.toString() ? `?${params.toString()}` : window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
@@ -576,8 +592,9 @@ function SearchContent() {
 
   return (
     <div className="min-h-dvh flex flex-col light bg-slate-50 text-slate-900 selection:bg-blue-500/20">
-      
-      <main className={`flex-1 flex flex-col items-center px-4 sm:px-6 lg:px-8 w-full transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${results.length > 0 || query.trim().length > 0 ? 'justify-start pt-8 sm:pt-16' : 'justify-center py-8 pb-8 sm:pb-32'}`}>
+      <Navbar />
+
+      <main className={`flex-1 flex flex-col items-center px-4 sm:px-6 lg:px-8 w-full transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${results.length > 0 || query.trim().length > 0 ? 'justify-start pt-28 sm:pt-36' : 'justify-center py-8 pt-28 pb-8 sm:pb-32'}`}>
         
         {/* Search Header Area */}
         <div className={`w-full transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${results.length > 0 || query.trim().length > 0 ? 'max-w-4xl' : 'max-w-3xl'}`}>
@@ -1323,6 +1340,32 @@ function SearchContent() {
                     {/* Details Snippet */}
                     <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
                       {item.description || `Barber/beauty industry event${item.city ? ` in ${item.city}` : ''}.`}
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+
+            if (item.resultType === 'member') {
+              const joinedLabel = item.created_at
+                ? new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                : null;
+              return (
+                <div key={`member-${item.id}`} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative group/webcard">
+                  <div className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-blue-50 border border-blue-100 flex items-center justify-center">
+                    <Users className="h-8 w-8 text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="flex items-center gap-1.5 text-xs sm:text-[13px] text-slate-700 mb-1 truncate">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-wide">
+                        Community Member
+                      </span>
+                    </div>
+                    <p className="text-[17px] sm:text-[20px] font-medium text-slate-900 leading-tight mb-0.5 truncate">
+                      {item.first_name} {item.last_name}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {joinedLabel ? `Member since ${joinedLabel}` : "ShearQuery community member"}
                     </p>
                   </div>
                 </div>

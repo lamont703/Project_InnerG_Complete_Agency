@@ -20,19 +20,28 @@ export async function GET(request: Request) {
 
         const role = profile?.role || "";
 
-        // 2. Logic: Super Admins & Developers go to Agency Global
+        // 2. Logic: Community members (free ShearQuery search-visibility
+        // tier) have no business dashboard at all, so they always land on
+        // the search tool itself rather than the staff/business
+        // dashboard-selection logic below.
+        if (role === 'community_member') {
+            console.log(`[AuthProvision] Community member detected. Redirecting to ShearQuery.`);
+            return NextResponse.redirect(new URL("/tools/barbershop-search?welcome=1", request.url));
+        }
+
+        // 3. Logic: Super Admins & Developers go to Agency Global
         if (role === 'super_admin' || role === 'developer') {
             console.log(`[AuthProvision] Admin/Dev detected. Redirecting to Agency Global.`);
             return NextResponse.redirect(new URL("/dashboard/agency-global", request.url));
         }
 
-        // 3. Logic: Check Project Associations
+        // 4. Logic: Check Project Associations
         const { data: projects } = await supabase
             .from("projects")
             .select("slug")
             .neq("status", "archived") as any;
 
-        // 4. Determine Destination
+        // 5. Determine Destination
         if (projects && projects.length === 1) {
             console.log(`[AuthProvision] Single architecture found. Redirecting to: ${projects[0].slug}`);
             return NextResponse.redirect(new URL(`/dashboard/${projects[0].slug}`, request.url));
@@ -41,7 +50,7 @@ export async function GET(request: Request) {
             return NextResponse.redirect(new URL("/select-portal", request.url));
         }
 
-        // 5. Default Fallback
+        // 6. Default Fallback
         return NextResponse.redirect(new URL("/dashboard/agency-global", request.url));
 
     } catch (error) {
