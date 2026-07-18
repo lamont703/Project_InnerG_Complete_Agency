@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign } from "lucide-react";
 import type { TexasHubData } from "@/lib/texas-hub-data";
 import { EzoicAd } from "@/components/shared/ezoic-ad";
+import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
 
 const SECTION_ICONS: Record<string, any> = {
   shops: Scissors,
@@ -42,8 +44,9 @@ export function TexasHubDirectory({
   const otherCities = data.cities.filter((c) => !c.qualifies);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+    <div className="min-h-screen bg-slate-50 light flex flex-col">
+      <Navbar />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-12 flex-1 w-full">
         <EzoicAd className="mb-8" />
 
         <div className="text-center max-w-2xl mx-auto mb-4">
@@ -194,6 +197,7 @@ export function TexasHubDirectory({
           </Link>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

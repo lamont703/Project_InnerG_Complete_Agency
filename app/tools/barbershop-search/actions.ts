@@ -597,6 +597,27 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       return matches;
     }
 
+    // 2.99 Community Member Results — the free membership tier's whole
+    // value proposition is showing up here. Deliberately no filters (the
+    // signup form only collects name/phone/email, nothing to facet on
+    // yet).
+    async function fetchMemberMatches(): Promise<any[]> {
+      if (!(filterTab === 'All' || filterTab === 'Members')) return [];
+
+      const memberLimBase = filterTab === 'All' ? ALL_TAB_POOL : ITEMS_PER_PAGE;
+      const { data: memberRes, error: memberErr } = await supabase.rpc('search_community_members_ranked', {
+        query_text: cleanQuery.length >= 2 ? cleanQuery : '',
+        query_embedding: null,
+        limit_val: memberLimBase,
+        offset_val: filterTab === 'All' ? 0 : fromIndex
+      });
+
+      if (!memberErr && memberRes) {
+        return memberRes.map((m: any) => ({ ...m, resultType: 'member' }));
+      }
+      return [];
+    }
+
     // 3. Shop Results
     const activeRentThresholds = Object.keys(RENT_THRESHOLDS).filter((f) => activeFilters.includes(f)).map((f) => RENT_THRESHOLDS[f]);
     // Most restrictive wins if more than one is somehow active at once
@@ -668,6 +689,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       salonMatches,
       cosmetologistMatches,
       eventMatches,
+      memberMatches,
       shopResults,
     ] = await Promise.all([
       fetchInternalMatches(),
@@ -678,6 +700,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       fetchSalonMatches(),
       fetchCosmetologistMatches(),
       fetchEventMatches(),
+      fetchMemberMatches(),
       fetchShopResults(),
     ]);
 
@@ -704,6 +727,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
         ...schoolMatches,
         ...storeMatches,
         ...eventMatches,
+        ...memberMatches,
         ...webMatches,
         ...internalMatches,
       ];
@@ -747,6 +771,9 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       } else if (filterTab === 'Events') {
          totalResults = (eventMatches.length > 0 && eventMatches[0].total_matched) ? Number(eventMatches[0].total_matched) : eventMatches.length;
          pageResults = eventMatches;
+      } else if (filterTab === 'Members') {
+         totalResults = (memberMatches.length > 0 && memberMatches[0].total_matched) ? Number(memberMatches[0].total_matched) : memberMatches.length;
+         pageResults = memberMatches;
       }
     }
 
