@@ -202,6 +202,16 @@ const nextConfig = {
         destination: "/schools/paul-mitchell-the-school-clear-lake-webster-6b97ba1d",
         permanent: true,
       },
+      // Real production 404 (pixel analytics): dedup-cleanup casualty, same
+      // pattern as the other schools redirects above — the dead slug's
+      // double "houston houston" and different id suffix indicate a
+      // duplicate row that got removed; "Milan Institute" (Houston) exists
+      // today under a different id.
+      {
+        source: "/schools/milan-institute-houston-houston-2b129599",
+        destination: "/schools/milan-institute-houston-54167a2d",
+        permanent: true,
+      },
       // --- Nonexistent route redirects ---
       // /tools/barber-schools was never a real route; redirect to the
       // main search tool where users can filter by schools.
