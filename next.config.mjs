@@ -165,6 +165,47 @@ const nextConfig = {
         destination: "https://srv.adstxtmanager.com/19390/innergcomplete.com",
         permanent: true,
       },
+      // --- Deduplicated / deleted entity redirects ---
+      // These pages were indexed by Google before deduplication removed
+      // their underlying database rows. Each one redirects to the
+      // surviving counterpart so organic traffic and ranking signal are
+      // preserved instead of 404ing.
+      {
+        source: "/stores/beauty-pop-houston-77095-05bff1bf",
+        destination: "/stores/beauty-pop-san-antonio-e75f251c",
+        permanent: true,
+      },
+      {
+        source: "/schools/lamar-state-college-port-arthur-port-arthur-54b91944",
+        destination: "/schools/lamar-state-college-port-arthur-beaumont-6e0856e8",
+        permanent: true,
+      },
+      {
+        source: "/schools/vietnamese-american-beauty-college-austin-163d527a",
+        destination: "/schools/vietnamese-american-beauty-college-pflugerville-e1ea625a",
+        permanent: true,
+      },
+      {
+        source: "/schools/colour-beauty-school-katy-b752a038",
+        destination: "/schools/colour-beauty-school-houston-bd9ab3b1",
+        permanent: true,
+      },
+      // --- Nonexistent route redirects ---
+      // /tools/barber-schools was never a real route; redirect to the
+      // main search tool where users can filter by schools.
+      {
+        source: "/tools/barber-schools",
+        destination: "/tools/barbershop-search",
+        permanent: true,
+      },
+      // --- Malformed double-URL redirect ---
+      // A bug in an external app concatenated the URL twice. Catch the
+      // malformed path and send users to the real page.
+      {
+        source: "/shop-day-matcheshttps\\:/agency.innergcomplete.com/shop-day-matches",
+        destination: "/shop-day-matches",
+        permanent: true,
+      },
     ]
   },
 }
