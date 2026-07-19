@@ -14,10 +14,8 @@ const TEXAS_STATEWIDE_LINKS: { href: string; label: string }[] = [
   { href: "/texas-cosmetology-exam-intelligence-prep", label: "Texas Cosmetology Exam Prep" },
   { href: "/barber-cos-continuing-education", label: "Continuing Education Portal" },
   { href: "/how-to-get-a-barber-license-in-texas", label: "How to Get a Barber License in Texas" },
-  { href: "/insights/texas-barber-cosmetology-license-requirements", label: "Texas Barber & Cosmetology License Requirements" },
   { href: "/texas-barber-practical-exam-kit-list", label: "Texas Barber Practical Exam Kit List" },
   { href: "/texas-cosmetology-practical-exam-kit-list", label: "Texas Cosmetology Practical Exam Kit List" },
-  { href: "/insights/texas-esthetician-nail-technician-exam-guide", label: "Esthetician & Nail Technician Exam Guide" },
 ];
 
 const SECTION_ICONS: Record<string, any> = {
