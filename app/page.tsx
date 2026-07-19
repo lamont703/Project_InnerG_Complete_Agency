@@ -19,11 +19,11 @@ export default function Home() {
   const { setTheme } = useTheme();
 
   useEffect(() => {
-    setTheme("dark");
+    setTheme("light");
   }, [setTheme]);
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen light bg-slate-50 text-slate-900">
       <Navbar />
       <HeroSection />
       {/* 
