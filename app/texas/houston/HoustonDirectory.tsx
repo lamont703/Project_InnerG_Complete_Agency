@@ -12,6 +12,8 @@ import { EzoicAd } from "@/components/shared/ezoic-ad";
 // components/city-hub/CityHubDirectory.tsx's CITY_SERVICE_LINKS) since
 // they're qualifying cities in their own right, not Houston sub-pages.
 const HOUSTON_SERVICE_LINKS: { href: string; label: string }[] = [
+  { href: "/best-barbershops-in-houston", label: "Best Barbershops in Houston" },
+  { href: "/best-salons-in-houston", label: "Best-Rated Salons in Houston" },
   { href: "/east-end-houston-barbershops", label: "East End Houston Barbershops" },
   { href: "/hair-extensions-houston", label: "Hair Extensions in Houston" },
   { href: "/kids-haircuts-houston", label: "Kids Haircuts in Houston" },
