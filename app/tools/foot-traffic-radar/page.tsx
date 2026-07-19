@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js"
 import Link from "next/link"
 import { Radar, MapPin, Building2 } from "lucide-react"
 import BackButton from "./BackButton"
+import { Navbar } from "@/components/layout/navbar"
 
 export const revalidate = 0; // Dynamic route
 
@@ -34,7 +35,8 @@ export default async function FootTrafficRadarDirectory({ searchParams }: { sear
 
   return (
     <div className="min-h-screen bg-secondary/20">
-      <div className="mx-auto max-w-7xl px-6 py-12 lg:py-24">
+      <Navbar />
+      <div className="mx-auto max-w-7xl px-6 pt-28 pb-12 lg:pb-24">
         
         {/* Navigation / Header */}
         <div className="mb-12">

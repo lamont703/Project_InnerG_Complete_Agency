@@ -8,6 +8,7 @@ import {
   ListChecks,
   ExternalLink,
 } from "lucide-react";
+import { Navbar } from "@/components/layout/navbar";
 
 export const metadata = {
   title: "Texas Cosmetology Practical Exam Kit List (2026) | Inner G Complete",
@@ -148,8 +149,9 @@ const RULES = [
 
 export default function CosmetologyPracticalExamKitListPage() {
   return (
-    <div className="min-h-screen bg-white text-slate-950">
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+    <div className="min-h-screen light bg-white text-slate-950">
+      <Navbar />
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-28 pb-10 sm:pb-14">
         <Link
           href="/texas-cosmetology-exam-intelligence-prep"
           className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-primary hover:underline mb-6"

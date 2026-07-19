@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { toast } from "sonner"
 import { joinCosmetologyPrepWaitlist } from "./actions"
+import { Navbar } from "@/components/layout/navbar"
 import {
   trackExamSessionStart,
   trackExamAnswerSubmitted,
@@ -288,9 +289,10 @@ export default function CosmetologyPracticeDeckPage() {
 
   return (
     <main className="min-h-screen bg-white light text-slate-950 flex flex-col selection:bg-primary/20">
+      <Navbar />
       <div className="flex-1 flex flex-col p-4 lg:p-8 overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-b from-slate-50 to-white pointer-events-none" />
-        <div className="max-w-2xl mx-auto w-full h-full flex flex-col pt-8 lg:pt-12 relative z-10">
+        <div className="max-w-2xl mx-auto w-full h-full flex flex-col pt-24 lg:pt-24 relative z-10">
 
           {/* Header Stats */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 px-2 gap-4">

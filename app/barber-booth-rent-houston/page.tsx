@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MapPin, DollarSign, Star, Loader2, Users, Search, Scissors, ArrowRight } from "lucide-react";
 import { fetchBoothRentListings, fetchNeighborhoodRentSummary, type BoothRentListing, type ZipRentSummary } from "./actions";
 import { EzoicAd } from "@/components/shared/ezoic-ad";
+import { Navbar } from "@/components/layout/navbar";
 
 const FAQS = [
   {
@@ -52,8 +53,9 @@ export default function BarberBoothRentHoustonPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+    <div className="min-h-screen light bg-slate-50">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-28 pb-10 sm:pb-16">
         <EzoicAd className="mb-8" />
 
         <div className="text-center mb-10">

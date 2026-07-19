@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarDays, MapPin, Compass } from "lucide-react";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
+import { Navbar } from "@/components/layout/navbar";
 
 export const revalidate = 3600;
 
@@ -50,8 +51,9 @@ export default async function EventsIndexPage() {
   const sortedCities = [...cityGroups.entries()].sort((a, b) => b[1].length - a[1].length);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+    <div className="min-h-screen light bg-slate-50">
+      <Navbar />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-28 pb-6">
         <DynamicBackButton fallbackHref="/" />
 
         <div className="text-center mb-10 mt-4">
