@@ -65,6 +65,13 @@ export const COSMETOLOGIST_PUBLIC_COLUMNS = [
   "school_district_name",
 ];
 
+// Mirrors SHOP_PUBLIC_COLUMNS' field set (the underlying agent_salon_leads
+// table already has these columns — same schema as agent_barbershop_leads,
+// see supabase/migrations/20260704120000_create_agent_salon_leads.sql —
+// they're just mostly NULL for salons until a future backfill populates
+// them). Selecting them now means the salon profile page's booth-rent/
+// hiring UI (shared with shop pages) lights up automatically once that
+// data lands, with no further code changes needed.
 export const SALON_PUBLIC_COLUMNS = [
   "id",
   "slug",
@@ -72,6 +79,8 @@ export const SALON_PUBLIC_COLUMNS = [
   "formatted_address",
   "city",
   "phone",
+  "email",
+  "owner_name",
   "website",
   "latitude",
   "longitude",
@@ -79,6 +88,12 @@ export const SALON_PUBLIC_COLUMNS = [
   "total_reviews",
   "place_types",
   "business_status",
+  "hiring_need",
+  "rent_type",
+  "rent_rate",
+  "booth_count_available",
+  "specialty_desired",
+  "shop_image_url",
   "google_images",
   "site_config",
   "school_district_name",
