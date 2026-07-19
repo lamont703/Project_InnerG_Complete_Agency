@@ -21,7 +21,7 @@ import {
   ListChecks,
 } from "lucide-react"
 import Link from "next/link"
-
+import Image from "next/image"
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
 }
@@ -72,13 +72,13 @@ export const metadata = {
       "How the Texas esthetician and manicurist licensing exams actually work — written and practical format, PSI as the exam vendor, and how these licenses differ from cosmetology. Sourced directly from TDLR.",
     url: "https://agency.innergcomplete.com/insights/texas-esthetician-nail-technician-exam-guide",
     type: "article",
-    images: [{ url: "/texas_barber_licensing_requirements_cover.webp", width: 1400, height: 600, alt: "Texas Esthetician & Nail Technician Exam Guide" }],
+    images: [{ url: "/images/esthetician_nail_tech_exam_cover.webp", width: 1400, height: 600, alt: "Texas Esthetician & Nail Technician Exam Guide" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Texas Esthetician & Nail Technician Exam Guide (2026)",
     description: "Written + practical exam format for Texas esthetician and manicurist licenses, sourced directly from TDLR.",
-    images: ["/texas_barber_licensing_requirements_cover.webp"],
+    images: ["/images/esthetician_nail_tech_exam_cover.webp"],
   },
   alternates: { canonical: "https://agency.innergcomplete.com/insights/texas-esthetician-nail-technician-exam-guide" },
 }
@@ -188,6 +188,17 @@ export default function EstheticianNailTechExamGuide() {
         </header>
 
         <div className="mx-auto max-w-4xl px-6 py-16 space-y-16">
+          {/* Article Cover Image */}
+          <div className="relative w-full aspect-video rounded-3xl overflow-hidden border border-border/50 shadow-2xl">
+            <Image
+              src="/images/esthetician_nail_tech_exam_cover.webp"
+              alt="Clean, professional esthetician and nail technician setup for a practical exam"
+              fill
+              className="object-cover"
+              priority
+            />
+          </div>
+
           {/* Esthetician Exam */}
           <section>
             <div className="flex items-center gap-3 mb-6">
