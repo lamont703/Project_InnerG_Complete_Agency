@@ -106,13 +106,51 @@ async function getLeaderboardData() {
 export const metadata: Metadata = {
   title: "Texas Barber & Cosmetology School Leaderboard (2026) — Inner G Complete",
   description: "Compare Texas barber and cosmetology schools by real 2026 Class A licensing exam outcomes — pass rates, first-attempt success, and retest burden. Data not available on Google.",
+  keywords: [
+    "texas barber school leaderboard",
+    "best barber schools in texas",
+    "best cosmetology schools in texas",
+    "texas barber school pass rates",
+    "texas cosmetology school pass rates",
+    "compare barber schools texas",
+  ],
+  openGraph: {
+    title: "Texas Barber & Cosmetology School Leaderboard (2026)",
+    description: "Compare Texas barber and cosmetology schools by real 2026 Class A licensing exam outcomes — data not available on Google.",
+    url: "https://agency.innergcomplete.com/texas-school-leaderboard",
+    type: "website",
+  },
+  alternates: { canonical: "https://agency.innergcomplete.com/texas-school-leaderboard" },
 };
 
 export default async function SchoolLeaderboardPage() {
   const { barber, cosmetology } = await getLeaderboardData();
 
+  // Real top-ranked schools already fetched above — ItemList only needs a
+  // representative top slice per schema.org convention, not every row.
+  const topRanked = [...barber, ...cosmetology]
+    .filter((s) => s.school_leaderboard_score_2026 != null)
+    .sort((a, b) => (b.school_leaderboard_score_2026 || 0) - (a.school_leaderboard_score_2026 || 0))
+    .slice(0, 10);
+  const leaderboardJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Texas Barber & Cosmetology School Leaderboard",
+    itemListElement: topRanked.map((s, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      item: {
+        "@type": "EducationalOrganization",
+        name: s.school_name,
+        url: `https://agency.innergcomplete.com/schools/${s.slug}`,
+        ...(s.city ? { address: { "@type": "PostalAddress", addressLocality: s.city, addressRegion: "TX" } } : {}),
+      },
+    })),
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(leaderboardJsonLd) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
         <EzoicAd className="mb-8" />
 

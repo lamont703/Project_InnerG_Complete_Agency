@@ -101,6 +101,8 @@ function buildSalonJsonLd(salon: any, websiteHref: string | null) {
       "@type": "AggregateRating",
       ratingValue: Number(salon.rating),
       reviewCount: Number(salon.total_reviews),
+      bestRating: 5,
+      worstRating: 1,
     };
   }
   const heroImg = Array.isArray(salon.google_images) ? salon.google_images[0] : null;

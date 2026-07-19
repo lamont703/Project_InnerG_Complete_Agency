@@ -109,6 +109,7 @@ export const metadata = {
     "texas cosmetology license renewal",
     "texas barber license renewal",
     "tdlr cosmetology license renewal",
+    "tdlr cosmetology",
     "cosmetology license requirements texas",
     "Texas cosmetology license reciprocity",
     "Texas barber license renewal fee",
@@ -593,7 +594,13 @@ export default function LicenseRequirementsGuide() {
               </div>
               <p>
                 If your goal is strictly skincare and waxing rather than hair services, the esthetician path is
-                the shorter, more specialized route — not a subset of the cosmetology license.
+                the shorter, more specialized route — not a subset of the cosmetology license. For exam format and
+                what's actually tested on the esthetician exam (plus the manicurist/nail technician license, a
+                third separate path), see our{" "}
+                <Link href="/insights/texas-esthetician-nail-technician-exam-guide" className="text-primary font-bold hover:underline">
+                  Esthetician &amp; Nail Technician Exam Guide
+                </Link>
+                .
               </p>
             </div>
           </section>

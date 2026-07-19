@@ -56,6 +56,8 @@ export const metadata = {
     "booth rental insurance",
     "TDLR mini-establishment",
     "salon booth rental requirements texas",
+    "tdlr mini salon license",
+    "tdlr salon license",
   ],
   openGraph: {
     title: "Booth Rental Requirements in Texas (2026)",
@@ -206,9 +208,11 @@ export default function BoothRentalRequirementsGuide() {
             </div>
             <div className="prose prose-lg max-w-none text-muted-foreground font-medium leading-relaxed space-y-4">
               <p>
-                Texas formalized booth rental into its own license type: the Mini-Establishment — a room or suite,
-                leased or rented, inside a licensed barbering or cosmetology establishment, operated independently
-                from the main "gallery-establishment" and any other Mini-Establishment in the same building.
+                Texas formalized booth rental into its own license type: the Mini-Establishment — sometimes called
+                a "mini salon license" or "salon license" in casual conversation, though Mini-Establishment is
+                TDLR's actual term. It's a room or suite, leased or rented, inside a licensed barbering or
+                cosmetology establishment, operated independently from the main "gallery-establishment" and any
+                other Mini-Establishment in the same building.
                 <Cite id={1} />
               </p>
               <p>

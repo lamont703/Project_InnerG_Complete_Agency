@@ -117,6 +117,8 @@ function buildStoreJsonLd(store: any, websiteHref: string | null) {
       "@type": "AggregateRating",
       ratingValue: Number(store.rating),
       reviewCount: Number(store.total_reviews),
+      bestRating: 5,
+      worstRating: 1,
     };
   }
   const heroImg = Array.isArray(store.google_images) ? store.google_images[0] : null;

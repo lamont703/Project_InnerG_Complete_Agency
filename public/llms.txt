@@ -18,11 +18,21 @@
 - [Texas Barber Exam Intelligence Prep](/texas-barber-exam-intelligence-prep): free written
   exam practice questions sourced from Milady textbook citations, aligned to the PSI exam
   vendor TDLR uses to administer the actual test.
+- [Texas Cosmetology Exam Intelligence Prep](/texas-cosmetology-exam-intelligence-prep): the
+  same program for the Cosmetology Operator written exam.
 - [El Paso Barber Exam Intelligence Prep](/el-paso-barber-exam-intelligence-prep): the same
   program applied to the El Paso metro.
+- [Texas Esthetician & Nail Technician Exam Guide](/insights/texas-esthetician-nail-technician-exam-guide):
+  exam format and structure (written + practical, PSI vendor) for the Esthetician and
+  Manicurist licenses — separate, non-overlapping licenses from Barber/Cosmetology.
 - [How Long Does Barber School Take in Texas?](/insights/texas-barber-school-length-vs-apprenticeship):
   1,000 hours for barbers, 1,500 for cosmetology, and a note that Texas has no apprenticeship
   pathway at all — with a real 300-hour accelerated path for already-licensed cosmetologists.
+- [Cosmetology & Barber Schools in Houston](/cosmetology-schools-houston): the school
+  leaderboard filtered to the Houston metro specifically.
+- [Barber School Pilot Scholarship Fund](/barber-school-pilot-scholarship-fund): free exam-prep
+  platform access for a school's entire student body at zero cost to the school — for school
+  administrators/owners, not individual students.
 
 ## For students surviving the program (between enrolling and testing)
 
@@ -43,6 +53,25 @@
   rules, required postings, and how unannounced inspections work — plus a direct path to claim
   the shop on the platform and get a free real-time dashboard matching it against licensed
   barbers actively looking for a chair nearby.
+- [Continuing Education Portal](/barber-cos-continuing-education): a TDLR-approved 2026
+  continuing education course catalog for renewing an active Texas barber or cosmetology
+  license — infection control, chemistry, Texas barber law, and styling technique modules
+  with instant verified CE credit.
+
+## Industry analysis & research (schools)
+
+- [The Texas Barber Licensure Crisis](/insights/texas-barber-licensure-crisis): analysis of
+  Title IV federal financial aid risk exposure across Texas barber schools.
+- [National AI Classroom Accreditation Impact Report](/insights/national-ai-classroom-accreditation-impact-report):
+  the accreditation implications of AI-driven classroom instruction for barber/cosmetology
+  programs.
+- [The Cognitive Feedstock: 15 Data Sources](/insights/cognitive-feedstock-15-data-sources):
+  the real data sources (TDLR, College Scorecard, Google Places, etc.) this platform's
+  school/industry intelligence is built from.
+- [Barber Education Intelligence ROI](/insights/barber-education-intelligence-roi): the
+  return-on-investment case for schools adopting data-driven exam-prep and enrollment tooling.
+- [El Paso Barber Market Rescue Report](/insights/el-paso-barber-market-rescue-report): a
+  metro-specific analysis of El Paso's barber school pipeline and Title IV risk exposure.
 
 ## For students and professionals finding work
 

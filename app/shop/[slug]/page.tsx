@@ -216,6 +216,8 @@ export default async function ShopProfilePage({ params }: Props) {
       "@type": "AggregateRating",
       ratingValue: Number(shop.rating),
       reviewCount: Number(shop.total_reviews),
+      bestRating: 5,
+      worstRating: 1,
     };
   }
   if (images[0]) shopJsonLd.image = images[0];
