@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Navbar } from '@/components/layout/navbar';
 import {
   Sparkles,
   BookOpen,
@@ -269,8 +270,9 @@ export default function ContinuingEducationClient({ schools, errorMsg }: Continu
 
   return (
     <main className="min-h-screen bg-white text-slate-900 flex flex-col selection:bg-primary/20 light">
+      <Navbar />
       {/* Hero Header */}
-      <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 py-12 lg:py-16">
+      <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 pt-28 pb-12 lg:pb-16">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-12 gap-6 border-b border-slate-100 pb-12">
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-primary font-black uppercase tracking-[0.4em] text-[10px]">

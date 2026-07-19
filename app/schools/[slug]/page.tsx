@@ -24,6 +24,7 @@ import {
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { EzoicAd } from "@/components/shared/ezoic-ad";
+import { Navbar } from "@/components/layout/navbar";
 import Image from "next/image";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
@@ -448,14 +449,15 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
   ].filter(Boolean) as { label: string; value: string; Icon: any }[];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen light bg-slate-50">
       {/* Structured data: EducationalOrganization facts + FAQPage, read by
           both search engines (rich results) and LLM/AI-answer crawlers
           (direct fact extraction) — every value here also renders visibly
           in the page below, this just makes it machine-parseable too. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schoolJsonLd) }} />
       {faqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+      <Navbar />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-6">
         <DynamicBackButton fallbackHref="/tools/barbershop-search" />
         <EzoicAd className="mb-6" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

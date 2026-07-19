@@ -21,6 +21,7 @@ import {
   FileText
 } from "lucide-react"
 import Image from "next/image"
+import { Navbar } from "@/components/layout/navbar"
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -40,8 +41,9 @@ const metrics = [
 export default function TexasBarberExamPrep() {
   return (
     <main className="min-h-screen bg-white light text-slate-950 flex flex-col selection:bg-primary/20">
+      <Navbar />
       {/* Hero Section */}
-      <section className="relative flex items-center justify-center overflow-hidden pt-12 pb-16 lg:pt-32 lg:pb-40 border-b border-slate-900 bg-slate-950">
+      <section className="relative flex items-center justify-center overflow-hidden pt-28 pb-16 lg:pt-32 lg:pb-40 border-b border-slate-900 bg-slate-950">
         {/* Background Image Container */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           <Image

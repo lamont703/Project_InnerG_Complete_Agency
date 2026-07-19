@@ -22,6 +22,7 @@ import {
   Target,
 } from "lucide-react"
 import { joinCosmetologyPrepWaitlist } from "@/app/tools/texas-cosmetology-exam-practice-deck/actions"
+import { Navbar } from "@/components/layout/navbar"
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -63,8 +64,9 @@ export default function TexasCosmetologyExamPrep() {
 
   return (
     <main className="min-h-screen bg-white light text-slate-950 flex flex-col selection:bg-primary/20">
+      <Navbar />
       {/* Hero Section */}
-      <section className="relative flex items-center justify-center overflow-hidden pt-12 pb-16 lg:pt-32 lg:pb-40 border-b border-slate-900 bg-slate-950">
+      <section className="relative flex items-center justify-center overflow-hidden pt-28 pb-16 lg:pt-32 lg:pb-40 border-b border-slate-900 bg-slate-950">
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black" />
 
         <GlowOrb className="top-1/4 -left-32 h-96 w-96 bg-primary/10 animate-float z-0" />

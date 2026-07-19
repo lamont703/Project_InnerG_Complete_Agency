@@ -1,6 +1,7 @@
 import RequestsClient from "./RequestsClient";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { Navbar } from "@/components/layout/navbar";
 
 export const metadata = {
   title: "Shop Day Requests | Inner G Complete Agency",
@@ -10,6 +11,7 @@ export const metadata = {
 export default function ShopDayRequestsPage() {
   return (
     <main className="min-h-screen light bg-slate-50 text-slate-900 selection:bg-blue-500/20 flex flex-col">
+      <Navbar />
       <section className="relative overflow-hidden flex-grow flex flex-col border-b border-slate-200">
         {/* Hero Background Video */}
         <div className="absolute inset-0 z-0 bg-slate-50 overflow-hidden pointer-events-none">

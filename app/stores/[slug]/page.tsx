@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { EzoicAd } from "@/components/shared/ezoic-ad";
+import { Navbar } from "@/components/layout/navbar";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
@@ -190,10 +191,11 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
   const searchPerformance = (searchPerfRows && searchPerfRows[0]) || null;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen light bg-slate-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(storeJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildEntityBreadcrumbJsonLd("Stores", "/stores", store.name, store.slug)) }} />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+      <Navbar />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-6">
         <DynamicBackButton fallbackHref="/tools/barbershop-search?tab=Stores" />
         <EzoicAd className="mb-6" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

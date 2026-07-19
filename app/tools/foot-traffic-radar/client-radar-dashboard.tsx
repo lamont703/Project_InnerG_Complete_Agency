@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import dynamic from 'next/dynamic';
 import BackButton from './BackButton';
+import { Navbar } from "@/components/layout/navbar";
 
 const DynamicRadarMap = dynamic(() => import('./RadarMapLayer'), { 
   ssr: false,
@@ -152,8 +153,9 @@ export default function ClientRadarDashboard({ shopData }: { shopData: any }) {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
-      {/* Top Header */}
-      <header className="border-b border-border bg-white dark:bg-slate-900 sticky top-0 z-10">
+      <Navbar />
+      {/* Shop Context Bar */}
+      <header className="border-b border-border bg-white dark:bg-slate-900 sticky top-24 z-10">
         <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <BackButton label="Back to Directory" />

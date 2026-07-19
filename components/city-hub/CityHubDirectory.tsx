@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass, CalendarDays } from "lucide-react";
 import type { CityHubData } from "@/lib/city-hub-data";
 import { EzoicAd } from "@/components/shared/ezoic-ad";
+import { Navbar } from "@/components/layout/navbar";
 
 // Real, city-specific landing pages that predate this hub hierarchy — keyed
 // by citySlug so each city's page only shows its own real content, never an
@@ -78,8 +79,9 @@ export function CityHubDirectory({
   zipQuerySuffix?: string;
 }) {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+    <div className="min-h-screen bg-slate-50 light">
+      <Navbar />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-12">
         <EzoicAd className="mb-8" />
 
         <div className="text-center max-w-2xl mx-auto mb-4">

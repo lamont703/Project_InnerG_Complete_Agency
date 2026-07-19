@@ -9,8 +9,8 @@ import { ShopPhotoGallery } from "@/components/shared/shop-photo-gallery";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
-import { PassportCarousel } from "@/components/shared/passport-carousel";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
+import { Navbar } from "@/components/layout/navbar";
 import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 
@@ -258,13 +258,15 @@ export default async function ShopProfilePage({ params }: Props) {
   } : null;
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 selection:bg-blue-500/20 flex flex-col overflow-x-hidden">
+    <div className="min-h-screen light bg-white text-slate-900 selection:bg-blue-500/20 flex flex-col overflow-x-hidden">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(shopJsonLd) }} />
       {shopFaqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(shopFaqJsonLd) }} />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildEntityBreadcrumbJsonLd("Barbershops", "/shop", shop.shop_name, shop.slug)) }} />
 
-      <div className="flex-grow pt-8 pb-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
-        
+      <Navbar />
+
+      <div className="flex-grow pt-28 pb-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
+
         <DynamicBackButton fallbackHref="/tools/barbershop-search" />
 
         <EzoicAd className="mb-6" />
@@ -593,16 +595,6 @@ export default async function ShopProfilePage({ params }: Props) {
           </div>
         </div>
 
-      </div>
-
-      <div className="bg-slate-50 border-t border-slate-200 py-20 mt-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full overflow-hidden">
-          <h2 className="text-2xl md:text-3xl px-2 font-black text-slate-900 mb-2 text-center break-words">Top Candidates Seeking Placement</h2>
-          <p className="text-center text-slate-500 mb-10 max-w-2xl mx-auto">Discover highly vetted professionals who are currently actively seeking placement in your area.</p>
-          <div className="w-full overflow-visible">
-            <PassportCarousel />
-          </div>
-        </div>
       </div>
 
     </div >

@@ -7,6 +7,7 @@ import { MapPin, Star, TrendingUp, Search, DollarSign, Building2 } from "lucide-
 
 // Import the custom natively integrated charts for this page
 import MarketAnalysisCharts from "./MarketAnalysisCharts"
+import { Navbar } from "@/components/layout/navbar"
 
 export const revalidate = 0; // Dynamic component
 
@@ -111,14 +112,16 @@ function AnalysisLayout({ shop }: { shop: any }) {
     : [shop.shop_image_url || "/images/default_shop_image.png"];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+    <div className="min-h-screen light bg-slate-50 flex flex-col font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
+      <Navbar />
+
       {/* SEO Magnet Header (Shop Profile Hook) */}
-      <div className="bg-white border-b border-slate-200 pt-16 pb-12 px-6">
+      <div className="bg-white border-b border-slate-200 pt-28 pb-12 px-6">
         <div className="max-w-7xl mx-auto space-y-12">
           
           <div className="flex flex-col md:flex-row justify-between gap-12">

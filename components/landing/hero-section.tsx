@@ -95,6 +95,7 @@ export function HeroSection() {
         </div>
 
         {/* Core Pillars */}
+        {/*
         <div className="mt-20 glass-panel rounded-2xl p-6 sm:p-8">
           <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-border/50 pb-6">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
@@ -123,6 +124,7 @@ export function HeroSection() {
             ))}
           </div>
         </div>
+        */}
       </div>
     </section>
   )

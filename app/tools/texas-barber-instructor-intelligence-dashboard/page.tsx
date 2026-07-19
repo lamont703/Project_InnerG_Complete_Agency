@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { BarberSchoolSelector } from "@/components/forms/BarberSchoolSelector"
+import { Navbar } from "@/components/layout/navbar"
 
 const topicMastery = [
   { name: "Health and Safety (Sanitation & Disinfection)", score: 42, color: "bg-red-500", items: 25 },
@@ -148,7 +149,8 @@ export default function InstructorDashboard() {
 
   return (
     <main className="min-h-screen bg-white light text-slate-950 flex flex-col selection:bg-primary/20">
-      <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-12 lg:py-16">
+      <Navbar />
+      <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 pt-28 pb-12 lg:pb-16">
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 lg:mb-12 gap-6">
           <div className="space-y-2">

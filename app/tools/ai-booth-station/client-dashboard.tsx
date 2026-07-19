@@ -7,6 +7,7 @@ import { BarChart3, TrendingUp, Users, MapPin, Search, ChevronRight, Activity, P
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { StudentPassportModal } from "@/components/shared/student-passport-modal"
+import { Navbar } from "@/components/layout/navbar"
 
 type Barber = {
   id: string;
@@ -92,9 +93,10 @@ export default function ClientDashboard({ initialBarbers, initialShops = [], tar
   const avgSplit = commission60 + commission50 === 0 ? "N/A" : (commission60 > commission50 ? "60/40" : "50/50");
 
   return (
-    <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900 pb-20">
-      {/* Top Navigation */}
-      <header className="bg-white border-b border-zinc-200 sticky top-0 z-50">
+    <div className="min-h-screen light bg-zinc-50 font-sans text-zinc-900 pb-20">
+      <Navbar />
+      {/* Shop Context Bar */}
+      <header className="bg-white border-b border-zinc-200 sticky top-24 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group" aria-label="Inner G Complete Agency Home">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 text-white transition-transform group-hover:scale-105 overflow-hidden">
