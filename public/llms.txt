@@ -88,6 +88,20 @@
   barbershops, salons, individual barbers, cosmetologists, schools, supply stores, and
   events in one query, with tabs for each category and semantic (not just keyword) matching.
 
+## Best-of rankings (Houston, Austin, San Antonio, Dallas)
+
+Real, currently-listed top-rated barbershops and salons in the four Texas metros with confirmed
+commercial search demand for "best barbershop/salon in [city]" — ranked by live Google rating
+(4.5★+ minimum, 5+ review minimum to qualify) with a secondary "Most Reviewed" list by raw review
+volume. Not built for the other ~30 cities this platform covers since real keyword-demand
+research (Google Ads + Search Console) found no meaningful search volume for this query pattern
+outside these four.
+
+- [Best Barbershops in Houston](/best-barbershops-in-houston) / [Best-Rated Salons in Houston](/best-salons-in-houston)
+- [Best Barbershops in Austin](/best-barbershops-in-austin) / [Best-Rated Salons in Austin](/best-salons-in-austin)
+- [Best Barbershops in San Antonio](/best-barbershops-in-san-antonio) / [Best-Rated Salons in San Antonio](/best-salons-in-san-antonio)
+- [Best Barbershops in Dallas](/best-barbershops-in-dallas) / [Best-Rated Salons in Dallas](/best-salons-in-dallas)
+
 ## For barbers and cosmetologists looking for a chair or booth
 
 - [Barber Booth Rent & Chairs for Rent in Houston](/barber-booth-rent-houston): real,

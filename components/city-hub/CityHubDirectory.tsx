@@ -14,6 +14,18 @@ const CITY_SERVICE_LINKS: Record<string, { href: string; label: string }[]> = {
   katy: [{ href: "/katy-tx-barbershops-salons", label: "Katy Barbershops & Salons" }],
   pearland: [{ href: "/pearland-tx-barbershops-salons", label: "Pearland Barbershops & Salons" }],
   "el-paso": [{ href: "/el-paso-barber-exam-intelligence-prep", label: "El Paso Barber Exam Intelligence Prep" }],
+  austin: [
+    { href: "/best-barbershops-in-austin", label: "Best Barbershops in Austin" },
+    { href: "/best-salons-in-austin", label: "Best-Rated Salons in Austin" },
+  ],
+  "san-antonio": [
+    { href: "/best-barbershops-in-san-antonio", label: "Best Barbershops in San Antonio" },
+    { href: "/best-salons-in-san-antonio", label: "Best-Rated Salons in San Antonio" },
+  ],
+  dallas: [
+    { href: "/best-barbershops-in-dallas", label: "Best Barbershops in Dallas" },
+    { href: "/best-salons-in-dallas", label: "Best-Rated Salons in Dallas" },
+  ],
 };
 
 const ZIP_SIGNAL_COLORS = {
