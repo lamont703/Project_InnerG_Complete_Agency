@@ -240,7 +240,12 @@ export default function OpeningYourOwnShopGuide() {
               <p>
                 Your individual barber or cosmetology license lets <em>you</em> practice — it does not let you
                 open a business. Operating a barbershop or salon requires a separate establishment license from
-                TDLR, applied for independently of any individual practitioner license.
+                TDLR, applied for independently of any individual practitioner license. (Still working on your own
+                license first? See our{" "}
+                <Link href="/insights/texas-barber-cosmetology-license-requirements" className="text-primary font-bold hover:underline">
+                  Texas Barber &amp; Cosmetology License Requirements guide
+                </Link>{" "}
+                instead.)
                 <Cite id={1} />
               </p>
               <p>

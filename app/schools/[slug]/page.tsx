@@ -248,6 +248,8 @@ function buildSchoolJsonLd(school: any, websiteHref: string | null) {
       "@type": "AggregateRating",
       ratingValue: Number(school.rating),
       reviewCount: Number(school.google_review_count),
+      bestRating: 5,
+      worstRating: 1,
     };
   }
 

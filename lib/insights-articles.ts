@@ -68,6 +68,15 @@ export const insightsArticles: InsightsArticle[] = [
     featured: true,
   },
   {
+    slug: "texas-esthetician-nail-technician-exam-guide",
+    title: "Texas Esthetician & Nail Technician Exam Guide: Written + Practical Format",
+    excerpt: "How the Texas esthetician and manicurist (nail technician) licensing exams actually work — written and practical format, PSI as the exam vendor, and how these two licenses differ from a full cosmetology license. Sourced directly from TDLR.",
+    date: "July 19, 2026",
+    readingTime: "6 min read",
+    category: "Technical Brief",
+    featured: true,
+  },
+  {
     slug: "opening-your-own-shop-in-texas",
     title: "Opening Your Own Shop in Texas: TDLR Establishment License Requirements",
     excerpt: "What TDLR actually requires to open a barbershop or salon in Texas — establishment license, premises and equipment rules, required postings, and how inspections work. Sourced directly from TDLR.",
