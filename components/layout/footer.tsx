@@ -29,6 +29,7 @@ const footerLinks = {
     { label: "Submit Your Event", href: "/tools/event-submission" },
     { label: "Agent Directives", href: "/admin/agent-directives" },
     { label: "Keyword Intelligence", href: "/admin/keyword-intelligence" },
+    { label: "Community ↔ Entity Links", href: "/admin/community-entity-links" },
     { label: "Pixel Analytics", href: "/pixel-analytics" },
     { label: "Employment Match Review", href: "/tools/employment-match-review" },
     { label: "Web Crawler Domain Management", href: "/tools/domain-management" },

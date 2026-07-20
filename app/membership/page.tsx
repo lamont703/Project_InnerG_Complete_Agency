@@ -47,8 +47,7 @@ export default function MembershipPage() {
               Join the ShearQuery Community
             </h1>
             <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
-              Free membership for barbers, stylists, and beauty professionals. Sign up in under a minute and start
-              showing up in real ShearQuery searches.
+              Free membership for barbers, stylists, and beauty professionals. Sign up in under a minute and get recommended in ShearQuery searches.
             </p>
           </div>
 
