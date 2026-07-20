@@ -36,7 +36,7 @@
 //        node scripts/audit_published_pages.js --once
 //          One-shot — full re-check of every auto-published page (not just
 //          new ones), then exits. Useful right after changing audit logic.
-//        node scripts/audit_published_pages.js --base-url=http://localhost:3001
+//        node scripts/audit_published_pages.js --base-url=http://localhost:3000
 
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: '.env.local' });
