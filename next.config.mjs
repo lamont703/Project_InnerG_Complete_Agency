@@ -212,12 +212,50 @@ const nextConfig = {
         destination: "/schools/milan-institute-houston-54167a2d",
         permanent: true,
       },
+      // Real production 404 (pixel analytics, page_title "404: This page
+      // could not be found."): "Ogle School - Beauty and Cosmetology
+      // (North Houston/Willowbrook)" was renamed/re-labeled to "Ogle
+      // School Hair Skin Nails" at the same Willow Chase Dr address
+      // (77070, the Willowbrook Mall area) under a new id — same
+      // dedup/rename-casualty pattern as the other schools redirects
+      // above, just a name change rather than a duplicate removal.
+      {
+        source: "/schools/ogle-school-beauty-and-cosmetology-north-houston-willowbrook-houston-fe676980",
+        destination: "/schools/ogle-school-hair-skin-nails-houston-b6bcf873",
+        permanent: true,
+      },
+      // Real production 404: "R&C Beauty College" (Pflugerville) — same
+      // name/address, different id suffix, confirming a dedup-cleanup
+      // casualty like the others.
+      {
+        source: "/schools/r-c-beauty-college-pflugerville-d6d0609e",
+        destination: "/schools/r-c-beauty-college-pflugerville-ace6c69d",
+        permanent: true,
+      },
       // --- Nonexistent route redirects ---
       // /tools/barber-schools was never a real route; redirect to the
       // main search tool where users can filter by schools.
       {
         source: "/tools/barber-schools",
         destination: "/tools/barbershop-search",
+        permanent: true,
+      },
+      // Real production 404: "/ai-tools" was never a real route — the
+      // actual page has always been /ai-solutions.
+      {
+        source: "/ai-tools",
+        destination: "/ai-solutions",
+        permanent: true,
+      },
+      // Real production 404: an even older URL scheme for Houston's
+      // market-analysis feature, predating the /texas/houston/insights/
+      // nesting added earlier this session (that move already redirects
+      // /houston/insights/:path* — this catches the still-older
+      // /market-analysis/:path* form with no /houston/insights prefix at
+      // all).
+      {
+        source: "/market-analysis/:path*",
+        destination: "/texas/houston/insights/market-analysis/:path*",
         permanent: true,
       },
       // --- Malformed double-URL redirect ---

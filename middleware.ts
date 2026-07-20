@@ -15,6 +15,28 @@ const PROTECTED_ROUTES = ["/select-portal", "/dashboard"]
 /** Routes that authenticated users should NOT reach (redirect to portal) */
 const AUTH_ROUTES = ["/login"]
 
+// Footer's "Internal Tools" column (components/layout/footer.tsx) — every
+// page listed there, gated behind a single-user password screensaver.
+// Deliberately narrow/temporary: one hardcoded allowed email, checked
+// against both a real Supabase Auth session AND a matching
+// community_members row, rather than a proper roles/permissions system —
+// tighter, general-purpose internal-tool access control is planned later.
+const INTERNAL_TOOL_ROUTES = [
+    "/tools/event-submission",
+    "/admin/agent-directives",
+    "/admin/keyword-intelligence",
+    "/admin/community-entity-links",
+    "/api/admin/community-entity-links",
+    "/pixel-analytics",
+    "/tools/employment-match-review",
+    "/tools/domain-management",
+    "/shop-day-map",
+    "/shop-day-connections",
+    "/program-advisory-committee-kit",
+]
+const INTERNAL_TOOLS_ALLOWED_EMAIL = "lamont703@gmail.com"
+const INTERNAL_TOOLS_LOCK_ROUTE = "/internal-lock"
+
 /** Entity route prefixes served by app/api/llm/[entityType]/[slug]/route.ts */
 const LLM_MARKDOWN_ENTITY_TYPES = new Set(["shop", "salons", "barbers", "cosmetologists", "stores", "schools", "events"])
 
@@ -55,7 +77,10 @@ export default async function proxy(request: NextRequest) {
     // whether the destination needed auth at all. On a slow mobile
     // connection that round-trip is real, visible latency before the page
     // even starts loading — skip it entirely for public routes.
-    const needsAuthCheck = PROTECTED_ROUTES.some((route) => pathname.startsWith(route)) || AUTH_ROUTES.includes(pathname)
+    const needsAuthCheck =
+        PROTECTED_ROUTES.some((route) => pathname.startsWith(route)) ||
+        AUTH_ROUTES.includes(pathname) ||
+        INTERNAL_TOOL_ROUTES.some((route) => pathname.startsWith(route))
     if (!needsAuthCheck) {
         return NextResponse.next()
     }
@@ -138,6 +163,36 @@ export default async function proxy(request: NextRequest) {
         // 2. Redirect authenticated users away from auth pages
         if (AUTH_ROUTES.includes(pathname) && isAuthenticated) {
             return NextResponse.redirect(new URL("/api/auth/provision", request.url))
+        }
+
+        // 3. Internal Tools screensaver — only INTERNAL_TOOLS_ALLOWED_EMAIL,
+        // logged in AND present in community_members, gets through. Anyone
+        // else (including other logged-in accounts) sees the lock screen
+        // instead of the real page. Rewritten (not redirected) so the
+        // visible URL stays the destination's own, like a screensaver
+        // sitting on top of it.
+        if (INTERNAL_TOOL_ROUTES.some((route) => pathname.startsWith(route))) {
+            let authorized = isAuthenticated && user?.email === INTERNAL_TOOLS_ALLOWED_EMAIL
+            if (authorized) {
+                const { data: member } = await supabase
+                    .from("community_members")
+                    .select("id")
+                    .eq("email", INTERNAL_TOOLS_ALLOWED_EMAIL)
+                    .maybeSingle()
+                authorized = !!member
+            }
+            if (!authorized) {
+                // API routes get a real 401 instead of the HTML lock
+                // screen — the dashboard's own fetch() calls (and anyone
+                // hitting the API directly) expect JSON, not a rewritten
+                // page. The real handler still never runs either way.
+                if (pathname.startsWith("/api/")) {
+                    return NextResponse.json({ success: false, error: "Unauthorized." }, { status: 401 })
+                }
+                const lockUrl = new URL(INTERNAL_TOOLS_LOCK_ROUTE, request.url)
+                lockUrl.searchParams.set("redirect", pathname)
+                return NextResponse.rewrite(lockUrl)
+            }
         }
 
         return response

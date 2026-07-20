@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef, Suspense } from "react";
 import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight, Send, CheckCircle2, Loader2, CalendarDays } from "lucide-react";
-import { searchBarbershops } from "./actions";
+import { searchBarbershops, getRecommendedEntity, type RecommendedEntity } from "./actions";
 import { requestEmploymentVerification } from "@/app/tools/employment-match-review/actions";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -98,6 +98,7 @@ function SearchContent() {
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [results, setResults] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
+  const [recommendedEntity, setRecommendedEntity] = useState<RecommendedEntity | null>(null);
   const [page, setPage] = useState(Number(searchParams.get("p")) || 1);
   const [filterTab, setFilterTab] = useState(searchParams.get("tab") || "All");
   const [activeFilters, setActiveFilters] = useState<string[]>(searchParams.get("filters") ? searchParams.get("filters")!.split(',') : []);
@@ -428,6 +429,17 @@ function SearchContent() {
             // was the one path that never got a chance to clear it.
             setIsLoading(false);
             trackImpressions(parsed.results, query.trim(), filterTab, page);
+            // The recommended-slot lookup isn't part of the cached search
+            // payload, so a cache hit still needs its own fresh call —
+            // otherwise it'd keep showing whatever the previous query
+            // recommended instead of re-evaluating for this one.
+            if (page === 1) {
+              getRecommendedEntity(query).then((entity) => {
+                if (!ignore) setRecommendedEntity(entity);
+              });
+            } else {
+              setRecommendedEntity(null);
+            }
           }
           return;
         }
@@ -446,9 +458,24 @@ function SearchContent() {
         }).finally(() => {
           if (!ignore) setIsLoading(false);
         });
+
+        // The one recommended slot only ever shows on the first page of
+        // results, and only when the query actually matches a linked/
+        // claimed entity — getRecommendedEntity returns null otherwise, so
+        // this is a no-op most of the time. Independent request from the
+        // main search above; a failure or slow response here should never
+        // block or delay the real results.
+        if (page === 1) {
+          getRecommendedEntity(query).then((entity) => {
+            if (!ignore) setRecommendedEntity(entity);
+          });
+        } else {
+          setRecommendedEntity(null);
+        }
       } else {
         setResults([]);
         setTotal(0);
+        setRecommendedEntity(null);
         // Same reasoning as the cache-hit branch above: a query that's too
         // short to search isn't "loading" anything, but handleTabClick()
         // may have already set isLoading(true) before this ran.
@@ -911,6 +938,41 @@ function SearchContent() {
                   onExpand={expandAiSnippet}
                 />
               )}
+              {recommendedEntity && page === 1 &&
+                (filterTab === 'All' ||
+                  (filterTab === 'Barbershops' && recommendedEntity.entityType === 'shop') ||
+                  (filterTab === 'Salons' && recommendedEntity.entityType === 'salon')) && (() => {
+                const href = recommendedEntity.entityType === 'shop' ? `/shop/${recommendedEntity.slug}` : `/salons/${recommendedEntity.slug}`;
+                return (
+                  <div className="bg-amber-50/60 p-4 sm:p-5 rounded-xl border-2 border-amber-300 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative">
+                    {recommendedEntity.image && (
+                      <Link href={href} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
+                        <img src={recommendedEntity.image} alt={recommendedEntity.name} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
+                      </Link>
+                    )}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <span className="inline-flex items-center gap-1 w-fit text-[10px] font-black uppercase tracking-widest text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2.5 py-0.5 mb-1.5">
+                        <Star className="h-3 w-3 fill-amber-600 text-amber-600" />
+                        Recommended
+                      </span>
+                      <Link href={href} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
+                        {recommendedEntity.name}
+                      </Link>
+                      <div className="flex items-center gap-1.5 text-sm text-slate-600 flex-wrap">
+                        {recommendedEntity.rating && (
+                          <span className="flex items-center text-[13px]">
+                            <span className="font-medium text-slate-700 mr-1">{recommendedEntity.rating}</span>
+                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                            <span className="ml-1 opacity-80">({recommendedEntity.totalReviews || 0})</span>
+                            <span className="mx-1.5 opacity-50">·</span>
+                          </span>
+                        )}
+                        <span className="truncate max-w-[180px] sm:max-w-xs">{recommendedEntity.formattedAddress || recommendedEntity.city}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
               {results.length > 0 && results.map((item, idx) => {
             if (item.resultType === 'internal') {
               return (

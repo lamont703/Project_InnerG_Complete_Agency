@@ -805,3 +805,134 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     return { success: false, error: err.message };
   }
 }
+
+export interface RecommendedEntity {
+  entityType: "shop" | "salon";
+  id: string;
+  slug: string;
+  name: string;
+  formattedAddress: string | null;
+  city: string | null;
+  rating: number | null;
+  totalReviews: number | null;
+  image: string | null;
+}
+
+// Same canonical 34-city list next.config.mjs's redirect generator uses —
+// own local copy, matching this codebase's established "duplicate small
+// lists across layers" convention (see that file's own comment on why).
+// Used here only to detect an explicit, DIFFERENT-city mention in a query
+// (the one clear signal that a recommendation is NOT locally relevant).
+const TX_CITIES_FOR_RELEVANCE = [
+  "houston", "katy", "pearland", "pasadena", "humble", "austin", "dallas",
+  "san antonio", "sugar land", "the woodlands", "spring", "cypress",
+  "missouri city", "baytown", "conroe", "league city", "fort worth",
+  "el paso", "corpus christi", "plano", "laredo", "irving", "garland",
+  "amarillo", "mckinney", "frisco", "brownsville", "pflugerville",
+  "college station", "beaumont", "waco", "tyler", "sherman", "eagle pass",
+];
+
+// Schools are a different entity type than the shop/salon this can ever
+// recommend — a query clearly asking for a school shouldn't surface a
+// barbershop/salon recommendation instead.
+const SCHOOL_INTENT_PATTERN = /\b(school|academy|institute|college)\b/i;
+
+// Deliberately separate from the main ranked-search pipeline above rather
+// than woven into it — community_member_entity_links (see the
+// 20260720000000 migration) is a small, hand-curated table, so this
+// doesn't need to touch the already-intricate blended-ranking logic in
+// searchBarbershops(). Only ever returns one result (or null) — this is
+// the single "recommended" slot at the top of a search, not a ranked
+// list.
+//
+// Relevance model: default to relevant (score 1) for any real query, and
+// only fall to 0 (suppressed) on a clear mismatch signal — a different
+// named TX city, or explicit school/academy intent when the candidate is
+// a shop/salon. A direct name/city match still outranks the default when
+// present. This is deliberately permissive (recommend most of the time)
+// rather than requiring an exact match, per direct feedback that an
+// exact-match-only bar left the slot empty on almost every real search.
+export async function getRecommendedEntity(query: string): Promise<RecommendedEntity | null> {
+  const q = query.trim();
+  if (q.length < 2) return null;
+
+  try {
+    // community_member_entity_links is locked to service-role-only RLS
+    // (see the 20260720000000 migration) — the shared `supabase` client
+    // in this file uses the anon key, which RLS silently returns zero
+    // rows for (no error, just an empty array), so this needs its own
+    // service-role client rather than the module-level one.
+    const adminSupabase = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey);
+
+    const { data: links } = await adminSupabase
+      .from("community_member_entity_links")
+      .select("entity_type, entity_id");
+
+    if (!links || links.length === 0) return null;
+
+    const shopIds = links.filter((l) => l.entity_type === "shop").map((l) => l.entity_id);
+    const salonIds = links.filter((l) => l.entity_type === "salon").map((l) => l.entity_id);
+
+    const [{ data: shops }, { data: salons }] = await Promise.all([
+      shopIds.length > 0
+        ? supabase.from("agent_barbershop_leads").select("id, slug, shop_name, formatted_address, city, rating, total_reviews, google_images").in("id", shopIds)
+        : Promise.resolve({ data: [] as any[] }),
+      salonIds.length > 0
+        ? supabase.from("agent_salon_leads").select("id, slug, shop_name, formatted_address, city, rating, total_reviews, google_images").in("id", salonIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    const candidates = [
+      ...(shops || []).map((s) => ({ ...s, entityType: "shop" as const })),
+      ...(salons || []).map((s) => ({ ...s, entityType: "salon" as const })),
+    ];
+
+    const qLower = q.toLowerCase();
+    const hasSchoolIntent = SCHOOL_INTENT_PATTERN.test(qLower);
+
+    const scored = candidates
+      .map((c) => {
+        const candidateCityWords = `${c.city || ""} ${c.formatted_address || ""}`.toLowerCase();
+        const candidateOwnCity = TX_CITIES_FOR_RELEVANCE.find((city) => candidateCityWords.includes(city));
+
+        // A different named TX city than the candidate's own is the one
+        // clear "not locally relevant" signal — e.g. searching "Dallas"
+        // shouldn't recommend a Houston shop.
+        const mentionsConflictingCity = TX_CITIES_FOR_RELEVANCE.some(
+          (city) => city !== candidateOwnCity && qLower.includes(city)
+        );
+        if (mentionsConflictingCity || hasSchoolIntent) {
+          return { ...c, score: 0 };
+        }
+
+        const nameMatch = (c.shop_name || "").toLowerCase().includes(qLower);
+        const nameWordOverlap = qLower.split(/\s+/).some((word) => word.length > 2 && (c.shop_name || "").toLowerCase().includes(word));
+        const cityMatch = candidateOwnCity ? qLower.includes(candidateOwnCity) : false;
+        // Default score of 1 ("generically relevant, no disqualifying
+        // signal found") is what makes the slot show up on most searches
+        // instead of only exact matches.
+        const score = nameMatch ? 3 : nameWordOverlap ? 2 : cityMatch ? 2 : 1;
+        return { ...c, score };
+      })
+      .filter((c) => c.score > 0)
+      .sort((a, b) => b.score - a.score);
+
+    if (scored.length === 0) return null;
+
+    const best = scored[0];
+    return {
+      entityType: best.entityType,
+      id: best.id,
+      slug: best.slug,
+      name: best.shop_name,
+      formattedAddress: best.formatted_address,
+      city: best.city,
+      rating: best.rating,
+      totalReviews: best.total_reviews,
+      image: Array.isArray(best.google_images) && best.google_images.length > 0 ? best.google_images[0] : null,
+    };
+  } catch (err) {
+    console.error("Error in getRecommendedEntity:", err);
+    return null;
+  }
+}
