@@ -16,17 +16,22 @@ interface OwnedEntity {
   id: string
   slug: string
   shop_name: string | null
-  owner_name: string | null
+  owner_first_name: string | null
+  owner_last_name: string | null
   phone: string | null
   email: string | null
   website: string | null
-  formatted_address: string | null
+  street_address: string | null
+  address_city: string | null
+  address_state: string | null
+  address_zip: string | null
   hiring_need: boolean | null
   rent_type: string | null
   rent_rate: string | null
   booth_count_available: number | null
   specialty_desired: string | null
   ai_culture_summary: string | null
+  custom_amenities: string[] | null
   google_images: string[] | null
 }
 
@@ -44,6 +49,10 @@ export default function ManageListingPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [pendingSlot, setPendingSlot] = useState<number | null>(null)
+  // Kept as a raw comma-separated string in local state (not the array
+  // itself) so typing feels like a normal text input — only split into
+  // an array right before saving.
+  const [amenitiesInput, setAmenitiesInput] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadTargetSlot = useRef<number | null>(null)
 
@@ -60,13 +69,14 @@ export default function ManageListingPage() {
 
   useEffect(() => {
     if (!authChecked) return
-    fetch("/api/account/my-listing")
+    fetch("/api/account/my-listing", { credentials: "include" })
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
           setEntity(data.data)
           setForm(data.data || {})
           setImages(Array.isArray(data.data?.google_images) ? data.data.google_images : [])
+          setAmenitiesInput(Array.isArray(data.data?.custom_amenities) ? data.data.custom_amenities.join(", ") : "")
         } else {
           toast.error(data.error || "Failed to load your listing.")
         }
@@ -76,11 +86,6 @@ export default function ManageListingPage() {
 
   const handleChange = (field: keyof OwnedEntity, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const triggerUpload = (slotIndex: number | null) => {
-    uploadTargetSlot.current = slotIndex
-    fileInputRef.current?.click()
   }
 
   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,12 +101,17 @@ export default function ManageListingPage() {
       formData.append("file", file)
       if (slotIndex != null) formData.append("slotIndex", String(slotIndex))
 
-      const res = await fetch("/api/account/my-listing/images", { method: "POST", body: formData })
+      const res = await fetch("/api/account/my-listing/images", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      })
       const data = await res.json()
-      if (!data.success) throw new Error(data.error)
+      if (!data.success) throw new Error(data.error || `Upload failed (${res.status})`)
       setImages(data.data.images)
       toast.success("Photo uploaded.")
     } catch (err: any) {
+      console.error("[manage-listing] Upload error:", err)
       toast.error(err.message || "Failed to upload photo.")
     } finally {
       setPendingSlot(null)
@@ -115,6 +125,7 @@ export default function ManageListingPage() {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ index }),
+        credentials: "include",
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error)
@@ -131,15 +142,21 @@ export default function ManageListingPage() {
     e.preventDefault()
     setIsSaving(true)
     try {
+      const custom_amenities = amenitiesInput
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+      const payload = { ...form, custom_amenities }
       const res = await fetch("/api/account/my-listing", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
+        credentials: "include",
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error)
       toast.success("Listing updated.")
-      setEntity((prev) => (prev ? { ...prev, ...form } as OwnedEntity : prev))
+      setEntity((prev) => (prev ? { ...prev, ...payload } as OwnedEntity : prev))
     } catch (err: any) {
       toast.error(err.message || "Failed to save changes.")
     } finally {
@@ -188,14 +205,6 @@ export default function ManageListingPage() {
                 </p>
               </div>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelected}
-                className="hidden"
-              />
-
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8 mb-6">
                 <div className="flex items-center justify-between mb-1">
                   <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
@@ -205,98 +214,143 @@ export default function ManageListingPage() {
                   <span className="text-xs font-bold text-slate-400">{images.length}/{MAX_IMAGES}</span>
                 </div>
                 <p className="text-xs text-slate-500 mb-4">
-                  Up to {MAX_IMAGES} photos shown on your public profile page. Tap a photo to replace it, or the X to remove it.
+                  Up to {MAX_IMAGES} photos shown on your public profile page.
                 </p>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                  {images.map((url, index) => (
-                    <div key={`${url}-${index}`} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 group">
-                      <button
-                        type="button"
-                        onClick={() => triggerUpload(index)}
-                        disabled={pendingSlot === index}
-                        className="absolute inset-0 w-full h-full"
-                      >
+
+                {/* Existing photos */}
+                {images.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 mb-4">
+                    {images.map((url, index) => (
+                      <div key={`${url}-${index}`} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200">
                         <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          disabled={pendingSlot === index}
+                          className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors"
+                          aria-label="Remove photo"
+                        >
                           {pendingSlot === index ? (
-                            <Loader2 className="w-5 h-5 text-white animate-spin" />
+                            <Loader2 className="w-3 h-3 animate-spin" />
                           ) : (
-                            <ImagePlus className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <X className="w-3.5 h-3.5" />
                           )}
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveImage(index)}
-                        disabled={pendingSlot === index}
-                        className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors z-10"
-                        aria-label="Remove photo"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                  {images.length < MAX_IMAGES && (
-                    <button
-                      type="button"
-                      onClick={() => triggerUpload(null)}
-                      disabled={pendingSlot === images.length}
-                      className="aspect-square rounded-xl border-2 border-dashed border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-indigo-600"
-                    >
-                      {pendingSlot === images.length ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <>
-                          <ImagePlus className="w-5 h-5" />
-                          <span className="text-[10px] font-bold uppercase tracking-wider">Add Photo</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Simple, visible file input */}
+                {images.length < MAX_IMAGES && (
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={pendingSlot !== null}
+                      onChange={(e) => {
+                        uploadTargetSlot.current = null
+                        handleFileSelected(e)
+                      }}
+                      className="block text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 file:cursor-pointer file:transition-colors"
+                    />
+                    {pendingSlot !== null && (
+                      <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+                    )}
+                  </div>
+                )}
               </div>
 
               <form onSubmit={handleSave} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Business Name">
-                    <input
-                      type="text"
-                      value={form.shop_name || ""}
-                      onChange={(e) => handleChange("shop_name", e.target.value)}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:border-indigo-500 focus:ring-0 transition-all outline-none"
-                    />
-                  </Field>
-                  <Field label="Owner Name">
-                    <input
-                      type="text"
-                      value={form.owner_name || ""}
-                      onChange={(e) => handleChange("owner_name", e.target.value)}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:border-indigo-500 focus:ring-0 transition-all outline-none"
-                    />
-                  </Field>
-                </div>
-
-                <Field label="Address">
+                <Field label="Business Name">
                   <input
                     type="text"
-                    value={form.formatted_address || ""}
-                    onChange={(e) => handleChange("formatted_address", e.target.value)}
+                    value={form.shop_name || ""}
+                    onChange={(e) => handleChange("shop_name", e.target.value)}
                     className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:border-indigo-500 focus:ring-0 transition-all outline-none"
                   />
                 </Field>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Phone">
+                  <Field label="First Name" required>
+                    <input
+                      type="text"
+                      required
+                      value={form.owner_first_name || ""}
+                      onChange={(e) => handleChange("owner_first_name", e.target.value)}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:border-indigo-500 focus:ring-0 transition-all outline-none"
+                    />
+                  </Field>
+                  <Field label="Last Name" required>
+                    <input
+                      type="text"
+                      required
+                      value={form.owner_last_name || ""}
+                      onChange={(e) => handleChange("owner_last_name", e.target.value)}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:border-indigo-500 focus:ring-0 transition-all outline-none"
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Street Address" required>
+                  <input
+                    type="text"
+                    required
+                    value={form.street_address || ""}
+                    onChange={(e) => handleChange("street_address", e.target.value)}
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:border-indigo-500 focus:ring-0 transition-all outline-none"
+                  />
+                </Field>
+
+                <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr] gap-4">
+                  <Field label="City" required>
+                    <input
+                      type="text"
+                      required
+                      value={form.address_city || ""}
+                      onChange={(e) => handleChange("address_city", e.target.value)}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:border-indigo-500 focus:ring-0 transition-all outline-none"
+                    />
+                  </Field>
+                  <Field label="State" required>
+                    <input
+                      type="text"
+                      required
+                      maxLength={2}
+                      placeholder="TX"
+                      value={form.address_state || ""}
+                      onChange={(e) => handleChange("address_state", e.target.value.toUpperCase())}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:border-indigo-500 focus:ring-0 transition-all outline-none uppercase"
+                    />
+                  </Field>
+                  <Field label="Zip" required>
+                    <input
+                      type="text"
+                      required
+                      inputMode="numeric"
+                      pattern="\d{5}"
+                      maxLength={5}
+                      value={form.address_zip || ""}
+                      onChange={(e) => handleChange("address_zip", e.target.value.replace(/\D/g, ""))}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:border-indigo-500 focus:ring-0 transition-all outline-none"
+                    />
+                  </Field>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Phone" required>
                     <input
                       type="tel"
+                      required
                       value={form.phone || ""}
                       onChange={(e) => handleChange("phone", e.target.value)}
                       className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:border-indigo-500 focus:ring-0 transition-all outline-none"
                     />
                   </Field>
-                  <Field label="Email">
+                  <Field label="Email" required>
                     <input
                       type="email"
+                      required
                       value={form.email || ""}
                       onChange={(e) => handleChange("email", e.target.value)}
                       className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:border-indigo-500 focus:ring-0 transition-all outline-none"
@@ -367,6 +421,17 @@ export default function ManageListingPage() {
                   </label>
                 </div>
 
+                <Field label="Amenities & Tags">
+                  <input
+                    type="text"
+                    placeholder="e.g. Free WiFi, Walk-ins Welcome, Kids Cuts, Wheelchair Accessible"
+                    value={amenitiesInput}
+                    onChange={(e) => setAmenitiesInput(e.target.value)}
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:border-indigo-500 focus:ring-0 transition-all outline-none"
+                  />
+                  <p className="text-[10px] text-slate-400 ml-1">Separate each one with a comma. Shown in the Amenities & Tags section on your profile page.</p>
+                </Field>
+
                 <Field label="About Your Shop">
                   <textarea
                     rows={4}
@@ -404,10 +469,13 @@ export default function ManageListingPage() {
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{label}</label>
+      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+        {label}
+        {required && <span className="text-red-400 ml-0.5">*</span>}
+      </label>
       {children}
     </div>
   )

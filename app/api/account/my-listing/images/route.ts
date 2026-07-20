@@ -28,11 +28,15 @@ export async function POST(req: Request) {
     const slotIndex = slotIndexRaw != null ? Number(slotIndexRaw) : null;
 
     if (!file) {
+      console.error("[my-listing/images POST] No file in FormData");
       return NextResponse.json({ success: false, error: "No file provided." }, { status: 400 });
     }
     if (!file.type.startsWith("image/")) {
+      console.error("[my-listing/images POST] Non-image file type:", file.type);
       return NextResponse.json({ success: false, error: "Only image files are allowed." }, { status: 400 });
     }
+
+    console.log("[my-listing/images POST] Uploading file:", file.name, "size:", file.size, "type:", file.type, "slotIndex:", slotIndex);
 
     const admin = createAdminClient();
 
@@ -43,6 +47,7 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (fetchError) {
+      console.error("[my-listing/images POST] Fetch entity error:", fetchError);
       return NextResponse.json({ success: false, error: fetchError.message }, { status: 500 });
     }
 
@@ -55,18 +60,23 @@ export async function POST(req: Request) {
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const fileName = `shop-images/community-listing/${resolved.link.entity_type}-${resolved.link.entity_id}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+    const fileName = `community-listing/${resolved.link.entity_type}-${resolved.link.entity_id}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+
+    console.log("[my-listing/images POST] Uploading to bucket 'shop-images', path:", fileName);
 
     const { error: uploadError } = await admin.storage
       .from("shop-images")
       .upload(fileName, buffer, { contentType: file.type, upsert: true });
 
     if (uploadError) {
+      console.error("[my-listing/images POST] Storage upload error:", uploadError);
       return NextResponse.json({ success: false, error: uploadError.message }, { status: 500 });
     }
 
     const { data: publicUrlData } = admin.storage.from("shop-images").getPublicUrl(fileName);
     const newUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+
+    console.log("[my-listing/images POST] Public URL:", newUrl);
 
     const updatedImages = isReplacingSlot
       ? currentImages.map((url, i) => (i === slotIndex ? newUrl : url))
@@ -78,9 +88,11 @@ export async function POST(req: Request) {
       .eq("id", resolved.link.entity_id);
 
     if (updateError) {
+      console.error("[my-listing/images POST] DB update error:", updateError);
       return NextResponse.json({ success: false, error: updateError.message }, { status: 500 });
     }
 
+    console.log("[my-listing/images POST] Success — images count:", updatedImages.length);
     return NextResponse.json({ success: true, data: { images: updatedImages } });
   } catch (err: any) {
     console.error("[my-listing/images POST] Error:", err);
