@@ -6,18 +6,19 @@ import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { Navbar } from "@/components/layout/navbar";
-import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
+import { WriteReviewButton } from "@/components/shared/write-review-button";
+import { ReviewsSection } from "@/components/shared/reviews-section";
 import { ShopPhotoGallery } from "@/components/shared/shop-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import { computeShopEcosystemReport } from "@/lib/shop-ecosystem";
+import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { SALON_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import {
   MapPin,
-  Star,
   Phone,
   Mail,
   Globe,
@@ -123,7 +124,21 @@ function buildSalonJsonLd(salon: any, websiteHref: string | null) {
     "@type": "HairSalon",
     name: salon.shop_name,
   };
-  if (salon.formatted_address) ld.address = { "@type": "PostalAddress", streetAddress: salon.formatted_address, addressRegion: "TX", addressCountry: "US" };
+  // Claimed salons have real structured address fields (see the
+  // 20260721000000 migration) — same split-PostalAddress precedence as
+  // app/shop/[slug]/page.tsx.
+  if (salon.street_address && salon.address_city) {
+    ld.address = {
+      "@type": "PostalAddress",
+      streetAddress: salon.street_address,
+      addressLocality: salon.address_city,
+      addressRegion: salon.address_state || "TX",
+      postalCode: salon.address_zip || undefined,
+      addressCountry: "US",
+    };
+  } else if (salon.formatted_address) {
+    ld.address = { "@type": "PostalAddress", streetAddress: salon.formatted_address, addressRegion: "TX", addressCountry: "US" };
+  }
   if (salon.latitude && salon.longitude) ld.geo = { "@type": "GeoCoordinates", latitude: salon.latitude, longitude: salon.longitude };
   if (salon.phone) ld.telephone = salon.phone;
   if (websiteHref) ld.url = websiteHref;
@@ -154,6 +169,8 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
   if (salon._resolvedByLegacyId) permanentRedirect(`/salons/${salon.slug}`);
 
   const ecosystemReport = await computeShopEcosystemReport(supabase, salon);
+  const reviews = await getApprovedReviews("salon", salon.id);
+  const { averageRating } = computeReviewStats(reviews);
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: searchPerfRows } = await supabase.rpc('get_search_performance_by_entity', {
@@ -170,12 +187,17 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
   const isClaimed = !!salon.claimed_at;
   const isHiring = !!(salon.hiring_need || (salon.booth_count_available && salon.booth_count_available >= 1));
 
-  const tagList: string[] = salon.place_types
+  // Owner-entered tags (custom_amenities, set via /account/manage-listing)
+  // are merged in alongside Google's own scraped place_types rather than
+  // replacing them — same precedence as app/shop/[slug]/page.tsx.
+  const scrapedTags: string[] = salon.place_types
     ? salon.place_types
         .split("|")
         .map((t: string) => t.trim().replace(/_/g, " "))
         .filter((t: string) => !["point of interest", "establishment", "service", "health", "store"].includes(t))
     : [];
+  const customTags: string[] = Array.isArray(salon.custom_amenities) ? salon.custom_amenities : [];
+  const tagList: string[] = [...customTags, ...scrapedTags.filter((t) => !customTags.some((c) => c.toLowerCase() === t.toLowerCase()))];
 
   const hours: string[] = Array.isArray(salon.site_config?.hours) ? salon.site_config.hours : [];
 
@@ -267,12 +289,19 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
                 <MapPin className="w-4 h-4" />
                 {salon.formatted_address || `${salon.city}, TX`}
               </span>
-              <span className="flex items-center gap-1.5">
-                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                <span className="font-bold text-slate-900">{salon.rating || "4.8"}</span>
-                <span className="text-slate-500 underline decoration-slate-300 underline-offset-4 cursor-pointer">({salon.total_reviews || 0} reviews)</span>
-              </span>
-              {salon.school_district_name && (
+              {/* Rating/review count intentionally removed from this header
+                  row — a salon with 0 real reviews was still showing a
+                  hardcoded "4.8" fallback, an impossible/misleading
+                  combination. Rating and review count are still used
+                  elsewhere (search results, JSON-LD, etc.), just not here. */}
+              {/* school_district_name is computed once from the address a
+                  salon had at scrape time — once claimed, the owner can
+                  edit that address freely (including to somewhere entirely
+                  outside Texas, the only region this platform's school-
+                  district data covers), so the stored value can no longer
+                  be trusted to match the current address. Only shown for
+                  unclaimed salons, where address and district still agree. */}
+              {salon.school_district_name && !isClaimed && (
                 <span className="flex items-center gap-1.5">
                   <Landmark className="w-4 h-4" />
                   Located in {salon.school_district_name}
@@ -281,7 +310,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col items-stretch sm:items-end gap-0">
             {isClaimed ? (
               <span className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-100 px-6 py-3 rounded-xl font-bold text-sm">
                 <CheckCircle2 className="w-4 h-4" />
@@ -290,6 +319,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
             ) : (
               <ClaimShopButton shop={salon} entityType="salon" />
             )}
+            <WriteReviewButton entityType="salon" entityId={salon.id} entityName={salon.shop_name} />
           </div>
         </div>
 
@@ -297,7 +327,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
         <ShopPhotoGallery
           images={images}
           shopName={salon.shop_name}
-          badgeLabel={isHiring ? `${salon.booth_count_available || 1} Chairs Available` : "Off Market"}
+          badgeLabel={isHiring ? `${salon.booth_count_available || 1} Chairs Available` : "Not Hiring At The Moment"}
           badgeVariant={isHiring ? "available" : "off-market"}
         />
 
@@ -339,21 +369,18 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
             {/* Description / Vibe */}
             <div className="pb-10 border-b border-slate-200">
               <h2 className="text-2xl font-black text-slate-900 mb-6">About this salon</h2>
-              {isHiring ? (
-                <>
-                  <p className="text-slate-600 text-lg leading-relaxed mb-6">
-                    Welcome to {salon.shop_name}, a premier styling destination located in the heart of {salon.city}. We are currently seeking professional, driven stylists to join our growing team.
-                    With high foot traffic, excellent local ratings ({salon.rating} stars across {salon.total_reviews} reviews), and a modern atmosphere, this is the perfect location to build and scale your clientele.
-                  </p>
-
-                  <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 flex gap-4">
-                    <Info className="w-6 h-6 text-blue-600 shrink-0" />
-                    <div>
-                      <h4 className="font-bold text-blue-900 mb-1">Why work here?</h4>
-                      <p className="text-blue-800/80 text-sm">We provide an inclusive, professional environment that empowers stylists to maximize their earning potential. Located in a high-visibility area, this salon is ideal for walk-ins and organic growth.</p>
-                    </div>
-                  </div>
-                </>
+              {salon.ai_culture_summary ? (
+                // The owner's own words (set via /account/manage-listing's
+                // "About Your Shop" field) are the source of truth once
+                // present — same precedence as app/shop/[slug]/page.tsx.
+                <p className="text-slate-600 text-lg leading-relaxed mb-6 whitespace-pre-line">
+                  {salon.ai_culture_summary}
+                </p>
+              ) : isHiring ? (
+                <p className="text-slate-600 text-lg leading-relaxed mb-6">
+                  Welcome to {salon.shop_name}, a premier styling destination located in the heart of {salon.city}. We are currently seeking professional, driven stylists to join our growing team.
+                  With high foot traffic, excellent local ratings ({salon.rating} stars across {salon.total_reviews} reviews), and a modern atmosphere, this is the perfect location to build and scale your clientele.
+                </p>
               ) : (
                 <p className="text-slate-600 text-lg leading-relaxed mb-6">
                   {salon.shop_name} is a hair & beauty salon located in {salon.city}, TX
@@ -361,7 +388,18 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
                   This salon isn't currently listed as hiring — request a Shop Day or contact the owner directly to ask about chair availability.
                 </p>
               )}
+              {isHiring && (
+                <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 flex gap-4">
+                  <Info className="w-6 h-6 text-blue-600 shrink-0" />
+                  <div>
+                    <h4 className="font-bold text-blue-900 mb-1">Why work here?</h4>
+                    <p className="text-blue-800/80 text-sm">We provide an inclusive, professional environment that empowers stylists to maximize their earning potential. Located in a high-visibility area, this salon is ideal for walk-ins and organic growth.</p>
+                  </div>
+                </div>
+              )}
             </div>
+
+            <ReviewsSection reviews={reviews} averageRating={averageRating} />
 
             {/* Amenities & Tags */}
             <div className="pb-10 border-b border-slate-200">
@@ -525,7 +563,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
                   <p className="text-slate-500 font-semibold">{salon.rent_rate ? "per week" : "Contact Owner"}</p>
                 </div>
                 <div className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider ${isHiring ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
-                  {isHiring ? "Available" : "Off Market"}
+                  {isHiring ? "Available" : "Not Hiring At The Moment"}
                 </div>
               </div>
 
@@ -566,16 +604,6 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
               <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
                 <Lock className="w-3 h-3" />
                 Secure contact via Barber & Beauty Network
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-slate-100">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
-                  Not ready to reach out yet?
-                </p>
-                <RequestShopDayButton
-                  shop={salon}
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-indigo-600/20"
-                />
               </div>
             </div>
 

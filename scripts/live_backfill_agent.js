@@ -77,6 +77,16 @@ const TABLE_CONFIG = {
 const ACTIVE_TABLES = Object.keys(TABLE_CONFIG);
 const MIN_IMAGES = 5;
 
+// Shops and salons are the two tables a community member can self-manage
+// via /account/manage-listing (see the 20260720000000 migration + its
+// claimed_at column). A claimed row's name/phone/address/photos/etc. are
+// now that owner's own edits — the real source of truth for their
+// listing — so this agent must never touch one, even if it looks
+// "incomplete" by the < MIN_IMAGES bar (an owner who's uploaded 2 real
+// photos should not have them silently replaced by 8 re-scraped Google
+// Maps photos the next sweep).
+const CLAIMABLE_TABLES = new Set(['agent_barbershop_leads', 'agent_salon_leads']);
+
 // Same completeness bar the publish paths enforce (see REQUIRED_NON_EMPTY_FIELDS
 // in app/api/agents/directives/update-status/route.ts and
 // scripts/auto_publish_audited_entities.js) — city/name/phone/
@@ -94,12 +104,14 @@ function findMissingFields(table, row) {
   return missing;
 }
 
-async function fetchAllRows(table, columns) {
+async function fetchAllRows(table, columns, filterFn) {
   let all = [];
   let from = 0;
   const pageSize = 1000;
   while (true) {
-    const { data, error } = await supabase.from(table).select(columns).range(from, from + pageSize - 1);
+    let query = supabase.from(table).select(columns);
+    if (filterFn) query = filterFn(query);
+    const { data, error } = await query.range(from, from + pageSize - 1);
     if (error) {
       console.error(`  ${table} fetch error:`, error.message);
       break;
@@ -114,8 +126,9 @@ async function fetchAllRows(table, columns) {
 
 async function fetchIncompleteRows(table) {
   const config = TABLE_CONFIG[table];
-  const columns = `id, slug, city, phone, formatted_address, google_category, latitude, longitude, ${config.nameField}, ${config.imagesField}`;
-  const rows = await fetchAllRows(table, columns);
+  const isClaimable = CLAIMABLE_TABLES.has(table);
+  const columns = `id, slug, city, phone, formatted_address, google_category, latitude, longitude, ${config.nameField}, ${config.imagesField}${isClaimable ? ', claimed_at' : ''}`;
+  const rows = await fetchAllRows(table, columns, isClaimable ? (q) => q.is('claimed_at', null) : undefined);
   return rows
     .map((row) => ({ row, missing: findMissingFields(table, row) }))
     .filter(({ missing }) => missing.length > 0);

@@ -2,17 +2,19 @@ import { createClient } from "@supabase/supabase-js";
 import { Metadata, ResolvingMetadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Star, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft, Map as MapIcon, Mail, Phone, Info, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles, Landmark } from "lucide-react";
+import { MapPin, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft, Map as MapIcon, Mail, Phone, Info, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles, Landmark, Globe } from "lucide-react";
 import { computeShopEcosystemReport } from "@/lib/shop-ecosystem";
 import Image from "next/image";
 import { ShopPhotoGallery } from "@/components/shared/shop-photo-gallery";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
-import { RequestShopDayButton } from "@/components/shared/request-shop-day-button";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
+import { WriteReviewButton } from "@/components/shared/write-review-button";
+import { ReviewsSection } from "@/components/shared/reviews-section";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { Navbar } from "@/components/layout/navbar";
 import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
+import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 
 export const dynamic = 'force-dynamic';
 
@@ -172,6 +174,8 @@ export default async function ShopProfilePage({ params }: Props) {
   }
 
   const ecosystemReport = await computeShopEcosystemReport(supabase, shop);
+  const reviews = await getApprovedReviews("shop", shop.id);
+  const { averageRating } = computeReviewStats(reviews);
 
   // Rolling 30-day window for a "found this month" framing that stays
   // meaningful going forward rather than an all-time count that only ever
@@ -190,9 +194,21 @@ export default async function ShopProfilePage({ params }: Props) {
   // each other instead of every shop unconditionally claiming to be hiring.
   const isHiring = !!(shop.hiring_need || (shop.booth_count_available && shop.booth_count_available >= 1));
 
-  const tagList = shop.place_types
+  // Owner-entered tags (custom_amenities, set via /account/manage-listing)
+  // are merged in alongside Google's own scraped place_types rather than
+  // replacing them — the owner is adding real detail Google's categories
+  // don't capture (e.g. "Kids Cuts", "Wheelchair Accessible"), not
+  // correcting what's already there.
+  const scrapedTags = shop.place_types
     ? shop.place_types.split('|').map((t: string) => t.trim().replace('_', ' ')).filter((t: string) => t !== 'point of interest' && t !== 'establishment' && t !== 'service' && t !== 'health')
     : [];
+  const customTags: string[] = Array.isArray(shop.custom_amenities) ? shop.custom_amenities : [];
+  const tagList = [...customTags, ...scrapedTags.filter((t: string) => !customTags.some((c) => c.toLowerCase() === t.toLowerCase()))];
+
+  // Same precedence as app/salons/[slug]/page.tsx's websiteHref.
+  const websiteHref = shop.website
+    ? shop.website.startsWith("http") ? shop.website : `https://${shop.website}`
+    : null;
 
   const maskEmail = (email: string) => email ? email.replace(/(.{2})(.*)(@.*)/, '$1***$3') : '';
   const maskPhone = (phone: string) => phone ? phone.replace(/(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/, '(***) ***-****') : '';
@@ -208,9 +224,25 @@ export default async function ShopProfilePage({ params }: Props) {
     "@type": "LocalBusiness",
     name: shop.shop_name,
   };
-  if (shop.formatted_address) shopJsonLd.address = { "@type": "PostalAddress", streetAddress: shop.formatted_address, addressRegion: "TX", addressCountry: "US" };
+  // Claimed shops have real structured address fields (see the
+  // 20260721000000 migration) — a properly split PostalAddress is
+  // schema.org's own recommended shape, versus dumping the whole string
+  // into streetAddress for shops that haven't been through the claim form.
+  if (shop.street_address && shop.address_city) {
+    shopJsonLd.address = {
+      "@type": "PostalAddress",
+      streetAddress: shop.street_address,
+      addressLocality: shop.address_city,
+      addressRegion: shop.address_state || "TX",
+      postalCode: shop.address_zip || undefined,
+      addressCountry: "US",
+    };
+  } else if (shop.formatted_address) {
+    shopJsonLd.address = { "@type": "PostalAddress", streetAddress: shop.formatted_address, addressRegion: "TX", addressCountry: "US" };
+  }
   if (shop.latitude && shop.longitude) shopJsonLd.geo = { "@type": "GeoCoordinates", latitude: shop.latitude, longitude: shop.longitude };
   if (shop.phone) shopJsonLd.telephone = shop.phone;
+  if (websiteHref) shopJsonLd.url = websiteHref;
   if (shop.rating && shop.total_reviews) {
     shopJsonLd.aggregateRating = {
       "@type": "AggregateRating",
@@ -282,12 +314,19 @@ export default async function ShopProfilePage({ params }: Props) {
                 <MapPin className="w-4 h-4" />
                 {shop.formatted_address || `${shop.city}, TX`}
               </span>
-              <span className="flex items-center gap-1.5">
-                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                <span className="font-bold text-slate-900">{shop.rating || "4.8"}</span>
-                <span className="text-slate-500 underline decoration-slate-300 underline-offset-4 cursor-pointer">({shop.total_reviews || 0} reviews)</span>
-              </span>
-              {shop.school_district_name && (
+              {/* Rating/review count intentionally removed from this header
+                  row — a shop with 0 real reviews was still showing a
+                  hardcoded "4.8" fallback, an impossible/misleading
+                  combination. Rating and review count are still used
+                  elsewhere (search results, JSON-LD, etc.), just not here. */}
+              {/* school_district_name is computed once from the address a
+                  shop had at scrape time — once claimed, the owner can
+                  edit that address freely (including to somewhere entirely
+                  outside Texas, the only region this platform's school-
+                  district data covers), so the stored value can no longer
+                  be trusted to match the current address. Only shown for
+                  unclaimed shops, where address and district still agree. */}
+              {shop.school_district_name && !isClaimed && (
                 <span className="flex items-center gap-1.5">
                   <Landmark className="w-4 h-4" />
                   Located in {shop.school_district_name}
@@ -296,7 +335,7 @@ export default async function ShopProfilePage({ params }: Props) {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col items-stretch sm:items-end gap-0">
             {isClaimed ? (
               <span className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-100 px-6 py-3 rounded-xl font-bold text-sm">
                 <CheckCircle2 className="w-4 h-4" />
@@ -305,6 +344,7 @@ export default async function ShopProfilePage({ params }: Props) {
             ) : (
               <ClaimShopButton shop={shop} />
             )}
+            <WriteReviewButton entityType="shop" entityId={shop.id} entityName={shop.shop_name} />
           </div>
         </div>
 
@@ -315,7 +355,7 @@ export default async function ShopProfilePage({ params }: Props) {
           badgeLabel={
             shop.hiring_need || (shop.booth_count_available && shop.booth_count_available >= 1)
               ? `${shop.booth_count_available || 1} Chairs Available`
-              : "Off Market"
+              : "Not Hiring At The Moment"
           }
           badgeVariant={shop.hiring_need || (shop.booth_count_available && shop.booth_count_available >= 1) ? "available" : "off-market"}
         />
@@ -358,21 +398,19 @@ export default async function ShopProfilePage({ params }: Props) {
             {/* Description / Vibe */}
             <div className="pb-10 border-b border-slate-200">
               <h2 className="text-2xl font-black text-slate-900 mb-6">About this shop</h2>
-              {isHiring ? (
-                <>
-                  <p className="text-slate-600 text-lg leading-relaxed mb-6">
-                    Welcome to {shop.shop_name}, a premier grooming destination located in the heart of {shop.city}. We are currently seeking professional, driven individuals to join our growing team.
-                    With high foot traffic, excellent local ratings ({shop.rating} stars across {shop.total_reviews} reviews), and a modern atmosphere, this is the perfect location to build and scale your clientele.
-                  </p>
-
-                  <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 flex gap-4">
-                    <Info className="w-6 h-6 text-blue-600 shrink-0" />
-                    <div>
-                      <h4 className="font-bold text-blue-900 mb-1">Why work here?</h4>
-                      <p className="text-blue-800/80 text-sm">We provide an inclusive, professional environment that empowers barbers and stylists to maximize their earning potential. Located in a high-visibility area, this shop is ideal for walk-ins and organic growth.</p>
-                    </div>
-                  </div>
-                </>
+              {shop.ai_culture_summary ? (
+                // The owner's own words (set via /account/manage-listing's
+                // "About Your Shop" field) are the source of truth once
+                // present — real, owner-authored content always outranks
+                // the generic templated copy below.
+                <p className="text-slate-600 text-lg leading-relaxed mb-6 whitespace-pre-line">
+                  {shop.ai_culture_summary}
+                </p>
+              ) : isHiring ? (
+                <p className="text-slate-600 text-lg leading-relaxed mb-6">
+                  Welcome to {shop.shop_name}, a premier grooming destination located in the heart of {shop.city}. We are currently seeking professional, driven individuals to join our growing team.
+                  With high foot traffic, excellent local ratings ({shop.rating} stars across {shop.total_reviews} reviews), and a modern atmosphere, this is the perfect location to build and scale your clientele.
+                </p>
               ) : (
                 <p className="text-slate-600 text-lg leading-relaxed mb-6">
                   {shop.shop_name} is a grooming destination located in {shop.city}, TX
@@ -380,7 +418,18 @@ export default async function ShopProfilePage({ params }: Props) {
                   This shop isn't currently listed as hiring — request a Shop Day or contact the owner directly to ask about chair availability.
                 </p>
               )}
+              {isHiring && (
+                <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 flex gap-4">
+                  <Info className="w-6 h-6 text-blue-600 shrink-0" />
+                  <div>
+                    <h4 className="font-bold text-blue-900 mb-1">Why work here?</h4>
+                    <p className="text-blue-800/80 text-sm">We provide an inclusive, professional environment that empowers barbers and stylists to maximize their earning potential. Located in a high-visibility area, this shop is ideal for walk-ins and organic growth.</p>
+                  </div>
+                </div>
+              )}
             </div>
+
+            <ReviewsSection reviews={reviews} averageRating={averageRating} />
 
             {/* Amenities & Tags */}
             <div className="pb-10 border-b border-slate-200">
@@ -545,7 +594,7 @@ export default async function ShopProfilePage({ params }: Props) {
                   <p className="text-slate-500 font-semibold">{shop.rent_rate ? "per week" : "Contact Owner"}</p>
                 </div>
                 <div className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider ${isHiring ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
-                  {isHiring ? "Available" : "Off Market"}
+                  {isHiring ? "Available" : "Not Hiring At The Moment"}
                 </div>
               </div>
 
@@ -557,8 +606,8 @@ export default async function ShopProfilePage({ params }: Props) {
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Managed By</p>
                 <h4 className="font-black text-slate-900 text-lg mb-4">{shop.owner_name && shop.owner_name !== "Unknown Owner" ? shop.owner_name : "Unclaimed (Claim to add)"}</h4>
                 
-                {(shop.email || shop.phone) && (
-                  <div className={`grid gap-3 mt-4 relative z-10 ${shop.email && shop.phone ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                {(shop.email || shop.phone || websiteHref) && (
+                  <div className={`grid gap-3 mt-4 relative z-10 ${[shop.email, shop.phone, websiteHref].filter(Boolean).length >= 3 ? 'grid-cols-3' : [shop.email, shop.phone, websiteHref].filter(Boolean).length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {shop.email && (
                       <a href={`mailto:${shop.email}`} data-ig-click="outbound_lead" className="w-full py-3 px-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm flex items-center justify-center gap-2">
                         <Mail className="w-4 h-4 text-slate-500" />
@@ -571,6 +620,12 @@ export default async function ShopProfilePage({ params }: Props) {
                         Call
                       </a>
                     )}
+                    {websiteHref && (
+                      <a href={websiteHref} target="_blank" rel="noopener noreferrer" data-ig-click="outbound_lead" className="w-full py-3 px-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm flex items-center justify-center gap-2">
+                        <Globe className="w-4 h-4 text-slate-500" />
+                        Site
+                      </a>
+                    )}
                   </div>
                 )}
               </div>
@@ -580,16 +635,6 @@ export default async function ShopProfilePage({ params }: Props) {
               <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
                 <Lock className="w-3 h-3" />
                 Secure contact via Barber & Beauty Network
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-slate-100">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
-                  Not ready to reach out yet?
-                </p>
-                <RequestShopDayButton
-                  shop={shop}
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-indigo-600/20"
-                />
               </div>
             </div>
           </div>
