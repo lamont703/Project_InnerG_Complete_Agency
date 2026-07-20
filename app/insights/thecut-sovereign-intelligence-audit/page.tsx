@@ -6,7 +6,6 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
-import { EzoicAd } from "@/components/shared/ezoic-ad"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -208,7 +207,6 @@ export default function TheCutSovereignIntelligenceAudit() {
             </p>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Part II: The Intelligence Gap */}
           <div className="mb-20">
@@ -357,7 +355,6 @@ export default function TheCutSovereignIntelligenceAudit() {
             </div>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Part IV: What a Barber ADI Looks Like */}
           <div className="mb-20">
@@ -466,7 +463,6 @@ export default function TheCutSovereignIntelligenceAudit() {
             </blockquote>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Part VI: Business Case */}
           <div className="mb-20">

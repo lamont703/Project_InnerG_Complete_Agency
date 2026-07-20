@@ -21,7 +21,6 @@ import {
   type HiringShopMatch,
   type PayPreference,
 } from "./actions";
-import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { Navbar } from "@/components/layout/navbar";
 
 const FAQS = [
@@ -142,7 +141,6 @@ export default function BarbershopApprenticeJobsPage() {
     <div className="min-h-screen light bg-slate-50">
       <Navbar />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-28 pb-10 sm:pb-16">
-        <EzoicAd className="mb-8" />
 
         {/* Hero */}
         <div className="text-center mb-10">

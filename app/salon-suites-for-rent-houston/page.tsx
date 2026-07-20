@@ -5,7 +5,6 @@ import Link from "next/link";
 import { MapPin, DollarSign, Star, Loader2, CheckCircle2, Users, Clock, Sparkles } from "lucide-react";
 import { fetchSalonSuiteListings, type SalonSuiteListing } from "./actions";
 import { submitSalonWaitlist } from "@/app/barbershop-apprentice-jobs-houston/actions";
-import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { Navbar } from "@/components/layout/navbar";
 
 const FAQS = [
@@ -69,7 +68,6 @@ export default function SalonSuitesForRentHoustonPage() {
     <div className="min-h-screen light bg-slate-50">
       <Navbar />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-28 pb-10 sm:pb-16">
-        <EzoicAd className="mb-8" />
 
         <div className="text-center mb-10">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-fuchsia-700 bg-fuchsia-50 border border-fuchsia-100 rounded-full px-3 py-1 mb-4">

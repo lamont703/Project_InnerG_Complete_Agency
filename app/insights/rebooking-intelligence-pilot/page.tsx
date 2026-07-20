@@ -6,7 +6,6 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
-import { EzoicAd } from "@/components/shared/ezoic-ad"
 
 
 
@@ -346,7 +345,6 @@ export default function RebookingIntelligencePilot() {
             </div>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* 10 Data Sources */}
           <div>
@@ -476,7 +474,6 @@ export default function RebookingIntelligencePilot() {
             </blockquote>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* CPMAI Phases */}
           <div>
@@ -602,7 +599,6 @@ export default function RebookingIntelligencePilot() {
             </div>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Scale Pathway */}
           <div>

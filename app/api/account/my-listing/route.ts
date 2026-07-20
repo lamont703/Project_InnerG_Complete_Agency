@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveOwnedEntity } from "@/lib/account/resolve-owned-entity";
 import { splitOwnerName, parseFormattedAddress, composeOwnerName, composeFormattedAddress } from "@/lib/account/address-parsing";
+import { geocodeFullAddress } from "@/lib/geocoding";
 
 // Fields a member is allowed to self-edit on their own linked entity.
 // Deliberately excludes anything Google-sourced (rating, total_reviews,
@@ -138,6 +139,34 @@ export async function PATCH(req: Request) {
     if (updates.address_city) updates.city = updates.address_city;
 
     const admin = createAdminClient();
+
+    // Re-geocode whenever the address actually changed (or lat/long were
+    // never set) — otherwise latitude/longitude stay pinned to wherever
+    // the entity was originally scraped, silently going stale the moment
+    // an owner edits their address (confirmed live: a claimed shop's
+    // "Get Directions"/nearby-entity lookups kept pointing at its old
+    // Houston coordinates after the owner moved its address to Atlanta).
+    // A failed/unavailable geocode never blocks the save — the address
+    // fields themselves are still the source of truth even if the map
+    // pin can't be refreshed right now.
+    const { data: currentEntity } = await (admin
+      .from(resolved.table as any) as any)
+      .select("formatted_address, latitude, longitude")
+      .eq("id", resolved.link.entity_id)
+      .maybeSingle();
+
+    const addressChanged = currentEntity?.formatted_address !== updates.formatted_address;
+    const missingCoords = !currentEntity?.latitude || !currentEntity?.longitude;
+    if ((addressChanged || missingCoords) && updates.formatted_address) {
+      const coords = await geocodeFullAddress(updates.formatted_address);
+      if (coords) {
+        updates.latitude = coords.lat;
+        updates.longitude = coords.lng;
+      } else {
+        console.warn("[my-listing PATCH] Geocoding failed for:", updates.formatted_address);
+      }
+    }
+
     const { error } = await (admin
       .from(resolved.table as any) as any)
       .update(updates)

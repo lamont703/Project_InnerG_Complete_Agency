@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass, CalendarDays } from "lucide-react";
 import type { HoustonData } from "./data";
-import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { Navbar } from "@/components/layout/navbar";
 
 // These are all real, previously-orphaned Houston-area landing pages (no
@@ -74,7 +73,6 @@ export function HoustonDirectory({
     <div className="min-h-screen bg-slate-50 light">
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-12">
-        <EzoicAd className="mb-8" />
 
         {/* Hero */}
         <div className="text-center max-w-2xl mx-auto mb-4">

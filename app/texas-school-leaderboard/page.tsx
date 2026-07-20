@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 import { LeaderboardTable } from "./leaderboard-table";
-import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { Navbar } from "@/components/layout/navbar";
 
 export const revalidate = 3600;
@@ -154,7 +153,6 @@ export default async function SchoolLeaderboardPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(leaderboardJsonLd) }} />
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-10">
-        <EzoicAd className="mb-8" />
 
         <div className="text-center max-w-2xl mx-auto mb-10">
           <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">

@@ -8,7 +8,6 @@ import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
-import { EzoicAd } from "@/components/shared/ezoic-ad"
 import {
   ArrowLeft,
   Brain,
@@ -210,7 +209,6 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
             </p>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Part II: The Intelligence Gap at Franchise Scale */}
           <div className="mb-20">
@@ -346,7 +344,6 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
             </div>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Part IV: The ADI Architecture for Fitness */}
           <div className="mb-20">
@@ -455,7 +452,6 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
             </blockquote>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Part VI: The Business Case */}
           <div className="mb-20">

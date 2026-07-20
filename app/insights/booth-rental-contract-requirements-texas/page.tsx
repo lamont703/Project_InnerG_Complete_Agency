@@ -6,7 +6,6 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
-import { EzoicAd } from "@/components/shared/ezoic-ad"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -239,7 +238,6 @@ export default function BoothRentalRequirementsGuide() {
             </div>
           </section>
 
-          <EzoicAd className="my-12" />
 
           {/* Record-keeping */}
           <section>
@@ -301,7 +299,6 @@ export default function BoothRentalRequirementsGuide() {
             </div>
           </section>
 
-          <EzoicAd className="my-12" />
 
           {/* Insurance */}
           <section>

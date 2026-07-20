@@ -156,33 +156,6 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${_inter.variable} ${_jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
-        {/* Ezoic Privacy Scripts — must load before the Ezoic header script
-            below (consent must be established first). Kept at the very top
-            of <head>, ahead of every other third-party script, per Ezoic's
-            own placement guidance. AdSense is left running as-is for now —
-            Ezoic's docs recommend removing other ad networks' code once
-            Ezoic is confirmed working and AdSense is connected in the
-            Ezoic dashboard, but that's a real revenue-affecting call for a
-            human to make deliberately, not something to do unprompted. */}
-        <Script data-cfasync="false" src="https://cmp.gatekeeperconsent.com/min.js" strategy="afterInteractive" />
-        <Script data-cfasync="false" src="https://the.gatekeeperconsent.com/cmp.min.js" strategy="afterInteractive" />
-
-        {/* Ezoic Header Script. strategy="afterInteractive" (not
-            beforeInteractive) deliberately — matches every other
-            third-party script already on this page and avoids blocking
-            initial render/hydration, which is the real performance cost
-            beforeInteractive would add. Ezoic's own guidance ("as high as
-            possible, don't load after page load") is satisfied by
-            afterInteractive without paying that cost. */}
-        <Script async src="//www.ezojs.com/ezoic/sa.min.js" strategy="afterInteractive" />
-        <Script id="ezoic-standalone-init" strategy="afterInteractive">
-          {`
-            window.ezstandalone = window.ezstandalone || {};
-            ezstandalone.cmd = ezstandalone.cmd || [];
-          `}
-        </Script>
-        <Script src="//ezoicanalytics.com/analytics.js" strategy="afterInteractive" />
-
         {/* Google AdSense */}
         <Script
           async

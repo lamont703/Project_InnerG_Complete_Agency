@@ -6,7 +6,6 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
-import { EzoicAd } from "@/components/shared/ezoic-ad"
 
 
 
@@ -292,7 +291,6 @@ export default function FeasibilityPremiumArticle() {
             </div>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Four Pillars */}
           <div>
@@ -387,7 +385,6 @@ export default function FeasibilityPremiumArticle() {
             </p>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* The Verdict Section */}
           <div>

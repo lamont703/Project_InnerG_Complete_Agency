@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass } from "lucide-react";
 import type { TexasHubData } from "@/lib/texas-hub-data";
-import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 
@@ -60,7 +59,6 @@ export function TexasHubDirectory({
     <div className="min-h-screen bg-slate-50 light flex flex-col">
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-12 flex-1 w-full">
-        <EzoicAd className="mb-8" />
 
         <div className="text-center max-w-2xl mx-auto mb-4">
           <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">{title}</h1>
