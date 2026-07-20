@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
-import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { Navbar } from "@/components/layout/navbar";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { WriteReviewButton } from "@/components/shared/write-review-button";
@@ -276,7 +275,6 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
 
         <DynamicBackButton fallbackHref="/tools/barbershop-search?tab=Salons" />
 
-        <EzoicAd className="mb-6" />
 
         {/* Header Title & Badges */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">

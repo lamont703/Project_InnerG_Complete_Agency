@@ -6,7 +6,6 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
-import { EzoicAd } from "@/components/shared/ezoic-ad"
 
 
 
@@ -418,7 +417,6 @@ export default function DataSourcesBrief() {
             </div>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* All 15 Sources */}
           <div className="space-y-6">
@@ -490,7 +488,6 @@ export default function DataSourcesBrief() {
             })}
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Auxiliary Sources */}
           <div>
@@ -561,7 +558,6 @@ export default function DataSourcesBrief() {
             </div>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Data Readiness Score */}
           <div>

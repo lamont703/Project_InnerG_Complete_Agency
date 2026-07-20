@@ -8,7 +8,6 @@ import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
-import { EzoicAd } from "@/components/shared/ezoic-ad"
 import {
   ArrowLeft,
   TrendingUp,
@@ -344,7 +343,6 @@ export default function BarberEducationADI() {
             </p>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Benchmark Metrics */}
           <div>
@@ -437,7 +435,6 @@ export default function BarberEducationADI() {
             </div>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Section 4: Institution ROI */}
           <div>
@@ -473,7 +470,6 @@ export default function BarberEducationADI() {
             </div>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Verdict */}
           <div>

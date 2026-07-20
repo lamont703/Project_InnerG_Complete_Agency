@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
-import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { Navbar } from "@/components/layout/navbar";
 import Image from "next/image";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
@@ -459,7 +458,6 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-6">
         <DynamicBackButton fallbackHref="/tools/barbershop-search" />
-        <EzoicAd className="mb-6" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">

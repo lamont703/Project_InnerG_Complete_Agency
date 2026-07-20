@@ -6,7 +6,6 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
-import { EzoicAd } from "@/components/shared/ezoic-ad"
 
 
 
@@ -206,7 +205,6 @@ export default function SovereignIntelligenceLayer() {
             </p>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Five Pillars */}
           <div className="mb-20">
@@ -236,7 +234,6 @@ export default function SovereignIntelligenceLayer() {
             </div>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Strategic Verdict */}
           <div className="mb-20">

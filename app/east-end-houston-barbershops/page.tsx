@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Star, Loader2, MapPin, ArrowRight, Scissors } from "lucide-react";
 import { fetchEastEndShops, type EastEndShopListing } from "./actions";
-import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { Navbar } from "@/components/layout/navbar";
 
 const FAQS = [
@@ -33,7 +32,6 @@ export default function EastEndHoustonBarbershopsPage() {
     <div className="min-h-screen light bg-slate-50">
       <Navbar />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-28 pb-10 sm:pb-16">
-        <EzoicAd className="mb-8" />
 
         <div className="text-center mb-10">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-3 py-1 mb-4">

@@ -154,17 +154,6 @@ const nextConfig = {
         destination: "/barber-beauty-network",
         permanent: true,
       },
-      // Ezoic's ads.txt Manager is the source of truth for this site's
-      // ads.txt so Ezoic can keep its own demand-partner lines current
-      // without a redeploy here. Per Ezoic's own setup docs, redirect
-      // /ads.txt to their managed URL rather than maintaining the file
-      // by hand. public/ads.txt is left in place but is now unreachable
-      // on the live site (shadowed by this redirect).
-      {
-        source: "/ads.txt",
-        destination: "https://srv.adstxtmanager.com/19390/innergcomplete.com",
-        permanent: true,
-      },
       // --- Deduplicated / deleted entity redirects ---
       // These pages were indexed by Google before deduplication removed
       // their underlying database rows. Each one redirects to the

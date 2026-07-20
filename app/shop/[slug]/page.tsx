@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Metadata, ResolvingMetadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft, Map as MapIcon, Mail, Phone, Info, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles, Landmark, Globe } from "lucide-react";
+import { MapPin, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft, Map as MapIcon, Mail, Phone, Info, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles, Landmark, Globe, Navigation, Clock, Store } from "lucide-react";
 import { computeShopEcosystemReport } from "@/lib/shop-ecosystem";
 import Image from "next/image";
 import { ShopPhotoGallery } from "@/components/shared/shop-photo-gallery";
@@ -10,11 +10,12 @@ import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { WriteReviewButton } from "@/components/shared/write-review-button";
 import { ReviewsSection } from "@/components/shared/reviews-section";
+import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { Navbar } from "@/components/layout/navbar";
-import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
+import { fetchNearbyEntities } from "@/lib/nearby-entities";
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +56,8 @@ const supabase = createClient(
     }
   }
 );
+
+const TODAY_INDEX = (new Date().getDay() + 6) % 7; // 0 = Monday, matches Google's weekdayDescriptions order
 
 export async function generateMetadata(
   { params }: Props,
@@ -176,6 +179,24 @@ export default async function ShopProfilePage({ params }: Props) {
   const ecosystemReport = await computeShopEcosystemReport(supabase, shop);
   const reviews = await getApprovedReviews("shop", shop.id);
   const { averageRating } = computeReviewStats(reviews);
+
+  // Location/Directions, Nearby Cosmetologists, Nearby Beauty Supply
+  // Stores, and Business Hours — same logic and card layout as
+  // app/salons/[slug]/page.tsx, ported over so shop pages show the same
+  // sections salon pages already did.
+  const hours: string[] = Array.isArray(shop.site_config?.hours) ? shop.site_config.hours : [];
+  const directionsHref = shop.latitude && shop.longitude
+    ? `https://www.google.com/maps?q=${shop.latitude},${shop.longitude}`
+    : shop.formatted_address
+    ? `https://www.google.com/maps?q=${encodeURIComponent(shop.formatted_address)}`
+    : null;
+  const shopCenter = shop.latitude && shop.longitude ? { lat: Number(shop.latitude), lng: Number(shop.longitude) } : null;
+  const [nearbyCosmetologists, nearbyStores] = shopCenter
+    ? await Promise.all([
+        fetchNearbyEntities(supabase, "cosmetologists", shopCenter, { limit: 5 }),
+        fetchNearbyEntities(supabase, "beautySupplyStores", shopCenter, { limit: 5 }),
+      ])
+    : [[], []];
 
   // Rolling 30-day window for a "found this month" framing that stays
   // meaningful going forward rather than an all-time count that only ever
@@ -301,7 +322,6 @@ export default async function ShopProfilePage({ params }: Props) {
 
         <DynamicBackButton fallbackHref="/tools/barbershop-search" />
 
-        <EzoicAd className="mb-6" />
 
         {/* Header Title & Badges */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">
@@ -583,7 +603,7 @@ export default async function ShopProfilePage({ params }: Props) {
           </div>
 
           {/* Right Column (Sticky Sidebar) */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-4">
             <div className="sticky top-32 bg-white border border-slate-200 rounded-[2rem] shadow-2xl p-8">
               
               <div className="flex justify-between items-start mb-6 pb-6 border-b border-slate-100">
@@ -637,6 +657,53 @@ export default async function ShopProfilePage({ params }: Props) {
                 Secure contact via Barber & Beauty Network
               </div>
             </div>
+
+            {/* Same supplementary cards salon pages already had — ported
+                over so shop pages show the same sections. */}
+            {directionsHref && (
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-3">Location</h3>
+                <p className="text-sm text-slate-600 font-medium mb-3">{shop.formatted_address || shop.city}</p>
+                <a
+                  href={directionsHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:underline"
+                >
+                  <Navigation className="w-4 h-4" />
+                  Get Directions
+                </a>
+              </div>
+            )}
+
+            <NearbyEntitiesSection title="Nearby Cosmetologists" icon={Users} entities={nearbyCosmetologists} />
+            <NearbyEntitiesSection title="Nearby Beauty Supply Stores" icon={Store} entities={nearbyStores} />
+
+            {hours.length > 0 && (
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  Business Hours
+                </h3>
+                <ul className="space-y-1.5">
+                  {hours.map((h, i) => {
+                    const [day, ...rest] = h.split(":");
+                    return (
+                      <li
+                        key={h}
+                        className={`flex items-start justify-between gap-3 text-xs font-medium ${
+                          i === TODAY_INDEX ? "text-slate-900 font-bold" : "text-slate-500"
+                        }`}
+                      >
+                        <span>{day}</span>
+                        <span className="text-right">{rest.join(":").trim() || "Closed"}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
 

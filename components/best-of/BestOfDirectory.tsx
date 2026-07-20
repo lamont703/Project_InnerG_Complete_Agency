@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, TrendingUp, HelpCircle } from "lucide-react";
-import { EzoicAd } from "@/components/shared/ezoic-ad";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { FAQSection } from "@/components/insights/faq-section";
@@ -57,7 +56,6 @@ export function BestOfDirectory({
     <div className="min-h-screen bg-slate-50 light flex flex-col">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-28 pb-16 flex-1 w-full">
-        <EzoicAd className="mb-8" />
 
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <Link href={`/texas/${city.toLowerCase().replace(/\s+/g, "-")}`} className="text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors uppercase tracking-widest">
@@ -134,7 +132,6 @@ export function BestOfDirectory({
           </ol>
         </div>
 
-        <EzoicAd className="my-8" />
 
         {/* Neighborhood note — genuine per-city differentiation */}
         <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-5 mb-8 flex items-start gap-3">

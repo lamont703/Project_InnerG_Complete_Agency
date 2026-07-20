@@ -6,7 +6,6 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
-import { EzoicAd } from "@/components/shared/ezoic-ad"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
 import {
@@ -279,7 +278,6 @@ export default function NationalAccreditationReport() {
             </div>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Section 2: The Accreditation Staging Ground */}
           <div>
@@ -401,7 +399,6 @@ export default function NationalAccreditationReport() {
             </div>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Section 4: The Path to Institutional Security */}
           <div>
@@ -509,7 +506,6 @@ export default function NationalAccreditationReport() {
             </div>
           </div>
 
-          <EzoicAd className="my-12" />
 
           {/* Research Methodology */}
           <div className="pt-16 border-t border-border">
