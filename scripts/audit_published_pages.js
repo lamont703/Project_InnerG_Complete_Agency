@@ -49,7 +49,7 @@ const MISSION =
 const SOURCE_AGENT = 'Website Business Discovery Agent';
 
 const baseUrlArg = process.argv.find((a) => a.startsWith('--base-url='));
-const BASE_URL = (baseUrlArg ? baseUrlArg.split('=')[1] : null) || process.env.SITE_BASE_URL || 'http://localhost:3000';
+const BASE_URL = (baseUrlArg ? baseUrlArg.split('=')[1] : null) || process.env.SITE_BASE_URL || 'http://localhost:4000';
 const CANONICAL_BASE_URL = 'https://agency.innergcomplete.com';
 
 const EXPECTED_JSONLD_TYPE = {
