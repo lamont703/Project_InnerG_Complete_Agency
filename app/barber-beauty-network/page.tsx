@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
 import { 
   Users, Briefcase, GraduationCap, ArrowRight, 
   Search, MapPin, Star, Scissors, CheckCircle2, ShieldCheck,
@@ -1765,7 +1764,6 @@ export default function BarberBeautyNetworkPage() {
         </div>
       </section>
 
-      <Footer />
       {/* New Shop Claim Modal */}
       <ClaimShopModal 
         shop={selectedShopToClaim} 

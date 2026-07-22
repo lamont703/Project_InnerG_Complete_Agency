@@ -3,7 +3,6 @@
 import { useState, Suspense, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import { ArrowLeft, ArrowRight, CheckCircle2, UploadCloud, Briefcase, User, FileText, CheckSquare, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -459,7 +458,6 @@ function ApplyFlowContent() {
         </div>
       </div>
 
-      <Footer />
     </main>
   )
 }

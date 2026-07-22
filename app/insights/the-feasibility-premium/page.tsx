@@ -10,7 +10,6 @@ import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import {
   ArrowLeft,
   Target,
@@ -439,7 +438,6 @@ export default function FeasibilityPremiumArticle() {
       <AuthorBio />
 
           <RelatedArticles currentSlug="the-feasibility-premium" />
-      <Footer />
     </main>
   )
 }

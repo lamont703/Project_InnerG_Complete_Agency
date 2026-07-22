@@ -1,6 +1,4 @@
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
-
 import { headers } from 'next/headers'
 import Link from 'next/link'
 import type { Metadata } from 'next'
@@ -158,7 +156,6 @@ export default async function TermsOfServicePage() {
         </div>
       </div>
 
-      <Footer />
     </main>
   )
 }

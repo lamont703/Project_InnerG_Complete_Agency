@@ -1,13 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "@/lib/supabase-fetch-all";
 import { parseWeeklyRent, median } from "@/lib/shop-ecosystem";
-import { TX_CITIES, MIN_TOTAL_BUSINESSES, MIN_PER_CATEGORY, BESPOKE_CITY_ROUTES, slugForCity, type CityReadiness } from "@/lib/city-readiness";
+import { MIN_TOTAL_BUSINESSES, MIN_PER_CATEGORY, type CityReadiness } from "@/lib/city-readiness";
+import { CA_CITIES, CA_BESPOKE_CITY_ROUTES, slugForCity } from "@/lib/california-city-readiness";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export interface TexasHubEntity {
+export interface CaliforniaHubEntity {
   id: string;
   name: string;
   href: string;
@@ -17,52 +18,48 @@ export interface TexasHubEntity {
   badge?: string | null;
 }
 
-export interface TexasHubSection {
+export interface CaliforniaHubSection {
   key: string;
   label: string;
   searchTab: string;
   count: number;
-  items: TexasHubEntity[];
+  items: CaliforniaHubEntity[];
 }
 
-export interface TexasCityLink extends CityReadiness {
+export interface CaliforniaCityLink extends CityReadiness {
   href: string;
 }
 
-export interface TexasHubData {
-  sections: TexasHubSection[];
+export interface CaliforniaHubData {
+  sections: CaliforniaHubSection[];
   totalEntities: number;
   avgSchoolScore: number | null;
   openChairs: number;
   medianWeeklyRent: number | null;
-  cities: TexasCityLink[];
+  cities: CaliforniaCityLink[];
 }
 
-// Statewide version of lib/city-hub-data.ts's getCityHubData — same 8-table
-// fetch and 7-section ranking logic, but unfiltered (one pass per table,
-// not one call per city) and with an added statewide "browse by city"
-// breakdown bucketed from that same in-memory pass instead of a second
-// round of DB queries. This is deliberately not a shared/imported helper
-// with city-hub-data.ts (see that file's own header comment on why Houston
-// and the generalized city layer stay separate) — same duplication
-// convention, third copy.
+// California twin of lib/texas-hub-data.ts's getTexasHubData — same 8-table
+// fetch and 7-section ranking logic, parameterized by CA_CITIES instead of
+// TX_CITIES. Deliberately its own file rather than a shared/imported
+// helper, matching this codebase's established "duplicate small logic
+// across state boundaries" convention (see texas-hub-data.ts's own header
+// comment on why it isn't shared with city-hub-data.ts either).
 //
-// Known, pre-existing limitation carried over unchanged: bucketing by a
-// substring test against formatted_address (the exact same test Postgres's
-// ilike already performs, just relocated to JS) can mis-bucket a business
-// whose street name contains another city's name (e.g. a Houston address
-// on "Katy Freeway"). This risk already exists in every current per-city
-// ilike filter (see getCityHubData("Katy")) — not introduced here, just
-// more visible once every city is aggregated in one place.
+// Both this file and texas-hub-data.ts filter every fetched row down to
+// only the ones matching their own state's city list (via matchesAnyCity
+// below) before building sections/totals — necessary now that real
+// California rows exist in the same live tables as Texas rows (confirmed
+// live: agent_barbershop_leads already has California addresses mixed in
+// with Texas ones). Without this filter, /texas's "top rated" lists and
+// totals would silently include California businesses and vice versa.
 //
-// Every fetched row is filtered down to only the ones matching a TX_CITIES
-// city (via matchesAnyCity below) before building sections/totals — added
-// once lib/california-hub-data.ts started sourcing real California rows
-// from these same live tables (confirmed live: agent_barbershop_leads
-// already mixes Texas and California addresses). Without this filter this
-// page's "top rated" lists and totals would silently include California
-// businesses.
-export async function getTexasHubData(): Promise<TexasHubData> {
+// Same known, pre-existing limitation as the Texas version: bucketing by a
+// substring test against formatted_address/city/metro_area can mis-bucket
+// a business whose address text happens to contain another city's name.
+// Not introduced here — same risk already exists in every per-city ilike
+// filter this codebase already runs.
+export async function getCaliforniaHubData(): Promise<CaliforniaHubData> {
   const [shopsRaw, barberSchoolsRaw, cosmetSchoolsRaw, barbersRaw, cosmetologistsRaw, salonsRaw, barberSupplyRaw, beautySupplyRaw] = await Promise.all([
     fetchAllRows(supabase, "agent_barbershop_leads",
       "id, slug, shop_name, formatted_address, rating, total_reviews, hiring_need, booth_count_available, rent_rate"),
@@ -82,26 +79,27 @@ export async function getTexasHubData(): Promise<TexasHubData> {
       "id, slug, name, city, rating, total_reviews"),
   ]);
 
+  // Same substring test ilike '%city%' performs, relocated to JS.
   const matchesAnyCity = (value: string | null | undefined, cityList: string[]) =>
     !!value && cityList.some((city) => value.toLowerCase().includes(city.toLowerCase()));
 
-  const shops = shopsRaw.filter((s: any) => matchesAnyCity(s.formatted_address, TX_CITIES));
-  const salons = salonsRaw.filter((s: any) => matchesAnyCity(s.formatted_address, TX_CITIES));
-  const barberSchools = barberSchoolsRaw.filter((s: any) => matchesAnyCity(s.city, TX_CITIES));
-  const cosmetSchools = cosmetSchoolsRaw.filter((s: any) => matchesAnyCity(s.city, TX_CITIES));
-  const barbers = barbersRaw.filter((b: any) => matchesAnyCity(b.metro_area, TX_CITIES));
-  const cosmetologists = cosmetologistsRaw.filter((c: any) => matchesAnyCity(c.metro_area, TX_CITIES));
-  const barberSupply = barberSupplyRaw.filter((s: any) => matchesAnyCity(s.city, TX_CITIES));
-  const beautySupply = beautySupplyRaw.filter((s: any) => matchesAnyCity(s.city, TX_CITIES));
+  const shops = shopsRaw.filter((s: any) => matchesAnyCity(s.formatted_address, CA_CITIES));
+  const salons = salonsRaw.filter((s: any) => matchesAnyCity(s.formatted_address, CA_CITIES));
+  const barberSchools = barberSchoolsRaw.filter((s: any) => matchesAnyCity(s.city, CA_CITIES));
+  const cosmetSchools = cosmetSchoolsRaw.filter((s: any) => matchesAnyCity(s.city, CA_CITIES));
+  const barbers = barbersRaw.filter((b: any) => matchesAnyCity(b.metro_area, CA_CITIES));
+  const cosmetologists = cosmetologistsRaw.filter((c: any) => matchesAnyCity(c.metro_area, CA_CITIES));
+  const barberSupply = barberSupplyRaw.filter((s: any) => matchesAnyCity(s.city, CA_CITIES));
+  const beautySupply = beautySupplyRaw.filter((s: any) => matchesAnyCity(s.city, CA_CITIES));
 
   const buildSection = (
     key: string,
     label: string,
     searchTab: string,
     rows: any[],
-    mapItem: (r: any) => TexasHubEntity,
+    mapItem: (r: any) => CaliforniaHubEntity,
     sortKey: "rating" | "score"
-  ): TexasHubSection => {
+  ): CaliforniaHubSection => {
     const items = rows
       .map(mapItem)
       .filter((it) => it[sortKey] != null)
@@ -110,7 +108,7 @@ export async function getTexasHubData(): Promise<TexasHubData> {
     return { key, label, searchTab, count: rows.length, items };
   };
 
-  const sections: TexasHubSection[] = [
+  const sections: CaliforniaHubSection[] = [
     buildSection("shops", "Barbershops", "Barbershops", shops, (s) => ({
       id: s.id, name: s.shop_name, href: `/shop/${s.slug}`,
       rating: s.rating, reviews: s.total_reviews,
@@ -160,12 +158,10 @@ export async function getTexasHubData(): Promise<TexasHubData> {
   const openChairs = [...shops, ...salons].reduce((sum: number, r: any) => sum + (r.booth_count_available || 0), 0);
   const rents = [...shops, ...salons].map((r: any) => parseWeeklyRent(r.rent_rate)).filter((v): v is number => v != null);
 
-  // Same substring test ilike '%city%' performs, relocated to JS — see
-  // file header comment on the known limitation this carries over.
   const matchesCity = (value: string | null | undefined, city: string) =>
     !!value && value.toLowerCase().includes(city.toLowerCase());
 
-  const cities: TexasCityLink[] = TX_CITIES.map((city) => {
+  const cities: CaliforniaCityLink[] = CA_CITIES.map((city) => {
     const shopCount = shops.filter((s: any) => matchesCity(s.formatted_address, city)).length;
     const salonCount = salons.filter((s: any) => matchesCity(s.formatted_address, city)).length;
     const total = shopCount + salonCount;
@@ -180,7 +176,7 @@ export async function getTexasHubData(): Promise<TexasHubData> {
       total,
       qualifies,
       href: qualifies
-        ? BESPOKE_CITY_ROUTES[slug] || `/texas/${slug}`
+        ? CA_BESPOKE_CITY_ROUTES[slug] || `/california/${slug}`
         : `/tools/barbershop-search?q=${encodeURIComponent(label)}`,
     };
   }).sort((a, b) => b.total - a.total);

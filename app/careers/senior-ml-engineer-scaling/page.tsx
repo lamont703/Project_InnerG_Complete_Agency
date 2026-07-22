@@ -1,7 +1,6 @@
 "use client"
 
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import { ArrowLeft, CheckCircle2, Cpu, Server, Zap, ShieldAlert, BadgeDollarSign, MapPin, Database, Code2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -166,7 +165,6 @@ export default function SeniorMLEngineerPage() {
         </div>
       </section>
 
-      <Footer />
     </main>
   )
 }

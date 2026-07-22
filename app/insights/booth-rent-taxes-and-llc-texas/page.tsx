@@ -8,7 +8,6 @@ import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { LLCDecisionTool } from "@/components/insights/llc-decision-tool"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import {
   ArrowLeft,
   Receipt,
@@ -380,7 +379,6 @@ export default function BoothRentTaxesArticle() {
         </div>
       </article>
 
-      <Footer />
     </main>
   )
 }

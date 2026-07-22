@@ -8,7 +8,6 @@ import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { MiniExamQuiz } from "@/components/insights/mini-exam-quiz"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import {
   ArrowLeft,
   Clock,
@@ -720,7 +719,6 @@ export default function LicenseRequirementsGuide() {
         </div>
       </article>
 
-      <Footer />
     </main>
   )
 }

@@ -17,8 +17,6 @@ import {
   CheckCircle2
 } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
-
 const instructorBenchmarks = [
   { name: "Instructor A", class: "AM Session", fidelity: 94, velocity: "+12 days" },
   { name: "Instructor B", class: "PM Session", fidelity: 72, velocity: "-2 days" },
@@ -339,7 +337,6 @@ export default function AccreditationAuditor() {
         </div>
       </div>
 
-      <Footer />
     </main>
   )
 }

@@ -11,7 +11,6 @@ import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import {
   ArrowLeft,
   Clock,
@@ -546,7 +545,6 @@ export default function CognitiveArchitectureBlueprint() {
       <AuthorBio />
 
           <RelatedArticles currentSlug="cognitive-architecture-blueprint" />
-      <Footer />
     </main>
   )
 }

@@ -1,5 +1,4 @@
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { 
@@ -366,7 +365,6 @@ export default function ElPasoBarberExamPrep() {
         </div>
       </section>
 
-      <Footer />
     </main>
   )
 }

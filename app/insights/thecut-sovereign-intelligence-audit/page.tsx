@@ -7,7 +7,6 @@ import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import {
   ArrowLeft,
   Brain,
@@ -601,7 +600,6 @@ export default function TheCutSovereignIntelligenceAudit() {
       <AuthorBio />
 
           <RelatedArticles currentSlug="thecut-sovereign-intelligence-audit" />
-      <Footer />
     </main>
   )
 }

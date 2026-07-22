@@ -1,7 +1,5 @@
 import Link from "next/link"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
-
 export const metadata = {
   title: "Data Deletion Policy | Inner G Complete Agency",
   description: "Official institutional policy and governance documentation for Inner G Complete Agency.",
@@ -92,7 +90,6 @@ export default function DataDeletionPage() {
         </div>
       </div>
 
-      <Footer />
     </main>
   )
 }

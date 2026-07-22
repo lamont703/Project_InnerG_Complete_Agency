@@ -3,8 +3,6 @@ import { StatusDropdown } from "./StatusDropdown"
 import { CountdownTimer } from "./CountdownTimer"
 import { Users, Link as LinkIcon, Calendar, Store, Scissors } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
-
 export const metadata = {
   title: "Shop Day Connections | Inner G Complete",
   description: "Manage invites and requests between Barbers and Barbershops.",
@@ -166,7 +164,6 @@ export default async function ShopDayConnectionsPage() {
         </div>
       </div>
       
-      <Footer />
     </main>
   )
 }

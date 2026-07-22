@@ -6,6 +6,7 @@ import path from 'path'
 import { createClient } from '@supabase/supabase-js'
 import { fetchAllRows } from '@/lib/supabase-fetch-all'
 import { getQualifyingCities, BESPOKE_CITY_ROUTES } from '@/lib/city-readiness'
+import { getQualifyingCitiesCA, CA_BESPOKE_CITY_ROUTES } from '@/lib/california-city-readiness'
 import { getCityZipCodes } from '@/lib/city-hub-data'
 
 export const dynamic = 'force-dynamic'
@@ -78,6 +79,16 @@ const getCachedSitemapData = unstable_cache(
       }))
     );
 
+    const qualifyingCitiesCA = await getQualifyingCitiesCA(supabase);
+    const nonBespokeQualifyingCA = qualifyingCitiesCA.filter((c) => c.qualifies && !CA_BESPOKE_CITY_ROUTES[c.slug]);
+
+    const cityZipResultsCA = await Promise.all(
+      nonBespokeQualifyingCA.map(async (c) => ({
+        slug: c.slug,
+        zips: await getCityZipCodes(c.city),
+      }))
+    );
+
     const [
       allShops,
       barberSchools,
@@ -105,6 +116,8 @@ const getCachedSitemapData = unstable_cache(
       shops: shops || [],
       nonBespokeQualifying,
       cityZipResults,
+      nonBespokeQualifyingCA,
+      cityZipResultsCA,
       allShops,
       barberSchools,
       cosmetologySchools,
@@ -132,6 +145,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       shops,
       nonBespokeQualifying,
       cityZipResults,
+      nonBespokeQualifyingCA,
+      cityZipResultsCA,
       allShops,
       barberSchools,
       cosmetologySchools,
@@ -210,6 +225,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }))
     );
 
+    // Same manual pattern as the Texas city-hub/zip blocks above, for
+    // /california's own [city] and [city]/[zip] dynamic children.
+    const cityHubSitemapCA = nonBespokeQualifyingCA.map((c: any) => ({
+      url: `${baseUrl}/california/${c.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.75,
+    }));
+
+    const cityZipSitemapCA = cityZipResultsCA.flatMap(({ slug, zips }: any) =>
+      zips.map((zip: string) => ({
+        url: `${baseUrl}/california/${slug}/${zip}`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly' as const,
+        priority: 0.6,
+      }))
+    );
+
     // Programmatic SEO: URLs for every profile page across all 7 entity
     // families (data now sourced from the cached bundle above — see
     // fetchAllRows's own comment there for why PostgREST's 1000-row cap
@@ -277,6 +310,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...dynamicSitemap,
       ...cityHubSitemap,
       ...cityZipSitemap,
+      ...cityHubSitemapCA,
+      ...cityZipSitemapCA,
       ...shopProfileSitemap,
       ...schoolProfileSitemap,
       ...barberProfileSitemap,

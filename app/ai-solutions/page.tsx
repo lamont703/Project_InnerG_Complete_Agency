@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import { Brain, BarChart3, GraduationCap, LayoutDashboard, ArrowRight, Shield, Users, Calendar, Globe, Armchair, Radar, ClipboardList } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -233,7 +232,6 @@ export default function AISolutionsPage() {
         </div>
       </section>
 
-      <Footer />
     </main>
   )
 }

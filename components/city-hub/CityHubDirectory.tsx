@@ -56,7 +56,7 @@ function scoreColor(score: number) {
 // layout, card design, and zip-code drilldown chip grid, now that
 // city-hub-data.ts computes zipCounts for every city, not just Houston.
 // cityLabel feeds the "View All" search-tool link's query param; citySlug
-// feeds the zip-chip hrefs (`/${citySlug}/${zip}`).
+// feeds the zip-chip hrefs (`${basePath}/${citySlug}/${zip}`).
 export function CityHubDirectory({
   data,
   title,
@@ -66,6 +66,7 @@ export function CityHubDirectory({
   backHref,
   backLabel,
   zipQuerySuffix,
+  basePath = "/texas",
 }: {
   data: CityHubData;
   title: string;
@@ -76,6 +77,8 @@ export function CityHubDirectory({
   backLabel: string;
   /** Appended to "View All" search links so a per-zip page's links stay scoped, e.g. " 77099". */
   zipQuerySuffix?: string;
+  /** State-hub URL prefix for zip-chip links — defaults to "/texas" to keep every existing caller unchanged; California's [city] page passes "/california". */
+  basePath?: string;
 }) {
   return (
     <div className="min-h-screen bg-slate-50 light">
@@ -229,7 +232,7 @@ export function CityHubDirectory({
                 return (
                   <Link
                     key={z.zip}
-                    href={`/texas/${citySlug}/${z.zip}`}
+                    href={`${basePath}/${citySlug}/${z.zip}`}
                     title={title}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-colors text-sm font-bold text-slate-700"
                   >

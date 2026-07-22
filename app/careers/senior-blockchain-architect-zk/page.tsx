@@ -1,7 +1,6 @@
 "use client"
 
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import { ArrowLeft, CheckCircle2, Target, Cpu, Users, Zap, ShieldAlert, BadgeDollarSign, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -160,7 +159,6 @@ export default function SeniorBlockchainArchitectRolePage() {
         </div>
       </section>
 
-      <Footer />
     </main>
   )
 }
