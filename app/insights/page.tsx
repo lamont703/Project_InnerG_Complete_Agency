@@ -1,5 +1,4 @@
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import dynamic from "next/dynamic"
 import { BookOpen } from "lucide-react"
 import { Suspense } from "react"
@@ -56,7 +55,6 @@ export default function InsightsPage() {
         </Suspense>
       </section>
 
-      <Footer />
     </main>
   )
 }

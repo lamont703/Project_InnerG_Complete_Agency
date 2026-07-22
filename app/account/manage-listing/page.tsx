@@ -6,7 +6,6 @@ import Link from "next/link"
 import { Loader2, Store, ShieldCheck, ArrowLeft, Save, ImagePlus, X, Camera } from "lucide-react"
 import { toast } from "sonner"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import { createBrowserClient } from "@/lib/supabase/browser"
 
 const MAX_IMAGES = 5
@@ -464,7 +463,6 @@ export default function ManageListingPage() {
           )}
         </div>
       </main>
-      <Footer />
     </div>
   )
 }

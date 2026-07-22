@@ -8,7 +8,6 @@ import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { BoothRentCalculator } from "@/components/insights/booth-rent-calculator"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import {
   ArrowLeft,
   Scale,
@@ -401,7 +400,6 @@ export default function BoothRentVsCommissionArticle() {
         </div>
       </article>
 
-      <Footer />
     </main>
   )
 }

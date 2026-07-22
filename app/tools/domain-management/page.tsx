@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@/lib/supabase/browser";
 import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
 import { Globe, Plus, RefreshCw, CheckCircle, XCircle, Clock, Link2, Brain, Pause, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -675,7 +674,6 @@ export default function DomainManagementPage() {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 }

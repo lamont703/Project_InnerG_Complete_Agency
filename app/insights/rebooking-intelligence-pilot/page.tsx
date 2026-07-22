@@ -10,7 +10,6 @@ import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import {
   ArrowLeft, Database, Zap, Clock, Layers, Brain,
   ArrowRight, Lock, AlertTriangle, BarChart3, CheckCircle2, Shield,
@@ -688,7 +687,6 @@ export default function RebookingIntelligencePilot() {
       <AuthorBio />
 
           <RelatedArticles currentSlug="rebooking-intelligence-pilot" />
-      <Footer />
     </main>
   )
 }

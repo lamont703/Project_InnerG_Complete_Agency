@@ -13,7 +13,11 @@ const navLinks = [
   { label: "Market Insights", href: "/insights" },
   { label: "AI Lab", href: "/ai-solutions" },
   { label: "Membership", href: "/membership" },
+]
+
+const stateHubLinks = [
   { label: "Texas Hub", href: "/texas" },
+  { label: "California Hub", href: "/california" },
 ]
 
 interface AccountProject {
@@ -26,6 +30,7 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isAccountOpen, setIsAccountOpen] = useState(false)
+  const [isStateHubsOpen, setIsStateHubsOpen] = useState(false)
   const router = useRouter()
 
   // Auth state is fetched client-side only — the navbar renders on public,
@@ -151,6 +156,37 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
+
+          <div className="relative">
+            <button
+              onClick={() => setIsStateHubsOpen((v) => !v)}
+              className="flex items-center gap-1 rounded-lg px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
+            >
+              State Hubs
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isStateHubsOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isStateHubsOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setIsStateHubsOpen(false)} />
+                <div className="absolute top-full left-0 mt-2 z-20 bg-white border border-slate-200 rounded-xl shadow-lg py-1 w-48">
+                  {stateHubLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={(e) => {
+                        setIsStateHubsOpen(false)
+                        handleNavClick(e, link.href)
+                      }}
+                      className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-foreground transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="hidden items-center gap-3 lg:flex">
@@ -257,6 +293,22 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
+
+            <div className="mt-2 border-t border-border pt-2">
+              <p className="px-4 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                State Hubs
+              </p>
+              {stateHubLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => handleNavClick(e, link.href)}
+                  className="rounded-lg px-4 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
 
             {isAuthenticated && (
               <div className="mt-2 border-t border-border pt-2">

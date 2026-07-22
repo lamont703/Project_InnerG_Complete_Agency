@@ -1,8 +1,6 @@
 import { fetchPinterestQueue } from "./actions"
 import { PinCard } from "@/components/pinterest-queue/pin-card"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
-
 export const metadata = {
   title: "Pinterest Queue | Inner G Complete",
   description: "Generated Pinterest pins ready to post via GoHighLevel.",
@@ -41,7 +39,6 @@ export default async function PinterestQueuePage() {
         )}
       </div>
 
-      <Footer />
     </main>
   )
 }

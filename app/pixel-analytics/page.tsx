@@ -2,7 +2,6 @@ import Link from "next/link"
 import { fetchAnalyticsData, fetchBotRequestStats } from "./actions"
 import { BarChart3, Users, MousePointerClick, Activity, Globe, Link as LinkIcon, Zap, RefreshCw, Target, ShieldCheck, TrendingUp, Bot, GraduationCap, Sparkles, Scissors, Store, CalendarDays } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import { CategoryClickBreakdown } from "@/components/pixel-analytics/category-click-breakdown"
 
 export const metadata = {
@@ -558,7 +557,6 @@ export default async function PixelAnalyticsPage(
         </div>
       </div>
       
-      <Footer />
     </main>
   )
 }

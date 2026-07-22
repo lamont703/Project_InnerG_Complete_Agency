@@ -33,7 +33,7 @@ export default async function TexasHubPage() {
     <TexasHubDirectory
       data={data}
       title="Texas Barbershops, Hair Salons & Barber Schools"
-      subtitle={`${data.totalEntities.toLocaleString()} barbershops, hair salons, barbers, and licensed schools across Texas — including real 2026 licensing exam outcomes, not available on Google.`}
+      subtitle={`${data.totalEntities.toLocaleString()} barbershops, hair salons, barbers, and licensed schools across Texas — including real 2026 licensing exam outcomes, with intelligence not available on Google.`}
       backHref="/tools/barbershop-search"
       backLabel="← Back to Search"
     />

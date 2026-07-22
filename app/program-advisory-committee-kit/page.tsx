@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import {
   Brain,
   LayoutDashboard,
@@ -513,7 +512,6 @@ Signed by Evaluator: ___________________________`
         </div>
       </section>
 
-      <Footer />
     </main>
   )
 }

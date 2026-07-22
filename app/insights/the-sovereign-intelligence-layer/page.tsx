@@ -11,7 +11,6 @@ import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import {
   ArrowLeft,
   Brain,
@@ -320,7 +319,6 @@ export default function SovereignIntelligenceLayer() {
       <AuthorBio />
 
           <RelatedArticles currentSlug="the-sovereign-intelligence-layer" />
-      <Footer />
     </main>
   )
 }

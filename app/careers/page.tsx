@@ -1,7 +1,6 @@
 "use client"
 
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import { ArrowRight, Sparkles, Brain, Code2, Globe, Shield, Zap, Target } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -264,7 +263,6 @@ export default function CareersPage() {
         </div>
       </section>
 
-      <Footer />
     </main>
   )
 }

@@ -17,7 +17,6 @@ import {
 } from "lucide-react"
 import { BarberRegisterForm } from "@/components/forms/BarberRegisterForm"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import Link from "next/link"
 
 export default function ScholarshipFundPage() {
@@ -245,7 +244,6 @@ export default function ScholarshipFundPage() {
           </div>
         </main>
 
-        <Footer />
       </div>
     </div>
   )

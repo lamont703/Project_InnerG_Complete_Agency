@@ -1,6 +1,4 @@
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
-
 export const metadata = {
   title: "Cookie Policy | Inner G Complete Agency",
   description: "Official institutional policy and governance documentation for Inner G Complete Agency.",
@@ -90,7 +88,6 @@ export default function CookiePolicyPage() {
         </div>
       </div>
 
-      <Footer />
     </main>
   )
 }

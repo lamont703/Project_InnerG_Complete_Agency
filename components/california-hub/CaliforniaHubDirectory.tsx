@@ -1,20 +1,7 @@
 import Link from "next/link";
-import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass } from "lucide-react";
-import type { TexasHubData } from "@/lib/texas-hub-data";
+import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign } from "lucide-react";
+import type { CaliforniaHubData } from "@/lib/california-hub-data";
 import { Navbar } from "@/components/layout/navbar";
-// Genuinely statewide resources — unlike the Houston-area service pages
-// (which live on /houston's own "Explore Houston Services" section instead,
-// since they're metro-specific, not statewide), these aren't tied to one city.
-const TEXAS_STATEWIDE_LINKS: { href: string; label: string }[] = [
-  { href: "/texas-school-leaderboard", label: "Texas School Leaderboard" },
-  { href: "/texas-barber-exam-intelligence-prep", label: "Texas Barber Exam Prep" },
-  { href: "/texas-cosmetology-exam-intelligence-prep", label: "Texas Cosmetology Exam Prep" },
-  { href: "/barber-cos-continuing-education", label: "Continuing Education Portal" },
-  { href: "/how-to-get-a-barber-license-in-texas", label: "How to Get a Barber License in Texas" },
-  { href: "/texas-barber-practical-exam-kit-list", label: "Texas Barber Practical Exam Kit List" },
-  { href: "/texas-cosmetology-practical-exam-kit-list", label: "Texas Cosmetology Practical Exam Kit List" },
-];
-
 const SECTION_ICONS: Record<string, any> = {
   shops: Scissors,
   salons: Building2,
@@ -31,20 +18,23 @@ function scoreColor(score: number) {
   return "text-red-600";
 }
 
-// Same section layout/card design as components/city-hub/CityHubDirectory.tsx,
-// at statewide scope, plus a "Browse Texas Cities" grid in place of the
-// zip-code drilldown (a state has cities beneath it, not zip codes).
+// California twin of components/texas-hub/TexasHubDirectory.tsx — same
+// section layout/card design at statewide scope, with a "Browse California
+// Cities" grid in place of the zip-code drilldown. Deliberately omits the
+// Texas version's "Statewide Resources" block: those links (exam prep,
+// licensing guide, continuing education) are Texas-specific pages that
+// have no California equivalent yet — nothing to link to until they exist.
 // Qualifying cities (real page) get a solid card linking to their hub;
 // non-qualifying ones (not enough real data yet) get a muted card linking
 // to the search tool instead — never a dead or thin-content link.
-export function TexasHubDirectory({
+export function CaliforniaHubDirectory({
   data,
   title,
   subtitle,
   backHref,
   backLabel,
 }: {
-  data: TexasHubData;
+  data: CaliforniaHubData;
   title: string;
   subtitle: string;
   backHref: string;
@@ -94,11 +84,11 @@ export function TexasHubDirectory({
           </div>
         )}
 
-        {/* Browse Texas Cities */}
+        {/* Browse California Cities */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mb-8">
           <div className="flex items-center gap-2 mb-1">
             <MapPin className="w-5 h-5 text-slate-700" />
-            <h2 className="text-lg font-black text-slate-900">Browse Texas Cities</h2>
+            <h2 className="text-lg font-black text-slate-900">Browse California Cities</h2>
           </div>
           <p className="text-xs text-slate-500 mb-4">
             {qualifyingCities.length} cities with enough real, verified businesses for their own directory — the rest
@@ -198,28 +188,6 @@ export function TexasHubDirectory({
               )}
             </div>
           ))}
-        </div>
-
-        {/* Statewide Resources */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mt-8">
-          <div className="flex items-center gap-2 mb-1">
-            <Compass className="w-5 h-5 text-slate-700" />
-            <h2 className="text-lg font-black text-slate-900">Statewide Resources</h2>
-          </div>
-          <p className="text-xs text-slate-500 mb-4">
-            Tools and guides that apply across Texas, not just one city.
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {TEXAS_STATEWIDE_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 transition-colors p-4 block"
-              >
-                <p className="font-bold text-slate-900 text-sm">{link.label}</p>
-              </Link>
-            ))}
-          </div>
         </div>
 
         <div className="text-center mt-10">

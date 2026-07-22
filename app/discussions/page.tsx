@@ -1,7 +1,6 @@
 "use client"
 
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, PlayCircle, Calendar, Users, Sparkles } from "lucide-react"
 import Link from "next/link"
@@ -142,7 +141,6 @@ export default function DiscussionsPage() {
         </div>
       </section>
 
-      <Footer />
     </main>
   )
 }

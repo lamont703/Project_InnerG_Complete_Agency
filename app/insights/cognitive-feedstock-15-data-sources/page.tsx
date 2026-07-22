@@ -10,7 +10,6 @@ import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import {
   ArrowLeft,
   Database,
@@ -636,7 +635,6 @@ export default function DataSourcesBrief() {
       <AuthorBio />
 
           <RelatedArticles currentSlug="cognitive-feedstock-15-data-sources" />
-      <Footer />
     </main>
   )
 }

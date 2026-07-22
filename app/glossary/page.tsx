@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import { Navbar } from "@/components/layout/navbar"
-import { Footer } from "@/components/layout/footer"
 import { 
   BookOpen, 
   Brain, 
@@ -137,7 +136,6 @@ export default function GlossaryPage() {
         </div>
       </section>
 
-      <Footer />
     </main>
   )
 }
