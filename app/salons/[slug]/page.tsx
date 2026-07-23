@@ -179,11 +179,11 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
     p_cutoff: thirtyDaysAgo,
   });
   const searchPerformance = (searchPerfRows && searchPerfRows[0]) || null;
-  // claimed_at doesn't exist on agent_salon_leads yet (only on
-  // agent_barbershop_leads so far) — this evaluates to false today and
-  // will start working automatically once that column is added and
-  // selected here, same forward-compatible pattern as the other
-  // booth-rent fields above.
+  // claimed_at is set on agent_salon_leads by the claim/link flow (see
+  // app/api/admin/community-entity-links POST, which sets it alongside the
+  // community_member_entity_links row) — so a salon linked to a member
+  // reads as claimed here exactly like a claimed shop, now that claimed_at
+  // is included in SALON_PUBLIC_COLUMNS.
   const isClaimed = !!salon.claimed_at;
   const isHiring = !!(salon.hiring_need || (salon.booth_count_available && salon.booth_count_available >= 1));
 
