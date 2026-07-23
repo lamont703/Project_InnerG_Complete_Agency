@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass } from "lucide-react";
 import type { TexasHubData } from "@/lib/texas-hub-data";
 import { Navbar } from "@/components/layout/navbar";
+import { AdSponsorshipBanner } from "@/components/ads/AdSponsorshipBanner";
 // Genuinely statewide resources — unlike the Houston-area service pages
 // (which live on /houston's own "Explore Houston Services" section instead,
 // since they're metro-specific, not statewide), these aren't tied to one city.
@@ -64,7 +65,7 @@ export function TexasHubDirectory({
         </div>
 
         {(data.avgSchoolScore != null || data.openChairs > 0 || data.medianWeeklyRent != null) && (
-          <div className="max-w-2xl mx-auto mb-10 flex flex-wrap gap-3 justify-center">
+          <div className="max-w-2xl mx-auto mb-8 flex flex-wrap gap-3 justify-center">
             {data.avgSchoolScore != null && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-5 py-3 flex items-center gap-2.5">
                 <Award className="w-5 h-5 text-indigo-600 shrink-0" />
@@ -93,6 +94,11 @@ export function TexasHubDirectory({
             )}
           </div>
         )}
+
+        {/* Exclusive Texas State Sponsorship Banner */}
+        <div className="mb-8">
+          <AdSponsorshipBanner type="state" />
+        </div>
 
         {/* Browse Texas Cities */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mb-8">
