@@ -105,6 +105,7 @@ export const SALON_PUBLIC_COLUMNS = [
   "google_images",
   "site_config",
   "school_district_name",
+  "claimed_at",
   "nearby_areas",
 ];
 
