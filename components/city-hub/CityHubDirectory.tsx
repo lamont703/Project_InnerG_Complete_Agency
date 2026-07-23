@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass, CalendarDays } from "lucide-react";
 import type { CityHubData } from "@/lib/city-hub-data";
 import { Navbar } from "@/components/layout/navbar";
+import { AdSponsorshipBanner } from "@/components/ads/AdSponsorshipBanner";
 
 // Real, city-specific landing pages that predate this hub hierarchy — keyed
 // by citySlug so each city's page only shows its own real content, never an
@@ -91,7 +92,7 @@ export function CityHubDirectory({
         </div>
 
         {(data.avgSchoolScore != null || data.openChairs > 0 || data.medianWeeklyRent != null) && (
-          <div className="max-w-2xl mx-auto mb-10 flex flex-wrap gap-3 justify-center">
+          <div className="max-w-2xl mx-auto mb-8 flex flex-wrap gap-3 justify-center">
             {data.avgSchoolScore != null && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-5 py-3 flex items-center gap-2.5">
                 <Award className="w-5 h-5 text-indigo-600 shrink-0" />
@@ -120,6 +121,11 @@ export function CityHubDirectory({
             )}
           </div>
         )}
+
+        {/* Exclusive City Sponsorship Banner */}
+        <div className="mb-8">
+          <AdSponsorshipBanner type="city" cityLabel={cityLabel} />
+        </div>
 
         <div className="space-y-8">
           {data.sections.map((section) => (

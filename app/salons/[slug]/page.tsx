@@ -10,6 +10,7 @@ import { WriteReviewButton } from "@/components/shared/write-review-button";
 import { ReviewsSection } from "@/components/shared/reviews-section";
 import { ShopPhotoGallery } from "@/components/shared/shop-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
+import { SalonSponsoredAd } from "@/components/ads/SalonSponsoredAd";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
@@ -386,6 +387,11 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
                   This salon isn't currently listed as hiring — request a Shop Day or contact the owner directly to ask about chair availability.
                 </p>
               )}
+
+              {/* Sponsored ad spot — demo placement promoting a real DB salon
+                  (Expert Hair Salon); click opens an advertising inquiry email. */}
+              <SalonSponsoredAd currentSlug={salon.slug} />
+
               {isHiring && (
                 <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 flex gap-4">
                   <Info className="w-6 h-6 text-blue-600 shrink-0" />

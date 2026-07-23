@@ -255,6 +255,30 @@ const nextConfig = {
         destination: "/shop-day-matches",
         permanent: true,
       },
+      // --- New fixes based on recent pixel events ---
+      // Dedup casualty for Sola Salons
+      {
+        source: "/salons/sola-salons-houston-8ac0d0cd",
+        destination: "/salons/sola-salons-houston-b67fb18d",
+        permanent: true,
+      },
+      // Legacy landing page route
+      {
+        source: "/precision-fade-haircuts-houston",
+        destination: "/texas/houston",
+        permanent: true,
+      },
+      // Malformed local contact links (caught by pixel analytics)
+      {
+        source: "/texas/houston/:zip/contact",
+        destination: "/contact",
+        permanent: true,
+      },
+      {
+        source: "/texas/houston/:zip/contact-us",
+        destination: "/contact",
+        permanent: true,
+      },
     ]
   },
 }

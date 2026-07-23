@@ -11,6 +11,7 @@ import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { WriteReviewButton } from "@/components/shared/write-review-button";
 import { ReviewsSection } from "@/components/shared/reviews-section";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
+import { ShopSponsoredAd } from "@/components/ads/ShopSponsoredAd";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { Navbar } from "@/components/layout/navbar";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
@@ -438,6 +439,11 @@ export default async function ShopProfilePage({ params }: Props) {
                   This shop isn't currently listed as hiring — request a Shop Day or contact the owner directly to ask about chair availability.
                 </p>
               )}
+
+              {/* Sponsored ad spot — demo placement promoting a real DB shop
+                  (Sauccy Fades); click opens an advertising inquiry email. */}
+              <ShopSponsoredAd currentSlug={shop.slug} />
+
               {isHiring && (
                 <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 flex gap-4">
                   <Info className="w-6 h-6 text-blue-600 shrink-0" />

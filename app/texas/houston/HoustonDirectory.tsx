@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass, CalendarDays } from "lucide-react";
 import type { HoustonData } from "./data";
 import { Navbar } from "@/components/layout/navbar";
+import { AdSponsorshipBanner } from "@/components/ads/AdSponsorshipBanner";
 
 // These are all real, previously-orphaned Houston-area landing pages (no
 // internal links pointed at them from anywhere in the app before this) —
@@ -81,7 +82,7 @@ export function HoustonDirectory({
         </div>
 
         {(data.avgSchoolScore != null || data.openChairs > 0 || data.medianWeeklyRent != null) && (
-          <div className="max-w-2xl mx-auto mb-10 flex flex-wrap gap-3 justify-center">
+          <div className="max-w-2xl mx-auto mb-8 flex flex-wrap gap-3 justify-center">
             {data.avgSchoolScore != null && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-5 py-3 flex items-center gap-2.5">
                 <Award className="w-5 h-5 text-indigo-600 shrink-0" />
@@ -110,6 +111,11 @@ export function HoustonDirectory({
             )}
           </div>
         )}
+
+        {/* Exclusive Houston City Sponsorship Banner */}
+        <div className="mb-8">
+          <AdSponsorshipBanner type="city" cityLabel="Houston" />
+        </div>
 
         {/* Sections */}
         <div className="space-y-8">
