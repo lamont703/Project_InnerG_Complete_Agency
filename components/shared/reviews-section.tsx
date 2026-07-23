@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Star, MessageSquareText } from "lucide-react";
 import type { ShearQueryReview } from "@/lib/reviews";
 
@@ -16,11 +17,18 @@ function timeAgo(dateStr: string): string {
 // Server-renderable — reviews are fetched server-side (lib/reviews.ts's
 // getApprovedReviews) and passed in as plain props, same pattern as the
 // rest of the shop/salon profile pages' data flow.
-export function ReviewsSection({ reviews, averageRating }: { reviews: ShearQueryReview[]; averageRating: number | null }) {
+// `action` renders in the section header, right-aligned — the shop/salon
+// pages pass their Write A Review button here so it lives with the reviews
+// it creates, rather than up in the page header next to the claim badge.
+// `entityName` titles the section after the specific shop/salon (e.g.
+// "Valor Barbershop Reviews") so users know exactly which business they're
+// reviewing; falls back to the "ShearQuery Reviews" brand label when a
+// caller doesn't pass one.
+export function ReviewsSection({ reviews, averageRating, action, entityName }: { reviews: ShearQueryReview[]; averageRating: number | null; action?: ReactNode; entityName?: string }) {
   return (
     <div className="pb-10 border-b border-slate-200">
-      <div className="flex items-center gap-3 mb-6">
-        <h2 className="text-2xl font-black text-slate-900">ShearQuery Reviews</h2>
+      <div className="flex items-center flex-wrap gap-3 mb-6">
+        <h2 className="text-2xl font-black text-slate-900">{entityName ? `${entityName} Reviews` : "ShearQuery Reviews"}</h2>
         {averageRating != null && (
           <span className="inline-flex items-center gap-1 text-sm font-bold text-slate-700">
             <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
@@ -28,6 +36,7 @@ export function ReviewsSection({ reviews, averageRating }: { reviews: ShearQuery
             <span className="text-slate-400 font-medium">({reviews.length})</span>
           </span>
         )}
+        {action && <div className="w-full sm:w-auto sm:ml-auto">{action}</div>}
       </div>
 
       {reviews.length === 0 ? (

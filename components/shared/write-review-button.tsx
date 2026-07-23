@@ -6,7 +6,8 @@ import { Star, PenLine, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { ReviewEntityType } from "@/lib/reviews";
 
-// Sits directly below ClaimShopButton on the shop/salon profile pages —
+// Rendered inside the "ShearQuery Reviews" section header on the shop/salon
+// profile pages (spacing is owned by that container, so no margin here) —
 // only those two entity types render this today, but the API/schema
 // underneath (see the 20260722000000 migration) already supports all 6
 // entity types, so this same component works unchanged if wired onto
@@ -60,7 +61,7 @@ export function WriteReviewButton({ entityType, entityId, entityName }: { entity
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white border-2 border-slate-900 text-slate-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors mt-3"
+        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white border-2 border-slate-900 text-slate-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors"
       >
         <PenLine className="w-4 h-4" />
         Write A Review

@@ -330,11 +330,23 @@ export default async function ShopProfilePage({ params }: Props) {
             <h1 className="font-black text-3xl md:text-5xl text-slate-900 tracking-tight leading-tight mb-2">
               {shop.shop_name}
             </h1>
-            <div className="flex items-center gap-4 text-slate-600 font-medium">
-              <span className="flex items-center gap-1.5 underline decoration-slate-300 underline-offset-4 cursor-pointer hover:text-slate-900">
+            <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-slate-600 font-medium">
+              <span className="flex items-center gap-1.5">
                 <MapPin className="w-4 h-4" />
                 {shop.formatted_address || `${shop.city}, TX`}
               </span>
+              {directionsHref && (
+                <a
+                  href={directionsHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-ig-click="outbound_lead"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:underline"
+                >
+                  <Navigation className="w-4 h-4" />
+                  Get Directions
+                </a>
+              )}
               {/* Rating/review count intentionally removed from this header
                   row — a shop with 0 real reviews was still showing a
                   hardcoded "4.8" fallback, an impossible/misleading
@@ -365,7 +377,22 @@ export default async function ShopProfilePage({ params }: Props) {
             ) : (
               <ClaimShopButton shop={shop} />
             )}
-            <WriteReviewButton entityType="shop" entityId={shop.id} entityName={shop.shop_name} />
+            {(shop.phone || websiteHref) && (
+              <div className="flex gap-2 mt-3 w-full sm:w-auto">
+                {shop.phone && (
+                  <a href={`tel:${shop.phone}`} data-ig-click="outbound_lead" className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm px-6 py-3">
+                    <Phone className="w-4 h-4 text-slate-500" />
+                    Call
+                  </a>
+                )}
+                {websiteHref && (
+                  <a href={websiteHref} target="_blank" rel="noopener noreferrer" data-ig-click="outbound_lead" className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm px-6 py-3">
+                    <Globe className="w-4 h-4 text-slate-500" />
+                    Website
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -455,8 +482,6 @@ export default async function ShopProfilePage({ params }: Props) {
               )}
             </div>
 
-            <ReviewsSection reviews={reviews} averageRating={averageRating} />
-
             {/* Amenities & Tags */}
             <div className="pb-10 border-b border-slate-200">
               <h2 className="text-2xl font-black text-slate-900 mb-6">Amenities & Tags</h2>
@@ -472,6 +497,13 @@ export default async function ShopProfilePage({ params }: Props) {
                 )}
               </div>
             </div>
+
+            <ReviewsSection
+              reviews={reviews}
+              averageRating={averageRating}
+              entityName={shop.shop_name}
+              action={<WriteReviewButton entityType="shop" entityId={shop.id} entityName={shop.shop_name} />}
+            />
 
             {/* Your Market Ecosystem */}
             {ecosystemReport && (() => {
@@ -632,26 +664,14 @@ export default async function ShopProfilePage({ params }: Props) {
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Managed By</p>
                 <h4 className="font-black text-slate-900 text-lg mb-4">{shop.owner_name && shop.owner_name !== "Unknown Owner" ? shop.owner_name : "Unclaimed (Claim to add)"}</h4>
                 
-                {(shop.email || shop.phone || websiteHref) && (
-                  <div className={`grid gap-3 mt-4 relative z-10 ${[shop.email, shop.phone, websiteHref].filter(Boolean).length >= 3 ? 'grid-cols-3' : [shop.email, shop.phone, websiteHref].filter(Boolean).length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                    {shop.email && (
-                      <a href={`mailto:${shop.email}`} data-ig-click="outbound_lead" className="w-full py-3 px-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm flex items-center justify-center gap-2">
-                        <Mail className="w-4 h-4 text-slate-500" />
-                        Email
-                      </a>
-                    )}
-                    {shop.phone && (
-                      <a href={`tel:${shop.phone}`} data-ig-click="outbound_lead" className="w-full py-3 px-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm flex items-center justify-center gap-2">
-                        <Phone className="w-4 h-4 text-slate-500" />
-                        Call
-                      </a>
-                    )}
-                    {websiteHref && (
-                      <a href={websiteHref} target="_blank" rel="noopener noreferrer" data-ig-click="outbound_lead" className="w-full py-3 px-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm flex items-center justify-center gap-2">
-                        <Globe className="w-4 h-4 text-slate-500" />
-                        Site
-                      </a>
-                    )}
+                {/* Call/Website moved up to the page header (old Write A
+                    Review slot); Email stays here as the owner-direct channel. */}
+                {shop.email && (
+                  <div className="grid gap-3 mt-4 relative z-10 grid-cols-1">
+                    <a href={`mailto:${shop.email}`} data-ig-click="outbound_lead" className="w-full py-3 px-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm flex items-center justify-center gap-2">
+                      <Mail className="w-4 h-4 text-slate-500" />
+                      Email
+                    </a>
                   </div>
                 )}
               </div>
@@ -664,25 +684,9 @@ export default async function ShopProfilePage({ params }: Props) {
               </div>
             </div>
 
-            {/* Same supplementary cards salon pages already had — ported
-                over so shop pages show the same sections. */}
-            {directionsHref && (
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-3">Location</h3>
-                <p className="text-sm text-slate-600 font-medium mb-3">{shop.formatted_address || shop.city}</p>
-                <a
-                  href={directionsHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-ig-click="outbound_lead"
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:underline"
-                >
-                  <Navigation className="w-4 h-4" />
-                  Get Directions
-                </a>
-              </div>
-            )}
-
+            {/* Location/Get Directions now live at the top next to the
+                address (moved up) — this sidebar Location card was redundant
+                with that, so it was removed. */}
             <NearbyEntitiesSection title="Nearby Cosmetologists" icon={Users} entities={nearbyCosmetologists} />
             <NearbyEntitiesSection title="Nearby Beauty Supply Stores" icon={Store} entities={nearbyStores} />
 
