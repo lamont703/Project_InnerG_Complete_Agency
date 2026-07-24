@@ -18,6 +18,7 @@ import Link from "next/link"
 import { toast } from "sonner"
 import { joinCosmetologyPrepWaitlist } from "./actions"
 import { Navbar } from "@/components/layout/navbar"
+import { ExamPrepCTA } from "@/components/shared/exam-prep-cta"
 import {
   trackExamSessionStart,
   trackExamAnswerSubmitted,
@@ -304,10 +305,10 @@ export default function CosmetologyPracticeDeckPage() {
                       </Link>
                   </div>
                   <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-slate-950 leading-tight">
-                    Texas Cosmetology Exam <br className="sm:hidden" />Intelligence Deck™
+                    Cosmetology State Board <br className="sm:hidden" />Practice Test
                   </h1>
                   <p className="text-[11px] font-bold text-slate-500 mt-1">
-                    Practice questions aligned to the PSI written exam — the vendor TDLR contracts to administer the actual Cosmetology Operator license test.
+                    The Texas Cosmetology Exam Intelligence Deck™ — free practice questions aligned to the PSI written exam, the vendor TDLR contracts to administer the actual Cosmetology Operator license test.
                   </p>
               </div>
               <div className="flex items-center gap-4 w-full sm:w-auto">
@@ -597,6 +598,10 @@ export default function CosmetologyPracticeDeckPage() {
                     <ArrowRight className="h-3 w-3" />
                   </Button>
               </div>
+          </div>
+
+          <div className="max-w-xl mx-auto mt-8 mb-4">
+            <ExamPrepCTA variant="cosmetology" />
           </div>
 
           <div className="text-center mt-4 mb-8">

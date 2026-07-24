@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LeaderboardTable } from "@/app/texas-school-leaderboard/leaderboard-table";
 import type { LeaderboardSchool } from "@/app/texas-school-leaderboard/page";
 import { Navbar } from "@/components/layout/navbar";
+import { ExamPrepCTA } from "@/components/shared/exam-prep-cta";
 
 export const revalidate = 3600;
 
@@ -157,6 +158,10 @@ export default async function CosmetologySchoolsHoustonPage() {
         </div>
 
         <LeaderboardTable barberSchools={barber} cosmetologySchools={cosmetology} />
+
+        <div className="max-w-3xl mx-auto mt-12">
+          <ExamPrepCTA variant="cosmetology" />
+        </div>
 
         <div className="max-w-3xl mx-auto mt-16 pt-10 border-t border-slate-200">
           <h2 className="text-lg font-black text-slate-900 mb-6 text-center">Common Questions</h2>

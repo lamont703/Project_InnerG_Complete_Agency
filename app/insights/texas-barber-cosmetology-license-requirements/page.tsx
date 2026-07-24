@@ -7,6 +7,7 @@ import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { MiniExamQuiz } from "@/components/insights/mini-exam-quiz"
+import { ExamPrepCTA } from "@/components/shared/exam-prep-cta"
 import { Navbar } from "@/components/layout/navbar"
 import {
   ArrowLeft,
@@ -272,6 +273,10 @@ export default function LicenseRequirementsGuide() {
                 New to the field? See our step-by-step{" "}
                 <Link href="/how-to-get-a-barber-license-in-texas" className="text-primary font-bold hover:underline">
                   How to Get a Barber License in Texas
+                </Link>{" "}
+                or{" "}
+                <Link href="/how-to-get-a-cosmetology-license-in-texas" className="text-primary font-bold hover:underline">
+                  How to Get a Cosmetology License in Texas
                 </Link>{" "}
                 guide, including real 2026 pass rates by school, before starting here.
               </p>
@@ -690,6 +695,11 @@ export default function LicenseRequirementsGuide() {
           />
 
           <AuthorBio />
+
+          <div className="my-10 grid gap-3 sm:grid-cols-2">
+            <ExamPrepCTA variant="cosmetology" />
+            <ExamPrepCTA variant="barber" />
+          </div>
 
           <RelatedArticles currentSlug="texas-barber-cosmetology-license-requirements" />
 

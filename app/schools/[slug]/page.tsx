@@ -571,7 +571,7 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                   </p>
                   <Link
                     href={prepHref}
-                    data-ig-click="outbound_lead"
+                    data-ig-click="exam_prep_cta"
                     className="w-full inline-flex flex-col items-center justify-center gap-1 px-5 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-md shadow-indigo-600/20"
                   >
                     <span className="inline-flex items-center gap-2 font-extrabold text-sm uppercase tracking-wider">
