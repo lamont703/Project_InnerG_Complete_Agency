@@ -294,10 +294,10 @@ export default function PublicSwipeDeckPage() {
                       </Link>
                   </div>
                   <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-slate-950 leading-tight">
-                    Texas Barber Exam <br className="sm:hidden" />Intelligence Deck™
+                    Barber Exam <br className="sm:hidden" />Practice Test
                   </h1>
                   <p className="text-[11px] font-bold text-slate-500 mt-1">
-                    Practice questions aligned to the PSI written exam — the vendor TDLR contracts to administer the actual Class A Barber license test.
+                    The Texas Barber Exam Intelligence Deck™ — free practice questions aligned to the PSI written exam, the vendor TDLR contracts to administer the actual Class A Barber license test.
                   </p>
               </div>
               <div className="flex items-center gap-4 w-full sm:w-auto">

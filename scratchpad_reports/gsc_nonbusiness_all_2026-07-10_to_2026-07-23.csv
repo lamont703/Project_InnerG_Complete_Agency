@@ -1,0 +1,569 @@
+query,clicks,impressions,ctr,position,words
+"natural hair of katy",3,253,1.19,4.6,4
+"beauty supply near me",0,185,0.00,3.2,4
+"braids of katy",1,166,0.60,1.2,3
+"hair store near me",1,46,2.17,3.2,4
+"hair salons near me",2,41,4.88,3.9,4
+"west texas barber academy",0,40,0.00,7.5,4
+"beauty supply",1,39,2.56,1.8,2
+"barber supply store near me",0,35,0.00,18.5,5
+"barber shops near me",1,28,3.57,4.4,4
+"katy braids",0,27,0.00,1.0,2
+"hair salon near me",0,25,0.00,4.8,4
+"barber school near me",1,23,4.35,3.8,4
+"nail supply near me",1,22,4.55,1.5,4
+"salons on the lake",0,22,0.00,9.0,4
+"barbershop near me",0,21,0.00,7.6,3
+"barber supply near me",0,20,0.00,16.2,4
+"barber supply store",0,20,0.00,52.1,3
+"texas beauty supply",0,20,0.00,7.6,3
+"texas nail supply",0,20,0.00,1.0,3
+"barber school mckinney",0,19,0.00,9.1,3
+"top barber academy",0,19,0.00,8.2,3
+"hair store",0,18,0.00,4.7,2
+"texas cosmetology license",0,15,0.00,34.7,3
+"the hair academy",0,15,0.00,4.3,3
+"barbers on the lake",0,14,0.00,8.1,4
+"beauty schools sugar land",0,14,0.00,13.4,4
+"esthetician school in amarillo",0,14,0.00,31.6,4
+"hair city beauty supply",0,14,0.00,7.2,4
+"haircut near me",0,14,0.00,7.4,3
+"cosmetology school",1,13,7.69,8.2,2
+"beauty schools in waco texas",0,13,0.00,26.1,5
+"cosmetology school katy",0,13,0.00,8.4,3
+"cosmetology schools in sugar land tx",0,13,0.00,13.8,6
+"esthetician schools in sugar land tx",0,13,0.00,18.9,6
+"hair schools in sugar land",0,13,0.00,11.3,5
+"salon park",0,13,0.00,7.0,2
+"texas cosmetology license requirements",0,13,0.00,41.8,4
+"barber supplies near me",0,12,0.00,40.3,4
+"kids haircuts near me",0,12,0.00,19.6,4
+"nail school in sugar land texas",0,12,0.00,15.2,6
+"sugar land cosmetology school",0,12,0.00,10.7,4
+"sugar land texas cosmetology schools",0,12,0.00,12.7,5
+"an salon",0,11,0.00,8.5,2
+"cosmetology school sugar land",0,11,0.00,14.4,4
+"cosmetology school sugar land texas",0,11,0.00,12.4,5
+"cosmetology schools in sugar land",0,11,0.00,14.9,5
+"cosmetology schools sugar land",0,11,0.00,12.5,4
+"hair academy",0,11,0.00,7.3,2
+"hair schools in sugar land texas",0,11,0.00,15.0,6
+"nail supply store near me",0,11,0.00,4.2,5
+"wigs and beauty",0,11,0.00,5.3,3
+"barber college near me",0,10,0.00,5.1,4
+"barber school brownsville tx",0,10,0.00,6.4,4
+"barber shop near me",0,10,0.00,5.2,4
+"beauty school sugar land tx",0,10,0.00,12.8,5
+"beauty schools in sugar land texas",0,10,0.00,16.2,6
+"beauty supply store",0,10,0.00,2.3,3
+"cosmetology colleges in sugar land texas",0,10,0.00,14.3,6
+"cosmetology school near me",0,10,0.00,6.6,4
+"cosmetology schools in sugar land texas",0,10,0.00,13.7,6
+"cosmetology schools sugar land tx",0,10,0.00,13.3,5
+"esthetician school katy",0,10,0.00,19.3,3
+"esthetician school sugar land texas",0,10,0.00,22.0,5
+"esthetician school sugar land tx",0,10,0.00,24.7,5
+"barber near me",0,9,0.00,1.3,3
+"beauty school in sugar land",0,9,0.00,11.0,5
+"beauty school sugar land",0,9,0.00,12.8,4
+"hair stores near me",0,9,0.00,1.0,4
+"nail salon near me",0,9,0.00,2.0,4
+"requirements for cosmetology license in texas",0,9,0.00,40.4,6
+"salon near me",0,9,0.00,2.8,3
+"sugar land cosmetology schools",0,9,0.00,13.4,4
+"sugar land hair school",0,9,0.00,8.2,4
+"barber school",1,8,12.50,3.0,2
+"barber",0,8,0.00,3.1,1
+"barber school rosenberg tx",0,8,0.00,7.8,4
+"beauty academy sugar land",0,8,0.00,16.5,4
+"la beauty nails",0,8,0.00,6.8,3
+"nail supply store austin",0,8,0.00,10.8,4
+"sugar land beauty school",0,8,0.00,11.3,4
+"texas requirements for cosmetology license",0,8,0.00,37.9,5
+"university of cosmetology",0,8,0.00,44.0,3
+"barber school round rock",1,7,14.29,9.7,4
+"barber supply",0,7,0.00,2.1,2
+"beauty supply cypress tx",0,7,0.00,12.1,4
+"beauty supply store near me",0,7,0.00,2.1,5
+"cosmetology school sugar land tx",0,7,0.00,13.1,5
+"esthetician school",0,7,0.00,5.9,2
+"hair salon",0,7,0.00,3.7,2
+"nail school",0,7,0.00,11.6,2
+"nail supply store",0,7,0.00,4.0,3
+"texas barber university",0,7,0.00,9.1,3
+"texas beauty college",0,7,0.00,1.0,3
+"the hair academy photos",0,7,0.00,5.6,4
+"beauty college sugar land",0,6,0.00,14.7,4
+"beauty supply spring tx",0,6,0.00,4.5,4
+"irving barber shop",0,6,0.00,27.0,3
+"missouri city beauty school",0,6,0.00,11.7,4
+"salon city",0,6,0.00,1.8,2
+"spring barbershop",0,6,0.00,8.2,2
+"texas beauty",0,6,0.00,8.3,2
+"west texas barber",0,6,0.00,7.3,3
+"your hair salon",0,6,0.00,3.0,3
+"barbershop mckinney",0,5,0.00,50.6,2
+"beauty schools near me",0,5,0.00,1.0,4
+"beauty supply atascocita",0,5,0.00,12.8,3
+"beauty supply near me open now",0,5,0.00,4.2,6
+"braiding shop near me",0,5,0.00,1.2,4
+"cosmetology school cypress tx",0,5,0.00,10.2,4
+"esthetician schools sugar land",0,5,0.00,20.8,4
+"hair cut near me",0,5,0.00,1.6,4
+"hair now",0,5,0.00,7.4,2
+"hair spa in katy, tx",0,5,0.00,71.8,5
+"hair store pflugerville",0,5,0.00,11.4,3
+"la beauty",0,5,0.00,4.0,2
+"my salon",0,5,0.00,9.2,2
+"sugar land beauty schools",0,5,0.00,12.4,4
+"texas college of cosmetology",0,5,0.00,11.4,4
+"the beauty supply",0,5,0.00,7.0,3
+"the beauty supply store",0,5,0.00,12.2,4
+"a salon",0,4,0.00,5.5,2
+"barber academy",0,4,0.00,8.0,2
+"barber booth",0,4,0.00,26.8,2
+"barber booth rent",0,4,0.00,14.0,3
+"barber shop",0,4,0.00,1.0,2
+"barber supply nearby",0,4,0.00,18.8,3
+"barber supply stores near me",0,4,0.00,45.5,5
+"barbers near me",0,4,0.00,1.0,3
+"barbershops near me",0,4,0.00,1.5,3
+"beaumont barber",0,4,0.00,24.5,2
+"beauty college near me",0,4,0.00,7.3,4
+"beauty school near me",0,4,0.00,5.5,4
+"beauty store salon",0,4,0.00,10.5,3
+"beauty supply pflugerville",0,4,0.00,7.0,3
+"beauty supply stores near me",0,4,0.00,1.0,5
+"cheap haircuts near me",0,4,0.00,16.0,4
+"east texas lash institute",0,4,0.00,5.5,4
+"el salon",0,4,0.00,9.5,2
+"hair salons",0,4,0.00,2.3,2
+"hair school katy",0,4,0.00,10.3,3
+"hair school near me",0,4,0.00,24.0,4
+"hair school sugar land",0,4,0.00,10.5,4
+"hair supply store near me",0,4,0.00,2.8,5
+"haircuts near me",0,4,0.00,2.3,3
+"kids haircuts",0,4,0.00,15.8,2
+"mckinney barber school",0,4,0.00,9.0,3
+"my beauty hair salon",0,4,0.00,8.0,4
+"nail school sugar land",0,4,0.00,13.0,4
+"nail shop near me",0,4,0.00,3.3,4
+"nails near me",0,4,0.00,10.8,3
+"pflugerville hair store",0,4,0.00,9.5,3
+"school of cosmetology",0,4,0.00,11.0,3
+"shop salon city",0,4,0.00,1.0,3
+"wigs and beauty pflugerville",0,4,0.00,6.0,4
+"barber shop supplies near me",0,3,0.00,59.0,5
+"barber shop supply store",0,3,0.00,70.0,4
+"barber shop supply store near me",0,3,0.00,13.7,6
+"barber shops brownsville tx",0,3,0.00,10.7,4
+"barber supply near me open now",0,3,0.00,18.7,6
+"beauty school missouri city",0,3,0.00,7.0,4
+"beauty school stafford",0,3,0.00,7.7,3
+"beauty store near me",0,3,0.00,3.0,4
+"beauty store salon and spa",0,3,0.00,10.0,5
+"beauty supply cypress",0,3,0.00,13.0,3
+"beauty supply katy",0,3,0.00,29.3,3
+"beauty supply open near me",0,3,0.00,1.3,5
+"beauty supply round rock",0,3,0.00,16.3,4
+"braids of katy photos",0,3,0.00,1.0,4
+"east texas cosmetology college",0,3,0.00,11.3,4
+"good hair",0,3,0.00,11.7,2
+"hair city",0,3,0.00,6.3,2
+"hair now salon",0,3,0.00,7.0,3
+"hair store in pflugerville",0,3,0.00,10.0,4
+"hair stylist near me",0,3,0.00,1.3,4
+"license tx cosmetology",0,3,0.00,32.7,3
+"nail license texas",0,3,0.00,51.0,3
+"nail school near me",0,3,0.00,12.3,4
+"nail shops near me",0,3,0.00,1.0,4
+"nails license in texas",0,3,0.00,46.3,4
+"nails supply near me",0,3,0.00,3.7,4
+"natural hair katy",0,3,0.00,3.7,3
+"natural hair salon katy",0,3,0.00,9.3,4
+"salon and spa institute brownsville",0,3,0.00,15.3,5
+"salon spa",0,3,0.00,75.3,2
+"salons near me",0,3,0.00,5.7,3
+"supply nails",0,3,0.00,2.7,2
+"texas barber license",0,3,0.00,29.7,3
+"texas nail license",0,3,0.00,46.3,3
+"the beauty salon",0,3,0.00,17.0,3
+"the woodlands barber shop",0,3,0.00,51.7,4
+"wig store near me",0,3,0.00,1.7,4
+"woodlands barber shop",0,3,0.00,61.7,3
+"barber supplies",1,2,50.00,1.0,2
+"beauty salon near me",1,2,50.00,1.0,4
+"best barber supply store near me",1,2,50.00,5.0,6
+"a salon and spa",0,2,0.00,14.0,4
+"a-beauty",0,2,0.00,43.5,2
+"barber institute of texas",0,2,0.00,10.0,4
+"barber salon supply",0,2,0.00,1.5,3
+"barber school austin",0,2,0.00,20.5,3
+"barber school beaumont tx",0,2,0.00,11.5,4
+"barber school sherman tx",0,2,0.00,10.5,4
+"barber school spring tx",0,2,0.00,5.0,4
+"barber schools",0,2,0.00,3.0,2
+"barber shop license texas",0,2,0.00,18.0,4
+"barber shops the woodlands",0,2,0.00,20.5,4
+"barbershop booth rent",0,2,0.00,24.0,3
+"barbershop missouri city",0,2,0.00,30.0,3
+"barbershop supply near me",0,2,0.00,45.0,4
+"beauty and barber supply near me",0,2,0.00,25.5,6
+"beauty school brownsville tx",0,2,0.00,12.5,4
+"beauty school mckinney",0,2,0.00,7.0,3
+"beauty store and salon",0,2,0.00,27.5,4
+"beauty supply austin",0,2,0.00,1.0,3
+"beauty supply beaumont",0,2,0.00,21.5,3
+"beauty supply hours",0,2,0.00,8.5,3
+"beauty supply missouri city",0,2,0.00,1.0,4
+"beauty supply near me open",0,2,0.00,1.5,5
+"beauty supply stores",0,2,0.00,9.5,3
+"beauty supply the woodlands",0,2,0.00,12.0,4
+"beauty supply waco tx",0,2,0.00,39.5,4
+"braid shops near me",0,2,0.00,3.0,4
+"braiding salon near me",0,2,0.00,1.0,4
+"cosmetology",0,2,0.00,3.0,1
+"cosmetology hours for texas",0,2,0.00,42.5,4
+"cosmetology license texas",0,2,0.00,45.0,3
+"cosmetology school brownsville tx",0,2,0.00,12.0,4
+"curly hair salon near me",0,2,0.00,1.0,5
+"esthetician school near me",0,2,0.00,1.0,4
+"hair braiding near me",0,2,0.00,4.5,4
+"hair cut",0,2,0.00,1.5,2
+"hair institute",0,2,0.00,10.0,2
+"hair salons mckinney",0,2,0.00,1.0,3
+"hair school",0,2,0.00,11.5,2
+"hair store on college",0,2,0.00,4.5,4
+"hair store waco",0,2,0.00,10.5,3
+"haircut license cost",0,2,0.00,42.5,3
+"how much to rent a chair in a barber shop",0,2,0.00,40.5,10
+"how to get a barber license in texas",0,2,0.00,29.5,8
+"in a beauty salon",0,2,0.00,11.0,4
+"in salon",0,2,0.00,29.0,2
+"ins salon",0,2,0.00,49.0,2
+"irving barbershop",0,2,0.00,39.5,2
+"me in beauty supply",0,2,0.00,23.5,4
+"missouri city nails and lashes",0,2,0.00,8.0,5
+"my beauty salon",0,2,0.00,21.5,3
+"nail salon",0,2,0.00,1.0,2
+"nail spa eagle pass",0,2,0.00,10.5,4
+"nail stores",0,2,0.00,1.0,2
+"nail supply",0,2,0.00,1.0,2
+"salon in the park",0,2,0.00,13.0,4
+"salons at the lake",0,2,0.00,10.0,4
+"shop license",0,2,0.00,7.0,2
+"stores near me",0,2,0.00,11.0,3
+"texas barber license requirements",0,2,0.00,27.5,4
+"texas barbers",0,2,0.00,11.0,2
+"texas beauty school",0,2,0.00,1.0,3
+"texas cosmetology hours",0,2,0.00,50.5,3
+"texas license cosmetology",0,2,0.00,24.5,3
+"texas school of cosmetology",0,2,0.00,9.0,4
+"the cut barbershop",0,2,0.00,1.5,3
+"top esthetician schools in sugar land",0,2,0.00,51.0,6
+"when does beauty supply close",0,2,0.00,11.0,5
+"when does the beauty supply store open",0,2,0.00,17.0,7
+"wigs beaumont tx",0,2,0.00,14.5,3
+"wigs near me",0,2,0.00,1.5,3
+"asian hair salon near me",1,1,100.00,1.0,5
+"beauty school katy",1,1,100.00,9.0,3
+"braid shops near me now",1,1,100.00,10.0,5
+"brow tint and lamination",1,1,100.00,1.0,4
+"hair dye",1,1,100.00,2.0,2
+"hair school salon near me",1,1,100.00,1.0,5
+"nail academy near me",1,1,100.00,1.0,4
+"a and a salon",0,1,0.00,5.0,4
+"academy barber college",0,1,0.00,7.0,3
+"academy barber school",0,1,0.00,11.0,3
+"academy barber shop",0,1,0.00,1.0,3
+"academy haircut",0,1,0.00,7.0,2
+"amarillo barber",0,1,0.00,31.0,2
+"amarillo cosmetology school",0,1,0.00,12.0,3
+"amarillo cosmetology schools",0,1,0.00,24.0,3
+"an hair",0,1,0.00,8.0,2
+"an hair salon",0,1,0.00,69.0,3
+"and salon",0,1,0.00,4.0,2
+"asian barber near me",0,1,0.00,1.0,4
+"asian hair salon",0,1,0.00,1.0,3
+"asian hair salons near me",0,1,0.00,8.0,5
+"austin",0,1,0.00,2.0,1
+"austin the barber",0,1,0.00,3.0,3
+"barber & beauty supply",0,1,0.00,52.0,3
+"barber academy near me",0,1,0.00,7.0,4
+"barber and beauty academy",0,1,0.00,9.0,4
+"barber and cosmetology school",0,1,0.00,1.0,4
+"barber around me",0,1,0.00,1.0,3
+"barber beaumont",0,1,0.00,27.0,2
+"barber cosmetology",0,1,0.00,12.0,2
+"barber cosmetology license",0,1,0.00,10.0,3
+"barber in sherman tx",0,1,0.00,10.0,4
+"barber license requirements",0,1,0.00,57.0,3
+"barber on the lake",0,1,0.00,8.0,4
+"barber programs near me",0,1,0.00,2.0,4
+"barber rent",0,1,0.00,20.0,2
+"barber school austin tx",0,1,0.00,41.0,4
+"barber school cypress tx",0,1,0.00,12.0,4
+"barber school haircut",0,1,0.00,17.0,3
+"barber school hours",0,1,0.00,10.0,3
+"barber school in austin",0,1,0.00,39.0,4
+"barber school irving tx",0,1,0.00,11.0,4
+"barber school near me open now",0,1,0.00,2.0,6
+"barber school sugar land",0,1,0.00,8.0,4
+"barber schools near me",0,1,0.00,1.0,4
+"barber shop austin tx",0,1,0.00,1.0,4
+"barber shop brownsville",0,1,0.00,24.0,3
+"barber shop clear lake",0,1,0.00,21.0,4
+"barber shop open now near me",0,1,0.00,1.0,6
+"barber shop rent a chair",0,1,0.00,32.0,5
+"barber shop school",0,1,0.00,1.0,3
+"barber shops amarillo",0,1,0.00,17.0,3
+"barber shops beaumont tx",0,1,0.00,2.0,4
+"barber shops in amarillo tx",0,1,0.00,28.0,5
+"barber shops in the woodlands",0,1,0.00,22.0,5
+"barber shops katy",0,1,0.00,1.0,3
+"barber shops near me open now",0,1,0.00,1.0,6
+"barber shops open",0,1,0.00,1.0,3
+"barber shops open near me",0,1,0.00,1.0,5
+"barber shops spring tx",0,1,0.00,10.0,4
+"barber supplies nearby",0,1,0.00,11.0,3
+"barber supplies stores near me",0,1,0.00,7.0,5
+"barber supply shop",0,1,0.00,72.0,3
+"barber supply shop near me",0,1,0.00,7.0,5
+"barber supply store near me open now",0,1,0.00,44.0,7
+"barber supply stores",0,1,0.00,54.0,3
+"barber training",0,1,0.00,1.0,2
+"barbering",0,1,0.00,7.0,1
+"barbers deer park",0,1,0.00,68.0,3
+"barbers schools",0,1,0.00,24.0,2
+"barbers shops",0,1,0.00,1.0,2
+"barbershop",0,1,0.00,1.0,1
+"barbershop beaumont",0,1,0.00,1.0,2
+"barbershop katy",0,1,0.00,1.0,2
+"barbershop open now",0,1,0.00,1.0,3
+"barbershop school near me",0,1,0.00,9.0,4
+"barbershop supply store",0,1,0.00,63.0,3
+"barbershop the woodlands tx",0,1,0.00,40.0,4
+"barbershops in beaumont tx",0,1,0.00,44.0,4
+"beaumont barber shop",0,1,0.00,19.0,3
+"beaumont tx",0,1,0.00,6.0,2
+"beauty & barber supply",0,1,0.00,57.0,3
+"beauty academy",0,1,0.00,1.0,2
+"beauty and barber supplies",0,1,0.00,66.0,4
+"beauty and barber supply",0,1,0.00,62.0,4
+"beauty college",0,1,0.00,20.0,2
+"beauty schools",0,1,0.00,1.0,2
+"beauty shops near me",0,1,0.00,1.0,4
+"beauty store",0,1,0.00,1.0,2
+"beauty stores near me",0,1,0.00,1.0,4
+"beauty supplies near me",0,1,0.00,1.0,4
+"beauty supply beaumont tx",0,1,0.00,1.0,4
+"beauty supply hair salon",0,1,0.00,37.0,4
+"beauty supply in round rock",0,1,0.00,10.0,5
+"beauty supply in spring tx",0,1,0.00,14.0,5
+"beauty supply open near me now",0,1,0.00,2.0,6
+"beauty supply open now",0,1,0.00,1.0,4
+"beauty supply prices",0,1,0.00,1.0,3
+"beauty supply round rock tx",0,1,0.00,26.0,5
+"beauty supply stafford",0,1,0.00,1.0,3
+"beauty supply store near me open now",0,1,0.00,1.0,7
+"beauty supply store open near me",0,1,0.00,17.0,6
+"beauty supply store pflugerville",0,1,0.00,8.0,4
+"beauty supply store.",0,1,0.00,1.0,3
+"beauty supply sugar land",0,1,0.00,15.0,4
+"beauty supply wigs",0,1,0.00,6.0,3
+"beauty supply.",0,1,0.00,1.0,2
+"best barber shops near me",0,1,0.00,1.0,5
+"best beauty salon spring tx",0,1,0.00,11.0,5
+"best cosmetology schools in sugar land",0,1,0.00,49.0,6
+"best esthetician school in sugar land",0,1,0.00,67.0,6
+"best hair stylist near me",0,1,0.00,10.0,5
+"booth rent barber shop",0,1,0.00,16.0,4
+"braid school",0,1,0.00,4.0,2
+"braid shop near me",0,1,0.00,1.0,4
+"braiding hair beauty supply near me",0,1,0.00,1.0,6
+"braiding hair near me beauty supply",0,1,0.00,4.0,6
+"braiding shop near me open now",0,1,0.00,10.0,6
+"braiding shops",0,1,0.00,1.0,2
+"braiding supply store near me",0,1,0.00,12.0,5
+"braids",0,1,0.00,1.0,1
+"braids dreads",0,1,0.00,4.0,2
+"braids near me",0,1,0.00,1.0,3
+"braids near me now",0,1,0.00,60.0,4
+"brow tint near me",0,1,0.00,1.0,4
+"brownsville barber shop",0,1,0.00,1.0,3
+"cheap barbershop near me",0,1,0.00,1.0,4
+"cheap cosmetology school near me",0,1,0.00,4.0,5
+"closest",0,1,0.00,2.0,1
+"closest beauty supply to me",0,1,0.00,1.0,5
+"closest hair store near me",0,1,0.00,1.0,5
+"college beauty school",0,1,0.00,6.0,3
+"cosmetologist",0,1,0.00,2.0,1
+"cosmetology hours in texas",0,1,0.00,44.0,4
+"cosmetology hours texas",0,1,0.00,48.0,3
+"cosmetology license",0,1,0.00,26.0,2
+"cosmetology license requirements texas",0,1,0.00,57.0,4
+"cosmetology license texas requirements",0,1,0.00,49.0,4
+"cosmetology school amarillo",0,1,0.00,16.0,3
+"cosmetology school amarillo tx",0,1,0.00,18.0,4
+"cosmetology school beaumont tx",0,1,0.00,14.0,4
+"cosmetology school hours",0,1,0.00,11.0,3
+"cosmetology school programs",0,1,0.00,2.0,3
+"cosmetology schools beaumont tx",0,1,0.00,15.0,4
+"cosmetology schools in brownsville",0,1,0.00,17.0,4
+"cosmetology schools in my area",0,1,0.00,4.0,5
+"cosmetology texas",0,1,0.00,29.0,2
+"curly cut near me",0,1,0.00,1.0,4
+"cypress beauty supply",0,1,0.00,12.0,3
+"do hair salon",0,1,0.00,1.0,3
+"esthetician license near me",0,1,0.00,7.0,4
+"esthetician programs near me",0,1,0.00,10.0,4
+"esthetician school amarillo tx",0,1,0.00,31.0,4
+"esthetician school beaumont tx",0,1,0.00,83.0,4
+"esthetician school mckinney",0,1,0.00,10.0,3
+"esthetician sugar land",0,1,0.00,1.0,3
+"esthetician supply store near me",0,1,0.00,1.0,5
+"fade the city barbershop",0,1,0.00,6.0,4
+"good barber shops near me",0,1,0.00,1.0,5
+"good hair.",0,1,0.00,14.0,2
+"hair & beauty supply near me",0,1,0.00,1.0,5
+"hair and brow",0,1,0.00,10.0,3
+"hair and cosmetology schools near me",0,1,0.00,30.0,6
+"hair beauty",0,1,0.00,1.0,2
+"hair cuts near me",0,1,0.00,1.0,4
+"hair rock",0,1,0.00,4.0,2
+"hair salon asian near me",0,1,0.00,1.0,5
+"hair salon mckinney",0,1,0.00,1.0,3
+"hair salon waco tx",0,1,0.00,68.0,4
+"hair salon west university",0,1,0.00,20.0,4
+"hair salons amarillo",0,1,0.00,21.0,3
+"hair salons eagle pass",0,1,0.00,1.0,4
+"hair salons open",0,1,0.00,1.0,3
+"hair salons waco",0,1,0.00,1.0,3
+"hair schools",0,1,0.00,11.0,2
+"hair store beaumont tx",0,1,0.00,1.0,4
+"hair store cypress tx",0,1,0.00,10.0,4
+"hair store in beaumont tx",0,1,0.00,1.0,5
+"hair store in round rock",0,1,0.00,15.0,5
+"hair store mckinney",0,1,0.00,14.0,3
+"hair store near me open",0,1,0.00,10.0,5
+"hair store open near me now",0,1,0.00,1.0,6
+"hair store round rock",0,1,0.00,16.0,4
+"hair stores",0,1,0.00,7.0,2
+"hair stores near",0,1,0.00,1.0,3
+"hair stores open near me",0,1,0.00,1.0,5
+"hair styling school near me",0,1,0.00,9.0,5
+"hair supplies near me",0,1,0.00,1.0,4
+"haircut",0,1,0.00,1.0,1
+"haircut academy",0,1,0.00,10.0,2
+"haircut asian near me",0,1,0.00,4.0,4
+"haircut prices near me",0,1,0.00,2.0,4
+"haircut supplies near me",0,1,0.00,33.0,4
+"haircuts for kids near me",0,1,0.00,1.0,5
+"how to get barber license in texas",0,1,0.00,34.0,7
+"how to get cosmetology license in texas",0,1,0.00,31.0,7
+"in beauty shop",0,1,0.00,4.0,3
+"ins hair salon",0,1,0.00,37.0,3
+"institute of beauty",0,1,0.00,72.0,3
+"katy barbershop",0,1,0.00,38.0,2
+"katy beauty supply",0,1,0.00,29.0,3
+"katy natural hair",0,1,0.00,1.0,3
+"la beauty nail",0,1,0.00,6.0,3
+"la beauty salon",0,1,0.00,5.0,3
+"la cuts barbershop",0,1,0.00,7.0,3
+"la salon",0,1,0.00,5.0,2
+"lash academy",0,1,0.00,6.0,2
+"licensed barbers",0,1,0.00,33.0,2
+"locs near me",0,1,0.00,1.0,3
+"locs near me open now",0,1,0.00,1.0,5
+"mckinney barber shop",0,1,0.00,30.0,3
+"mens barber shop near me",0,1,0.00,1.0,5
+"mens hair cut near me",0,1,0.00,1.0,5
+"mens haircuts near me",0,1,0.00,1.0,4
+"missouri city",0,1,0.00,8.0,2
+"my hair and beauty shop",0,1,0.00,8.0,5
+"my haircut",0,1,0.00,1.0,2
+"nail academy",0,1,0.00,1.0,2
+"nail course",0,1,0.00,1.0,2
+"nail courses near me",0,1,0.00,6.0,4
+"nail near me",0,1,0.00,6.0,3
+"nail programs near me",0,1,0.00,1.0,4
+"nail salon near me prices",0,1,0.00,1.0,5
+"nail salons",0,1,0.00,1.0,2
+"nail salons near me",0,1,0.00,1.0,4
+"nail schools",0,1,0.00,1.0,2
+"nail shop open",0,1,0.00,1.0,3
+"nail store near me",0,1,0.00,1.0,4
+"nail supplies near me",0,1,0.00,1.0,4
+"nail supply austin",0,1,0.00,19.0,3
+"nail supply austin tx",0,1,0.00,43.0,4
+"nail supply store waco",0,1,0.00,9.0,4
+"nail supply stores",0,1,0.00,1.0,3
+"nail supply stores near me",0,1,0.00,2.0,5
+"nails",0,1,0.00,2.0,1
+"nails supplies near me",0,1,0.00,1.0,4
+"nails supply",0,1,0.00,1.0,2
+"nails+supplies",0,1,0.00,2.0,2
+"natural beauty academy",0,1,0.00,84.0,3
+"natural hair salon katy tx",0,1,0.00,20.0,5
+"near me",0,1,0.00,12.0,2
+"nearest beauty supply",0,1,0.00,1.0,3
+"nearest beauty supply store",0,1,0.00,11.0,4
+"open barber",0,1,0.00,1.0,2
+"park salon",0,1,0.00,7.0,2
+"pflugerville beauty supply",0,1,0.00,1.0,3
+"pricing",0,1,0.00,4.0,1
+"rock hair",0,1,0.00,2.0,2
+"round rock beauty school",0,1,0.00,14.0,4
+"round rock beauty supply",0,1,0.00,5.0,4
+"salon a",0,1,0.00,11.0,2
+"salon in",0,1,0.00,1.0,2
+"salon on the park",0,1,0.00,10.0,4
+"salon park aldine",0,1,0.00,11.0,3
+"salon park near me",0,1,0.00,25.0,4
+"salon spa institute",0,1,0.00,17.0,3
+"salons",0,1,0.00,1.0,1
+"school nails",0,1,0.00,2.0,2
+"shop city hair store",0,1,0.00,22.0,4
+"spring barber shop spring tx",0,1,0.00,9.0,5
+"spring+barber",0,1,0.00,1.0,2
+"supply near me",0,1,0.00,6.0,3
+"texas barber and beauty academy",0,1,0.00,100.0,5
+"texas barber and cosmetology license",0,1,0.00,29.0,5
+"texas barbering and cosmetology",0,1,0.00,8.0,4
+"texas barbering and cosmetology license",0,1,0.00,28.0,5
+"texas cosmetology requirements",0,1,0.00,39.0,3
+"texas cosmetology salon license",0,1,0.00,23.0,4
+"texas cosmetology school",0,1,0.00,50.0,3
+"texas esthetician license requirements",0,1,0.00,56.0,4
+"texas hair cut",0,1,0.00,2.0,3
+"texas nails supply",0,1,0.00,11.0,3
+"the a salon and spa",0,1,0.00,50.0,5
+"the barber supply",0,1,0.00,63.0,3
+"the chair salon",0,1,0.00,7.0,3
+"the cuts",0,1,0.00,1.0,2
+"the hair store",0,1,0.00,11.0,3
+"the nails and spa",0,1,0.00,8.0,4
+"the texas lash institute",0,1,0.00,6.0,4
+"tint hair school",0,1,0.00,11.0,3
+"vs barber shop katy",0,1,0.00,12.0,4
+"vs hair salon",0,1,0.00,9.0,3
+"vs salon",0,1,0.00,1.0,2
+"waco beauty school",0,1,0.00,13.0,3
+"walk in hair salons near me",0,1,0.00,7.0,6
+"wax",0,1,0.00,1.0,1
+"wax near me",0,1,0.00,1.0,3
+"waxing near me",0,1,0.00,4.0,3
+"when do the beauty supply close",0,1,0.00,9.0,6
+"when does the beauty supply open",0,1,0.00,34.0,6
+"when does the beauty supply store close",0,1,0.00,7.0,7
+"where to get haircut",0,1,0.00,1.0,4
+"wig and beauty",0,1,0.00,12.0,3
+"wig shops near me now",0,1,0.00,1.0,5
+"wig store",0,1,0.00,13.0,2
+"wigs & beauty",0,1,0.00,9.0,2
+"wigs and beauty supply",0,1,0.00,1.0,4
+"wigs beauty supply",0,1,0.00,6.0,3
+"wigs for kids",0,1,0.00,5.0,3
+"womens haircut near me",0,1,0.00,5.0,4
+"woodlands barber",0,1,0.00,13.0,2
+"woodlands barbershop",0,1,0.00,19.0,2

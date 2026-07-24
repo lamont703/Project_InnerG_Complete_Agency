@@ -6,6 +6,7 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
+import { ExamPrepCTA } from "@/components/shared/exam-prep-cta"
 import { Navbar } from "@/components/layout/navbar"
 import {
   ArrowLeft,
@@ -381,6 +382,10 @@ export default function BarberSchoolLengthArticle() {
           />
 
           <AuthorBio />
+
+          <div className="my-10">
+            <ExamPrepCTA variant="barber" />
+          </div>
 
           <RelatedArticles currentSlug="texas-barber-school-length-vs-apprenticeship" />
 

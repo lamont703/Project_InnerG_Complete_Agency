@@ -84,6 +84,21 @@ export function CaliforniaHubDirectory({
           </div>
         )}
 
+        {/* California Resources */}
+        <Link
+          href="/california-school-leaderboard"
+          className="flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mb-8 hover:border-indigo-300 transition-colors group"
+        >
+          <div>
+            <h2 className="text-lg font-black text-slate-900">California School Pass-Rate Leaderboard</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Real 2026 California state board first-time written pass rates by school — cosmetology, barber,
+              esthetics &amp; manicuring. Not on Google.
+            </p>
+          </div>
+          <ArrowRight className="w-5 h-5 shrink-0 text-indigo-600 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+
         {/* Browse California Cities */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mb-8">
           <div className="flex items-center gap-2 mb-1">
