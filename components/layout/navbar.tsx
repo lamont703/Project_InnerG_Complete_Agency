@@ -13,6 +13,7 @@ const navLinks = [
   { label: "Market Insights", href: "/insights" },
   { label: "AI Lab", href: "/ai-solutions" },
   { label: "Membership", href: "/membership" },
+  { label: "Advertise", href: "/media-kit" },
 ]
 
 const stateHubLinks = [

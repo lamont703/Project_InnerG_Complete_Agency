@@ -3,6 +3,7 @@ import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, Gradua
 import type { HoustonData } from "./data";
 import { Navbar } from "@/components/layout/navbar";
 import { AdSponsorshipBanner } from "@/components/ads/AdSponsorshipBanner";
+import { directoryHrefForSection } from "@/lib/directory-config";
 
 // These are all real, previously-orphaned Houston-area landing pages (no
 // internal links pointed at them from anywhere in the app before this) —
@@ -131,7 +132,7 @@ export function HoustonDirectory({
                   <span className="text-sm font-bold text-slate-400">({section.count.toLocaleString()})</span>
                 </div>
                 <Link
-                  href={`/tools/barbershop-search?tab=${encodeURIComponent(section.searchTab)}&q=${encodeURIComponent("Houston" + (zipQuerySuffix || ""))}`}
+                  href={directoryHrefForSection(section.key, "houston")}
                   className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider"
                 >
                   View All
