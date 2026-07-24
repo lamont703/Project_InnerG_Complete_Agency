@@ -156,14 +156,6 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${_inter.variable} ${_jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
-        {/* Google AdSense */}
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5006181460816753"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
-
         {/* Google Tag (gtag.js) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-VGHV9QQG46"
