@@ -8,6 +8,7 @@ import { fetchAllRows } from '@/lib/supabase-fetch-all'
 import { getQualifyingCities, BESPOKE_CITY_ROUTES } from '@/lib/city-readiness'
 import { getQualifyingCitiesCA, CA_BESPOKE_CITY_ROUTES } from '@/lib/california-city-readiness'
 import { getCityZipCodes } from '@/lib/city-hub-data'
+import { PAGE_SIZE as DIRECTORY_PAGE_SIZE } from '@/lib/directory-config'
 
 export const dynamic = 'force-dynamic'
 
@@ -305,9 +306,44 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     }));
 
+    // Crawlable browse directory (/directory → /directory/<type> → /<type>/<n>).
+    // This is the internal-link backbone that hands Google a real path to every
+    // profile page — one paginated URL per PAGE_SIZE block of each family, so
+    // the deep pages (page 2, 3, …) are submitted, not just page 1.
+    const directoryFamilies: { key: string; rows: any[] }[] = [
+      { key: 'barbershops', rows: allShops },
+      { key: 'salons', rows: allSalons },
+      { key: 'barbers', rows: allBarbers },
+      { key: 'cosmetologists', rows: allCosmetologists },
+      { key: 'barber-schools', rows: barberSchools },
+      { key: 'cosmetology-schools', rows: cosmetologySchools },
+      { key: 'barber-supply-stores', rows: barberSupplyStores },
+      { key: 'beauty-supply-stores', rows: beautySupplyStores },
+      { key: 'events', rows: allEvents },
+    ];
+    const directorySitemap = [
+      {
+        url: `${baseUrl}/directory`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      },
+      ...directoryFamilies.flatMap(({ key, rows }) => {
+        const count = rows.filter((r: any) => r.slug).length;
+        const totalPages = Math.max(1, Math.ceil(count / DIRECTORY_PAGE_SIZE));
+        return Array.from({ length: totalPages }, (_, i) => ({
+          url: i === 0 ? `${baseUrl}/directory/${key}` : `${baseUrl}/directory/${key}/${i + 1}`,
+          lastModified: new Date(),
+          changeFrequency: 'weekly' as const,
+          priority: i === 0 ? 0.65 : 0.5,
+        }));
+      }),
+    ];
+
     return [
       ...staticSitemap,
       ...dynamicSitemap,
+      ...directorySitemap,
       ...cityHubSitemap,
       ...cityZipSitemap,
       ...cityHubSitemapCA,

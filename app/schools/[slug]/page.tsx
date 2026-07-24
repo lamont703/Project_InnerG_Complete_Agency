@@ -26,6 +26,7 @@ import Image from "next/image";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
+import { deriveExamState, examPrepInfo } from "@/lib/exam-prep";
 import { SCHOOL_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import { ReviewsSection } from "@/components/shared/reviews-section";
@@ -151,8 +152,10 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
 // Every FAQ entry is conditional on real data being present — no entry is
 // ever emitted with a guessed or placeholder answer.
 function buildSchoolJsonLd(school: any, websiteHref: string | null) {
+  const examState = deriveExamState(school.formatted_address);
+  const stateName = examState === "CA" ? "California" : "Texas";
   const address = school.formatted_address
-    ? { "@type": "PostalAddress", streetAddress: school.formatted_address, addressRegion: "TX", addressCountry: "US" }
+    ? { "@type": "PostalAddress", streetAddress: school.formatted_address, addressRegion: examState, addressCountry: "US" }
     : undefined;
 
   const org: Record<string, any> = {
@@ -160,7 +163,7 @@ function buildSchoolJsonLd(school: any, websiteHref: string | null) {
     "@type": "EducationalOrganization",
     name: school.school_name,
     description: `${school.school_category}${school._matchType === "cosmetology" ? " / beauty school / hair school" : ""}${
-      school.city ? ` in ${school.city}, Texas` : ""
+      school.city ? ` in ${school.city}, ${stateName}` : ""
     }`,
   };
   if (address) org.address = address;
@@ -561,9 +564,11 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                 matched to the school type: cosmetology schools get the
                 cosmetology prep, barber schools the barber prep. */}
             {(() => {
-              const isCosmet = school._matchType === "cosmetology";
-              const prepHref = isCosmet ? "/texas-cosmetology-exam-intelligence-prep" : "/texas-barber-exam-intelligence-prep";
-              const prepLabel = isCosmet ? "Texas Cosmetology Exam Intelligence Prep" : "Texas Barber Exam Intelligence Prep";
+              const examState = deriveExamState(school.formatted_address);
+              const { href: prepHref, label: prepLabel } = examPrepInfo(
+                examState,
+                school._matchType === "cosmetology" ? "cosmetology" : "barber"
+              );
               return (
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">

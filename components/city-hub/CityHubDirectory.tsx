@@ -3,6 +3,7 @@ import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, Gradua
 import type { CityHubData } from "@/lib/city-hub-data";
 import { Navbar } from "@/components/layout/navbar";
 import { AdSponsorshipBanner } from "@/components/ads/AdSponsorshipBanner";
+import { directoryHrefForSection } from "@/lib/directory-config";
 
 // Real, city-specific landing pages that predate this hub hierarchy — keyed
 // by citySlug so each city's page only shows its own real content, never an
@@ -140,7 +141,7 @@ export function CityHubDirectory({
                   <span className="text-sm font-bold text-slate-400">({section.count.toLocaleString()})</span>
                 </div>
                 <Link
-                  href={`/tools/barbershop-search?tab=${encodeURIComponent(section.searchTab)}&q=${encodeURIComponent(cityLabel + (zipQuerySuffix || ""))}`}
+                  href={directoryHrefForSection(section.key, citySlug)}
                   className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider"
                 >
                   View All

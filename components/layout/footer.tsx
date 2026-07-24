@@ -7,6 +7,7 @@ const footerLinks = {
     { label: "Texas Barber Exam Intelligence Prep", href: "/texas-barber-exam-intelligence-prep" },
     { label: "Texas Cosmetology Exam Intelligence Prep", href: "/texas-cosmetology-exam-intelligence-prep" },
     { label: "Barbershop Search Engine", href: "/tools/barbershop-search" },
+    { label: "Full Directory (A–Z)", href: "/directory" },
   ],
   "Industry Tools": [
     { label: "Barbershop Apprentice Jobs Houston", href: "/barbershop-apprentice-jobs-houston" },
@@ -38,6 +39,7 @@ const footerLinks = {
     { label: "Accreditation Advisory Committee Toolkit", href: "/program-advisory-committee-kit" },
   ],
   Company: [
+    { label: "Advertise / Media Kit", href: "/media-kit" },
     { label: "Research & Insights", href: "/insights" },
     { label: "Technical Glossary", href: "/glossary" },
     { label: "About Us", href: "/about" },

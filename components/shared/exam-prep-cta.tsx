@@ -1,29 +1,24 @@
 import Link from "next/link";
 import { GraduationCap, ArrowRight } from "lucide-react";
+import { examPrepInfo, type ExamState, type ExamVariant } from "@/lib/exam-prep";
 
 // Reusable funnel CTA that routes exam-track visitors to the exam-prep
 // conversion page. Used across the cosmetology/barber student entry pages
 // (practice deck, school directories, licensing/exam guides) so they all
-// hand off to the same prep destination. Carries a distinct
+// hand off to the same prep destination. `state` routes to the correct
+// regulator's page (TX vs CA); defaults to TX. Carries a distinct
 // data-ig-click="exam_prep_cta" so these clicks are cleanly attributable in
 // pixel analytics (separate from the generic outbound_lead label).
 export function ExamPrepCTA({
   variant = "cosmetology",
+  state = "TX",
   className = "",
 }: {
-  variant?: "cosmetology" | "barber";
+  variant?: ExamVariant;
+  state?: ExamState;
   className?: string;
 }) {
-  const isCosmet = variant === "cosmetology";
-  const href = isCosmet
-    ? "/texas-cosmetology-exam-intelligence-prep"
-    : "/texas-barber-exam-intelligence-prep";
-  const label = isCosmet
-    ? "Texas Cosmetology Exam Intelligence Prep"
-    : "Texas Barber Exam Intelligence Prep";
-  const sub = isCosmet
-    ? "Real 2026 pass-rate benchmarks, a study guide, and a written practice test to help you pass the Texas cosmetology state board the first time."
-    : "Real 2026 pass-rate benchmarks, a study guide, and a written practice test to help you pass the Texas barber exam the first time.";
+  const { href, label, sub } = examPrepInfo(state, variant);
 
   return (
     <Link

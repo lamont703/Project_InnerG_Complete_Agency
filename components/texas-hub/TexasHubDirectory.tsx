@@ -3,6 +3,7 @@ import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, Gradua
 import type { TexasHubData } from "@/lib/texas-hub-data";
 import { Navbar } from "@/components/layout/navbar";
 import { AdSponsorshipBanner } from "@/components/ads/AdSponsorshipBanner";
+import { directoryHrefForSection } from "@/lib/directory-config";
 // Genuinely statewide resources — unlike the Houston-area service pages
 // (which live on /houston's own "Explore Houston Services" section instead,
 // since they're metro-specific, not statewide), these aren't tied to one city.
@@ -14,6 +15,7 @@ const TEXAS_STATEWIDE_LINKS: { href: string; label: string }[] = [
   { href: "/how-to-get-a-barber-license-in-texas", label: "How to Get a Barber License in Texas" },
   { href: "/texas-barber-practical-exam-kit-list", label: "Texas Barber Practical Exam Kit List" },
   { href: "/texas-cosmetology-practical-exam-kit-list", label: "Texas Cosmetology Practical Exam Kit List" },
+  { href: "/directory", label: "Full Directory (A–Z)" },
 ];
 
 const SECTION_ICONS: Record<string, any> = {
@@ -156,7 +158,7 @@ export function TexasHubDirectory({
                   <span className="text-sm font-bold text-slate-400">({section.count.toLocaleString()})</span>
                 </div>
                 <Link
-                  href={`/tools/barbershop-search?tab=${encodeURIComponent(section.searchTab)}`}
+                  href={directoryHrefForSection(section.key)}
                   className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider"
                 >
                   View All

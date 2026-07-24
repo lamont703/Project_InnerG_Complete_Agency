@@ -1,7 +1,18 @@
 import Link from "next/link";
-import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign } from "lucide-react";
+import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass } from "lucide-react";
 import type { CaliforniaHubData } from "@/lib/california-hub-data";
 import { Navbar } from "@/components/layout/navbar";
+import { directoryHrefForSection } from "@/lib/directory-config";
+
+// Genuinely statewide California resources (not tied to one city). These are
+// California-specific by design — the exam-prep pages point at the CA Board of
+// Barbering & Cosmetology's own data, NOT the Texas exam/regulator.
+const CALIFORNIA_STATEWIDE_LINKS: { href: string; label: string }[] = [
+  { href: "/california-school-leaderboard", label: "California School Pass-Rate Leaderboard" },
+  { href: "/california-cosmetology-exam-intelligence-prep", label: "California Cosmetology Exam Prep" },
+  { href: "/california-barber-exam-intelligence-prep", label: "California Barber Exam Prep" },
+  { href: "/directory", label: "Full Directory (A–Z)" },
+];
 const SECTION_ICONS: Record<string, any> = {
   shops: Scissors,
   salons: Building2,
@@ -84,21 +95,6 @@ export function CaliforniaHubDirectory({
           </div>
         )}
 
-        {/* California Resources */}
-        <Link
-          href="/california-school-leaderboard"
-          className="flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mb-8 hover:border-indigo-300 transition-colors group"
-        >
-          <div>
-            <h2 className="text-lg font-black text-slate-900">California School Pass-Rate Leaderboard</h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Real 2026 California state board first-time written pass rates by school — cosmetology, barber,
-              esthetics &amp; manicuring. Not on Google.
-            </p>
-          </div>
-          <ArrowRight className="w-5 h-5 shrink-0 text-indigo-600 transition-transform group-hover:translate-x-0.5" />
-        </Link>
-
         {/* Browse California Cities */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mb-8">
           <div className="flex items-center gap-2 mb-1">
@@ -155,7 +151,7 @@ export function CaliforniaHubDirectory({
                   <span className="text-sm font-bold text-slate-400">({section.count.toLocaleString()})</span>
                 </div>
                 <Link
-                  href={`/tools/barbershop-search?tab=${encodeURIComponent(section.searchTab)}`}
+                  href={directoryHrefForSection(section.key)}
                   className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider"
                 >
                   View All
@@ -203,6 +199,28 @@ export function CaliforniaHubDirectory({
               )}
             </div>
           ))}
+        </div>
+
+        {/* Statewide Resources */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mt-8">
+          <div className="flex items-center gap-2 mb-1">
+            <Compass className="w-5 h-5 text-slate-700" />
+            <h2 className="text-lg font-black text-slate-900">Statewide Resources</h2>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            Tools and guides that apply across California, not just one city.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {CALIFORNIA_STATEWIDE_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 transition-colors p-4 block"
+              >
+                <p className="font-bold text-slate-900 text-sm">{link.label}</p>
+              </Link>
+            ))}
+          </div>
         </div>
 
         <div className="text-center mt-10">
