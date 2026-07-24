@@ -7,7 +7,6 @@ import {
   Star,
   CheckCircle2,
   GraduationCap,
-  ExternalLink,
   Globe,
   Phone,
   Clock,
@@ -16,7 +15,6 @@ import {
   TrendingUp,
   Award,
   Users,
-  AlertCircle,
   BookOpen,
   Scissors,
   Store,
@@ -30,6 +28,9 @@ import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-secti
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { SCHOOL_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
+import { ReviewsSection } from "@/components/shared/reviews-section";
+import { WriteReviewButton } from "@/components/shared/write-review-button";
+import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 
 export const revalidate = 3600;
 
@@ -104,81 +105,6 @@ async function getSchool(param: string): Promise<any> {
   if (!redirectSlug) return null;
   const target = await getSchool(redirectSlug);
   return target ? { ...target, _resolvedByLegacyId: true } : null;
-}
-
-type StudentTable = "agent_barber_student_leads" | "agent_cosmetology_student_leads";
-
-// 2026 TDLR exam cohort summary for this school. A school can have students
-// in both exam tables if it's dual-licensed (e.g. a cosmetology school that
-// also runs a Barber program), so this is called once per table and each
-// result is rendered as its own clearly-labeled section — never merged,
-// since they're two different exams with two different licenses at stake.
-async function getStudentCohortStats(table: StudentTable, schoolId: string, schoolType: "barber" | "cosmetology") {
-  const { data, error } = await supabase
-    .from(table)
-    .select("student_key, test_type, attempt_number, result")
-    .eq("matched_school_id", schoolId)
-    .eq("matched_school_type", schoolType);
-
-  if (error || !data || data.length === 0) return null;
-
-  const distinctStudents = new Set(data.map((r) => r.student_key)).size;
-
-  const firstAttemptStats = (testType: "Written" | "Practical") => {
-    const rows = data.filter((r) => r.test_type === testType && r.attempt_number === 1);
-    if (rows.length === 0) return null;
-    const passed = rows.filter((r) => r.result === "PASS").length;
-    return { total: rows.length, rate: passed / rows.length };
-  };
-
-  return {
-    distinctStudents,
-    writtenFirstAttempt: firstAttemptStats("Written"),
-    practicalFirstAttempt: firstAttemptStats("Practical"),
-  };
-}
-
-type ExamStatus = "passed" | "failed" | "not_attempted";
-
-// Deliberately selects test_type/result (PASS or FAIL) but never score — the
-// state board requires 70%+ on both written and practical to be licensed,
-// and result already reflects that threshold, so we can show licensing
-// status ("passed both parts" or not, across all attempts) without ever
-// exposing an actual numeric score.
-//
-// Most students in a given year have only sat one of the two required exams
-// so far (not both), which is normal — written is typically completed before
-// practical. Tracking attempted-vs-passed separately (not just pass/fail)
-// lets the UI tell "hasn't gotten to the other exam yet" apart from "tried
-// and hasn't passed it," instead of lumping both into one alarming bucket.
-async function getStudentNames(table: StudentTable, schoolId: string, schoolType: "barber" | "cosmetology") {
-  const { data, error } = await supabase
-    .from(table)
-    .select("student_key, first_name, last_name, test_type, result")
-    .eq("matched_school_id", schoolId)
-    .eq("matched_school_type", schoolType);
-
-  if (error || !data || data.length === 0) return [];
-
-  const byStudent = new Map<string, { name: string; written: ExamStatus; practical: ExamStatus }>();
-  for (const row of data) {
-    if (!byStudent.has(row.student_key)) {
-      byStudent.set(row.student_key, {
-        name: `${row.first_name} ${row.last_name}`.trim(),
-        written: "not_attempted",
-        practical: "not_attempted",
-      });
-    }
-    const student = byStudent.get(row.student_key)!;
-    const field = row.test_type === "Written" ? "written" : "practical";
-    if (row.result === "PASS") {
-      student[field] = "passed";
-    } else if (student[field] !== "passed") {
-      student[field] = "failed";
-    }
-  }
-
-  return Array.from(byStudent.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // Searchers use "cosmetology school," "beauty school," and "hair school"
@@ -331,20 +257,6 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
   if (!school) notFound();
   if (school._resolvedByLegacyId) permanentRedirect(`/schools/${school.slug}`);
 
-  const examConfigs = [
-    { examLabel: "Barber", table: "agent_barber_student_leads" as const },
-    { examLabel: "Cosmetology Operator", table: "agent_cosmetology_student_leads" as const },
-  ];
-  const examCohorts = (
-    await Promise.all(
-      examConfigs.map(async ({ examLabel, table }) => ({
-        examLabel,
-        cohortStats: await getStudentCohortStats(table, school.id, school._matchType),
-        studentNames: await getStudentNames(table, school.id, school._matchType),
-      }))
-    )
-  ).filter((c) => c.cohortStats);
-
   const gallery: string[] = Array.isArray(school.google_photos) ? school.google_photos : [];
   const heroPhoto = gallery[0] || null;
   const thumbnails = gallery.slice(1, 5);
@@ -386,6 +298,12 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
   });
   const searchPerformance = (searchPerfRows && searchPerfRows[0]) || null;
 
+  // Reviews use the "school" entity type, which the /api/reviews route maps
+  // across both the barber- and cosmetology-school tables — same shape and
+  // placement as the shop/salon pages.
+  const reviews = await getApprovedReviews("school", school.id);
+  const { averageRating } = computeReviewStats(reviews);
+
   // A dual-licensed school can have real 2026 pass-rate data for both exams
   // — when both are present, prefix each label with the exam name so they
   // aren't mistaken for the same number.
@@ -411,41 +329,43 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
       value: formatCurrency(school.median_earnings),
       Icon: DollarSign,
     },
-    school.written_pass_rate_2026 != null && {
-      label: `2026 ${barberPrefix}Written Pass Rate${school.written_test_takers_2026 ? ` (${school.written_test_takers_2026} students)` : ''}`,
-      value: formatPercent(school.written_pass_rate_2026),
-      Icon: Award,
-    },
-    school.practical_pass_rate_2026 != null && {
-      label: `2026 ${barberPrefix}Practical Pass Rate${school.practical_test_takers_2026 ? ` (${school.practical_test_takers_2026} students)` : ''}`,
-      value: formatPercent(school.practical_pass_rate_2026),
-      Icon: Award,
-    },
-    school.cosmetology_written_pass_rate_2026 != null && {
-      label: `2026 ${cosmetPrefix}Written Pass Rate${school.cosmetology_written_test_takers_2026 ? ` (${school.cosmetology_written_test_takers_2026} students)` : ''}`,
-      value: formatPercent(school.cosmetology_written_pass_rate_2026),
-      Icon: Award,
-    },
-    school.cosmetology_practical_pass_rate_2026 != null && {
-      label: `2026 ${cosmetPrefix}Practical Pass Rate${school.cosmetology_practical_test_takers_2026 ? ` (${school.cosmetology_practical_test_takers_2026} students)` : ''}`,
-      value: formatPercent(school.cosmetology_practical_pass_rate_2026),
-      Icon: Award,
-    },
-    school.written_pass_rate_2026 == null &&
-      school.practical_pass_rate_2026 == null &&
-      school.cosmetology_written_pass_rate_2026 == null &&
-      school.cosmetology_practical_pass_rate_2026 == null &&
-      school.state_pass_rate && {
-        label: "State Board Pass Rate",
-        value: school.state_pass_rate,
-        Icon: Award,
-      },
     school.student_body_size != null && {
       label: "Student Body Size",
       value: String(school.student_body_size),
       Icon: Users,
     },
   ].filter(Boolean) as { label: string; value: string; Icon: any }[];
+
+  // 2026 licensing exam results — sourced directly from the precomputed
+  // *_pass_rate_2026 / *_test_takers_2026 columns on the school row, which
+  // are the exact ever-passed rate (distinct students who passed ÷ distinct
+  // students tested) computed from the raw TDLR exam records. Confirmed
+  // against the raw agent_barber_student_leads records that these columns
+  // match the underlying data exactly. Just the two numbers the user needs:
+  // the pass rate and how many students it's based on. barberPrefix/
+  // cosmetPrefix disambiguate a dual-licensed school's two exam programs.
+  const examResults = [
+    school.written_pass_rate_2026 != null && {
+      label: `${barberPrefix}Written`,
+      value: formatPercent(school.written_pass_rate_2026),
+      students: school.written_test_takers_2026 ?? null,
+    },
+    school.practical_pass_rate_2026 != null && {
+      label: `${barberPrefix}Practical`,
+      value: formatPercent(school.practical_pass_rate_2026),
+      students: school.practical_test_takers_2026 ?? null,
+    },
+    school.cosmetology_written_pass_rate_2026 != null && {
+      label: `${cosmetPrefix}Written`,
+      value: formatPercent(school.cosmetology_written_pass_rate_2026),
+      students: school.cosmetology_written_test_takers_2026 ?? null,
+    },
+    school.cosmetology_practical_pass_rate_2026 != null && {
+      label: `${cosmetPrefix}Practical`,
+      value: formatPercent(school.cosmetology_practical_pass_rate_2026),
+      students: school.cosmetology_practical_test_takers_2026 ?? null,
+    },
+  ].filter(Boolean) as { label: string; value: string; students: number | null }[];
 
   return (
     <div className="min-h-screen light bg-slate-50">
@@ -482,11 +402,56 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                 )}
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{school.school_name}</h1>
-              {school.formatted_address && (
-                <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5" />
-                  {school.formatted_address}
-                </p>
+              {(school.formatted_address || directionsHref) && (
+                <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 mt-1 text-sm text-slate-500 font-medium">
+                  {school.formatted_address && (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5" />
+                      {school.formatted_address}
+                    </span>
+                  )}
+                  {directionsHref && (
+                    <a
+                      href={directionsHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-ig-click="outbound_lead"
+                      className="inline-flex items-center gap-1.5 font-bold text-indigo-600 hover:underline"
+                    >
+                      <Navigation className="w-4 h-4" />
+                      Get Directions
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Call / Website — same top-of-page placement as the shop/salon
+                  pages (moved up out of the sidebar). */}
+              {(school.phone || websiteHref) && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {school.phone && (
+                    <a
+                      href={`tel:${school.phone.replace(/[^0-9+]/g, "")}`}
+                      data-ig-click="outbound_lead"
+                      className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm px-6 py-3"
+                    >
+                      <Phone className="w-4 h-4 text-slate-500" />
+                      Call
+                    </a>
+                  )}
+                  {websiteHref && (
+                    <a
+                      href={websiteHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-ig-click="outbound_lead"
+                      className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm px-6 py-3"
+                    >
+                      <Globe className="w-4 h-4 text-slate-500" />
+                      Website
+                    </a>
+                  )}
+                </div>
               )}
 
               <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -549,152 +514,100 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
               </div>
             )}
 
-            {/* 2026 Student Cohort + 2026 Students, once per exam type this school has data for */}
-            {examCohorts.map(({ examLabel, cohortStats, studentNames }) => {
-              if (!cohortStats) return null;
-              const examNoun = examLabel === "Barber" ? "Class A Barber" : "Cosmetology Operator";
-
-              const passedBoth = studentNames.filter((s) => s.written === "passed" && s.practical === "passed");
-              const onlyNeedsPractical = studentNames.filter((s) => s.written === "passed" && s.practical === "not_attempted");
-              const onlyNeedsWritten = studentNames.filter((s) => s.practical === "passed" && s.written === "not_attempted");
-              const hasNotPassed = studentNames.filter((s) => s.written === "failed" || s.practical === "failed");
-
-              const groups: { label: string; icon: typeof CheckCircle2; colorClass: string; students: typeof studentNames }[] = [
-                { label: "Has Not Passed", icon: AlertCircle, colorClass: "text-red-700", students: hasNotPassed },
-                { label: "Only Needs Practical Exam", icon: Clock, colorClass: "text-amber-700", students: onlyNeedsPractical },
-                { label: "Only Needs Written Exam", icon: Clock, colorClass: "text-amber-700", students: onlyNeedsWritten },
-                { label: "Passed Both Parts", icon: CheckCircle2, colorClass: "text-green-700", students: passedBoth },
-              ];
-
-              return (
-                <div key={examLabel} className="space-y-4">
-                  <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
-                    <h2 className="text-lg font-black text-slate-900 mb-1">2026 {examLabel} Student Cohort</h2>
-                    <p className="text-xs text-slate-500 font-medium mb-4">
-                      Aggregated from Texas Department of Licensing &amp; Regulation exam records — {cohortStats.distinctStudents} student{cohortStats.distinctStudents === 1 ? "" : "s"} tested in 2026.
-                    </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                        <Users className="w-4 h-4 text-indigo-600 mb-2" />
-                        <p className="text-lg font-black text-slate-900">{cohortStats.distinctStudents}</p>
-                        <p className="text-xs text-slate-500 font-semibold mt-0.5">Students Tested</p>
-                      </div>
-                      {cohortStats.writtenFirstAttempt && (
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                          <Award className="w-4 h-4 text-indigo-600 mb-2" />
-                          <p className="text-lg font-black text-slate-900">{formatPercent(cohortStats.writtenFirstAttempt.rate)}</p>
-                          <p className="text-xs text-slate-500 font-semibold mt-0.5">
-                            Written — Passed on 1st Try ({cohortStats.writtenFirstAttempt.total})
-                          </p>
-                        </div>
-                      )}
-                      {cohortStats.practicalFirstAttempt && (
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                          <Award className="w-4 h-4 text-indigo-600 mb-2" />
-                          <p className="text-lg font-black text-slate-900">{formatPercent(cohortStats.practicalFirstAttempt.rate)}</p>
-                          <p className="text-xs text-slate-500 font-semibold mt-0.5">
-                            Practical — Passed on 1st Try ({cohortStats.practicalFirstAttempt.total})
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {studentNames.length > 0 && (
-                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
-                      <h2 className="text-lg font-black text-slate-900 mb-1">2026 {examLabel} Student Exam Progress</h2>
-                      <p className="text-xs text-slate-500 font-medium mb-4">
-                        Breakdown of students who took the Texas {examNoun} licensing exam through this school in
-                        2026, per public TDLR records. The state requires 70%+ on both the written and practical
-                        exam to be licensed — individual student names and scores aren&apos;t shown, only aggregate
-                        exam progress. Most students complete written before practical, so "only needs" one exam is
-                        normal progress, not a concern.
+            {/* 2026 Licensing Exam Results — the school's current 2026 written
+                and practical pass rates, each with the number of students the
+                rate is based on. Pulled straight from the school row's
+                precomputed columns (which match the raw TDLR records). */}
+            {examResults.length > 0 ? (
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
+                <h2 className="text-lg font-black text-slate-900 mb-1">2026 Licensing Exam Results</h2>
+                <p className="text-xs text-slate-500 font-medium mb-4">
+                  Share of this school&apos;s 2026 students who passed the Texas licensing exam, per Texas Department
+                  of Licensing &amp; Regulation records — with the number of students each rate is based on.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {examResults.map((r) => (
+                    <div key={r.label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <Award className="w-4 h-4 text-indigo-600 mb-2" />
+                      <p className="text-lg font-black text-slate-900">{r.value}</p>
+                      <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                        2026 {r.label} Pass Rate
+                        {r.students != null ? (
+                          <span className="block text-slate-400 font-medium">Based on {r.students} student{r.students === 1 ? "" : "s"}</span>
+                        ) : null}
                       </p>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {groups.map(
-                          (group) =>
-                            group.students.length > 0 && (
-                              <div key={group.label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                <group.icon className={`w-4 h-4 mb-2 ${group.colorClass}`} />
-                                <p className="text-lg font-black text-slate-900">{group.students.length}</p>
-                                <p className={`text-xs font-semibold mt-0.5 ${group.colorClass}`}>{group.label}</p>
-                              </div>
-                            )
-                        )}
-                      </div>
                     </div>
-                  )}
+                  ))}
+                </div>
+              </div>
+            ) : school.state_pass_rate ? (
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
+                <h2 className="text-lg font-black text-slate-900 mb-1">Licensing Exam Results</h2>
+                <p className="text-xs text-slate-500 font-medium mb-4">
+                  This school&apos;s 2026 written/practical breakdown isn&apos;t in our records yet. Its reported
+                  state board pass rate is shown below.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <Award className="w-4 h-4 text-indigo-600 mb-2" />
+                    <p className="text-lg font-black text-slate-900">{school.state_pass_rate}</p>
+                    <p className="text-xs text-slate-500 font-semibold mt-0.5">State Board Pass Rate</p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Exam-prep CTA — placed directly below the 2026 exam results and
+                matched to the school type: cosmetology schools get the
+                cosmetology prep, barber schools the barber prep. */}
+            {(() => {
+              const isCosmet = school._matchType === "cosmetology";
+              const prepHref = isCosmet ? "/texas-cosmetology-exam-intelligence-prep" : "/texas-barber-exam-intelligence-prep";
+              const prepLabel = isCosmet ? "Texas Cosmetology Exam Intelligence Prep" : "Texas Barber Exam Intelligence Prep";
+              return (
+                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
+                    A student here?
+                  </p>
+                  <Link
+                    href={prepHref}
+                    data-ig-click="outbound_lead"
+                    className="w-full inline-flex flex-col items-center justify-center gap-1 px-5 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-md shadow-indigo-600/20"
+                  >
+                    <span className="inline-flex items-center gap-2 font-extrabold text-sm uppercase tracking-wider">
+                      <BookOpen className="w-4 h-4" />
+                      {prepLabel}
+                    </span>
+                    <span className="text-xs font-medium text-white/70">Get ready to pass your licensing exam</span>
+                  </Link>
                 </div>
               );
-            })}
+            })()}
+
+            {/* ShearQuery Reviews — same section and placement (bottom of the
+                main content column) as the shop/salon pages, wrapped as a
+                card to match this page's main-column styling. */}
+            <ReviewsSection
+              reviews={reviews}
+              averageRating={averageRating}
+              entityName={school.school_name}
+              containerClassName="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5"
+              action={<WriteReviewButton entityType="school" entityId={school.id} entityName={school.school_name} />}
+            />
           </div>
 
           {/* Sidebar */}
           <div className="space-y-4">
-            {(websiteHref || school.phone) && (
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-3">
-                {websiteHref && (
-                  <a
-                    href={websiteHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-ig-click="outbound_lead"
-                    className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-indigo-600/20"
-                  >
-                    Visit Website
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                )}
-                {school.phone && (
-                  <a
-                    href={`tel:${school.phone.replace(/[^0-9+]/g, "")}`}
-                    data-ig-click="outbound_lead"
-                    className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-sm transition-colors"
-                  >
-                    <Phone className="w-4 h-4" />
-                    {school.phone}
-                  </a>
-                )}
-              </div>
-            )}
-
+            {/* Website/Call moved up to the header (top of page, next to the
+                address) to match the shop/salon layout — the standalone
+                sidebar contact card was removed. */}
             <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={false} entityLabel="school" />
 
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
-                A student here?
-              </p>
-              <Link
-                href="/texas-barber-exam-intelligence-prep"
-                data-ig-click="outbound_lead"
-                className="w-full inline-flex flex-col items-center justify-center gap-1 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-md shadow-indigo-600/20"
-              >
-                <span className="inline-flex items-center gap-2 font-extrabold text-sm uppercase tracking-wider">
-                  <BookOpen className="w-4 h-4" />
-                  Texas Barber Exam Intelligence Prep
-                </span>
-                <span className="text-xs font-medium text-white/70">Get ready to pass your licensing exam</span>
-              </Link>
-            </div>
+            {/* Exam-prep CTA moved up into the main column, directly below the
+                2026 exam results, and made type-aware (barber vs cosmetology). */}
 
-            {directionsHref && (
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-3">Location</h3>
-                <p className="text-sm text-slate-600 font-medium mb-3">{school.formatted_address || school.city}</p>
-                <a
-                  href={directionsHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-ig-click="outbound_lead"
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:underline"
-                >
-                  <Navigation className="w-4 h-4" />
-                  Get Directions
-                </a>
-              </div>
-            )}
-
+            {/* Location/Get Directions moved up next to the address at the top
+                of the page (shop/salon layout) — sidebar Location card removed. */}
             <NearbyEntitiesSection title="Nearby Shops" icon={Scissors} entities={nearbyShops} />
             <NearbyEntitiesSection title="Nearby Supply Stores" icon={Store} entities={nearbySupplyStores} />
 

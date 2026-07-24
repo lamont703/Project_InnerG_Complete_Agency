@@ -2,7 +2,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "@/lib/supabase-fetch-all";
 import { extractZip } from "@/lib/geo-enrichment";
 
-const DEFAULT_RADIUS_MILES = 10;
+// Per-section radii. Talent draw, supply logistics, and rent comparables
+// all justify a wider 15-mile ring; direct competition is the tighter
+// 10-mile ring (who's actually poaching the same walk-in customers). Labor
+// market (professionals seeking placement) uses the same 15-mile talent-
+// draw radius as the school pipeline it feeds from.
+const TALENT_RADIUS_MILES = 15;
+const LABOR_RADIUS_MILES = 15;
+const COMPETITION_RADIUS_MILES = 10;
+const SUPPLY_RADIUS_MILES = 15;
+const RENT_RADIUS_MILES = 15;
 
 function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 3958.8; // Earth radius in miles
@@ -42,149 +51,171 @@ export function median(values: number[]): number | null {
 }
 
 export interface ShopEcosystemReport {
-  shopId: string;
-  radiusMiles: number;
+  entityId: string;
+  entityType: "shop" | "salon";
+  radii: { talent: number; labor: number; competition: number; supply: number; rent: number };
   talentPipeline: {
-    schoolCount: number;
-    avgLeaderboardScore: number | null;
-    topSchools: { name: string; score: number; distanceMiles: number; type: "Barber" | "Cosmetology"; profileUrl: string }[];
+    schoolLabel: string; // "barber" | "cosmetology" — drives the frontend copy
+    schoolCount: number; // schools of the relevant type within the talent radius
+    avgWrittenPassRate: number | null; // 0–100, avg 2026 written across those schools
+    avgPracticalPassRate: number | null; // 0–100, avg 2026 practical across those schools
+    topSchools: { name: string; score: number; distanceMiles: number; profileUrl: string }[];
   };
-  laborSupply: {
-    barbersSeekingPlacement: number;
-    cosmetologistsInArea: number;
+  laborMarket: {
+    professionalLabel: string; // "barbers" | "cosmetologists"
+    seekingPlacement: number; // professionals of the relevant type seeking placement within the labor radius
+    hiringVenues: number; // venues of the relevant type hiring within the labor radius
+    ratio: number | null; // professionals seeking per hiring venue
   };
   competition: {
-    nearbyShopCount: number;
-    nearbyShopsHiring: number;
-    nearbySalonCount: number;
+    competitorLabel: string; // "barbershops" | "salons"
+    competitorCount: number; // OTHER venues of the same type within the competition radius
+    competitorsHiring: number;
   };
-  laborMarketRatio: number | null; // barbers seeking per hiring shop nearby
   supplyChain: {
-    supplyStoreCount: number;
+    supplyLabel: string; // "barber supply" | "beauty supply"
+    supplyStoreCount: number; // stores of the relevant type within the supply radius
     nearestSupplyStoreMiles: number | null;
     nearestSupplyStoreName: string | null;
     nearestSupplyStoreProfileUrl: string | null;
   };
   rentBenchmark: {
-    thisShopWeeklyRent: number | null;
+    thisWeeklyRent: number | null;
     localMedianWeeklyRent: number | null;
     percentDiff: number | null;
-    sampleSize: number;
+    sampleSize: number; // # of same-type venues within the rent radius with a parseable booth rent
+    venueCount: number; // # of same-type venues within the rent radius (the "shop count")
   };
   marketDemographics: {
     // Estimated by summing population (and population-weighting income)
-    // across every DISTINCT census tract our tracked shops/salons/barbers/
-    // cosmetologists within the radius happen to fall into — the same
-    // "count what's in our database within the radius" methodology as
-    // every other section here (schoolCount, nearbyShopCount, etc. are
-    // equally just OUR tracked universe, not an independent ground truth).
-    // Not a substitute for the shop's own single-tract income (still the
-    // most precise figure for its immediate block), but this is what
-    // actually matches the 10-mile scope the rest of the report uses.
+    // across every DISTINCT census tract our same-type tracked venues +
+    // labor pool within the radius fall into — same "count what's in our
+    // database within the radius" methodology as every other section here.
     estimatedPopulation: number | null;
     weightedAvgMedianHouseholdIncome: number | null;
     tractsSampled: number;
   };
 }
 
-// Computes a barbershop's local market position: talent pipeline quality,
-// labor supply/demand balance, competitive density, supply-store proximity,
-// and rent benchmarking against nearby shops/salons — all within a radius
-// of the shop's coordinates. Fetches full tables rather than a bounding-box
-// SQL query since a) table sizes here (hundreds to low thousands of rows)
-// make an in-memory haversine filter cheap, and b) rent parsing needs to
-// happen in JS anyway (see parseWeeklyRent), so there's no SQL-only path.
+// Per-entity-type configuration: which tables and columns represent "the
+// <barbershop|salon> side of the market". A shop's ecosystem is computed
+// purely from barber schools / barbers / other barbershops / barber supply
+// stores; a salon's purely from cosmetology schools / cosmetologists /
+// other salons / beauty supply stores. Pass rates live as 0–1 decimals on
+// the school tables (see the samples in parseWeeklyRent's sibling data),
+// converted to 0–100 for display below.
+const ECOSYSTEM_CONFIG = {
+  shop: {
+    schoolTable: "agent_barber_school_leads",
+    scoreCol: "school_leaderboard_score_2026",
+    writtenCol: "written_pass_rate_2026",
+    practicalCol: "practical_pass_rate_2026",
+    proTable: "agent_barber_leads",
+    venueTable: "agent_barbershop_leads",
+    supplyTable: "agent_barber_supply_store_leads",
+    schoolLabel: "barber",
+    professionalLabel: "barbers",
+    competitorLabel: "barbershops",
+    supplyLabel: "barber supply",
+  },
+  salon: {
+    schoolTable: "agent_cosmetology_school_leads",
+    scoreCol: "cosmetology_school_leaderboard_score_2026",
+    writtenCol: "cosmetology_written_pass_rate_2026",
+    practicalCol: "cosmetology_practical_pass_rate_2026",
+    proTable: "agent_cosmetologist_leads",
+    venueTable: "agent_salon_leads",
+    supplyTable: "agent_beauty_supply_store_leads",
+    schoolLabel: "cosmetology",
+    professionalLabel: "cosmetologists",
+    competitorLabel: "salons",
+    supplyLabel: "beauty supply",
+  },
+} as const;
+
+// Computes a shop's or salon's local market position from ONLY its own side
+// of the market (see ECOSYSTEM_CONFIG): talent pipeline quality, labor
+// supply, competitive density, supply-store proximity, and rent
+// benchmarking — each within its own radius of the entity's coordinates.
+// Fetches full tables rather than a bounding-box SQL query since a) table
+// sizes here (hundreds to low thousands of rows) make an in-memory
+// haversine filter cheap, and b) rent parsing needs to happen in JS anyway
+// (see parseWeeklyRent), so there's no SQL-only path.
 export async function computeShopEcosystemReport(
   supabase: SupabaseClient,
-  shop: { id: string; latitude: number | null; longitude: number | null; rent_rate?: string | null },
-  radiusMiles: number = DEFAULT_RADIUS_MILES
+  entity: { id: string; latitude: number | null; longitude: number | null; rent_rate?: string | null },
+  entityType: "shop" | "salon" = "shop"
 ): Promise<ShopEcosystemReport | null> {
-  if (shop.latitude == null || shop.longitude == null) return null;
-  const originLat = Number(shop.latitude);
-  const originLon = Number(shop.longitude);
+  if (entity.latitude == null || entity.longitude == null) return null;
+  const originLat = Number(entity.latitude);
+  const originLon = Number(entity.longitude);
+  const cfg = ECOSYSTEM_CONFIG[entityType];
 
-  const [
-    barberSchools,
-    cosmetologySchools,
-    barbers,
-    cosmetologists,
-    shops,
-    salons,
-    barberSupply,
-    beautySupply,
-  ] = await Promise.all([
-    fetchAllRows(supabase, "agent_barber_school_leads",
-      "id, slug, latitude, longitude, school_name, school_leaderboard_score_2026",
+  const [schools, professionals, venues, supplyStores] = await Promise.all([
+    fetchAllRows(supabase, cfg.schoolTable,
+      `id, slug, latitude, longitude, school_name, ${cfg.scoreCol}, ${cfg.writtenCol}, ${cfg.practicalCol}`,
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
-    fetchAllRows(supabase, "agent_cosmetology_school_leads",
-      "id, slug, latitude, longitude, school_name, cosmetology_school_leaderboard_score_2026",
-      (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
-    fetchAllRows(supabase, "agent_barber_leads",
+    fetchAllRows(supabase, cfg.proTable,
       "id, latitude, longitude, status, census_tract_geoid, census_population, census_median_household_income",
       (q) => q.eq("status", "interested_in_placement").not("latitude", "is", null).not("longitude", "is", null)),
-    fetchAllRows(supabase, "agent_cosmetologist_leads",
-      "id, latitude, longitude, census_tract_geoid, census_population, census_median_household_income",
-      (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
-    fetchAllRows(supabase, "agent_barbershop_leads",
+    fetchAllRows(supabase, cfg.venueTable,
       "id, latitude, longitude, hiring_need, booth_count_available, rent_rate, census_tract_geoid, census_population, census_median_household_income",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
-    fetchAllRows(supabase, "agent_salon_leads",
-      "id, latitude, longitude, hiring_need, booth_count_available, rent_rate, census_tract_geoid, census_population, census_median_household_income",
-      (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
-    fetchAllRows(supabase, "agent_barber_supply_store_leads",
-      "id, slug, latitude, longitude, name",
-      (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
-    fetchAllRows(supabase, "agent_beauty_supply_store_leads",
+    fetchAllRows(supabase, cfg.supplyTable,
       "id, slug, latitude, longitude, name",
       (q) => q.not("latitude", "is", null).not("longitude", "is", null)),
   ]);
 
-  const within = <T extends { latitude: any; longitude: any }>(rows: T[]) =>
+  // Attach a haversine distance, then keep only rows inside a given radius.
+  const within = <T extends { latitude: any; longitude: any }>(rows: T[], radiusMiles: number) =>
     rows
       .map((r) => ({ ...r, distanceMiles: haversineMiles(originLat, originLon, Number(r.latitude), Number(r.longitude)) }))
       .filter((r) => r.distanceMiles <= radiusMiles);
 
-  const nearbyBarberSchools = within(barberSchools).filter((s: any) => s.school_leaderboard_score_2026 != null);
-  const nearbyCosmetSchools = within(cosmetologySchools).filter((s: any) => s.cosmetology_school_leaderboard_score_2026 != null);
-  const allNearbySchools = [
-    ...nearbyBarberSchools.map((s: any) => ({ name: s.school_name, score: s.school_leaderboard_score_2026, distanceMiles: s.distanceMiles, type: "Barber" as const, profileUrl: `/schools/${s.slug}` })),
-    ...nearbyCosmetSchools.map((s: any) => ({ name: s.school_name, score: s.cosmetology_school_leaderboard_score_2026, distanceMiles: s.distanceMiles, type: "Cosmetology" as const, profileUrl: `/schools/${s.slug}` })),
-  ];
-  const schoolCountTotal = within(barberSchools).length + within(cosmetologySchools).length;
-  const avgLeaderboardScore = allNearbySchools.length > 0
-    ? allNearbySchools.reduce((sum, s) => sum + s.score, 0) / allNearbySchools.length
-    : null;
-  const topSchools = [...allNearbySchools].sort((a, b) => b.score - a.score).slice(0, 3);
+  const avg = (values: number[]): number | null =>
+    values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
 
-  const nearbyBarbers = within(barbers);
-  const nearbyCosmetologists = within(cosmetologists);
+  // --- Talent Pipeline (relevant schools within TALENT_RADIUS_MILES) ---
+  const nearbySchools = within(schools, TALENT_RADIUS_MILES) as any[];
+  const writtenRates = nearbySchools.map((s) => s[cfg.writtenCol]).filter((v): v is number => v != null);
+  const practicalRates = nearbySchools.map((s) => s[cfg.practicalCol]).filter((v): v is number => v != null);
+  const avgWritten = avg(writtenRates);
+  const avgPractical = avg(practicalRates);
+  const topSchools = nearbySchools
+    .filter((s) => s[cfg.scoreCol] != null)
+    .map((s) => ({ name: s.school_name, score: s[cfg.scoreCol] as number, distanceMiles: s.distanceMiles, profileUrl: `/schools/${s.slug}` }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
 
-  const nearbyShops = within(shops).filter((s: any) => s.id !== shop.id);
-  const nearbyShopsHiring = nearbyShops.filter((s: any) => s.hiring_need || (s.booth_count_available || 0) >= 1);
-  const nearbySalons = within(salons);
-  const nearbySalonsHiring = nearbySalons.filter((s: any) => s.hiring_need || (s.booth_count_available || 0) >= 1);
-  const totalHiringVenues = nearbyShopsHiring.length + nearbySalonsHiring.length;
+  // --- Labor Market (relevant professionals seeking placement + hiring
+  // venues, both within LABOR_RADIUS_MILES) ---
+  const nearbyPros = within(professionals, LABOR_RADIUS_MILES);
+  const laborVenues = (within(venues, LABOR_RADIUS_MILES) as any[]).filter((v) => v.id !== entity.id);
+  const laborHiringVenues = laborVenues.filter((v) => v.hiring_need || (v.booth_count_available || 0) >= 1);
+  const seekingPlacement = nearbyPros.length;
+  const laborRatio = seekingPlacement > 0 ? seekingPlacement / Math.max(laborHiringVenues.length, 1) : null;
 
-  const nearbySupplyStores = [...within(barberSupply), ...within(beautySupply)];
-  const nearestSupply = [...nearbySupplyStores].sort((a, b) => a.distanceMiles - b.distanceMiles)[0];
+  // --- Competitive Landscape (OTHER same-type venues within COMPETITION_RADIUS_MILES) ---
+  const competitors = (within(venues, COMPETITION_RADIUS_MILES) as any[]).filter((v) => v.id !== entity.id);
+  const competitorsHiring = competitors.filter((v) => v.hiring_need || (v.booth_count_available || 0) >= 1);
 
-  const rentPool = [...nearbyShops, ...nearbySalons]
-    .map((s: any) => parseWeeklyRent(s.rent_rate))
-    .filter((v): v is number => v != null);
+  // --- Supply Chain (relevant supply stores within SUPPLY_RADIUS_MILES) ---
+  const nearbySupply = within(supplyStores, SUPPLY_RADIUS_MILES) as any[];
+  const nearestSupply = [...nearbySupply].sort((a, b) => a.distanceMiles - b.distanceMiles)[0];
+
+  // --- Rent Benchmark (booth rent across same-type venues within RENT_RADIUS_MILES) ---
+  const rentVenues = (within(venues, RENT_RADIUS_MILES) as any[]).filter((v) => v.id !== entity.id);
+  const rentPool = rentVenues.map((v) => parseWeeklyRent(v.rent_rate)).filter((v): v is number => v != null);
   const localMedianWeeklyRent = median(rentPool);
-  const thisShopWeeklyRent = parseWeeklyRent(shop.rent_rate);
-  const percentDiff = thisShopWeeklyRent != null && localMedianWeeklyRent
-    ? ((thisShopWeeklyRent - localMedianWeeklyRent) / localMedianWeeklyRent) * 100
+  const thisWeeklyRent = parseWeeklyRent(entity.rent_rate);
+  const percentDiff = thisWeeklyRent != null && localMedianWeeklyRent
+    ? ((thisWeeklyRent - localMedianWeeklyRent) / localMedianWeeklyRent) * 100
     : null;
 
-  // Aggregate population/income across every DISTINCT census tract that any
-  // tracked shop/salon/barber/cosmetologist within the radius falls into —
-  // gives a population and income figure actually scoped to the same
-  // 10-mile radius as everything else above, instead of just the shop's own
-  // single tract (which stays available separately, still the most precise
-  // figure for its immediate block).
+  // --- Market demographics: distinct census tracts across the same-type
+  // venue + labor sets within the widest (labor/rent) radius. ---
   const tractMap = new Map<string, { population: number; income: number | null }>();
-  for (const r of [...nearbyShops, ...nearbySalons, ...nearbyBarbers, ...nearbyCosmetologists] as any[]) {
+  for (const r of [...laborVenues, ...nearbyPros] as any[]) {
     if (r.census_tract_geoid && r.census_population != null && !tractMap.has(r.census_tract_geoid)) {
       tractMap.set(r.census_tract_geoid, { population: r.census_population, income: r.census_median_household_income });
     }
@@ -197,34 +228,46 @@ export async function computeShopEcosystemReport(
     : null;
 
   return {
-    shopId: shop.id,
-    radiusMiles,
+    entityId: entity.id,
+    entityType,
+    radii: {
+      talent: TALENT_RADIUS_MILES,
+      labor: LABOR_RADIUS_MILES,
+      competition: COMPETITION_RADIUS_MILES,
+      supply: SUPPLY_RADIUS_MILES,
+      rent: RENT_RADIUS_MILES,
+    },
     talentPipeline: {
-      schoolCount: schoolCountTotal,
-      avgLeaderboardScore,
+      schoolLabel: cfg.schoolLabel,
+      schoolCount: nearbySchools.length,
+      avgWrittenPassRate: avgWritten != null ? Math.round(avgWritten * 1000) / 10 : null,
+      avgPracticalPassRate: avgPractical != null ? Math.round(avgPractical * 1000) / 10 : null,
       topSchools,
     },
-    laborSupply: {
-      barbersSeekingPlacement: nearbyBarbers.length,
-      cosmetologistsInArea: nearbyCosmetologists.length,
+    laborMarket: {
+      professionalLabel: cfg.professionalLabel,
+      seekingPlacement,
+      hiringVenues: laborHiringVenues.length,
+      ratio: laborRatio,
     },
     competition: {
-      nearbyShopCount: nearbyShops.length,
-      nearbyShopsHiring: nearbyShopsHiring.length,
-      nearbySalonCount: nearbySalons.length,
+      competitorLabel: cfg.competitorLabel,
+      competitorCount: competitors.length,
+      competitorsHiring: competitorsHiring.length,
     },
-    laborMarketRatio: nearbyBarbers.length > 0 ? nearbyBarbers.length / Math.max(totalHiringVenues, 1) : null,
     supplyChain: {
-      supplyStoreCount: nearbySupplyStores.length,
+      supplyLabel: cfg.supplyLabel,
+      supplyStoreCount: nearbySupply.length,
       nearestSupplyStoreMiles: nearestSupply ? nearestSupply.distanceMiles : null,
       nearestSupplyStoreName: nearestSupply ? nearestSupply.name : null,
       nearestSupplyStoreProfileUrl: nearestSupply ? `/stores/${(nearestSupply as any).slug}` : null,
     },
     rentBenchmark: {
-      thisShopWeeklyRent,
+      thisWeeklyRent,
       localMedianWeeklyRent,
       percentDiff,
       sampleSize: rentPool.length,
+      venueCount: rentVenues.length,
     },
     marketDemographics: {
       estimatedPopulation,
