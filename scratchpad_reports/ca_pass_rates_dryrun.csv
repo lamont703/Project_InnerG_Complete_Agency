@@ -1,0 +1,571 @@
+license_type,match_confidence,school_type,source_school_name,source_city,pass_count,fail_count,test_takers,pass_rate,program_path
+"barber","exact","barber","FERNANDEZ BARBER COLLEGE","FRESNO",2,9,11,0.1818,school
+"barber","unmatched","","FREDRICK & CHARLES BEAUTY COLLEGE","EUREKA",2,0,2,1,school
+"barber","exact","cosmetology","GET FADED BARBER AND BEAUTY COLLEGE","BAKERSFIELD",2,4,6,0.3333,school
+"barber","unmatched","","HACIENDA LA PUENTE ADULT EDUCATION, COSM","LA PUENTE",3,1,4,0.75,school
+"barber","unmatched","","HINTON BARBER AND BEAUTY COLLEGE","VALLEJO",1,1,2,0.5,school
+"barber","fuzzy","cosmetology","INSPIRE ACADEMY OF BARBERING AND COSMETO","STOCKTON",1,0,1,1,school
+"barber","unmatched","","INSTITUTE OF BEAUTY CULTURE","SANTA MARIA",1,0,1,1,school
+"barber","unmatched","","INTERNATIONAL ACADEMY OF COSMETOLOGY","ALHAMBRA",1,0,1,1,school
+"barber","unmatched","","INTERNATIONAL ACADEMY OF COSMETOLOGY","SOUTH GATE",4,6,10,0.4,school
+"barber","unmatched","","INTERNATIONAL SCHOOL OF BEAUTY","PALM DESERT",2,0,2,1,school
+"barber","unmatched","","IVY LEAGUE BARBER ACADEMY","LAKE ELSINORE",3,0,3,1,school
+"barber","unmatched","","IVY LEAGUE BARBER ACADEMY","SAN MARCOS",3,2,5,0.6,school
+"barber","unmatched","","JA SCHOOL OF HAIRDRESSING","CORONA",0,1,1,0,school
+"barber","unmatched","","JAMA'S BEAUTY & BARBER COLLEGE","WEST HILLS",1,0,1,1,school
+"barber","exact","cosmetology","JASMINE BEAUTY SCHOOL","SAN DIEGO",2,1,3,0.6667,school
+"barber","unmatched","","JOHN WESLEY INTERNATIONAL BARBER AND BEAUTY COLLEGE","LONG BEACH",1,1,2,0.5,school
+"barber","unmatched","","KATIE SKILLS CENTER","OAKLAND",0,1,1,0,school
+"barber","unmatched","","KZ ACADEMY","MILPITAS",2,1,3,0.6667,school
+"barber","unmatched","","LANCASTER BEAUTY SCHOOL","LANCASTER",2,3,5,0.4,school
+"barber","unmatched","","LAWRENCE & COMPANY COLLEGE OF COSMETOLOGY","HANFORD",2,0,2,1,school
+"barber","unmatched","","LEARNING INSTITUTE OF SOUTHERN CALIFORNI","EL CENTRO",3,1,4,0.75,school
+"barber","fuzzy","barber","LETTY'S BARBERING AND COSMETOLOGY COLLEG","LOS ANGELES",3,4,7,0.4286,school
+"barber","exact","cosmetology","LOS ANGELES COLLEGE OF AESTHETICS","LOS ANGELES",4,2,6,0.6667,school
+"barber","unmatched","","LOS ANGELES TRADE TECHNICAL COLLEGE","LOS ANGELES",8,1,9,0.8889,school
+"barber","unmatched","","LU ROSS ACADEMY","VENTURA",7,2,9,0.7778,school
+"barber","unmatched","","MASTER ACADEMY","LONG BEACH",3,4,7,0.4286,school
+"barber","unmatched","","MASTER ACADEMY","NORWALK",7,1,8,0.875,school
+"barber","unmatched","","MASTER BARBERING ACADEMY","LONG BEACH",1,0,1,1,school
+"barber","unmatched","","MILAN INSTITUTE","BAKERSFIELD",1,2,3,0.3333,school
+"barber","unmatched","","MILAN INSTITUTE","CLOVIS",8,3,11,0.7273,school
+"barber","unmatched","","MILAN INSTITUTE","MERCED",2,4,6,0.3333,school
+"barber","unmatched","","MILAN INSTITUTE","PALM DESERT",3,2,5,0.6,school
+"barber","unmatched","","MILAN INSTITUTE","VISALIA",5,4,9,0.5556,school
+"barber","unmatched","","MILAN INSTITUTE OF COSMETOLOGY","VACAVILLE",3,2,5,0.6,school
+"barber","exact","cosmetology","MIXED INSTITUTE OF COSMETOLOGY & BARBER","SACRAMENTO",12,1,13,0.9231,school
+"barber","unmatched","","MJ BARBER & BEAUTY ACADEMY","HEMET",6,4,10,0.6,school
+"barber","unmatched","","MJ BARBER & BEAUTY ACADEMY","LA QUINTA",1,3,4,0.25,school
+"barber","exact","cosmetology","MODERN BEAUTY ACADEMY","OXNARD",2,5,7,0.2857,school
+"barber","unmatched","","MOLER BARBER COLLEGE","HAYWARD",4,5,9,0.4444,school
+"barber","exact","barber","MOLER BARBER COLLEGE","OAKLAND",2,1,3,0.6667,school
+"barber","unmatched","","MOLER BARBER COLLEGE","SAN PABLO",0,1,1,0,school
+"barber","unmatched","","MY BEAUTY & BARBER COLLEGE","SACRAMENTO",1,0,1,1,school
+"barber","exact","cosmetology","MY-LE'S BEAUTY COLLEGE","SACRAMENTO",0,1,1,0,school
+"barber","unmatched","","NEWBERRY SCHOOL OF BEAUTY","GRANADA HILLS",8,2,10,0.8,school
+"barber","unmatched","","NORTH ADRIAN'S COLLEGE OF BEAUTY","MODESTO",0,1,1,0,school
+"barber","exact","barber","OAKLAND BARBER ACADEMY","OAKLAND",1,0,1,1,school
+"barber","unmatched","","PAUL MITCHELL THE SCHOOL COSTA MESA","COSTA MESA",2,2,4,0.5,school
+"barber","unmatched","","PAUL MITCHELL THE SCHOOL EAST BAY","PLEASANT HILL",2,0,2,1,school
+"barber","exact","cosmetology","PAUL MITCHELL THE SCHOOL FRESNO","FRESNO",3,3,6,0.5,school
+"barber","exact","cosmetology","PAUL MITCHELL THE SCHOOL MODESTO","MODESTO",1,1,2,0.5,school
+"barber","unmatched","","PAUL MITCHELL THE SCHOOL PASADENA","PASADENA",5,2,7,0.7143,school
+"barber","exact","cosmetology","PAUL MITCHELL THE SCHOOL SACRAMENTO","SACRAMENTO",8,3,11,0.7273,school
+"barber","exact","cosmetology","PAUL MITCHELL THE SCHOOL SAN DIEGO","SAN DIEGO",3,2,5,0.6,school
+"barber","unmatched","","PAUL MITCHELL THE SCHOOL SHERMAN OAKS","SHERMAN OAKS",6,2,8,0.75,school
+"barber","unmatched","","PAUL MITCHELL THE SCHOOL TEMECULA","TEMECULA",2,3,5,0.4,school
+"barber","unmatched","","POMONA UNIFIED SCHOOL DISTRICT, COSMETOL","POMONA",4,1,5,0.8,school
+"barber","unmatched","","PRECISE BARBER COLLEGE","LOS ANGELES",1,0,1,1,school
+"barber","unmatched","","PRISTINE BARBER ACADEMY","SANTA MARIA",4,5,9,0.4444,school
+"barber","unmatched","","PRO BARBER COLLEGE","TORRANCE",5,6,11,0.4545,school
+"barber","unmatched","","PRO BARBER COLLEGE","WESTMINSTER",3,3,6,0.5,school
+"barber","unmatched","","RICHARD N. SLAWSON SOUTHEAST OCCUPATIONA","BELL",1,0,1,1,school
+"barber","unmatched","","RIGGINS URBAN BARBER AND BEAUTY COLLEGE","SAN DIEGO",4,2,6,0.6667,school
+"barber","unmatched","","ROSSTON SCHOOL OF HAIR DESIGN","ONTARIO",7,5,12,0.5833,school
+"barber","unmatched","","SABA BEAUTY SCHOOL","LAKE FOREST",2,0,2,1,school
+"barber","unmatched","","SADDLEBACK BEAUTY ACADEMY","LAGUNA HILLS",2,0,2,1,school
+"barber","exact","cosmetology","SALON SUCCESS ACADEMY","RIVERSIDE",5,2,7,0.7143,school
+"barber","unmatched","","SALON SUCCESS ACADEMY","UPLAND",1,0,1,1,school
+"barber","unmatched","","SAN BERNARDINO BEAUTY COLLEGE","SAN BERNARDINO",2,0,2,1,school
+"barber","unmatched","","SAN FRANCISCO INSTITUTE OF ESTHETICS & C","SAN FRANCISCO",1,0,1,1,school
+"barber","unmatched","","SAN LUIS OBISPO BEAUTY COLLEGE","SAN LUIS OBISPO",1,0,1,1,school
+"barber","unmatched","","SANTA ANA BEAUTY ACADEMY","SANTA ANA",1,0,1,1,school
+"barber","unmatched","","SANTA ANA BEAUTY COLLEGE","SANTA ANA",1,3,4,0.25,school
+"barber","unmatched","","SANTA MONICA COMMUNITY COLLEGE","SANTA MONICA",1,0,1,1,school
+"barber","unmatched","","SANTA ROSA BARBER COLLEGE","SANTA ROSA",6,4,10,0.6,school
+"barber","unmatched","","SHASTA SCHOOL OF COSMETOLOGY","REDDING",1,2,3,0.3333,school
+"barber","unmatched","","SIERRA COLLEGE OF BEAUTY","MERCED",1,1,2,0.5,school
+"barber","unmatched","","SIERRA COLLEGE OF BEAUTY","MERCED",2,4,6,0.3333,school
+"barber","unmatched","","SIMI INSTITUTE OF COSMETOLOGY","SIMI VALLEY",3,0,3,1,school
+"barber","unmatched","","SIMPLY DIVINE ACADEMY","MONROVIA",2,0,2,1,school
+"barber","unmatched","","SIMPLY DIVINE ACADEMY","YUBA CITY",2,0,2,1,school
+"barber","unmatched","","SOUTH BAY BARBER INSTITUTE","GILROY",12,6,18,0.6667,school
+"barber","unmatched","","SOUTHERN CALIFORNIA COLLEGE OF BARBER AN","ESCONDIDO",1,0,1,1,school
+"barber","unmatched","","STAY FRESH BARBER ACADEMY","ESCONDIDO",3,2,5,0.6,school
+"barber","unmatched","","STRAIGHT PERM BEAUTY SCHOOL.COM","LOS ANGELES",5,2,7,0.7143,school
+"barber","unmatched","","TOPLINE BEAUTY COLLEGE","SANTA ANA",1,0,1,1,school
+"barber","unmatched","","URBAN BARBER COLLEGE","CONCORD",11,4,15,0.7333,school
+"barber","exact","barber","URBAN BARBER COLLEGE","SAN JOSE",2,3,5,0.4,school
+"barber","exact","barber","URBAN BARBER COLLEGE - MODESTO","MODESTO",2,1,3,0.6667,school
+"barber","unmatched","","VICTOR VALLEY COLLEGE","VICTORVILLE",2,0,2,1,school
+"barber","exact","cosmetology","WAYNE'S COLLEGE OF BEAUTY","SALINAS",2,2,4,0.5,school
+"barber","unmatched","","WEST COAST BARBER COLLEGE","OCEANSIDE",6,1,7,0.8571,school
+"barber","unmatched","","WEST VALLEY OCCUPATIONAL CENTER","WOODLAND HILLS",5,0,5,1,school
+"barber","unmatched","","WESTERN BARBER INSTITUTE","RESEDA",15,3,18,0.8333,school
+"barber","exact","cosmetology","ZMS THE ACADEMY","LOS ANGELES",6,3,9,0.6667,school
+"barber","exact","cosmetology","AAA BEAUTY COLLEGE","SAN DIEGO",10,3,13,0.7692,school
+"barber","unmatched","","ABC ADULT SCHOOL","CERRITOS",3,1,4,0.75,school
+"barber","unmatched","","ACADEMY FOR SALON PROFESSIONALS","NORTHRIDGE",4,2,6,0.6667,school
+"barber","unmatched","","ACADEMY OF BEAUTY","CULVER CITY",0,2,2,0,school
+"barber","unmatched","","ADRIAN'S BEAUTY COLLEGE OF TURLOCK","TURLOCK",1,0,1,1,school
+"barber","unmatched","","ADVANCE BEAUTY COLLEGE","GARDEN GROVE",15,9,24,0.625,school
+"barber","unmatched","","ADVANCE BEAUTY TECHS ACADEMY","CORONA",2,2,4,0.5,school
+"barber","unmatched","","ALVA BEAUTY COLLECTIVE","LEMON GROVE",7,1,8,0.875,school
+"barber","unmatched","","AMERICAN BEAUTY ACADEMY","BRAWLEY",0,1,1,0,school
+"barber","unmatched","","AMERICAN BEAUTY ACADEMY","PANORAMA CITY",2,4,6,0.3333,school
+"barber","unmatched","","AMERICAN BEAUTY COLLEGE","PALMDALE",2,5,7,0.2857,school
+"barber","unmatched","","AMERICAN BEAUTY COLLEGE","WEST COVINA",1,3,4,0.25,school
+"barber","unmatched","","AMERICAN EMPIRE COLLEGE","ROSEMEAD",4,5,9,0.4444,school
+"barber","unmatched","","AMY BEAUTY SCHOOL","CORONA",0,1,1,0,school
+"barber","unmatched","","ASEL BEAUTY COLLEGE","GARDEN GROVE",6,5,11,0.5455,school
+"barber","unmatched","","ASIAN-AMERICAN INTERNATIONAL BEAUTY COLL","WESTMINSTER",30,5,35,0.8571,school
+"barber","unmatched","","ASSOCIATED BARBER COLLEGE OF SAN DIEGO","SAN DIEGO",1,0,1,1,school
+"barber","unmatched","","BALDWIN PARK ADULT & COMMUNITY EDUCATION","BALDWIN PARK",2,2,4,0.5,school
+"barber","unmatched","","BAMBOO ADVANCE BEAUTY COLLEGE","SAN LEANDRO",0,1,1,0,school
+"barber","unmatched","","BARSTOW COMMUNITY COLLEGE","BARSTOW",1,0,1,1,school
+"barber","unmatched","","BELLUS ACADEMY","CHULA VISTA",14,9,23,0.6087,school
+"barber","unmatched","","BELLUS ACADEMY","EL CAJON",5,3,8,0.625,school
+"barber","unmatched","","BELLUS ACADEMY","POWAY",20,2,22,0.9091,school
+"barber","unmatched","","BEYOND 21ST CENTURY BEAUTY ACADEMY","SANTA FE SPRINGS",3,1,4,0.75,school
+"barber","unmatched","","BRIDGES BEAUTY COLLEGE","VICTORVILLE",1,1,2,0.5,school
+"cosmetology","unmatched","","BUTTE COMMUNITY COLLEGE","OROVILLE",2,0,2,1,school
+"cosmetology","unmatched","","CALIFORNIA BEAUTY ACADEMY","ORANGE",6,1,7,0.8571,school
+"cosmetology","exact","cosmetology","CALIFORNIA BEAUTY COLLEGE","MODESTO",7,3,10,0.7,school
+"cosmetology","exact","cosmetology","CALIFORNIA BEAUTY COLLEGE","SAN DIEGO",0,1,1,0,school
+"cosmetology","unmatched","","CALIFORNIA COLLEGE OF BARBERING AND COSM","STOCKTON",9,3,12,0.75,school
+"cosmetology","unmatched","","CALIFORNIA COSMETOLOGY ACADEMY","SEASIDE",0,1,1,0,school
+"cosmetology","unmatched","","CALIFORNIA HAIR DESIGN ACADEMY","LA MESA",5,1,6,0.8333,school
+"cosmetology","unmatched","","CAMPUS","SACRAMENTO",12,5,17,0.7059,school
+"cosmetology","unmatched","","CAREER ACADEMY OF BEAUTY","GARDEN GROVE",14,3,17,0.8235,school
+"cosmetology","unmatched","","CEN BEAUTY ACADEMY","RIVERSIDE",1,1,2,0.5,school
+"cosmetology","unmatched","","CENTRAL SIERRA ROP SCHOOL OF COSMETOLOGY","EL DORADO",6,1,7,0.8571,school
+"cosmetology","unmatched","","CERRITOS COMMUNITY COLLEGE, COSMETOLOGY","NORWALK",3,0,3,1,school
+"cosmetology","exact","cosmetology","CINTA AVEDA INSTITUTE","SAN FRANCISCO",6,0,6,1,school
+"cosmetology","unmatched","","CINTA AVEDA INSTITUTE SAN JOSE","SAN JOSE",1,1,2,0.5,school
+"cosmetology","unmatched","","CITRUS COLLEGE, COSMETOLOGY DEPARTMENT","GLENDORA",25,3,28,0.8929,school
+"cosmetology","unmatched","","CITRUS HEIGHTS BEAUTY COLLEGE","CITRUS HEIGHTS",7,3,10,0.7,school
+"cosmetology","unmatched","","COASTLINE BEAUTY COLLEGE","FOUNTAIN VALLEY",7,4,11,0.6364,school
+"cosmetology","unmatched","","COASTLINE BEAUTY COLLEGE","HEMET",1,0,1,1,school
+"cosmetology","unmatched","","COBA ACADEMY","ANAHEIM",2,2,4,0.5,school
+"cosmetology","unmatched","","COLLEGE OF SAN MATEO, COSMETOLOGY DEPART","SAN MATEO",10,2,12,0.8333,school
+"cosmetology","unmatched","","COMPTON COLLEGE","COMPTON",2,3,5,0.4,school
+"cosmetology","unmatched","","CONSTILO ACADEMY","PITTSBURG",2,0,2,1,school
+"cosmetology","unmatched","","COSMETICA BEAUTY AND BARBERING ACADEMY","DOWNEY",2,2,4,0.5,school
+"cosmetology","unmatched","","COSMO BEAUTY COLLEGE","GARDEN GROVE",1,0,1,1,school
+"cosmetology","unmatched","","COSMOTEK COLLEGE","HAYWARD",3,2,5,0.6,school
+"cosmetology","unmatched","","COSMOTEK COLLEGE","SAN JOSE",6,5,11,0.5455,school
+"cosmetology","unmatched","","D'LACREME SCHOOL OF COSMETOLOGY AND BARBERING","FAIRFIELD",1,0,1,1,school
+"cosmetology","unmatched","","DESIGN'S SCHOOL OF COSMETOLOGY","PASO ROBLES",11,2,13,0.8462,school
+"cosmetology","unmatched","","DIAMOND BEAUTY COLLEGE","SOUTH EL MONTE",8,0,8,1,school
+"cosmetology","unmatched","","DIVA BEAUTY SCHOOL","SAN JOSE",5,1,6,0.8333,school
+"cosmetology","unmatched","","DIVINA COSMETOLOGY & BARBERING ACADEMY","VACAVILLE",1,1,2,0.5,school
+"cosmetology","unmatched","","EAST LOS ANGELES OCCUPATIONAL CENTER","LOS ANGELES",3,0,3,1,school
+"cosmetology","unmatched","","EL CAMINO COLLEGE, COSMETOLOGY DEPARTMEN","TORRANCE",2,1,3,0.6667,school
+"cosmetology","unmatched","","ELITE COSMETOLOGY SCHOOL","PALM DESERT",3,2,5,0.6,school
+"cosmetology","unmatched","","ELITE COSMETOLOGY SCHOOL","PALM DESERT",1,1,2,0.5,school
+"cosmetology","unmatched","","ESTES INSTITUTE OF COSMETOLOGY ARTS & SC","VISALIA",1,1,2,0.5,school
+"cosmetology","exact","cosmetology","FEDERICO BEAUTY INSTITUTE","SACRAMENTO",9,2,11,0.8182,school
+"cosmetology","unmatched","","FREDRICK & CHARLES BEAUTY COLLEGE","EUREKA",4,2,6,0.6667,school
+"cosmetology","unmatched","","FREMONT BEAUTY COLLEGE","FREMONT",2,2,4,0.5,school
+"cosmetology","unmatched","","FULLERTON COLLEGE, COSMETOLOGY DEPARTMEN","FULLERTON",26,9,35,0.7429,school
+"cosmetology","unmatched","","GAVILAN COLLEGE","GILROY",12,3,15,0.8,school
+"cosmetology","unmatched","","GEORGIKOT ACADEMY USA","WOODLAND HILLS",1,0,1,1,school
+"cosmetology","unmatched","","GLAMHOUSE BEAUTY ACADEMY","LOS ANGELES",1,0,1,1,school
+"cosmetology","unmatched","","GOLDEN WEST COLLEGE","HUNTINGTON BEACH",13,4,17,0.7647,school
+"cosmetology","unmatched","","HACIENDA LA PUENTE ADULT EDUCATION, COSM","LA PUENTE",4,2,6,0.6667,school
+"cosmetology","unmatched","","HESPERIA ALTERNATIVE EDUCATION CENTER, C","HESPERIA",1,0,1,1,school
+"cosmetology","unmatched","","HILLTOP BEAUTY SCHOOL","DALY CITY",3,6,9,0.3333,school
+"cosmetology","unmatched","","HOSS LEE ACADEMY","ROSEVILLE",17,1,18,0.9444,school
+"cosmetology","unmatched","","INSTITUTE OF BEAUTY CULTURE","SANTA MARIA",3,1,4,0.75,school
+"cosmetology","unmatched","","INSTITUTE OF TECHNOLOGY","CLOVIS",7,1,8,0.875,school
+"cosmetology","unmatched","","INTERNATIONAL ACADEMY OF COSMETOLOGY","SOUTH GATE",5,2,7,0.7143,school
+"cosmetology","exact","cosmetology","INTERNATIONAL BEAUTY COLLEGE","SAN FRANCISCO",2,2,4,0.5,school
+"cosmetology","unmatched","","INTERNATIONAL COLLEGE OF BEAUTY, ARTS &","LOS ANGELES",2,0,2,1,school
+"cosmetology","exact","cosmetology","INTERNATIONAL COLLEGE OF COSMETOLOGY","OAKLAND",1,0,1,1,school
+"cosmetology","unmatched","","INTERNATIONAL SCHOOL OF BEAUTY","PALM DESERT",5,0,5,1,school
+"cosmetology","unmatched","","JA SCHOOL OF HAIRDRESSING","CORONA",3,0,3,1,school
+"cosmetology","unmatched","","JAMA'S BEAUTY & BARBER COLLEGE","WEST HILLS",0,1,1,0,school
+"cosmetology","exact","cosmetology","JASMINE BEAUTY SCHOOL","SAN DIEGO",2,0,2,1,school
+"cosmetology","unmatched","","JD ACADEMY OF SALON AND SPA","DANVILLE",9,0,9,1,school
+"cosmetology","unmatched","","JLC BEAUTY SCHOOL","CITY OF INDUSTRY",9,0,9,1,school
+"cosmetology","unmatched","","JOHN WESLEY INTERNATIONAL BARBER AND BEAUTY COLLEGE","LONG BEACH",1,0,1,1,school
+"cosmetology","unmatched","","KATIE SKILLS CENTER","OAKLAND",14,13,27,0.5185,school
+"cosmetology","unmatched","","KC BEAUTY ACADEMY","LOS ANGELES",1,1,2,0.5,school
+"cosmetology","unmatched","","KZ ACADEMY","MILPITAS",1,6,7,0.1429,school
+"cosmetology","unmatched","","LANCASTER BEAUTY SCHOOL","LANCASTER",1,1,2,0.5,school
+"cosmetology","unmatched","","LANEY COLLEGE","OAKLAND",5,1,6,0.8333,school
+"cosmetology","unmatched","","LAWRENCE & COMPANY COLLEGE OF COSMETOLOG","HANFORD",1,2,3,0.3333,school
+"cosmetology","unmatched","","LC BEAUTY COLLEGE","UPLAND",0,1,1,0,school
+"cosmetology","unmatched","","LEARNING INSTITUTE OF SOUTHERN CALIFORNI","EL CENTRO",1,0,1,1,school
+"cosmetology","unmatched","","LEXXUS SCHOOL OF COSMETOLOGY & BARBERING","FAIRFIELD",1,0,1,1,school
+"cosmetology","exact","cosmetology","LOS ANGELES COLLEGE OF AESTHETICS","LOS ANGELES",0,1,1,0,school
+"cosmetology","unmatched","","LOS ANGELES TRADE TECHNICAL COLLEGE","LOS ANGELES",12,5,17,0.7059,school
+"cosmetology","unmatched","","LU ROSS ACADEMY","VENTURA",13,4,17,0.7647,school
+"cosmetology","unmatched","","LYLE'S COLLEGE OF BEAUTY","BAKERSFIELD",7,2,9,0.7778,school
+"cosmetology","unmatched","","LYLE'S COLLEGE OF BEAUTY","FRESNO",4,0,4,1,school
+"cosmetology","unmatched","","LYTLE'S REDWOOD EMPIRE BEAUTY COLLEGE, I","SANTA ROSA",2,1,3,0.6667,school
+"cosmetology","unmatched","","MAIQUELA'S COSMETOLOGY ACADEMY","SOUTH GATE",1,2,3,0.3333,school
+"cosmetology","unmatched","","MAIQUELA'S COSMETOLOGY ACADEMY","UPLAND",1,3,4,0.25,school
+"cosmetology","unmatched","","MAIQUELA'S COSMETOLOGY ACADEMY","WHITTIER",2,2,4,0.5,school
+"cosmetology","unmatched","","MARINELLO SCHOOL OF BEAUTY","STOCKTON",1,0,1,1,school
+"cosmetology","unmatched","","MARMEL BEAUTY ACADEMY","NORTH HOLLYWOOD",0,1,1,0,school
+"cosmetology","unmatched","","MASTER ACADEMY","LONG BEACH",1,2,3,0.3333,school
+"cosmetology","unmatched","","MILAN INSTITUTE","BAKERSFIELD",22,7,29,0.7586,school
+"cosmetology","unmatched","","MILAN INSTITUTE","CLOVIS",19,10,29,0.6552,school
+"cosmetology","unmatched","","MILAN INSTITUTE","MERCED",11,2,13,0.8462,school
+"cosmetology","unmatched","","MILAN INSTITUTE","PALM DESERT",5,4,9,0.5556,school
+"cosmetology","unmatched","","MILAN INSTITUTE","VISALIA",15,4,19,0.7895,school
+"cosmetology","unmatched","","MILAN INSTITUTE OF COSMETOLOGY","VACAVILLE",8,5,13,0.6154,school
+"cosmetology","exact","cosmetology","MIXED INSTITUTE OF COSMETOLOGY & BARBER","SACRAMENTO",5,1,6,0.8333,school
+"cosmetology","unmatched","","MJ BARBER & BEAUTY ACADEMY","HEMET",1,0,1,1,school
+"cosmetology","unmatched","","MJ BARBER & BEAUTY ACADEMY","LA QUINTA",3,1,4,0.75,school
+"cosmetology","exact","cosmetology","MODERN BEAUTY ACADEMY","OXNARD",1,3,4,0.25,school
+"cosmetology","unmatched","","MOLER BARBER COLLEGE","SAN PABLO",3,2,5,0.6,school
+"cosmetology","unmatched","","MOLER COSMETOLOGY COLLEGE, A DIVISION OF","HAYWARD",3,2,5,0.6,school
+"cosmetology","unmatched","","MONARCH BEAUTY ACADEMY","VALENCIA",1,1,2,0.5,school
+"cosmetology","exact","cosmetology","MY-LE'S BEAUTY COLLEGE","SACRAMENTO",5,6,11,0.4545,school
+"cosmetology","unmatched","","NAPA COSMETOLOGY COLLECTIVE LLC","NAPA",3,1,4,0.75,school
+"cosmetology","unmatched","","NATIONAL COSMETOLOGY BEAUTY SCHOOL","OAKLAND",3,5,8,0.375,school
+"cosmetology","exact","cosmetology","NEIHULE ACADEMY OF BEAUTY","LOS ANGELES",6,1,7,0.8571,school
+"cosmetology","unmatched","","NEWBERRY SCHOOL OF BEAUTY","GRANADA HILLS",16,6,22,0.7273,school
+"cosmetology","unmatched","","NORTH ADRIAN'S COLLEGE OF BEAUTY","MODESTO",4,2,6,0.6667,school
+"cosmetology","unmatched","","PALOMAR INSTITUTE OF COSMETOLOGY","SAN MARCOS",13,2,15,0.8667,school
+"cosmetology","unmatched","","PARIS BEAUTY COLLEGE","CONCORD",4,5,9,0.4444,school
+"cosmetology","unmatched","","PASADENA CITY COLLEGE","PASADENA",4,1,5,0.8,school
+"cosmetology","unmatched","","PAUL MITCHELL THE SCHOOL COSTA MESA","COSTA MESA",20,15,35,0.5714,school
+"cosmetology","unmatched","","PAUL MITCHELL THE SCHOOL EAST BAY","PLEASANT HILL",10,4,14,0.7143,school
+"cosmetology","exact","cosmetology","PAUL MITCHELL THE SCHOOL FRESNO","FRESNO",9,12,21,0.4286,school
+"cosmetology","exact","cosmetology","PAUL MITCHELL THE SCHOOL MODESTO","MODESTO",5,3,8,0.625,school
+"cosmetology","unmatched","","PAUL MITCHELL THE SCHOOL PASADENA","PASADENA",5,7,12,0.4167,school
+"cosmetology","exact","cosmetology","PAUL MITCHELL THE SCHOOL SACRAMENTO","SACRAMENTO",13,13,26,0.5,school
+"cosmetology","exact","cosmetology","PAUL MITCHELL THE SCHOOL SAN DIEGO","SAN DIEGO",11,9,20,0.55,school
+"cosmetology","exact","cosmetology","PAUL MITCHELL THE SCHOOL SAN JOSE","SAN JOSE",2,3,5,0.4,school
+"cosmetology","unmatched","","PAUL MITCHELL THE SCHOOL SHERMAN OAKS","SHERMAN OAKS",12,7,19,0.6316,school
+"cosmetology","unmatched","","PAUL MITCHELL THE SCHOOL TEMECULA","TEMECULA",13,3,16,0.8125,school
+"cosmetology","unmatched","","POMONA UNIFIED SCHOOL DISTRICT, COSMETOL","POMONA",6,7,13,0.4615,school
+"cosmetology","unmatched","","PRINCESS INSTITUTE OF BEAUTY","REEDLEY",2,1,3,0.6667,school
+"cosmetology","unmatched","","PROFESSIONAL INSTITUTE OF BEAUTY","EL MONTE",6,6,12,0.5,school
+"cosmetology","unmatched","","PROFESSIONAL SCHOOLS OF BEAUTY, FASHION","RESEDA",0,2,2,0,school
+"cosmetology","unmatched","","REGIONAL OCCUPATIONAL CENTER","BAKERSFIELD",0,2,2,0,school
+"cosmetology","unmatched","","RICHARD N. SLAWSON SOUTHEAST OCCUPATIONA","BELL",1,1,2,0.5,school
+"cosmetology","unmatched","","RIGGINS URBAN BARBER AND BEAUTY COLLEGE","SAN DIEGO",1,0,1,1,school
+"cosmetology","unmatched","","RIVERSIDE COMMUNITY COLLEGE - COSMETOLOG","RIVERSIDE",16,2,18,0.8889,school
+"cosmetology","unmatched","","ROSEMEAD BEAUTY SCHOOL","ROSEMEAD",5,1,6,0.8333,school
+"cosmetology","unmatched","","ROSEMEAD BEAUTY SCHOOL","ROSEMEAD",1,0,1,1,school
+"cosmetology","unmatched","","ROSEMEAD BEAUTY SCHOOL, INC.","ROSEMEAD",0,1,1,0,school
+"cosmetology","unmatched","","RTC COLLEGE","JURUPA VALLEY",2,0,2,1,school
+"cosmetology","unmatched","","SABA BEAUTY SCHOOL","LAKE FOREST",8,1,9,0.8889,school
+"cosmetology","unmatched","","SACRAMENTO CITY COLLEGE, COSMETOLOGY DEP","SACRAMENTO",4,2,6,0.6667,school
+"cosmetology","unmatched","","SADDLEBACK BEAUTY ACADEMY","LAGUNA HILLS",18,7,25,0.72,school
+"cosmetology","unmatched","","SALINAS BEAUTY COLLEGE","SALINAS",1,0,1,1,school
+"cosmetology","unmatched","","SALON PROFESSIONAL ACADEMY SAN JOSE","SAN JOSE",8,3,11,0.7273,school
+"cosmetology","unmatched","","SALON SUCCESS ACADEMY","CORONA",10,0,10,1,school
+"cosmetology","unmatched","","SALON SUCCESS ACADEMY","FONTANA",5,1,6,0.8333,school
+"cosmetology","unmatched","","SALON SUCCESS ACADEMY","REDLANDS",14,1,15,0.9333,school
+"cosmetology","exact","cosmetology","SALON SUCCESS ACADEMY","RIVERSIDE",1,1,2,0.5,school
+"cosmetology","unmatched","","SALON SUCCESS ACADEMY","UPLAND",11,2,13,0.8462,school
+"cosmetology","unmatched","","SALON SUCCESS ACADEMY","WEST COVINA",2,1,3,0.6667,school
+"cosmetology","unmatched","","SAN BERNARDINO BEAUTY COLLEGE","SAN BERNARDINO",1,1,2,0.5,school
+"cosmetology","unmatched","","SAN FRANCISCO INSTITUTE OF ESTHETICS & C","SAN FRANCISCO",10,1,11,0.9091,school
+"cosmetology","unmatched","","SAN JOSE CITY COLLEGE","SAN JOSE",13,1,14,0.9286,school
+"cosmetology","unmatched","","SANTA ANA BEAUTY ACADEMY","SANTA ANA",3,3,6,0.5,school
+"cosmetology","unmatched","","SANTA ANA BEAUTY COLLEGE","SANTA ANA",17,1,18,0.9444,school
+"cosmetology","unmatched","","SANTA BARBARA CITY COLLEGE COSMETOLOGY A","SANTA BARBARA",16,6,22,0.7273,school
+"cosmetology","unmatched","","SANTA CLARA BEAUTY COLLEGE","SANTA CLARA",3,1,4,0.75,school
+"cosmetology","unmatched","","SANTA MONICA COMMUNITY COLLEGE","SANTA MONICA",9,3,12,0.75,school
+"cosmetology","unmatched","","SAVVY BEAUTY ACADEMY","INGLEWOOD",1,2,3,0.3333,school
+"cosmetology","unmatched","","SHASTA SCHOOL OF COSMETOLOGY","REDDING",4,0,4,1,school
+"cosmetology","unmatched","","SIERRA COLLEGE OF BEAUTY","MERCED",2,0,2,1,school
+"cosmetology","unmatched","","SIERRA COLLEGE OF BEAUTY","MERCED",4,1,5,0.8,school
+"cosmetology","unmatched","","SIMI INSTITUTE OF COSMETOLOGY","SIMI VALLEY",14,4,18,0.7778,school
+"cosmetology","unmatched","","SIMPLY DIVINE ACADEMY","MONROVIA",1,1,2,0.5,school
+"cosmetology","unmatched","","SIMPLY DIVINE ACADEMY","YUBA CITY",3,2,5,0.6,school
+"cosmetology","unmatched","","SKYLINE COMMUNITY COLLEGE, COSMOTOLOGY D","SAN BRUNO",10,2,12,0.8333,school
+"cosmetology","unmatched","","SOLANO COMMUNITY COLLEGE, COSMETOLOGY DE","FAIRFIELD",1,0,1,1,school
+"cosmetology","unmatched","","SONORA UNION HIGH SCHOOL, ROP COSMETOLOG","SONORA",4,5,9,0.4444,school
+"cosmetology","unmatched","","SOUTHERN CALIFORNIA COLLEGE OF BARBER AN","ESCONDIDO",2,0,2,1,school
+"cosmetology","unmatched","","SOUTHERN CALIFORNIA REGIONAL OCCUPATIONA","TORRANCE",6,0,6,1,school
+"cosmetology","unmatched","","STRAIGHT PERM BEAUTY SCHOOL.COM","LOS ANGELES",2,1,3,0.6667,school
+"cosmetology","unmatched","","SUTTER COUNTY CAREER TRAINING CENTER","YUBA CITY",3,1,4,0.75,school
+"cosmetology","unmatched","","TEMPLE CITY BEAUTY COLLEGE","TEMPLE CITY",4,3,7,0.5714,school
+"cosmetology","unmatched","","THANH LE COLLEGE, SCHOOL OF COSMETOLOGY","GARDEN GROVE",1,1,2,0.5,school
+"cosmetology","unmatched","","TOPLINE BEAUTY COLLEGE","SANTA ANA",1,0,1,1,school
+"cosmetology","unmatched","","TRI-COMMUNITY ADULT EDUCATION","COVINA",2,1,3,0.6667,school
+"cosmetology","exact","cosmetology","UNIVERSAL COLLEGE OF BEAUTY, INC.","LOS ANGELES",2,1,3,0.6667,school
+"cosmetology","unmatched","","VICTOR VALLEY COLLEGE","VICTORVILLE",11,4,15,0.7333,school
+"cosmetology","unmatched","","VR PROFESSIONAL BEAUTY ACADEMY","CITY OF INDUSTRY",24,4,28,0.8571,school
+"cosmetology","exact","cosmetology","WAYNE'S COLLEGE OF BEAUTY","SALINAS",0,1,1,0,school
+"cosmetology","unmatched","","WEST VALLEY OCCUPATIONAL CENTER","WOODLAND HILLS",11,2,13,0.8462,school
+"cosmetology","unmatched","","AMERICAN INSTITUTE OF EDUCATION","TUSTIN",0,2,2,0,school
+"cosmetology","unmatched","","CALIFORNIA ELECTROLOGY ACADEMY","CORONA",5,7,12,0.4167,school
+"cosmetology","unmatched","","MONTEREY BAY INSTITUTE OF ELECTROLOGY","MONTEREY",11,1,12,0.9167,school
+"cosmetology","exact","cosmetology","ZMS THE ACADEMY","LOS ANGELES",3,3,6,0.5,school
+"cosmetology","unmatched","","1ST ACADEMY OF BEAUTY","ROSEMEAD",1,0,1,1,school
+"cosmetology","exact","cosmetology","AAA BEAUTY COLLEGE","SAN DIEGO",11,5,16,0.6875,school
+"cosmetology","unmatched","","ACADEMY FOR SALON PROFESSIONALS","NORTHRIDGE",6,2,8,0.75,school
+"esthetics","unmatched","","ACADEMY OF BEAUTY","CULVER CITY",2,0,2,1,school
+"esthetics","unmatched","","ADRIAN'S BEAUTY COLLEGE OF TRACY","TRACY",1,1,2,0.5,school
+"esthetics","unmatched","","ADVANCE BEAUTY COLLEGE","GARDEN GROVE",7,7,14,0.5,school
+"esthetics","unmatched","","ADVANCE BEAUTY TECHS ACADEMY","CORONA",4,1,5,0.8,school
+"esthetics","unmatched","","ALVA BEAUTY COLLECTIVE","LEMON GROVE",5,4,9,0.5556,school
+"esthetics","unmatched","","AMERICAN BEAUTY ACADEMY","BRAWLEY",5,2,7,0.7143,school
+"esthetics","unmatched","","AMERICAN BEAUTY ACADEMY","PANORAMA CITY",3,5,8,0.375,school
+"esthetics","unmatched","","AMERICAN BEAUTY COLLEGE","PALMDALE",6,1,7,0.8571,school
+"esthetics","unmatched","","AMERICAN BEAUTY COLLEGE","WEST COVINA",4,0,4,1,school
+"esthetics","unmatched","","AMERICAN EMPIRE COLLEGE","ROSEMEAD",1,7,8,0.125,school
+"esthetics","unmatched","","AMY BEAUTY SCHOOL","CORONA",5,1,6,0.8333,school
+"esthetics","unmatched","","ASEL BEAUTY COLLEGE","GARDEN GROVE",6,0,6,1,school
+"esthetics","unmatched","","ASIAN-AMERICAN INTERNATIONAL BEAUTY COLL","WESTMINSTER",5,4,9,0.5556,school
+"esthetics","unmatched","","BELLUS ACADEMY","CHULA VISTA",16,6,22,0.7273,school
+"esthetics","unmatched","","BELLUS ACADEMY","EL CAJON",9,3,12,0.75,school
+"esthetics","unmatched","","BELLUS ACADEMY","POWAY",22,6,28,0.7857,school
+"esthetics","unmatched","","BEYOND 21ST CENTURY BEAUTY ACADEMY","SANTA FE SPRINGS",4,1,5,0.8,school
+"esthetics","unmatched","","BRIDGES BEAUTY COLLEGE","VICTORVILLE",4,0,4,1,school
+"esthetics","unmatched","","CALIFORNIA BEAUTY ACADEMY","ORANGE",4,1,5,0.8,school
+"esthetics","exact","cosmetology","CALIFORNIA BEAUTY COLLEGE","MODESTO",5,1,6,0.8333,school
+"esthetics","exact","cosmetology","CALIFORNIA BEAUTY COLLEGE","SAN DIEGO",3,2,5,0.6,school
+"esthetics","unmatched","","CALIFORNIA COLLEGE OF BARBERING AND COSM","STOCKTON",6,2,8,0.75,school
+"esthetics","unmatched","","CALIFORNIA COSMETOLOGY ACADEMY","SEASIDE",2,0,2,1,school
+"esthetics","unmatched","","CALIFORNIA HAIR DESIGN ACADEMY","LA MESA",3,4,7,0.4286,school
+"esthetics","unmatched","","CAREER ACADEMY OF BEAUTY","GARDEN GROVE",15,4,19,0.7895,school
+"esthetics","unmatched","","CEN BEAUTY ACADEMY","RIVERSIDE",1,0,1,1,school
+"esthetics","unmatched","","CERRITOS COMMUNITY COLLEGE, COSMETOLOGY","NORWALK",17,3,20,0.85,school
+"esthetics","exact","cosmetology","CINTA AVEDA INSTITUTE","SAN FRANCISCO",5,2,7,0.7143,school
+"esthetics","unmatched","","CINTA AVEDA INSTITUTE SAN JOSE","SAN JOSE",5,1,6,0.8333,school
+"esthetics","unmatched","","CITRUS COLLEGE, COSMETOLOGY DEPARTMENT","GLENDORA",15,0,15,1,school
+"esthetics","unmatched","","CITRUS HEIGHTS BEAUTY COLLEGE","CITRUS HEIGHTS",4,1,5,0.8,school
+"esthetics","unmatched","","COASTLINE BEAUTY COLLEGE","FOUNTAIN VALLEY",3,0,3,1,school
+"esthetics","unmatched","","COASTLINE BEAUTY COLLEGE","HEMET",3,2,5,0.6,school
+"esthetics","unmatched","","COBA ACADEMY","ANAHEIM",0,2,2,0,school
+"esthetics","unmatched","","COSMETICA BEAUTY AND BARBERING ACADEMY","DOWNEY",2,5,7,0.2857,school
+"esthetics","unmatched","","COSMO BEAUTY COLLEGE","GARDEN GROVE",6,0,6,1,school
+"esthetics","unmatched","","COSMOTEK COLLEGE","HAYWARD",13,2,15,0.8667,school
+"esthetics","unmatched","","COSMOTEK COLLEGE","SAN JOSE",11,4,15,0.7333,school
+"esthetics","unmatched","","D'LACREME SCHOOL OF COSMETOLOGY AND BARBERING","FAIRFIELD",2,1,3,0.6667,school
+"esthetics","unmatched","","DALLAS SKIN INSTITUTE","SANTA MONICA",1,0,1,1,school
+"esthetics","unmatched","","DESIGN'S SCHOOL OF COSMETOLOGY","PASO ROBLES",10,0,10,1,school
+"esthetics","unmatched","","DIVA BEAUTY SCHOOL","SAN JOSE",6,1,7,0.8571,school
+"esthetics","unmatched","","DOWNEY ADULT SCHOOL","DOWNEY",5,4,9,0.5556,school
+"esthetics","unmatched","","EL CAMINO COLLEGE, COSMETOLOGY DEPARTMEN","TORRANCE",1,2,3,0.3333,school
+"esthetics","unmatched","","ELITE COSMETOLOGY SCHOOL","PALM DESERT",2,0,2,1,school
+"esthetics","unmatched","","ELITE COSMETOLOGY SCHOOL","PALM DESERT",1,1,2,0.5,school
+"esthetics","exact","cosmetology","FEDERICO BEAUTY INSTITUTE","SACRAMENTO",15,3,18,0.8333,school
+"esthetics","unmatched","","FEDERICO COLLEGE, INC.","FRESNO",0,1,1,0,school
+"esthetics","unmatched","","FREDRICK & CHARLES BEAUTY COLLEGE","EUREKA",2,0,2,1,school
+"esthetics","unmatched","","FREMONT BEAUTY COLLEGE","FREMONT",1,2,3,0.3333,school
+"esthetics","unmatched","","GEORGIKOT ACADEMY USA","WOODLAND HILLS",2,1,3,0.6667,school
+"esthetics","exact","cosmetology","GET FADED BARBER AND BEAUTY COLLEGE","BAKERSFIELD",5,0,5,1,school
+"esthetics","unmatched","","GOLDEN WEST COLLEGE","HUNTINGTON BEACH",14,0,14,1,school
+"esthetics","unmatched","","HACIENDA LA PUENTE ADULT EDUCATION, COSM","LA PUENTE",10,1,11,0.9091,school
+"esthetics","unmatched","","HOSS LEE ACADEMY","ROSEVILLE",21,2,23,0.913,school
+"esthetics","unmatched","","INSTITUTE OF BEAUTY CULTURE","SANTA MARIA",2,0,2,1,school
+"esthetics","unmatched","","INTERNATIONAL ACADEMY OF COSMETOLOGY","ALHAMBRA",1,0,1,1,school
+"esthetics","unmatched","","INTERNATIONAL ACADEMY OF COSMETOLOGY","SOUTH GATE",3,1,4,0.75,school
+"esthetics","exact","cosmetology","INTERNATIONAL BEAUTY COLLEGE","SAN FRANCISCO",0,2,2,0,school
+"esthetics","unmatched","","INTERNATIONAL COLLEGE OF BEAUTY, ARTS &","LOS ANGELES",7,0,7,1,school
+"esthetics","exact","cosmetology","INTERNATIONAL COLLEGE OF COSMETOLOGY","OAKLAND",0,1,1,0,school
+"esthetics","unmatched","","INTERNATIONAL SCHOOL OF BEAUTY","PALM DESERT",4,0,4,1,school
+"esthetics","unmatched","","JA SCHOOL OF HAIRDRESSING","CORONA",1,0,1,1,school
+"esthetics","unmatched","","JADE BEAUTY AND BARBER COLLEGE","SAN JOSE",3,1,4,0.75,school
+"esthetics","unmatched","","JAMA'S BEAUTY & BARBER COLLEGE","WEST HILLS",4,1,5,0.8,school
+"esthetics","exact","cosmetology","JASMINE BEAUTY SCHOOL","SAN DIEGO",6,1,7,0.8571,school
+"esthetics","unmatched","","JD ACADEMY OF SALON AND SPA","DANVILLE",7,2,9,0.7778,school
+"esthetics","unmatched","","JLC BEAUTY SCHOOL","CITY OF INDUSTRY",2,0,2,1,school
+"esthetics","unmatched","","KATIE SKILLS CENTER","OAKLAND",2,0,2,1,school
+"esthetics","unmatched","","KC BEAUTY ACADEMY","LOS ANGELES",3,1,4,0.75,school
+"esthetics","unmatched","","KZ ACADEMY","MILPITAS",9,6,15,0.6,school
+"esthetics","unmatched","","LANCASTER BEAUTY SCHOOL","LANCASTER",2,2,4,0.5,school
+"esthetics","unmatched","","LAWRENCE & COMPANY COLLEGE OF COSMETOLOG","SELMA",1,0,1,1,school
+"esthetics","unmatched","","LAWRENCE & COMPANY COLLEGE OF COSMETOLOGY","HANFORD",4,1,5,0.8,school
+"esthetics","exact","cosmetology","LOS ANGELES COLLEGE OF AESTHETICS","LOS ANGELES",3,3,6,0.5,school
+"esthetics","unmatched","","LOS ANGELES TRADE TECHNICAL COLLEGE","LOS ANGELES",7,5,12,0.5833,school
+"esthetics","unmatched","","LU ROSS ACADEMY","VENTURA",14,4,18,0.7778,school
+"esthetics","unmatched","","LYLE'S COLLEGE OF BEAUTY","FRESNO",2,1,3,0.6667,school
+"esthetics","unmatched","","LYTLE'S REDWOOD EMPIRE BEAUTY COLLEGE, I","SANTA ROSA",6,1,7,0.8571,school
+"esthetics","unmatched","","MARINELLO SCHOOL OF BEAUTY","MURRIETA",1,0,1,1,school
+"esthetics","unmatched","","MILAN INSTITUTE","BAKERSFIELD",8,3,11,0.7273,school
+"esthetics","unmatched","","MILAN INSTITUTE","CLOVIS",20,8,28,0.7143,school
+"esthetics","unmatched","","MILAN INSTITUTE","MERCED",3,4,7,0.4286,school
+"esthetics","unmatched","","MILAN INSTITUTE","PALM DESERT",7,3,10,0.7,school
+"esthetics","unmatched","","MILAN INSTITUTE","VISALIA",9,4,13,0.6923,school
+"esthetics","unmatched","","MILAN INSTITUTE OF COSMETOLOGY","VACAVILLE",7,6,13,0.5385,school
+"esthetics","exact","cosmetology","MIXED INSTITUTE OF COSMETOLOGY & BARBER","SACRAMENTO",3,2,5,0.6,school
+"esthetics","unmatched","","MJ BARBER & BEAUTY ACADEMY","HEMET",4,1,5,0.8,school
+"esthetics","exact","barber","MOLER BARBER COLLEGE","OAKLAND",1,0,1,1,school
+"esthetics","unmatched","","MOLER BARBER COLLEGE","SAN PABLO",3,0,3,1,school
+"esthetics","unmatched","","MOLER COSMETOLOGY COLLEGE, A DIVISION OF","HAYWARD",4,1,5,0.8,school
+"esthetics","unmatched","","MONARCH BEAUTY ACADEMY","VALENCIA",2,0,2,1,school
+"esthetics","exact","cosmetology","MY-LE'S BEAUTY COLLEGE","SACRAMENTO",5,1,6,0.8333,school
+"esthetics","unmatched","","NAPA COSMETOLOGY COLLECTIVE LLC","NAPA",4,0,4,1,school
+"esthetics","unmatched","","NATIONAL COSMETOLOGY BEAUTY SCHOOL","OAKLAND",3,1,4,0.75,school
+"esthetics","exact","cosmetology","NEIHULE ACADEMY OF BEAUTY","LOS ANGELES",3,1,4,0.75,school
+"esthetics","unmatched","","NEWBERRY SCHOOL OF BEAUTY","GRANADA HILLS",10,4,14,0.7143,school
+"esthetics","unmatched","","NORTH ADRIAN'S COLLEGE OF BEAUTY","MODESTO",2,0,2,1,school
+"esthetics","unmatched","","PACIFIC STYLING COLLEGE","SANTA ANA",2,0,2,1,school
+"esthetics","unmatched","","PALOMAR INSTITUTE OF COSMETOLOGY","SAN MARCOS",14,4,18,0.7778,school
+"esthetics","unmatched","","PARIS BEAUTY COLLEGE","CONCORD",7,0,7,1,school
+"esthetics","unmatched","","PAUL MITCHELL THE SCHOOL COSTA MESA","COSTA MESA",23,1,24,0.9583,school
+"esthetics","unmatched","","PAUL MITCHELL THE SCHOOL EAST BAY","PLEASANT HILL",5,2,7,0.7143,school
+"esthetics","exact","cosmetology","PAUL MITCHELL THE SCHOOL MODESTO","MODESTO",29,3,32,0.9063,school
+"esthetics","unmatched","","PAUL MITCHELL THE SCHOOL PASADENA","PASADENA",8,2,10,0.8,school
+"esthetics","exact","cosmetology","PAUL MITCHELL THE SCHOOL SACRAMENTO","SACRAMENTO",14,3,17,0.8235,school
+"esthetics","exact","cosmetology","PAUL MITCHELL THE SCHOOL SAN DIEGO","SAN DIEGO",13,2,15,0.8667,school
+"esthetics","unmatched","","PAUL MITCHELL THE SCHOOL SHERMAN OAKS","SHERMAN OAKS",12,3,15,0.8,school
+"esthetics","unmatched","","PAUL MITCHELL THE SCHOOL TEMECULA","TEMECULA",27,3,30,0.9,school
+"esthetics","unmatched","","PROFESSIONAL SCHOOLS OF BEAUTY, FASHION","RESEDA",3,2,5,0.6,school
+"esthetics","unmatched","","REDONDO BEACH BEAUTY COLLEGE","TORRANCE",1,0,1,1,school
+"esthetics","unmatched","","RIVERSIDE COMMUNITY COLLEGE - COSMETOLOG","RIVERSIDE",3,0,3,1,school
+"esthetics","unmatched","","ROSEMEAD BEAUTY SCHOOL","ROSEMEAD",9,0,9,1,school
+"esthetics","unmatched","","ROSEMEAD BEAUTY SCHOOL","ROSEMEAD",1,0,1,1,school
+"esthetics","unmatched","","RTC COLLEGE","JURUPA VALLEY",0,4,4,0,school
+"esthetics","unmatched","","SABA BEAUTY SCHOOL","LAKE FOREST",4,3,7,0.5714,school
+"esthetics","unmatched","","SADDLEBACK BEAUTY ACADEMY","LAGUNA HILLS",23,2,25,0.92,school
+"esthetics","unmatched","","SALON PROFESSIONAL ACADEMY SAN JOSE","SAN JOSE",7,2,9,0.7778,school
+"esthetics","unmatched","","SALON SUCCESS ACADEMY","CORONA",17,3,20,0.85,school
+"esthetics","unmatched","","SALON SUCCESS ACADEMY","REDLANDS",14,1,15,0.9333,school
+"esthetics","unmatched","","SALON SUCCESS ACADEMY","UPLAND",15,3,18,0.8333,school
+"esthetics","unmatched","","SALON SUCCESS ACADEMY","WEST COVINA",3,1,4,0.75,school
+"esthetics","unmatched","","SAN BERNARDINO BEAUTY COLLEGE","SAN BERNARDINO",5,5,10,0.5,school
+"esthetics","unmatched","","SAN DIEGO CITY COLLEGE, COSMETOLOGY DEPA","SAN DIEGO",8,1,9,0.8889,school
+"esthetics","unmatched","","SAN FRANCISCO INSTITUTE OF ESTHETICS & C","SAN FRANCISCO",7,2,9,0.7778,school
+"esthetics","unmatched","","SAN JOSE CITY COLLEGE","SAN JOSE",14,3,17,0.8235,school
+"esthetics","unmatched","","SANTA ANA BEAUTY ACADEMY","SANTA ANA",8,0,8,1,school
+"esthetics","unmatched","","SANTA ANA BEAUTY COLLEGE","SANTA ANA",4,5,9,0.4444,school
+"esthetics","unmatched","","SANTA BARBARA CITY COLLEGE COSMETOLOGY A","SANTA BARBARA",12,1,13,0.9231,school
+"esthetics","unmatched","","SANTA CLARA BEAUTY COLLEGE","SANTA CLARA",1,0,1,1,school
+"esthetics","unmatched","","SANTA MONICA COMMUNITY COLLEGE","SANTA MONICA",11,3,14,0.7857,school
+"esthetics","unmatched","","SAVVY BEAUTY ACADEMY","INGLEWOOD",10,2,12,0.8333,school
+"esthetics","unmatched","","SHASTA SCHOOL OF COSMETOLOGY","REDDING",6,1,7,0.8571,school
+"esthetics","unmatched","","SIERRA COLLEGE OF BEAUTY","MERCED",0,1,1,0,school
+"esthetics","unmatched","","SIERRA COLLEGE OF BEAUTY","MERCED",1,3,4,0.25,school
+"esthetics","unmatched","","SIMI INSTITUTE OF COSMETOLOGY","SIMI VALLEY",8,3,11,0.7273,school
+"esthetics","unmatched","","SIMPLY DIVINE ACADEMY","MONROVIA",2,0,2,1,school
+"esthetics","unmatched","","SIMPLY DIVINE ACADEMY","YUBA CITY",7,1,8,0.875,school
+"esthetics","unmatched","","SKYLINE COMMUNITY COLLEGE, COSMOTOLOGY D","SAN BRUNO",6,1,7,0.8571,school
+"esthetics","unmatched","","SOUTHERN CALIFORNIA COLLEGE OF BARBER AN","ESCONDIDO",2,0,2,1,school
+"esthetics","unmatched","","STRAIGHT PERM BEAUTY SCHOOL.COM","LOS ANGELES",0,1,1,0,school
+"esthetics","unmatched","","TEMPLE CITY BEAUTY COLLEGE","TEMPLE CITY",3,1,4,0.75,school
+"esthetics","unmatched","","THANH LE COLLEGE, SCHOOL OF COSMETOLOGY","GARDEN GROVE",1,0,1,1,school
+"esthetics","unmatched","","TOPLINE BEAUTY COLLEGE","SANTA ANA",3,0,3,1,school
+"esthetics","exact","cosmetology","UNIVERSAL COLLEGE OF BEAUTY, INC.","LOS ANGELES",1,0,1,1,school
+"esthetics","unmatched","","VICTOR VALLEY COLLEGE","VICTORVILLE",12,0,12,1,school
+"esthetics","unmatched","","VICTORY CAREER COLLEGE","CARSON",2,0,2,1,school
+"esthetics","unmatched","","VR PROFESSIONAL BEAUTY ACADEMY","CITY OF INDUSTRY",7,4,11,0.6364,school
+"esthetics","exact","cosmetology","WAYNE'S COLLEGE OF BEAUTY","SALINAS",4,0,4,1,school
+"esthetics","unmatched","","WEST VALLEY OCCUPATIONAL CENTER","WOODLAND HILLS",11,2,13,0.8462,school
+"esthetics","exact","cosmetology","ZMS THE ACADEMY","LOS ANGELES",3,1,4,0.75,school
+"esthetics","unmatched","","ADVANCE BEAUTY COLLEGE","GARDEN GROVE",1,0,1,1,school
+"esthetics","unmatched","","CALIFORNIA BEAUTY ACADEMY","ORANGE",3,0,3,1,school
+"esthetics","unmatched","","DANCKUTS INSTITUTE OF HAIR","LAGUNA HILLS",2,0,2,1,school
+"esthetics","unmatched","","DIVA BEAUTY SCHOOL","SAN JOSE",0,1,1,0,school
+"esthetics","unmatched","","MILAN INSTITUTE OF COSMETOLOGY","VACAVILLE",1,0,1,1,school
+"esthetics","unmatched","","RTC COLLEGE","JURUPA VALLEY",1,0,1,1,school
+"esthetics","unmatched","","1ST ACADEMY OF BEAUTY","ROSEMEAD",22,4,26,0.8462,school
+"esthetics","exact","cosmetology","AAA BEAUTY COLLEGE","SAN DIEGO",57,12,69,0.8261,school
+"esthetics","unmatched","","ABRAM FRIEDMAN OCCUPATIONAL CENTER, LOS","LOS ANGELES",4,2,6,0.6667,school
+"esthetics","unmatched","","ADRIAN'S BEAUTY COLLEGE OF TRACY","TRACY",1,0,1,1,school
+"esthetics","unmatched","","ADVANCE BEAUTY COLLEGE","GARDEN GROVE",34,6,40,0.85,school
+"esthetics","unmatched","","ADVANCE BEAUTY TECHS ACADEMY","CORONA",1,1,2,0.5,school
+"esthetics","unmatched","","ALVA BEAUTY COLLECTIVE","LEMON GROVE",4,3,7,0.5714,school
+"esthetics","unmatched","","AMERICAN BEAUTY ACADEMY","BRAWLEY",4,1,5,0.8,school
+"esthetics","unmatched","","AMERICAN BEAUTY ACADEMY","PANORAMA CITY",7,9,16,0.4375,school
+"esthetics","unmatched","","AMERICAN BEAUTY COLLEGE","PALMDALE",7,1,8,0.875,school
+"esthetics","exact","cosmetology","AMERICAN BEAUTY INSTITUTE","SAN DIEGO",0,1,1,0,school
+"esthetics","unmatched","","AMERICAN EMPIRE COLLEGE","ROSEMEAD",2,1,3,0.6667,school
+"esthetics","unmatched","","AMY BEAUTY SCHOOL","CORONA",12,3,15,0.8,school
+"esthetics","unmatched","","ASEL BEAUTY COLLEGE","GARDEN GROVE",0,1,1,0,school
+"esthetics","unmatched","","ASIAN-AMERICAN INTERNATIONAL BEAUTY COLL","WESTMINSTER",39,19,58,0.6724,school
+"esthetics","unmatched","","BAMBOO ADVANCE BEAUTY COLLEGE","SAN LEANDRO",5,2,7,0.7143,school
+"esthetics","unmatched","","BELLFLOWER BEAUTY COLLEGE OF LAKEWOOD","LAKEWOOD",1,0,1,1,school
+"esthetics","unmatched","","BELLUS ACADEMY","CHULA VISTA",16,1,17,0.9412,school
+"esthetics","unmatched","","BELLUS ACADEMY","EL CAJON",1,0,1,1,school
+"esthetics","unmatched","","BELLUS ACADEMY","POWAY",8,2,10,0.8,school
+"manicuring","unmatched","","BEYOND 21ST CENTURY BEAUTY ACADEMY","SANTA FE SPRINGS",8,4,12,0.6667,school
+"manicuring","unmatched","","BRIDGES BEAUTY COLLEGE","VICTORVILLE",1,0,1,1,school
+"manicuring","unmatched","","CALIFORNIA BEAUTY ACADEMY","ORANGE",7,2,9,0.7778,school
+"manicuring","exact","cosmetology","CALIFORNIA BEAUTY COLLEGE","MODESTO",5,1,6,0.8333,school
+"manicuring","exact","cosmetology","CALIFORNIA BEAUTY COLLEGE","SAN DIEGO",1,1,2,0.5,school
+"manicuring","unmatched","","CALIFORNIA COLLEGE OF BARBERING AND COSM","STOCKTON",6,1,7,0.8571,school
+"manicuring","unmatched","","CEN BEAUTY ACADEMY","RIVERSIDE",3,1,4,0.75,school
+"manicuring","unmatched","","CITRUS HEIGHTS BEAUTY COLLEGE","CITRUS HEIGHTS",7,1,8,0.875,school
+"manicuring","unmatched","","COASTLINE BEAUTY COLLEGE","FOUNTAIN VALLEY",12,3,15,0.8,school
+"manicuring","unmatched","","COASTLINE BEAUTY COLLEGE","GARDEN GROVE",3,0,3,1,school
+"manicuring","unmatched","","COASTLINE BEAUTY COLLEGE","HEMET",7,1,8,0.875,school
+"manicuring","unmatched","","COSMETICA BEAUTY AND BARBERING ACADEMY","DOWNEY",1,1,2,0.5,school
+"manicuring","unmatched","","COSMO BEAUTY COLLEGE","GARDEN GROVE",13,1,14,0.9286,school
+"manicuring","unmatched","","COSMOTEK COLLEGE","HAYWARD",12,5,17,0.7059,school
+"manicuring","unmatched","","COSMOTEK COLLEGE","SAN JOSE",15,14,29,0.5172,school
+"manicuring","unmatched","","DIAMOND BEAUTY COLLEGE","SOUTH EL MONTE",8,1,9,0.8889,school
+"manicuring","unmatched","","DIVA BEAUTY SCHOOL","SAN JOSE",27,11,38,0.7105,school
+"manicuring","unmatched","","ESTES INSTITUTE OF COSMETOLOGY ARTS & SC","VISALIA",1,1,2,0.5,school
+"manicuring","exact","cosmetology","FEDERICO BEAUTY INSTITUTE","SACRAMENTO",11,1,12,0.9167,school
+"manicuring","unmatched","","FREMONT BEAUTY COLLEGE","FREMONT",4,2,6,0.6667,school
+"manicuring","unmatched","","GEORGIKOT ACADEMY USA","WOODLAND HILLS",3,0,3,1,school
+"manicuring","exact","cosmetology","GET FADED BARBER AND BEAUTY COLLEGE","BAKERSFIELD",1,0,1,1,school
+"manicuring","unmatched","","GLAMHOUSE BEAUTY ACADEMY","LOS ANGELES",1,0,1,1,school
+"manicuring","unmatched","","HACIENDA LA PUENTE ADULT EDUCATION, COSM","LA PUENTE",6,1,7,0.8571,school
+"manicuring","unmatched","","HESPERIA ALTERNATIVE EDUCATION CENTER, C","HESPERIA",3,0,3,1,school
+"manicuring","unmatched","","HILLTOP BEAUTY SCHOOL","DALY CITY",6,6,12,0.5,school
+"manicuring","fuzzy","cosmetology","INSPIRE ACADEMY OF BARBERING AND COSMETO","STOCKTON",3,2,5,0.6,school
+"manicuring","unmatched","","INSTITUTE OF BEAUTY CULTURE","SANTA MARIA",1,0,1,1,school
+"manicuring","unmatched","","INTERNATIONAL ACADEMY OF COSMETOLOGY","ALHAMBRA",1,0,1,1,school
+"manicuring","exact","cosmetology","INTERNATIONAL BEAUTY COLLEGE","SAN FRANCISCO",1,1,2,0.5,school
+"manicuring","unmatched","","INTERNATIONAL COLLEGE OF BEAUTY, ARTS &","LOS ANGELES",1,0,1,1,school
+"manicuring","unmatched","","INTERNATIONAL SCHOOL OF BEAUTY","PALM DESERT",4,1,5,0.8,school
+"manicuring","unmatched","","JADE BEAUTY AND BARBER COLLEGE","SAN JOSE",9,1,10,0.9,school
+"manicuring","exact","cosmetology","JASMINE BEAUTY SCHOOL","SAN DIEGO",28,7,35,0.8,school
+"manicuring","unmatched","","JLC BEAUTY SCHOOL","CITY OF INDUSTRY",8,0,8,1,school
+"manicuring","unmatched","","KATIE SKILLS CENTER","OAKLAND",31,7,38,0.8158,school
+"manicuring","unmatched","","KZ ACADEMY","MILPITAS",4,0,4,1,school
+"manicuring","unmatched","","LANCASTER BEAUTY SCHOOL","LANCASTER",2,1,3,0.6667,school
+"manicuring","unmatched","","LAWRENCE & COMPANY COLLEGE OF COSMETOLOG","HANFORD",6,0,6,1,school
+"manicuring","unmatched","","LAWRENCE & COMPANY COLLEGE OF COSMETOLOG","SELMA",0,1,1,0,school
+"manicuring","unmatched","","LC BEAUTY COLLEGE","UPLAND",1,0,1,1,school
+"manicuring","fuzzy","barber","LETTY'S BARBERING AND COSMETOLOGY COLLEG","LOS ANGELES",2,0,2,1,school
+"manicuring","exact","cosmetology","LOS ANGELES COLLEGE OF AESTHETICS","LOS ANGELES",11,2,13,0.8462,school
+"manicuring","unmatched","","LU ROSS ACADEMY","VENTURA",4,0,4,1,school
+"manicuring","unmatched","","LYLE'S COLLEGE OF BEAUTY","BAKERSFIELD",9,1,10,0.9,school
+"manicuring","unmatched","","LYLE'S COLLEGE OF BEAUTY","FRESNO",4,1,5,0.8,school
+"manicuring","unmatched","","MAIQUELA'S COSMETOLOGY ACADEMY","SOUTH GATE",0,1,1,0,school
+"manicuring","unmatched","","MAIQUELA'S COSMETOLOGY ACADEMY","UPLAND",1,2,3,0.3333,school
+"manicuring","unmatched","","MAIQUELA'S COSMETOLOGY ACADEMY","WHITTIER",3,2,5,0.6,school
+"manicuring","unmatched","","MILAN INSTITUTE","BAKERSFIELD",11,1,12,0.9167,school
+"manicuring","unmatched","","MILAN INSTITUTE","CLOVIS",17,4,21,0.8095,school
+"manicuring","unmatched","","MILAN INSTITUTE","MERCED",5,3,8,0.625,school
+"manicuring","unmatched","","MILAN INSTITUTE","PALM DESERT",5,1,6,0.8333,school
+"manicuring","unmatched","","MILAN INSTITUTE","VISALIA",11,3,14,0.7857,school
+"manicuring","unmatched","","MILAN INSTITUTE OF COSMETOLOGY","VACAVILLE",6,0,6,1,school
+"manicuring","exact","cosmetology","MIXED INSTITUTE OF COSMETOLOGY & BARBER","SACRAMENTO",1,0,1,1,school
+"manicuring","unmatched","","MONARCH BEAUTY ACADEMY","VALENCIA",8,0,8,1,school
+"manicuring","exact","cosmetology","MY-LE'S BEAUTY COLLEGE","SACRAMENTO",21,3,24,0.875,school
+"manicuring","unmatched","","NAPA COSMETOLOGY COLLECTIVE LLC","NAPA",2,0,2,1,school
+"manicuring","unmatched","","NATIONAL COSMETOLOGY BEAUTY SCHOOL","OAKLAND",22,18,40,0.55,school
+"manicuring","exact","cosmetology","NEIHULE ACADEMY OF BEAUTY","LOS ANGELES",18,1,19,0.9474,school
+"manicuring","unmatched","","NEWBERRY SCHOOL OF BEAUTY","GRANADA HILLS",5,0,5,1,school
+"manicuring","unmatched","","NORTH ADRIAN'S COLLEGE OF BEAUTY","MODESTO",3,0,3,1,school
+"manicuring","unmatched","","PALOMAR INSTITUTE OF COSMETOLOGY","SAN MARCOS",12,4,16,0.75,school
+"manicuring","unmatched","","PARIS BEAUTY COLLEGE","CONCORD",8,0,8,1,school
+"manicuring","exact","cosmetology","PAUL MITCHELL THE SCHOOL MODESTO","MODESTO",4,2,6,0.6667,school
+"manicuring","unmatched","","PROFESSIONAL SCHOOLS OF BEAUTY, FASHION","RESEDA",0,1,1,0,school
+"manicuring","unmatched","","REDONDO BEACH BEAUTY COLLEGE","TORRANCE",10,3,13,0.7692,school
+"manicuring","unmatched","","ROSEMEAD BEAUTY SCHOOL","ROSEMEAD",13,2,15,0.8667,school
+"manicuring","unmatched","","ROSEMEAD BEAUTY SCHOOL","ROSEMEAD",2,0,2,1,school
+"manicuring","unmatched","","RTC COLLEGE","JURUPA VALLEY",4,2,6,0.6667,school
+"manicuring","unmatched","","SABA BEAUTY SCHOOL","LAKE FOREST",6,0,6,1,school
+"manicuring","unmatched","","SACRAMENTO CITY COLLEGE, COSMETOLOGY DEP","SACRAMENTO",1,0,1,1,school
+"manicuring","unmatched","","SADDLEBACK BEAUTY ACADEMY","LAGUNA HILLS",6,1,7,0.8571,school
+"manicuring","unmatched","","SALON SUCCESS ACADEMY","REDLANDS",1,0,1,1,school
+"manicuring","exact","cosmetology","SALON SUCCESS ACADEMY","RIVERSIDE",7,2,9,0.7778,school
+"manicuring","unmatched","","SALON SUCCESS ACADEMY","UPLAND",6,0,6,1,school
+"manicuring","unmatched","","SALON SUCCESS ACADEMY","WEST COVINA",1,0,1,1,school
+"manicuring","unmatched","","SAN BERNARDINO BEAUTY COLLEGE","SAN BERNARDINO",4,3,7,0.5714,school
+"manicuring","unmatched","","SAN DIEGO CITY COLLEGE, COSMETOLOGY DEPA","SAN DIEGO",9,0,9,1,school
+"manicuring","unmatched","","SAN FRANCISCO INSTITUTE OF ESTHETICS & C","SAN FRANCISCO",5,0,5,1,school
+"manicuring","unmatched","","SANTA ANA BEAUTY COLLEGE","SANTA ANA",18,3,21,0.8571,school
+"manicuring","unmatched","","SANTA CLARA BEAUTY COLLEGE","SANTA CLARA",1,0,1,1,school
+"manicuring","unmatched","","SANTA MONICA COMMUNITY COLLEGE","SANTA MONICA",1,0,1,1,school
+"manicuring","unmatched","","SAVVY BEAUTY ACADEMY","INGLEWOOD",3,1,4,0.75,school
+"manicuring","unmatched","","SHASTA SCHOOL OF COSMETOLOGY","REDDING",5,2,7,0.7143,school
+"manicuring","unmatched","","SIERRA COLLEGE OF BEAUTY","MERCED",1,0,1,1,school
+"manicuring","unmatched","","SIMI INSTITUTE OF COSMETOLOGY","SIMI VALLEY",7,4,11,0.6364,school
+"manicuring","unmatched","","SIMPLY DIVINE ACADEMY","YUBA CITY",1,1,2,0.5,school
+"manicuring","unmatched","","SOLANO COMMUNITY COLLEGE, COSMETOLOGY DE","FAIRFIELD",5,0,5,1,school
+"manicuring","unmatched","","STRAIGHT PERM BEAUTY SCHOOL.COM","LOS ANGELES",3,1,4,0.75,school
+"manicuring","unmatched","","THANH LE COLLEGE, SCHOOL OF COSMETOLOGY","GARDEN GROVE",5,3,8,0.625,school
+"manicuring","unmatched","","TOPLINE BEAUTY COLLEGE","SANTA ANA",7,4,11,0.6364,school
+"manicuring","unmatched","","VICTOR VALLEY COLLEGE","VICTORVILLE",11,3,14,0.7857,school
+"manicuring","unmatched","","VICTORY CAREER COLLEGE","CARSON",2,0,2,1,school
+"manicuring","unmatched","","VR PROFESSIONAL BEAUTY ACADEMY","CITY OF INDUSTRY",9,3,12,0.75,school
+"manicuring","exact","cosmetology","WAYNE'S COLLEGE OF BEAUTY","SALINAS",1,0,1,1,school
+"manicuring","unmatched","","WEST VALLEY OCCUPATIONAL CENTER","WOODLAND HILLS",12,4,16,0.75,school
+"manicuring","exact","cosmetology","ZMS THE ACADEMY","LOS ANGELES",3,0,3,1,school
