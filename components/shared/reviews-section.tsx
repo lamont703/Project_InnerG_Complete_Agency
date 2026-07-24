@@ -24,9 +24,13 @@ function timeAgo(dateStr: string): string {
 // "Valor Barbershop Reviews") so users know exactly which business they're
 // reviewing; falls back to the "ShearQuery Reviews" brand label when a
 // caller doesn't pass one.
-export function ReviewsSection({ reviews, averageRating, action, entityName }: { reviews: ShearQueryReview[]; averageRating: number | null; action?: ReactNode; entityName?: string }) {
+// `containerClassName` lets a caller swap the default border-divided
+// wrapper (used by the shop/salon stacked sections) for a card wrapper —
+// the school pages render their main column as white cards, so they pass
+// the card classes instead.
+export function ReviewsSection({ reviews, averageRating, action, entityName, containerClassName = "pb-10 border-b border-slate-200" }: { reviews: ShearQueryReview[]; averageRating: number | null; action?: ReactNode; entityName?: string; containerClassName?: string }) {
   return (
-    <div className="pb-10 border-b border-slate-200">
+    <div className={containerClassName}>
       <div className="flex items-center flex-wrap gap-3 mb-6">
         <h2 className="text-2xl font-black text-slate-900">{entityName ? `${entityName} Reviews` : "ShearQuery Reviews"}</h2>
         {averageRating != null && (

@@ -11,6 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 const { PDFParse } = require('pdf-parse');
+const { computeLastNameCorrections, computeSchoolNameCorrections } = require('./student_lastname_correction');
 
 const SCRATCHPAD = '/private/tmp/claude-502/-Users-lamontevans-Desktop-AI-Blockchain-Enterprise-Services/76b49128-14b9-4dfc-8547-027b7a33f313/scratchpad';
 
@@ -236,6 +237,26 @@ async function run() {
       score: r.score,
     };
   });
+
+  // Correct school-name fragments leaked into last_name (campus qualifiers,
+  // "LLC", etc.) — shared logic with fix_student_lastnames_dryrun.js. Applied
+  // BEFORE dedup/attempt grouping so student_key uses the corrected surname.
+  const { correctedByIndex } = computeLastNameCorrections(finalRecords);
+  for (const [i, newLast] of correctedByIndex.entries()) finalRecords[i].last_name = newLast;
+  if (correctedByIndex.size > 0) {
+    console.log(`\nCorrected ${correctedByIndex.size} last_name(s) that had leaked school-name fragments.`);
+  }
+
+  // Symmetric fix: restore those leaked qualifier words onto the (truncated)
+  // school_name, per school_code, so the school name is whole again.
+  const schoolNameMap = computeSchoolNameCorrections(finalRecords);
+  for (const rec of finalRecords) {
+    const fix = schoolNameMap.get(rec.school_code);
+    if (fix) rec.school_name = fix.proposedName;
+  }
+  if (schoolNameMap.size > 0) {
+    console.log(`Reconstructed truncated school_name for ${schoolNameMap.size} school code(s).`);
+  }
 
   const seenExact = new Set();
   const dedupedRecords = finalRecords.filter((rec) => {

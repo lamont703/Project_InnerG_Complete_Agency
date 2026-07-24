@@ -168,7 +168,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
   if (!salon) notFound();
   if (salon._resolvedByLegacyId) permanentRedirect(`/salons/${salon.slug}`);
 
-  const ecosystemReport = await computeShopEcosystemReport(supabase, salon);
+  const ecosystemReport = await computeShopEcosystemReport(supabase, salon, "salon");
   const reviews = await getApprovedReviews("salon", salon.id);
   const { averageRating } = computeReviewStats(reviews);
 
@@ -453,14 +453,14 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
               action={<WriteReviewButton entityType="salon" entityId={salon.id} entityName={salon.shop_name} />}
             />
 
-            {/* Your Market Ecosystem */}
+            {/* Your Market Ecosystem — salon/cosmetology side of the market only */}
             {ecosystemReport && (() => {
-              const { talentPipeline, laborSupply, competition, laborMarketRatio, supplyChain, rentBenchmark } = ecosystemReport;
-              const marketLabel = laborMarketRatio == null
+              const { talentPipeline, laborMarket, competition, supplyChain, rentBenchmark, radii } = ecosystemReport;
+              const marketLabel = laborMarket.ratio == null
                 ? { label: "Not Enough Data", tone: "slate" as const }
-                : laborMarketRatio >= 2
+                : laborMarket.ratio >= 2
                 ? { label: "Talent-Rich — Easy to Hire", tone: "green" as const }
-                : laborMarketRatio >= 0.5
+                : laborMarket.ratio >= 0.5
                 ? { label: "Balanced Market", tone: "amber" as const }
                 : { label: "Competitive for Talent", tone: "red" as const };
               const toneClasses: Record<string, string> = {
@@ -470,6 +470,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
                 slate: "bg-slate-50 text-slate-600 border-slate-200",
               };
               const scoreTone = (score: number) => score >= 85 ? "text-green-600" : score >= 70 ? "text-amber-600" : "text-red-600";
+              const gathering = <span className="text-sm text-slate-400 italic">Still gathering data, check back later.</span>;
 
               return (
                 <div className="pb-10 border-b border-slate-200">
@@ -485,89 +486,104 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
                     </Link>
                   </div>
                   <p className="text-slate-500 text-sm mb-6 -mt-3">
-                    Computed from every school, professional, competitor, and supply store within {ecosystemReport.radiusMiles} miles.
+                    The salon side of this business&apos;s local market — cosmetology schools, cosmetologists seeking placement, competing salons, and beauty supply stores nearby.
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Talent Pipeline */}
+                    {/* Talent Pipeline — cosmetology schools within 15mi */}
                     <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                       <div className="flex items-center gap-2 text-slate-900 font-bold mb-3">
                         <GraduationCap className="w-4 h-4" />
                         Talent Pipeline
                       </div>
-                      <p className="text-sm text-slate-600 mb-3">
-                        <span className="font-black text-slate-900 text-lg">{talentPipeline.schoolCount}</span> barber &amp; cosmetology schools nearby
-                        {talentPipeline.avgLeaderboardScore != null && (
-                          <> · avg 2026 score <span className={`font-bold ${scoreTone(talentPipeline.avgLeaderboardScore)}`}>{Math.round(talentPipeline.avgLeaderboardScore)}</span></>
-                        )}
-                      </p>
-                      {talentPipeline.topSchools.length > 0 && (
-                        <div className="space-y-1.5">
-                          {talentPipeline.topSchools.map((s) => (
-                            <Link
-                              key={s.name}
-                              href={s.profileUrl}
-                              className="flex items-center justify-between text-xs hover:bg-slate-100 -mx-1 px-1 py-0.5 rounded transition-colors"
-                            >
-                              <span className="text-slate-700 font-semibold truncate pr-2 hover:text-primary hover:underline">{s.name}</span>
-                              <span className={`font-black shrink-0 ${scoreTone(s.score)}`}>{Math.round(s.score)} · {s.distanceMiles.toFixed(1)}mi</span>
-                            </Link>
-                          ))}
-                        </div>
-                      )}
+                      {talentPipeline.schoolCount > 0 ? (
+                        <>
+                          <p className="text-sm text-slate-600 mb-3">
+                            <span className="font-black text-slate-900 text-lg">{talentPipeline.schoolCount}</span> cosmetology school{talentPipeline.schoolCount === 1 ? "" : "s"} within {radii.talent} mi
+                            {(talentPipeline.avgWrittenPassRate != null || talentPipeline.avgPracticalPassRate != null) && (
+                              <> · avg 2026 pass rate
+                                {talentPipeline.avgWrittenPassRate != null && <> written <span className="font-bold text-slate-900">{talentPipeline.avgWrittenPassRate}%</span></>}
+                                {talentPipeline.avgWrittenPassRate != null && talentPipeline.avgPracticalPassRate != null && ","}
+                                {talentPipeline.avgPracticalPassRate != null && <> practical <span className="font-bold text-slate-900">{talentPipeline.avgPracticalPassRate}%</span></>}
+                              </>
+                            )}
+                          </p>
+                          {talentPipeline.topSchools.length > 0 && (
+                            <div className="space-y-1.5">
+                              {talentPipeline.topSchools.map((s) => (
+                                <Link
+                                  key={s.name}
+                                  href={s.profileUrl}
+                                  className="flex items-center justify-between text-xs hover:bg-slate-100 -mx-1 px-1 py-0.5 rounded transition-colors"
+                                >
+                                  <span className="text-slate-700 font-semibold truncate pr-2 hover:text-primary hover:underline">{s.name}</span>
+                                  <span className={`font-black shrink-0 ${scoreTone(s.score)}`}>{Math.round(s.score)} · {s.distanceMiles.toFixed(1)}mi</span>
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : gathering}
                     </div>
 
-                    {/* Labor Market */}
+                    {/* Labor Market — cosmetologists seeking placement within 15mi */}
                     <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                       <div className="flex items-center gap-2 text-slate-900 font-bold mb-3">
                         <Users className="w-4 h-4" />
                         Labor Market
                       </div>
-                      <p className="text-sm text-slate-600 mb-3">
-                        <span className="font-black text-slate-900 text-lg">{laborSupply.barbersSeekingPlacement}</span> barbers seeking placement,{' '}
-                        <span className="font-black text-slate-900 text-lg">{laborSupply.cosmetologistsInArea}</span> cosmetologists in area
-                      </p>
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border ${toneClasses[marketLabel.tone]}`}>
-                        {marketLabel.label}
-                      </span>
+                      {laborMarket.seekingPlacement > 0 ? (
+                        <>
+                          <p className="text-sm text-slate-600 mb-3">
+                            <span className="font-black text-slate-900 text-lg">{laborMarket.seekingPlacement}</span> cosmetologist{laborMarket.seekingPlacement === 1 ? "" : "s"} seeking placement within {radii.labor} mi
+                          </p>
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border ${toneClasses[marketLabel.tone]}`}>
+                            {marketLabel.label}
+                          </span>
+                        </>
+                      ) : gathering}
                     </div>
 
-                    {/* Competition */}
+                    {/* Competitive Landscape — other salons within 10mi */}
                     <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                       <div className="flex items-center gap-2 text-slate-900 font-bold mb-3">
                         <Scissors className="w-4 h-4" />
                         Competitive Landscape
                       </div>
-                      <p className="text-sm text-slate-600">
-                        <span className="font-black text-slate-900 text-lg">{competition.nearbyShopCount}</span> nearby barbershops ·{' '}
-                        <span className="font-black text-slate-900 text-lg">{competition.nearbySalonCount}</span> competing salons
-                      </p>
+                      {competition.competitorCount > 0 ? (
+                        <p className="text-sm text-slate-600">
+                          <span className="font-black text-slate-900 text-lg">{competition.competitorCount}</span> competing salon{competition.competitorCount === 1 ? "" : "s"} within {radii.competition} mi
+                          {' '}(<span className="font-bold text-green-600">{competition.competitorsHiring} hiring</span>)
+                        </p>
+                      ) : gathering}
                     </div>
 
-                    {/* Supply Chain */}
+                    {/* Supply Chain — beauty supply stores within 15mi */}
                     <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                       <div className="flex items-center gap-2 text-slate-900 font-bold mb-3">
                         <ShoppingBag className="w-4 h-4" />
                         Supply Chain
                       </div>
-                      <p className="text-sm text-slate-600">
-                        <span className="font-black text-slate-900 text-lg">{supplyChain.supplyStoreCount}</span> supply stores nearby
-                        {supplyChain.nearestSupplyStoreName && supplyChain.nearestSupplyStoreMiles != null && (
-                          <> · nearest is <span className="font-semibold text-slate-800">{supplyChain.nearestSupplyStoreName}</span> ({supplyChain.nearestSupplyStoreMiles.toFixed(1)}mi)</>
-                        )}
-                      </p>
+                      {supplyChain.supplyStoreCount > 0 ? (
+                        <p className="text-sm text-slate-600">
+                          <span className="font-black text-slate-900 text-lg">{supplyChain.supplyStoreCount}</span> beauty supply store{supplyChain.supplyStoreCount === 1 ? "" : "s"} within {radii.supply} mi
+                          {supplyChain.nearestSupplyStoreName && supplyChain.nearestSupplyStoreMiles != null && (
+                            <> · nearest is <span className="font-semibold text-slate-800">{supplyChain.nearestSupplyStoreName}</span> ({supplyChain.nearestSupplyStoreMiles.toFixed(1)}mi)</>
+                          )}
+                        </p>
+                      ) : gathering}
                     </div>
 
-                    {/* Rent Benchmark */}
-                    {rentBenchmark.localMedianWeeklyRent != null && (
-                      <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 md:col-span-2">
-                        <div className="flex items-center gap-2 text-slate-900 font-bold mb-3">
-                          <Award className="w-4 h-4" />
-                          Rent Benchmark
-                        </div>
+                    {/* Rent Benchmark — booth rent across salons within 15mi */}
+                    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 md:col-span-2">
+                      <div className="flex items-center gap-2 text-slate-900 font-bold mb-3">
+                        <Award className="w-4 h-4" />
+                        Rent Benchmark
+                      </div>
+                      {rentBenchmark.localMedianWeeklyRent != null ? (
                         <p className="text-sm text-slate-600">
-                          Local median weekly booth rent (from {rentBenchmark.sampleSize} nearby listings): <span className="font-black text-slate-900">${rentBenchmark.localMedianWeeklyRent}</span>
-                          {rentBenchmark.thisShopWeeklyRent != null && rentBenchmark.percentDiff != null ? (
+                          Median weekly booth rent across <span className="font-black text-slate-900">{rentBenchmark.venueCount}</span> salon{rentBenchmark.venueCount === 1 ? "" : "s"} within {radii.rent} mi ({rentBenchmark.sampleSize} with listed rent): <span className="font-black text-slate-900">${rentBenchmark.localMedianWeeklyRent}</span>
+                          {rentBenchmark.thisWeeklyRent != null && rentBenchmark.percentDiff != null ? (
                             <>
                               {' '}— this salon is <span className={`font-bold inline-flex items-center gap-0.5 ${rentBenchmark.percentDiff > 0 ? 'text-red-600' : 'text-green-600'}`}>
                                 {rentBenchmark.percentDiff > 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
@@ -578,8 +594,8 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
                             " — this salon's own rent couldn't be parsed from its listing for comparison."
                           )}
                         </p>
-                      </div>
-                    )}
+                      ) : gathering}
+                    </div>
                   </div>
                 </div>
               );
