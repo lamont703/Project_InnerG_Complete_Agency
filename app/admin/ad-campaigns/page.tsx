@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PLACEMENT_LABELS, entityTypeConfig } from "@/lib/ad-campaigns";
 import { CampaignForm } from "./CampaignForm";
+import { isAdmin } from "./auth";
 import { TX_CITIES } from "@/lib/city-readiness";
 import { CA_CITIES } from "@/lib/california-city-readiness";
 import { Megaphone, CheckCircle2, AlertTriangle } from "lucide-react";
@@ -28,6 +29,7 @@ export const metadata = { title: "Ad Campaigns (Admin) | Inner G Complete", robo
 // middleware INTERNAL_TOOL_ROUTES).
 async function createCampaign(formData: FormData) {
   "use server";
+  if (!(await isAdmin())) redirect("/admin/ad-campaigns?error=Not+authorized.");
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const name = String(formData.get("name") || "").trim();
   const placement = String(formData.get("placement") || "").trim();
@@ -36,6 +38,8 @@ async function createCampaign(formData: FormData) {
   const scope = String(formData.get("scope") || "").trim() || null;
   const click_url = String(formData.get("click_url") || "").trim() || null;
   const filter_tabs = formData.getAll("filter_tabs").map((t) => String(t));
+  const target_states = formData.getAll("target_states").map((t) => String(t));
+  const target_cities = formData.getAll("target_cities").map((t) => String(t));
   const isBanner = BANNER_PLACEMENTS.has(placement);
   const err = (m: string) => redirect(`/admin/ad-campaigns?error=${encodeURIComponent(m)}`);
 
@@ -76,7 +80,7 @@ async function createCampaign(formData: FormData) {
     if (!entity_type || !creative) err("Pick the entity this ad advertises using the search field.");
   }
 
-  await (admin as any).from("ad_campaigns").insert({
+  const { error: insErr } = await (admin as any).from("ad_campaigns").insert({
     user_id: (user as any).id,
     name,
     placement,
@@ -84,16 +88,20 @@ async function createCampaign(formData: FormData) {
     creative,
     scope,
     filter_tabs,
+    target_states,
+    target_cities,
     banner_image_url,
     click_url,
     status: "active",
   });
+  if (insErr) err(`Could not create campaign: ${insErr.message}`);
   revalidatePath("/admin/ad-campaigns");
   redirect("/admin/ad-campaigns?ok=1");
 }
 
 async function deleteCampaign(formData: FormData) {
   "use server";
+  if (!(await isAdmin())) redirect("/admin/ad-campaigns?error=Not+authorized.");
   const id = String(formData.get("id") || "");
   if (!id) return;
   const admin = createAdminClient();
@@ -101,12 +109,104 @@ async function deleteCampaign(formData: FormData) {
   revalidatePath("/admin/ad-campaigns");
 }
 
-export default async function AdminAdCampaignsPage(props: { searchParams: Promise<{ ok?: string; error?: string }> }) {
-  const { ok, error } = await props.searchParams;
+// Quick pause/activate from a campaign row.
+async function setCampaignStatus(formData: FormData) {
+  "use server";
+  if (!(await isAdmin())) redirect("/admin/ad-campaigns?error=Not+authorized.");
+  const id = String(formData.get("id") || "");
+  const status = String(formData.get("status") || "");
+  if (!id || !status) return;
+  const admin = createAdminClient();
+  await (admin as any).from("ad_campaigns").update({ status }).eq("id", id);
+  revalidatePath("/admin/ad-campaigns");
+}
+
+// Edit a live campaign — mirrors createCampaign's validation, updates in place,
+// and keeps the existing banner image when no new file is uploaded.
+async function updateCampaign(formData: FormData) {
+  "use server";
+  if (!(await isAdmin())) redirect("/admin/ad-campaigns?error=Not+authorized.");
+  const err = (m: string) => redirect(`/admin/ad-campaigns?error=${encodeURIComponent(m)}`);
+  const id = String(formData.get("id") || "");
+  if (!id) err("Missing campaign id.");
+
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+  const name = String(formData.get("name") || "").trim();
+  const placement = String(formData.get("placement") || "").trim();
+  const entity_type = String(formData.get("entity_type") || "").trim() || null;
+  const creative = String(formData.get("creative") || "").trim() || null;
+  const scope = String(formData.get("scope") || "").trim() || null;
+  const click_url = String(formData.get("click_url") || "").trim() || null;
+  const status = String(formData.get("status") || "active").trim();
+  const filter_tabs = formData.getAll("filter_tabs").map((t) => String(t));
+  const target_states = formData.getAll("target_states").map((t) => String(t));
+  const target_cities = formData.getAll("target_cities").map((t) => String(t));
+  const isBanner = BANNER_PLACEMENTS.has(placement);
+
+  if (!email || !name || !placement) err("Email, campaign name, and placement are required.");
+
+  const admin = createAdminClient();
+  const { data: user } = await admin.from("users").select("id").eq("email", email).maybeSingle();
+  if (!user) err(`No user account found for ${email}.`);
+
+  if (entity_type && creative) {
+    const cfg = entityTypeConfig(entity_type);
+    if (!cfg) err("Unknown entity type.");
+    const { data: ent } = await (admin as any).from(cfg!.table).select("slug").eq("slug", creative).maybeSingle();
+    if (!ent) err(`No ${entity_type} found with slug "${creative}". Pick the entity from the search field.`);
+  }
+
+  let newBannerUrl: string | null | undefined = undefined; // undefined = keep existing
+  if (isBanner) {
+    if (!scope) err("Set the state/city the banner covers.");
+    if (!creative && !click_url) err("Give the banner a destination — pick an entity or enter an external URL.");
+    const file = formData.get("banner_image");
+    if (file && typeof file === "object" && "size" in file && (file as File).size > 0) {
+      const f = file as File;
+      const buffer = Buffer.from(await f.arrayBuffer());
+      const ext = (f.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const path = `banners/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: upErr } = await admin.storage.from("ad-creatives").upload(path, buffer, { contentType: f.type || "image/png", upsert: true });
+      if (upErr) err(`Banner image upload failed: ${upErr.message}`);
+      newBannerUrl = admin.storage.from("ad-creatives").getPublicUrl(path).data.publicUrl;
+    } else {
+      // No new upload — a banner still needs an image. Reject if the campaign
+      // doesn't already have one (e.g. a non-banner edited into a banner).
+      const { data: existing } = await (admin as any).from("ad_campaigns").select("banner_image_url").eq("id", id).maybeSingle();
+      if (!existing?.banner_image_url) err("This banner has no image — upload one.");
+    }
+  } else if (!entity_type || !creative) {
+    err("Pick the entity this ad advertises using the search field.");
+  }
+
+  const update: Record<string, any> = {
+    user_id: (user as any).id,
+    name,
+    placement,
+    entity_type,
+    creative,
+    scope,
+    filter_tabs,
+    target_states,
+    target_cities,
+    click_url,
+    status,
+    updated_at: new Date().toISOString(),
+  };
+  if (newBannerUrl !== undefined) update.banner_image_url = newBannerUrl;
+
+  const { error: updErr } = await (admin as any).from("ad_campaigns").update(update).eq("id", id);
+  if (updErr) err(`Could not save changes: ${updErr.message}`);
+  revalidatePath("/admin/ad-campaigns");
+  redirect("/admin/ad-campaigns?ok=1");
+}
+
+export default async function AdminAdCampaignsPage(props: { searchParams: Promise<{ ok?: string; error?: string; edit?: string }> }) {
+  const { ok, error, edit } = await props.searchParams;
   const admin = createAdminClient();
   const { data: campaigns } = await (admin as any)
     .from("ad_campaigns")
-    .select("id, user_id, name, placement, entity_type, creative, scope, filter_tabs, status, created_at")
+    .select("id, user_id, name, placement, entity_type, creative, scope, filter_tabs, target_states, target_cities, click_url, banner_image_url, status, created_at")
     .order("created_at", { ascending: false });
 
   const userIds = [...new Set((campaigns || []).map((c: any) => c.user_id))];
@@ -114,6 +214,38 @@ export default async function AdminAdCampaignsPage(props: { searchParams: Promis
   if (userIds.length) {
     const { data: users } = await admin.from("users").select("id, email").in("id", userIds);
     (users || []).forEach((u: any) => emailById.set(u.id, u.email));
+  }
+
+  // Build the pre-fill object when editing a campaign.
+  let editInitial: any = null;
+  if (edit) {
+    const c = (campaigns as any[])?.find((x) => x.id === edit);
+    if (c) {
+      let entityName: string | null = null;
+      if (c.entity_type && c.creative) {
+        const cfg = entityTypeConfig(c.entity_type);
+        if (cfg) {
+          const { data: ent } = await (admin as any).from(cfg.table).select(`${cfg.nameCol}`).eq("slug", c.creative).maybeSingle();
+          entityName = ent ? ent[cfg.nameCol] : null;
+        }
+      }
+      editInitial = {
+        id: c.id,
+        name: c.name,
+        email: emailById.get(c.user_id) || "",
+        placement: c.placement,
+        entity_type: c.entity_type,
+        creative: c.creative,
+        entityName,
+        scope: c.scope,
+        filter_tabs: c.filter_tabs || [],
+        target_states: c.target_states || [],
+        target_cities: c.target_cities || [],
+        click_url: c.click_url,
+        banner_image_url: c.banner_image_url,
+        status: c.status,
+      };
+    }
   }
 
   return (
@@ -144,8 +276,18 @@ export default async function AdminAdCampaignsPage(props: { searchParams: Promis
           </div>
         )}
 
-        {/* Create form — adapts its config fields to the selected ad type. */}
-        <CampaignForm createAction={createCampaign} stateOptions={STATE_OPTIONS} cityOptions={CITY_OPTIONS} />
+        {/* Create / edit form — adapts its config fields to the selected ad type. */}
+        {editInitial ? (
+          <>
+            <h2 className="text-lg font-black text-slate-900 mb-3">Edit campaign</h2>
+            {/* key forces a fresh mount per campaign so pre-filled client state
+                (entity type-ahead, city chips, tab toggles) never goes stale
+                when switching between campaigns or back to the create form. */}
+            <CampaignForm key={`edit-${editInitial.id}`} submitAction={updateCampaign} stateOptions={STATE_OPTIONS} cityOptions={CITY_OPTIONS} initial={editInitial} />
+          </>
+        ) : (
+          <CampaignForm key="create" submitAction={createCampaign} stateOptions={STATE_OPTIONS} cityOptions={CITY_OPTIONS} />
+        )}
 
         {/* Existing */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
@@ -167,7 +309,10 @@ export default async function AdminAdCampaignsPage(props: { searchParams: Promis
                 (campaigns as any[]).map((c) => (
                   <tr key={c.id} className="border-b border-slate-100 last:border-0">
                     <td className="px-4 py-3 text-slate-700">{emailById.get(c.user_id) || <span className="text-red-500">unknown</span>}</td>
-                    <td className="px-4 py-3 font-bold text-slate-900">{c.name}</td>
+                    <td className="px-4 py-3 font-bold text-slate-900">
+                      {c.name}
+                      <span className={`ml-2 inline-flex items-center text-[10px] font-black uppercase tracking-wider rounded-full px-2 py-0.5 ${c.status === "active" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>{c.status}</span>
+                    </td>
                     <td className="px-4 py-3 text-slate-500">{PLACEMENT_LABELS[c.placement] || c.placement}</td>
                     <td className="px-4 py-3 text-slate-400 text-xs">
                       {c.entity_type ? <span className="font-bold text-slate-600">{c.entity_type}</span> : "—"}
@@ -175,10 +320,20 @@ export default async function AdminAdCampaignsPage(props: { searchParams: Promis
                     </td>
                     <td className="px-4 py-3 text-slate-400 text-xs">{c.filter_tabs?.length ? c.filter_tabs.join(", ") : "all"}</td>
                     <td className="px-4 py-3 text-right">
-                      <form action={deleteCampaign}>
-                        <input type="hidden" name="id" value={c.id} />
-                        <button type="submit" className="text-xs font-bold text-red-500 hover:text-red-700">Delete</button>
-                      </form>
+                      <div className="inline-flex items-center gap-3">
+                        <a href={`/admin/ad-campaigns?edit=${c.id}`} className="text-xs font-bold text-indigo-600 hover:text-indigo-800">Edit</a>
+                        <form action={setCampaignStatus}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <input type="hidden" name="status" value={c.status === "active" ? "paused" : "active"} />
+                          <button type="submit" className="text-xs font-bold text-slate-500 hover:text-slate-700">
+                            {c.status === "active" ? "Pause" : "Activate"}
+                          </button>
+                        </form>
+                        <form action={deleteCampaign}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <button type="submit" className="text-xs font-bold text-red-500 hover:text-red-700">Delete</button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 ))

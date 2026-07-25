@@ -312,7 +312,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
             </div>
 
             {/* Sponsored placement (campaign-served for this store type) */}
-            <StoreSponsoredAd storeType={storeType} currentSlug={store.slug} />
+            <StoreSponsoredAd storeType={storeType} currentSlug={store.slug} city={store.city} address={store.formatted_address} />
           </div>
 
           {/* Sidebar */}

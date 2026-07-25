@@ -20,8 +20,8 @@ const FEATURED: FeaturedEntity = {
     "https://senkwhdxgtypcrtoggyf.supabase.co/storage/v1/object/public/entity-photos/salons/78294ecf-9aa9-4fc2-b64f-11fd84902c52_0.jpg",
 };
 
-export async function SalonSponsoredAd({ currentSlug }: { currentSlug?: string }) {
-  const campaign = await getProfileCampaignAd("salon_profile");
+export async function SalonSponsoredAd({ currentSlug, city, address }: { currentSlug?: string; city?: string | null; address?: string | null }) {
+  const campaign = await getProfileCampaignAd("salon_profile", { city, address });
   if (campaign) {
     return (
       <SponsoredEntityAd

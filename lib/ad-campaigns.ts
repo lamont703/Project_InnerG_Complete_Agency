@@ -70,6 +70,8 @@ export interface AdCampaign {
   creative: string | null; // the advertised entity's slug
   scope: string | null;
   filter_tabs: string[];
+  target_states?: string[];
+  target_cities?: string[];
   status: string;
   start_date: string | null;
   end_date: string | null;
@@ -92,7 +94,10 @@ export function eventMatchesCampaign(ev: AdEvent, c: AdCampaign): boolean {
   const m = ev.metadata || {};
   if (m.placement !== c.placement) return false;
   if (c.creative && m.creative !== c.creative) return false;
-  if (c.scope && m.scope !== c.scope) return false;
+  // Scope compared case/whitespace-insensitively to stay consistent with how
+  // banner serving matches scope (getBannerCampaignAd) — otherwise a banner
+  // could serve but silently report zero for the advertiser.
+  if (c.scope && c.scope.trim().toLowerCase() !== String(m.scope || "").trim().toLowerCase()) return false;
   return true;
 }
 

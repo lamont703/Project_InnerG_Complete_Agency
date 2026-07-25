@@ -8,12 +8,16 @@ import { getProfileCampaignAd } from "@/lib/profile-ad";
 export async function StoreSponsoredAd({
   storeType,
   currentSlug,
+  city,
+  address,
 }: {
   storeType: "barber_supply" | "beauty_supply";
   currentSlug?: string;
+  city?: string | null;
+  address?: string | null;
 }) {
   const placement = storeType === "barber_supply" ? "barber_supply_profile" : "beauty_supply_profile";
-  const campaign = await getProfileCampaignAd(placement);
+  const campaign = await getProfileCampaignAd(placement, { city, address });
   if (!campaign) return null;
 
   return (

@@ -922,7 +922,7 @@ function SearchContent() {
                 />
               )}
               {sponsoredEntity && page === 1 && results.length > 0 && (
-                <AdTracker placement="search_results" adType="search_results" creative={sponsoredEntity.creative} scope={filterTab}>
+                <AdTracker key={`${sponsoredEntity.creative}-${filterTab}`} placement="search_results" adType="search_results" creative={sponsoredEntity.creative} scope={filterTab}>
                   <Link
                     href={sponsoredEntity.href}
                     className="bg-amber-50/60 p-4 sm:p-5 rounded-xl border-2 border-amber-300 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative block"

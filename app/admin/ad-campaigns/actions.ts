@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { entityTypeConfig } from "@/lib/ad-campaigns";
+import { isAdmin } from "./auth";
 
 export interface EntitySuggestion {
   slug: string;
@@ -16,6 +17,7 @@ export interface EntitySuggestion {
  * file's only caller is the gated /admin/ad-campaigns page.
  */
 export async function searchAdEntities(entityType: string, query: string): Promise<EntitySuggestion[]> {
+  if (!(await isAdmin())) return [];
   const q = query.trim();
   if (q.length < 2) return [];
   const cfg = entityTypeConfig(entityType);

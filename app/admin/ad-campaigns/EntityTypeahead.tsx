@@ -9,11 +9,23 @@ const inputCls = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm";
 
 // Coordinated entity type + name type-ahead. Submits two form fields:
 //   entity_type (the <select>) and creative (a hidden input = the chosen slug).
-export function EntityTypeahead({ heading = "Entity being advertised" }: { heading?: string }) {
-  const [entityType, setEntityType] = useState(AD_ENTITY_TYPES[0].key);
-  const [text, setText] = useState("");
+export function EntityTypeahead({
+  heading = "Entity being advertised",
+  initialType,
+  initialSlug,
+  initialName,
+}: {
+  heading?: string;
+  initialType?: string | null;
+  initialSlug?: string | null;
+  initialName?: string | null;
+}) {
+  const [entityType, setEntityType] = useState(initialType || AD_ENTITY_TYPES[0].key);
+  const [text, setText] = useState(initialName || initialSlug || "");
   const [suggestions, setSuggestions] = useState<EntitySuggestion[]>([]);
-  const [selected, setSelected] = useState<EntitySuggestion | null>(null);
+  const [selected, setSelected] = useState<EntitySuggestion | null>(
+    initialSlug ? { slug: initialSlug, name: initialName || initialSlug, city: null } : null
+  );
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);

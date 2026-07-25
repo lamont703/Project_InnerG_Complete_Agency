@@ -15,6 +15,34 @@ export interface ProfileAd {
   entityHref: string;
 }
 
+// The location of the page an on-profile ad is being served on (the viewed
+// entity), used to match a campaign's geo-targeting.
+export interface AdViewerContext {
+  city?: string | null;
+  address?: string | null;
+}
+
+function stateFromAddress(addr?: string | null): string | null {
+  if (!addr) return null;
+  if (/,\s*(CA\b|California\b)/i.test(addr)) return "California";
+  if (/,\s*(TX\b|Texas\b)/i.test(addr)) return "Texas";
+  return null;
+}
+
+// A campaign with no target states/cities serves everywhere. Otherwise it
+// serves when the viewer's state OR any targeted city matches (union) — so an
+// advertiser can target e.g. all of Texas plus a specific California city.
+function geoMatches(camp: any, ctx: AdViewerContext): boolean {
+  const cities: string[] = camp.target_cities || [];
+  const states: string[] = camp.target_states || [];
+  if (!cities.length && !states.length) return true;
+  const hay = `${ctx.city || ""} ${ctx.address || ""}`.toLowerCase();
+  const cityMatch = cities.some((c) => c && hay.includes(c.toLowerCase()));
+  const st = stateFromAddress(ctx.address);
+  const stateMatch = !!st && states.some((s) => s.toLowerCase() === st.toLowerCase());
+  return cityMatch || stateMatch;
+}
+
 function firstImage(row: any): string | null {
   if (row.shop_image_url) return row.shop_image_url;
   if (row.booksy_photo_url) return row.booksy_photo_url;
@@ -34,17 +62,17 @@ function chips(row: any): string[] {
   return out.slice(0, 3);
 }
 
-export async function getProfileCampaignAd(placement: string): Promise<ProfileAd | null> {
+export async function getProfileCampaignAd(placement: string, ctx: AdViewerContext = {}): Promise<ProfileAd | null> {
   try {
     const admin = createAdminClient();
     const { data: camps } = await (admin as any)
       .from("ad_campaigns")
-      .select("entity_type, creative, created_at")
+      .select("entity_type, creative, target_states, target_cities, created_at")
       .eq("placement", placement)
       .eq("status", "active")
       .order("created_at", { ascending: false });
 
-    const match = ((camps as any[]) || []).find((c) => c.entity_type && c.creative);
+    const match = ((camps as any[]) || []).find((c) => c.entity_type && c.creative && geoMatches(c, ctx));
     if (!match) return null;
 
     const cfg = entityTypeConfig(match.entity_type);

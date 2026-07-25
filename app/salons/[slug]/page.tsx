@@ -417,7 +417,7 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
 
               {/* Sponsored ad spot — demo placement promoting a real DB salon
                   (Expert Hair Salon); click opens an advertising inquiry email. */}
-              <SalonSponsoredAd currentSlug={salon.slug} />
+              <SalonSponsoredAd currentSlug={salon.slug} city={salon.city} address={salon.formatted_address} />
 
               {isHiring && (
                 <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 flex gap-4">

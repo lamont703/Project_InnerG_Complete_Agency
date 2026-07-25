@@ -21,8 +21,8 @@ const FEATURED: FeaturedEntity = {
     "https://senkwhdxgtypcrtoggyf.supabase.co/storage/v1/object/public/entity-photos/shops/941152ec-0334-4bf8-822f-e48f1b673b84_0.jpg",
 };
 
-export async function ShopSponsoredAd({ currentSlug }: { currentSlug?: string }) {
-  const campaign = await getProfileCampaignAd("shop_profile");
+export async function ShopSponsoredAd({ currentSlug, city, address }: { currentSlug?: string; city?: string | null; address?: string | null }) {
+  const campaign = await getProfileCampaignAd("shop_profile", { city, address });
   if (campaign) {
     return (
       <SponsoredEntityAd

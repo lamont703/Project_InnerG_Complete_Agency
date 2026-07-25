@@ -469,7 +469,7 @@ export default async function ShopProfilePage({ params }: Props) {
 
               {/* Sponsored ad spot — demo placement promoting a real DB shop
                   (Sauccy Fades); click opens an advertising inquiry email. */}
-              <ShopSponsoredAd currentSlug={shop.slug} />
+              <ShopSponsoredAd currentSlug={shop.slug} city={shop.city} address={shop.formatted_address} />
 
               {isHiring && (
                 <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6 flex gap-4">
