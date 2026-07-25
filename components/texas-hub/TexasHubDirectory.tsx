@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass } from "lucide-react";
 import type { TexasHubData } from "@/lib/texas-hub-data";
 import { Navbar } from "@/components/layout/navbar";
-import { AdSponsorshipBanner } from "@/components/ads/AdSponsorshipBanner";
+import { SponsorshipBanner } from "@/components/ads/SponsorshipBanner";
 import { directoryHrefForSection } from "@/lib/directory-config";
 // Genuinely statewide resources — unlike the Houston-area service pages
 // (which live on /houston's own "Explore Houston Services" section instead,
@@ -99,7 +99,7 @@ export function TexasHubDirectory({
 
         {/* Exclusive Texas State Sponsorship Banner */}
         <div className="mb-8">
-          <AdSponsorshipBanner type="state" />
+          <SponsorshipBanner type="state" scope="Texas" />
         </div>
 
         {/* Browse Texas Cities */}

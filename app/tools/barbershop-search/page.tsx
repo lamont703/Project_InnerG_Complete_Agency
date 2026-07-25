@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useTransition, useEffect, useRef, Suspense } from "react";
-import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight, Send, CheckCircle2, Loader2, CalendarDays } from "lucide-react";
-import { searchBarbershops, getRecommendedEntity, type RecommendedEntity } from "./actions";
+import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight, Send, CheckCircle2, Loader2, CalendarDays, BadgeCheck } from "lucide-react";
+import { searchBarbershops, getSponsoredSearchEntity, type SponsoredSearchEntity } from "./actions";
 import { requestEmploymentVerification } from "@/app/tools/employment-match-review/actions";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useSearchParams } from "next/navigation";
 import { AiOverviewSnippet } from "@/components/shared/ai-overview-snippet";
+import { AdTracker } from "@/components/ads/AdTracker";
 import { Navbar } from "@/components/layout/navbar";
 import { toast } from "sonner";
 
@@ -98,10 +99,18 @@ function SearchContent() {
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [results, setResults] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
-  const [recommendedEntity, setRecommendedEntity] = useState<RecommendedEntity | null>(null);
+  const [sponsoredEntity, setSponsoredEntity] = useState<SponsoredSearchEntity | null>(null);
   const [page, setPage] = useState(Number(searchParams.get("p")) || 1);
   const [filterTab, setFilterTab] = useState(searchParams.get("tab") || "All");
   const [activeFilters, setActiveFilters] = useState<string[]>(searchParams.get("filters") ? searchParams.get("filters")!.split(',') : []);
+
+  // Campaign-served Search Results ad for the current filter tab (top of
+  // results). Depends only on the tab, so it's fetched once per tab change.
+  useEffect(() => {
+    let ignore = false;
+    getSponsoredSearchEntity(filterTab).then((e) => { if (!ignore) setSponsoredEntity(e); });
+    return () => { ignore = true; };
+  }, [filterTab]);
   const [isLoading, setIsLoading] = useState(false);
   const [showMoreTabs, setShowMoreTabs] = useState(false);
   // Which entity type the server-side intent classifier detected for the
@@ -429,17 +438,6 @@ function SearchContent() {
             // was the one path that never got a chance to clear it.
             setIsLoading(false);
             trackImpressions(parsed.results, query.trim(), filterTab, page);
-            // The recommended-slot lookup isn't part of the cached search
-            // payload, so a cache hit still needs its own fresh call —
-            // otherwise it'd keep showing whatever the previous query
-            // recommended instead of re-evaluating for this one.
-            if (page === 1) {
-              getRecommendedEntity(query).then((entity) => {
-                if (!ignore) setRecommendedEntity(entity);
-              });
-            } else {
-              setRecommendedEntity(null);
-            }
           }
           return;
         }
@@ -458,24 +456,9 @@ function SearchContent() {
         }).finally(() => {
           if (!ignore) setIsLoading(false);
         });
-
-        // The one recommended slot only ever shows on the first page of
-        // results, and only when the query actually matches a linked/
-        // claimed entity — getRecommendedEntity returns null otherwise, so
-        // this is a no-op most of the time. Independent request from the
-        // main search above; a failure or slow response here should never
-        // block or delay the real results.
-        if (page === 1) {
-          getRecommendedEntity(query).then((entity) => {
-            if (!ignore) setRecommendedEntity(entity);
-          });
-        } else {
-          setRecommendedEntity(null);
-        }
       } else {
         setResults([]);
         setTotal(0);
-        setRecommendedEntity(null);
         // Same reasoning as the cache-hit branch above: a query that's too
         // short to search isn't "loading" anything, but handleTabClick()
         // may have already set isLoading(true) before this ran.
@@ -938,41 +921,72 @@ function SearchContent() {
                   onExpand={expandAiSnippet}
                 />
               )}
-              {recommendedEntity && page === 1 &&
-                (filterTab === 'All' ||
-                  (filterTab === 'Barbershops' && recommendedEntity.entityType === 'shop') ||
-                  (filterTab === 'Salons' && recommendedEntity.entityType === 'salon')) && (() => {
-                const href = recommendedEntity.entityType === 'shop' ? `/shop/${recommendedEntity.slug}` : `/salons/${recommendedEntity.slug}`;
-                return (
-                  <div className="bg-amber-50/60 p-4 sm:p-5 rounded-xl border-2 border-amber-300 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative">
-                    {recommendedEntity.image && (
-                      <Link href={href} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block group/thumbnail">
-                        <img src={recommendedEntity.image} alt={recommendedEntity.name} className="w-full h-full object-cover transition-transform duration-500 group-hover/thumbnail:scale-105" />
-                      </Link>
-                    )}
-                    <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <span className="inline-flex items-center gap-1 w-fit text-[10px] font-black uppercase tracking-widest text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2.5 py-0.5 mb-1.5">
-                        <Star className="h-3 w-3 fill-amber-600 text-amber-600" />
-                        Recommended
+              {sponsoredEntity && page === 1 && results.length > 0 && (
+                <AdTracker key={`${sponsoredEntity.creative}-${filterTab}`} placement="search_results" adType="search_results" creative={sponsoredEntity.creative} scope={filterTab}>
+                  <Link
+                    href={sponsoredEntity.href}
+                    className="bg-amber-50/60 p-4 sm:p-5 rounded-xl border-2 border-amber-300 shadow-sm hover:shadow-md transition-all flex flex-row gap-4 sm:gap-5 relative block"
+                  >
+                    {sponsoredEntity.image && (
+                      <span className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative block">
+                        <img src={sponsoredEntity.image} alt={sponsoredEntity.name} className="w-full h-full object-cover" />
                       </span>
-                      <Link href={href} className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
-                        {recommendedEntity.name}
-                      </Link>
-                      <div className="flex items-center gap-1.5 text-sm text-slate-600 flex-wrap">
-                        {recommendedEntity.rating && (
+                    )}
+                    <span className="flex-1 min-w-0 flex flex-col justify-center">
+                      <span className="flex items-center gap-2 mb-1.5">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2.5 py-0.5">
+                          Sponsored
+                        </span>
+                        {sponsoredEntity.verified && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                            <BadgeCheck className="h-3 w-3" /> Verified
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-[17px] sm:text-[20px] font-medium text-[#1a0dab] hover:underline block leading-tight mb-0.5 truncate">
+                        {sponsoredEntity.name}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-sm text-slate-600 flex-wrap">
+                        {sponsoredEntity.rating != null && (
                           <span className="flex items-center text-[13px]">
-                            <span className="font-medium text-slate-700 mr-1">{recommendedEntity.rating}</span>
+                            <span className="font-medium text-slate-700 mr-1">{sponsoredEntity.rating}</span>
                             <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                            <span className="ml-1 opacity-80">({recommendedEntity.totalReviews || 0})</span>
+                            <span className="ml-1 opacity-80">({sponsoredEntity.totalReviews || 0})</span>
                             <span className="mx-1.5 opacity-50">·</span>
                           </span>
                         )}
-                        <span className="truncate max-w-[180px] sm:max-w-xs">{recommendedEntity.formattedAddress || recommendedEntity.city}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
+                        <span className="truncate max-w-[160px] sm:max-w-xs">{sponsoredEntity.city || sponsoredEntity.address}</span>
+                        {sponsoredEntity.category && (
+                          <>
+                            <span className="mx-1 opacity-50">·</span>
+                            <span className="truncate max-w-[120px] capitalize">{sponsoredEntity.category}</span>
+                          </>
+                        )}
+                        {sponsoredEntity.phone && (
+                          <>
+                            <span className="mx-1 opacity-50">·</span>
+                            <span className="inline-flex items-center gap-1 text-[13px]"><Phone className="h-3 w-3" />{sponsoredEntity.phone}</span>
+                          </>
+                        )}
+                      </span>
+                      {sponsoredEntity.description && (
+                        <span className="block text-[13px] text-slate-500 mt-1 leading-snug line-clamp-2">
+                          {sponsoredEntity.description}
+                        </span>
+                      )}
+                      {sponsoredEntity.chips.length > 0 && (
+                        <span className="flex flex-wrap gap-1.5 mt-2">
+                          {sponsoredEntity.chips.map((chip) => (
+                            <span key={chip} className="text-[11px] font-bold rounded-full bg-white border border-amber-200 text-amber-800 px-2 py-0.5">
+                              {chip}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </span>
+                  </Link>
+                </AdTracker>
+              )}
               {results.length > 0 && results.map((item, idx) => {
             if (item.resultType === 'internal') {
               return (

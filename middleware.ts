@@ -28,6 +28,8 @@ const INTERNAL_TOOL_ROUTES = [
     "/admin/community-entity-links",
     "/api/admin/community-entity-links",
     "/pixel-analytics",
+    "/ad-performance",
+    "/admin/ad-campaigns",
     "/tools/employment-match-review",
     "/tools/domain-management",
     "/shop-day-map",

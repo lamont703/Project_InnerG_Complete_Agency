@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Star, ArrowUpRight, MapPin, BadgeCheck } from "lucide-react";
+import { AdTracker } from "@/components/ads/AdTracker";
 
 // Shared presentational component behind the shop- and salon-page sponsored
 // ad spots (see ShopSponsoredAd.tsx / SalonSponsoredAd.tsx for the per-entity
@@ -27,25 +28,23 @@ interface SponsoredEntityAdProps {
   featured: FeaturedEntity;
   /** Badge text, e.g. "Featured Barbershop" / "Featured Salon". */
   entityLabel: string;
-  /** Names which placement this is, for the email subject line + body, e.g.
+  /** Names which placement this is (analytics + labels), e.g.
    *  "Shop Page Ad (Sauccy Fades Feature)". */
   placementLabel: string;
+  /** Machine key for pixel analytics, e.g. "shop_profile" / "salon_profile". */
+  placementKey: string;
+  /** The advertised entity's profile URL — the ad navigates here on click. */
+  entityHref: string;
   /** Current page's entity slug — when it matches the featured slug the ad
    *  hides itself (never advertise an entity on its own page). */
   currentSlug?: string;
 }
 
-export function SponsoredEntityAd({ featured, entityLabel, placementLabel, currentSlug }: SponsoredEntityAdProps) {
+export function SponsoredEntityAd({ featured, entityLabel, placementLabel, placementKey, entityHref, currentSlug }: SponsoredEntityAdProps) {
   if (currentSlug && currentSlug === featured.slug) return null;
 
-  const mailtoSubject = encodeURIComponent(`Advertising Inquiry - ${placementLabel}`);
-  const mailtoBody = encodeURIComponent(
-    `Hello ShearQuery Team,\n\nI saw the sponsored placement on a ${placementLabel} and I'm interested in advertising my business the same way.\n\nPlease send details on pricing, audience reach, and availability for a sponsored placement.\n\nThank you!`
-  );
-  const sponsorHref = `mailto:sponsorships@innergcomplete.com?subject=${mailtoSubject}&body=${mailtoBody}`;
-
   return (
-    <div className="mb-8">
+    <AdTracker placement={placementKey} adType="on_profile" creative={featured.slug} scope={featured.city} className="mb-8">
       {/* "Sponsored" disclosure sits above the card, not inside it, so the
           creative below reads as a genuine ad while staying clearly labeled. */}
       <div className="flex items-center justify-between mb-2 px-1">
@@ -54,9 +53,9 @@ export function SponsoredEntityAd({ featured, entityLabel, placementLabel, curre
       </div>
 
       <Link
-        href={sponsorHref}
+        href={entityHref}
         className="group block overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 text-white shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-amber-500/50"
-        aria-label={`Advertise your business with a sponsored placement like this ${featured.name} feature`}
+        aria-label={`View ${featured.name} — sponsored`}
       >
         <div className="flex flex-col sm:flex-row">
           {/* Featured entity photo */}
@@ -103,20 +102,20 @@ export function SponsoredEntityAd({ featured, entityLabel, placementLabel, curre
               ))}
             </div>
 
-            {/* CTA — aimed at prospective advertisers, not entity visitors */}
+            {/* CTA — the ad navigates to the advertised entity's profile */}
             <div className="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
               <p className="text-xs text-slate-400 leading-snug">
-                This is a sponsored placement demo.{" "}
-                <span className="text-slate-200 font-semibold">Want your business featured here?</span>
+                Sponsored placement.{" "}
+                <span className="text-slate-200 font-semibold">See {featured.name}&apos;s full profile.</span>
               </p>
               <span className="inline-flex items-center gap-1.5 shrink-0 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 group-hover:from-amber-400 group-hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm shadow-lg transition-all group-hover:scale-105">
-                Advertise With Us
+                View Profile
                 <ArrowUpRight className="w-4 h-4 stroke-[3]" />
               </span>
             </div>
           </div>
         </div>
       </Link>
-    </div>
+    </AdTracker>
   );
 }

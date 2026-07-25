@@ -11,6 +11,7 @@ import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import { STORE_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
+import { StoreSponsoredAd } from "@/components/ads/StoreSponsoredAd";
 import Image from "next/image";
 import {
   MapPin,
@@ -212,14 +213,60 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
             {/* Header Block */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{store.name}</h1>
-              {store.formatted_address && (
-                <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5" />
-                  {store.formatted_address}
-                </p>
+              {(store.formatted_address || directionsHref) && (
+                <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 mt-1 text-sm text-slate-500 font-medium">
+                  {store.formatted_address && (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5" />
+                      {store.formatted_address}
+                    </span>
+                  )}
+                  {directionsHref && (
+                    <a
+                      href={directionsHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-ig-click="outbound_lead"
+                      className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600 hover:underline"
+                    >
+                      <Navigation className="w-4 h-4" />
+                      Get Directions
+                    </a>
+                  )}
+                </div>
               )}
 
-              <div className="flex flex-wrap items-center gap-2 mt-3">
+              {/* Call / Website — moved up to the header so users can reach the
+                  store immediately (was previously a separate sidebar card). */}
+              {(store.phone || websiteHref) && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {store.phone && (
+                    <a
+                      href={`tel:${store.phone}`}
+                      data-ig-click="outbound_lead"
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-emerald-600/20"
+                    >
+                      <Phone className="w-4 h-4" />
+                      Call Store
+                    </a>
+                  )}
+                  {websiteHref && (
+                    <a
+                      href={websiteHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-ig-click="outbound_lead"
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-extrabold text-sm uppercase tracking-wider transition-colors"
+                    >
+                      <Globe className="w-4 h-4" />
+                      Visit Website
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2 mt-4">
                 {store.rating && (
                   <span className="inline-flex items-center gap-1 text-sm font-bold text-slate-900">
                     <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
@@ -263,36 +310,13 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
                 {" "}{aboutBlurb}
               </p>
             </div>
+
+            {/* Sponsored placement (campaign-served for this store type) */}
+            <StoreSponsoredAd storeType={storeType} currentSlug={store.slug} city={store.city} address={store.formatted_address} />
           </div>
 
           {/* Sidebar */}
           <div className="space-y-4">
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-3">
-              {store.phone && (
-                <a
-                  href={`tel:${store.phone}`}
-                  data-ig-click="outbound_lead"
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-emerald-600/20"
-                >
-                  <Phone className="w-4 h-4" />
-                  Call Store
-                </a>
-              )}
-              {websiteHref && (
-                <a
-                  href={websiteHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-ig-click="outbound_lead"
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-extrabold text-sm uppercase tracking-wider transition-colors"
-                >
-                  <Globe className="w-4 h-4" />
-                  Visit Website
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              )}
-            </div>
-
             <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={false} entityLabel="store" />
 
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
@@ -308,23 +332,6 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
                 Find Shops Near This Store
               </Link>
             </div>
-
-            {directionsHref && (
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-3">Location</h3>
-                <p className="text-sm text-slate-600 font-medium mb-3">{store.formatted_address || store.city}</p>
-                <a
-                  href={directionsHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-ig-click="outbound_lead"
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600 hover:underline"
-                >
-                  <Navigation className="w-4 h-4" />
-                  Get Directions
-                </a>
-              </div>
-            )}
 
             <NearbyEntitiesSection title="Nearby Shops" icon={Scissors} entities={nearbyShops} />
             <NearbyEntitiesSection title="Nearby Salons" icon={Sparkles} entities={nearbySalons} />
