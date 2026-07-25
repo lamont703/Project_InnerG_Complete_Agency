@@ -19,7 +19,10 @@ import {
   User,
   Scissors,
   Sparkles,
+  CheckCircle2,
 } from "lucide-react";
+import { ClaimShopButton } from "@/components/shared/claim-shop-button";
+import { isEntityClaimed } from "@/lib/entity-claim";
 
 export const revalidate = 3600;
 
@@ -250,6 +253,8 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
   if (!event) notFound();
   if (event._resolvedByLegacyId) permanentRedirect(`/events/${event.slug}`);
 
+  const isClaimed = await isEntityClaimed("event", event.id);
+
   const isPast = new Date(event.event_date + "T23:59:59") < new Date();
   const dateLabel = formatEventDate(event.event_date, event.end_date);
   const startTimeLabel = formatTime(event.start_time);
@@ -333,6 +338,15 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
                 )}
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{event.title}</h1>
+              {isClaimed ? (
+                <div className="mt-2">
+                  <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1.5 rounded-lg font-bold text-xs">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Claimed
+                  </span>
+                </div>
+              ) : (
+                <ClaimShopButton entityType="event" entityId={event.id} entityName={event.title} noun="event" />
+              )}
 
               <p className="text-sm text-slate-700 font-bold mt-2 flex items-center gap-1.5">
                 <CalendarDays className="w-3.5 h-3.5" />
@@ -425,7 +439,7 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
 
           {/* Sidebar */}
           <div className="space-y-4">
-            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={false} entityLabel="event" />
+            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={isClaimed} entityLabel="event" />
 
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-3">
               {event.ticket_url && (

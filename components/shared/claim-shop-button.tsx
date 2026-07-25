@@ -3,19 +3,34 @@
 import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
 
-// Claiming used to open a lead-gen "list your shop" modal directly. Every
-// claim now routes into the free Community Membership signup instead —
-// the platform grants entity-management access to members later, rather
-// than treating "claim" as its own separate intake form.
-export function ClaimShopButton({ shop, entityType = "shop" }: { shop?: any; entityType?: "shop" | "salon" }) {
-  const label = entityType === "salon" ? "Is this your salon? Claim your salon" : "Is this your shop? Claim your shop";
+// Claiming routes into the free Community Membership signup — the platform
+// grants entity-management access (and the green "Claimed" badge) to members
+// later. Works for every entity type via `noun`; shop/salon keep their old
+// call signature (shop={} entityType="shop"|"salon").
+export function ClaimShopButton({
+  shop,
+  entityType = "shop",
+  entityId,
+  entityName,
+  noun,
+}: {
+  shop?: any;
+  entityType?: string;
+  entityId?: string;
+  entityName?: string;
+  noun?: string;
+}) {
+  const n = noun || (entityType === "salon" ? "salon" : "shop");
+  const label = `Is this your ${n}? Claim your ${n}`;
+  const id = entityId ?? shop?.id;
+  const name = entityName ?? shop?.shop_name;
 
   return (
     <Link
       href="/membership"
       onClick={() => {
         if (typeof window !== "undefined" && (window as any).innerG?.track) {
-          (window as any).innerG.track('claim_shop_initiated', { shop_id: shop?.id, shop_name: shop?.shop_name, entity_type: entityType });
+          (window as any).innerG.track('claim_shop_initiated', { entity_id: id, entity_name: name, entity_type: entityType });
         }
       }}
       data-ig-click="outbound_lead"

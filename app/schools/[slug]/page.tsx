@@ -29,6 +29,8 @@ import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { deriveExamState, examPrepInfo } from "@/lib/exam-prep";
 import { SCHOOL_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
+import { ClaimShopButton } from "@/components/shared/claim-shop-button";
+import { isEntityClaimed } from "@/lib/entity-claim";
 import { ReviewsSection } from "@/components/shared/reviews-section";
 import { WriteReviewButton } from "@/components/shared/write-review-button";
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
@@ -260,6 +262,9 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
   if (!school) notFound();
   if (school._resolvedByLegacyId) permanentRedirect(`/schools/${school.slug}`);
 
+  const claimEntityType = school._matchType === "cosmetology" ? "cosmetology_school" : "barber_school";
+  const isClaimed = await isEntityClaimed(claimEntityType, school.id);
+
   const gallery: string[] = Array.isArray(school.google_photos) ? school.google_photos : [];
   const heroPhoto = gallery[0] || null;
   const thumbnails = gallery.slice(1, 5);
@@ -405,6 +410,15 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                 )}
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{school.school_name}</h1>
+              {isClaimed ? (
+                <div className="mt-2">
+                  <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1.5 rounded-lg font-bold text-xs">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Claimed
+                  </span>
+                </div>
+              ) : (
+                <ClaimShopButton entityType={claimEntityType} entityId={school.id} entityName={school.school_name} noun="school" />
+              )}
               {(school.formatted_address || directionsHref) && (
                 <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 mt-1 text-sm text-slate-500 font-medium">
                   {school.formatted_address && (
@@ -606,7 +620,7 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
             {/* Website/Call moved up to the header (top of page, next to the
                 address) to match the shop/salon layout — the standalone
                 sidebar contact card was removed. */}
-            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={false} entityLabel="school" />
+            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={isClaimed} entityLabel="school" />
 
             {/* Exam-prep CTA moved up into the main column, directly below the
                 2026 exam results, and made type-aware (barber vs cosmetology). */}

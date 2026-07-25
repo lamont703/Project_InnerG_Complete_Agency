@@ -25,7 +25,10 @@ import {
   Navigation,
   Landmark,
   GraduationCap,
+  CheckCircle2,
 } from "lucide-react";
+import { ClaimShopButton } from "@/components/shared/claim-shop-button";
+import { isEntityClaimed } from "@/lib/entity-claim";
 
 export const revalidate = 3600;
 
@@ -154,6 +157,8 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
   if (!person) notFound();
   if (person._resolvedByLegacyId) permanentRedirect(`/cosmetologists/${person.slug}`);
 
+  const isClaimed = await isEntityClaimed("cosmetologist", person.id);
+
   const gallery: string[] = Array.isArray(person.booksy_gallery_urls) ? person.booksy_gallery_urls : [];
   const heroPhoto = gallery[0] || person.booksy_photo_url || null;
   const thumbnails = gallery.slice(1, 7);
@@ -240,6 +245,15 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
             {/* Header Block */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{person.name}</h1>
+              {isClaimed ? (
+                <div className="mt-2">
+                  <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1.5 rounded-lg font-bold text-xs">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Claimed
+                  </span>
+                </div>
+              ) : (
+                <ClaimShopButton entityType="cosmetologist" entityId={person.id} entityName={person.name} noun="cosmetologist profile" />
+              )}
               {person.address && (
                 <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5" />
@@ -360,7 +374,7 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
 
           {/* Sidebar */}
           <div className="space-y-4">
-            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={false} entityLabel="cosmetologist" />
+            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={isClaimed} entityLabel="cosmetologist" />
 
             {person.profile_url && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { claimTypeConfig, CLAIMED_AT_TYPES } from "@/lib/entity-claim";
 
 // Unlinking clears claimed_at on the entity too — the claim CTA (which
 // reads claimed_at directly) should reappear the moment a link is removed,
@@ -26,14 +27,15 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
       return NextResponse.json({ success: false, error: "Link not found." }, { status: 404 });
     }
 
-    const table = link.entity_type === "shop" ? "agent_barbershop_leads" : "agent_salon_leads";
-    const [{ error: unclaimError }, { error: deleteError }] = await Promise.all([
-      (supabase.from(table) as any).update({ claimed_at: null }).eq("id", link.entity_id),
-      (supabase.from("community_member_entity_links") as any).delete().eq("id", id),
-    ]);
-
-    if (unclaimError || deleteError) {
-      return NextResponse.json({ success: false, error: (unclaimError || deleteError)?.message }, { status: 500 });
+    // Always delete the link; also clear claimed_at for the types that carry it.
+    const ops: Promise<any>[] = [(supabase.from("community_member_entity_links") as any).delete().eq("id", id)];
+    if (CLAIMED_AT_TYPES.has(link.entity_type)) {
+      const cfg = claimTypeConfig(link.entity_type);
+      if (cfg) ops.push((supabase.from(cfg.table) as any).update({ claimed_at: null }).eq("id", link.entity_id));
+    }
+    const opErr = (await Promise.all(ops)).find((r: any) => r?.error);
+    if (opErr) {
+      return NextResponse.json({ success: false, error: opErr.error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
