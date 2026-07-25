@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Menu, X, ArrowRight, ChevronDown, LogOut, User as UserIcon, LayoutGrid, Store } from "lucide-react"
+import { Menu, X, ArrowRight, ChevronDown, LogOut, User as UserIcon, LayoutGrid, Store, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { trackNavClick, trackCTAClick } from "@/lib/analytics"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -233,6 +233,14 @@ export function Navbar() {
                         <Store className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                         Manage My Listing
                       </Link>
+                      <Link
+                        href="/account/ad-performance"
+                        onClick={() => setIsAccountOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-foreground transition-colors"
+                      >
+                        <BarChart3 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        Ad Performance
+                      </Link>
                     </div>
                     <div className="pt-1 border-t border-slate-100">
                       <button
@@ -334,6 +342,14 @@ export function Navbar() {
                 >
                   <Store className="h-3.5 w-3.5 shrink-0" />
                   Manage My Listing
+                </Link>
+                <Link
+                  href="/account/ad-performance"
+                  onClick={(e) => handleNavClick(e, "/account/ad-performance")}
+                  className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
+                >
+                  <BarChart3 className="h-3.5 w-3.5 shrink-0" />
+                  Ad Performance
                 </Link>
               </div>
             )}

@@ -3,6 +3,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenAI } from "@google/genai";
 import { parseWeeklyRent } from "@/lib/shop-ecosystem";
+import { AD_ENTITY_TYPES } from "@/lib/ad-campaigns";
 
 // rent_rate is free text ("$175/week", "40% for 5 months then $300/wk",
 // etc.) with no queryable numeric column, so a rent filter has to fetch a
@@ -806,133 +807,101 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
   }
 }
 
-export interface RecommendedEntity {
-  entityType: "shop" | "salon";
-  id: string;
-  slug: string;
+// ─────────────────────────────────────────────────────────────────────────
+// Campaign-served Search Results ad. Returns the entity to feature at the top
+// of the results for a given filter tab, from an active `search_results`
+// ad_campaign whose filter_tabs include that tab (empty filter_tabs = all
+// tabs). The ad navigates to the entity's profile page. Field extraction is
+// generic across entity tables (shop/salon/school/store/pro/event).
+// ─────────────────────────────────────────────────────────────────────────
+export interface SponsoredSearchEntity {
   name: string;
-  formattedAddress: string | null;
-  city: string | null;
+  slug: string;
+  href: string;
+  image: string | null;
   rating: number | null;
   totalReviews: number | null;
-  image: string | null;
+  city: string | null;
+  address: string | null;
+  description: string | null; // tagline / culture snippet
+  category: string | null; // e.g. google_category / specialty
+  chips: string[]; // amenities / specialties for quick-scan pills
+  phone: string | null;
+  verified: boolean; // claimed (owner-verified) listing
+  creative: string;
+  entityType: string;
 }
 
-// Same canonical 34-city list next.config.mjs's redirect generator uses —
-// own local copy, matching this codebase's established "duplicate small
-// lists across layers" convention (see that file's own comment on why).
-// Used here only to detect an explicit, DIFFERENT-city mention in a query
-// (the one clear signal that a recommendation is NOT locally relevant).
-const TX_CITIES_FOR_RELEVANCE = [
-  "houston", "katy", "pearland", "pasadena", "humble", "austin", "dallas",
-  "san antonio", "sugar land", "the woodlands", "spring", "cypress",
-  "missouri city", "baytown", "conroe", "league city", "fort worth",
-  "el paso", "corpus christi", "plano", "laredo", "irving", "garland",
-  "amarillo", "mckinney", "frisco", "brownsville", "pflugerville",
-  "college station", "beaumont", "waco", "tyler", "sherman", "eagle pass",
-];
+function firstImage(row: any): string | null {
+  if (row.shop_image_url) return row.shop_image_url;
+  if (row.booksy_photo_url) return row.booksy_photo_url;
+  if (row.image_url) return row.image_url;
+  const arr = row.google_images || row.google_photos;
+  if (Array.isArray(arr) && arr.length) return typeof arr[0] === "string" ? arr[0] : arr[0]?.url || null;
+  return null;
+}
 
-// Schools are a different entity type than the shop/salon this can ever
-// recommend — a query clearly asking for a school shouldn't surface a
-// barbershop/salon recommendation instead.
-const SCHOOL_INTENT_PATTERN = /\b(school|academy|institute|college)\b/i;
+// Up to 3 quick-scan pills from whatever amenity/specialty data the entity has.
+function entityChips(row: any): string[] {
+  const out: string[] = [];
+  const push = (v: any) => { if (typeof v === "string" && v.trim() && out.length < 3) out.push(v.trim()); };
+  if (Array.isArray(row.custom_amenities)) row.custom_amenities.forEach(push);
+  if (Array.isArray(row.booksy_services)) row.booksy_services.slice(0, 3).forEach((sv: any) => push(sv?.name));
+  push(row.specialty_type);
+  push(row.google_category);
+  return out.slice(0, 3);
+}
 
-// Deliberately separate from the main ranked-search pipeline above rather
-// than woven into it — community_member_entity_links (see the
-// 20260720000000 migration) is a small, hand-curated table, so this
-// doesn't need to touch the already-intricate blended-ranking logic in
-// searchBarbershops(). Only ever returns one result (or null) — this is
-// the single "recommended" slot at the top of a search, not a ranked
-// list.
-//
-// Relevance model: default to relevant (score 1) for any real query, and
-// only fall to 0 (suppressed) on a clear mismatch signal — a different
-// named TX city, or explicit school/academy intent when the candidate is
-// a shop/salon. A direct name/city match still outranks the default when
-// present. This is deliberately permissive (recommend most of the time)
-// rather than requiring an exact match, per direct feedback that an
-// exact-match-only bar left the slot empty on almost every real search.
-export async function getRecommendedEntity(query: string): Promise<RecommendedEntity | null> {
-  const q = query.trim();
-  if (q.length < 2) return null;
-
+export async function getSponsoredSearchEntity(filterTab: string): Promise<SponsoredSearchEntity | null> {
   try {
-    // community_member_entity_links is locked to service-role-only RLS
-    // (see the 20260720000000 migration) — the shared `supabase` client
-    // in this file uses the anon key, which RLS silently returns zero
-    // rows for (no error, just an empty array), so this needs its own
-    // service-role client rather than the module-level one.
-    const adminSupabase = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey);
+    const admin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey);
+    const { data: camps } = await admin
+      .from("ad_campaigns")
+      .select("entity_type, creative, filter_tabs, created_at")
+      .eq("placement", "search_results")
+      .eq("status", "active")
+      .order("created_at", { ascending: false });
+    if (!camps || !camps.length) return null;
 
-    const { data: links } = await adminSupabase
-      .from("community_member_entity_links")
-      .select("entity_type, entity_id");
+    // Empty filter_tabs = every tab. Otherwise the tab must be explicitly
+    // selected — "All" is a literal tab here, not a wildcard, so a campaign
+    // targeting the All tab does not leak onto Salons/Barbershops/etc.
+    const match = (camps as any[]).find(
+      (c) =>
+        c.entity_type &&
+        c.creative &&
+        (!c.filter_tabs?.length || c.filter_tabs.includes(filterTab))
+    );
+    if (!match) return null;
 
-    if (!links || links.length === 0) return null;
+    const cfg = AD_ENTITY_TYPES.find((e) => e.key === match.entity_type);
+    if (!cfg) return null;
 
-    const shopIds = links.filter((l) => l.entity_type === "shop").map((l) => l.entity_id);
-    const salonIds = links.filter((l) => l.entity_type === "salon").map((l) => l.entity_id);
+    const { data: ent } = await admin.from(cfg.table as any).select("*").eq("slug", match.creative).maybeSingle();
+    if (!ent) return null;
+    const row = ent as any;
 
-    const [{ data: shops }, { data: salons }] = await Promise.all([
-      shopIds.length > 0
-        ? supabase.from("agent_barbershop_leads").select("id, slug, shop_name, formatted_address, city, rating, total_reviews, google_images").in("id", shopIds)
-        : Promise.resolve({ data: [] as any[] }),
-      salonIds.length > 0
-        ? supabase.from("agent_salon_leads").select("id, slug, shop_name, formatted_address, city, rating, total_reviews, google_images").in("id", salonIds)
-        : Promise.resolve({ data: [] as any[] }),
-    ]);
+    const description =
+      row.ai_culture_summary || row.description || row.about || row.bio || null;
 
-    const candidates = [
-      ...(shops || []).map((s) => ({ ...s, entityType: "shop" as const })),
-      ...(salons || []).map((s) => ({ ...s, entityType: "salon" as const })),
-    ];
-
-    const qLower = q.toLowerCase();
-    const hasSchoolIntent = SCHOOL_INTENT_PATTERN.test(qLower);
-
-    const scored = candidates
-      .map((c) => {
-        const candidateCityWords = `${c.city || ""} ${c.formatted_address || ""}`.toLowerCase();
-        const candidateOwnCity = TX_CITIES_FOR_RELEVANCE.find((city) => candidateCityWords.includes(city));
-
-        // A different named TX city than the candidate's own is the one
-        // clear "not locally relevant" signal — e.g. searching "Dallas"
-        // shouldn't recommend a Houston shop.
-        const mentionsConflictingCity = TX_CITIES_FOR_RELEVANCE.some(
-          (city) => city !== candidateOwnCity && qLower.includes(city)
-        );
-        if (mentionsConflictingCity || hasSchoolIntent) {
-          return { ...c, score: 0 };
-        }
-
-        const nameMatch = (c.shop_name || "").toLowerCase().includes(qLower);
-        const nameWordOverlap = qLower.split(/\s+/).some((word) => word.length > 2 && (c.shop_name || "").toLowerCase().includes(word));
-        const cityMatch = candidateOwnCity ? qLower.includes(candidateOwnCity) : false;
-        // Default score of 1 ("generically relevant, no disqualifying
-        // signal found") is what makes the slot show up on most searches
-        // instead of only exact matches.
-        const score = nameMatch ? 3 : nameWordOverlap ? 2 : cityMatch ? 2 : 1;
-        return { ...c, score };
-      })
-      .filter((c) => c.score > 0)
-      .sort((a, b) => b.score - a.score);
-
-    if (scored.length === 0) return null;
-
-    const best = scored[0];
     return {
-      entityType: best.entityType,
-      id: best.id,
-      slug: best.slug,
-      name: best.shop_name,
-      formattedAddress: best.formatted_address,
-      city: best.city,
-      rating: best.rating,
-      totalReviews: best.total_reviews,
-      image: Array.isArray(best.google_images) && best.google_images.length > 0 ? best.google_images[0] : null,
+      name: row.shop_name || row.name || row.school_name || row.title || match.creative,
+      slug: match.creative,
+      href: `${cfg.route}/${match.creative}`,
+      image: firstImage(row),
+      rating: row.rating ?? row.booksy_rating ?? null,
+      totalReviews: row.total_reviews ?? row.google_review_count ?? row.booksy_review_count ?? null,
+      city: row.city || row.metro_area || null,
+      address: row.formatted_address || null,
+      description: typeof description === "string" && description.trim() ? description.trim() : null,
+      category: row.google_category || row.school_category || null,
+      chips: entityChips(row),
+      phone: row.phone || null,
+      verified: !!row.claimed_at,
+      creative: match.creative,
+      entityType: match.entity_type,
     };
-  } catch (err) {
-    console.error("Error in getRecommendedEntity:", err);
+  } catch {
     return null;
   }
 }

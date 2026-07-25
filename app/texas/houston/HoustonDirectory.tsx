@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass, CalendarDays } from "lucide-react";
 import type { HoustonData } from "./data";
 import { Navbar } from "@/components/layout/navbar";
-import { AdSponsorshipBanner } from "@/components/ads/AdSponsorshipBanner";
+import { SponsorshipBanner } from "@/components/ads/SponsorshipBanner";
 import { directoryHrefForSection } from "@/lib/directory-config";
 
 // These are all real, previously-orphaned Houston-area landing pages (no
@@ -115,7 +115,7 @@ export function HoustonDirectory({
 
         {/* Exclusive Houston City Sponsorship Banner */}
         <div className="mb-8">
-          <AdSponsorshipBanner type="city" cityLabel="Houston" />
+          <SponsorshipBanner type="city" cityLabel="Houston" scope="Houston" />
         </div>
 
         {/* Sections */}

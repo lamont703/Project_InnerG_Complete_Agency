@@ -32,6 +32,8 @@ const footerLinks = {
     { label: "Keyword Intelligence", href: "/admin/keyword-intelligence" },
     { label: "Community ↔ Entity Links", href: "/admin/community-entity-links" },
     { label: "Pixel Analytics", href: "/pixel-analytics" },
+    { label: "Ad Performance", href: "/ad-performance" },
+    { label: "Ad Campaigns (Assign)", href: "/admin/ad-campaigns" },
     { label: "Employment Match Review", href: "/tools/employment-match-review" },
     { label: "Web Crawler Domain Management", href: "/tools/domain-management" },
     { label: "Shop Day Map", href: "/shop-day-map" },

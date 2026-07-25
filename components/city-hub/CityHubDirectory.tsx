@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass, CalendarDays } from "lucide-react";
 import type { CityHubData } from "@/lib/city-hub-data";
 import { Navbar } from "@/components/layout/navbar";
-import { AdSponsorshipBanner } from "@/components/ads/AdSponsorshipBanner";
+import { SponsorshipBanner } from "@/components/ads/SponsorshipBanner";
 import { directoryHrefForSection } from "@/lib/directory-config";
 
 // Real, city-specific landing pages that predate this hub hierarchy — keyed
@@ -125,7 +125,7 @@ export function CityHubDirectory({
 
         {/* Exclusive City Sponsorship Banner */}
         <div className="mb-8">
-          <AdSponsorshipBanner type="city" cityLabel={cityLabel} />
+          <SponsorshipBanner type="city" cityLabel={cityLabel} scope={cityLabel} />
         </div>
 
         <div className="space-y-8">

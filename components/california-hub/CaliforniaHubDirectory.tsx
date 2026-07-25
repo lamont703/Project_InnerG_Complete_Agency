@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Star, ArrowRight, Award, MapPin, Scissors, Building2, UserCheck, GraduationCap, ShoppingBag, Armchair, DollarSign, Compass } from "lucide-react";
 import type { CaliforniaHubData } from "@/lib/california-hub-data";
 import { Navbar } from "@/components/layout/navbar";
+import { SponsorshipBanner } from "@/components/ads/SponsorshipBanner";
 import { directoryHrefForSection } from "@/lib/directory-config";
 
 // Genuinely statewide California resources (not tied to one city). These are
@@ -94,6 +95,11 @@ export function CaliforniaHubDirectory({
             )}
           </div>
         )}
+
+        {/* Exclusive California State Sponsorship Banner */}
+        <div className="mb-8">
+          <SponsorshipBanner type="state" scope="California" />
+        </div>
 
         {/* Browse California Cities */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5 mb-8">

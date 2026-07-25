@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Sparkles, Search, Users, CheckCircle2 } from "lucide-react";
+import { Sparkles, BadgeCheck, Users, CheckCircle2 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { CommunityMembershipForm } from "@/components/forms/CommunityMembershipForm";
 
 export const metadata: Metadata = {
-  title: "Free Community Membership — Get Discovered on ShearQuery | Inner G Complete",
+  title: "Free Community Membership — Verified Badge on Your Listing | Inner G Complete",
   description:
-    "Join Inner G Complete's free community membership — barbers, stylists, and beauty professionals get recommended in ShearQuery search results, increasing real discovery from clients and shops.",
+    "Join Inner G Complete's free community membership — barbers, stylists, and beauty professionals claim their listing and earn a verified badge on their ShearQuery profile, showing clients and shops it's owner-verified.",
   alternates: {
     canonical: "https://agency.innergcomplete.com/membership",
   },
@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 
 const BENEFITS = [
   {
-    icon: Search,
-    title: "Get Recommended in ShearQuery",
-    body: "Members are surfaced directly in our search engine's results — the same tool clients, shop owners, and hiring managers already use to find real professionals.",
+    icon: BadgeCheck,
+    title: "Get the Verified Badge on Your Listing",
+    body: "Claim your profile and earn the verified badge shown on your entity page — a clear signal to clients, shop owners, and hiring managers that it's owner-verified and up to date.",
   },
   {
     icon: Users,
@@ -46,7 +46,7 @@ export default function MembershipPage() {
               Join the ShearQuery Community
             </h1>
             <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
-              Free membership for barbers, stylists, and beauty professionals. Sign up in under a minute and get recommended in ShearQuery searches.
+              Free membership for barbers, stylists, and beauty professionals. Sign up in under a minute, claim your listing, and earn the verified badge on your ShearQuery profile.
             </p>
           </div>
 
