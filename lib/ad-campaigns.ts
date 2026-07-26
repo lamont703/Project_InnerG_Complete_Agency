@@ -50,16 +50,20 @@ export function entityHref(entityType: string | null, slug: string | null): stri
   return t && slug ? `${t.route}/${slug}` : null;
 }
 
-// Entity PAGE types the entity_bottom_banner can be shown on (route key → label).
-// Empty selection = every type. These keys match the route segment parsed from
-// the pathname in getEntityBottomBannerAd (schools/stores each cover two tables).
+// Entity PAGE types the entity_bottom_banner can be shown on. Empty selection =
+// every type. Keys are the specific entity types (barber schools vs cosmetology
+// schools, barber supply vs beauty supply are distinguished) — even though they
+// share a URL route (/schools, /stores). getEntityBottomBannerAd resolves the
+// viewed page's specific type by which table the slug lives in, then matches it.
 export const BANNER_PAGE_TYPES: { key: string; label: string }[] = [
   { key: "shop", label: "Barbershops" },
-  { key: "salons", label: "Salons" },
-  { key: "barbers", label: "Barbers" },
-  { key: "cosmetologists", label: "Cosmetologists" },
-  { key: "schools", label: "Schools" },
-  { key: "stores", label: "Supply Stores" },
+  { key: "salon", label: "Salons" },
+  { key: "barber", label: "Barbers" },
+  { key: "cosmetologist", label: "Cosmetologists" },
+  { key: "barber_school", label: "Barber Schools" },
+  { key: "cosmetology_school", label: "Cosmetology Schools" },
+  { key: "barber_supply_store", label: "Barber Supply Stores" },
+  { key: "beauty_supply_store", label: "Beauty Supply Stores" },
 ];
 
 // Search filter tabs an ad can be targeted to (the entity-result tabs; the
