@@ -76,12 +76,17 @@ export function ConnectGoogleBusiness() {
             Verify ownership instantly and get an enriched, always-updated listing — accurate hours &amp; photos,
             live reviews, and your Google posts, all kept in sync.
           </p>
-          <a
-            href="/api/google-business/start"
-            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white font-bold text-sm px-4 py-2.5 hover:bg-indigo-700 transition-colors"
-          >
-            Connect Google Business Profile
-          </a>
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <a
+              href="/api/google-business/start"
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white font-bold text-sm px-4 py-2.5 hover:bg-indigo-700 transition-colors"
+            >
+              Connect Google Business Profile
+            </a>
+            <a href="/account/add-business" className="text-xs font-bold text-slate-500 hover:text-indigo-600">
+              Not on Google? Add your business →
+            </a>
+          </div>
         </div>
       </div>
     </div>

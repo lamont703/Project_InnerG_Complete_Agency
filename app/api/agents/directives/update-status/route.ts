@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { buildSlug } from "@/lib/slug";
 import { computeNearbyAreas } from "@/lib/nearby-areas";
 import { pingIndexNow } from "@/lib/indexnow";
+import { CLAIM_ENTITY_TYPES } from "@/lib/entity-claim";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -159,7 +160,10 @@ async function publishDiscoveredBusiness(
   if (missingFields.length > 0) {
     return { error: `Missing required field(s): ${missingFields.join(", ")}. This candidate isn't complete enough to publish.` };
   }
-  if (!Array.isArray(images) || images.length < MIN_PUBLISH_IMAGES) {
+  // Owner self-submissions (evidence.owner_source) are exempt from the 5-photo
+  // gate — a verified owner adding their own business won't have 5 photos on
+  // hand, and the human review step is the quality gate for these instead.
+  if (!evidence?.owner_source && (!Array.isArray(images) || images.length < MIN_PUBLISH_IMAGES)) {
     return { error: `Requires at least ${MIN_PUBLISH_IMAGES} real photos to publish (currently has ${Array.isArray(images) ? images.length : 0}).` };
   }
   const config = TABLE_CONFIG[table];
@@ -207,6 +211,11 @@ async function publishDiscoveredBusiness(
   if (place_id) basePayload.place_id = place_id;
   if (config.mirrorPlaceIdTo && place_id) basePayload[config.mirrorPlaceIdTo] = place_id;
   if (config.supportsNearbyAreas && nearbyAreas.length > 0) basePayload.nearby_areas = nearbyAreas;
+  // agent_barbershop_leads.contact_id is UNIQUE NOT NULL but isn't populated by
+  // the standard payload (no mirrorPlaceIdTo). Fall back to the row's own id so
+  // an insert without a place_id (e.g. an owner self-submission) still satisfies
+  // the constraint; the id is a fresh uuid so it's always unique.
+  if (isShop && !basePayload.contact_id) basePayload.contact_id = place_id || id;
   const insertPayload = isShop ? { ...basePayload, hiring_need: false, booth_count_available: 0 } : basePayload;
 
   const { error } = await supabase.from(table).insert(insertPayload);
@@ -285,6 +294,23 @@ export async function POST(request: Request) {
       publishedSlug: result.slug,
       ...(force ? { publishedDespiteDuplicateWarning: true } : {}),
     };
+
+    // Owner self-submission → auto-link (claim) the submitting member to the
+    // freshly published entity. onConflict on the member's unique link so
+    // approving their business connects them to it in one step.
+    const ownerMemberId = activeEvidence?.owner_member_id;
+    const ownerType = ownerMemberId
+      ? CLAIM_ENTITY_TYPES.find((t) => t.table === activeEvidence?.table)?.key
+      : null;
+    if (ownerMemberId && ownerType) {
+      const { error: linkErr } = await supabase
+        .from("community_member_entity_links")
+        .upsert(
+          { community_member_id: ownerMemberId, entity_type: ownerType, entity_id: result.id },
+          { onConflict: "community_member_id" }
+        );
+      if (linkErr) console.error("owner auto-link failed:", linkErr.message);
+    }
   }
 
   if (status === "approved" && directive.agent_name === MARKET_EXPANSION_READINESS_AGENT && directive.evidence?.type === "content_page_ready" && directive.evidence?.city) {

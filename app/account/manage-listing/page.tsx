@@ -185,10 +185,16 @@ export default function ManageListingPage() {
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 text-center">
               <Store className="h-10 w-10 text-slate-300 mx-auto mb-4" />
               <h1 className="text-lg font-black text-slate-900 mb-2">No Business Linked Yet</h1>
-              <p className="text-sm text-slate-500 leading-relaxed max-w-md mx-auto">
-                Your community membership isn't linked to a shop or salon yet. Once your business is verified and
-                linked, you'll be able to manage its details here.
+              <p className="text-sm text-slate-500 leading-relaxed max-w-md mx-auto mb-5">
+                Your membership isn&apos;t linked to a business yet. Connect your Google Business Profile above for
+                instant verification, or add your business and we&apos;ll review and link it.
               </p>
+              <Link
+                href="/account/add-business"
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white font-bold text-sm px-5 py-2.5 hover:bg-indigo-700 transition-colors"
+              >
+                Add your business
+              </Link>
             </div>
           ) : (
             <>
