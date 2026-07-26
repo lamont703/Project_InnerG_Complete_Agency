@@ -30,6 +30,8 @@ const INTERNAL_TOOL_ROUTES = [
     "/pixel-analytics",
     "/ad-performance",
     "/admin/ad-campaigns",
+    "/admin/listing-insights",
+    "/admin/listing-report",
     "/tools/employment-match-review",
     "/tools/domain-management",
     "/shop-day-map",
@@ -70,6 +72,22 @@ export default async function proxy(request: NextRequest) {
     // Bypass auth checks for public API tools to prevent unnecessary Supabase calls and 403 logs
     if (pathname.startsWith('/api/tools/')) {
         return NextResponse.next()
+    }
+
+    // Parametered variants of the barbershop search tool (?ecosystemShopId=…,
+    // ?q=…, ?tab=…, ?ghl_contact_id=…) are functional deep-links, not distinct
+    // indexable pages. The clean /tools/barbershop-search already carries a
+    // self-referencing canonical and is the version in the sitemap. Google was
+    // crawling thousands of these permutations (linked from GoHighLevel
+    // campaigns and the ecosystem widget) and logging each one in Search
+    // Console. Emit X-Robots-Tag: noindex on the param variants only — "follow"
+    // so link discovery/equity is preserved — to trim crawl budget without
+    // affecting the clean page's ranking. The bare URL (no query string) is
+    // left fully indexable.
+    if (pathname === '/tools/barbershop-search' && request.nextUrl.search) {
+        const res = NextResponse.next()
+        res.headers.set('X-Robots-Tag', 'noindex, follow')
+        return res
     }
 
     // Only PROTECTED_ROUTES and AUTH_ROUTES actually need a session check.
