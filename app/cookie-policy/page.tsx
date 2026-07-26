@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/layout/navbar"
 export const metadata = {
   title: "Cookie Policy | Inner G Complete Agency",
-  description: "Official institutional policy and governance documentation for Inner G Complete Agency.",
+  description: "How Inner G Complete Agency uses cookies and similar technologies — the categories we set, why we set them, and how to manage or disable them in your browser.",
   openGraph: {
     title: "Cookie Policy | Inner G Complete Agency",
     description: "Official institutional policy and governance documentation.",

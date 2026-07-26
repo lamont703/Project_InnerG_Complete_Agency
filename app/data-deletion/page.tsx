@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Navbar } from "@/components/layout/navbar"
 export const metadata = {
   title: "Data Deletion Policy | Inner G Complete Agency",
-  description: "Official institutional policy and governance documentation for Inner G Complete Agency.",
+  description: "How to request deletion of your personal data from Inner G Complete Agency, what information we remove, how long the process takes, and how to reach our team.",
   openGraph: {
     title: "Data Deletion Policy | Inner G Complete Agency",
     description: "Official institutional policy and governance documentation.",

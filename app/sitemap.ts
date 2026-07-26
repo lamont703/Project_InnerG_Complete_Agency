@@ -12,6 +12,38 @@ import { PAGE_SIZE as DIRECTORY_PAGE_SIZE } from '@/lib/directory-config'
 
 export const dynamic = 'force-dynamic'
 
+// Routes that must never appear in the public sitemap: admin surfaces,
+// auth-gated internal tools (mirrors middleware.ts's INTERNAL_TOOL_ROUTES /
+// PROTECTED_ROUTES / AUTH_ROUTES), and logged-in dashboards that are
+// noindex'd at the page level. Bing/Google were being pointed at these by
+// the filesystem crawler below, which then graded their (short, functional)
+// meta descriptions — the source of Bing's "meta description too short"
+// warnings. Prefix match, so a folder excludes its whole subtree.
+const SITEMAP_EXCLUDE_PREFIXES = [
+  '/admin',
+  '/dashboard',
+  '/select-portal',
+  '/login',
+  '/internal-lock',
+  '/pixel-analytics',
+  '/pinterest-queue',
+  '/ad-performance',
+  '/shop-day-map',
+  '/shop-day-connections',
+  '/shop-day-requests',
+  '/shop-day-matches',
+  '/program-advisory-committee-kit',
+  '/tools/domain-management',
+  '/tools/event-submission',
+  '/tools/employment-match-review',
+]
+
+function isExcludedFromSitemap(route: string): boolean {
+  return SITEMAP_EXCLUDE_PREFIXES.some(
+    (p) => route === p || route.startsWith(`${p}/`)
+  )
+}
+
 // Recursive File-System crawler to autonomously map all active routes
 function getRoutes(dir: string, baseRoute: string = ''): string[] {
   let routes: string[] = []
@@ -58,7 +90,9 @@ const getCachedSitemapData = unstable_cache(
   async () => {
     const appDir = path.join(process.cwd(), 'app')
     const rawRoutes = getRoutes(appDir)
-    const uniqueRoutes = Array.from(new Set(rawRoutes))
+    const uniqueRoutes = Array.from(new Set(rawRoutes)).filter(
+      (route) => !isExcludedFromSitemap(route)
+    )
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
