@@ -12,7 +12,7 @@
  * rejects the submission.
  */
 const HOST = "agency.innergcomplete.com";
-const KEY = "be496c558f8e80da0d818f4da8554c25"; // keep in sync with lib/indexnow.ts + public/<key>.txt
+const KEY = "e352d1c5dee74b9084f780187d522a3a"; // Bing-issued IndexNow key; keep in sync with lib/indexnow.ts + public/<key>.txt
 const KEY_LOCATION = `https://${HOST}/${KEY}.txt`;
 const ENDPOINT = "https://api.indexnow.org/indexnow";
 const BATCH = 10000;
