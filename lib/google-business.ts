@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { CLAIM_ENTITY_TYPES } from "@/lib/entity-claim";
 
 // Google Business Profile OAuth + API helpers. Reuses the existing Google OAuth
 // client (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) with a GBP-specific redirect
@@ -70,6 +71,40 @@ export interface GbpLocation {
   website: string | null;
   placeId: string | null;
   mapsUri: string | null;
+}
+
+// ── Location → directory entity matching (the "connect = claim" step) ──
+// GBP locations carry a Google place_id; our business entity tables store the
+// same place_id (scraped from Maps), so an exact place_id match is reliable.
+// People profiles (barber/cosmetologist) and events don't map to a GBP business,
+// so they're excluded.
+const MATCHABLE_ENTITY_TYPES = CLAIM_ENTITY_TYPES.filter(
+  (t) => !["barber", "cosmetologist", "event"].includes(t.key)
+);
+
+export interface EntityMatch {
+  entityType: string;
+  entityId: string;
+  slug: string;
+  name: string;
+}
+
+// Find the directory entity whose place_id matches this GBP location's place_id.
+export async function matchLocationToEntity(admin: any, placeId: string | null | undefined): Promise<EntityMatch | null> {
+  if (!placeId) return null;
+  for (const cfg of MATCHABLE_ENTITY_TYPES) {
+    try {
+      const { data } = await admin
+        .from(cfg.table)
+        .select(`id, slug, ${cfg.nameCol}`)
+        .eq("place_id", placeId)
+        .maybeSingle();
+      if (data) return { entityType: cfg.key, entityId: data.id, slug: data.slug, name: data[cfg.nameCol] };
+    } catch {
+      /* table has no place_id column — skip */
+    }
+  }
+  return null;
 }
 
 // Fetch every location the granting account manages, flattened across accounts.

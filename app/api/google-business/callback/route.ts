@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { gbpExchangeCode, gbpFetchLocations, emailFromIdToken } from "@/lib/google-business";
+import { gbpExchangeCode, gbpFetchLocations, emailFromIdToken, matchLocationToEntity } from "@/lib/google-business";
 
 // OAuth callback: verifies the state nonce, exchanges the code for tokens,
 // fetches the account's GBP locations, and stores the connection for the
@@ -48,6 +48,34 @@ export async function GET(req: Request) {
     }
     const single = locations.length === 1 ? locations[0] : null;
 
+    // "Connect = claim": if there's a single location and it matches a directory
+    // entity by place_id, auto-link the member to it — unless that entity is
+    // already claimed by someone else (don't hijack a claim).
+    let entityType: string | null = null;
+    let entityId: string | null = null;
+    let status = locations.length > 1 ? "needs_selection" : "connected";
+    if (single?.placeId) {
+      const match = await matchLocationToEntity(admin, single.placeId);
+      if (match) {
+        const { data: existing } = await (admin.from("community_member_entity_links") as any)
+          .select("community_member_id")
+          .eq("entity_type", match.entityType)
+          .eq("entity_id", match.entityId)
+          .maybeSingle();
+        if (!existing || existing.community_member_id === (member as any).id) {
+          await (admin.from("community_member_entity_links") as any).upsert(
+            { community_member_id: (member as any).id, entity_type: match.entityType, entity_id: match.entityId },
+            { onConflict: "community_member_id" }
+          );
+          entityType = match.entityType;
+          entityId = match.entityId;
+          status = "linked";
+        } else {
+          status = "needs_review"; // owns the GBP location but the entity is claimed by another member
+        }
+      }
+    }
+
     const { error: upErr } = await (admin.from("gbp_connections") as any).upsert(
       {
         community_member_id: (member as any).id,
@@ -59,7 +87,9 @@ export async function GET(req: Request) {
         locations,
         selected_location: single?.name || null,
         place_id: single?.placeId || null,
-        status: locations.length > 1 ? "needs_selection" : "connected",
+        entity_type: entityType,
+        entity_id: entityId,
+        status,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "community_member_id" }

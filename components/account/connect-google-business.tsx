@@ -48,7 +48,11 @@ export function ConnectGoogleBusiness() {
           </p>
           <p className="text-xs text-slate-500 mt-0.5">
             {status.email ? `Connected as ${status.email}. ` : ""}
-            {status.status === "needs_selection"
+            {status.status === "linked"
+              ? "Verified owner — your listing is claimed and will stay in sync with Google."
+              : status.status === "needs_review"
+              ? "We found your business, but this listing is already claimed by another account — we'll review it."
+              : status.status === "needs_selection"
               ? `${status.locationsCount} locations found — choose which one is this listing.`
               : "Your listing will stay in sync with Google."}
           </p>
