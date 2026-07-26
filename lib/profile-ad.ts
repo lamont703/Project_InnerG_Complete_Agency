@@ -112,25 +112,33 @@ export interface EntityBottomBannerAd {
   creative: string; // for ad tracking
 }
 
-// Which table(s) back each entity route, for looking up the VIEWED entity's
-// location (to geo-match a campaign). Schools/stores share a route across two
-// tables. Events are intentionally excluded — the banner runs on business
-// profiles, matching ScrollCTA's own page filter.
-const BANNER_ROUTE_TABLES: Record<string, string[]> = {
-  shop: ["agent_barbershop_leads"],
-  salons: ["agent_salon_leads"],
-  schools: ["agent_barber_school_leads", "agent_cosmetology_school_leads"],
-  stores: ["agent_barber_supply_store_leads", "agent_beauty_supply_store_leads"],
-  barbers: ["agent_barber_leads"],
-  cosmetologists: ["agent_cosmetologist_leads"],
+// Each entity route → the candidate table(s) with their SPECIFIC entity-type key.
+// /schools and /stores each map to two types (barber vs cosmetology school,
+// barber vs beauty supply), distinguished by which table the slug is in — that's
+// what lets a banner target, say, only Cosmetology Schools. Events are excluded —
+// the banner runs on business profiles, matching ScrollCTA's own page filter.
+const BANNER_ROUTE_RESOLVE: Record<string, { table: string; type: string }[]> = {
+  shop: [{ table: "agent_barbershop_leads", type: "shop" }],
+  salons: [{ table: "agent_salon_leads", type: "salon" }],
+  barbers: [{ table: "agent_barber_leads", type: "barber" }],
+  cosmetologists: [{ table: "agent_cosmetologist_leads", type: "cosmetologist" }],
+  schools: [
+    { table: "agent_barber_school_leads", type: "barber_school" },
+    { table: "agent_cosmetology_school_leads", type: "cosmetology_school" },
+  ],
+  stores: [
+    { table: "agent_barber_supply_store_leads", type: "barber_supply_store" },
+    { table: "agent_beauty_supply_store_leads", type: "beauty_supply_store" },
+  ],
 };
 
-async function viewedEntityGeo(admin: any, route: string, slug: string): Promise<AdViewerContext> {
-  for (const table of BANNER_ROUTE_TABLES[route] || []) {
+// Resolve the viewed entity's specific type + location from route + slug.
+async function resolveViewedEntity(admin: any, route: string, slug: string): Promise<{ type: string; ctx: AdViewerContext } | null> {
+  for (const { table, type } of BANNER_ROUTE_RESOLVE[route] || []) {
     const { data } = await admin.from(table).select("*").eq("slug", slug).maybeSingle();
-    if (data) return { city: data.city || data.metro_area || null, address: data.formatted_address || data.address || null };
+    if (data) return { type, ctx: { city: data.city || data.metro_area || null, address: data.formatted_address || data.address || null } };
   }
-  return {};
+  return null;
 }
 
 // Serves the dismissible bottom-banner ad for an entity page. Resolves the
@@ -153,13 +161,14 @@ export async function getEntityBottomBannerAd(pathname: string): Promise<EntityB
       .order("created_at", { ascending: false });
     if (!camps || !camps.length) return null;
 
-    const ctx = await viewedEntityGeo(admin, route, slug);
+    const viewed = await resolveViewedEntity(admin, route, slug);
+    if (!viewed) return null;
     const match = (camps as any[]).find(
       (c) =>
         c.entity_type &&
         c.creative &&
-        (!c.banner_page_types?.length || c.banner_page_types.includes(route)) &&
-        geoMatches(c, ctx)
+        (!c.banner_page_types?.length || c.banner_page_types.includes(viewed.type)) &&
+        geoMatches(c, viewed.ctx)
     );
     if (!match) return null;
 
