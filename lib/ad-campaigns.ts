@@ -50,6 +50,18 @@ export function entityHref(entityType: string | null, slug: string | null): stri
   return t && slug ? `${t.route}/${slug}` : null;
 }
 
+// Entity PAGE types the entity_bottom_banner can be shown on (route key → label).
+// Empty selection = every type. These keys match the route segment parsed from
+// the pathname in getEntityBottomBannerAd (schools/stores each cover two tables).
+export const BANNER_PAGE_TYPES: { key: string; label: string }[] = [
+  { key: "shop", label: "Barbershops" },
+  { key: "salons", label: "Salons" },
+  { key: "barbers", label: "Barbers" },
+  { key: "cosmetologists", label: "Cosmetologists" },
+  { key: "schools", label: "Schools" },
+  { key: "stores", label: "Supply Stores" },
+];
+
 // Search filter tabs an ad can be targeted to (the entity-result tabs; the
 // non-entity tabs like AI Mode / Articles / Videos aren't ad-eligible).
 export const SEARCH_AD_TABS = [
@@ -77,6 +89,7 @@ export interface AdCampaign {
   ad_eyebrow?: string | null;
   ad_headline?: string | null;
   ad_cta_label?: string | null;
+  banner_page_types?: string[];
   status: string;
   start_date: string | null;
   end_date: string | null;

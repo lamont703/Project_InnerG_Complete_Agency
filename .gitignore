@@ -36,3 +36,7 @@ public/milady_split/Milady Barber Book 6th Edition.pdf
 .env*.local
 scripts/styleseat-agent/auth.json
 scripts/xrp-whale-watch/
+
+# Local-only Search Console reporting scripts + their CSV output
+scripts/gsc_*.js
+scratchpad_reports/

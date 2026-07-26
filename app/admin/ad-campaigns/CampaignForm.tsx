@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AD_PLACEMENTS, PLACEMENT_LABELS, SEARCH_AD_TABS } from "@/lib/ad-campaigns";
+import { AD_PLACEMENTS, PLACEMENT_LABELS, SEARCH_AD_TABS, BANNER_PAGE_TYPES } from "@/lib/ad-campaigns";
 import { EntityTypeahead } from "./EntityTypeahead";
 import { CitiesMultiSelect } from "./CitiesMultiSelect";
 
@@ -52,6 +52,7 @@ export interface CampaignInitial {
   ad_eyebrow: string | null;
   ad_headline: string | null;
   ad_cta_label: string | null;
+  banner_page_types: string[];
   status: string;
 }
 
@@ -76,6 +77,7 @@ export function CampaignForm({
 
   const initialTabs = new Set(initial?.filter_tabs || []);
   const initialStates = new Set(initial?.target_states || []);
+  const initialPageTypes = new Set(initial?.banner_page_types || []);
 
   return (
     <form action={submitAction} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-8 space-y-5">
@@ -236,9 +238,24 @@ export function CampaignForm({
         </>
       )}
 
-      {/* 5) Entity bottom banner — destination entity + compact ad copy. */}
+      {/* 5) Entity bottom banner — page-type targeting, destination entity, copy. */}
       {isEntityBanner && (
         <>
+          <div className="border-t border-slate-100 pt-5">
+            <p className="text-sm font-black text-slate-800 mb-1">Show on these entity page types</p>
+            <p className="text-[11px] text-slate-400 mb-3">Which kinds of entity pages this banner appears on. Select one or more; none = all types.</p>
+            <div className="flex flex-wrap gap-2">
+              {BANNER_PAGE_TYPES.map((pt) => (
+                <label
+                  key={pt.key}
+                  className="cursor-pointer select-none rounded-full border border-slate-300 px-3.5 py-1.5 text-sm font-bold text-slate-600 bg-white transition-colors has-[:checked]:bg-indigo-600 has-[:checked]:border-indigo-600 has-[:checked]:text-white hover:border-indigo-400"
+                >
+                  <input type="checkbox" name="banner_page_types" value={pt.key} defaultChecked={initialPageTypes.has(pt.key)} className="sr-only" />
+                  {pt.label}
+                </label>
+              ))}
+            </div>
+          </div>
           <EntityTypeahead
             heading="Link destination — the entity this banner sends visitors to"
             initialType={initial?.entity_type}

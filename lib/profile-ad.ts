@@ -147,14 +147,20 @@ export async function getEntityBottomBannerAd(pathname: string): Promise<EntityB
     const admin = createAdminClient();
     const { data: camps } = await (admin as any)
       .from("ad_campaigns")
-      .select("entity_type, creative, target_states, target_cities, ad_eyebrow, ad_headline, ad_cta_label, created_at")
+      .select("entity_type, creative, target_states, target_cities, banner_page_types, ad_eyebrow, ad_headline, ad_cta_label, created_at")
       .eq("placement", "entity_bottom_banner")
       .eq("status", "active")
       .order("created_at", { ascending: false });
     if (!camps || !camps.length) return null;
 
     const ctx = await viewedEntityGeo(admin, route, slug);
-    const match = (camps as any[]).find((c) => c.entity_type && c.creative && geoMatches(c, ctx));
+    const match = (camps as any[]).find(
+      (c) =>
+        c.entity_type &&
+        c.creative &&
+        (!c.banner_page_types?.length || c.banner_page_types.includes(route)) &&
+        geoMatches(c, ctx)
+    );
     if (!match) return null;
 
     const href = entityHref(match.entity_type, match.creative);
