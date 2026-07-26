@@ -98,12 +98,6 @@ const getCachedSitemapData = unstable_cache(
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: shops } = await supabase
-      .from('agent_barbershop_leads')
-      .select('chair_pricing_tool_url, updated_at')
-      .ilike('city', '%houston%')
-      .not('chair_pricing_tool_url', 'is', null);
-
     const qualifyingCities = await getQualifyingCities(supabase);
     const nonBespokeQualifying = qualifyingCities.filter((c) => c.qualifies && !BESPOKE_CITY_ROUTES[c.slug]);
 
@@ -148,7 +142,6 @@ const getCachedSitemapData = unstable_cache(
 
     return {
       uniqueRoutes,
-      shops: shops || [],
       nonBespokeQualifying,
       cityZipResults,
       nonBespokeQualifyingCA,
@@ -177,7 +170,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const {
       uniqueRoutes,
-      shops,
       nonBespokeQualifying,
       cityZipResults,
       nonBespokeQualifyingCA,
@@ -218,32 +210,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     });
 
-    // Programmatic SEO: Houston shops' Dynamic Market Analysis URLs (data now sourced from the cached bundle above)
-    const dynamicSitemap = (shops || []).map((shop: any) => {
-      // Extract the slug from the URL
-      let slug = "";
-      try {
-        const urlObj = new URL(shop.chair_pricing_tool_url);
-        const pathSegments = urlObj.pathname.split('/');
-        slug = pathSegments[pathSegments.length - 1];
-      } catch (e) {
-        const parts = shop.chair_pricing_tool_url.split('?')[0].split('/');
-        slug = parts[parts.length - 1];
-      }
-
-      return {
-        url: `${baseUrl}/texas/houston/insights/market-analysis/${slug}`,
-        lastModified: shop.updated_at ? new Date(shop.updated_at) : new Date(),
-        changeFrequency: 'weekly' as const,
-        priority: 0.85,
-      };
-    });
-
     // Programmatic SEO: the generic crawler above skips `[bracket]` dynamic
     // folders entirely (see getRoutes), so /texas's own /[city] and
-    // /[city]/[zip] children never show up on their own — same manual
-    // pattern as the Houston market-analysis block above, generalized to
-    // every qualifying city. (Data now sourced from the cached bundle above.)
+    // /[city]/[zip] children never show up on their own — a manual pattern
+    // applied to every qualifying city. (The deprecated Houston
+    // market-analysis URLs used to be emitted here too; those pages now 301 to
+    // each shop's /shop/<slug> profile, so they were removed from the sitemap.)
     const cityHubSitemap = nonBespokeQualifying.map((c: any) => ({
       url: `${baseUrl}/texas/${c.slug}`,
       lastModified: new Date(),
@@ -376,7 +348,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     return [
       ...staticSitemap,
-      ...dynamicSitemap,
       ...directorySitemap,
       ...cityHubSitemap,
       ...cityZipSitemap,
