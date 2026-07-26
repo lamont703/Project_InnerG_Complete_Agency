@@ -6,6 +6,7 @@ import { Navbar } from "@/components/layout/navbar";
 export const metadata = {
   title: "Shop Day Requests | Inner G Complete Agency",
   description: "Securely view and manage Shop Day requests from local barbers.",
+  robots: { index: false, follow: false },
 };
 
 export default function ShopDayRequestsPage() {

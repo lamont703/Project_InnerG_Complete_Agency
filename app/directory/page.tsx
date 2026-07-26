@@ -12,7 +12,7 @@ const CANONICAL = "https://agency.innergcomplete.com/directory";
 export const metadata: Metadata = {
   title: "Full Directory — Barbershops, Salons, Barbers, Schools & Supply Stores | Inner G Complete",
   description:
-    "Browse every barbershop, hair salon, barber, cosmetologist, barber & cosmetology school, and supply store in our directory — the complete A–Z index.",
+    "Browse every barbershop, hair salon, barber, cosmetologist, barber and cosmetology school, and supply store in our directory — the complete A–Z index.",
   alternates: { canonical: CANONICAL },
   openGraph: {
     title: "Full Directory — Every Barbershop, Salon, Barber, School & Supply Store",

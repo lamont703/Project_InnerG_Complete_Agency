@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Barbershops & Salons in Katy, TX | Real Ratings & Reviews | Inner G Complete",
   description:
-    "Real barbershops and salons in Katy, TX — 56 real businesses ranked by real customer ratings and review counts, not a generic directory.",
+    "Real barbershops and salons in Katy, TX — 56 verified businesses ranked by live customer ratings and review counts, updated regularly, not a generic directory.",
   keywords: [
     "katy barber",
     "barber shop katy mills",

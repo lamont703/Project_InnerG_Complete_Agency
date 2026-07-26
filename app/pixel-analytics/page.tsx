@@ -7,6 +7,7 @@ import { CategoryClickBreakdown } from "@/components/pixel-analytics/category-cl
 export const metadata = {
   title: "Pixel Analytics | Inner G Complete",
   description: "Advanced domain intelligence tracking pixel analytics.",
+  robots: { index: false, follow: false },
 }
 
 const ENTITY_TYPE_ICONS: Record<string, typeof Globe> = {

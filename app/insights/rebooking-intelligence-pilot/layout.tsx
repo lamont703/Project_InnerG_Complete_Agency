@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: "Rebooking AI Case Study: Eliminating Barber No-Shows in 2026",
-  description: "Read the pilot case study on how autonomous AI is predicting no-shows and automatically rebooking clients to maintain 100% floor revenue.",
+  description: "Read the pilot case study on how autonomous AI predicts client no-shows and automatically rebooks appointments to protect 100% of a barber's floor revenue.",
   keywords: [
     "Barber ADI pilot",
     "rebooking AI model",

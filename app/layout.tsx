@@ -35,7 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
       : 'Inner G Complete Agency | Artificial Domain Intelligence for Grooming & Wellness',
     description: isTexasBarbering
       ? 'Institutional-grade licensure prep for Texas Barber students. AI-enhanced practice questions and aesthetic intelligence pathways designed to maximize first-time pass rates.'
-      : 'Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises. CPMAI-governed ADI models.',
+      : 'Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises — CPMAI-governed Artificial Domain Intelligence.',
     keywords: [
       'Artificial Domain Intelligence',
       'Texas Barber Exam',

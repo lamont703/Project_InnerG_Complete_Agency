@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Foot Traffic Radar | Barbershop Competitive Intelligence | Inner G Complete",
   description:
-    "Explore competitive intelligence and local foot traffic data for barbershops across the network — find the right chair with data-backed confidence.",
+    "Explore competitive intelligence and local foot traffic data for barbershops across the network — find the right chair to rent with data-backed confidence.",
   keywords: [
     "barbershop foot traffic data",
     "barber chair competitive intelligence",

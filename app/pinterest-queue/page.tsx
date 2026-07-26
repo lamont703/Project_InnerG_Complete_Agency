@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar"
 export const metadata = {
   title: "Pinterest Queue | Inner G Complete",
   description: "Generated Pinterest pins ready to post via GoHighLevel.",
+  robots: { index: false, follow: false },
 }
 
 export const dynamic = "force-dynamic"

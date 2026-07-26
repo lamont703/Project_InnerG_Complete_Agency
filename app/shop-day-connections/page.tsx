@@ -6,6 +6,7 @@ import { Navbar } from "@/components/layout/navbar"
 export const metadata = {
   title: "Shop Day Connections | Inner G Complete",
   description: "Manage invites and requests between Barbers and Barbershops.",
+  robots: { index: false, follow: false },
 }
 
 export const dynamic = 'force-dynamic'

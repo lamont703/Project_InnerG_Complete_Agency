@@ -13,7 +13,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const metadata: Metadata = {
   title: "Texas Barber & Cosmetology Industry Events | Inner G Complete",
-  description: "Upcoming and past barber battles, cosmetology expos, trade shows, and industry events across Texas.",
+  description: "Upcoming and past barber battles, cosmetology expos, trade shows, and industry events across Texas — dates, locations, and details for grooming professionals.",
   alternates: { canonical: "https://agency.innergcomplete.com/events" },
 };
 
