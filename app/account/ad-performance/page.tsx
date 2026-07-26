@@ -6,6 +6,7 @@ import {
   aggregateCampaigns,
   fetchAdEvents,
   PLACEMENT_LABELS,
+  campaignGeoLabel,
   ctrLabel,
   type AdCampaign,
 } from "@/lib/ad-campaigns";
@@ -41,7 +42,7 @@ export default async function MyAdPerformancePage() {
   const admin = createAdminClient();
   const { data: campaignRows } = await (admin as any)
     .from("ad_campaigns")
-    .select("id, user_id, name, placement, creative, scope, status, start_date, end_date")
+    .select("id, user_id, name, placement, creative, scope, target_states, target_cities, status, start_date, end_date")
     .eq("user_id", user.id)
     .eq("status", "active")
     .order("created_at", { ascending: false });
@@ -102,6 +103,7 @@ export default async function MyAdPerformancePage() {
                   <tr className="border-b border-slate-200 text-left text-slate-500">
                     <th className="px-5 py-3 font-bold">Campaign</th>
                     <th className="px-5 py-3 font-bold">Placement</th>
+                    <th className="px-5 py-3 font-bold">City / State</th>
                     <th className="px-5 py-3 font-bold text-right">Impressions</th>
                     <th className="px-5 py-3 font-bold text-right">Clicks</th>
                     <th className="px-5 py-3 font-bold text-right">CTR</th>
@@ -112,6 +114,7 @@ export default async function MyAdPerformancePage() {
                     <tr key={p.campaign.id} className="border-b border-slate-100 last:border-0">
                       <td className="px-5 py-3 font-bold text-slate-900">{p.campaign.name}</td>
                       <td className="px-5 py-3 text-slate-500">{PLACEMENT_LABELS[p.campaign.placement] || p.campaign.placement}</td>
+                      <td className="px-5 py-3 text-slate-500">{campaignGeoLabel(p.campaign)}</td>
                       <td className="px-5 py-3 text-right tabular-nums text-slate-700">{p.impressions.toLocaleString()}</td>
                       <td className="px-5 py-3 text-right tabular-nums text-slate-700">{p.clicks.toLocaleString()}</td>
                       <td className="px-5 py-3 text-right tabular-nums font-black text-indigo-600">{ctrLabel(p.clicks, p.impressions)}</td>
