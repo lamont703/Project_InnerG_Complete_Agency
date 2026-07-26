@@ -41,12 +41,25 @@ export function deriveLocation(raw: string | null | undefined): { city: string; 
 
 export async function fetchGlobalInsights(cutoff?: Date): Promise<GlobalInsightRow[]> {
   const admin = createAdminClient();
-  const { data, error } = await (admin as any).rpc("get_global_listing_insights", {
-    p_cutoff: cutoff ? cutoff.toISOString() : null,
-  });
-  if (error || !data) return [];
+  const p_cutoff = cutoff ? cutoff.toISOString() : null;
 
-  return (data as any[]).map((r) => {
+  // PostgREST caps a single response at 1000 rows, which silently truncated the
+  // leaderboard. Page through the full result set ordered by the unique slug
+  // (deterministic, so no dupes/skips across pages); the client re-sorts by
+  // leads. Hard guard against a runaway loop.
+  const PAGE = 1000;
+  const raw: any[] = [];
+  for (let from = 0; from <= 100000; from += PAGE) {
+    const { data, error } = await (admin as any)
+      .rpc("get_global_listing_insights", { p_cutoff })
+      .order("slug", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error || !data || data.length === 0) break;
+    raw.push(...data);
+    if (data.length < PAGE) break;
+  }
+
+  return raw.map((r) => {
     const visits = Number(r.visits) || 0;
     const totalLeads = Number(r.total_leads) || 0;
     const { city, state } = deriveLocation(r.location);
