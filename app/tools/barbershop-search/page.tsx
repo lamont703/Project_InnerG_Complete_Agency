@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef, Suspense } from "react";
 import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight, Send, CheckCircle2, Loader2, CalendarDays, BadgeCheck } from "lucide-react";
-import { searchBarbershops, getSponsoredSearchEntity, type SponsoredSearchEntity } from "./actions";
+import { searchBarbershops, getSponsoredSearchEntities, type SponsoredSearchEntity } from "./actions";
 import { requestEmploymentVerification } from "@/app/tools/employment-match-review/actions";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -99,7 +99,7 @@ function SearchContent() {
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [results, setResults] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
-  const [sponsoredEntity, setSponsoredEntity] = useState<SponsoredSearchEntity | null>(null);
+  const [sponsoredEntities, setSponsoredEntities] = useState<SponsoredSearchEntity[]>([]);
   const [page, setPage] = useState(Number(searchParams.get("p")) || 1);
   const [filterTab, setFilterTab] = useState(searchParams.get("tab") || "All");
   const [activeFilters, setActiveFilters] = useState<string[]>(searchParams.get("filters") ? searchParams.get("filters")!.split(',') : []);
@@ -108,7 +108,7 @@ function SearchContent() {
   // results). Depends only on the tab, so it's fetched once per tab change.
   useEffect(() => {
     let ignore = false;
-    getSponsoredSearchEntity(filterTab).then((e) => { if (!ignore) setSponsoredEntity(e); });
+    getSponsoredSearchEntities(filterTab).then((e) => { if (!ignore) setSponsoredEntities(e); });
     return () => { ignore = true; };
   }, [filterTab]);
   const [isLoading, setIsLoading] = useState(false);
@@ -921,7 +921,7 @@ function SearchContent() {
                   onExpand={expandAiSnippet}
                 />
               )}
-              {sponsoredEntity && page === 1 && results.length > 0 && (
+              {page === 1 && results.length > 0 && sponsoredEntities.map((sponsoredEntity) => (
                 <AdTracker key={`${sponsoredEntity.creative}-${filterTab}`} placement="search_results" adType="search_results" creative={sponsoredEntity.creative} scope={filterTab}>
                   <Link
                     href={sponsoredEntity.href}
@@ -986,7 +986,7 @@ function SearchContent() {
                     </span>
                   </Link>
                 </AdTracker>
-              )}
+              ))}
               {results.length > 0 && results.map((item, idx) => {
             if (item.resultType === 'internal') {
               return (

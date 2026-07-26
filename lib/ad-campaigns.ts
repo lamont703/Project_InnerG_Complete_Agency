@@ -9,6 +9,7 @@ export const AD_PLACEMENTS = [
   "state_hub_banner",
   "city_hub_banner",
   "search_results",
+  "entity_bottom_banner",
 ] as const;
 
 export const PLACEMENT_LABELS: Record<string, string> = {
@@ -19,6 +20,7 @@ export const PLACEMENT_LABELS: Record<string, string> = {
   state_hub_banner: "State Hub Banner",
   city_hub_banner: "City Hub Banner",
   search_results: "Search Results Ad",
+  entity_bottom_banner: "Entity Page Bottom Banner",
 };
 
 // The entity being advertised — its table (for lookup) and profile route (all
@@ -72,6 +74,9 @@ export interface AdCampaign {
   filter_tabs: string[];
   target_states?: string[];
   target_cities?: string[];
+  ad_eyebrow?: string | null;
+  ad_headline?: string | null;
+  ad_cta_label?: string | null;
   status: string;
   start_date: string | null;
   end_date: string | null;
