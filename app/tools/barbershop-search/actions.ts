@@ -852,7 +852,43 @@ function entityChips(row: any): string[] {
   return out.slice(0, 3);
 }
 
-export async function getSponsoredSearchEntity(filterTab: string): Promise<SponsoredSearchEntity | null> {
+// Build the display object for one matched campaign (looks up its entity row).
+async function buildSponsoredEntity(admin: any, match: any): Promise<SponsoredSearchEntity | null> {
+  const cfg = AD_ENTITY_TYPES.find((e) => e.key === match.entity_type);
+  if (!cfg) return null;
+
+  const { data: ent } = await admin.from(cfg.table as any).select("*").eq("slug", match.creative).maybeSingle();
+  if (!ent) return null;
+  const row = ent as any;
+
+  const description =
+    row.ai_culture_summary || row.description || row.about || row.bio || null;
+
+  return {
+    name: row.shop_name || row.name || row.school_name || row.title || match.creative,
+    slug: match.creative,
+    href: `${cfg.route}/${match.creative}`,
+    image: firstImage(row),
+    rating: row.rating ?? row.booksy_rating ?? null,
+    totalReviews: row.total_reviews ?? row.google_review_count ?? row.booksy_review_count ?? null,
+    city: row.city || row.metro_area || null,
+    address: row.formatted_address || null,
+    description: typeof description === "string" && description.trim() ? description.trim() : null,
+    category: row.google_category || row.school_category || null,
+    chips: entityChips(row),
+    phone: row.phone || null,
+    verified: !!row.claimed_at,
+    creative: match.creative,
+    entityType: match.entity_type,
+  };
+}
+
+// All active search_results ads that target this tab — multiple sponsored
+// entities can show at once. Empty filter_tabs = every tab; "All" is a literal
+// tab, not a wildcard, so a campaign targeting All does not leak onto
+// Salons/Barbershops/etc. Deduped by entity so the same listing from two
+// campaigns only appears once. Newest campaigns first.
+export async function getSponsoredSearchEntities(filterTab: string): Promise<SponsoredSearchEntity[]> {
   try {
     const admin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey);
     const { data: camps } = await admin
@@ -861,47 +897,27 @@ export async function getSponsoredSearchEntity(filterTab: string): Promise<Spons
       .eq("placement", "search_results")
       .eq("status", "active")
       .order("created_at", { ascending: false });
-    if (!camps || !camps.length) return null;
+    if (!camps || !camps.length) return [];
 
-    // Empty filter_tabs = every tab. Otherwise the tab must be explicitly
-    // selected — "All" is a literal tab here, not a wildcard, so a campaign
-    // targeting the All tab does not leak onto Salons/Barbershops/etc.
-    const match = (camps as any[]).find(
-      (c) =>
-        c.entity_type &&
-        c.creative &&
-        (!c.filter_tabs?.length || c.filter_tabs.includes(filterTab))
-    );
-    if (!match) return null;
+    const seen = new Set<string>();
+    const matches = (camps as any[]).filter((c) => {
+      if (!c.entity_type || !c.creative) return false;
+      if (c.filter_tabs?.length && !c.filter_tabs.includes(filterTab)) return false;
+      const key = `${c.entity_type}:${c.creative}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
-    const cfg = AD_ENTITY_TYPES.find((e) => e.key === match.entity_type);
-    if (!cfg) return null;
-
-    const { data: ent } = await admin.from(cfg.table as any).select("*").eq("slug", match.creative).maybeSingle();
-    if (!ent) return null;
-    const row = ent as any;
-
-    const description =
-      row.ai_culture_summary || row.description || row.about || row.bio || null;
-
-    return {
-      name: row.shop_name || row.name || row.school_name || row.title || match.creative,
-      slug: match.creative,
-      href: `${cfg.route}/${match.creative}`,
-      image: firstImage(row),
-      rating: row.rating ?? row.booksy_rating ?? null,
-      totalReviews: row.total_reviews ?? row.google_review_count ?? row.booksy_review_count ?? null,
-      city: row.city || row.metro_area || null,
-      address: row.formatted_address || null,
-      description: typeof description === "string" && description.trim() ? description.trim() : null,
-      category: row.google_category || row.school_category || null,
-      chips: entityChips(row),
-      phone: row.phone || null,
-      verified: !!row.claimed_at,
-      creative: match.creative,
-      entityType: match.entity_type,
-    };
+    const built = await Promise.all(matches.map((m) => buildSponsoredEntity(admin, m)));
+    return built.filter((e): e is SponsoredSearchEntity => e !== null);
   } catch {
-    return null;
+    return [];
   }
+}
+
+// Back-compat single-entity accessor (first matching ad).
+export async function getSponsoredSearchEntity(filterTab: string): Promise<SponsoredSearchEntity | null> {
+  const list = await getSponsoredSearchEntities(filterTab);
+  return list[0] || null;
 }
