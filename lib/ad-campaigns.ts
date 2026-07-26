@@ -84,6 +84,19 @@ export interface AdEvent {
   created_at: string;
 }
 
+// Human-readable geo (city / state) a campaign is tracking, for the performance
+// table. The geo lives in different columns per placement type: banner ads carry
+// one location in `scope`; profile ads use the target_cities / target_states
+// arrays; search ads are targeted by tab, not geo.
+export function campaignGeoLabel(c: AdCampaign): string {
+  if (c.placement === "state_hub_banner" || c.placement === "city_hub_banner") {
+    return c.scope?.trim() || "All locations";
+  }
+  if (c.placement === "search_results") return "—"; // targeted by tab, not geo
+  const parts = [...(c.target_cities || []), ...(c.target_states || [])];
+  return parts.length ? parts.join(", ") : "All locations";
+}
+
 /**
  * A campaign owns an ad event when the placement matches and every non-null
  * narrowing dimension (creative, scope) matches too. A null creative/scope
