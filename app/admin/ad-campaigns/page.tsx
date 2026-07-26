@@ -40,6 +40,9 @@ async function createCampaign(formData: FormData) {
   const filter_tabs = formData.getAll("filter_tabs").map((t) => String(t));
   const target_states = formData.getAll("target_states").map((t) => String(t));
   const target_cities = formData.getAll("target_cities").map((t) => String(t));
+  const ad_eyebrow = String(formData.get("ad_eyebrow") || "").trim() || null;
+  const ad_headline = String(formData.get("ad_headline") || "").trim() || null;
+  const ad_cta_label = String(formData.get("ad_cta_label") || "").trim() || null;
   const isBanner = BANNER_PLACEMENTS.has(placement);
   const err = (m: string) => redirect(`/admin/ad-campaigns?error=${encodeURIComponent(m)}`);
 
@@ -90,6 +93,9 @@ async function createCampaign(formData: FormData) {
     filter_tabs,
     target_states,
     target_cities,
+    ad_eyebrow,
+    ad_headline,
+    ad_cta_label,
     banner_image_url,
     click_url,
     status: "active",
@@ -141,6 +147,9 @@ async function updateCampaign(formData: FormData) {
   const filter_tabs = formData.getAll("filter_tabs").map((t) => String(t));
   const target_states = formData.getAll("target_states").map((t) => String(t));
   const target_cities = formData.getAll("target_cities").map((t) => String(t));
+  const ad_eyebrow = String(formData.get("ad_eyebrow") || "").trim() || null;
+  const ad_headline = String(formData.get("ad_headline") || "").trim() || null;
+  const ad_cta_label = String(formData.get("ad_cta_label") || "").trim() || null;
   const isBanner = BANNER_PLACEMENTS.has(placement);
 
   if (!email || !name || !placement) err("Email, campaign name, and placement are required.");
@@ -189,6 +198,9 @@ async function updateCampaign(formData: FormData) {
     filter_tabs,
     target_states,
     target_cities,
+    ad_eyebrow,
+    ad_headline,
+    ad_cta_label,
     click_url,
     status,
     updated_at: new Date().toISOString(),
@@ -206,7 +218,7 @@ export default async function AdminAdCampaignsPage(props: { searchParams: Promis
   const admin = createAdminClient();
   const { data: campaigns } = await (admin as any)
     .from("ad_campaigns")
-    .select("id, user_id, name, placement, entity_type, creative, scope, filter_tabs, target_states, target_cities, click_url, banner_image_url, status, created_at")
+    .select("id, user_id, name, placement, entity_type, creative, scope, filter_tabs, target_states, target_cities, ad_eyebrow, ad_headline, ad_cta_label, click_url, banner_image_url, status, created_at")
     .order("created_at", { ascending: false });
 
   const userIds = [...new Set((campaigns || []).map((c: any) => c.user_id))];
@@ -241,6 +253,9 @@ export default async function AdminAdCampaignsPage(props: { searchParams: Promis
         filter_tabs: c.filter_tabs || [],
         target_states: c.target_states || [],
         target_cities: c.target_cities || [],
+        ad_eyebrow: c.ad_eyebrow ?? null,
+        ad_headline: c.ad_headline ?? null,
+        ad_cta_label: c.ad_cta_label ?? null,
         click_url: c.click_url,
         banner_image_url: c.banner_image_url,
         status: c.status,

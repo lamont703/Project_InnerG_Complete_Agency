@@ -103,6 +103,75 @@ export async function getProfileCampaignAd(placement: string, ctx: AdViewerConte
   }
 }
 
+// ── Entity-page bottom banner (the dismissible scroll CTA, now ad-driven) ──
+export interface EntityBottomBannerAd {
+  eyebrow: string;
+  headline: string;
+  ctaLabel: string;
+  href: string; // the linked entity's profile
+  creative: string; // for ad tracking
+}
+
+// Which table(s) back each entity route, for looking up the VIEWED entity's
+// location (to geo-match a campaign). Schools/stores share a route across two
+// tables. Events are intentionally excluded — the banner runs on business
+// profiles, matching ScrollCTA's own page filter.
+const BANNER_ROUTE_TABLES: Record<string, string[]> = {
+  shop: ["agent_barbershop_leads"],
+  salons: ["agent_salon_leads"],
+  schools: ["agent_barber_school_leads", "agent_cosmetology_school_leads"],
+  stores: ["agent_barber_supply_store_leads", "agent_beauty_supply_store_leads"],
+  barbers: ["agent_barber_leads"],
+  cosmetologists: ["agent_cosmetologist_leads"],
+};
+
+async function viewedEntityGeo(admin: any, route: string, slug: string): Promise<AdViewerContext> {
+  for (const table of BANNER_ROUTE_TABLES[route] || []) {
+    const { data } = await admin.from(table).select("*").eq("slug", slug).maybeSingle();
+    if (data) return { city: data.city || data.metro_area || null, address: data.formatted_address || data.address || null };
+  }
+  return {};
+}
+
+// Serves the dismissible bottom-banner ad for an entity page. Resolves the
+// viewed entity from the pathname, geo-matches an active entity_bottom_banner
+// campaign against that entity's location (empty targets = everywhere), and
+// returns the ad copy + link to the campaign's chosen entity. Null → the caller
+// (ScrollCTA) shows its default directory CTA.
+export async function getEntityBottomBannerAd(pathname: string): Promise<EntityBottomBannerAd | null> {
+  try {
+    const m = pathname.match(/^\/(salons|barbers|schools|stores|shop|cosmetologists)\/([^/?#]+)$/);
+    if (!m) return null;
+    const [, route, slug] = m;
+
+    const admin = createAdminClient();
+    const { data: camps } = await (admin as any)
+      .from("ad_campaigns")
+      .select("entity_type, creative, target_states, target_cities, ad_eyebrow, ad_headline, ad_cta_label, created_at")
+      .eq("placement", "entity_bottom_banner")
+      .eq("status", "active")
+      .order("created_at", { ascending: false });
+    if (!camps || !camps.length) return null;
+
+    const ctx = await viewedEntityGeo(admin, route, slug);
+    const match = (camps as any[]).find((c) => c.entity_type && c.creative && geoMatches(c, ctx));
+    if (!match) return null;
+
+    const href = entityHref(match.entity_type, match.creative);
+    if (!href) return null;
+
+    return {
+      eyebrow: (match.ad_eyebrow || "Sponsored").trim(),
+      headline: (match.ad_headline || "Discover this featured listing near you.").trim(),
+      ctaLabel: (match.ad_cta_label || "Learn more").trim(),
+      href,
+      creative: match.creative,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export interface BannerAd {
   imageUrl: string;
   href: string;

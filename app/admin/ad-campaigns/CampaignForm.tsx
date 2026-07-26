@@ -32,6 +32,7 @@ const PLACEMENT_HELP: Record<string, string> = {
   search_results: "Shows at the top of the search results on the selected filter tabs, advertising the entity below.",
   state_hub_banner: "Reserves the sponsorship banner on the state hub. Set the state it covers.",
   city_hub_banner: "Reserves the sponsorship banner on a city hub. Set the city it covers.",
+  entity_bottom_banner: "Shows as the dismissible bottom banner on entity pages in the targeted cities/states, linking to the entity below. Write short copy that fits a compact CTA.",
 };
 
 export interface CampaignInitial {
@@ -48,6 +49,9 @@ export interface CampaignInitial {
   target_cities: string[];
   click_url: string | null;
   banner_image_url: string | null;
+  ad_eyebrow: string | null;
+  ad_headline: string | null;
+  ad_cta_label: string | null;
   status: string;
 }
 
@@ -68,6 +72,7 @@ export function CampaignForm({
   const isSearch = placement === "search_results";
   const isBanner = BANNER_PLACEMENTS.has(placement);
   const isProfile = PROFILE_PLACEMENTS.has(placement);
+  const isEntityBanner = placement === "entity_bottom_banner";
 
   const initialTabs = new Set(initial?.filter_tabs || []);
   const initialStates = new Set(initial?.target_states || []);
@@ -117,8 +122,9 @@ export function CampaignForm({
         <EntityTypeahead initialType={initial?.entity_type} initialSlug={initial?.creative} initialName={initial?.entityName} />
       )}
 
-      {/* 2b) Geo targeting — profile ads only (banners scope by hub; search by tab). */}
-      {isProfile && (
+      {/* 2b) Geo targeting — profile ads + the entity bottom banner (hub banners
+          scope by hub; search targets by tab). */}
+      {(isProfile || isEntityBanner) && (
         <div className="border-t border-slate-100 pt-5">
           <p className="text-sm font-black text-slate-800 mb-1">
             Geo targeting <span className="font-normal text-slate-400">(optional)</span>
@@ -225,6 +231,38 @@ export function CampaignForm({
                 className={`${inputCls} mt-1 font-normal`}
               />
               <span className="block text-[11px] font-normal text-slate-400 mt-1">If set, clicking the banner goes here instead of the entity&apos;s profile.</span>
+            </label>
+          </div>
+        </>
+      )}
+
+      {/* 5) Entity bottom banner — destination entity + compact ad copy. */}
+      {isEntityBanner && (
+        <>
+          <EntityTypeahead
+            heading="Link destination — the entity this banner sends visitors to"
+            initialType={initial?.entity_type}
+            initialSlug={initial?.creative}
+            initialName={initial?.entityName}
+          />
+          <div className="border-t border-slate-100 pt-5 space-y-4">
+            <div>
+              <p className="text-sm font-black text-slate-800">Ad copy</p>
+              <p className="text-[11px] text-slate-400">Shown in a compact bottom banner — keep it short.</p>
+            </div>
+            <label className="text-sm font-bold text-slate-700 block sm:max-w-xs">
+              Eyebrow label
+              <input name="ad_eyebrow" defaultValue={initial?.ad_eyebrow || ""} placeholder="Sponsored" maxLength={28} className={`${inputCls} mt-1 font-normal`} />
+              <span className="block text-[11px] font-normal text-slate-400 mt-1">Small uppercase label above the pitch.</span>
+            </label>
+            <label className="text-sm font-bold text-slate-700 block">
+              Headline / pitch
+              <textarea name="ad_headline" defaultValue={initial?.ad_headline || ""} placeholder="Book your next fade at Sauccy Fades — walk-ins welcome." maxLength={140} rows={2} className={`${inputCls} mt-1 font-normal`} />
+              <span className="block text-[11px] font-normal text-slate-400 mt-1">One or two short sentences (~140 characters max) so it fits the banner.</span>
+            </label>
+            <label className="text-sm font-bold text-slate-700 block sm:max-w-xs">
+              Button label
+              <input name="ad_cta_label" defaultValue={initial?.ad_cta_label || ""} placeholder="View shop" maxLength={24} className={`${inputCls} mt-1 font-normal`} />
             </label>
           </div>
         </>

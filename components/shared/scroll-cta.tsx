@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
+import { AdTracker } from "@/components/ads/AdTracker";
+import { fetchEntityBottomBannerAd } from "./scroll-cta-ad";
+import type { EntityBottomBannerAd } from "@/lib/profile-ad";
 
 // Dismissal used to be plain component state, which reset on every fresh
 // page load with no memory of a prior dismissal — a visitor who returned
@@ -27,6 +30,9 @@ export function ScrollCTA() {
   const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  // Campaign-driven ad for this entity page, if one is targeting it. null = fall
+  // back to the default directory CTA below.
+  const [ad, setAd] = useState<EntityBottomBannerAd | null>(null);
 
   // Runs once on mount (this component lives in the root layout, so
   // "mount" effectively means a fresh page load, not every client-side
@@ -70,6 +76,20 @@ export function ScrollCTA() {
   }
 
   const searchUrl = `/tools/barbershop-search?tab=${targetTab}`;
+  const ctaCls =
+    "flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm px-4 py-3 shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0";
+
+  // Pull the campaign ad for this page (server action → geo-matched
+  // entity_bottom_banner campaign, or null when none targets it).
+  useEffect(() => {
+    let ignore = false;
+    if (isEntityPage) {
+      fetchEntityBottomBannerAd(pathname).then((a) => { if (!ignore) setAd(a); });
+    } else {
+      setAd(null);
+    }
+    return () => { ignore = true; };
+  }, [isEntityPage, pathname]);
 
   useEffect(() => {
     if (!isEntityPage || isDismissed) {
@@ -141,13 +161,12 @@ export function ScrollCTA() {
                 <Search className="h-4.5 w-4.5 animate-pulse" />
               </div>
               <span className="text-xs font-black tracking-widest text-slate-400 uppercase">
-                Aesthetic Intelligence
+                {ad ? ad.eyebrow : "Aesthetic Intelligence"}
               </span>
             </div>
             <button
               onClick={handleDismiss}
               aria-label="Dismiss banner"
-              data-ig-click="outbound_lead"
               className="rounded-lg p-1 text-slate-400 hover:text-white hover:bg-white/5 transition-all"
             >
               <X className="h-4 w-4" />
@@ -156,20 +175,29 @@ export function ScrollCTA() {
 
           <div>
             <p className="text-sm font-semibold text-slate-100 leading-relaxed">
-              {hookText}
+              {ad ? ad.headline : hookText}
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link
-              href={searchUrl}
-              onClick={handleCTAClick}
-              data-ig-click="outbound_lead"
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm px-4 py-3 shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
+          {ad ? (
+            <AdTracker
+              className="flex items-center gap-3"
+              placement="entity_bottom_banner"
+              adType="geographic"
+              creative={ad.creative}
+              scope={pathname}
             >
-              Search Directory
-            </Link>
-          </div>
+              <Link href={ad.href} className={ctaCls}>
+                {ad.ctaLabel}
+              </Link>
+            </AdTracker>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Link href={searchUrl} onClick={handleCTAClick} className={ctaCls}>
+                Search Directory
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>
