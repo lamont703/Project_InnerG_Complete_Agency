@@ -25,7 +25,10 @@ import {
   Search,
   Scissors,
   Sparkles,
+  CheckCircle2,
 } from "lucide-react";
+import { ClaimShopButton } from "@/components/shared/claim-shop-button";
+import { isEntityClaimed } from "@/lib/entity-claim";
 
 export const revalidate = 3600;
 
@@ -134,6 +137,8 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
   if (!result) notFound();
   if (result.resolvedByLegacyId) permanentRedirect(`/stores/${result.store.slug}`);
   const { store, storeType } = result;
+  const claimEntityType = storeType === "beauty_supply" ? "beauty_supply_store" : "barber_supply_store";
+  const isClaimed = await isEntityClaimed(claimEntityType, store.id);
   const storeLabel = storeType === "beauty_supply" ? "Beauty Supply Store" : "Barber Supply Store";
   const aboutBlurb =
     storeType === "beauty_supply"
@@ -213,6 +218,15 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
             {/* Header Block */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{store.name}</h1>
+              {isClaimed ? (
+                <div className="mt-2">
+                  <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1.5 rounded-lg font-bold text-xs">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Claimed
+                  </span>
+                </div>
+              ) : (
+                <ClaimShopButton entityType={claimEntityType} entityId={store.id} entityName={store.name} noun="store" />
+              )}
               {(store.formatted_address || directionsHref) && (
                 <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 mt-1 text-sm text-slate-500 font-medium">
                   {store.formatted_address && (
@@ -317,7 +331,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
 
           {/* Sidebar */}
           <div className="space-y-4">
-            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={false} entityLabel="store" />
+            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={isClaimed} entityLabel="store" />
 
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">

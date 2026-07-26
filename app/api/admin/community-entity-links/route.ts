@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { claimTypeConfig, CLAIM_ENTITY_TYPES, CLAIMED_AT_TYPES } from "@/lib/entity-claim";
 
 // Backs the /admin/community-entity-links dashboard. community_members
 // stays a thin directory row (no location/photos/ratings), so it can never
@@ -28,21 +29,19 @@ export async function GET() {
 
   const linksAny: any[] = links || [];
   const linkByMember = new Map<string, any>(linksAny.map((l) => [l.community_member_id, l]));
-  const shopIds = linksAny.filter((l) => l.entity_type === "shop").map((l) => l.entity_id);
-  const salonIds = linksAny.filter((l) => l.entity_type === "salon").map((l) => l.entity_id);
 
-  const [{ data: shops }, { data: salons }] = await Promise.all([
-    shopIds.length > 0
-      ? supabase.from("agent_barbershop_leads").select("id, slug, shop_name, formatted_address").in("id", shopIds)
-      : Promise.resolve({ data: [] as any[] }),
-    salonIds.length > 0
-      ? (supabase.from("agent_salon_leads") as any).select("id, slug, shop_name, formatted_address").in("id", salonIds)
-      : Promise.resolve({ data: [] as any[] }),
-  ]);
-
+  // Resolve every linked entity across all claimable types into one map.
+  const idsByType: Record<string, string[]> = {};
+  for (const l of linksAny) (idsByType[l.entity_type] = idsByType[l.entity_type] || []).push(l.entity_id);
   const entityById = new Map<string, any>();
-  (shops || []).forEach((s: any) => entityById.set(`shop:${s.id}`, s));
-  (salons || []).forEach((s: any) => entityById.set(`salon:${s.id}`, s));
+  await Promise.all(
+    CLAIM_ENTITY_TYPES.map(async (t) => {
+      const ids = idsByType[t.key];
+      if (!ids || !ids.length) return;
+      const { data } = await (supabase.from(t.table) as any).select(`id, slug, ${t.nameCol}, ${t.addressCol}`).in("id", ids);
+      (data || []).forEach((e: any) => entityById.set(`${t.key}:${e.id}`, { slug: e.slug, name: e[t.nameCol], address: e[t.addressCol] }));
+    })
+  );
 
   const result = (members || []).map((m) => {
     const link = linkByMember.get(m.id);
@@ -55,8 +54,8 @@ export async function GET() {
             entityType: link.entity_type,
             entityId: link.entity_id,
             entitySlug: entity.slug,
-            entityName: entity.shop_name,
-            entityAddress: entity.formatted_address,
+            entityName: entity.name,
+            entityAddress: entity.address,
             linkedAt: link.linked_at,
           }
         : null,
@@ -70,24 +69,28 @@ export async function POST(req: Request) {
   try {
     const { communityMemberId, entityType, entityId } = await req.json();
 
-    if (!communityMemberId || !entityType || !entityId || !["shop", "salon"].includes(entityType)) {
-      return NextResponse.json({ success: false, error: "communityMemberId, entityType (shop|salon), and entityId are required." }, { status: 400 });
+    const cfg = claimTypeConfig(entityType);
+    if (!communityMemberId || !cfg || !entityId) {
+      return NextResponse.json(
+        { success: false, error: `communityMemberId, entityType (${CLAIM_ENTITY_TYPES.map((t) => t.key).join("|")}), and entityId are required.` },
+        { status: 400 }
+      );
     }
 
     const supabase = createAdminClient();
-    const table = entityType === "shop" ? "agent_barbershop_leads" : "agent_salon_leads";
 
     // Replacing an existing link for this member: un-claim the old entity
-    // first so exactly one entity stays claimed per member.
+    // first so exactly one entity stays claimed per member. Only shop/salon
+    // carry a claimed_at column; other types are claimed via the link row only.
     const { data: existingLink } = await (supabase
       .from("community_member_entity_links") as any)
       .select("entity_type, entity_id")
       .eq("community_member_id", communityMemberId)
       .maybeSingle();
 
-    if (existingLink) {
-      const oldTable = existingLink.entity_type === "shop" ? "agent_barbershop_leads" : "agent_salon_leads";
-      await (supabase.from(oldTable) as any).update({ claimed_at: null }).eq("id", existingLink.entity_id);
+    if (existingLink && CLAIMED_AT_TYPES.has(existingLink.entity_type)) {
+      const oldCfg = claimTypeConfig(existingLink.entity_type);
+      if (oldCfg) await (supabase.from(oldCfg.table) as any).update({ claimed_at: null }).eq("id", existingLink.entity_id);
     }
 
     const { error: upsertError } = await (supabase
@@ -101,13 +104,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: upsertError.message }, { status: 500 });
     }
 
-    const { error: claimError } = await (supabase
-      .from(table) as any)
-      .update({ claimed_at: new Date().toISOString() })
-      .eq("id", entityId);
-
-    if (claimError) {
-      return NextResponse.json({ success: false, error: claimError.message }, { status: 500 });
+    if (CLAIMED_AT_TYPES.has(entityType)) {
+      const { error: claimError } = await (supabase
+        .from(cfg.table) as any)
+        .update({ claimed_at: new Date().toISOString() })
+        .eq("id", entityId);
+      if (claimError) {
+        return NextResponse.json({ success: false, error: claimError.message }, { status: 500 });
+      }
     }
 
     return NextResponse.json({ success: true });

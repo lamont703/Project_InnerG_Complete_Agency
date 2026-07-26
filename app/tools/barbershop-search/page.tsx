@@ -650,46 +650,46 @@ function SearchContent() {
                 <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
                   <span className="w-full text-center text-xs sm:text-sm text-slate-500 font-medium">Ask about real-time market data:</span>
                   <button
-                    onClick={() => startQuickSearch("Which Houston neighborhoods have the cheapest barber booth rent right now?")}
+                    onClick={() => startQuickSearch("Which California cosmetology schools have the highest 2026 first-time written pass rates?")}
                     className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
-                    Cheapest Houston neighborhoods for barber booth rent
+                    California cosmetology schools with the best 2026 pass rates
                   </button>
                   <button
-                    onClick={() => startQuickSearch("Which Houston barbershops are hiring or renting booths this week?")}
+                    onClick={() => startQuickSearch("Which California barber schools have the best 2026 state board written pass rates?")}
                     className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
-                    Houston barbershops hiring or renting booths this week
+                    California barber schools with the top 2026 pass rates
                   </button>
                   <button
-                    onClick={() => startQuickSearch("Which Texas barber schools actually deliver the highest 2026 pass rates?")}
+                    onClick={() => startQuickSearch("Which barber supply stores in Houston have the best ratings and selection?")}
                     className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
-                    Texas barber schools with the highest 2026 pass rates
+                    Top-rated barber supply stores in Houston
                   </button>
                   <button
-                    onClick={() => startQuickSearch("Which highly-rated Houston salons are hiring or renting chairs right now?")}
+                    onClick={() => startQuickSearch("Where are the highest-rated beauty supply stores in Houston?")}
                     className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
-                    Highly-rated Houston salons hiring or renting chairs
+                    Best-rated beauty supply stores in Houston
                   </button>
                   <button
-                    onClick={() => startQuickSearch("What are cosmetologists actually charging for services in Houston right now?")}
+                    onClick={() => startQuickSearch("Which Los Angeles barbershops are the highest rated right now?")}
                     className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
-                    What Houston cosmetologists are actually charging
+                    Top-rated Los Angeles barbershops
                   </button>
                   <button
-                    onClick={() => startQuickSearch("Which Texas cosmetology schools actually deliver the highest 2026 pass rates?")}
+                    onClick={() => startQuickSearch("Which Dallas barbershops are hiring barbers or have the strongest reviews right now?")}
                     className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <span className="mr-1.5">✨</span>
-                    Texas cosmetology schools with the highest 2026 pass rates
+                    Dallas barbershops hiring or top-reviewed
                   </button>
                 </div>
               )}

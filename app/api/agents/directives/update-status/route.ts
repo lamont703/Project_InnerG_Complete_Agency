@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { buildSlug } from "@/lib/slug";
 import { computeNearbyAreas } from "@/lib/nearby-areas";
+import { pingIndexNow } from "@/lib/indexnow";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -210,6 +211,12 @@ async function publishDiscoveredBusiness(
 
   const { error } = await supabase.from(table).insert(insertPayload);
   if (error) return { error: error.message };
+
+  // Push the freshly-published URL to IndexNow (Bing et al.) so it's crawled
+  // within hours, not weeks. Never blocks/fails the publish — pingIndexNow
+  // swallows its own errors.
+  await pingIndexNow([`/${config.routePrefix}/${slug}`]);
+
   return { id, slug };
 }
 

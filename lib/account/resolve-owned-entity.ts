@@ -29,6 +29,12 @@ export async function resolveOwnedEntity() {
     .maybeSingle();
   if (!link) return { link: null, table: null } as const;
 
+  // Claiming works for every entity type (the green badge comes from the link
+  // row), but the self-edit form here is still shop/salon-specific — other
+  // claimed types get the badge but no edit UI yet, so treat them as
+  // "nothing editable" rather than mis-editing them as a salon.
+  if (link.entity_type !== "shop" && link.entity_type !== "salon") return { link: null, table: null } as const;
+
   const table = link.entity_type === "shop" ? "agent_barbershop_leads" : "agent_salon_leads";
   return { link, table } as const;
 }

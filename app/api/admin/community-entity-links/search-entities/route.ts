@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { CLAIM_ENTITY_TYPES } from "@/lib/entity-claim";
 
-// Entity picker for the linking dashboard — searches both claimable
-// entity types (shops, salons) by name in parallel, capped small since
-// this is a live-typing autocomplete, not a paginated browse.
+// Entity picker for the linking dashboard — searches every claimable entity
+// type by name in parallel, capped small since this is a live-typing
+// autocomplete, not a paginated browse.
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") || "").trim();
@@ -13,19 +14,38 @@ export async function GET(req: Request) {
   }
 
   const supabase = createAdminClient();
-  // "as any" on the salon side — agent_salon_leads.claimed_at is new (this
-  // session's 20260720000000 migration) and not yet in the generated
-  // Database type. Cast on the shop side too since mixing a typed and an
-  // "any" query in the same Promise.all otherwise widens both to `never`.
-  const [{ data: shops }, { data: salons }]: [{ data: any[] }, { data: any[] }] = await Promise.all([
-    supabase.from("agent_barbershop_leads").select("id, slug, shop_name, formatted_address, claimed_at").ilike("shop_name", `%${q}%`).limit(8) as any,
-    (supabase.from("agent_salon_leads") as any).select("id, slug, shop_name, formatted_address, claimed_at").ilike("shop_name", `%${q}%`).limit(8),
-  ]);
 
-  const results = [
-    ...(shops || []).map((s) => ({ entityType: "shop" as const, id: s.id, slug: s.slug, name: s.shop_name, address: s.formatted_address, alreadyClaimed: !!s.claimed_at })),
-    ...(salons || []).map((s) => ({ entityType: "salon" as const, id: s.id, slug: s.slug, name: s.shop_name, address: s.formatted_address, alreadyClaimed: !!s.claimed_at })),
-  ];
+  const perType = await Promise.all(
+    CLAIM_ENTITY_TYPES.map(async (t) => {
+      const { data } = await (supabase.from(t.table) as any)
+        .select(`id, slug, ${t.nameCol}, ${t.addressCol}`)
+        .ilike(t.nameCol, `%${q}%`)
+        .not("slug", "is", null)
+        .limit(6);
+      return (data || []).map((r: any) => ({
+        entityType: t.key,
+        id: r.id,
+        slug: r.slug,
+        name: r[t.nameCol],
+        address: r[t.addressCol] || null,
+      }));
+    })
+  );
 
-  return NextResponse.json({ success: true, data: results });
+  const results = perType.flat();
+
+  // Mark which are already linked (claimed) in one query over the found ids.
+  const ids = results.map((r) => r.id);
+  const claimed = new Set<string>();
+  if (ids.length) {
+    const { data: links } = await (supabase.from("community_member_entity_links") as any)
+      .select("entity_type, entity_id")
+      .in("entity_id", ids);
+    (links || []).forEach((l: any) => claimed.add(`${l.entity_type}:${l.entity_id}`));
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: results.map((r) => ({ ...r, alreadyClaimed: claimed.has(`${r.entityType}:${r.id}`) })),
+  });
 }

@@ -8,6 +8,8 @@ import { CreatePassportButton } from "@/components/shared/create-passport-button
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
+import { ClaimShopButton } from "@/components/shared/claim-shop-button";
+import { isEntityClaimed } from "@/lib/entity-claim";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import { BARBER_PUBLIC_COLUMNS } from "@/lib/public-columns";
@@ -197,6 +199,7 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
   if (!barber) notFound();
   if (barber._resolvedByLegacyId) permanentRedirect(`/barbers/${barber.slug}`);
 
+  const isClaimed = await isEntityClaimed("barber", barber.id);
   const gallery: string[] = Array.isArray(barber.booksy_gallery_urls) ? barber.booksy_gallery_urls : [];
   const heroPhoto = gallery[0] || barber.booksy_photo_url || barber.passport_image_url || null;
   const thumbnails = gallery.slice(1, 7);
@@ -287,6 +290,15 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
             {/* Header Block */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{barber.name}</h1>
+              {isClaimed ? (
+                <div className="mt-2">
+                  <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1.5 rounded-lg font-bold text-xs">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Claimed
+                  </span>
+                </div>
+              ) : (
+                <ClaimShopButton entityType="barber" entityId={barber.id} entityName={barber.name} noun="barber profile" />
+              )}
               {barber.address && (
                 <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5" />
@@ -433,7 +445,7 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
 
           {/* Sidebar */}
           <div className="space-y-4">
-            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={false} entityLabel="barber" />
+            <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={isClaimed} entityLabel="barber" />
 
             {barber.profile_url && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
