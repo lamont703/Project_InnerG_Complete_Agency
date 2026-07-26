@@ -7,6 +7,7 @@ import { Loader2, Store, ShieldCheck, ArrowLeft, Save, ImagePlus, X, Camera } fr
 import { toast } from "sonner"
 import { Navbar } from "@/components/layout/navbar"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { ConnectGoogleBusiness } from "@/components/account/connect-google-business"
 
 const MAX_IMAGES = 5
 
@@ -172,6 +173,8 @@ export default function ManageListingPage() {
             <ArrowLeft className="w-4 h-4" />
             Back home
           </Link>
+
+          {authChecked && <ConnectGoogleBusiness />}
 
           {isLoading || !authChecked ? (
             <div className="flex items-center justify-center py-24 text-slate-400">
