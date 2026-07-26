@@ -30,6 +30,8 @@ const INTERNAL_TOOL_ROUTES = [
     "/pixel-analytics",
     "/ad-performance",
     "/admin/ad-campaigns",
+    "/admin/listing-insights",
+    "/admin/listing-report",
     "/tools/employment-match-review",
     "/tools/domain-management",
     "/shop-day-map",
