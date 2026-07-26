@@ -123,6 +123,27 @@ const nextConfig = {
     });
 
     return [
+      // Consolidate the texasbarbering.innergcomplete.com subdomain onto the
+      // primary agency.innergcomplete.com domain. That subdomain served a
+      // near-complete duplicate of the entire site (only its homepage was
+      // rewritten to the Texas exam-prep funnel), split ranking signals, and
+      // got itself indexed via its own host-based sitemap — Google was even
+      // ranking the duplicate ABOVE the canonical agency URL. This catch-all
+      // 308/permanent redirect (path- and query-string-preserving) sends every
+      // texasbarbering URL to its agency twin, consolidating all authority onto
+      // one domain. Because it matches /:path*, it also covers every page added
+      // in the FUTURE — so nothing can ever be served, crawled, or indexed on
+      // the subdomain again (its sitemap.xml and robots.txt redirect too), with
+      // zero ongoing upkeep. The host condition means agency traffic is
+      // unaffected. Runs before middleware, so the old homepage stealth-rewrite
+      // for this host is now dead code (harmless; left in place as a clean
+      // rollback path if the subdomain is ever revived).
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "texasbarbering.innergcomplete.com" }],
+        destination: "https://agency.innergcomplete.com/:path*",
+        permanent: true,
+      },
       ...cityRedirects,
       // Houston's separate market-analysis sub-feature moved along with
       // the rest of its URL tree for full consistency.
