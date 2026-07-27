@@ -320,7 +320,16 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
               <h2 className="text-lg font-black text-slate-900 mb-3">About this store</h2>
               <p className="text-sm text-slate-600 leading-relaxed">
                 {store.name} is a {storeLabel.toLowerCase()}{store.city ? ` serving the ${store.city} area` : ""}
-                {store.rating ? `, rated ${Number(store.rating).toFixed(1)} stars across ${store.total_reviews || 0} reviews` : ""}.
+                {/* The review count is dropped for a real subset of scraper-sourced
+                    rows (rating captured, count lost — see scripts/discover_by_category.js).
+                    `total_reviews || 0` used to render "rated 4.8 stars across 0 reviews",
+                    a self-contradicting sentence Google was quoting as the snippet. Fall
+                    back to the rating alone rather than asserting a count we don't have. */}
+                {store.rating
+                  ? store.total_reviews
+                    ? `, rated ${Number(store.rating).toFixed(1)} stars across ${store.total_reviews} reviews`
+                    : `, rated ${Number(store.rating).toFixed(1)} stars on Google`
+                  : ""}.
                 {" "}{aboutBlurb}
               </p>
             </div>

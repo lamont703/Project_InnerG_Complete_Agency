@@ -117,8 +117,40 @@ async function inspectOnMaps(page, name, city) {
     const lines = panelText.split('\n').map((l) => l.trim()).filter(Boolean);
     const addressLine = lines.find((l) => /\d/.test(l) && /(TX|Texas)\b|\b\d{5}\b/.test(l) && l.length < 90 && !/^\(/.test(l));
     const phoneLine = lines.find((l) => /^\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/.test(l));
-    const withCount = panelText.match(/(\d\.\d)\((\d+)\)/);
-    const bareRatingLine = lines.find((l) => /^\d\.\d$/.test(l));
+    // Rating and review count are extracted INDEPENDENTLY — kept in sync with
+    // scripts/discover_by_category.js and discover_and_import_businesses.js.
+    // The previous version required one combined /(\d\.\d)\((\d+)\)/ match for
+    // the count to survive; a split-line render, or a thousands separator
+    // ("4.8(1,234)") the `(\d+)\)` tail cannot match, silently left the count
+    // null while the bare-rating fallback still recovered the rating. Combined
+    // with the rating-only backfill below, that MANUFACTURED rows carrying a
+    // real rating and no count — 336 of them live, rendering "rated 4.8 stars
+    // across 0 reviews" and losing AggregateRating eligibility.
+    //
+    // The rating requires a mandatory decimal and at most a single space
+    // before the count: "\s*" with an optional decimal spans a newline and
+    // matches a zip code followed by a phone area code ("TX 78520\n(956) 555-
+    // 2211" -> rating 0, count 956). Caught in test; do not loosen.
+    const combined = panelText.match(/(\d\.\d) ?\(([\d,]+)\)/);
+    const ratingIdx = lines.findIndex((l) => /^\d\.\d$/.test(l));
+
+    const toReviewInt = (s) => {
+      if (!s) return null;
+      const n = parseInt(String(s).replace(/,/g, ''), 10);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+
+    // Split-line render: the count sits on one of the rating line's two
+    // immediate neighbours. Scoped to those lines rather than the whole panel
+    // so a nearby business's numbers can't bleed in, and both accepted shapes
+    // are whole-line anchored so "(713) 555-1234" is never read as 713.
+    let nearbyReviewCount = null;
+    if (!combined && ratingIdx >= 0) {
+      for (const l of lines.slice(ratingIdx + 1, ratingIdx + 3)) {
+        const m = l.match(/^\(\s*([\d,]+)\s*\)$/) || l.match(/^([\d,]+)\s+reviews?$/i);
+        if (m) { nearbyReviewCount = toReviewInt(m[1]); break; }
+      }
+    }
 
     // Category — real <button>, not a line ending in "·" (unreliable: the
     // category text and the "·" separator sometimes land on different
@@ -180,13 +212,17 @@ async function inspectOnMaps(page, name, city) {
     const pasfIdx = lines.findIndex((l) => /^people also search for$/i.test(l));
     if (pasfIdx >= 0) {
       for (let i = pasfIdx + 1; i < lines.length && peopleAlsoSearchFor.length < 5; i++) {
-        const ratingMatch = lines[i].match(/^(\d\.\d)\((\d+)\)$/);
+        // Same thousands-separator gap as the main rating regex above — a
+        // "People also search for" card showing 4.8(1,234) matched nothing
+        // and the whole card was dropped. Whole-line anchored, so widening
+        // the count to [\d,]+ carries no area-code risk.
+        const ratingMatch = lines[i].match(/^(\d\.\d) ?\(([\d,]+)\)$/);
         if (ratingMatch && i > 0) {
           const catLine = lines[i + 1];
           peopleAlsoSearchFor.push({
             name: lines[i - 1],
             rating: parseFloat(ratingMatch[1]),
-            reviewCount: parseInt(ratingMatch[2], 10),
+            reviewCount: parseInt(ratingMatch[2].replace(/,/g, ''), 10),
             category: catLine && catLine.endsWith('·') ? catLine.replace(/·$/, '').trim() : null,
           });
         }
@@ -201,8 +237,16 @@ async function inspectOnMaps(page, name, city) {
       category,
       address: addressLine || null,
       phone: phoneLine || null,
-      rating: withCount ? parseFloat(withCount[1]) : bareRatingLine ? parseFloat(bareRatingLine) : null,
-      reviewCount: withCount ? parseInt(withCount[2], 10) : null,
+      rating: combined
+        ? parseFloat(combined[1])
+        : ratingIdx >= 0
+        ? parseFloat(lines[ratingIdx])
+        : null,
+      // A count is only meaningful attached to a real rating.
+      reviewCount:
+        (combined ? parseFloat(combined[1]) : ratingIdx >= 0 ? parseFloat(lines[ratingIdx]) : null) == null
+          ? null
+          : (toReviewInt(combined && combined[2]) ?? nearbyReviewCount),
       website,
       hoursStatus,
       locatedIn,
@@ -393,8 +437,8 @@ async function auditOne(browser, row) {
         updatedEvidence.category = inspection.category;
       }
 
-      // Backfill missing address/phone/rating opportunistically — the
-      // page is already open, no extra cost.
+      // Backfill missing address/phone/rating/reviewCount opportunistically —
+      // the page is already open, no extra cost.
       if (!updatedEvidence.formatted_address && inspection.address) {
         updatedEvidence.formatted_address = inspection.address;
         notes.push('Filled in missing address.');
@@ -405,6 +449,20 @@ async function auditOne(browser, row) {
       }
       if (updatedEvidence.rating == null && inspection.rating != null) {
         updatedEvidence.rating = inspection.rating;
+      }
+      // reviewCount was missing from this backfill entirely while `rating`
+      // above was present, so an audit could give a row a rating and leave
+      // its count null — manufacturing the "4.8 stars across 0 reviews"
+      // defect rather than merely failing to catch it. evidence.reviewCount
+      // is what auto_publish_audited_entities.js maps to total_reviews /
+      // google_review_count, so this is the field that has to be set.
+      if (updatedEvidence.reviewCount == null && inspection.reviewCount != null) {
+        updatedEvidence.reviewCount = inspection.reviewCount;
+      }
+      // A rating with no count is the shape that put 336 rows into production
+      // with no AggregateRating. Surface it instead of publishing it silently.
+      if (updatedEvidence.rating != null && updatedEvidence.reviewCount == null) {
+        notes.push('Rating present but review count unavailable from Maps — page will show the rating without a count, and cannot emit AggregateRating.');
       }
 
       // Same opportunistic backfill for the comprehensive fields discovery

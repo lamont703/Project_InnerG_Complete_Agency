@@ -405,12 +405,27 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
               ) : isHiring ? (
                 <p className="text-slate-600 text-lg leading-relaxed mb-6">
                   Welcome to {salon.shop_name}, a premier styling destination located in the heart of {salon.city}. We are currently seeking professional, driven stylists to join our growing team.
-                  With high foot traffic, excellent local ratings ({salon.rating} stars across {salon.total_reviews} reviews), and a modern atmosphere, this is the perfect location to build and scale your clientele.
+                  {/* See app/shop/[slug]/page.tsx — raw interpolation rendered "across  reviews"
+                      whenever the scraper captured a rating but no count. */}
+                  With high foot traffic
+                  {salon.rating
+                    ? salon.total_reviews
+                      ? `, excellent local ratings (${Number(salon.rating).toFixed(1)} stars across ${salon.total_reviews} reviews),`
+                      : `, excellent local ratings (${Number(salon.rating).toFixed(1)} stars on Google),`
+                    : ''}{' '}
+                  and a modern atmosphere, this is the perfect location to build and scale your clientele.
                 </p>
               ) : (
                 <p className="text-slate-600 text-lg leading-relaxed mb-6">
                   {salon.shop_name} is a hair & beauty salon located in {salon.city}, TX
-                  {salon.rating ? `, rated ${Number(salon.rating).toFixed(1)} stars across ${salon.total_reviews || 0} reviews` : ''}.
+                  {/* See app/stores/[slug]/page.tsx — a real subset of scraper-sourced rows
+                      has a rating but no captured review count, and `|| 0` rendered
+                      "across 0 reviews". Drop the count clause instead of asserting zero. */}
+                  {salon.rating
+                    ? salon.total_reviews
+                      ? `, rated ${Number(salon.rating).toFixed(1)} stars across ${salon.total_reviews} reviews`
+                      : `, rated ${Number(salon.rating).toFixed(1)} stars on Google`
+                    : ''}.
                   This salon isn't currently listed as hiring — request a Shop Day or contact the owner directly to ask about chair availability.
                 </p>
               )}

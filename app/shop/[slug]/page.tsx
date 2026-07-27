@@ -457,12 +457,28 @@ export default async function ShopProfilePage({ params }: Props) {
               ) : isHiring ? (
                 <p className="text-slate-600 text-lg leading-relaxed mb-6">
                   Welcome to {shop.shop_name}, a premier grooming destination located in the heart of {shop.city}. We are currently seeking professional, driven individuals to join our growing team.
-                  With high foot traffic, excellent local ratings ({shop.rating} stars across {shop.total_reviews} reviews), and a modern atmosphere, this is the perfect location to build and scale your clientele.
+                  {/* Raw interpolation rendered "across  reviews" (empty gap) whenever the
+                      scraper captured a rating but no count, and the whole parenthetical
+                      was nonsense with no rating at all. Both parts are now conditional. */}
+                  With high foot traffic
+                  {shop.rating
+                    ? shop.total_reviews
+                      ? `, excellent local ratings (${shop.rating} stars across ${shop.total_reviews} reviews),`
+                      : `, excellent local ratings (${shop.rating} stars on Google),`
+                    : ''}{' '}
+                  and a modern atmosphere, this is the perfect location to build and scale your clientele.
                 </p>
               ) : (
                 <p className="text-slate-600 text-lg leading-relaxed mb-6">
                   {shop.shop_name} is a grooming destination located in {shop.city}, TX
-                  {shop.rating ? `, rated ${shop.rating} stars across ${shop.total_reviews || 0} reviews` : ''}.
+                  {/* See app/stores/[slug]/page.tsx — a real subset of scraper-sourced rows
+                      has a rating but no captured review count, and `|| 0` rendered
+                      "across 0 reviews". Drop the count clause instead of asserting zero. */}
+                  {shop.rating
+                    ? shop.total_reviews
+                      ? `, rated ${shop.rating} stars across ${shop.total_reviews} reviews`
+                      : `, rated ${shop.rating} stars on Google`
+                    : ''}.
                   This shop isn't currently listed as hiring — request a Shop Day or contact the owner directly to ask about chair availability.
                 </p>
               )}
