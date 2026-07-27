@@ -36,6 +36,7 @@ const SITEMAP_EXCLUDE_PREFIXES = [
   '/tools/domain-management',
   '/tools/event-submission',
   '/tools/employment-match-review',
+  '/tools/seo-keyword-tracker',
 ]
 
 function isExcludedFromSitemap(route: string): boolean {
