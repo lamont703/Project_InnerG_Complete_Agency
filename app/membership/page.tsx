@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Sparkles, BadgeCheck, Users, CheckCircle2 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { CommunityMembershipForm } from "@/components/forms/CommunityMembershipForm";
@@ -71,7 +72,12 @@ export default function MembershipPage() {
             <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8">
               <h2 className="text-lg font-black text-slate-900 mb-1">Create Your Free Membership</h2>
               <p className="text-sm text-slate-500 mb-6">Takes about a minute.</p>
-              <CommunityMembershipForm />
+              {/* The form reads claim_type/claim_id from the query string
+                  (handed over by ClaimShopButton), so useSearchParams needs a
+                  Suspense boundary or this page can't be statically rendered. */}
+              <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-slate-100" />}>
+                <CommunityMembershipForm />
+              </Suspense>
             </div>
           </div>
         </div>

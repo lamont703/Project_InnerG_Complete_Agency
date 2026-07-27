@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { Navbar } from "@/components/layout/navbar";
-import { CreatePassportButton } from "@/components/shared/create-passport-button";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
@@ -20,7 +19,6 @@ import {
   CheckCircle2,
   GraduationCap,
   Scissors,
-  ExternalLink,
   Instagram,
   Youtube,
   Globe,
@@ -29,6 +27,8 @@ import {
   Clock,
   Navigation,
   Landmark,
+  CalendarCheck,
+  Phone,
 } from "lucide-react";
 
 export const revalidate = 3600;
@@ -360,6 +360,61 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
                 </div>
               )}
 
+              {/* Primary CTA row — the actions a visitor came here to take,
+                  above the fold instead of buried in the sidebar. Booking is
+                  the money action so it gets the filled button; the rest are
+                  equal-weight secondaries. Each is conditional: profile_url and
+                  phone are 100% populated on this table, website_url is on 2 of
+                  1,429 rows, so the Website button almost never renders. */}
+              <div className="flex flex-wrap items-stretch gap-2 mt-5 pt-5 border-t border-slate-100">
+                {barber.profile_url && (
+                  <a
+                    href={barber.profile_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-ig-click="outbound_lead"
+                    className="flex-1 min-w-[150px] inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-indigo-600/20"
+                  >
+                    <CalendarCheck className="w-4 h-4" />
+                    Book Now
+                  </a>
+                )}
+                {barber.phone && (
+                  <a
+                    href={`tel:${String(barber.phone).replace(/[^\d+]/g, "")}`}
+                    data-ig-click="outbound_lead"
+                    className="flex-1 min-w-[110px] inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold text-sm transition-colors"
+                  >
+                    <Phone className="w-4 h-4" />
+                    Call
+                  </a>
+                )}
+                {barber.website_url && (
+                  <a
+                    href={barber.website_url.startsWith("http") ? barber.website_url : `https://${barber.website_url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-ig-click="outbound_lead"
+                    className="flex-1 min-w-[110px] inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold text-sm transition-colors"
+                  >
+                    <Globe className="w-4 h-4" />
+                    Website
+                  </a>
+                )}
+                {directionsHref && (
+                  <a
+                    href={directionsHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-ig-click="outbound_lead"
+                    className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold text-sm transition-colors"
+                  >
+                    <Navigation className="w-4 h-4" />
+                    Directions
+                  </a>
+                )}
+              </div>
+
               {socialLinks.length > 0 && (
                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
                   {socialLinks.map(({ label, href, Icon }) => (
@@ -419,6 +474,42 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
               )}
             </div>
 
+            {/* Business Hours — directly after Services, where someone who
+                just picked a service asks "are they open?". Was in the sidebar
+                below Nearby Shops, effectively last on mobile. */}
+            {hours.length > 0 && hours.some((h) => h.ranges.length > 0) && (
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
+                <h2 className="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-slate-400" />
+                  Business Hours
+                </h2>
+                <ul className="space-y-2">
+                  {hours.map((h, i) => (
+                    <li
+                      key={h.day}
+                      className={`flex items-start justify-between gap-3 text-sm ${
+                        i === TODAY_INDEX
+                          ? "text-slate-900 font-black"
+                          : "text-slate-500 font-medium"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        {h.day}
+                        {i === TODAY_INDEX && (
+                          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5">
+                            Today
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-right">
+                        {h.ranges.length > 0 ? h.ranges.join(", ") : "Closed"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Credentials */}
             {(barber.school_name || barber.licensure_status || barber.completed_school_hours) && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
@@ -447,75 +538,19 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
           <div className="space-y-4">
             <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={isClaimed} entityLabel="barber" />
 
-            {barber.profile_url && (
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
-                <a
-                  href={barber.profile_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-ig-click="outbound_lead"
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-indigo-600/20"
-                >
-                  Book on Booksy
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
-            )}
-
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
-                Is this you?
-              </p>
-              <CreatePassportButton
-                label="Create Your Career Passport"
-                subtext="Get discovered by shops looking to hire"
-                className="w-full inline-flex flex-col items-center justify-center gap-1 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-md shadow-indigo-600/20"
-              />
-            </div>
-
+            {/* Book / Call / Website / Directions all moved into the header
+                block above. The passport CTA is removed from this page per
+                product direction — it belongs on recruiting surfaces, not on a
+                consumer-facing profile where it competed with booking. */}
             {directionsHref && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-3">Location</h3>
-                <p className="text-sm text-slate-600 font-medium mb-3">{barber.address || barber.metro_area}</p>
-                <a
-                  href={directionsHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-ig-click="outbound_lead"
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:underline"
-                >
-                  <Navigation className="w-4 h-4" />
-                  Get Directions
-                </a>
+                <p className="text-sm text-slate-600 font-medium">{barber.address || barber.metro_area}</p>
               </div>
             )}
 
             <NearbyEntitiesSection title="Nearby Shops" icon={Scissors} entities={nearbyShops} />
             <NearbyEntitiesSection title="Nearby Barber Schools" icon={GraduationCap} entities={nearbySchools} />
-
-            {hours.length > 0 && hours.some((h) => h.ranges.length > 0) && (
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5" />
-                  Business Hours
-                </h3>
-                <ul className="space-y-1.5">
-                  {hours.map((h, i) => (
-                    <li
-                      key={h.day}
-                      className={`flex items-start justify-between gap-3 text-xs font-medium ${
-                        i === TODAY_INDEX ? "text-slate-900 font-bold" : "text-slate-500"
-                      }`}
-                    >
-                      <span>{h.day}</span>
-                      <span className="text-right">
-                        {h.ranges.length > 0 ? h.ranges.join(", ") : "Closed"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
         </div>
 
