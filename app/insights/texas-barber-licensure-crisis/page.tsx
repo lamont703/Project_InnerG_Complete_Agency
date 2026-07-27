@@ -84,7 +84,7 @@ const references = [
     authors: "PSI Services LLC",
     title: "Texas Class A Barber Candidate Information Bulletin (CIB)",
     source: "PSI Testing Services",
-    year: "2024",
+    year: "2026",
     url: "https://test-takers.psiexams.com/tdlr",
   },
   {
@@ -193,7 +193,7 @@ export default function TexasBarberCrisis() {
               "problem":"The Texas Class A Barber written exam has reached a critical bottleneck with a staggering 37.25% pass rate (FY 2025), placing institutional Title IV funding at imminent NACCAS risk.",
               "requirement":"A Texas-specific ADI pilot program to resolve the divergence between 89.8% practical mastery and sub-40% written theory performance.",
               "roi":"Recovery of NACCAS accreditation safety buffers and acceleration of student workforce entry by 45-60 days.",
-              "solution":"Deployment of the 'Sovereign Texas' ADI Model to decode the 75-question PSI syntax logic localized to TX Chapter 82."
+              "solution":"Deployment of the 'Sovereign Texas' ADI Model to decode the 85-item PSI syntax logic localized to TX Chapter 82."
             }} />
             
             <h1 className="text-4xl font-black tracking-tighter text-foreground sm:text-6xl md:text-7xl uppercase italic leading-[0.95] mb-8">
@@ -287,7 +287,7 @@ export default function TexasBarberCrisis() {
             {/* Failure Mode Grid */}
             <div className="grid sm:grid-cols-2 gap-4 mb-8 border-y border-border py-12">
               {[
-                { pct: "37.25%", label: "TX Written Pass Rate", desc: "The current statewide performance for the 75-question PSI written theory exam (FY 2025)." },
+                { pct: "37.25%", label: "TX Written Pass Rate", desc: "The current statewide performance for the 85-item PSI written theory exam (FY 2025)." },
                 { pct: "89.80%", label: "TX Practical Pass Rate", desc: "Students are mastering the craft but failing the syntax logic of the administrative examination." },
                 { pct: "$15M", label: "Statewide Wage Leak", desc: "Annualized estimated loss in entry-level barber wages across the state of Texas due to licensure delays." },
                 { pct: "70.00%", label: "Required Passing Score", desc: "The minimum score required on both portions to achieve licensure and protect institutional NACCAS status." },
@@ -381,7 +381,7 @@ export default function TexasBarberCrisis() {
                 {
                   icon: Brain,
                   title: "Metric 02: PSI Syntax Alignment Engine",
-                  body: "Texas exams test logic more than raw memorization. Our ADI trains the student's cognitive model to decode the specific distractor syntax used by the Texas PSI proctor, teaching the underlying 'Reasoning Strategy' required to pass the 75-question theory exam.",
+                  body: "Texas exams test logic more than raw memorization. Our ADI trains the student's cognitive model to decode the specific distractor syntax used by the Texas PSI proctor, teaching the underlying 'Reasoning Strategy' required to pass the 85-item theory exam.",
                   stat: "Decoding",
                   statDesc: "Exam Logic Simulation",
                 },
