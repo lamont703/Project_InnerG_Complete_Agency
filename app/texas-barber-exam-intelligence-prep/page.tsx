@@ -125,7 +125,7 @@ export default function TexasBarberExamPrep() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { label: "Primary Problem", text: "Texas barber students fail the PSI written exam at a 37.25% pass rate — well below the NACCAS 70% safety threshold — due to a systemic informational design failure, not a lack of practical skill." },
-              { label: "ADI Architecture", text: "Artificial Domain Intelligence (ADI) decodes PSI distractor logic and trains students on Texas TDLR Chapter 82 alignment across all 75 written exam theory categories." },
+              { label: "ADI Architecture", text: "Artificial Domain Intelligence (ADI) decodes PSI distractor logic and trains students on Texas TDLR Chapter 82 alignment across all 85 scored items of the written exam." },
               { label: "Quantitative Signal", text: "TX Written Pass Rate: 37.25%. Practical Pass Rate: 89.80%. Annual wage leak: $15M statewide. Houston, Dallas, and San Antonio are the highest-risk metropolitan clusters." },
               { label: "Solution", text: "The Barber Exam Prep Pilot Scholarship provides zero-cost ADI-powered prep for qualifying Texas barber students and schools, targeting first-time pass rates of 92%+." },
             ].map((item) => (
@@ -167,7 +167,7 @@ export default function TexasBarberExamPrep() {
                     Texas barber schools are currently facing critical NACCAS Title IV vulnerability. The structural written pass rate—currently a staggering 37.25% statewide—is not a teaching failure; it is an Informational Design Failure.
                   </p>
                   <p>
-                    While students achieve a 89.8% pass rate on practical exams, the 75-question PSI written theory remains the primary blocker. Our research division identified this "Licensure Crisis" as the primary driver of student attrition and institutional revenue leakage ($15M statewide).
+                    While students achieve a 89.8% pass rate on practical exams, the 85-item PSI written theory remains the primary blocker. Our research division identified this "Licensure Crisis" as the primary driver of student attrition and institutional revenue leakage ($15M statewide).
                   </p>
                 </div>
 
@@ -221,7 +221,7 @@ export default function TexasBarberExamPrep() {
                The Sovereign <br className="lg:hidden" /> Texas Blueprint
              </h2>
              <p className="mt-6 lg:mt-8 text-lg lg:text-xl text-slate-800 max-w-2xl font-bold leading-relaxed text-balance">
-               We architect Accreditation-First Texas Barber Exam Intelligence Prep™ designed to bridge the gap between classroom instruction and PSI's 75-question barber theory exam.
+               We architect Accreditation-First Texas Barber Exam Intelligence Prep™ designed to bridge the gap between classroom instruction and PSI's 85-item barber theory exam.
              </p>
           </div>
 
@@ -237,7 +237,7 @@ export default function TexasBarberExamPrep() {
                  icon: Brain,
                  title: "Metric 02: DECODING",
                  subtitle: "PSI Syntax Alignment",
-                 body: "The state exam tests 'Test-Taking Logic' more than technical Skill. We train students to decode the specific distractor syntax used by the Texas PSI proctor in its 75-question format.",
+                 body: "The state exam tests 'Test-Taking Logic' more than technical Skill. We train students to decode the specific distractor syntax used by the Texas PSI proctor in its 85-item format.",
                },
                {
                  icon: TrendingUp,

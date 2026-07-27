@@ -14,12 +14,28 @@ interface MemberLink {
   linkedAt: string
 }
 
+interface GbpStatus {
+  status: string
+  email: string | null
+  locationTitle: string | null
+  locationsCount: number
+}
+
 interface Member {
   id: string
   first_name: string
   last_name: string
   email: string
   link: MemberLink | null
+  gbp: GbpStatus | null
+}
+
+// Google Business Profile connection state → pill label + color.
+const GBP_PILL: Record<string, { label: string; cls: string }> = {
+  linked: { label: "GBP linked", cls: "bg-emerald-500/10 text-emerald-600" },
+  needs_review: { label: "GBP · needs review", cls: "bg-amber-500/10 text-amber-600" },
+  needs_selection: { label: "GBP · pick location", cls: "bg-amber-500/10 text-amber-600" },
+  connected: { label: "GBP connected", cls: "bg-blue-500/10 text-blue-600" },
 }
 
 interface EntityResult {
@@ -170,6 +186,15 @@ export default function CommunityEntityLinksPage() {
                   <div>
                     <p className="font-bold text-foreground text-sm">{member.first_name} {member.last_name}</p>
                     <p className="text-xs text-muted-foreground">{member.email}</p>
+                    {member.gbp && (
+                      <span
+                        title={[member.gbp.email, member.gbp.locationTitle].filter(Boolean).join(" · ") || undefined}
+                        className={`inline-flex items-center gap-1 mt-1.5 text-[9px] font-black uppercase tracking-wider rounded-full px-2 py-0.5 ${GBP_PILL[member.gbp.status]?.cls || "bg-secondary text-muted-foreground"}`}
+                      >
+                        {GBP_PILL[member.gbp.status]?.label || `GBP · ${member.gbp.status}`}
+                        {member.gbp.status === "needs_selection" && member.gbp.locationsCount ? ` (${member.gbp.locationsCount})` : ""}
+                      </span>
+                    )}
                   </div>
 
                   {member.link ? (

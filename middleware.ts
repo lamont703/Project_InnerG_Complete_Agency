@@ -34,6 +34,7 @@ const INTERNAL_TOOL_ROUTES = [
     "/admin/listing-report",
     "/tools/employment-match-review",
     "/tools/domain-management",
+    "/tools/seo-keyword-tracker",
     "/shop-day-map",
     "/shop-day-connections",
     "/program-advisory-committee-kit",

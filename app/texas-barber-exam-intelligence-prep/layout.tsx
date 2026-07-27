@@ -54,7 +54,7 @@ const courseJsonLd = {
   "@type": "Course",
   name: "Texas Barber Exam Intelligence Prep™",
   description:
-    "ADI-powered barber board exam preparation targeting Texas's 37.25% statewide written failure rate. Covers PSI syntax decoding, NACCAS compliance, and domain-specific mastery across all 75 written exam categories for TDLR licensure.",
+    "ADI-powered barber board exam preparation targeting Texas's 37.25% statewide written failure rate. Covers PSI syntax decoding, NACCAS compliance, and domain-specific mastery across all 85 scored written exam items for TDLR licensure.",
   url: "https://agency.innergcomplete.com/texas-barber-exam-intelligence-prep",
   datePublished: "2026-04-01",
   provider: {

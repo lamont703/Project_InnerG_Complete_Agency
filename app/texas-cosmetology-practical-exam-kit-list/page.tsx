@@ -7,246 +7,222 @@ import {
   ShieldCheck,
   ListChecks,
   ExternalLink,
+  ShoppingBag,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
+import { KitChecklist, type KitGroup } from "@/components/tools/kit-checklist";
 
 export const metadata = {
-  title: "Texas Cosmetology Practical Exam Kit List (2026) | Inner G Complete",
+  title: "Texas Cosmetology Practical Exam Kit List & Checklist (2026) | Inner G Complete",
   description:
-    "The complete Texas Cosmetology Operator practical exam kit list, sourced from the official PSI/TDLR Candidate Information Bulletin — which items must be labeled in English, which items can't be labeled at all, and the exact station-by-station step order.",
+    "The complete Texas Cosmetology Operator practical exam kit list and printable checklist, sourced from the official PSI/TDLR Candidate Information Bulletin effective January 1, 2026 — which items must be labeled in English, which must not be labeled at all, and all 13 timed stations in order.",
   keywords: [
     "psi cosmetology practical exam texas",
     "cosmetology practical exam texas",
     "texas state board cosmetology practical exam",
     "texas cosmetology practical exam kit list",
     "texas cosmetology practical exam kit list pdf",
-    "cosmetology state board kit list 2024",
+    "cosmetology state board kit list 2026",
     "texas cosmetology practical exam steps",
     "psi tdlr cosmetology exam supplies",
     "cosmetology operator practical exam checklist",
   ],
   openGraph: {
-    title: "Texas Cosmetology Practical Exam Kit List (2026)",
+    title: "Texas Cosmetology Practical Exam Kit List & Checklist (2026)",
     description:
-      "Every required kit item, labeling rule, and station-by-station step order for the Texas Cosmetology Operator practical exam, sourced from the official PSI/TDLR bulletin.",
+      "Every required kit item, the exact must-label vs. do-not-label rules, and all 13 timed stations for the Texas Cosmetology Operator practical exam — sourced from the official PSI/TDLR bulletin effective January 1, 2026.",
   },
   alternates: { canonical: "https://agency.innergcomplete.com/texas-cosmetology-practical-exam-kit-list" },
 };
 
 const FAQS = [
   {
+    q: "How long is the Texas cosmetology practical exam, and what score do I need to pass?",
+    a: "As of the January 1, 2026 Candidate Information Bulletin, the practical exam runs 3 hours and 31 minutes across 13 sections, worth 119 total points. You need 70% — 84 of 119 points — to pass.",
+  },
+  {
     q: "Do I need a live model for the Texas cosmetology practical exam?",
-    a: "No. As of September 1, 2019, the practical exam is performed entirely on mannequins — live models are no longer required or allowed.",
+    a: "No. The practical exam is performed entirely on mannequins — a mannequin head for the hair services and a mannequin hand (with tips representing the natural nail) for the nail service. Live models are not required or allowed.",
   },
   {
     q: "Which kit items must be labeled in English, and which can't be labeled at all?",
-    a: "Products must be labeled in English (manufacturer labels are acceptable), but numbering of any kind on labeled items is not allowed. Some items in this list specifically can't carry any label — check the two separate lists above before packing your kit.",
-  },
-  {
-    q: "How long is the Texas cosmetology practical exam, and what score do I need to pass?",
-    a: "The exam runs about 3 hours and 45 minutes across all stations, worth 130 total points. You need 70% — 91 of 130 points — to pass.",
+    a: "The bulletin gives two explicit lists. Products — disinfectant, hand sanitizer, cleansing/massage/moisturizer/protective products, cuticle oil, nail adhesive and dehydrator, odorless monomer, polymer powder, simulated perm/chemical/soft-wax products, water spray bottle, blood-exposure kit, and trash bags — MUST be labeled in English. Tools — blow dryer, curling iron, shears, combs, clips, foils, perm rods, mannequins, nail files, and more — must NOT be labeled. Numbering any item is never allowed.",
   },
   {
     q: "Can I put markings or coloring on the mannequin's scalp or hairline to guide my work?",
-    a: "No. No markings or colorings are permitted around the mannequin's hair, scalp, or hairline during the exam.",
+    a: "No. No markings or colorings are permitted around the mannequin's hair, scalp, hairline, hands, or fingers. Bringing a marked mannequin can forfeit the points for every section using it.",
   },
   {
     q: "Where can I find the official, most current kit list?",
-    a: "This list is sourced directly from the official PSI Cosmetology Operator Candidate Information Bulletin. Requirements are occasionally updated, so confirm against your own Bulletin at psiexams.com before your exam date.",
+    a: "This page is built from the PSI Cosmetology Operator Candidate Information Bulletin effective January 1, 2026 — the same document TDLR and PSI use to administer the exam. Requirements are updated periodically, so confirm against your own bulletin at psiexams.com before your exam date.",
   },
 ];
 
-const NOT_LABELED = [
-  "Abrasive/nail files and buffers",
-  "Application brush",
-  "Blow dryer",
-  "Bowl for water (optional)",
-  "Clips",
-  "Combs",
-  "Cotton/cotton pads/sponges/facial tissue",
-  "Cuticle pusher",
-  "Dappen dish",
-  "Disposable applicators",
-  "Drape(s)",
-  "Electric curling iron",
-  "End papers",
-  "Eyelash strip",
-  "Fabric strip",
-  "Foils",
-  "Gloves",
-  "Hair brush",
-  "Haircutting shears",
-  "Head draping",
-  "Mannequin hand/finger (prepped with tips for the natural nail)",
-  "Mannequin head (prepped with eyelash strip for natural lashes)",
-  "Mannequin stand or tripod",
-  "Nail tips",
-  "Neck strips",
-  "Orangewood stick",
-  "Paper towels",
-  "Permanent wave rods",
-  "Protective cotton",
-  "Razor with guard",
-  "Small scissors",
-  "Tint brush, bowl or bottle",
-  "Tip cutter",
-  "Towels",
-  "Tweezers",
+// ── Kit, split into the CIB's two authoritative lists ──────────────────────
+const KIT_GROUPS: KitGroup[] = [
+  {
+    title: "Products & containers you must bring",
+    mustLabel: true,
+    note: "Label each in English (manufacturer labels are acceptable; numbering of any kind is not allowed).",
+    items: [
+      { label: "Kit / bag", hint: 'A 30" × 30" kit labeled "Pre-sanitized, Clean or Disinfected"' },
+      { label: "EPA-approved disinfectant (or simulated product)" },
+      { label: "Hand sanitizer" },
+      { label: "Antiseptic / soothing lotion" },
+      { label: "Astringent, freshener, or toner" },
+      { label: "Cleansing product" },
+      { label: "Eye makeup remover" },
+      { label: "Massage product" },
+      { label: "Moisturizer" },
+      { label: "Protective cream" },
+      { label: "Cuticle oil" },
+      { label: "Nail adhesive" },
+      { label: "Nail dehydrator / cleanser" },
+      { label: "Odorless monomer + low-odor primer for one nail", hint: 'Only bottles marked "odorless" by the manufacturer are allowed' },
+      { label: "Polymer powder" },
+      { label: "Simulated product for permanent wave service", hint: "e.g. water" },
+      { label: "Simulated product for chemical services", hint: "e.g. gel, cholesterol" },
+      { label: "Simulated soft-wax product for waxing", hint: "e.g. petroleum jelly or honey" },
+      { label: "Spray bottle with water" },
+      { label: "Blood exposure kit / first-aid kit" },
+      { label: "Trash bag(s)" },
+    ],
+  },
+  {
+    title: "Tools & implements you must bring",
+    mustLabel: false,
+    note: "Do NOT label these — labeling a do-not-label item can lose points.",
+    items: [
+      { label: "Mannequin with stand or tripod" },
+      { label: "Mannequin hand / finger", hint: "Prepped with tips to represent the natural nail" },
+      { label: "Nail tips" },
+      { label: "Tip cutter / large nail clipper" },
+      { label: "Abrasives / nail files and buffers" },
+      { label: "Cuticle pusher" },
+      { label: "Orangewood stick" },
+      { label: "Dappen dish" },
+      { label: "Application brush" },
+      { label: "Haircutting shears" },
+      { label: "Razor with guard" },
+      { label: "Electric curling iron", hint: "Thermal curling section" },
+      { label: "Blow dryer" },
+      { label: "Combs" },
+      { label: "Hairbrush" },
+      { label: "Clips" },
+      { label: "Permanent wave rods", hint: "You wrap a minimum of 6" },
+      { label: "End papers" },
+      { label: "Protective cotton" },
+      { label: "Foils" },
+      { label: "Fabric strip", hint: "Soft-wax removal" },
+      { label: "Tint brush, bowl, or bottle" },
+      { label: "Disposable applicators" },
+      { label: "Cotton / cotton pads / sponges / facial tissue" },
+      { label: "Neck strips" },
+      { label: "Drape(s)" },
+      { label: "Head draping" },
+      { label: "Gloves" },
+      { label: "Paper towels" },
+      { label: "Towels" },
+      { label: "Bowl for water (optional)" },
+    ],
+  },
 ];
 
-const MUST_BE_LABELED = [
-  "30x30 kit labeled \"Pre-sanitized, Clean or Disinfected\"",
-  "Antiseptic/soothing lotion",
-  "Astringent, freshener, or toner",
-  "Blood exposure kit / first aid kit",
-  "Cleansing product",
-  "EPA-approved disinfectant or simulated product",
-  "Eye makeup remover",
-  "Hand sanitizer",
-  "Lash adhesive",
-  "Massage product",
-  "Moisturizer",
-  "Nail adhesive",
-  "Nail dehydrator/cleanser",
-  "Odorless monomer + low-odor primer for one nail (only bottles marked \"odorless\" by the manufacturer are allowed)",
-  "Polymer powder",
-  "Protective cream",
-  "Simulated product for permanent wave service (e.g. water)",
-  "Simulated product for chemical services (e.g. gel, cholesterol)",
-  "Simulated soft wax product for waxing service (e.g. petroleum jelly or honey)",
-  "Spray bottle with water",
-  "Trash bag(s)",
-];
+const PROVIDED_ON_SITE = ["Work area and chair", "Covered trash cans", "Mounted wall clock", "Brooms and dust pans"];
 
-const VENDOR_SUPPLIED = ["Brooms and dust pans", "Covered trash cans", "Mounted wall clock", "Work stations/manicure table with chairs"];
-
+// ── 13 timed sections, in exam order (Jan 1, 2026 CIB) ─────────────────────
 const SECTIONS = [
-  { name: "Pre-Exam Set Up and Disinfection", time: "10 min", notes: ["Disinfect work surfaces, dispose of waste, kit remains sanitary"] },
-  { name: "Monomer and Polymer Over Tip", time: "32 min", notes: ["Apply a nail tip, then monomer and polymer overlay, on one nail"] },
+  { name: "Pre-Exam Set Up & Disinfection", time: "10 min", notes: ["Disinfect work surfaces, dispose of waste, kit remains sanitary"] },
+  { name: "Monomer & Polymer Over Tip (mannequin hand)", time: "32 min", notes: ["Apply a nail tip, then a monomer-and-polymer overlay, on one nail", "Nail liquid must be odorless — examiners check it before the exam"] },
   { name: "Blood Exposure Incident", time: "12 min", notes: ["Full procedure on a simulated cut — gloves, pressure, cleaning, bandaging, disposal"] },
-  { name: "Eyelash Strip Application", time: "14 min", notes: ["Apply one eyelash strip to the mannequin"] },
-  { name: "Facial Service", time: "17 min", notes: ["Cleanse, massage cream + effleurage/petrissage/tapotement manipulations, toner, moisturizer"] },
-  { name: "Waxing Service (Soft Wax)", time: "14 min", notes: ["Simulated wax product applied to one eyebrow — application, fabric strip, removal, post-wax product"] },
-  { name: "Haircut Service", time: "42 min", notes: ["Layered haircut of your choice using a razor and shears, minimum 1 inch removed throughout"] },
-  { name: "Permanent Wave Service", time: "22 min", notes: ["Wrap a minimum of 6 rods in the center back section, demonstrate saturation and a test curl"] },
-  { name: "Blow Drying and Thermal Curling", time: "22 min", notes: ["Blow dry wet hair, then an on-base and an off-base curl using a curling iron"] },
-  { name: "Chemical Service Preparation", time: "10 min", notes: ["Divide hair into 4 sections, apply protective cream, gloves on for all chemical services"] },
-  { name: "Foil Highlights Application", time: "Untimed", notes: ["Apply high-lift product to 2 subsections in a quadrant of your choice using foils"] },
-  { name: "Hydroxide Virgin Relaxer", time: "10 min", notes: ["Virgin relaxer application in a quadrant of your choice"] },
-  { name: "Hydroxide Relaxer Retouch", time: "10 min", notes: ["Relaxer retouch assuming 2 inches of regrowth"] },
-  { name: "End of Exam Disinfection", time: "10 min", notes: ["Dispose of materials, disinfect workstation, remove all supplies and belongings"] },
+  { name: "Facial", time: "17 min", notes: ["Cleanse, apply massage cream and demonstrate massage manipulations, remove cream, apply toner/moisturizer"] },
+  { name: "Waxing with Soft Wax", time: "14 min", notes: ["Apply a simulated soft-wax product to one eyebrow — application, fabric strip, removal, post-wax product"] },
+  { name: "Haircut", time: "42 min", notes: ["Cut a minimum of one inch throughout the entire head using shears and a razor"] },
+  { name: "Permanent Wave", time: "22 min", notes: ["Wrap a minimum of 6 rods in the center-back section, demonstrate saturation and a test curl"] },
+  { name: "Blow Drying & Thermal Curling", time: "22 min", notes: ["Blow dry wet hair, then complete curls in a section of your choice using a curling iron"] },
+  { name: "Mannequin Preparation", time: "10 min", notes: ["Section the mannequin and apply protective cream to prepare for the chemical services that follow"] },
+  { name: "Foil Highlights", time: "Not timed", notes: ["Apply a high-lift product to 2 subsections in a quadrant of your choice using foils"] },
+  { name: "Hydroxide Virgin Relaxer", time: "10 min", notes: ["Complete a virgin relaxer application in a quadrant of your choice"] },
+  { name: "Hydroxide Relaxer Retouch", time: "10 min", notes: ["Complete a relaxer retouch assuming two inches of regrowth"] },
+  { name: "End of Exam Disinfection", time: "10 min", notes: ["Dispose of materials, disinfect the workstation, remove all supplies and belongings"] },
 ];
 
 const RULES = [
-  "As of September 1, 2019, the practical exam is performed entirely on mannequins — live models are no longer required or allowed.",
-  "Aerosol products are not permitted for use during the exam, under any circumstances.",
-  "All tasks must be performed in the order listed — steps out of order are not scored, even if completed correctly.",
-  "Products must be labeled in English (manufacturer labels acceptable) — numbering of any kind on labeled items is not allowed.",
-  "Cheat sheets and written notes — including numbered bags or bags with a written supply list — are not permitted; an identifying (non-numbered) bag per service is allowed.",
-  "No markings or colorings are permitted around the mannequin's hair, scalp, or hairline.",
-  "Cell phones are not allowed in the practical exam room.",
+  "Every service is performed on mannequins — a head for the hair services and a hand for the nail service. No live models.",
+  "All tasks must be performed in the order listed — steps out of order, or not completed within the allotted time, are not scored.",
+  "Follow the bulletin's two labeling lists exactly: label the required products in English, but do NOT label tools/implements. Numbering any item is never allowed; an identifying bag for a service is fine.",
+  "Cheat sheets and written notes — including numbered bags or bags with a written supply list — are prohibited and cost points across all Procedure Criteria.",
+  "Aerosol products are not permitted. Nail liquid must be odorless (examiners check) or you can't use it and lose those points.",
+  "No markings or coloring around the mannequin's hair, scalp, hairline, hands, or fingers.",
+  "Raise your hand at the end of each section to signal completion.",
+  "Cell phones are not allowed in the practical room, and anything left behind is discarded.",
 ];
 
 export default function CosmetologyPracticalExamKitListPage() {
   return (
     <div className="min-h-screen light bg-white text-slate-950">
-      <Navbar />
+      <style dangerouslySetInnerHTML={{ __html: `@media print { .no-print { display: none !important; } main { padding-top: 0 !important; } a[href]:after { content: ""; } }` }} />
+      <div className="no-print">
+        <Navbar />
+      </div>
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-28 pb-10 sm:pb-14">
         <Link
           href="/texas-cosmetology-exam-intelligence-prep"
-          className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-primary hover:underline mb-6"
+          className="no-print inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-primary hover:underline mb-6"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Back to Exam Intelligence Hub
         </Link>
 
         <div className="mb-10">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-fuchsia-700 bg-fuchsia-50 border border-fuchsia-100 rounded-full px-3 py-1 mb-4">
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-3 py-1 mb-4">
             <ListChecks className="w-3 h-3" />
-            2026 Practical Exam Prep
+            Updated for the Jan 1, 2026 exam
           </span>
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950 leading-tight mb-3">
-            Texas Cosmetology Practical Exam Kit List
+            Texas Cosmetology Practical Exam Kit List &amp; Checklist
           </h1>
           <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl">
-            Every item, labeling rule, and station-by-station step order for the Texas Cosmetology Operator
-            practical exam, administered by PSI on behalf of TDLR — sourced directly from the official PSI
-            Candidate Information Bulletin. Also known as the beauty school or hair school state board exam.
+            Every item, the exact must-label vs. do-not-label rules, and all 13 timed stations for the Texas
+            Cosmetology Operator practical exam, administered by PSI on behalf of TDLR — sourced directly from the
+            official PSI Candidate Information Bulletin effective January 1, 2026.
           </p>
         </div>
 
         {/* Exam Structure */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <Clock className="w-4 h-4 text-fuchsia-600 mb-2" />
-            <p className="text-lg font-black text-slate-900">3h 45m</p>
+            <Clock className="w-4 h-4 text-indigo-600 mb-2" />
+            <p className="text-lg font-black text-slate-900">3h 31m</p>
             <p className="text-xs text-slate-500 font-semibold mt-0.5">Total Exam Length</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <ShieldCheck className="w-4 h-4 text-fuchsia-600 mb-2" />
+            <ShieldCheck className="w-4 h-4 text-indigo-600 mb-2" />
             <p className="text-lg font-black text-slate-900">70%</p>
-            <p className="text-xs text-slate-500 font-semibold mt-0.5">Passing Score (91/130 pts)</p>
+            <p className="text-xs text-slate-500 font-semibold mt-0.5">Passing Score (84/119 pts)</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <ListChecks className="w-4 h-4 text-fuchsia-600 mb-2" />
-            <p className="text-lg font-black text-slate-900">14</p>
-            <p className="text-xs text-slate-500 font-semibold mt-0.5">Timed Sections</p>
+            <ListChecks className="w-4 h-4 text-indigo-600 mb-2" />
+            <p className="text-lg font-black text-slate-900">13</p>
+            <p className="text-xs text-slate-500 font-semibold mt-0.5">Sections</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <CheckCircle2 className="w-4 h-4 text-fuchsia-600 mb-2" />
-            <p className="text-lg font-black text-slate-900">130</p>
+            <CheckCircle2 className="w-4 h-4 text-indigo-600 mb-2" />
+            <p className="text-lg font-black text-slate-900">119</p>
             <p className="text-xs text-slate-500 font-semibold mt-0.5">Total Points</p>
           </div>
         </div>
 
-        <div className="bg-fuchsia-50 border border-fuchsia-200 rounded-2xl px-6 py-4 mb-10 flex items-start gap-3">
-          <AlertTriangle className="w-4.5 h-4.5 text-fuchsia-700 shrink-0 mt-0.5" />
-          <p className="text-sm text-fuchsia-900 leading-relaxed">
-            <strong>Mannequin-only since September 1, 2019.</strong> Every service on this exam — including the
-            haircut and facial — is performed on a mannequin. Live models are not required or allowed.
-          </p>
-        </div>
+        {/* Interactive + printable checklist */}
+        <KitChecklist groups={KIT_GROUPS} />
 
-        {/* Kit list — not labeled */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-6 mb-6">
-          <h2 className="text-xl font-black text-slate-900 mb-1">Items that must NOT be labeled</h2>
-          <p className="text-sm text-slate-500 font-medium mb-5">
-            Labeling these items — including any numbering — may cost you points.
-          </p>
-          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2.5">
-            {NOT_LABELED.map((item) => (
-              <li key={item} className="flex items-start gap-2 text-sm text-slate-700">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Kit list — must be labeled */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-6 mb-6">
-          <h2 className="text-xl font-black text-slate-900 mb-1">Items that MUST be labeled in English</h2>
-          <p className="text-sm text-slate-500 font-medium mb-5">
-            Manufacturer labels are acceptable — numbering of any kind is not allowed. Failure to properly label
-            these may cost you points.
-          </p>
-          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2.5">
-            {MUST_BE_LABELED.map((item) => (
-              <li key={item} className="flex items-start gap-2 text-sm text-slate-700">
-                <CheckCircle2 className="w-4 h-4 text-fuchsia-600 shrink-0 mt-0.5" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Vendor supplied */}
+        {/* Provided on site */}
         <div className="bg-slate-50 border border-slate-200 rounded-2xl px-6 py-6 mb-10">
           <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide mb-3">
             Already provided at the exam site — don&apos;t bring these
           </h3>
           <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5">
-            {VENDOR_SUPPLIED.map((item) => (
+            {PROVIDED_ON_SITE.map((item) => (
               <li key={item} className="text-sm text-slate-600">
                 {item}
               </li>
@@ -268,7 +244,7 @@ export default function CosmetologyPracticalExamKitListPage() {
                   <h3 className="text-sm font-black text-slate-900">
                     {i + 1}. {section.name}
                   </h3>
-                  <span className="shrink-0 text-xs font-bold text-fuchsia-700 bg-fuchsia-50 border border-fuchsia-100 rounded-full px-2.5 py-0.5 whitespace-nowrap">
+                  <span className="shrink-0 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-0.5 whitespace-nowrap">
                     {section.time}
                   </span>
                 </div>
@@ -300,16 +276,30 @@ export default function CosmetologyPracticalExamKitListPage() {
           </ul>
         </div>
 
+        {/* Where to get your kit */}
+        <div className="bg-white border border-slate-200 rounded-2xl px-6 py-6 mb-10">
+          <h2 className="flex items-center gap-2 text-lg font-black text-slate-900 mb-3">
+            <ShoppingBag className="w-4.5 h-4.5 text-indigo-600" />
+            Where to get your kit
+          </h2>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            You can assemble this kit yourself from what you already used in school, or buy a pre-packed Texas
+            cosmetology state-board kit from a beauty-supply vendor. If you buy one, verify it against the list
+            above first — the exam bulletin was updated January 1, 2026, and not every vendor kit matches the
+            current stations.
+          </p>
+        </div>
+
         <div className="bg-slate-50 border border-slate-200 rounded-2xl px-6 py-5 mb-10 text-sm text-slate-600 leading-relaxed">
           This list is drawn directly from the official PSI Cosmetology Operator Candidate Information Bulletin
-          (revised 9/1/2019) — the same document TDLR and PSI use to administer the exam. Requirements are
+          effective January 1, 2026 — the same document TDLR and PSI use to administer the exam. Requirements are
           occasionally updated; always confirm current kit requirements against your own Candidate Information
           Bulletin at{" "}
           <a
             href="https://www.psiexams.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-fuchsia-600 font-bold hover:underline inline-flex items-center gap-1"
+            className="text-indigo-600 font-bold hover:underline inline-flex items-center gap-1"
           >
             psiexams.com
             <ExternalLink className="w-3 h-3" />
@@ -317,10 +307,10 @@ export default function CosmetologyPracticalExamKitListPage() {
           before your exam date.
         </div>
 
-        <div className="flex flex-wrap gap-3 mb-16">
+        <div className="no-print flex flex-wrap gap-3 mb-16">
           <Link
             href="/tools/texas-cosmetology-exam-practice-deck"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-fuchsia-600/20"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-indigo-600/20"
           >
             Practice the Written Exam
           </Link>
@@ -355,6 +345,40 @@ export default function CosmetologyPracticalExamKitListPage() {
               "@type": "Question",
               name: faq.q,
               acceptedAnswer: { "@type": "Answer", text: faq.a },
+            })),
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "HowTo",
+            name: "Texas Cosmetology Operator Practical Exam — Station Order",
+            description:
+              "The 13 timed sections of the Texas Cosmetology Operator practical exam in order, per the PSI/TDLR Candidate Information Bulletin effective January 1, 2026.",
+            totalTime: "PT3H31M",
+            step: SECTIONS.map((s, i) => ({
+              "@type": "HowToStep",
+              position: i + 1,
+              name: s.name,
+              text: s.notes.join(" "),
+            })),
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            name: "Texas Cosmetology Practical Exam Kit List (2026)",
+            itemListElement: KIT_GROUPS.flatMap((g) => g.items).map((item, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              name: item.label,
             })),
           }),
         }}

@@ -15,16 +15,31 @@ export async function GET() {
   // are new (this session's 20260720000000 migration) and not yet reflected
   // in the generated Database type, same precedent as
   // app/api/community/register/route.ts's community_members cast.
-  const [{ data: members, error: membersError }, { data: links, error: linksError }]: [
+  const [{ data: members, error: membersError }, { data: links, error: linksError }, { data: gbp }]: [
+    { data: any[] | null; error: any },
     { data: any[] | null; error: any },
     { data: any[] | null; error: any }
   ] = await Promise.all([
     supabase.from("community_members").select("id, first_name, last_name, email").order("created_at", { ascending: false }) as any,
     (supabase.from("community_member_entity_links") as any).select("id, community_member_id, entity_type, entity_id, linked_at"),
+    (supabase.from("gbp_connections") as any).select("community_member_id, status, google_account_email, selected_location, locations"),
   ]);
 
   if (membersError || linksError) {
     return NextResponse.json({ success: false, error: (membersError || linksError)?.message }, { status: 500 });
+  }
+
+  // GBP connection per member (so links + Google connections show in one place).
+  const gbpByMember = new Map<string, any>();
+  for (const c of gbp || []) {
+    const locs = Array.isArray(c.locations) ? c.locations : [];
+    const sel = locs.find((l: any) => l.name === c.selected_location) || (locs.length === 1 ? locs[0] : null);
+    gbpByMember.set(c.community_member_id, {
+      status: c.status,
+      email: c.google_account_email || null,
+      locationTitle: sel?.title || null,
+      locationsCount: locs.length,
+    });
   }
 
   const linksAny: any[] = links || [];
@@ -59,6 +74,7 @@ export async function GET() {
             linkedAt: link.linked_at,
           }
         : null,
+      gbp: gbpByMember.get(m.id) || null,
     };
   });
 

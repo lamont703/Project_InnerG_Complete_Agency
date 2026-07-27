@@ -135,17 +135,55 @@ async function extractFullDetail(page, target) {
     const addressLine = lines.find((l) => /\d/.test(l) && /(TX|Texas)\b|\b\d{5}\b/.test(l) && l.length < 90 && !/^\(/.test(l));
     const phoneLine = lines.find((l) => /^\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/.test(l));
     // Rating sometimes has no "(count)" next to it at all in a limited
-    // session view (confirmed live) — try the full "4.7(495)" pattern
-    // first, then fall back to a bare "4.7" on its own line right after
-    // the name, and leave reviewCount null rather than guess.
-    const withCount = panelText.match(/(\d\.\d)\((\d+)\)/);
-    const bareRatingLine = lines.find((l) => /^\d\.\d$/.test(l));
+    // session view (confirmed live). Rating and count are therefore
+    // extracted INDEPENDENTLY — the previous version required the combined
+    // "4.7(495)" pattern for the count to be saved at all, so a split-line
+    // render, or a thousands separator ("4.8(1,234)") the `(\d+)\)` tail
+    // cannot match, silently left reviewCount null while still recovering
+    // the rating. Mirrors scripts/discover_by_category.js. Every fallback is
+    // anchored to a whole line so a phone area code, "(713)", is never read
+    // as a review count.
+    // The rating still requires a mandatory decimal and at most a single
+    // space before the count — "\s*" with an optional decimal would span a
+    // newline and match a zip code followed by a phone area code
+    // ("...TX 78520\n(956) 555-2211" -> rating 0, count 956). Caught in test.
+    const combined = panelText.match(/(\d\.\d) ?\(([\d,]+)\)/);
+    const ratingIdx = lines.findIndex((l) => /^\d\.\d$/.test(l));
+
+    const toInt = (s) => {
+      if (!s) return null;
+      const n = parseInt(String(s).replace(/,/g, ''), 10);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+
+    const rating = combined
+      ? parseFloat(combined[1])
+      : ratingIdx >= 0
+      ? parseFloat(lines[ratingIdx])
+      : null;
+
+    // Split-line render: the count sits on one of the rating line's two
+    // immediate neighbours. Scoped to those lines rather than the whole
+    // panel so a nearby business's numbers can't bleed in, and both accepted
+    // shapes are whole-line anchored so "(713) 555-1234" can never be read
+    // as 713 reviews.
+    let nearbyCount = null;
+    if (!combined && ratingIdx >= 0) {
+      for (const l of lines.slice(ratingIdx + 1, ratingIdx + 3)) {
+        const m = l.match(/^\(\s*([\d,]+)\s*\)$/) || l.match(/^([\d,]+)\s+reviews?$/i);
+        if (m) { nearbyCount = toInt(m[1]); break; }
+      }
+    }
+
+    // A count is only meaningful attached to a real rating.
+    const reviewCount = rating == null ? null : (toInt(combined && combined[2]) ?? nearbyCount);
+
     return {
       name,
       address: addressLine || null,
       phone: phoneLine || null,
-      rating: withCount ? parseFloat(withCount[1]) : bareRatingLine ? parseFloat(bareRatingLine) : null,
-      reviewCount: withCount ? parseInt(withCount[2], 10) : null,
+      rating,
+      reviewCount,
     };
   });
 
@@ -235,6 +273,12 @@ async function importBusiness(page, target) {
   }
 
   console.log(`  Imported as ${target.table} / slug: ${slug}`);
+  // A rating with no count is the exact shape of the bug that shipped 336
+  // rows rendering "rated 4.8 stars across 0 reviews" and made those pages
+  // ineligible for AggregateRating. Never let it pass silently again.
+  if (detail.rating != null && detail.reviewCount == null) {
+    console.warn(`  ⚠ REVIEW COUNT MISSING for "${detail.name}" (rating ${detail.rating}) — slug: ${slug}. Needs a Places-API backfill.`);
+  }
   return { target, imported: true, slug, id, photosRecovered: cachedUrls.length };
 }
 

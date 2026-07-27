@@ -60,7 +60,7 @@ const practiceQuestions = [
       { id: "d", text: "To reduce the appearance of fine lines and wrinkles", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 15",
+      source: "Milady 7th Ed, Chapter 15",
       reasoning: "Steamers and hot towels are utilized to soften the skin tissues and open the pores, which facilitates the removal of impurities during cleansing."
     }
   },
@@ -75,7 +75,7 @@ const practiceQuestions = [
       { id: "d", text: "A paper cape; for one-time disposable use", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 11, Page 277",
+      source: "Milady 7th Ed, Chapter 11, Page 277",
       reasoning: "A waterproof vinyl cape is essential for wet services like shampooing to keep the client dry and protect their clothing."
     }
   },
@@ -90,7 +90,7 @@ const practiceQuestions = [
       { id: "d", text: "Minoxidil and Finasteride", isCorrect: true }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 11, Page 255",
+      source: "Milady 7th Ed, Chapter 11, Page 255",
       reasoning: "The FDA only recognizes Minoxidil (topical) and Finasteride (oral) as scientifically proven treatments for hair loss."
     }
   },
@@ -105,7 +105,7 @@ const practiceQuestions = [
       { id: "d", text: "To ensure the shampoo lathers more than a high-pH shampoo", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 11, Page 192, 200",
+      source: "Milady 7th Ed, Chapter 11, Page 192, 200",
       reasoning: "Shampoos with a pH of 4.5 to 5.5 match the hair's natural acidity, preventing excessive swelling of the hair shaft and keeping the cuticle layer smooth and closed."
     }
   },
@@ -120,7 +120,7 @@ const practiceQuestions = [
       { id: "d", text: "12.5 to 13.5", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 17, Table 17-2",
+      source: "Milady 7th Ed, Chapter 17, Table 17-2",
       reasoning: "Alkaline waves, or cold waves, process at room temperature and typically have a pH between 9.0 and 9.6."
     }
   },
@@ -135,7 +135,7 @@ const practiceQuestions = [
       { id: "d", text: "To add moisture to the hair shaft", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 17, Relaxing section",
+      source: "Milady 7th Ed, Chapter 17, Relaxing section",
       reasoning: "Protective base cream is an oily cream used specifically to protect the client's scalp during a hydroxide relaxer service."
     }
   },
@@ -150,7 +150,7 @@ const practiceQuestions = [
       { id: "d", text: "Natural cowlicks", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 17, Page 580",
+      source: "Milady 7th Ed, Chapter 17, Page 580",
       reasoning: "A chemical service should never be performed if the scalp shows signs of cuts, abrasions, scratches, or open sores."
     }
   },
@@ -165,7 +165,7 @@ const practiceQuestions = [
       { id: "d", text: "Complementary colors", isCorrect: true }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 18, Page 643",
+      source: "Milady 7th Ed, Chapter 18, Page 643",
       reasoning: "Complementary colors neutralize or \"cancel\" each other out when mixed."
     }
   },
@@ -180,7 +180,7 @@ const practiceQuestions = [
       { id: "d", text: "Metallic", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 18, Page 649",
+      source: "Milady 7th Ed, Chapter 18, Page 649",
       reasoning: "Semi-permanent haircolor is a non-oxidation color with smaller pigment molecules that partially penetrate the hair shaft."
     }
   },
@@ -195,7 +195,7 @@ const practiceQuestions = [
       { id: "d", text: "72 to 96 hours", isCorrect: false }
     ],
     metadata: {
-      source: "Milady 6th Ed, Chapter 18, Page 664",
+      source: "Milady 7th Ed, Chapter 18, Page 664",
       reasoning: "A patch test (predisposition test) must be performed 24 to 48 hours before the application of aniline derivative haircolor."
     }
   }

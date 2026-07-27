@@ -7,6 +7,11 @@
  *   node scripts/indexnow_bulk_submit.js --commit            # submit everything
  *   node scripts/indexnow_bulk_submit.js --filter=california # only URLs containing "california"
  *   node scripts/indexnow_bulk_submit.js --filter=california --commit
+ *   node scripts/indexnow_bulk_submit.js --urls-file=urls.txt --commit  # explicit list
+ *
+ * --urls-file reads one URL per line (blank lines and # comments ignored) and
+ * bypasses the sitemap entirely — use it for a specific set of changed pages
+ * that no substring filter can select.
  *
  * Requires the key file be live at KEY_LOCATION (deploy first) or IndexNow
  * rejects the submission.
@@ -20,12 +25,38 @@ const BATCH = 10000;
 const COMMIT = process.argv.includes("--commit");
 const filterArg = process.argv.find((a) => a.startsWith("--filter="));
 const FILTER = filterArg ? filterArg.split("=")[1].toLowerCase() : null;
+const fileArg = process.argv.find((a) => a.startsWith("--urls-file="));
+const URLS_FILE = fileArg ? fileArg.split("=")[1] : null;
 
 async function main() {
-  console.log(`Fetching https://${HOST}/sitemap.xml ...`);
-  const xml = await fetch(`https://${HOST}/sitemap.xml`).then((r) => r.text());
-  let urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim());
-  console.log(`  sitemap URLs: ${urls.length}`);
+  let urls;
+
+  if (URLS_FILE) {
+    // Explicit list mode — for submitting a specific set of changed pages that
+    // a sitemap substring filter can't express (e.g. the 330 entity pages whose
+    // review counts were repaired, which span /shop/, /salons/, /stores/ and
+    // /schools/ and share no common slug pattern).
+    const fs = require("fs");
+    urls = fs
+      .readFileSync(URLS_FILE, "utf8")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith("#"));
+    console.log(`Read ${urls.length} URL(s) from ${URLS_FILE}`);
+    const foreign = urls.filter((u) => !u.startsWith(`https://${HOST}/`));
+    if (foreign.length) {
+      // IndexNow rejects a whole submission whose urlList contains a host other
+      // than the declared one, so fail loudly rather than send a doomed batch.
+      console.error(`ERROR: ${foreign.length} URL(s) are not on ${HOST}, e.g. ${foreign[0]}`);
+      process.exit(1);
+    }
+  } else {
+    console.log(`Fetching https://${HOST}/sitemap.xml ...`);
+    const xml = await fetch(`https://${HOST}/sitemap.xml`).then((r) => r.text());
+    urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim());
+    console.log(`  sitemap URLs: ${urls.length}`);
+  }
+
   if (FILTER) {
     urls = urls.filter((u) => u.toLowerCase().includes(FILTER));
     console.log(`  after filter "${FILTER}": ${urls.length}`);
