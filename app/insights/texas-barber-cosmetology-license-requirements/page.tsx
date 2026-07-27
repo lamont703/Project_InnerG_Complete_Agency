@@ -103,7 +103,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "Texas Cosmetology & Barber License Renewal (2026): Fees, CE Hours, Reciprocity | Inner G Complete",
+  title: "Texas Barber & Cosmetology License Requirements & Renewal Guide (2026) | Inner G Complete",
   description:
     "Real Texas cosmetology and barber license renewal costs — the 2-year cycle, $50-$100 fee tiers, CE hours, and reciprocity from other states — plus how to get licensed in the first place. Sourced directly from TDLR.",
   keywords: [
@@ -221,7 +221,7 @@ export default function LicenseRequirementsGuide() {
             />
 
             <h1 className="text-4xl font-black tracking-tighter text-foreground sm:text-6xl md:text-7xl uppercase italic leading-[0.95] mb-8">
-              Texas Cosmetology &amp; <br />Barber License <br />Renewal
+              Texas Barber &amp; <br />Cosmetology License <br />Requirements
             </h1>
 
             <p className="text-xl text-muted-foreground leading-relaxed font-medium text-balance mb-6">
@@ -382,6 +382,17 @@ export default function LicenseRequirementsGuide() {
             <div className="flex items-center gap-3 mb-6">
               <RefreshCw className="h-5 w-5 text-primary" />
               <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">Renewal</h2>
+            </div>
+            <div className="not-prose mb-6 rounded-2xl border border-primary/20 bg-primary/5 p-5">
+              <p className="text-sm font-bold text-foreground mb-2">Just need to renew? Jump to the step-by-step:</p>
+              <div className="flex flex-wrap gap-3">
+                <Link href="/texas-barber-license-renewal" className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline">
+                  Barber license renewal <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+                <Link href="/texas-cosmetology-license-renewal" className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline">
+                  Cosmetology license renewal <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
             <div className="prose prose-lg max-w-none text-muted-foreground font-medium leading-relaxed space-y-4">
               <p>
