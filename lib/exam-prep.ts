@@ -5,7 +5,11 @@
  * CTA on app/schools/[slug] so a California school never links to Texas prep.
  */
 export type ExamState = "TX" | "CA";
-export type ExamVariant = "cosmetology" | "barber";
+// esthetician/manicurist are Texas-only for now — we have the Jan 2026 PSI/TDLR
+// Candidate Information Bulletins for those two Texas licenses and no California
+// equivalent, so examPrepInfo falls back to the CA cosmetology page rather than
+// linking a California student to Texas-specific prep.
+export type ExamVariant = "cosmetology" | "barber" | "esthetician" | "manicurist";
 
 // Match ", CA 90210" / ", CA" / ", California" — a comma then CA/California as a
 // word, so a Texas address ("…, TX 77002") never false-matches. Default TX
@@ -22,6 +26,23 @@ export interface PrepInfo {
 }
 
 export function examPrepInfo(state: ExamState, variant: ExamVariant): PrepInfo {
+  // Texas-only variants. A California student never lands here — they fall
+  // through to the CA branch below and get CA cosmetology prep instead of a
+  // Texas page that wouldn't apply to them.
+  if (state === "TX" && (variant === "esthetician" || variant === "manicurist")) {
+    return variant === "esthetician"
+      ? {
+          href: "/insights/texas-esthetician-nail-technician-exam-guide",
+          label: "Texas Esthetician Exam Guide",
+          sub: "The real 2026 exam: $55 written and $76 practical, 75 scored questions in 105 minutes, and the full PSI content outline — sourced from the January 2026 Candidate Information Bulletin.",
+        }
+      : {
+          href: "/insights/texas-esthetician-nail-technician-exam-guide",
+          label: "Texas Manicurist (Nail Technician) Exam Guide",
+          sub: "The real 2026 exam: 60 scored questions in 90 minutes, a 1 hr 21 min practical worth 51 points, and the full PSI content outline — sourced from the January 2026 Candidate Information Bulletin.",
+        };
+  }
+
   const isCosmet = variant === "cosmetology";
   if (state === "CA") {
     return isCosmet

@@ -25,6 +25,8 @@ import {
   Search,
   ScrollText,
   Sparkles,
+  ListOrdered,
+  ArrowRight,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -101,7 +103,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "Texas Cosmetology & Barber License Renewal (2026): Fees, CE Hours, Reciprocity | Inner G Complete",
+  title: "Texas Barber & Cosmetology License Requirements & Renewal Guide (2026) | Inner G Complete",
   description:
     "Real Texas cosmetology and barber license renewal costs — the 2-year cycle, $50-$100 fee tiers, CE hours, and reciprocity from other states — plus how to get licensed in the first place. Sourced directly from TDLR.",
   keywords: [
@@ -152,6 +154,27 @@ export default function LicenseRequirementsGuide() {
             author: { "@type": "Person", name: "Lamont Evans", url: "https://agency.innergcomplete.com/about" },
             publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
             datePublished: "2026-07-08T08:00:00Z",
+            dateModified: "2026-07-27T08:00:00Z",
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "HowTo",
+            name: "How to Renew a Texas Barber or Cosmetology License",
+            description:
+              "Step-by-step renewal of a Texas barber or cosmetology license through TDLR, per the TDLR renewal, fee, and continuing-education rules.",
+            estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: 50 },
+            step: [
+              { "@type": "HowToStep", position: 1, name: "Complete your required CE hours", text: "Complete 4 hours (or 2 if licensed 15+ years) of continuing education from a TDLR-approved provider." },
+              { "@type": "HowToStep", position: 2, name: "Confirm your hours were reported", text: "Approved providers report completed CE to TDLR electronically, usually within one business day. Verify it posted using TDLR License Search." },
+              { "@type": "HowToStep", position: 3, name: "Log in to TDLR Online Services", text: "Start your renewal application in your TDLR online account at tdlr.texas.gov." },
+              { "@type": "HowToStep", position: 4, name: "Provide lawful-presence documents and pay", text: "From May 1, 2026, upload proof of lawful presence, then pay the renewal fee ($50 on time for practitioners)." },
+              { "@type": "HowToStep", position: 5, name: "Submit and save your license", text: "Submit the application and download your updated license once issued. Online renewals process in about 7-10 business days." },
+            ],
           }),
         }}
       />
@@ -198,7 +221,7 @@ export default function LicenseRequirementsGuide() {
             />
 
             <h1 className="text-4xl font-black tracking-tighter text-foreground sm:text-6xl md:text-7xl uppercase italic leading-[0.95] mb-8">
-              Texas Cosmetology &amp; <br />Barber License <br />Renewal
+              Texas Barber &amp; <br />Cosmetology License <br />Requirements
             </h1>
 
             <p className="text-xl text-muted-foreground leading-relaxed font-medium text-balance mb-6">
@@ -360,16 +383,27 @@ export default function LicenseRequirementsGuide() {
               <RefreshCw className="h-5 w-5 text-primary" />
               <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">Renewal</h2>
             </div>
+            <div className="not-prose mb-6 rounded-2xl border border-primary/20 bg-primary/5 p-5">
+              <p className="text-sm font-bold text-foreground mb-2">Just need to renew? Jump to the step-by-step:</p>
+              <div className="flex flex-wrap gap-3">
+                <Link href="/texas-barber-license-renewal" className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline">
+                  Barber license renewal <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+                <Link href="/texas-cosmetology-license-renewal" className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline">
+                  Cosmetology license renewal <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
             <div className="prose prose-lg max-w-none text-muted-foreground font-medium leading-relaxed space-y-4">
               <p>
                 Texas barber and cosmetology licenses renew every 2 years from the date of issue.
-                <Cite id={2} /> Fees scale with how late you renew:
+                <Cite id={2} /> Practitioner fees scale with how late you renew:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 not-prose">
                 {[
                   { label: "On time", value: "$50" },
-                  { label: "Late (under 90 days)", value: "$75" },
-                  { label: "Late (90 days – 3 years)", value: "$100" },
+                  { label: "Expired under 18 months", value: "$75" },
+                  { label: "Expired 18 months – 3 years", value: "$100" },
                 ].map((tier) => (
                   <div key={tier.label} className="rounded-2xl border border-border bg-white p-5">
                     <p className="text-2xl font-black text-foreground tracking-tighter mb-1">{tier.value}</p>
@@ -378,9 +412,93 @@ export default function LicenseRequirementsGuide() {
                 ))}
               </div>
               <p>
-                If your license lapses for more than 3 years, TDLR generally requires re-establishing eligibility
-                rather than a simple late renewal — confirm your specific situation directly with TDLR before
-                assuming either path applies.
+                Own a shop? Establishment licenses renew on the same 2-year cycle at higher fees (on-time /
+                &lt;18 months late / 18 months–3 years late):
+              </p>
+              <div className="not-prose overflow-x-auto">
+                <table className="w-full text-sm border border-border rounded-xl overflow-hidden">
+                  <thead>
+                    <tr className="bg-secondary/50 text-left">
+                      <th className="px-4 py-2.5 font-black uppercase tracking-wide text-xs text-muted-foreground">Establishment type</th>
+                      <th className="px-4 py-2.5 font-black uppercase tracking-wide text-xs text-muted-foreground text-right">On time</th>
+                      <th className="px-4 py-2.5 font-black uppercase tracking-wide text-xs text-muted-foreground text-right">&lt;18 mo late</th>
+                      <th className="px-4 py-2.5 font-black uppercase tracking-wide text-xs text-muted-foreground text-right">18 mo–3 yr</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-muted-foreground">
+                    {[
+                      ["Mini-establishment", "$70", "$105", "$140"],
+                      ["Full-service / mobile / specialty", "$78", "$117", "$156"],
+                      ["School", "$280", "$420", "$560"],
+                    ].map(([type, a, b, c]) => (
+                      <tr key={type} className="border-t border-border">
+                        <td className="px-4 py-2.5">{type}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{a}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{b}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{c}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p>
+                The renewal fee is TDLR&apos;s only — separate from the roughly $25 you&apos;ll pay a TDLR-approved
+                provider for your required CE hours (below). If your license lapses for more than 3 years, TDLR
+                generally requires re-establishing eligibility rather than a simple late renewal — confirm your
+                specific situation directly with TDLR before assuming either path applies.
+              </p>
+            </div>
+          </section>
+
+          {/* How to Renew — step by step */}
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <ListOrdered className="h-5 w-5 text-primary" />
+              <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">How to Renew — Step by Step</h2>
+            </div>
+            <div className="prose prose-lg max-w-none text-muted-foreground font-medium leading-relaxed">
+              <p className="mb-6">
+                TDLR renews online. Start about <strong>60 days before</strong> your expiration date so your CE
+                hours are reported and your documents are ready before the deadline.
+              </p>
+            </div>
+            <ol className="not-prose space-y-4 list-none pl-0">
+              {[
+                {
+                  t: "Complete your required CE hours",
+                  d: (
+                    <>
+                      4 hours (or 2 if you&apos;ve held your license 15+ years) from a TDLR-approved provider. Get
+                      them at our{" "}
+                      <Link href="/barber-cos-continuing-education" className="text-primary font-bold hover:underline">
+                        Texas Barber &amp; Cosmetology CE portal
+                      </Link>
+                      .
+                    </>
+                  ),
+                },
+                { t: "Confirm your hours were reported", d: "Approved providers report completed CE to TDLR electronically, usually within 1 business day. Verify it posted using TDLR's License Search before you renew." },
+                { t: "Log in to TDLR Online Services", d: "Open your account at tdlr.texas.gov and start the renewal application for your license." },
+                { t: "Provide lawful-presence documents and pay", d: "From May 1, 2026, upload proof of lawful presence, then pay your renewal fee ($50 on time for practitioners)." },
+                { t: "Submit and save your license", d: "Submit the application and download your updated license once it's issued." },
+              ].map((step, i) => (
+                <li key={step.t} className="flex items-start gap-4 rounded-2xl border border-border bg-white p-5">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-black text-sm">
+                    {i + 1}
+                  </span>
+                  <div>
+                    <p className="font-black text-foreground text-sm uppercase tracking-tight mb-1">{step.t}</p>
+                    <p className="text-sm text-muted-foreground font-medium leading-relaxed">{step.d}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-4 rounded-2xl border border-border bg-secondary/40 p-5 flex gap-3 not-prose">
+              <Clock className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">Timing:</strong> online renewals typically process in about
+                7–10 business days; renewing by mail takes roughly 4–6 weeks. Don&apos;t wait until your expiration
+                date — a lapsed license means late fees and, past 3 years, no renewal at all.
               </p>
             </div>
           </section>
@@ -415,6 +533,25 @@ export default function LicenseRequirementsGuide() {
                   <p className="text-3xl font-black text-foreground tracking-tighter mb-2">2 hours</p>
                   <p className="text-sm text-muted-foreground">1 hour sanitation, 1 hour human trafficking prevention.</p>
                 </div>
+              </div>
+              <p>
+                Only TDLR-approved courses count, and CE hours are <strong>timed</strong> — each hour requires 50
+                minutes of seat time. Approved providers report your completed hours to TDLR electronically, usually
+                within one business day. One extra break: a licensee who is <strong>65 or older and has held a
+                license 15+ years</strong> only needs the single 1-hour sanitation course.
+              </p>
+              <div className="not-prose rounded-2xl border border-primary/20 bg-primary/5 p-6">
+                <p className="font-black text-foreground mb-1">Need your CE hours?</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Knock out all 4 (or 2) required hours online, self-paced, with instant reporting to TDLR.
+                </p>
+                <Link
+                  href="/barber-cos-continuing-education"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider hover:opacity-90 transition-opacity"
+                >
+                  Complete Your Required CE Hours
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
             </div>
           </section>

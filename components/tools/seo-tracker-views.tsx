@@ -28,7 +28,7 @@ export interface PageRow {
   keywords: KeywordChip[]
 }
 
-type View = "grouped" | "best" | "worst"
+type View = "grouped" | "best" | "worst" | "bestCtr" | "worstCtr"
 
 const INTENT_META: Record<Intent, { label: string; blurb: string; accent: string; dot: string }> = {
   service: { label: "Service Keywords", blurb: "Commercial / local intent — find, hire, rent, buy", accent: "text-blue-700 bg-blue-50 border-blue-200", dot: "bg-blue-500" },
@@ -110,7 +110,16 @@ const TABS: { id: View; label: string; hint: string }[] = [
   { id: "grouped", label: "By Intent", hint: "Grouped — default" },
   { id: "best", label: "Best Ranking First", hint: "Lowest position # at top" },
   { id: "worst", label: "Worst Ranking First", hint: "Highest position # at top" },
+  { id: "bestCtr", label: "Best CTR First", hint: "Highest click-through rate at top" },
+  { id: "worstCtr", label: "Worst CTR First", hint: "Lowest CTR at top (high-impression, low-click pages)" },
 ]
+
+const SORTED_VIEW_BLURB: Record<string, string> = {
+  best: "Ranked pages, best average position first. ",
+  worst: "Ranked pages, worst average position first. ",
+  bestCtr: "Ranked pages, highest click-through rate first. ",
+  worstCtr: "Ranked pages, lowest CTR first — high-impression, low-click pages float to the top. ",
+}
 
 export function SeoTrackerViews({ rows }: { rows: PageRow[] }) {
   const [view, setView] = useState<View>("grouped")
@@ -118,12 +127,25 @@ export function SeoTrackerViews({ rows }: { rows: PageRow[] }) {
   const ranked = rows.filter((r) => r.metrics && r.metrics.impressions > 0)
   const noData = rows.filter((r) => !r.metrics || r.metrics.impressions === 0)
 
-  const sorted =
-    view === "best"
-      ? [...ranked].sort((a, b) => a.metrics!.position - b.metrics!.position)
-      : view === "worst"
-        ? [...ranked].sort((a, b) => b.metrics!.position - a.metrics!.position)
-        : []
+  const isSorted = view === "best" || view === "worst" || view === "bestCtr" || view === "worstCtr"
+  const sorted = !isSorted
+    ? []
+    : [...ranked].sort((a, b) => {
+        const A = a.metrics!
+        const B = b.metrics!
+        switch (view) {
+          case "best":
+            return A.position - B.position
+          case "worst":
+            return B.position - A.position
+          case "bestCtr":
+            return B.ctr - A.ctr || B.impressions - A.impressions
+          case "worstCtr":
+            return A.ctr - B.ctr || B.impressions - A.impressions
+          default:
+            return 0
+        }
+      })
 
   return (
     <div>
@@ -176,12 +198,10 @@ export function SeoTrackerViews({ rows }: { rows: PageRow[] }) {
       )}
 
       {/* Sorted views */}
-      {(view === "best" || view === "worst") && (
+      {isSorted && (
         <div className="mt-6">
           <p className="mb-3 text-xs text-slate-400">
-            {view === "best"
-              ? "Ranked pages, best average position first. "
-              : "Ranked pages, worst average position first. "}
+            {SORTED_VIEW_BLURB[view]}
             {ranked.length} pages with GSC impressions · {noData.length} with no data (listed at the bottom).
           </p>
           <div className="grid md:grid-cols-2 gap-3">

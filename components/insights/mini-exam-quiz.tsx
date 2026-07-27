@@ -9,7 +9,16 @@ import { CheckCircle2, XCircle, ArrowRight } from "lucide-react";
 // pages do (an interactive test on the page itself, not just a link out).
 // Questions are the same real, Milady-sourced content used in the full
 // deck at /tools/texas-barber-exam-practice-deck, not separately authored.
-const SAMPLE_QUESTIONS = [
+export type QuizVariant = "barber" | "esthetician";
+
+interface QuizQuestion {
+  id: number;
+  question: string;
+  options: { id: string; text: string; isCorrect: boolean }[];
+  source: string;
+}
+
+const BARBER_QUESTIONS: QuizQuestion[] = [
   {
     id: 1,
     question: "Why is it important for a barber to use a \"pH-balanced\" shampoo (typically ranging from 4.5 to 5.5) on a client's hair?",
@@ -42,12 +51,68 @@ const SAMPLE_QUESTIONS = [
   },
 ];
 
-export function MiniExamQuiz() {
+// Esthetician items come from the Jan 2026 PSI/TDLR Candidate Information
+// Bulletin (committed at public/TexasEstheticianCIB2026.pdf), not from the
+// Milady/Pivot Point texts PSI also lists — we don't hold those, and inventing
+// chapter citations for a real licensing exam is exactly what this site
+// promises not to do. So these cover the Licensing & Regulation (20%) and
+// Infection Control (25%) half of the outline, where the CIB IS the source.
+const ESTHETICIAN_QUESTIONS: QuizQuestion[] = [
+  {
+    id: 1,
+    question:
+      "In the graded Blood Exposure Incident section of the Texas esthetician practical, what is the correct order of steps?",
+    options: [
+      { id: "a", text: "Clean the cut, wear gloves, bandage, sanitize hands, dispose of materials", isCorrect: false },
+      { id: "b", text: "Wear gloves, clean the simulated cut, bandage it, dispose of used materials, sanitize hands", isCorrect: true },
+      { id: "c", text: "Sanitize hands, wear gloves, bandage the cut, clean it, dispose of materials", isCorrect: false },
+    ],
+    source: "PSI/TDLR Texas Esthetician CIB, Jan 2026",
+  },
+  {
+    id: 2,
+    question: "Once TDLR approves your exam eligibility, how long is it valid and how many attempts do you get?",
+    options: [
+      { id: "a", text: "1 year, maximum 3 attempts", isCorrect: false },
+      { id: "b", text: "2 years, maximum 5 attempts", isCorrect: false },
+      { id: "c", text: "5 years, unlimited attempts (a separate fee applies to each)", isCorrect: true },
+    ],
+    source: "PSI/TDLR Texas Esthetician CIB, Jan 2026",
+  },
+  {
+    id: 3,
+    question: "Which topic carries the heaviest weight on the Texas esthetician written exam?",
+    options: [
+      { id: "a", text: "Facial Treatments — 28% (21 of 75 questions)", isCorrect: true },
+      { id: "b", text: "Infection Control — 25% (19 questions)", isCorrect: false },
+      { id: "c", text: "Licensing and Regulation — 20% (15 questions)", isCorrect: false },
+    ],
+    source: "PSI/TDLR Texas Esthetician CIB, Jan 2026",
+  },
+];
+
+const DECK: Record<QuizVariant, { questions: QuizQuestion[]; href: string; cta: string }> = {
+  barber: {
+    questions: BARBER_QUESTIONS,
+    href: "/tools/texas-barber-exam-practice-deck",
+    cta: "Take the Full Practice Deck",
+  },
+  esthetician: {
+    // No standalone esthetician deck route yet — the guide itself is the
+    // destination, and it carries the full content outline these come from.
+    questions: ESTHETICIAN_QUESTIONS,
+    href: "/insights/texas-esthetician-nail-technician-exam-guide",
+    cta: "See the Full Content Outline",
+  },
+};
+
+export function MiniExamQuiz({ variant = "barber" }: { variant?: QuizVariant } = {}) {
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
   const [done, setDone] = useState(false);
 
+  const { questions: SAMPLE_QUESTIONS, href, cta } = DECK[variant];
   const current = SAMPLE_QUESTIONS[index];
 
   const handleSelect = (optionId: string) => {
@@ -78,10 +143,10 @@ export function MiniExamQuiz() {
             That&apos;s a tiny taste of the written exam. The full practice deck has the complete question bank.
           </p>
           <Link
-            href="/tools/texas-barber-exam-practice-deck"
+            href={href}
             className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-6 py-3 text-sm font-bold hover:opacity-90 transition-opacity"
           >
-            Take the Full Practice Deck <ArrowRight className="h-4 w-4" />
+            {cta} <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       ) : (
