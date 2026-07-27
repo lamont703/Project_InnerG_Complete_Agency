@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { Navbar } from "@/components/layout/navbar";
-import { CreatePassportButton } from "@/components/shared/create-passport-button";
 import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
@@ -16,7 +15,6 @@ import {
   MapPin,
   Star,
   Sparkles,
-  ExternalLink,
   Instagram,
   Youtube,
   Globe,
@@ -26,6 +24,9 @@ import {
   Landmark,
   GraduationCap,
   CheckCircle2,
+  CalendarCheck,
+  Phone,
+  Clock,
 } from "lucide-react";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { isEntityClaimed } from "@/lib/entity-claim";
@@ -39,6 +40,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const PUBLIC_COLUMNS = COSMETOLOGIST_PUBLIC_COLUMNS.join(", ");
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// 0 = Monday, matching the day order Booksy returns. Same definition as
+// app/barbers/[slug]/page.tsx.
+const TODAY_INDEX = (new Date().getDay() + 6) % 7;
 
 async function getCosmetologist(param: string) {
   const { data: bySlug, error: slugErr } = await supabase
@@ -167,6 +172,12 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
   const services: { name: string; price: number; duration?: string }[] = Array.isArray(person.booksy_services)
     ? person.booksy_services
     : [];
+  // booksy_hours is currently populated on 0 of 122 cosmetologist rows — the
+  // StyleSeat scrape doesn't capture it the way the Booksy barber scrape does.
+  // Wired anyway so the section appears the moment that changes, and renders
+  // nothing until then rather than an empty card.
+  const hours: { day: string; ranges: string[] }[] = Array.isArray(person.booksy_hours) ? person.booksy_hours : [];
+
   const specialties: string[] = (person.desired_specialties || "")
     .split(",")
     .map((s: string) => s.trim())
@@ -309,6 +320,60 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
                 </div>
               )}
 
+              {/* Primary CTA row — mirrors app/barbers/[slug]. Booking is the
+                  money action so it gets the filled button. Each is conditional:
+                  profile_url and phone are 100% populated on this table,
+                  website_url is populated on 0 of 122 rows, so the Website
+                  button renders for nobody today but is wired for when it is. */}
+              <div className="flex flex-wrap items-stretch gap-2 mt-5 pt-5 border-t border-slate-100">
+                {person.profile_url && (
+                  <a
+                    href={person.profile_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-ig-click="outbound_lead"
+                    className="flex-1 min-w-[150px] inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-fuchsia-600/20"
+                  >
+                    <CalendarCheck className="w-4 h-4" />
+                    Book Now
+                  </a>
+                )}
+                {person.phone && (
+                  <a
+                    href={`tel:${String(person.phone).replace(/[^\d+]/g, "")}`}
+                    data-ig-click="outbound_lead"
+                    className="flex-1 min-w-[110px] inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-200 bg-white hover:border-fuchsia-200 hover:bg-fuchsia-50 text-slate-700 hover:text-fuchsia-700 font-bold text-sm transition-colors"
+                  >
+                    <Phone className="w-4 h-4" />
+                    Call
+                  </a>
+                )}
+                {person.website_url && (
+                  <a
+                    href={person.website_url.startsWith("http") ? person.website_url : `https://${person.website_url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-ig-click="outbound_lead"
+                    className="flex-1 min-w-[110px] inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-200 bg-white hover:border-fuchsia-200 hover:bg-fuchsia-50 text-slate-700 hover:text-fuchsia-700 font-bold text-sm transition-colors"
+                  >
+                    <Globe className="w-4 h-4" />
+                    Website
+                  </a>
+                )}
+                {directionsHref && (
+                  <a
+                    href={directionsHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-ig-click="outbound_lead"
+                    className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-200 bg-white hover:border-fuchsia-200 hover:bg-fuchsia-50 text-slate-700 hover:text-fuchsia-700 font-bold text-sm transition-colors"
+                  >
+                    <Navigation className="w-4 h-4" />
+                    Directions
+                  </a>
+                )}
+              </div>
+
               {socialLinks.length > 0 && (
                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
                   {socialLinks.map(({ label, href, Icon }) => (
@@ -370,52 +435,52 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
                 </p>
               )}
             </div>
+
+            {/* Business Hours — directly after Services, matching
+                app/barbers/[slug]. Renders only when real hours exist. */}
+            {hours.length > 0 && hours.some((h) => h.ranges.length > 0) && (
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5">
+                <h2 className="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-slate-400" />
+                  Business Hours
+                </h2>
+                <ul className="space-y-2">
+                  {hours.map((h, i) => (
+                    <li
+                      key={h.day}
+                      className={`flex items-start justify-between gap-3 text-sm ${
+                        i === TODAY_INDEX ? "text-slate-900 font-black" : "text-slate-500 font-medium"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        {h.day}
+                        {i === TODAY_INDEX && (
+                          <span className="text-[10px] font-black uppercase tracking-wider text-fuchsia-600 bg-fuchsia-50 border border-fuchsia-100 rounded px-1.5 py-0.5">
+                            Today
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-right">
+                        {h.ranges.length > 0 ? h.ranges.join(", ") : "Closed"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
           <div className="space-y-4">
             <SearchVisibilityCard searchPerformance={searchPerformance} isClaimed={isClaimed} entityLabel="cosmetologist" />
 
-            {person.profile_url && (
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
-                <a
-                  href={person.profile_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-ig-click="outbound_lead"
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-fuchsia-600/20"
-                >
-                  Book on StyleSeat
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
-            )}
-
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
-                Is this you?
-              </p>
-              <CreatePassportButton
-                label="Create Your Career Passport"
-                subtext="Get discovered by shops and salons looking to hire"
-                className="w-full inline-flex flex-col items-center justify-center gap-1 px-5 py-3 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white transition-colors shadow-md shadow-fuchsia-600/20"
-              />
-            </div>
-
+            {/* Book / Call / Website / Directions all moved into the header
+                block above. Passport CTA removed per product direction — it
+                belongs on recruiting surfaces, not a consumer-facing profile. */}
             {directionsHref && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-3">Location</h3>
-                <p className="text-sm text-slate-600 font-medium mb-3">{person.address || person.metro_area}</p>
-                <a
-                  href={directionsHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-ig-click="outbound_lead"
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-fuchsia-600 hover:underline"
-                >
-                  <Navigation className="w-4 h-4" />
-                  Get Directions
-                </a>
+                <p className="text-sm text-slate-600 font-medium">{person.address || person.metro_area}</p>
               </div>
             )}
 

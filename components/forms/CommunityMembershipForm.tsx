@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowRight, Loader2 } from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import { ArrowRight, Loader2, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { toast } from "sonner"
@@ -12,6 +13,14 @@ import { toast } from "sonner"
 // no school/role selection, since the only benefit right now is search
 // visibility, not a business dashboard.
 export function CommunityMembershipForm() {
+  // Claim context handed over by ClaimShopButton. When present, signup also
+  // links this member to the entity so the "Claimed" badge turns on.
+  const searchParams = useSearchParams()
+  const claimEntityType = searchParams.get("claim_type")
+  const claimEntityId = searchParams.get("claim_id")
+  const claimEntityName = searchParams.get("claim_name")
+  const isClaiming = Boolean(claimEntityType && claimEntityId)
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     firstName: "",
@@ -36,7 +45,7 @@ export function CommunityMembershipForm() {
       const response = await fetch("/api/community/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, claimEntityType, claimEntityId }),
       })
 
       const data = await response.json()
@@ -46,7 +55,17 @@ export function CommunityMembershipForm() {
       }
 
       if ((window as any).innerG?.track) {
-        (window as any).innerG.track('community_membership_signup', {})
+        (window as any).innerG.track('community_membership_signup', {
+          claim_entity_type: claimEntityType || undefined,
+          claim_entity_id: claimEntityId || undefined,
+          claim_linked: !!data.claimLinked,
+        })
+      }
+
+      // Surface a silent link failure — the membership is real either way, but
+      // the user came here specifically to get the badge.
+      if (isClaiming && !data.claimLinked) {
+        toast.warning("Membership created, but we couldn't link that listing automatically. Our team will review it.")
       }
 
       const supabase = createBrowserClient()
@@ -71,6 +90,16 @@ export function CommunityMembershipForm() {
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
+      {isClaiming && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+          <p className="text-xs font-medium leading-relaxed text-emerald-800">
+            You&apos;re claiming{" "}
+            <span className="font-black">{claimEntityName || "this listing"}</span>. Finish signing up and the
+            verified badge goes live on it right away.
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</label>

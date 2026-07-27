@@ -25,9 +25,20 @@ export function ClaimShopButton({
   const id = entityId ?? shop?.id;
   const name = entityName ?? shop?.shop_name;
 
+  // Carry the entity through to signup. Previously this linked to a bare
+  // /membership, so the claim intent was lost the moment the user navigated —
+  // they'd register, become a member, and never get the badge, because nothing
+  // in the signup path ever wrote a community_member_entity_links row. Only an
+  // admin could create that link by hand.
+  const claimHref = id
+    ? `/membership?claim_type=${encodeURIComponent(entityType)}&claim_id=${encodeURIComponent(id)}${
+        name ? `&claim_name=${encodeURIComponent(name)}` : ""
+      }`
+    : "/membership";
+
   return (
     <Link
-      href="/membership"
+      href={claimHref}
       onClick={() => {
         if (typeof window !== "undefined" && (window as any).innerG?.track) {
           (window as any).innerG.track('claim_shop_initiated', { entity_id: id, entity_name: name, entity_type: entityType });
