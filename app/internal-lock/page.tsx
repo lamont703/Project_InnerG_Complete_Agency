@@ -3,15 +3,15 @@
 import { Suspense, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Lock, ShieldAlert, Loader2, ArrowRight } from "lucide-react"
-import { createBrowserClient } from "@/lib/supabase/browser"
+import { unlockInternal } from "./actions"
 
 // Screensaver gate for the footer's "Internal Tools" pages
 // (middleware.ts's INTERNAL_TOOL_ROUTES) — rewritten on top of the real
 // destination so the URL bar never changes. Deliberately single-user and
 // password-only for now (no email field, no "forgot password" link);
 // tighter, general-purpose internal-tool access control is planned later.
-const ALLOWED_EMAIL = "lamont703@gmail.com"
-
+// The sign-in runs in a server action (./actions) so the allowed email never
+// ships to the client bundle — the browser posts only the password.
 function InternalLockContent() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get("redirect") || "/"
@@ -26,18 +26,11 @@ function InternalLockContent() {
     setError(null)
 
     try {
-      const supabase = createBrowserClient()
-      // Clears out any other logged-in account first so a stale session
-      // for a different user can't linger if this sign-in fails.
-      await supabase.auth.signOut()
+      // Server action holds the email and sets the auth cookie server-side.
+      const res = await unlockInternal(password)
 
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: ALLOWED_EMAIL,
-        password,
-      })
-
-      if (authError) {
-        setError("Incorrect password.")
+      if (!res.ok) {
+        setError(res.error || "Incorrect password.")
         setIsSubmitting(false)
         return
       }
@@ -65,8 +58,7 @@ function InternalLockContent() {
         <div className="text-center mb-8">
           <h1 className="text-xl font-black text-white mb-2">Internal Tools Locked</h1>
           <p className="text-sm text-slate-400 leading-relaxed">
-            This page is restricted. Enter the password for{" "}
-            <span className="font-semibold text-slate-300">{ALLOWED_EMAIL}</span> to continue.
+            This page is restricted. Enter the password to continue.
           </p>
         </div>
 
