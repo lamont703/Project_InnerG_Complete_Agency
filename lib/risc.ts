@@ -16,14 +16,33 @@ import { createPublicKey, verify as cryptoVerify } from "node:crypto";
 const RISC_CONFIG_URL = "https://accounts.google.com/.well-known/risc-configuration";
 export const GOOGLE_ISSUER = "https://accounts.google.com";
 
-/** Events that mean "this connection is dead — stop using it." */
+/**
+ * Events that mean "this connection is dead — stop using it."
+ *
+ * Every URI here was taken from the live `events_supported` list Google
+ * returned when the stream was registered, not from guesswork. Two corrections
+ * came out of that: plural `tokens-revoked` lives under the **oauth**
+ * namespace, not `risc` (getting it wrong is silent — Google just omits it from
+ * events_delivered), and `account-purged` isn't offered at all.
+ *
+ * The plural one is the important one: it's what fires when a user hits
+ * "Remove access" in their Google account settings, which is the main case this
+ * whole feature exists to catch.
+ *
+ * The legacy accounts.google.com aliases are accepted too, since Google still
+ * lists them as supported and they'd otherwise fall through as "unhandled".
+ */
 export const REVOCATION_EVENTS = new Set([
-  "https://schemas.openid.net/secevent/oauth/event-type/token-revoked",
-  "https://schemas.openid.net/secevent/risc/event-type/tokens-revoked",
+  "https://schemas.openid.net/secevent/oauth/event-type/token-revoked",   // one token
+  "https://schemas.openid.net/secevent/oauth/event-type/tokens-revoked",  // all tokens
   "https://schemas.openid.net/secevent/risc/event-type/account-disabled",
-  "https://schemas.openid.net/secevent/risc/event-type/account-purged",
   "https://schemas.openid.net/secevent/risc/event-type/sessions-revoked",
   "https://schemas.openid.net/secevent/risc/event-type/account-credential-change-required",
+  "https://accounts.google.com/risc/event/one-token-revoked",
+  "https://accounts.google.com/risc/event/all-token-revoked",
+  "https://accounts.google.com/risc/event/account-disabled",
+  "https://accounts.google.com/risc/event/sessions-revoked",
+  "https://accounts.google.com/risc/event/account-credential-change-required",
 ]);
 
 /** Sent by Google on request, purely to prove the endpoint works. */

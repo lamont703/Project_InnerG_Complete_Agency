@@ -33,13 +33,19 @@ const STREAM_URL = 'https://risc.googleapis.com/v1beta/stream';
 const ENDPOINT =
   process.env.RISC_RECEIVER_URL || 'https://agency.innergcomplete.com/api/security/risc';
 
-// Must stay in sync with REVOCATION_EVENTS in app/api/security/risc/route.ts —
-// asking for events the receiver ignores just adds noise.
+// Must stay in sync with REVOCATION_EVENTS in lib/risc.ts.
+//
+// These are exactly the URIs Google reports under `events_supported` — verified
+// against the live stream, because requesting an unsupported one FAILS SILENTLY:
+// the call still returns 200 and Google simply leaves it out of
+// `events_delivered`. The first registration attempt asked for
+// `risc/event-type/tokens-revoked` (wrong namespace — it's `oauth/…`) and
+// `account-purged` (not offered), and both vanished without an error. The
+// script now diffs requested against delivered so that can't pass unnoticed.
 const EVENTS_REQUESTED = [
-  'https://schemas.openid.net/secevent/oauth/event-type/token-revoked',
-  'https://schemas.openid.net/secevent/risc/event-type/tokens-revoked',
+  'https://schemas.openid.net/secevent/oauth/event-type/token-revoked',   // one token
+  'https://schemas.openid.net/secevent/oauth/event-type/tokens-revoked',  // all tokens ("Remove access")
   'https://schemas.openid.net/secevent/risc/event-type/account-disabled',
-  'https://schemas.openid.net/secevent/risc/event-type/account-purged',
   'https://schemas.openid.net/secevent/risc/event-type/sessions-revoked',
   'https://schemas.openid.net/secevent/risc/event-type/account-credential-change-required',
 ];
@@ -140,7 +146,23 @@ async function main() {
     });
     console.log(`stream:update → ${r.status}`);
     console.log(JSON.stringify(r.body, null, 2));
-    if (r.ok) console.log('\nNow run with --verify to make Google send a test event.');
+
+    if (r.ok) {
+      // Google accepts unsupported event types with a 200 and just drops them.
+      // Surface the difference rather than letting a typo quietly cost us the
+      // one event that mattered.
+      const delivered = new Set(r.body?.events_delivered || []);
+      const dropped = EVENTS_REQUESTED.filter((e) => !delivered.has(e));
+      if (dropped.length) {
+        console.error('\nWARNING — Google did NOT accept these event types:');
+        dropped.forEach((e) => console.error(`  • ${e}`));
+        console.error('Check them against `events_supported` above; a wrong namespace fails silently.');
+        process.exitCode = 1;
+      } else {
+        console.log(`\nAll ${EVENTS_REQUESTED.length} requested event types accepted.`);
+        console.log('Now run with --verify to make Google send a test event.');
+      }
+    }
     return;
   }
 
@@ -152,6 +174,21 @@ async function main() {
   console.log(JSON.stringify(r.body, null, 2));
   if (r.ok) {
     console.log(`\nCheck the production logs for: [risc] verification event received (state: ${state})`);
+    return;
+  }
+  if (r.status === 403) {
+    // Seen in practice: stream:update succeeds (it only stores config) while
+    // stream:verify 403s, because verify is the first call that asks Google to
+    // actually DELIVER to the endpoint — which is where domain authorization
+    // gets enforced. Same credentials, same role, different gate.
+    console.error(
+      '\n403 on verify while update succeeded usually means the delivery domain\n' +
+        "isn't authorized for this project. Check, in Google Cloud Console:\n" +
+        '  • Google Auth Platform → Branding → Authorized domains includes innergcomplete.com\n' +
+        '  • that domain is verified in Search Console under the same Google account\n' +
+        '  • the service account still holds roles/riscconfigs.admin\n' +
+        'The stream config itself is already stored — re-run --verify after fixing.'
+    );
   }
 }
 
