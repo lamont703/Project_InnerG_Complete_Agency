@@ -74,8 +74,14 @@ export function HeroSection() {
           </span>
         </h1>
 
+        {/* The most-read line on the site, and the one a Google OAuth reviewer
+            reads first — it has to say what the app DOES. The previous version
+            ("The barber, beauty & wellness intelligence layer") described a
+            category, not a function, which is what got the homepage flagged for
+            not explaining the app. Kept in sync with the metadata description in
+            app/layout.tsx and the footer blurb. */}
         <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-white sm:text-xl text-balance">
-          The barber, beauty & wellness intelligence layer
+          Search verified barbershops, salons, schools, and supply stores — and claim your business listing.
         </p>
 
 
