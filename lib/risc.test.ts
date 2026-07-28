@@ -132,13 +132,14 @@ describe("subjectOf", () => {
 
 describe("event coverage", () => {
   it("handles revocation for every event type we ask Google to send", () => {
-    // Keep in sync with EVENTS_REQUESTED in scripts/register_risc_endpoint.js —
-    // subscribing to an event the receiver ignores means silently dropping it.
+    // Exactly the URIs in EVENTS_REQUESTED (scripts/register_risc_endpoint.js),
+    // which are in turn exactly what Google's live `events_supported` offers.
+    // The plural `tokens-revoked` is under the OAUTH namespace, not risc — the
+    // first registration got that wrong and Google dropped it silently.
     for (const type of [
       "https://schemas.openid.net/secevent/oauth/event-type/token-revoked",
-      "https://schemas.openid.net/secevent/risc/event-type/tokens-revoked",
+      "https://schemas.openid.net/secevent/oauth/event-type/tokens-revoked",
       "https://schemas.openid.net/secevent/risc/event-type/account-disabled",
-      "https://schemas.openid.net/secevent/risc/event-type/account-purged",
       "https://schemas.openid.net/secevent/risc/event-type/sessions-revoked",
       "https://schemas.openid.net/secevent/risc/event-type/account-credential-change-required",
     ]) {
