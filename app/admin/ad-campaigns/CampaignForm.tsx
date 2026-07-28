@@ -24,14 +24,17 @@ const ENTITY_PLACEMENTS = new Set([
 const BANNER_PLACEMENTS = new Set(["state_hub_banner", "city_hub_banner"]);
 
 // Per-placement helper copy so the admin knows what the ad does + what to fill.
+// Every placement holds one ad at a time but any number of campaigns: eligible
+// campaigns rotate through the slot (see lib/ad-rotation.ts), so none of these
+// are exclusive reservations.
 const PLACEMENT_HELP: Record<string, string> = {
   shop_profile: "Shows in the sponsored slot on shop profile pages, advertising the entity below (links to its profile).",
   salon_profile: "Shows in the sponsored slot on salon profile pages, advertising the entity below (links to its profile).",
   barber_supply_profile: "Shows in the sponsored slot on barber supply store pages, advertising the entity below (links to its profile).",
   beauty_supply_profile: "Shows in the sponsored slot on beauty supply store pages, advertising the entity below (links to its profile).",
-  search_results: "Shows at the top of the search results on the selected filter tabs, advertising the entity below.",
-  state_hub_banner: "Reserves the sponsorship banner on the state hub. Set the state it covers.",
-  city_hub_banner: "Reserves the sponsorship banner on a city hub. Set the city it covers.",
+  search_results: "Shows at the top of the search results on the selected filter tabs, advertising the entity below. One sponsored card shows per search — campaigns sharing a tab take turns.",
+  state_hub_banner: "Takes a turn in the sponsorship banner on the state hub. Set the state it covers.",
+  city_hub_banner: "Takes a turn in the sponsorship banner on a city hub. Set the city it covers.",
   entity_bottom_banner: "Shows as the dismissible bottom banner on entity pages in the targeted cities/states, linking to the entity below. Write short copy that fits a compact CTA.",
 };
 

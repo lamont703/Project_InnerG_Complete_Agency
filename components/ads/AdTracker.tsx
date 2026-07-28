@@ -24,11 +24,19 @@ export interface AdTrackerProps {
   creative?: string;
   /** Geographic scope of the placement, e.g. "Dallas, TX" / "Texas". */
   scope?: string;
+  /**
+   * The ad_campaigns row this serve came from. Since a position now rotates
+   * several campaigns (lib/ad-rotation.ts), placement + creative + scope no
+   * longer identifies one advertiser — the campaign id does, and it's what the
+   * advertiser-facing reports attribute on. Absent on the demo ads, which
+   * belong to no campaign.
+   */
+  campaignId?: string;
   className?: string;
   children: React.ReactNode;
 }
 
-export function AdTracker({ placement, adType, creative, scope, className, children }: AdTrackerProps) {
+export function AdTracker({ placement, adType, creative, scope, campaignId, className, children }: AdTrackerProps) {
   const ref = useRef<HTMLDivElement>(null);
   const impressionFired = useRef(false);
 
@@ -37,6 +45,7 @@ export function AdTracker({ placement, adType, creative, scope, className, child
     ad_type: adType,
     creative,
     scope,
+    campaign_id: campaignId,
     ad_page: typeof window !== "undefined" ? window.location.pathname : undefined,
   });
 

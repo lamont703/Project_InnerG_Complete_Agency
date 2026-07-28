@@ -16,6 +16,7 @@ interface AdSponsorshipBannerProps {
   external?: boolean; // open href in a new tab
   creativeKey?: string; // the campaign's creative, so tracked events match it
   scope?: string; // tracked scope (state/city) — must match the campaign's scope
+  campaignId?: string; // the serving campaign, for per-advertiser attribution
 }
 
 export function AdSponsorshipBanner({
@@ -27,6 +28,7 @@ export function AdSponsorshipBanner({
   external = false,
   creativeKey,
   scope,
+  campaignId,
 }: AdSponsorshipBannerProps) {
   const isState = type === "state";
   const trackedScope = scope ?? (isState ? "Texas" : cityLabel);
@@ -62,6 +64,7 @@ export function AdSponsorshipBanner({
       adType="geographic"
       creative={creativeKey || placementLabel}
       scope={trackedScope}
+      campaignId={campaignId}
     >
     <div
       className={`relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 text-white shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-amber-500/50 group ${className}`}

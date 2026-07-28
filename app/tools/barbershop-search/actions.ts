@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { GoogleGenAI } from "@google/genai";
 import { parseWeeklyRent } from "@/lib/shop-ecosystem";
 import { AD_ENTITY_TYPES } from "@/lib/ad-campaigns";
+import { rotateEligible } from "@/lib/ad-rotation";
 
 // rent_rate is free text ("$175/week", "40% for 5 months then $300/wk",
 // etc.) with no queryable numeric column, so a rent filter has to fetch a
@@ -830,6 +831,7 @@ export interface SponsoredSearchEntity {
   verified: boolean; // claimed (owner-verified) listing
   creative: string;
   entityType: string;
+  campaignId: string;
 }
 
 function firstImage(row: any): string | null {
@@ -880,27 +882,34 @@ async function buildSponsoredEntity(admin: any, match: any): Promise<SponsoredSe
     verified: !!row.claimed_at,
     creative: match.creative,
     entityType: match.entity_type,
+    campaignId: match.id,
   };
 }
 
-// All active search_results ads that target this tab — multiple sponsored
-// entities can show at once. Empty filter_tabs = every tab; "All" is a literal
-// tab, not a wildcard, so a campaign targeting All does not leak onto
-// Salons/Barbershops/etc. Deduped by entity so the same listing from two
-// campaigns only appears once. Newest campaigns first.
+// How many sponsored cards the top of a results tab shows at once. The slot used
+// to render EVERY matching campaign, which stops scaling the moment more than a
+// couple of advertisers share a tab (ten shops would stack ten sponsored cards
+// above the organic results). One ad shows; the rest rotate through the slot.
+const SEARCH_ADS_PER_TAB = 1;
+
+// The sponsored ad(s) at the top of a results tab. Empty filter_tabs = every
+// tab; "All" is a literal tab, not a wildcard, so a campaign targeting All does
+// not leak onto Salons/Barbershops/etc. Deduped by entity so the same listing
+// from two campaigns only appears once. Which of the eligible campaigns gets the
+// slot rotates per search — see lib/ad-rotation.ts.
 export async function getSponsoredSearchEntities(filterTab: string): Promise<SponsoredSearchEntity[]> {
   try {
     const admin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey);
     const { data: camps } = await admin
       .from("ad_campaigns")
-      .select("entity_type, creative, filter_tabs, created_at")
+      .select("id, entity_type, creative, filter_tabs, created_at")
       .eq("placement", "search_results")
       .eq("status", "active")
       .order("created_at", { ascending: false });
     if (!camps || !camps.length) return [];
 
     const seen = new Set<string>();
-    const matches = (camps as any[]).filter((c) => {
+    const eligible = (camps as any[]).filter((c) => {
       if (!c.entity_type || !c.creative) return false;
       if (c.filter_tabs?.length && !c.filter_tabs.includes(filterTab)) return false;
       const key = `${c.entity_type}:${c.creative}`;
@@ -908,9 +917,16 @@ export async function getSponsoredSearchEntities(filterTab: string): Promise<Spo
       seen.add(key);
       return true;
     });
+    if (!eligible.length) return [];
 
-    const built = await Promise.all(matches.map((m) => buildSponsoredEntity(admin, m)));
-    return built.filter((e): e is SponsoredSearchEntity => e !== null);
+    // Each tab has its own eligible set, so each tab rotates on its own cursor.
+    const rotated = await rotateEligible(admin as any, "search_results", eligible);
+    // Take a couple of extra candidates so a campaign whose entity row has gone
+    // missing doesn't leave the slot empty for this search.
+    const built = await Promise.all(
+      rotated.slice(0, SEARCH_ADS_PER_TAB + 2).map((m) => buildSponsoredEntity(admin, m))
+    );
+    return built.filter((e): e is SponsoredSearchEntity => e !== null).slice(0, SEARCH_ADS_PER_TAB);
   } catch {
     return [];
   }

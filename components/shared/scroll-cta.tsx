@@ -186,6 +186,7 @@ export function ScrollCTA() {
               adType="geographic"
               creative={ad.creative}
               scope={pathname}
+              campaignId={ad.campaignId}
             >
               <Link href={ad.href} className={ctaCls}>
                 {ad.ctaLabel}
