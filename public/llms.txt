@@ -1,8 +1,9 @@
-# Inner G Complete
+# ShearQuery by Inner G Complete Agency
 
-> Inner G Complete is a Texas barber & cosmetology industry intelligence platform. It tracks
-> licensed barbershops, salons, individual barbers and cosmetologists, cosmetology/barber
-> schools, beauty/barber supply stores, and industry events across Texas (Houston-focused),
+> ShearQuery, operated by Inner G Complete Agency, is a Texas barber & cosmetology industry
+> intelligence platform. It tracks licensed barbershops, salons, individual barbers and
+> cosmetologists, cosmetology/barber schools, beauty/barber supply stores, and industry
+> events across Texas (Houston-focused),
 > publishing verified data sourced from the Texas Department of Licensing & Regulation (TDLR),
 > the U.S. Dept. of Education College Scorecard, and Google Places — plus tools that help
 > students pass their licensing exam and find their first job after graduation.

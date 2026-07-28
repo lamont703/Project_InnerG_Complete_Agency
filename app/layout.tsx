@@ -30,12 +30,17 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: {
       canonical: '/',
     },
-    title: isTexasBarbering 
+    // The non-Texas title/description double as the homepage's Markdown twin
+    // (/index.md renders them as its H1 and summary) and as what an OAuth
+    // reviewer sees quoted in search results, so they describe what the app
+    // actually does — not only the ADI positioning, which said nothing about
+    // the directory a visitor lands on.
+    title: isTexasBarbering
       ? 'Texas Barber Exam Intelligence | AI Enhanced Practice Questions'
-      : 'Inner G Complete Agency | Artificial Domain Intelligence for Grooming & Wellness',
+      : 'ShearQuery by Inner G Complete Agency | Barber & Beauty Directory',
     description: isTexasBarbering
       ? 'Institutional-grade licensure prep for Texas Barber students. AI-enhanced practice questions and aesthetic intelligence pathways designed to maximize first-time pass rates.'
-      : 'Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises — CPMAI-governed Artificial Domain Intelligence.',
+      : 'Search verified barbershops, salons, schools, and supply stores, compare booth rent and licensing exam pass rates, and claim your business listing — ShearQuery by Inner G Complete Agency, built on CPMAI-governed Artificial Domain Intelligence.',
     keywords: [
       'Artificial Domain Intelligence',
       'Texas Barber Exam',
@@ -60,10 +65,10 @@ export async function generateMetadata(): Promise<Metadata> {
     creator: tenantName,
     publisher: tenantName,
     openGraph: {
-      title: isTexasBarbering ? 'Texas Barber Exam Intelligence' : 'Inner G Complete Agency | Artificial Domain Intelligence',
-      description: isTexasBarbering 
-        ? 'AI-enhanced practice questions and aesthetic intelligence pathways for Texas Barber licensure.' 
-        : 'Sovereign AI intelligence layers for grooming enterprises. institutionally auditable.',
+      title: isTexasBarbering ? 'Texas Barber Exam Intelligence' : 'ShearQuery by Inner G Complete Agency',
+      description: isTexasBarbering
+        ? 'AI-enhanced practice questions and aesthetic intelligence pathways for Texas Barber licensure.'
+        : 'Search verified barbershops, salons, schools, and supply stores — and claim your business listing.',
       url: '/',
       siteName: tenantName,
       images: [
@@ -80,7 +85,9 @@ export async function generateMetadata(): Promise<Metadata> {
     twitter: {
       card: 'summary_large_image',
       title: tenantName,
-      description: isTexasBarbering ? 'AI-enhanced Texas Barber licensure prep.' : 'Sovereign AI intelligence layers for grooming enterprises.',
+      description: isTexasBarbering
+        ? 'AI-enhanced Texas Barber licensure prep.'
+        : 'Search verified barbershops, salons, schools, and supply stores — and claim your business listing.',
       images: ['/og-image.png'],
     },
     icons: {
@@ -213,9 +220,9 @@ export default async function RootLayout({
                 "name": "Lamont Evans",
                 "jobTitle": "Principal Architect"
               },
-              "description": isTexasBarbering 
+              "description": isTexasBarbering
                 ? "Institutional-grade licensure prep for Texas Barber students using AI-enhanced pathways."
-                : "Inner G Complete architects sovereign AI intelligence layers for grooming, beauty, and wellness enterprises.",
+                : "Inner G Complete Agency operates ShearQuery, a directory and market-intelligence platform for the barber, beauty, and wellness industry, and architects the Artificial Domain Intelligence behind it.",
               "address": {
                 "@type": "PostalAddress",
                 "addressLocality": "Atlanta",

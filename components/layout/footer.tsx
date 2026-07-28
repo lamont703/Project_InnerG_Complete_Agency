@@ -73,8 +73,31 @@ export function Footer() {
                 Inner G Complete<span className="hidden lg:inline text-muted-foreground font-normal"> Agency</span>
               </span>
             </Link>
+            {/* This blurb is what identifies the app and its purpose to a human
+                reader on the homepage — Google's OAuth verification review
+                rejected the site once for not explaining what the app does or
+                why it asks for Google account access, and this is the answer to
+                that finding. It has to keep saying three things: the app's name
+                as it appears on the OAuth consent screen ("ShearQuery by Inner G
+                Complete Agency"), what the app actually does, and what Google
+                data the connect flow requests and why — with the privacy policy
+                one click away. Trim it carefully. */}
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Architecting the Artificial Domain Intelligence (ADI) that powers enrollment, diagnostics, and Title-IV compliance for elite Barber and Cosmetology schools.
+              <strong className="font-semibold text-foreground">ShearQuery by Inner G Complete Agency</strong> is a
+              directory and market-intelligence platform for the barber, beauty, and wellness industry. Search verified
+              barbershops, salons, schools, and supply stores, compare booth rent and licensing exam pass rates, and
+              claim your business listing to keep it accurate. We also architect the Artificial Domain Intelligence
+              (ADI) that powers enrollment, diagnostics, and Title-IV compliance for Barber and Cosmetology schools.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Business owners can optionally connect their Google Business Profile to verify that they own their
+              listing. With your permission we read only the business information you manage on Google — name, address,
+              phone, hours, and categories — and use it solely to verify your ownership and keep your ShearQuery listing
+              accurate. We never sell it or use it for advertising, and you can disconnect at any time. See our{" "}
+              <Link href="/privacy-policy" className="underline transition-colors hover:text-foreground">
+                Privacy Policy
+              </Link>
+              .
             </p>
           </div>
         </div>
