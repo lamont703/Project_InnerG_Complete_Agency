@@ -50,6 +50,8 @@ export function ConnectGoogleBusiness() {
       );
     }
     else if (p === "denied") toast.error("Google Business Profile connection was cancelled.");
+    else if (p === "notconfigured")
+      toast.error("Google Business Profile connect isn't configured on this site yet. We've been notified.");
     else if (p === "error") toast.error("Couldn't connect Google Business Profile. Please try again.");
     else if (p === "nomember") toast.error("Finish creating your membership first, then connect.");
 
