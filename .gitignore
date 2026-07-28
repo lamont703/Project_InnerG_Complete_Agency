@@ -40,3 +40,6 @@ scripts/xrp-whale-watch/
 # Local-only Search Console reporting scripts + their CSV output
 scripts/gsc_*.js
 scratchpad_reports/
+
+# Crash-resume checkpoint written by scripts/sync_entities_to_ghl.js
+scripts/.ghl_sync_progress.json

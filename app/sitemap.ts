@@ -9,41 +9,18 @@ import { getQualifyingCities, BESPOKE_CITY_ROUTES } from '@/lib/city-readiness'
 import { getQualifyingCitiesCA, CA_BESPOKE_CITY_ROUTES } from '@/lib/california-city-readiness'
 import { getCityZipCodes } from '@/lib/city-hub-data'
 import { PAGE_SIZE as DIRECTORY_PAGE_SIZE } from '@/lib/directory-config'
-
-export const dynamic = 'force-dynamic'
-
 // Routes that must never appear in the public sitemap: admin surfaces,
 // auth-gated internal tools (mirrors middleware.ts's INTERNAL_TOOL_ROUTES /
 // PROTECTED_ROUTES / AUTH_ROUTES), and logged-in dashboards that are
 // noindex'd at the page level. Bing/Google were being pointed at these by
 // the filesystem crawler below, which then graded their (short, functional)
 // meta descriptions — the source of Bing's "meta description too short"
-// warnings. Prefix match, so a folder excludes its whole subtree.
-const SITEMAP_EXCLUDE_PREFIXES = [
-  '/admin',
-  '/dashboard',
-  '/select-portal',
-  '/login',
-  '/internal-lock',
-  '/pixel-analytics',
-  '/pinterest-queue',
-  '/ad-performance',
-  '/shop-day-map',
-  '/shop-day-connections',
-  '/shop-day-requests',
-  '/shop-day-matches',
-  '/program-advisory-committee-kit',
-  '/tools/domain-management',
-  '/tools/event-submission',
-  '/tools/employment-match-review',
-  '/tools/seo-keyword-tracker',
-]
+// warnings. Prefix match, so a folder excludes its whole subtree. The list
+// now lives in lib/public-routes.ts so the Markdown (.md) layer can't drift
+// from what the sitemap considers public.
+import { isExcludedFromSitemap } from '@/lib/public-routes'
 
-function isExcludedFromSitemap(route: string): boolean {
-  return SITEMAP_EXCLUDE_PREFIXES.some(
-    (p) => route === p || route.startsWith(`${p}/`)
-  )
-}
+export const dynamic = 'force-dynamic'
 
 // Recursive File-System crawler to autonomously map all active routes
 function getRoutes(dir: string, baseRoute: string = ''): string[] {
