@@ -10,6 +10,8 @@ const footerLinks = {
     { label: "Full Directory (A–Z)", href: "/directory" },
   ],
   "Industry Tools": [
+    { label: "Compare Barbershops & Salons (Booth Rent & Chairs)", href: "/compare-shops" },
+    { label: "Compare Barber & Cosmetology Schools (Pass Rates)", href: "/compare-schools" },
     { label: "Barbershop Apprentice Jobs Houston", href: "/barbershop-apprentice-jobs-houston" },
     { label: "Barber Booth Rent & Chairs for Rent Houston", href: "/barber-booth-rent-houston" },
     { label: "Salon Suites for Rent Houston", href: "/salon-suites-for-rent-houston" },

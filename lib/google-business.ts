@@ -71,6 +71,68 @@ export interface GbpLocation {
   website: string | null;
   placeId: string | null;
   mapsUri: string | null;
+  // Door 2 (create-on-connect) publishes these into a live entity row, which
+  // needs the address broken apart — a single formatted string can't fill the
+  // separate city column the publish gate requires.
+  city: string | null;
+  lat: number | null;
+  lng: number | null;
+  // Google's category ids (gcid), primary first. Decides which of our tables
+  // the business belongs in, and filters out locations that aren't a beauty or
+  // grooming business at all — an owner's Google account routinely manages
+  // unrelated listings (a real one in testing: a water-damage restoration co).
+  categoryIds: string[];
+  categoryLabel: string | null; // display name, for the admin review copy
+}
+
+// Google category (gcid) → our entity type. Primary category wins; additional
+// categories are the fallback, since real listings are often filed under a
+// generic primary ("Association / Organization") with the useful one second.
+// Deliberately a little generous — every staged business is human-reviewed
+// before it publishes, so a wrong guess costs a denial, while a missing mapping
+// silently drops a legitimate owner's business on the floor.
+const GBP_CATEGORY_TO_ENTITY_TYPE: Record<string, string> = {
+  barber_shop: "shop",
+  hair_salon: "salon",
+  beauty_salon: "salon",
+  nail_salon: "salon",
+  hairdresser: "salon",
+  hair_care: "salon",
+  day_spa: "salon",
+  barber_school: "barber_school",
+  beauty_school: "cosmetology_school",
+  cosmetology_school: "cosmetology_school",
+  barber_supply_store: "barber_supply_store",
+  beauty_supply_store: "beauty_supply_store",
+};
+
+// "categories/gcid:barber_shop" → "barber_shop"
+function gcidsOf(categories: any): string[] {
+  const all = [categories?.primaryCategory, ...(categories?.additionalCategories || [])].filter(Boolean);
+  return all.map((c: any) => String(c?.name || "").split("gcid:")[1]).filter(Boolean);
+}
+
+/** Which of our tables this GBP location belongs in, or null if it isn't ours. */
+export function gbpEntityType(loc: GbpLocation): string | null {
+  for (const gcid of loc.categoryIds) {
+    if (GBP_CATEGORY_TO_ENTITY_TYPE[gcid]) return GBP_CATEGORY_TO_ENTITY_TYPE[gcid];
+  }
+  return null;
+}
+
+/**
+ * Why this location can't be staged as a new business, or null if it can.
+ * Mirrors REQUIRED_NON_EMPTY_FIELDS in the publish handler — better to say
+ * "no storefront address" on the connect screen than to stage a candidate that
+ * fails at the publish gate weeks later. Service-area businesses (no storefront)
+ * are the common case: two of six real test locations had no address at all.
+ */
+export function gbpStageBlocker(loc: GbpLocation): string | null {
+  if (!loc.title) return "no business name on the Google listing";
+  if (!gbpEntityType(loc)) return "not a barbering or beauty business";
+  if (!loc.city || !loc.address) return "no storefront address (service-area business)";
+  if (!loc.phone) return "no phone number on the Google listing";
+  return null;
 }
 
 // ── Location → directory entity matching (the "connect = claim" step) ──
@@ -107,6 +169,13 @@ export async function matchLocationToEntity(admin: any, placeId: string | null |
   return null;
 }
 
+// categories/latlng are here for Door 2 (create-on-connect): the category picks
+// the table, and the coordinates feed nearby-areas on publish. Verified against
+// the live API — both are valid readMask fields, and latlng comes back only on
+// some locations, so it stays optional.
+const GBP_LOCATION_READ_MASK =
+  "name,title,storefrontAddress,phoneNumbers,websiteUri,metadata,categories,latlng";
+
 // Fetch every location the granting account manages, flattened across accounts.
 // Uses the REST endpoints directly (googleapis lacks stable typed clients for
 // all the mybusiness* surfaces); a readMask is required by the API.
@@ -117,12 +186,11 @@ export async function gbpFetchLocations(accessToken: string): Promise<GbpLocatio
   if (!acctRes.ok) throw new Error(`accounts ${acctRes.status}: ${(await acctRes.text()).slice(0, 200)}`);
   const accounts = (await acctRes.json()).accounts || [];
 
-  const readMask = "name,title,storefrontAddress,phoneNumbers,websiteUri,metadata";
   const out: GbpLocation[] = [];
 
   for (const acct of accounts) {
     const locRes = await fetch(
-      `https://mybusinessbusinessinformation.googleapis.com/v1/${acct.name}/locations?readMask=${encodeURIComponent(readMask)}&pageSize=100`,
+      `https://mybusinessbusinessinformation.googleapis.com/v1/${acct.name}/locations?readMask=${encodeURIComponent(GBP_LOCATION_READ_MASK)}&pageSize=100`,
       { headers: auth }
     );
     if (!locRes.ok) continue;
@@ -140,8 +208,170 @@ export async function gbpFetchLocations(accessToken: string): Promise<GbpLocatio
         website: loc.websiteUri || null,
         placeId: loc.metadata?.placeId || null,
         mapsUri: loc.metadata?.mapsUri || null,
+        city: a?.locality || null,
+        lat: loc.latlng?.latitude ?? null,
+        lng: loc.latlng?.longitude ?? null,
+        categoryIds: gcidsOf(loc.categories),
+        categoryLabel: loc.categories?.primaryCategory?.displayName || null,
       });
     }
   }
   return out;
+}
+
+// ── Door 2: create-on-connect ────────────────────────────────────────────────
+// When a connected location matches no directory entity, the owner's business
+// simply isn't in the directory yet. Rather than dead-end them, we stage it as
+// a new business candidate — the SAME agent_directives shape Door 3 (the manual
+// /account/add-business form) produces, so it flows through the one admin
+// approve/publish pipeline and auto-links the member on approval. No parallel
+// path, no direct write to a live table.
+//
+// The difference from Door 3 is provenance: Google has already verified this
+// person owns this listing, and the data is Google's own rather than typed into
+// a form. The evidence records that so the reviewer can weigh it.
+
+// Same defaults as the Door 3 route's own copy (app/api/account/add-business),
+// kept local per this codebase's convention of not sharing small maps across
+// layers. Satisfies the publish gate's required `category` field.
+const CATEGORY_BY_TYPE: Record<string, string> = {
+  shop: "barber_shop",
+  salon: "beauty_salon",
+  barber_school: "barber_school",
+  cosmetology_school: "cosmetology_school",
+  barber_supply_store: "barber_supply_store",
+  beauty_supply_store: "beauty_supply_store",
+};
+
+const BUSINESS_DISCOVERY_AGENT = "Website Business Discovery Agent";
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+export type GbpOutcomeKind = "linked" | "claimed_by_other" | "staged" | "already_staged" | "skipped" | "error";
+
+export interface GbpLocationOutcome {
+  location: string;              // locations/{id}
+  title: string | null;
+  outcome: GbpOutcomeKind;
+  detail?: string;
+  entityType?: string;
+}
+
+/**
+ * Businesses already in the directory that look like this location, by name.
+ * Only a HINT recorded on the directive — never used to auto-link, because a
+ * name (or a phone: two real test locations of the same business shared one
+ * number) can't distinguish a second branch from a duplicate. The reviewer
+ * decides, and the publish handler's own phone-duplicate warning is the
+ * backstop if this misses.
+ */
+async function findPossibleDuplicates(admin: any, name: string): Promise<any[]> {
+  const hits: any[] = [];
+  for (const cfg of MATCHABLE_ENTITY_TYPES) {
+    try {
+      const { data } = await admin
+        .from(cfg.table)
+        .select(`slug, city, ${cfg.nameCol}`)
+        .ilike(cfg.nameCol, `%${name}%`)
+        .limit(2);
+      for (const d of data || []) hits.push({ entityType: cfg.key, slug: d.slug, city: d.city, name: d[cfg.nameCol] });
+    } catch {
+      /* table shape differs — skip */
+    }
+  }
+  return hits.slice(0, 5);
+}
+
+/** Stage one unmatched GBP location as a new-business candidate. */
+export async function stageGbpLocation(
+  admin: any,
+  memberId: string,
+  loc: GbpLocation
+): Promise<GbpLocationOutcome> {
+  const base = { location: loc.name, title: loc.title };
+
+  const blocker = gbpStageBlocker(loc);
+  if (blocker) return { ...base, outcome: "skipped", detail: blocker };
+
+  const entityType = gbpEntityType(loc)!;
+  const cfg = CLAIM_ENTITY_TYPES.find((t) => t.key === entityType);
+  if (!cfg) return { ...base, outcome: "skipped", detail: "unsupported business type" };
+
+  // Same subject_key format as Door 3, so an owner who already typed this
+  // business into the manual form doesn't get a second directive for it.
+  const baseKey = `new_business::${cfg.table}::${norm(loc.title!)}::${loc.city!.toLowerCase()}`;
+  let subject_key = baseKey;
+
+  const { data: existing } = await admin
+    .from("agent_directives")
+    .select("id, evidence")
+    .eq("subject_key", baseKey)
+    .maybeSingle();
+
+  if (existing) {
+    // Name + city alone can't tell a duplicate submission from a second
+    // storefront — and multi-location owners are exactly who connects Google
+    // (a real test account had two same-named shops in one city). Google's
+    // place_id can tell them apart, so when both sides have one and they
+    // differ, this is a genuine second location and gets its own key rather
+    // than being silently dropped. Without place_ids on both sides we can't
+    // know, so we assume duplicate and skip — a missing second location is
+    // recoverable by hand, a duplicate live listing is messier.
+    const distinctStorefront =
+      !!loc.placeId && !!existing.evidence?.place_id && existing.evidence.place_id !== loc.placeId;
+    if (!distinctStorefront) return { ...base, outcome: "already_staged", entityType };
+
+    subject_key = `${baseKey}::${loc.placeId}`;
+    const { data: alreadyStaged } = await admin
+      .from("agent_directives")
+      .select("id")
+      .eq("subject_key", subject_key)
+      .maybeSingle();
+    if (alreadyStaged) return { ...base, outcome: "already_staged", entityType };
+  }
+
+  const possibleDuplicates = await findPossibleDuplicates(admin, loc.title!);
+
+  const evidence = {
+    type: "new_business_candidate",
+    table: cfg.table,
+    name: loc.title,
+    city: loc.city,
+    formatted_address: loc.address,
+    phone: loc.phone,
+    website: loc.website,
+    category: CATEGORY_BY_TYPE[entityType],
+    place_id: loc.placeId,          // a real one from Google — future connects match exactly
+    latitude: loc.lat,
+    longitude: loc.lng,
+    images: [],
+    // Exempts the 5-photo publish gate (a verified owner won't have 5 on hand)
+    // and triggers the auto-link on approval.
+    owner_source: true,
+    owner_member_id: memberId,
+    // Provenance, so the reviewer knows this came from a Google-verified owner
+    // rather than a typed form or a scrape.
+    gbp_source: true,
+    gbp_location: loc.name,
+    gbp_category: loc.categoryLabel,
+    ...(possibleDuplicates.length ? { possible_duplicates: possibleDuplicates } : {}),
+  };
+
+  const dupNote = possibleDuplicates.length
+    ? ` Possible existing match: ${possibleDuplicates.map((d) => `${d.name} (${d.city})`).join("; ")} — check before publishing.`
+    : "";
+
+  const { error } = await admin.from("agent_directives").insert({
+    agent_name: BUSINESS_DISCOVERY_AGENT,
+    mission: "Google-verified owner connected a business that isn't in the directory",
+    directive_text:
+      `Google Business Profile connect: ${loc.title} (${loc.city}) — ${cfg.noun}, ` +
+      `Google category "${loc.categoryLabel || "unknown"}". The connecting member is the verified owner of this ` +
+      `Google listing; data below is Google's. Review and publish; the member auto-links on approval.${dupNote}`,
+    subject_key,
+    evidence,
+    status: "pending",
+  });
+  if (error) return { ...base, outcome: "error", detail: error.message, entityType };
+
+  return { ...base, outcome: "staged", entityType };
 }

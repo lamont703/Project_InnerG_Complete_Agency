@@ -27,6 +27,17 @@ export async function GET() {
   const locs = Array.isArray(conn.locations) ? conn.locations : [];
   const selected = locs.find((l: any) => l.name === conn.selected_location) || (locs.length === 1 ? locs[0] : null);
 
+  // Per-location routing result (Door 1 claim / Door 2 staged / skipped), written
+  // by the callback. Lets the card tell the owner which of their businesses are
+  // live, which are awaiting review, and which Google data we couldn't use —
+  // instead of a bare location count that explains nothing.
+  const outcomes = locs.map((l: any) => ({
+    title: l.title || null,
+    city: l.city || null,
+    outcome: l.outcome?.outcome || null,
+    detail: l.outcome?.detail || null,
+  }));
+
   return NextResponse.json({
     connected: true,
     authed: true,
@@ -36,5 +47,8 @@ export async function GET() {
     locationsCount: locs.length,
     locationTitle: selected?.title || null,
     lastSyncedAt: conn.last_synced_at || null,
+    stagedCount: outcomes.filter((o: any) => o.outcome === "staged").length,
+    skippedCount: outcomes.filter((o: any) => o.outcome === "skipped").length,
+    outcomes,
   });
 }

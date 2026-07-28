@@ -3,11 +3,27 @@
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { Navbar } from "@/components/layout/navbar"
-import { Brain, BarChart3, GraduationCap, LayoutDashboard, ArrowRight, Shield, Users, Calendar, Globe, Armchair, Radar, ClipboardList } from "lucide-react"
+import { Brain, BarChart3, GraduationCap, LayoutDashboard, ArrowRight, Shield, Users, Calendar, Globe, Armchair, Radar, ClipboardList, Scale } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 const solutions = [
+  {
+    title: "Barbershop & Salon Comparison Tool",
+    label: "Booth Rent & Chair Comparison",
+    description: "Compare shops and salons side by side on booth rent, chairs available, ratings and who's hiring — then drill into any city to see what a chair actually costs before you commit.",
+    icon: Scale,
+    href: "/compare-shops",
+    roles: ["Barbers & Stylists", "Shop Owners"]
+  },
+  {
+    title: "Barber & Cosmetology School Comparison Tool",
+    label: "Exam Pass Rate Comparison",
+    description: "Tuition tells you what a school costs; pass rates tell you whether it works. Compare schools on real 2026 written and practical exam outcomes, city by city.",
+    icon: Scale,
+    href: "/compare-schools",
+    roles: ["School Students", "School Administrators"]
+  },
   {
     title: "Texas Barber Exam Intelligence Deck",
     label: "Interactive Exam Tool",

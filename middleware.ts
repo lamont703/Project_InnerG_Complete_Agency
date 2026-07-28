@@ -8,6 +8,7 @@
 
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { isMarkdownEligible } from "@/lib/public-routes"
 
 /** Routes that require authentication */
 const PROTECTED_ROUTES = ["/select-portal", "/dashboard"]
@@ -45,6 +46,10 @@ const INTERNAL_TOOLS_LOCK_ROUTE = "/internal-lock"
 /** Entity route prefixes served by app/api/llm/[entityType]/[slug]/route.ts */
 const LLM_MARKDOWN_ENTITY_TYPES = new Set(["shop", "salons", "barbers", "cosmetologists", "stores", "schools", "events"])
 
+// Every other public page also answers to .md, served by
+// app/api/llm-page/[...slug]/route.ts — see lib/public-routes.ts for which
+// routes qualify, and lib/page-markdown.ts for how the prose is produced.
+
 export default async function proxy(request: NextRequest) {
     const host = request.headers.get("host") || ""
     const { pathname } = request.nextUrl
@@ -57,11 +62,19 @@ export default async function proxy(request: NextRequest) {
     // convention documented in public/llms.txt do. Rewritten (not
     // redirected) so the visible URL stays the .md one.
     if (pathname.endsWith('.md')) {
-        const segments = pathname.slice(0, -3).split('/').filter(Boolean)
+        const basePath = pathname.slice(0, -3)
+        const segments = basePath.split('/').filter(Boolean)
+        // Entity profiles first — their Markdown is built from the source
+        // record and is richer than anything derived from rendered HTML.
         if (segments.length === 2 && LLM_MARKDOWN_ENTITY_TYPES.has(segments[0])) {
             const [entityType, slug] = segments
             return NextResponse.rewrite(new URL(`/api/llm/${entityType}/${slug}`, request.url))
         }
+        if (segments.length > 0 && isMarkdownEligible(basePath)) {
+            return NextResponse.rewrite(new URL(`/api/llm-page${basePath}`, request.url))
+        }
+        // Not an eligible page — fall through so it 404s as a normal route
+        // rather than leaking which private paths exist.
     }
 
     // Institutional Stealth Routing
