@@ -1,4 +1,6 @@
 import { google } from "googleapis";
+import { CodeChallengeMethod } from "google-auth-library";
+import { createHash, randomBytes } from "node:crypto";
 import { CLAIM_ENTITY_TYPES } from "@/lib/entity-claim";
 
 // Google Business Profile OAuth + API helpers. Reuses the existing Google OAuth
@@ -33,33 +35,65 @@ export function gbpOAuthClient(origin: string) {
   );
 }
 
+/**
+ * PKCE pair (RFC 7636). The verifier stays with us in an httpOnly cookie; only
+ * its SHA-256 hash travels to Google. An attacker who intercepts the
+ * authorization code still can't redeem it without the verifier, which closes
+ * the code-injection/impersonation hole Google's "Use secure flows" check
+ * looks for. Recommended for web server flows too, not just installed apps.
+ */
+export function gbpPkcePair(): { verifier: string; challenge: string } {
+  // 32 random bytes → 43 base64url chars, inside RFC 7636's 43–128 range.
+  const verifier = randomBytes(32).toString("base64url");
+  const challenge = createHash("sha256").update(verifier).digest("base64url");
+  return { verifier, challenge };
+}
+
 // Consent URL. access_type=offline + prompt=consent so we always get a refresh
-// token (needed for the ongoing background sync).
-export function gbpAuthUrl(origin: string, state: string): string {
+// token (needed for the ongoing background sync); include_granted_scopes keeps
+// the flow incrementally authorizable, so asking for another scope later never
+// silently drops the ones already granted.
+export function gbpAuthUrl(origin: string, state: string, codeChallenge: string): string {
   return gbpOAuthClient(origin).generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
     include_granted_scopes: true,
     scope: GBP_SCOPES,
     state,
+    code_challenge_method: CodeChallengeMethod.S256,
+    code_challenge: codeChallenge,
   });
 }
 
-export async function gbpExchangeCode(origin: string, code: string) {
-  const { tokens } = await gbpOAuthClient(origin).getToken(code);
+export async function gbpExchangeCode(origin: string, code: string, codeVerifier?: string) {
+  const { tokens } = await gbpOAuthClient(origin).getToken({ code, codeVerifier });
   return tokens;
 }
 
-// Best-effort email of the connected Google account, decoded from the id_token
-// (we requested openid+email). Used only for display ("Connected as …").
-export function emailFromIdToken(idToken?: string | null): string | null {
-  if (!idToken) return null;
+/**
+ * Identity of the connected Google account, decoded from the id_token (we
+ * requested openid+email).
+ *
+ * `email` is for display ("Connected as …"). `sub` is Google's stable user id
+ * and is what Cross-Account Protection events are keyed on — an email can
+ * change, `sub` can't, so a revocation event can only be matched back to a
+ * connection through it. Decoding without signature verification is fine here:
+ * the token came straight from Google's token endpoint over TLS, not from a
+ * client.
+ */
+export function identityFromIdToken(idToken?: string | null): { email: string | null; sub: string | null } {
+  if (!idToken) return { email: null, sub: null };
   try {
     const payload = JSON.parse(Buffer.from(idToken.split(".")[1], "base64").toString("utf8"));
-    return payload.email || null;
+    return { email: payload.email || null, sub: payload.sub || null };
   } catch {
-    return null;
+    return { email: null, sub: null };
   }
+}
+
+/** @deprecated prefer identityFromIdToken — kept so existing callers still work. */
+export function emailFromIdToken(idToken?: string | null): string | null {
+  return identityFromIdToken(idToken).email;
 }
 
 export interface GbpLocation {

@@ -32,14 +32,45 @@ const YouTubeCallbackContent = () => {
                 return
             }
 
+            // The state is a one-time nonce this browser generated before
+            // leaving for Google (see components/social/youtube-login-button).
+            // If it isn't in this tab's sessionStorage, the callback didn't
+            // originate from a flow we started — which is exactly the forged
+            // callback the previous predictable state couldn't detect. Refuse it.
+            const stashKey = `yt_oauth_${state}`
+            const stash = sessionStorage.getItem(stashKey)
+            if (!stash) {
+                setStatus("error")
+                setMessage(
+                    "This sign-in didn't start in this browser tab, so it was rejected for your safety. Please connect YouTube again from the Connectors page."
+                )
+                return
+            }
+            sessionStorage.removeItem(stashKey) // one-time use, even on failure
+
+            let codeVerifier: string, projectId: string, visitorId: string | null
+            try {
+                ({ codeVerifier, projectId, visitorId } = JSON.parse(stash))
+            } catch {
+                setStatus("error")
+                setMessage("Could not read this sign-in session. Please try connecting YouTube again.")
+                return
+            }
+
             try {
                 const supabase = createBrowserClient()
-                
+
                 // Call our complete-youtube-auth Edge Function
                 const { data: response, error: fnError } = await supabase.functions.invoke("complete-youtube-auth", {
-                    body: { 
-                        code, 
+                    body: {
+                        code,
                         state,
+                        // The ids used to be parsed out of `state`; they travel
+                        // here now that state is an opaque nonce. codeVerifier
+                        // completes the PKCE exchange.
+                        projectId,
+                        visitorId,
+                        codeVerifier,
                         redirectUri: window.location.origin + "/youtube/callback"
                     }
                 })

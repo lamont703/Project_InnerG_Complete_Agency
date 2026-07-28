@@ -88,6 +88,14 @@ export default async function proxy(request: NextRequest) {
         return NextResponse.next()
     }
 
+    // Google's Cross-Account Protection receiver. Deliveries arrive from Google
+    // with no cookies, so a Supabase session lookup here is pure latency on a
+    // webhook — and the handler authenticates each delivery by verifying its
+    // JWT signature, which is stronger than anything the middleware could add.
+    if (pathname === '/api/security/risc') {
+        return NextResponse.next()
+    }
+
     // Parametered variants of the barbershop search tool (?ecosystemShopId=…,
     // ?q=…, ?tab=…, ?ghl_contact_id=…) are functional deep-links, not distinct
     // indexable pages. The clean /tools/barbershop-search already carries a

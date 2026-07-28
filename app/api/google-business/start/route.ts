@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { createServerClient } from "@/lib/supabase/server";
-import { gbpAuthUrl } from "@/lib/google-business";
+import { gbpAuthUrl, gbpPkcePair } from "@/lib/google-business";
 
 // Kicks off the Google Business Profile OAuth consent for the signed-in member.
 // Sets a state nonce cookie (CSRF) and redirects to Google.
@@ -27,13 +27,20 @@ export async function GET(req: Request) {
   }
 
   const state = randomBytes(16).toString("hex");
-  const res = NextResponse.redirect(gbpAuthUrl(origin, state));
-  res.cookies.set("gbp_oauth_state", state, {
+  const { verifier, challenge } = gbpPkcePair();
+
+  const res = NextResponse.redirect(gbpAuthUrl(origin, state, challenge));
+  // `state` proves the callback belongs to a flow we started (CSRF); the PKCE
+  // verifier proves the code is being redeemed by whoever started it. Both stay
+  // httpOnly so page scripts can't read them, and both expire with the flow.
+  const cookieOpts = {
     httpOnly: true,
     secure: !host.includes("localhost"),
-    sameSite: "lax",
+    sameSite: "lax" as const,
     maxAge: 600,
     path: "/",
-  });
+  };
+  res.cookies.set("gbp_oauth_state", state, cookieOpts);
+  res.cookies.set("gbp_oauth_verifier", verifier, cookieOpts);
   return res;
 }

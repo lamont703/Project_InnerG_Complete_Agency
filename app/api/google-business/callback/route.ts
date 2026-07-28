@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   gbpExchangeCode,
   gbpFetchLocations,
-  emailFromIdToken,
+  identityFromIdToken,
   matchLocationToEntity,
   stageGbpLocation,
   type GbpLocationOutcome,
@@ -36,7 +36,12 @@ export async function GET(req: Request) {
 
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
-  const cookieState = req.headers.get("cookie")?.match(/gbp_oauth_state=([a-f0-9]+)/)?.[1];
+  const cookies = req.headers.get("cookie") || "";
+  const cookieState = cookies.match(/gbp_oauth_state=([a-f0-9]+)/)?.[1];
+  // PKCE verifier from the same redirect that set the state cookie. Without it
+  // Google rejects the exchange, which is the point: an intercepted code is
+  // useless to anyone who doesn't hold this value.
+  const codeVerifier = cookies.match(/gbp_oauth_verifier=([A-Za-z0-9_-]+)/)?.[1];
   if (!code || !state || !cookieState || state !== cookieState) return back("gbp=error");
 
   const supabase = await createServerClient();
@@ -52,8 +57,11 @@ export async function GET(req: Request) {
   if (!member) return back("gbp=nomember");
 
   try {
-    const tokens = await gbpExchangeCode(origin, code);
+    const tokens = await gbpExchangeCode(origin, code, codeVerifier);
     const accessToken = tokens.access_token;
+    // `sub` is what Cross-Account Protection events are keyed on — capture it
+    // now or a later revocation has nothing to match against.
+    const identity = identityFromIdToken((tokens as any).id_token);
     if (!accessToken) return back("gbp=error");
 
     let locations: any[] = [];
@@ -126,7 +134,8 @@ export async function GET(req: Request) {
     const { error: upErr } = await (admin.from("gbp_connections") as any).upsert(
       {
         community_member_id: (member as any).id,
-        google_account_email: emailFromIdToken((tokens as any).id_token),
+        google_account_email: identity.email,
+        google_user_id: identity.sub,
         access_token: accessToken,
         refresh_token: tokens.refresh_token || null,
         token_expiry: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
@@ -148,6 +157,7 @@ export async function GET(req: Request) {
 
     const res = back(`gbp=connected&locations=${locations.length}&staged=${staged}`);
     res.cookies.set("gbp_oauth_state", "", { maxAge: 0, path: "/" });
+    res.cookies.set("gbp_oauth_verifier", "", { maxAge: 0, path: "/" });
     return res;
   } catch (e: any) {
     console.error("[gbp callback]", e?.message);

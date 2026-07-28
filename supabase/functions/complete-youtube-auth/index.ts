@@ -3,7 +3,15 @@ import { createHandler, z, Logger, okResponse, YouTubeProvider } from "../_share
 // 🛡️ Auth callback schema
 const YouTubeAuthSchema = z.object({
     code: z.string(),
-    state: z.string(), // Expected format: projectId:UUID__visitor:UUID
+    // `state` is now an opaque CSRF nonce the browser validates against its own
+    // sessionStorage before calling us (it used to be `projectId:…__visitor:…`,
+    // which was predictable and never checked). The ids therefore arrive as
+    // their own fields; the legacy state parsing below stays as a fallback so a
+    // flow started before this shipped still completes.
+    state: z.string(),
+    projectId: z.string().optional(),
+    visitorId: z.string().nullable().optional(),
+    codeVerifier: z.string().optional(), // PKCE
     redirectUri: z.string().optional()
 })
 
@@ -14,11 +22,14 @@ const YouTubeAuthSchema = z.object({
 export default createHandler(async ({ adminClient, body, user }) => {
     const logger = new Logger("complete-youtube-auth")
     
-    // 1. Parse State
+    // 1. Resolve project/visitor — from the explicit fields the callback now
+    // sends, falling back to the legacy `projectId:…__visitor:…` state format.
     const stateParts = (body.state as string).split('__')
-    const projectIdPart = stateParts.find((p: string) => p.startsWith('projectId:'))?.split(':')[1]
-    const visitorIdPart = stateParts.find((p: string) => p.startsWith('visitor:'))?.split(':')[1]
-    
+    const projectIdPart = body.projectId
+        || stateParts.find((p: string) => p.startsWith('projectId:'))?.split(':')[1]
+    const visitorIdPart = body.visitorId
+        || stateParts.find((p: string) => p.startsWith('visitor:'))?.split(':')[1]
+
     if (!projectIdPart) throw new Error("Missing projectId in state")
     const realProjectId = projectIdPart
     
@@ -59,7 +70,11 @@ export default createHandler(async ({ adminClient, body, user }) => {
             client_secret: GOOGLE_CLIENT_SECRET!,
             code: body.code,
             grant_type: "authorization_code",
-            redirect_uri: redirectUri
+            redirect_uri: redirectUri,
+            // PKCE: Google rejects the exchange unless this hashes to the
+            // code_challenge sent at consent time. Optional so a flow started
+            // before PKCE shipped can still finish.
+            ...(body.codeVerifier ? { code_verifier: body.codeVerifier } : {})
         })
     })
 
