@@ -124,9 +124,17 @@ export function campaignGeoLabel(c: AdCampaign): string {
  * narrowing dimension (creative, scope) matches too. A null creative/scope
  * means "any" for that dimension — e.g. a state-banner campaign scoped to
  * "Texas" but any creative.
+ *
+ * Events tracked since ad rotation shipped carry the serving campaign's id, and
+ * that wins outright: once a position rotates several campaigns, the
+ * placement/creative/scope heuristic below can no longer tell them apart (two
+ * campaigns can advertise the same entity, and a campaign with a null creative
+ * would otherwise claim every other advertiser's impressions on the slot). The
+ * heuristic stays for events recorded before campaign_id existed.
  */
 export function eventMatchesCampaign(ev: AdEvent, c: AdCampaign): boolean {
   const m = ev.metadata || {};
+  if (m.campaign_id) return m.campaign_id === c.id;
   if (m.placement !== c.placement) return false;
   if (c.creative && m.creative !== c.creative) return false;
   // Scope compared case/whitespace-insensitively to stay consistent with how

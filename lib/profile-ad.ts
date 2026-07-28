@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { entityTypeConfig, entityHref } from "@/lib/ad-campaigns";
+import { rotateEligible, rotationOrder } from "@/lib/ad-rotation";
 import type { FeaturedEntity } from "@/components/ads/SponsoredEntityAd";
 
 // Serves a campaign-driven on-profile ad (placement "shop_profile" /
@@ -7,19 +8,62 @@ import type { FeaturedEntity } from "@/components/ads/SponsoredEntityAd";
 // the campaign ad renders through SponsoredEntityAd with an identical look —
 // just real advertiser data instead of the hardcoded demo. Returns null when
 // there's no active campaign (or the entity has no photo), so the caller can
-// fall back to the demo ad. Most-recently-created active campaign wins.
+// fall back to the demo ad.
+//
+// When several campaigns are eligible for the same position they ROTATE — one
+// ad still shows, but which one is decided per serve by lib/ad-rotation.ts, so
+// every advertiser on the slot gets a share of its impressions instead of the
+// newest campaign taking all of them.
 
 export interface ProfileAd {
   featured: FeaturedEntity;
   entityLabel: string;
   entityHref: string;
+  /** Which campaign was served — carried into the pixel for exact attribution. */
+  campaignId: string;
 }
 
-// The location of the page an on-profile ad is being served on (the viewed
-// entity), used to match a campaign's geo-targeting.
+// How far down the rotated pool to keep looking when the campaign whose turn it
+// is can't actually be rendered (entity row gone, no usable photo). Bounded so
+// a slot with many broken campaigns can't turn one page render into a dozen
+// entity lookups; past this we fall back to the demo ad.
+const MAX_ROTATION_CANDIDATES = 5;
+
+export interface AdServingOptions {
+  /**
+   * Whether to advance the position's rotation cursor (i.e. count this as a
+   * serve and take the next campaign's turn).
+   *
+   * `false` — "peek" — returns the first campaign in the pool's canonical order
+   * without touching the cursor. That's for slots rendered inside a CACHED page
+   * (salon/store profiles and the hub banners are `revalidate = 3600`): their
+   * HTML is reused for an hour, so claiming a turn there would burn rotation
+   * slots that nobody sees and, worse, double-advance the cursor on top of the
+   * per-load claim the client rotator makes — with an even-sized pool, steps of
+   * two mean half the advertisers never show at all. The peek fills the cached
+   * HTML with a real ad for the instant paint, and the client re-resolves the
+   * actual turn on every page load.
+   */
+  rotate?: boolean;
+}
+
+// The page an on-profile ad is being served on (the viewed entity): its
+// location, used to match a campaign's geo-targeting, and its slug, used to keep
+// an entity from being advertised on its own profile page.
 export interface AdViewerContext {
   city?: string | null;
   address?: string | null;
+  /**
+   * Slug of the entity whose page this is. Campaigns advertising it are dropped
+   * from the pool before the rotation picks, so its turn goes to the next
+   * advertiser instead of rendering an empty slot — SponsoredEntityAd hides
+   * itself when it would advertise the page you're already on, which used to
+   * mean the advertiser saw a blank space on the one page they check most.
+   *
+   * Compared by slug alone: every slug carries a uuid suffix, so it identifies
+   * one entity across all the tables without needing the viewed entity's type.
+   */
+  slug?: string | null;
 }
 
 function stateFromAddress(addr?: string | null): string | null {
@@ -62,42 +106,69 @@ function chips(row: any): string[] {
   return out.slice(0, 3);
 }
 
-export async function getProfileCampaignAd(placement: string, ctx: AdViewerContext = {}): Promise<ProfileAd | null> {
+// Builds the renderable ad for one campaign. Null when the campaign can't be
+// served — unknown entity type, entity row gone, or no usable photo.
+async function buildProfileAd(admin: any, camp: any): Promise<ProfileAd | null> {
+  const cfg = entityTypeConfig(camp.entity_type);
+  if (!cfg) return null;
+
+  const { data: ent } = await admin.from(cfg.table).select("*").eq("slug", camp.creative).maybeSingle();
+  if (!ent) return null;
+  const row = ent as any;
+
+  // The demo look is photo-forward; without an image the card wouldn't match,
+  // so fall back to the demo rather than render a broken-looking ad.
+  const image = firstImage(row);
+  if (!image) return null;
+
+  const featured: FeaturedEntity = {
+    slug: camp.creative,
+    name: row.shop_name || row.name || row.school_name || row.title || camp.creative,
+    city: row.city || row.metro_area || row.formatted_address || "",
+    rating: Number(row.rating ?? row.booksy_rating ?? 0),
+    reviews: Number(row.total_reviews ?? row.google_review_count ?? row.booksy_review_count ?? 0),
+    taglineChips: chips(row),
+    image,
+  };
+
+  return {
+    featured,
+    entityLabel: `Featured ${cfg.label}`,
+    entityHref: `${cfg.route}/${camp.creative}`,
+    campaignId: camp.id,
+  };
+}
+
+export async function getProfileCampaignAd(
+  placement: string,
+  ctx: AdViewerContext = {},
+  { rotate = true }: AdServingOptions = {}
+): Promise<ProfileAd | null> {
   try {
     const admin = createAdminClient();
     const { data: camps } = await (admin as any)
       .from("ad_campaigns")
-      .select("entity_type, creative, target_states, target_cities, created_at")
+      .select("id, entity_type, creative, target_states, target_cities, created_at")
       .eq("placement", placement)
       .eq("status", "active")
       .order("created_at", { ascending: false });
 
-    const match = ((camps as any[]) || []).find((c) => c.entity_type && c.creative && geoMatches(c, ctx));
-    if (!match) return null;
+    // Every campaign that could serve on this page — geo-targeting and the
+    // don't-advertise-this-page's-own-entity rule are what narrow the pool, so
+    // two pages can have different (or overlapping) pools on the same placement.
+    const eligible = ((camps as any[]) || []).filter(
+      (c) => c.entity_type && c.creative && c.creative !== ctx.slug && geoMatches(c, ctx)
+    );
+    if (!eligible.length) return null;
 
-    const cfg = entityTypeConfig(match.entity_type);
-    if (!cfg) return null;
-
-    const { data: ent } = await (admin as any).from(cfg.table).select("*").eq("slug", match.creative).maybeSingle();
-    if (!ent) return null;
-    const row = ent as any;
-
-    // The demo look is photo-forward; without an image the card wouldn't match,
-    // so fall back to the demo rather than render a broken-looking ad.
-    const image = firstImage(row);
-    if (!image) return null;
-
-    const featured: FeaturedEntity = {
-      slug: match.creative,
-      name: row.shop_name || row.name || row.school_name || row.title || match.creative,
-      city: row.city || row.metro_area || row.formatted_address || "",
-      rating: Number(row.rating ?? row.booksy_rating ?? 0),
-      reviews: Number(row.total_reviews ?? row.google_review_count ?? row.booksy_review_count ?? 0),
-      taglineChips: chips(row),
-      image,
-    };
-
-    return { featured, entityLabel: `Featured ${cfg.label}`, entityHref: `${cfg.route}/${match.creative}` };
+    const rotated = rotate
+      ? await rotateEligible(admin as any, placement, eligible)
+      : rotationOrder(eligible);
+    for (const camp of rotated.slice(0, MAX_ROTATION_CANDIDATES)) {
+      const ad = await buildProfileAd(admin, camp);
+      if (ad) return ad;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -110,6 +181,7 @@ export interface EntityBottomBannerAd {
   ctaLabel: string;
   href: string; // the linked entity's profile
   creative: string; // for ad tracking
+  campaignId: string; // which campaign this serve belongs to
 }
 
 // Each entity route → the candidate table(s) with their SPECIFIC entity-type key.
@@ -155,7 +227,7 @@ export async function getEntityBottomBannerAd(pathname: string): Promise<EntityB
     const admin = createAdminClient();
     const { data: camps } = await (admin as any)
       .from("ad_campaigns")
-      .select("entity_type, creative, target_states, target_cities, banner_page_types, ad_eyebrow, ad_headline, ad_cta_label, created_at")
+      .select("id, entity_type, creative, target_states, target_cities, banner_page_types, ad_eyebrow, ad_headline, ad_cta_label, created_at")
       .eq("placement", "entity_bottom_banner")
       .eq("status", "active")
       .order("created_at", { ascending: false });
@@ -163,17 +235,25 @@ export async function getEntityBottomBannerAd(pathname: string): Promise<EntityB
 
     const viewed = await resolveViewedEntity(admin, route, slug);
     if (!viewed) return null;
-    const match = (camps as any[]).find(
+    const eligible = (camps as any[]).filter(
       (c) =>
         c.entity_type &&
         c.creative &&
+        // Same rule as the profile ads: don't run a banner pitching the very
+        // page it's sitting on. Here it wouldn't blank the slot, it would just
+        // link the visitor back where they already are — a wasted impression
+        // the advertiser still gets billed a turn for.
+        c.creative !== slug &&
         (!c.banner_page_types?.length || c.banner_page_types.includes(viewed.type)) &&
-        geoMatches(c, viewed.ctx)
+        geoMatches(c, viewed.ctx) &&
+        entityHref(c.entity_type, c.creative)
     );
-    if (!match) return null;
+    if (!eligible.length) return null;
 
-    const href = entityHref(match.entity_type, match.creative);
-    if (!href) return null;
+    // Whose turn it is on this slot. Everything the banner needs is already on
+    // the campaign row, so the rotation pick is always servable.
+    const [match] = await rotateEligible(admin as any, "entity_bottom_banner", eligible);
+    const href = entityHref(match.entity_type, match.creative)!;
 
     return {
       eyebrow: (match.ad_eyebrow || "Sponsored").trim(),
@@ -181,6 +261,7 @@ export async function getEntityBottomBannerAd(pathname: string): Promise<EntityB
       ctaLabel: (match.ad_cta_label || "Learn more").trim(),
       href,
       creative: match.creative,
+      campaignId: match.id,
     };
   } catch {
     return null;
@@ -192,6 +273,7 @@ export interface BannerAd {
   href: string;
   external: boolean; // true when href is an external click_url (open in new tab)
   creative: string | null; // the campaign's creative, so the banner's tracked event matches the campaign
+  campaignId: string; // which campaign this serve belongs to
 }
 
 // Serves a campaign banner for a state/city hub. Matches an active
@@ -199,33 +281,42 @@ export interface BannerAd {
 // the hub's scope, or be blank = any). Destination is the external click_url
 // when set, else the advertised entity's profile. Returns null (→ demo banner)
 // when there's no campaign or it has no uploaded image.
-export async function getBannerCampaignAd(placement: string, scope: string): Promise<BannerAd | null> {
+export async function getBannerCampaignAd(
+  placement: string,
+  scope: string,
+  { rotate = true }: AdServingOptions = {}
+): Promise<BannerAd | null> {
   try {
     const admin = createAdminClient();
     const { data: camps } = await (admin as any)
       .from("ad_campaigns")
-      .select("entity_type, creative, scope, banner_image_url, click_url, created_at")
+      .select("id, entity_type, creative, scope, banner_image_url, click_url, created_at")
       .eq("placement", placement)
       .eq("status", "active")
       .order("created_at", { ascending: false });
 
     const target = (scope || "").trim().toLowerCase();
-    const match = ((camps as any[]) || []).find(
+    const eligible = ((camps as any[]) || []).filter(
       (c) =>
         c.banner_image_url &&
         (!c.scope || c.scope.trim().toLowerCase() === target) &&
-        (c.click_url || (c.entity_type && c.creative))
+        (c.click_url || entityHref(c.entity_type, c.creative))
     );
-    if (!match) return null;
+    if (!eligible.length) return null;
 
-    const href = match.click_url || entityHref(match.entity_type, match.creative);
-    if (!href) return null;
+    // Whose turn it is for this hub's banner slot. Every eligible campaign
+    // already has an image and a destination, so the pick always renders.
+    const [match] = rotate
+      ? await rotateEligible(admin as any, placement, eligible)
+      : rotationOrder(eligible);
+    const href = match.click_url || entityHref(match.entity_type, match.creative)!;
 
     return {
       imageUrl: match.banner_image_url,
       href,
       external: !!match.click_url,
       creative: match.creative || null,
+      campaignId: match.id,
     };
   } catch {
     return null;

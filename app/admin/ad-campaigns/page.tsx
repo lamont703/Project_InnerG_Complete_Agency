@@ -225,6 +225,17 @@ export default async function AdminAdCampaignsPage(props: { searchParams: Promis
     .select("id, user_id, name, placement, entity_type, creative, scope, filter_tabs, target_states, target_cities, ad_eyebrow, ad_headline, ad_cta_label, banner_page_types, click_url, banner_image_url, status, created_at")
     .order("created_at", { ascending: false });
 
+  // Active campaigns per placement. A position serves one ad per render and
+  // rotates through the rest (lib/ad-rotation.ts), so the useful thing to see
+  // while selling another slot is how crowded that slot already is. It's an
+  // upper bound on the real rotation pool — geo targeting and filter tabs can
+  // narrow which of them are eligible on any given page.
+  const activeByPlacement = new Map<string, number>();
+  for (const c of ((campaigns || []) as any[])) {
+    if (c.status !== "active") continue;
+    activeByPlacement.set(c.placement, (activeByPlacement.get(c.placement) || 0) + 1);
+  }
+
   const userIds = [...new Set((campaigns || []).map((c: any) => c.user_id))];
   const emailById = new Map<string, string>();
   if (userIds.length) {
@@ -282,6 +293,11 @@ export default async function AdminAdCampaignsPage(props: { searchParams: Promis
           that entity&apos;s profile page. For a <b>Search Results Ad</b>, pick the filter tabs it appears on (top of
           those results). The advertiser sees the matching impressions &amp; clicks under Account → Ad Performance.
         </p>
+        <p className="text-slate-500 text-sm mb-8 max-w-2xl">
+          A placement can be sold to <b>as many advertisers as you like</b>. One ad shows in the position at a time, and
+          the eligible campaigns take turns — split evenly across every 10 impressions on that position — so a visitor
+          who reloads can see a different advertiser. Pausing a campaign takes it out of the rotation immediately.
+        </p>
 
         {ok && (
           <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-3 mb-6 text-sm font-bold">
@@ -333,7 +349,17 @@ export default async function AdminAdCampaignsPage(props: { searchParams: Promis
                       {c.name}
                       <span className={`ml-2 inline-flex items-center text-[10px] font-black uppercase tracking-wider rounded-full px-2 py-0.5 ${c.status === "active" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>{c.status}</span>
                     </td>
-                    <td className="px-4 py-3 text-slate-500">{PLACEMENT_LABELS[c.placement] || c.placement}</td>
+                    <td className="px-4 py-3 text-slate-500">
+                      {PLACEMENT_LABELS[c.placement] || c.placement}
+                      {c.status === "active" && (activeByPlacement.get(c.placement) || 0) > 1 && (
+                        <span
+                          className="block mt-1 text-[10px] font-black uppercase tracking-wider text-indigo-600"
+                          title="One ad shows at a time; eligible campaigns take turns, evenly over every 10 impressions."
+                        >
+                          Rotating · {activeByPlacement.get(c.placement)} campaigns
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-400 text-xs">
                       {c.entity_type ? <span className="font-bold text-slate-600">{c.entity_type}</span> : "—"}
                       {c.creative && <span className="block font-mono text-[10px] text-slate-400 truncate max-w-[160px]">{c.creative}</span>}

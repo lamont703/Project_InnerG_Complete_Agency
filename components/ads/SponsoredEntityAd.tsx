@@ -38,13 +38,16 @@ interface SponsoredEntityAdProps {
   /** Current page's entity slug — when it matches the featured slug the ad
    *  hides itself (never advertise an entity on its own page). */
   currentSlug?: string;
+  /** Serving campaign, when this is a real (rotating) campaign ad rather than
+   *  the demo — attributes the impression/click to that advertiser. */
+  campaignId?: string;
 }
 
-export function SponsoredEntityAd({ featured, entityLabel, placementLabel, placementKey, entityHref, currentSlug }: SponsoredEntityAdProps) {
+export function SponsoredEntityAd({ featured, entityLabel, placementLabel, placementKey, entityHref, currentSlug, campaignId }: SponsoredEntityAdProps) {
   if (currentSlug && currentSlug === featured.slug) return null;
 
   return (
-    <AdTracker placement={placementKey} adType="on_profile" creative={featured.slug} scope={featured.city} className="mb-8">
+    <AdTracker placement={placementKey} adType="on_profile" creative={featured.slug} scope={featured.city} campaignId={campaignId} className="mb-8">
       {/* "Sponsored" disclosure sits above the card, not inside it, so the
           creative below reads as a genuine ad while staying clearly labeled. */}
       <div className="flex items-center justify-between mb-2 px-1">

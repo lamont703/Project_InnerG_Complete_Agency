@@ -22,7 +22,7 @@ const FEATURED: FeaturedEntity = {
 };
 
 export async function ShopSponsoredAd({ currentSlug, city, address }: { currentSlug?: string; city?: string | null; address?: string | null }) {
-  const campaign = await getProfileCampaignAd("shop_profile", { city, address });
+  const campaign = await getProfileCampaignAd("shop_profile", { city, address, slug: currentSlug });
   if (campaign) {
     return (
       <SponsoredEntityAd
@@ -32,6 +32,7 @@ export async function ShopSponsoredAd({ currentSlug, city, address }: { currentS
         placementKey="shop_profile"
         entityHref={campaign.entityHref}
         currentSlug={currentSlug}
+        campaignId={campaign.campaignId}
       />
     );
   }
