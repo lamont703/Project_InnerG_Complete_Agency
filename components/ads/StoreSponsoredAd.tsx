@@ -33,7 +33,7 @@ export async function StoreSponsoredAd({
       placementLabel={placement === "barber_supply_profile" ? "Barber Supply Page Ad" : "Beauty Supply Page Ad"}
       city={city}
       address={address}
-      initial={peek}
+      awaitRotation={!!peek}
       demo={null}
       currentSlug={currentSlug}
     />
