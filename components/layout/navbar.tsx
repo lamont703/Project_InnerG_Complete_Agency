@@ -165,7 +165,11 @@ export function Navbar() {
             // on the smallest screens, where "ShearQuery" alone is still
             // shorter than the wordmark this replaced.
             <span className="flex flex-col justify-center leading-none">
-              <span className="text-xl font-bold tracking-tight text-foreground">ShearQuery</span>
+              {/* Same split the hero uses (components/landing/hero-section.tsx):
+                  "Shear" in the foreground colour, "Query" in the accent. */}
+              <span className="text-xl font-bold tracking-tight text-foreground">
+                Shear<span className="text-primary">Query</span>
+              </span>
               <span className="hidden sm:block mt-0.5 text-[10px] font-normal tracking-wide text-muted-foreground">
                 by Inner G Complete Agency
               </span>
