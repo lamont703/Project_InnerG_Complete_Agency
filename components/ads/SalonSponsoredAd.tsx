@@ -35,7 +35,7 @@ export async function SalonSponsoredAd({ currentSlug, city, address }: { current
       placementLabel="Salon Page Ad"
       city={city}
       address={address}
-      initial={peek}
+      awaitRotation={!!peek}
       demo={{
         featured: FEATURED,
         entityLabel: "Featured Salon",

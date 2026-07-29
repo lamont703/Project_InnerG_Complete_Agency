@@ -6,14 +6,19 @@ import { fetchRotatingProfileAd } from "@/components/ads/ad-rotation-actions";
 import type { ProfileAd } from "@/lib/profile-ad";
 
 // The on-profile sponsored slot for pages that are CACHED (salon and store
-// profiles run `revalidate = 3600`). The server fills `initial` with a peek at
-// the pool — a real ad, in the initial HTML, so there's no empty gap and no
-// layout shift — and this component then claims the load's actual rotation turn
-// through a server action, swapping only when a different campaign comes back.
+// profiles run `revalidate = 3600`). Which advertiser wins a given load can't be
+// decided on the server, because that HTML is reused for an hour — so the turn
+// is claimed from the browser.
 //
-// With one campaign on the slot the peek already IS the turn, so nothing ever
-// swaps. It only swaps once a position genuinely holds several advertisers,
-// which is the whole point.
+// An earlier version painted the server's peek and swapped when the real turn
+// arrived, which meant a visitor saw one advertiser's card before it was
+// replaced by another. AdTracker credits an impression after a second of
+// visibility, so on a slow connection the wrong advertiser could be billed for
+// a slot they never had. Nothing is painted now until the turn is decided; the
+// slot holds a card-shaped space so the page doesn't jump when it lands.
+//
+// A slot with no campaigns skips all of that — the demo renders straight away,
+// because there's no rotation to wait for.
 //
 // Shop profiles deliberately don't use this: `/shop/[slug]` is force-dynamic, so
 // its ad rotates server-side on every request already and needs no client swap.
@@ -32,7 +37,7 @@ export function RotatingProfileAd({
   placementLabel,
   city,
   address,
-  initial,
+  awaitRotation,
   demo,
   currentSlug,
 }: {
@@ -41,13 +46,15 @@ export function RotatingProfileAd({
   placementLabel: string;
   city?: string | null;
   address?: string | null;
-  /** The server's peek at the pool — rendered immediately. */
-  initial: ProfileAd | null;
+  /** True when campaigns exist for this slot, so the turn must be claimed
+   *  before anything is shown. False means "no campaigns — show the demo". */
+  awaitRotation: boolean;
   /** Shown when no campaign is serving. Null for slots with no demo (stores). */
   demo: ProfileAdDemo | null;
   currentSlug?: string;
 }) {
-  const [ad, setAd] = useState<ProfileAd | null>(initial);
+  const [ad, setAd] = useState<ProfileAd | null>(null);
+  const [resolved, setResolved] = useState(!awaitRotation);
   // Claiming a rotation turn is a WRITE, so it has to happen exactly once per
   // page load — React re-invoking this effect (StrictMode in development does
   // exactly that) would step the cursor twice, and on an even-sized pool steps
@@ -68,17 +75,43 @@ export function RotatingProfileAd({
     fetchRotatingProfileAd(placement, { city, address, slug: currentSlug })
       .then((next) => {
         // A null here means the pool emptied (all campaigns paused or expired)
-        // since this HTML was cached, so fall back to the demo rather than keep
-        // serving an ad that's no longer sold.
-        if (!ignore) setAd(next);
+        // since this HTML was cached — fall through to the demo.
+        if (ignore) return;
+        setAd(next);
+        setResolved(true);
       })
       .catch(() => {
-        /* keep whatever the server already rendered */
+        // Google/network trouble shouldn't leave a permanent hole in the page;
+        // fall back to whatever the demo is.
+        if (!ignore) setResolved(true);
       });
     return () => {
       ignore = true;
     };
   }, [placement, city, address, currentSlug]);
+
+  // Waiting on the turn. Mirrors SponsoredEntityAd's own structure — image
+  // block beside a text column — so the reserved space matches the real card
+  // closely enough that nothing below it shifts. Deliberately unbranded: it
+  // must not read as an ad for anyone.
+  if (!resolved) {
+    return (
+      <div className="mb-8" aria-hidden>
+        <div className="mb-2 h-3 px-1" />
+        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
+          <div className="flex flex-col sm:flex-row">
+            <div className="h-44 bg-slate-900 sm:h-auto sm:w-56 sm:shrink-0" />
+            <div className="flex-1 space-y-3 p-5 sm:p-6">
+              <div className="h-3 w-28 rounded bg-slate-800" />
+              <div className="h-5 w-3/5 rounded bg-slate-800" />
+              <div className="h-3 w-2/5 rounded bg-slate-800" />
+              <div className="mt-6 h-9 w-full rounded-xl bg-slate-900" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const shown = ad
     ? {
