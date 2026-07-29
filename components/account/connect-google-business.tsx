@@ -31,6 +31,7 @@ const OUTCOME_COPY: Record<string, string> = {
   linked: "already in the directory",
   claimed_by_other: "already claimed by another account — we'll review",
   staged: "submitted for review",
+  published: "published — live in the directory",
   already_staged: "already submitted — awaiting review",
   error: "couldn't be submitted",
 };
@@ -171,6 +172,10 @@ export function ConnectGoogleBusiness() {
                     status.status === "needs_selection" && o.selectable && !isSelected;
                   // Only a business still awaiting review can change type —
                   // once published it lives in a specific table.
+                  // Only a business still awaiting review can change type. Once
+                  // published, the row lives in a real table and moving it is a
+                  // migration — so the picker disappears rather than offering a
+                  // change the server will reject.
                   const isStaged =
                     (o.outcome === "staged" || o.outcome === "already_staged") && types.length > 0;
                   return (

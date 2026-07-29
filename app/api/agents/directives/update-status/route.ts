@@ -321,16 +321,37 @@ export async function POST(request: Request) {
       // owner has a staged directive per location, and only the one they chose
       // should become the connection's entity.
       if (activeEvidence?.gbp_location) {
-        const { error: connErr } = await supabase
-          .from("gbp_connections")
-          .update({
-            entity_type: ownerType,
-            entity_id: result.id,
-            status: "linked",
-            updated_at: new Date().toISOString(),
-          })
+        // Mark this location published in the stored per-location outcomes too.
+        // Without it the owner's connect card keeps reporting "submitted for
+        // review" for a business that's already live, and keeps offering a
+        // business-type dropdown that now rejects every change — the type is
+        // settled once the row exists in a real table.
+        const { data: conn } = await (supabase.from("gbp_connections") as any)
+          .select("locations, selected_location")
           .eq("community_member_id", ownerMemberId)
-          .eq("selected_location", activeEvidence.gbp_location);
+          .maybeSingle();
+        const locations = Array.isArray(conn?.locations) ? conn.locations : [];
+        const publishedLocations = locations.map((l: any) =>
+          l?.name === activeEvidence.gbp_location
+            ? { ...l, outcome: { ...(l.outcome || {}), outcome: "published", entityType: ownerType, slug: result.slug } }
+            : l
+        );
+
+        const patch: Record<string, any> = {
+          locations: publishedLocations,
+          updated_at: new Date().toISOString(),
+        };
+        // Only the storefront the owner chose becomes the connection's entity;
+        // their other locations can publish without moving the claim.
+        if (conn && (conn as any).selected_location === activeEvidence.gbp_location) {
+          patch.entity_type = ownerType;
+          patch.entity_id = result.id;
+          patch.status = "linked";
+        }
+
+        const { error: connErr } = await (supabase.from("gbp_connections") as any)
+          .update(patch)
+          .eq("community_member_id", ownerMemberId);
         if (connErr) console.error("gbp connection link failed:", connErr.message);
       }
     }

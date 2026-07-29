@@ -56,7 +56,7 @@ export async function POST(req: Request) {
   if (!loc) return NextResponse.json({ success: false, error: "That location isn't on your account." }, { status: 400 });
 
   const { data: directives } = await (admin.from("agent_directives") as any)
-    .select("id, evidence, status")
+    .select("id, evidence, cleaned_evidence, status")
     .eq("mission", GBP_STAGE_MISSION)
     .eq("status", "pending");
 
@@ -96,10 +96,19 @@ export async function POST(req: Request) {
     }
   }
 
+  // The Entity Auditor re-audits pending "Website Business Discovery Agent"
+  // candidates — which includes these — and writes its findings to
+  // cleaned_evidence, which the publish handler PREFERS over evidence. Patching
+  // only evidence would mean an audited directive silently publishes into the
+  // table the owner just corrected away from.
+  const retarget = { table: cfg.table, category: CATEGORY_BY_TYPE[entityType] };
   const { error: updErr } = await (admin.from("agent_directives") as any)
     .update({
       subject_key,
-      evidence: { ...directive.evidence, table: cfg.table, category: CATEGORY_BY_TYPE[entityType] },
+      evidence: { ...directive.evidence, ...retarget },
+      ...(directive.cleaned_evidence
+        ? { cleaned_evidence: { ...directive.cleaned_evidence, ...retarget } }
+        : {}),
       directive_text:
         `Google Business Profile connect: ${directive.evidence.name} (${directive.evidence.city}) — ` +
         `${GBP_TYPE_LABELS[entityType] || cfg.noun}, confirmed by the owner at connect time. The connecting member is the verified owner ` +
