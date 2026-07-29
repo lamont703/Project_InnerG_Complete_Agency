@@ -1,7 +1,7 @@
 import { google } from "googleapis";
 import { CodeChallengeMethod } from "google-auth-library";
 import { createHash, randomBytes } from "node:crypto";
-import { CLAIM_ENTITY_TYPES } from "@/lib/entity-claim";
+import { CLAIM_ENTITY_TYPES, CLAIMED_AT_TYPES } from "@/lib/entity-claim";
 
 // Google Business Profile OAuth + API helpers. Reuses the existing Google OAuth
 // client (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) with a GBP-specific redirect
@@ -277,6 +277,26 @@ export async function claimEntityForMember(
       { community_member_id: memberId, entity_type: match.entityType, entity_id: match.entityId },
       { onConflict: "community_member_id" }
     );
+
+  // The link row alone is NOT enough for shop and salon. Those two tables carry
+  // a claimed_at column and their profile pages read it directly
+  // (`const isClaimed = !!shop.claimed_at`) rather than consulting the link
+  // table — so a listing claimed through Google showed the link in the database
+  // while its own page still asked the owner to claim it. The manual claim path
+  // in /api/community/register keeps claimed_at in sync for exactly this
+  // reason; every Google claim path now does the same. See CLAIMED_AT_TYPES.
+  if (CLAIMED_AT_TYPES.has(match.entityType)) {
+    const cfg = CLAIM_ENTITY_TYPES.find((t) => t.key === match.entityType);
+    if (cfg) {
+      const { error } = await admin
+        .from(cfg.table)
+        .update({ claimed_at: new Date().toISOString() })
+        .eq("id", match.entityId)
+        .is("claimed_at", null); // don't rewrite the date of an older claim
+      if (error) console.error("[gbp claim] claimed_at sync failed:", error.message);
+    }
+  }
+
   return "linked";
 }
 
