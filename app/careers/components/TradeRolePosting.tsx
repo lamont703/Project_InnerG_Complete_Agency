@@ -137,10 +137,10 @@ export function TradeRolePosting({ role }: { role: TradeRole }) {
               <div>
                 <h2 className="text-xl font-black text-foreground">Start with a listing, not a résumé</h2>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  Shops on ShearQuery look at profiles, not CVs. Join the free community membership and claim your
-                  professional listing — your license status, specialties, photos of your work, and location. That
-                  listing is what you use to approach shops and salons, and it&apos;s what they look at when they have a
-                  chair to fill.
+                  Shops on ShearQuery look at profiles, not CVs. Join the free community membership and create your
+                  professional listing — your license status, specialties, and where you work. That listing is what you
+                  use to approach shops and salons, and it&apos;s what they look at when they have a chair to fill. If
+                  you&apos;re already in our directory, you&apos;ll be offered the option to claim that profile instead.
                 </p>
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                   <Link
@@ -159,7 +159,11 @@ export function TradeRolePosting({ role }: { role: TradeRole }) {
                   </Link>
                 </div>
                 <p className="mt-3 text-xs text-muted-foreground">
-                  Free, no cost to the professional. Membership takes about a minute.
+                  Free, no cost to the professional. Membership takes about a minute.{" "}
+                  <Link href="/account/add-professional" className="font-semibold text-primary underline">
+                    Already a member? Add your listing
+                  </Link>
+                  .
                 </p>
               </div>
             </div>
