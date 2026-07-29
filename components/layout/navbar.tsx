@@ -27,6 +27,19 @@ interface AccountProject {
   href: string
 }
 
+
+/**
+ * Which wordmark the header shows.
+ *
+ *   "product" — ShearQuery, with "by Inner G Complete Agency" as fine print
+ *   "agency"  — the original single-line Inner G Complete Agency lockup
+ *
+ * Flip this one word to switch back. It's a constant rather than an env var or
+ * a feature flag deliberately: this is a branding experiment someone should be
+ * able to undo in a single edit without touching deploy config.
+ */
+const LOGO_LOCKUP: "product" | "agency" = "product";
+
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -130,7 +143,11 @@ export function Navbar() {
         }`}
     >
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-2 group" aria-label="Inner G Complete Agency Home">
+        <Link
+          href="/"
+          className="flex items-center gap-2 group"
+          aria-label={LOGO_LOCKUP === "product" ? "ShearQuery by Inner G Complete Agency Home" : "Inner G Complete Agency Home"}
+        >
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105 overflow-hidden">
             <Image
               src="/icon-light-32x32.webp"
@@ -141,9 +158,23 @@ export function Navbar() {
               unoptimized
             />
           </div>
-          <span className="text-xl font-bold tracking-tight text-foreground sm:block">
-            Inner G Complete<span className="hidden lg:inline text-muted-foreground font-normal"> Agency</span>
-          </span>
+          {LOGO_LOCKUP === "product" ? (
+            // Two lines stacked to roughly the icon's own height, so the header
+            // bar doesn't grow — the attribution reads as fine print under the
+            // product name rather than competing with it. The subtext is hidden
+            // on the smallest screens, where "ShearQuery" alone is still
+            // shorter than the wordmark this replaced.
+            <span className="flex flex-col justify-center leading-none">
+              <span className="text-xl font-bold tracking-tight text-foreground">ShearQuery</span>
+              <span className="hidden sm:block mt-0.5 text-[10px] font-normal tracking-wide text-muted-foreground">
+                by Inner G Complete Agency
+              </span>
+            </span>
+          ) : (
+            <span className="text-xl font-bold tracking-tight text-foreground sm:block">
+              Inner G Complete<span className="hidden lg:inline text-muted-foreground font-normal"> Agency</span>
+            </span>
+          )}
         </Link>
 
         <div className="hidden items-center gap-1 lg:flex">
