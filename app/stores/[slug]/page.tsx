@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { isEntityClaimed } from "@/lib/entity-claim";
+import { GoogleReviews } from "@/components/shared/google-reviews";
+import { GooglePosts } from "@/components/shared/google-posts";
 
 export const revalidate = 3600;
 
@@ -355,6 +357,11 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
                 Find Shops Near This Store
               </Link>
             </div>
+
+            {/* Live Google content for a store whose owner connected their
+                Business Profile; renders nothing otherwise. */}
+            <GooglePosts entityType={claimEntityType} entityId={store.id} />
+            <GoogleReviews entityType={claimEntityType} entityId={store.id} />
 
             <NearbyEntitiesSection title="Nearby Shops" icon={Scissors} entities={nearbyShops} />
             <NearbyEntitiesSection title="Nearby Salons" icon={Sparkles} entities={nearbySalons} />

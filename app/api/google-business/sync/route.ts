@@ -30,14 +30,17 @@ import {
 // parts, a summary and an amenities column.
 const SYNC_FIELDS: Record<
   string,
-  { addressParts?: boolean; summary?: string; amenities?: string; hours?: string }
+  { addressParts?: boolean; summary?: string; amenities?: string; hours?: string; reviewCount?: string }
 > = {
-  agent_barbershop_leads: { addressParts: true, summary: "ai_culture_summary", amenities: "custom_amenities", hours: "google_hours" },
-  agent_salon_leads: { addressParts: true, summary: "ai_culture_summary", amenities: "custom_amenities", hours: "google_hours" },
-  agent_barber_school_leads: { hours: "google_hours" },
-  agent_cosmetology_school_leads: { hours: "google_hours" },
-  agent_barber_supply_store_leads: { hours: "google_hours" },
-  agent_beauty_supply_store_leads: { hours: "google_hours" },
+  agent_barbershop_leads: { addressParts: true, summary: "ai_culture_summary", amenities: "custom_amenities", hours: "google_hours", reviewCount: "total_reviews" },
+  agent_salon_leads: { addressParts: true, summary: "ai_culture_summary", amenities: "custom_amenities", hours: "google_hours", reviewCount: "total_reviews" },
+  // Schools count reviews in google_review_count, not total_reviews — writing
+  // the wrong name doesn't error, it's just silently skipped as "no such
+  // column", so a school would never have shown a review count at all.
+  agent_barber_school_leads: { hours: "google_hours", reviewCount: "google_review_count" },
+  agent_cosmetology_school_leads: { hours: "google_hours", reviewCount: "google_review_count" },
+  agent_barber_supply_store_leads: { hours: "google_hours", reviewCount: "total_reviews" },
+  agent_beauty_supply_store_leads: { hours: "google_hours", reviewCount: "total_reviews" },
 };
 
 const isBlank = (v: any) =>
@@ -169,13 +172,14 @@ export async function POST() {
       }
     }
   }
-  if (isBlank(entity.rating) || isBlank(entity.total_reviews)) {
+  const reviewCountField = fields.reviewCount;
+  if (isBlank(entity.rating) || (reviewCountField && isBlank(entity[reviewCountField]))) {
     const reviews = await gbpFetchReviews(accessToken, loc.name, loc.account);
     if (reviews.disabled) {
       if (!notes.length) notes.push("Ratings need the Google My Business API enabled on the Cloud project.");
     } else {
       if (reviews.rating != null) candidates.rating = reviews.rating;
-      if (reviews.count != null) candidates.total_reviews = reviews.count;
+      if (reviews.count != null && reviewCountField) candidates[reviewCountField] = reviews.count;
     }
   }
 
