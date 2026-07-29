@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface LocationOutcome {
+  name: string | null;
   title: string | null;
   city: string | null;
   outcome: string | null;
   detail: string | null;
+  selectable?: boolean;
 }
 
 interface Status {
@@ -21,6 +23,7 @@ interface Status {
   stagedCount?: number;
   skippedCount?: number;
   outcomes?: LocationOutcome[];
+  selectedLocation?: string | null;
 }
 
 const OUTCOME_COPY: Record<string, string> = {
@@ -37,6 +40,35 @@ const OUTCOME_COPY: Record<string, string> = {
 export function ConnectGoogleBusiness() {
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selecting, setSelecting] = useState<string | null>(null);
+
+  const refreshStatus = () =>
+    fetch("/api/google-business/status", { credentials: "include" })
+      .then((r) => r.json())
+      .then(setStatus);
+
+  // A Google account managing several locations can't be auto-claimed — a
+  // member holds exactly one entity link, so they tell us which storefront is
+  // theirs here.
+  const chooseLocation = async (name: string) => {
+    setSelecting(name);
+    try {
+      const res = await fetch("/api/google-business/select", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location: name }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not select that location.");
+      toast.success(data.message || "Listing selected.");
+      await refreshStatus();
+    } catch (e: any) {
+      toast.error(e.message || "Could not select that location.");
+    } finally {
+      setSelecting(null);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -55,28 +87,35 @@ export function ConnectGoogleBusiness() {
     else if (p === "error") toast.error("Couldn't connect Google Business Profile. Please try again.");
     else if (p === "nomember") toast.error("Finish creating your membership first, then connect.");
 
-    fetch("/api/google-business/status", { credentials: "include" })
-      .then((r) => r.json())
-      .then(setStatus)
+    refreshStatus()
       .catch(() => setStatus({ connected: false }))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) return null;
 
   if (status?.connected) {
+    const revoked = status.status === "revoked";
     return (
-      <div className="bg-white border border-emerald-200 rounded-2xl shadow-sm p-5 mb-6 flex items-start gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
-          <CheckCircle2 className="w-5 h-5" />
+      // A revoked connection is still a row in the table, so it renders here —
+      // but showing it in success green saying "connected" would be a lie the
+      // moment Cross-Account Protection fires.
+      <div className={`bg-white border rounded-2xl shadow-sm p-5 mb-6 flex items-start gap-3 ${revoked ? "border-amber-200" : "border-emerald-200"}`}>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl shrink-0 ${revoked ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"}`}>
+          {revoked ? <AlertTriangle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
         </div>
         <div className="min-w-0">
           <p className="text-sm font-black text-slate-900">
-            Google Business Profile connected{status.locationTitle ? ` · ${status.locationTitle}` : ""}
+            {revoked
+              ? "Google Business Profile disconnected"
+              : `Google Business Profile connected${status.locationTitle ? ` · ${status.locationTitle}` : ""}`}
           </p>
           <p className="text-xs text-slate-500 mt-0.5">
             {status.email ? `Connected as ${status.email}. ` : ""}
-            {status.status === "linked"
+            {status.status === "revoked"
+              ? "Access to this Google account was removed, so syncing has stopped. Reconnect below to restore it."
+              : status.status === "linked"
               ? "Verified owner — your listing is claimed and will stay in sync with Google."
               : status.status === "needs_review"
               ? "We found your business, but this listing is already claimed by another account — we'll review it."
@@ -90,19 +129,40 @@ export function ConnectGoogleBusiness() {
           {/* What happened to each connected location. Only worth showing when
               there's more than one, or when something needs explaining — a
               single cleanly-claimed listing is already covered by the line
-              above. */}
+              above. When a choice is still outstanding, the same list becomes
+              the picker rather than duplicating it as a second control. */}
           {!!status.outcomes?.length &&
             (status.outcomes.length > 1 || status.outcomes.some((o) => o.outcome === "skipped")) && (
-              <ul className="mt-2 space-y-1">
-                {status.outcomes.map((o, i) => (
-                  <li key={i} className="text-xs text-slate-500">
-                    <span className="font-bold text-slate-700">{o.title || "Untitled location"}</span>
-                    {o.city ? ` (${o.city})` : ""} —{" "}
-                    {o.outcome === "skipped"
-                      ? `not added: ${o.detail}`
-                      : OUTCOME_COPY[o.outcome || ""] || "connected"}
-                  </li>
-                ))}
+              <ul className="mt-2 space-y-1.5">
+                {status.outcomes.map((o, i) => {
+                  const isSelected = !!o.name && o.name === status.selectedLocation;
+                  const canChoose =
+                    status.status === "needs_selection" && o.selectable && !isSelected;
+                  return (
+                    <li key={o.name || i} className="flex items-start justify-between gap-3 text-xs">
+                      <span className="min-w-0 text-slate-500">
+                        <span className="font-bold text-slate-700">{o.title || "Untitled location"}</span>
+                        {o.city ? ` (${o.city})` : ""} —{" "}
+                        {o.outcome === "skipped"
+                          ? `not added: ${o.detail}`
+                          : OUTCOME_COPY[o.outcome || ""] || "connected"}
+                        {isSelected && (
+                          <span className="ml-1.5 font-bold text-emerald-700">· this is your listing</span>
+                        )}
+                      </span>
+                      {canChoose && (
+                        <button
+                          type="button"
+                          onClick={() => o.name && chooseLocation(o.name)}
+                          disabled={!!selecting}
+                          className="shrink-0 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-700 transition-colors hover:bg-indigo-100 disabled:opacity-50"
+                        >
+                          {selecting === o.name ? "Selecting…" : "This one"}
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           <a href="/api/google-business/start" className="text-xs font-bold text-indigo-600 hover:underline mt-1 inline-block">

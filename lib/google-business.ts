@@ -185,6 +185,39 @@ export interface EntityMatch {
   name: string;
 }
 
+/**
+ * Link a member to the entity a GBP location resolved to — the "connect =
+ * claim" step. Shared by the OAuth callback (single-location auto-claim) and
+ * the location picker (multi-location owners choosing which one is theirs), so
+ * the don't-hijack-an-existing-claim rule can't drift between the two.
+ *
+ * Returns "claimed_by_other" without writing anything when the entity already
+ * belongs to a different member: owning the Google listing is strong evidence,
+ * but not enough to silently take a claim off someone else's account.
+ */
+export async function claimEntityForMember(
+  admin: any,
+  memberId: string,
+  match: EntityMatch
+): Promise<"linked" | "claimed_by_other"> {
+  const { data: existing } = await admin
+    .from("community_member_entity_links")
+    .select("community_member_id")
+    .eq("entity_type", match.entityType)
+    .eq("entity_id", match.entityId)
+    .maybeSingle();
+
+  if (existing && existing.community_member_id !== memberId) return "claimed_by_other";
+
+  await admin
+    .from("community_member_entity_links")
+    .upsert(
+      { community_member_id: memberId, entity_type: match.entityType, entity_id: match.entityId },
+      { onConflict: "community_member_id" }
+    );
+  return "linked";
+}
+
 // Find the directory entity whose place_id matches this GBP location's place_id.
 export async function matchLocationToEntity(admin: any, placeId: string | null | undefined): Promise<EntityMatch | null> {
   if (!placeId) return null;

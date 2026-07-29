@@ -32,10 +32,16 @@ export async function GET() {
   // live, which are awaiting review, and which Google data we couldn't use —
   // instead of a bare location count that explains nothing.
   const outcomes = locs.map((l: any) => ({
+    // `name` (locations/{id}) is what the picker posts back to /select — the
+    // title isn't unique (a real account had two same-named storefronts).
+    name: l.name || null,
     title: l.title || null,
     city: l.city || null,
     outcome: l.outcome?.outcome || null,
     detail: l.outcome?.detail || null,
+    // Skipped locations aren't in the directory and never will be, so they
+    // can't be chosen as "my listing".
+    selectable: !!l.name && l.outcome?.outcome !== "skipped" && l.outcome?.outcome !== "error",
   }));
 
   return NextResponse.json({
@@ -47,6 +53,7 @@ export async function GET() {
     locationsCount: locs.length,
     locationTitle: selected?.title || null,
     lastSyncedAt: conn.last_synced_at || null,
+    selectedLocation: conn.selected_location || null,
     stagedCount: outcomes.filter((o: any) => o.outcome === "staged").length,
     skippedCount: outcomes.filter((o: any) => o.outcome === "skipped").length,
     outcomes,

@@ -74,7 +74,13 @@ export async function POST(req: Request) {
       console.log(`[risc] ignoring unhandled event type: ${type}`);
       continue;
     }
-    const { sub, email } = subjectOf(event);
+    const { sub, email, tokenScoped } = subjectOf(event);
+    if (tokenScoped) {
+      // Names a token, not a person — the paired account-level event does the
+      // revoking. Logged plainly so it doesn't read as a failure.
+      console.log(`[risc] ${type} → token-scoped event, no account subject (handled by the paired event)`);
+      continue;
+    }
     console.log(`[risc] ${type} → ${await revokeConnection(sub, email)}`);
   }
 

@@ -6,6 +6,7 @@ import {
   gbpFetchLocations,
   identityFromIdToken,
   matchLocationToEntity,
+  claimEntityForMember,
   stageGbpLocation,
   type GbpLocationOutcome,
 } from "@/lib/google-business";
@@ -96,25 +97,16 @@ export async function GET(req: Request) {
         continue;
       }
 
-      const { data: existing } = await (admin.from("community_member_entity_links") as any)
-        .select("community_member_id")
-        .eq("entity_type", match.entityType)
-        .eq("entity_id", match.entityId)
-        .maybeSingle();
-      if (!existing || existing.community_member_id === (member as any).id) {
-        await (admin.from("community_member_entity_links") as any).upsert(
-          { community_member_id: (member as any).id, entity_type: match.entityType, entity_id: match.entityId },
-          { onConflict: "community_member_id" }
-        );
+      const claim = await claimEntityForMember(admin, (member as any).id, match);
+      if (claim === "linked") {
         entityType = match.entityType;
         entityId = match.entityId;
         status = "linked";
-        outcomes.push({ location: loc.name, title: loc.title, outcome: "linked", entityType: match.entityType });
       } else {
         // Owns the GBP location but the entity is claimed by another member.
         status = "needs_review";
-        outcomes.push({ location: loc.name, title: loc.title, outcome: "claimed_by_other", entityType: match.entityType });
       }
+      outcomes.push({ location: loc.name, title: loc.title, outcome: claim, entityType: match.entityType });
     }
 
     const staged = outcomes.filter((o) => o.outcome === "staged").length;
