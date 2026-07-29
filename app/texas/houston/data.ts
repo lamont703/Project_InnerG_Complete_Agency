@@ -72,8 +72,12 @@ export async function getHoustonData(zip?: string): Promise<HoustonData> {
     fetchAllRows(supabase, "agent_cosmetologist_leads",
       "id, slug, name, metro_area, address, booksy_rating, booksy_review_count, specialty_type",
       (q) => q.ilike("metro_area", HOUSTON_FILTER)),
+    // `slug` is what buildSection turns into /salons/{slug}; without it every
+    // salon card on this page linked to /salons/undefined and 404'd. Every
+    // other select here — and in lib/city-hub-data.ts / lib/california-hub-data.ts
+    // — already asks for it; this one query was the exception.
     fetchAllRows(supabase, "agent_salon_leads",
-      "id, shop_name, city, formatted_address, rating, total_reviews, hiring_need, booth_count_available, rent_rate",
+      "id, slug, shop_name, city, formatted_address, rating, total_reviews, hiring_need, booth_count_available, rent_rate",
       (q) => q.ilike("city", HOUSTON_FILTER)),
     fetchAllRows(supabase, "agent_barber_supply_store_leads",
       "id, slug, name, city, rating, total_reviews",
