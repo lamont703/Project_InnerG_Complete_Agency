@@ -310,6 +310,25 @@ export const CATEGORY_BY_TYPE: Record<string, string> = {
   beauty_supply_store: "beauty_supply_store",
 };
 
+/**
+ * Display names for the business types an owner can pick.
+ *
+ * CLAIM_ENTITY_TYPES.noun can't be used here: it collapses barber_school and
+ * cosmetology_school to "school", and both supply-store types to "store", so a
+ * picker built from it offered "school, school, store, store" and the owner
+ * couldn't tell them apart. `noun` reads better mid-sentence ("add your
+ * school"), so it stays as it is — these are the labels for anywhere the types
+ * are shown side by side and have to be distinguishable.
+ */
+export const GBP_TYPE_LABELS: Record<string, string> = {
+  shop: "Barbershop",
+  salon: "Salon",
+  barber_school: "Barber school",
+  cosmetology_school: "Cosmetology school",
+  barber_supply_store: "Barber supply store",
+  beauty_supply_store: "Beauty supply store",
+};
+
 /** Identifies GBP-staged directives. Exported so the owner's business-type
  *  picker can find the directive it needs to retarget. */
 export const GBP_STAGE_MISSION = "Google-verified owner connected a business that isn't in the directory";
@@ -346,24 +365,62 @@ export interface GbpLocationOutcome {
   entityType?: string;
 }
 
+// Same normalization the publish handler's duplicate check uses.
+function normalizePhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let digits = String(raw).replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
+  return digits.length === 10 ? digits : null;
+}
+
 /**
- * Businesses already in the directory that look like this location, by name.
- * Only a HINT recorded on the directive — never used to auto-link, because a
- * name (or a phone: two real test locations of the same business shared one
- * number) can't distinguish a second branch from a duplicate. The reviewer
- * decides, and the publish handler's own phone-duplicate warning is the
- * backstop if this misses.
+ * Businesses already in the directory that are probably the same as this
+ * location. Only a HINT recorded on the directive — never used to auto-link,
+ * because neither name nor phone alone can tell a second branch from a
+ * duplicate (two real test locations of the same business shared one phone
+ * number).
+ *
+ * Name alone is far too loose: it flagged an Atlanta barbershop as a duplicate
+ * of a *Dallas* school that merely shared the name. A hint that cries wolf is
+ * worse than none, because the admin action built on it would then link the
+ * wrong entity. So a candidate has to agree on more than its name:
+ *   • same phone number — strong on its own, businesses rarely share one, and
+ *   • otherwise same name AND same city, compared exactly (the Dallas row's
+ *     city was "Atl" against the location's "Atlanta"; treating that as a match
+ *     is what produced the false positive).
  */
-async function findPossibleDuplicates(admin: any, name: string): Promise<any[]> {
+async function findPossibleDuplicates(
+  admin: any,
+  name: string,
+  city: string | null,
+  phone: string | null
+): Promise<any[]> {
   const hits: any[] = [];
+  const wantPhone = normalizePhone(phone);
+  const wantName = norm(name);
+  const wantCity = city ? norm(city) : null;
+
   for (const cfg of MATCHABLE_ENTITY_TYPES) {
     try {
       const { data } = await admin
         .from(cfg.table)
-        .select(`slug, city, ${cfg.nameCol}`)
+        .select(`slug, city, phone, ${cfg.nameCol}`)
         .ilike(cfg.nameCol, `%${name}%`)
-        .limit(2);
-      for (const d of data || []) hits.push({ entityType: cfg.key, slug: d.slug, city: d.city, name: d[cfg.nameCol] });
+        .limit(5);
+      for (const d of data || []) {
+        const samePhone = !!wantPhone && normalizePhone(d.phone) === wantPhone;
+        const sameName = norm(d[cfg.nameCol] || "") === wantName;
+        const sameCity = !!wantCity && norm(d.city || "") === wantCity;
+        if (!samePhone && !(sameName && sameCity)) continue;
+        hits.push({
+          entityType: cfg.key,
+          slug: d.slug,
+          city: d.city,
+          name: d[cfg.nameCol],
+          // Recorded so the reviewer sees WHY it was flagged before acting on it.
+          reason: samePhone ? "same phone number" : "same name and city",
+        });
+      }
     } catch {
       /* table shape differs — skip */
     }
@@ -419,7 +476,7 @@ export async function stageGbpLocation(
     if (alreadyStaged) return { ...base, outcome: "already_staged", entityType };
   }
 
-  const possibleDuplicates = await findPossibleDuplicates(admin, loc.title!);
+  const possibleDuplicates = await findPossibleDuplicates(admin, loc.title!, loc.city, loc.phone);
 
   const evidence = {
     type: "new_business_candidate",
@@ -447,14 +504,14 @@ export async function stageGbpLocation(
   };
 
   const dupNote = possibleDuplicates.length
-    ? ` Possible existing match: ${possibleDuplicates.map((d) => `${d.name} (${d.city})`).join("; ")} — check before publishing.`
+    ? ` Possible existing match: ${possibleDuplicates.map((d) => `${d.name} (${d.city}, ${d.reason})`).join("; ")} — check before publishing.`
     : "";
 
   const { error } = await admin.from("agent_directives").insert({
     agent_name: BUSINESS_DISCOVERY_AGENT,
     mission: GBP_STAGE_MISSION,
     directive_text:
-      `Google Business Profile connect: ${loc.title} (${loc.city}) — ${cfg.noun}, ` +
+      `Google Business Profile connect: ${loc.title} (${loc.city}) — ${GBP_TYPE_LABELS[entityType] || cfg.noun}, ` +
       `Google category "${loc.categoryLabel || "unknown"}". The connecting member is the verified owner of this ` +
       `Google listing; data below is Google's. Review and publish; the member auto-links on approval.${dupNote}`,
     subject_key,

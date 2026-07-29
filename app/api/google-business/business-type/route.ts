@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CLAIM_ENTITY_TYPES } from "@/lib/entity-claim";
-import { GBP_STAGE_MISSION, CATEGORY_BY_TYPE, gbpSubjectKey } from "@/lib/google-business";
+import { GBP_STAGE_MISSION, CATEGORY_BY_TYPE, GBP_TYPE_LABELS, gbpSubjectKey } from "@/lib/google-business";
 
 /**
  * Lets a connecting owner correct the business type of a location we staged.
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
     subject_key = gbpSubjectKey(cfg.table, directive.evidence.name, directive.evidence.city, loc.placeId);
     if (await taken(subject_key)) {
       return NextResponse.json(
-        { success: false, error: `That business is already submitted as a ${cfg.noun}.` },
+        { success: false, error: `That business is already submitted as a ${GBP_TYPE_LABELS[entityType] || cfg.noun}.` },
         { status: 409 }
       );
     }
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
       evidence: { ...directive.evidence, table: cfg.table, category: CATEGORY_BY_TYPE[entityType] },
       directive_text:
         `Google Business Profile connect: ${directive.evidence.name} (${directive.evidence.city}) — ` +
-        `${cfg.noun}, confirmed by the owner at connect time. The connecting member is the verified owner ` +
+        `${GBP_TYPE_LABELS[entityType] || cfg.noun}, confirmed by the owner at connect time. The connecting member is the verified owner ` +
         `of this Google listing; data below is Google's. Review and publish; the member auto-links on approval.`,
     })
     .eq("id", directive.id);
@@ -117,12 +117,15 @@ export async function POST(req: Request) {
     .update({ locations: updatedLocations, updated_at: new Date().toISOString() })
     .eq("community_member_id", memberId);
 
-  return NextResponse.json({ success: true, entityType, label: cfg.noun });
+  return NextResponse.json({ success: true, entityType, label: GBP_TYPE_LABELS[entityType] || cfg.noun });
 }
 
 export async function GET() {
   // Powers the picker's options so the list can't drift from the server's.
   return NextResponse.json({
-    types: SELECTABLE_TYPES.map((t) => ({ key: t.key, label: t.noun })),
+    // GBP_TYPE_LABELS, not `noun` — `noun` renders both school types as
+    // "school" and both store types as "store", which made the picker
+    // unusable: four of the six options were indistinguishable.
+    types: SELECTABLE_TYPES.map((t) => ({ key: t.key, label: GBP_TYPE_LABELS[t.key] || t.noun })),
   });
 }
