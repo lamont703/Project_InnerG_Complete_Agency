@@ -155,6 +155,60 @@ export function ConnectGoogleBusiness() {
 
   if (status?.connected) {
     const revoked = status.status === "revoked";
+
+    // One row of the per-location list. Extracted so the chosen listing and the
+    // collapsed "other locations" group render identically.
+    const renderOutcome = (o: LocationOutcome, i: number) => {
+      const isSelected = !!o.name && o.name === status.selectedLocation;
+      const canChoose = status.status === "needs_selection" && o.selectable && !isSelected;
+      // Only a business still awaiting review can change type. Once published,
+      // the row lives in a real table and moving it is a migration — so the
+      // picker disappears rather than offering a change the server will reject.
+      const isStaged = (o.outcome === "staged" || o.outcome === "already_staged") && types.length > 0;
+      return (
+        <li key={o.name || i} className="flex items-start justify-between gap-3 text-xs">
+          <span className="min-w-0 text-slate-500">
+            <span className="font-bold text-slate-700">{o.title || "Untitled location"}</span>
+            {o.city ? ` (${o.city})` : ""} —{" "}
+            {o.outcome === "skipped" ? `not added: ${o.detail}` : OUTCOME_COPY[o.outcome || ""] || "connected"}
+            {isSelected && <span className="ml-1.5 font-bold text-emerald-700">· this is your listing</span>}
+          </span>
+          <span className="flex shrink-0 items-center gap-2">
+            {/* Google's primary category chose the table, and it's frequently
+                ambiguous — one real listing was filed under barber shop, salon,
+                barber school, beauty school and software company at once. The
+                owner is the authority, so they set it while it's still pending. */}
+            {isStaged && o.name && (
+              <select
+                value={o.entityType || ""}
+                onChange={(e) => o.name && setBusinessType(o.name, e.target.value)}
+                disabled={!!retyping}
+                aria-label={`Business type for ${o.title || "this location"}`}
+                className="rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-50"
+              >
+                {!o.entityType && <option value="">Business type…</option>}
+                {types.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            {canChoose && (
+              <button
+                type="button"
+                onClick={() => o.name && chooseLocation(o.name)}
+                disabled={!!selecting}
+                className="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-700 transition-colors hover:bg-indigo-100 disabled:opacity-50"
+              >
+                {selecting === o.name ? "Selecting…" : "This one"}
+              </button>
+            )}
+          </span>
+        </li>
+      );
+    };
+
     return (
       // A revoked connection is still a row in the table, so it renders here —
       // but showing it in success green saying "connected" would be a lie the
@@ -184,77 +238,41 @@ export function ConnectGoogleBusiness() {
               : "Your listing will stay in sync with Google."}
           </p>
 
-          {/* What happened to each connected location. Only worth showing when
-              there's more than one, or when something needs explaining — a
-              single cleanly-claimed listing is already covered by the line
-              above. When a choice is still outstanding, the same list becomes
-              the picker rather than duplicating it as a second control. */}
-          {!!status.outcomes?.length &&
-            (status.outcomes.length > 1 || status.outcomes.some((o) => o.outcome === "skipped")) && (
-              <ul className="mt-2 space-y-1.5">
-                {status.outcomes.map((o, i) => {
-                  const isSelected = !!o.name && o.name === status.selectedLocation;
-                  const canChoose =
-                    status.status === "needs_selection" && o.selectable && !isSelected;
-                  // Only a business still awaiting review can change type —
-                  // once published it lives in a specific table.
-                  // Only a business still awaiting review can change type. Once
-                  // published, the row lives in a real table and moving it is a
-                  // migration — so the picker disappears rather than offering a
-                  // change the server will reject.
-                  const isStaged =
-                    (o.outcome === "staged" || o.outcome === "already_staged") && types.length > 0;
-                  return (
-                    <li key={o.name || i} className="flex items-start justify-between gap-3 text-xs">
-                      <span className="min-w-0 text-slate-500">
-                        <span className="font-bold text-slate-700">{o.title || "Untitled location"}</span>
-                        {o.city ? ` (${o.city})` : ""} —{" "}
-                        {o.outcome === "skipped"
-                          ? `not added: ${o.detail}`
-                          : OUTCOME_COPY[o.outcome || ""] || "connected"}
-                        {isSelected && (
-                          <span className="ml-1.5 font-bold text-emerald-700">· this is your listing</span>
-                        )}
-                      </span>
-                      <span className="flex shrink-0 items-center gap-2">
-                        {/* Google's primary category chose the table, and it's
-                            frequently ambiguous — one real listing was filed
-                            under barber shop, salon, barber school, beauty
-                            school and software company at once. The owner is
-                            the authority on which they are, so they set it here
-                            while the business is still awaiting review. */}
-                        {isStaged && o.name && (
-                          <select
-                            value={o.entityType || ""}
-                            onChange={(e) => o.name && setBusinessType(o.name, e.target.value)}
-                            disabled={!!retyping}
-                            aria-label={`Business type for ${o.title || "this location"}`}
-                            className="rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-50"
-                          >
-                            {!o.entityType && <option value="">Business type…</option>}
-                            {types.map((t) => (
-                              <option key={t.key} value={t.key}>
-                                {t.label}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                        {canChoose && (
-                          <button
-                            type="button"
-                            onClick={() => o.name && chooseLocation(o.name)}
-                            disabled={!!selecting}
-                            className="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-700 transition-colors hover:bg-indigo-100 disabled:opacity-50"
-                          >
-                            {selecting === o.name ? "Selecting…" : "This one"}
-                          </button>
-                        )}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+          {/* Before a choice is made this list IS the picker, so all of it has
+              to be visible. Afterwards it's mostly clutter: the owner has told
+              us which listing is theirs and doesn't need four other rows about
+              businesses they didn't pick. The rest still matter — some are
+              awaiting review and can have their business type corrected — so
+              they collapse behind a summary rather than disappearing. */}
+          {(() => {
+            const outcomes = status.outcomes || [];
+            if (!outcomes.length) return null;
+            const chosen = outcomes.find((o) => o.name && o.name === status.selectedLocation) || null;
+            const others = outcomes.filter((o) => o !== chosen);
+            const awaiting = others.filter((o) => o.outcome === "staged" || o.outcome === "already_staged").length;
+
+            if (!chosen) {
+              // A single clean location needs no list at all — the line above
+              // already describes it.
+              if (outcomes.length === 1 && outcomes[0].outcome !== "skipped") return null;
+              return <ul className="mt-2 space-y-1.5">{outcomes.map(renderOutcome)}</ul>;
+            }
+
+            return (
+              <>
+                <ul className="mt-2 space-y-1.5">{renderOutcome(chosen, 0)}</ul>
+                {others.length > 0 && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-xs font-bold text-slate-500 hover:text-slate-700">
+                      {others.length} other location{others.length === 1 ? "" : "s"} on this Google account
+                      {awaiting > 0 ? ` · ${awaiting} awaiting review` : ""}
+                    </summary>
+                    <ul className="mt-2 space-y-1.5">{others.map(renderOutcome)}</ul>
+                  </details>
+                )}
+              </>
+            );
+          })()}
           {perf && (
             <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
               <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">
