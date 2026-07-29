@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AD_PLACEMENTS, PLACEMENT_LABELS, SEARCH_AD_TABS, BANNER_PAGE_TYPES } from "@/lib/ad-campaigns";
 import { EntityTypeahead } from "./EntityTypeahead";
 import { CitiesMultiSelect } from "./CitiesMultiSelect";
@@ -59,6 +59,50 @@ export interface CampaignInitial {
   status: string;
 }
 
+
+// Banner uploads go through a Next server action, and on Vercel a serverless
+// request body is capped at ~4.5 MB no matter what next.config's
+// serverActions.bodySizeLimit says. An AI-generated banner sails past that, and
+// the failure was ugly: a 413 from the platform, then an unhandled error that
+// white-screened the whole admin page.
+//
+// So the image is resized and re-encoded in the browser before it ever gets
+// attached to the form. That fixes the 413 at its source and enforces the
+// banner spec at the same time — the slot renders at 24:7 and never wider than
+// ~1104 CSS px, so anything beyond 2400px of width is bytes nobody sees.
+const BANNER_MAX_WIDTH = 2400;
+const BANNER_JPEG_QUALITY = 0.85;
+// Comfortably under the platform limit, leaving room for the rest of the form.
+const BANNER_MAX_BYTES = 3.5 * 1024 * 1024;
+
+async function optimizeBanner(file: File): Promise<File> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, BANNER_MAX_WIDTH / bitmap.width);
+  const width = Math.round(bitmap.width * scale);
+  const height = Math.round(bitmap.height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return file;
+  // A transparent PNG would otherwise composite onto black when flattened to
+  // JPEG, which looks like a bug rather than a design choice.
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close?.();
+
+  const blob: Blob | null = await new Promise((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg", BANNER_JPEG_QUALITY)
+  );
+  if (!blob) return file;
+  const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+  return new File([blob], name, { type: "image/jpeg" });
+}
+
+const kb = (bytes: number) => `${Math.round(bytes / 1024).toLocaleString()} KB`;
+
 export function CampaignForm({
   submitAction,
   stateOptions,
@@ -78,12 +122,64 @@ export function CampaignForm({
   const isProfile = PROFILE_PLACEMENTS.has(placement);
   const isEntityBanner = placement === "entity_bottom_banner";
 
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const [bannerNote, setBannerNote] = useState<string | null>(null);
+  const [bannerError, setBannerError] = useState<string | null>(null);
+
+  // Shrink on selection rather than on submit, so the admin sees the result
+  // before committing and a rejected file can be swapped immediately.
+  const handleBannerPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setBannerError(null);
+    setBannerNote(null);
+    if (!file) return;
+
+    setBannerNote("Optimizing image…");
+    try {
+      const optimized = await optimizeBanner(file);
+      if (optimized.size > BANNER_MAX_BYTES) {
+        setBannerNote(null);
+        setBannerError(
+          `That image is still ${kb(optimized.size)} after optimizing — too large to upload. Try a simpler image or export it at a lower quality.`
+        );
+        e.target.value = "";
+        return;
+      }
+      const transfer = new DataTransfer();
+      transfer.items.add(optimized);
+      e.target.files = transfer.files;
+      setBannerNote(
+        file.size === optimized.size
+          ? `Ready — ${kb(optimized.size)}.`
+          : `Ready — optimized from ${kb(file.size)} to ${kb(optimized.size)}.`
+      );
+    } catch {
+      // Couldn't decode it (odd format, corrupt file). Let the original through
+      // only if it's small enough to survive the upload.
+      setBannerNote(null);
+      if (file.size > BANNER_MAX_BYTES) {
+        setBannerError(`That image is ${kb(file.size)} — too large to upload. Please export it under 3 MB.`);
+        e.target.value = "";
+      }
+    }
+  };
+
+  // Last line of defence: never let an oversized body reach the server, because
+  // the platform rejects it before our code can report anything useful.
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const file = bannerInputRef.current?.files?.[0];
+    if (file && file.size > BANNER_MAX_BYTES) {
+      e.preventDefault();
+      setBannerError(`That image is ${kb(file.size)} — too large to upload. Please export it under 3 MB.`);
+    }
+  };
+
   const initialTabs = new Set(initial?.filter_tabs || []);
   const initialStates = new Set(initial?.target_states || []);
   const initialPageTypes = new Set(initial?.banner_page_types || []);
 
   return (
-    <form action={submitAction} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-8 space-y-5">
+    <form action={submitAction} onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-8 space-y-5">
       {isEdit && <input type="hidden" name="id" value={initial!.id} />}
       <div className="grid sm:grid-cols-2 gap-4">
         <label className="text-sm font-bold text-slate-700">
@@ -201,20 +297,25 @@ export function CampaignForm({
           <div className="border-t border-slate-100 pt-5">
             <p className="text-sm font-black text-slate-800 mb-1">Banner image{isEdit ? " — replace (optional)" : ""}</p>
             <p className="text-[11px] text-slate-400 mb-3">
-              Recommended <b>1200 × 350 px</b> (wide banner, ~24:7). It&apos;s displayed cropped and centered, so keep
-              logos and text near the middle. PNG or JPG.
+              Recommended <b>2400 × 700 px</b> (24:7). Shown cropped and centered — on phones the slot narrows to 21:9,
+              so roughly <b>16% is cut from each side</b>: keep logos and text inside the middle two-thirds, and leave
+              the top-left corner clear for the &quot;Sponsored&quot; label. Large images are resized automatically.
             </p>
             {isEdit && initial?.banner_image_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={initial.banner_image_url} alt="Current banner" className="mb-3 h-20 w-auto rounded-lg border border-slate-200 object-cover" />
             )}
             <input
+              ref={bannerInputRef}
+              onChange={handleBannerPick}
               type="file"
               name="banner_image"
               accept="image/png,image/jpeg,image/webp"
               required={!isEdit}
               className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-bold file:text-indigo-700 hover:file:bg-indigo-100"
             />
+            {bannerNote && <p className="mt-1.5 text-[11px] font-bold text-emerald-700">{bannerNote}</p>}
+            {bannerError && <p className="mt-1.5 text-[11px] font-bold text-red-600">{bannerError}</p>}
             {isEdit && <p className="text-[11px] text-slate-400 mt-1">Leave empty to keep the current image.</p>}
           </div>
 
