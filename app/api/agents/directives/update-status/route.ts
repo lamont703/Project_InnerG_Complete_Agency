@@ -310,6 +310,29 @@ export async function POST(request: Request) {
           { onConflict: "community_member_id" }
         );
       if (linkErr) console.error("owner auto-link failed:", linkErr.message);
+
+      // Close the loop on a Google Business Profile connection. The owner
+      // connected, picked this location, and it didn't exist in the directory
+      // yet — so their connection has been sitting at "pending_review" with a
+      // null entity, which is all it could be until this moment. Now it exists,
+      // so point the connection at it.
+      //
+      // Matched on selected_location, not just the member: a multi-location
+      // owner has a staged directive per location, and only the one they chose
+      // should become the connection's entity.
+      if (activeEvidence?.gbp_location) {
+        const { error: connErr } = await supabase
+          .from("gbp_connections")
+          .update({
+            entity_type: ownerType,
+            entity_id: result.id,
+            status: "linked",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("community_member_id", ownerMemberId)
+          .eq("selected_location", activeEvidence.gbp_location);
+        if (connErr) console.error("gbp connection link failed:", connErr.message);
+      }
     }
   }
 

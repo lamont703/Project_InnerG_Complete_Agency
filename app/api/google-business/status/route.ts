@@ -39,6 +39,9 @@ export async function GET() {
     city: l.city || null,
     outcome: l.outcome?.outcome || null,
     detail: l.outcome?.detail || null,
+    // Which table it was staged into, so the owner's type picker shows the
+    // current answer rather than defaulting to blank every render.
+    entityType: l.outcome?.entityType || null,
     // Skipped locations aren't in the directory and never will be, so they
     // can't be chosen as "my listing".
     selectable: !!l.name && l.outcome?.outcome !== "skipped" && l.outcome?.outcome !== "error",

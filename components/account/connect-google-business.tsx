@@ -11,6 +11,7 @@ interface LocationOutcome {
   outcome: string | null;
   detail: string | null;
   selectable?: boolean;
+  entityType?: string | null;
 }
 
 interface Status {
@@ -41,6 +42,8 @@ export function ConnectGoogleBusiness() {
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
   const [selecting, setSelecting] = useState<string | null>(null);
+  const [retyping, setRetyping] = useState<string | null>(null);
+  const [types, setTypes] = useState<{ key: string; label: string }[]>([]);
 
   const refreshStatus = () =>
     fetch("/api/google-business/status", { credentials: "include" })
@@ -70,6 +73,29 @@ export function ConnectGoogleBusiness() {
     }
   };
 
+  // Options come from the server so the list can't drift from what it accepts.
+  const setBusinessType = async (name: string, entityType: string) => {
+    if (!entityType) return;
+    setRetyping(name);
+    try {
+      const res = await fetch("/api/google-business/business-type", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location: name, entityType }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not update the business type.");
+      if (!data.unchanged) toast.success(`Saved — submitted as a ${data.label}.`);
+      await refreshStatus();
+    } catch (e: any) {
+      toast.error(e.message || "Could not update the business type.");
+      await refreshStatus(); // revert the select to the stored value
+    } finally {
+      setRetyping(null);
+    }
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const p = params.get("gbp");
@@ -86,6 +112,11 @@ export function ConnectGoogleBusiness() {
       toast.error("Google Business Profile connect isn't configured on this site yet. We've been notified.");
     else if (p === "error") toast.error("Couldn't connect Google Business Profile. Please try again.");
     else if (p === "nomember") toast.error("Finish creating your membership first, then connect.");
+
+    fetch("/api/google-business/business-type")
+      .then((r) => r.json())
+      .then((d) => setTypes(d.types || []))
+      .catch(() => setTypes([]));
 
     refreshStatus()
       .catch(() => setStatus({ connected: false }))
@@ -138,6 +169,10 @@ export function ConnectGoogleBusiness() {
                   const isSelected = !!o.name && o.name === status.selectedLocation;
                   const canChoose =
                     status.status === "needs_selection" && o.selectable && !isSelected;
+                  // Only a business still awaiting review can change type —
+                  // once published it lives in a specific table.
+                  const isStaged =
+                    (o.outcome === "staged" || o.outcome === "already_staged") && types.length > 0;
                   return (
                     <li key={o.name || i} className="flex items-start justify-between gap-3 text-xs">
                       <span className="min-w-0 text-slate-500">
@@ -150,16 +185,40 @@ export function ConnectGoogleBusiness() {
                           <span className="ml-1.5 font-bold text-emerald-700">· this is your listing</span>
                         )}
                       </span>
-                      {canChoose && (
-                        <button
-                          type="button"
-                          onClick={() => o.name && chooseLocation(o.name)}
-                          disabled={!!selecting}
-                          className="shrink-0 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-700 transition-colors hover:bg-indigo-100 disabled:opacity-50"
-                        >
-                          {selecting === o.name ? "Selecting…" : "This one"}
-                        </button>
-                      )}
+                      <span className="flex shrink-0 items-center gap-2">
+                        {/* Google's primary category chose the table, and it's
+                            frequently ambiguous — one real listing was filed
+                            under barber shop, salon, barber school, beauty
+                            school and software company at once. The owner is
+                            the authority on which they are, so they set it here
+                            while the business is still awaiting review. */}
+                        {isStaged && o.name && (
+                          <select
+                            value={o.entityType || ""}
+                            onChange={(e) => o.name && setBusinessType(o.name, e.target.value)}
+                            disabled={!!retyping}
+                            aria-label={`Business type for ${o.title || "this location"}`}
+                            className="rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-50"
+                          >
+                            {!o.entityType && <option value="">Business type…</option>}
+                            {types.map((t) => (
+                              <option key={t.key} value={t.key}>
+                                {t.label}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        {canChoose && (
+                          <button
+                            type="button"
+                            onClick={() => o.name && chooseLocation(o.name)}
+                            disabled={!!selecting}
+                            className="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-700 transition-colors hover:bg-indigo-100 disabled:opacity-50"
+                          >
+                            {selecting === o.name ? "Selecting…" : "This one"}
+                          </button>
+                        )}
+                      </span>
                     </li>
                   );
                 })}

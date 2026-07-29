@@ -301,7 +301,7 @@ export async function gbpFetchLocations(accessToken: string): Promise<GbpLocatio
 // Same defaults as the Door 3 route's own copy (app/api/account/add-business),
 // kept local per this codebase's convention of not sharing small maps across
 // layers. Satisfies the publish gate's required `category` field.
-const CATEGORY_BY_TYPE: Record<string, string> = {
+export const CATEGORY_BY_TYPE: Record<string, string> = {
   shop: "barber_shop",
   salon: "beauty_salon",
   barber_school: "barber_school",
@@ -310,8 +310,31 @@ const CATEGORY_BY_TYPE: Record<string, string> = {
   beauty_supply_store: "beauty_supply_store",
 };
 
+/** Identifies GBP-staged directives. Exported so the owner's business-type
+ *  picker can find the directive it needs to retarget. */
+export const GBP_STAGE_MISSION = "Google-verified owner connected a business that isn't in the directory";
+
 const BUSINESS_DISCOVERY_AGENT = "Website Business Discovery Agent";
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/**
+ * Dedupe key for a staged business. Shares Door 3's format so the manual form
+ * and a Google connect can't both stage the same business.
+ *
+ * The table is part of the key, which means retargeting a business to a
+ * different type has to rewrite the key too — otherwise it claims to identify a
+ * row it no longer describes. `placeIdSuffix` distinguishes two same-named
+ * storefronts in one city (a real multi-location case).
+ */
+export function gbpSubjectKey(
+  table: string,
+  name: string,
+  city: string,
+  placeIdSuffix?: string | null
+): string {
+  const base = `new_business::${table}::${norm(name)}::${city.toLowerCase()}`;
+  return placeIdSuffix ? `${base}::${placeIdSuffix}` : base;
+}
 
 export type GbpOutcomeKind = "linked" | "claimed_by_other" | "staged" | "already_staged" | "skipped" | "error";
 
@@ -365,7 +388,7 @@ export async function stageGbpLocation(
 
   // Same subject_key format as Door 3, so an owner who already typed this
   // business into the manual form doesn't get a second directive for it.
-  const baseKey = `new_business::${cfg.table}::${norm(loc.title!)}::${loc.city!.toLowerCase()}`;
+  const baseKey = gbpSubjectKey(cfg.table, loc.title!, loc.city!);
   let subject_key = baseKey;
 
   const { data: existing } = await admin
@@ -387,7 +410,7 @@ export async function stageGbpLocation(
       !!loc.placeId && !!existing.evidence?.place_id && existing.evidence.place_id !== loc.placeId;
     if (!distinctStorefront) return { ...base, outcome: "already_staged", entityType };
 
-    subject_key = `${baseKey}::${loc.placeId}`;
+    subject_key = gbpSubjectKey(cfg.table, loc.title!, loc.city!, loc.placeId);
     const { data: alreadyStaged } = await admin
       .from("agent_directives")
       .select("id")
@@ -429,7 +452,7 @@ export async function stageGbpLocation(
 
   const { error } = await admin.from("agent_directives").insert({
     agent_name: BUSINESS_DISCOVERY_AGENT,
-    mission: "Google-verified owner connected a business that isn't in the directory",
+    mission: GBP_STAGE_MISSION,
     directive_text:
       `Google Business Profile connect: ${loc.title} (${loc.city}) — ${cfg.noun}, ` +
       `Google category "${loc.categoryLabel || "unknown"}". The connecting member is the verified owner of this ` +
