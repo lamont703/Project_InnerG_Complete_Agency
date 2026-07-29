@@ -30,11 +30,52 @@ export async function resolveOwnedEntity() {
   if (!link) return { link: null, table: null } as const;
 
   // Claiming works for every entity type (the green badge comes from the link
-  // row), but the self-edit form here is still shop/salon-specific — other
-  // claimed types get the badge but no edit UI yet, so treat them as
-  // "nothing editable" rather than mis-editing them as a salon.
+  // row), but THIS resolver is deliberately shop/salon-only: the business edit
+  // route derives owner_name, composes formatted_address and geocodes it, none
+  // of which exist on a person record. Returning a barber here would let that
+  // route write storefront columns onto a human being. Professionals get their
+  // own resolver below.
   if (link.entity_type !== "shop" && link.entity_type !== "salon") return { link: null, table: null } as const;
 
   const table = link.entity_type === "shop" ? "agent_barbershop_leads" : "agent_salon_leads";
+  return { link, table } as const;
+}
+
+const PROFESSIONAL_TABLES: Record<string, string> = {
+  barber: "agent_barber_leads",
+  cosmetologist: "agent_cosmetologist_leads",
+};
+
+/**
+ * The barber or cosmetologist profile this user owns, if that's what they
+ * claimed. Same security property as resolveOwnedEntity — the entity is derived
+ * from the session, never from anything the client sends — and kept a separate
+ * function rather than a flag so neither route can accidentally edit the other
+ * shape's columns.
+ */
+export async function resolveOwnedProfessional() {
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated.", status: 401 } as const;
+
+  const admin = createAdminClient();
+
+  const { data: member } = await admin
+    .from("community_members")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!member) return { error: "No community membership found for this account.", status: 404 } as const;
+
+  const { data: link } = await (admin
+    .from("community_member_entity_links") as any)
+    .select("entity_type, entity_id")
+    .eq("community_member_id", (member as any).id)
+    .maybeSingle();
+  if (!link) return { link: null, table: null } as const;
+
+  const table = PROFESSIONAL_TABLES[link.entity_type];
+  if (!table) return { link: null, table: null } as const;
+
   return { link, table } as const;
 }
