@@ -32,6 +32,8 @@ import { SearchVisibilityCard } from "@/components/shared/search-visibility-card
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { isEntityClaimed } from "@/lib/entity-claim";
 import { ReviewsSection } from "@/components/shared/reviews-section";
+import { GoogleReviews } from "@/components/shared/google-reviews";
+import { GooglePosts } from "@/components/shared/google-posts";
 import { WriteReviewButton } from "@/components/shared/write-review-button";
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 
@@ -613,6 +615,12 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
               containerClassName="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-5"
               action={<WriteReviewButton entityType="school" entityId={school.id} entityName={school.school_name} />}
             />
+
+            {/* Live Google content for a school whose owner connected their
+                Business Profile. claimEntityType distinguishes the two school
+                tables, which share this route. */}
+            <GooglePosts entityType={claimEntityType} entityId={school.id} />
+            <GoogleReviews entityType={claimEntityType} entityId={school.id} />
           </div>
 
           {/* Sidebar */}
