@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface LocationOutcome {
+  name: string | null;
   title: string | null;
   city: string | null;
   outcome: string | null;
   detail: string | null;
+  selectable?: boolean;
+  entityType?: string | null;
 }
 
 interface Status {
@@ -21,12 +24,14 @@ interface Status {
   stagedCount?: number;
   skippedCount?: number;
   outcomes?: LocationOutcome[];
+  selectedLocation?: string | null;
 }
 
 const OUTCOME_COPY: Record<string, string> = {
   linked: "already in the directory",
   claimed_by_other: "already claimed by another account — we'll review",
   staged: "submitted for review",
+  published: "published — live in the directory",
   already_staged: "already submitted — awaiting review",
   error: "couldn't be submitted",
 };
@@ -37,6 +42,78 @@ const OUTCOME_COPY: Record<string, string> = {
 export function ConnectGoogleBusiness() {
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selecting, setSelecting] = useState<string | null>(null);
+  const [retyping, setRetyping] = useState<string | null>(null);
+  const [types, setTypes] = useState<{ key: string; label: string }[]>([]);
+  const [syncing, setSyncing] = useState(false);
+
+  const refreshStatus = () =>
+    fetch("/api/google-business/status", { credentials: "include" })
+      .then((r) => r.json())
+      .then(setStatus);
+
+  // A Google account managing several locations can't be auto-claimed — a
+  // member holds exactly one entity link, so they tell us which storefront is
+  // theirs here.
+  const chooseLocation = async (name: string) => {
+    setSelecting(name);
+    try {
+      const res = await fetch("/api/google-business/select", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location: name }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not select that location.");
+      toast.success(data.message || "Listing selected.");
+      await refreshStatus();
+    } catch (e: any) {
+      toast.error(e.message || "Could not select that location.");
+    } finally {
+      setSelecting(null);
+    }
+  };
+
+  // Options come from the server so the list can't drift from what it accepts.
+  const setBusinessType = async (name: string, entityType: string) => {
+    if (!entityType) return;
+    setRetyping(name);
+    try {
+      const res = await fetch("/api/google-business/business-type", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location: name, entityType }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not update the business type.");
+      if (!data.unchanged) toast.success(`Saved — submitted as a ${data.label}.`);
+      await refreshStatus();
+    } catch (e: any) {
+      toast.error(e.message || "Could not update the business type.");
+      await refreshStatus(); // revert the select to the stored value
+    } finally {
+      setRetyping(null);
+    }
+  };
+
+  // Refills whatever is still blank on the claimed listing from Google. Never
+  // overwrites what the owner typed — the server enforces that.
+  const syncFromGoogle = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/google-business/sync", { method: "POST", credentials: "include" });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Sync failed.");
+      toast.success(data.message || "Synced from Google.");
+      if (data.filled?.length) setTimeout(() => window.location.reload(), 800);
+    } catch (e: any) {
+      toast.error(e.message || "Sync failed.");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -55,28 +132,40 @@ export function ConnectGoogleBusiness() {
     else if (p === "error") toast.error("Couldn't connect Google Business Profile. Please try again.");
     else if (p === "nomember") toast.error("Finish creating your membership first, then connect.");
 
-    fetch("/api/google-business/status", { credentials: "include" })
+    fetch("/api/google-business/business-type")
       .then((r) => r.json())
-      .then(setStatus)
+      .then((d) => setTypes(d.types || []))
+      .catch(() => setTypes([]));
+
+    refreshStatus()
       .catch(() => setStatus({ connected: false }))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) return null;
 
   if (status?.connected) {
+    const revoked = status.status === "revoked";
     return (
-      <div className="bg-white border border-emerald-200 rounded-2xl shadow-sm p-5 mb-6 flex items-start gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
-          <CheckCircle2 className="w-5 h-5" />
+      // A revoked connection is still a row in the table, so it renders here —
+      // but showing it in success green saying "connected" would be a lie the
+      // moment Cross-Account Protection fires.
+      <div className={`bg-white border rounded-2xl shadow-sm p-5 mb-6 flex items-start gap-3 ${revoked ? "border-amber-200" : "border-emerald-200"}`}>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl shrink-0 ${revoked ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"}`}>
+          {revoked ? <AlertTriangle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
         </div>
         <div className="min-w-0">
           <p className="text-sm font-black text-slate-900">
-            Google Business Profile connected{status.locationTitle ? ` · ${status.locationTitle}` : ""}
+            {revoked
+              ? "Google Business Profile disconnected"
+              : `Google Business Profile connected${status.locationTitle ? ` · ${status.locationTitle}` : ""}`}
           </p>
           <p className="text-xs text-slate-500 mt-0.5">
             {status.email ? `Connected as ${status.email}. ` : ""}
-            {status.status === "linked"
+            {status.status === "revoked"
+              ? "Access to this Google account was removed, so syncing has stopped. Reconnect below to restore it."
+              : status.status === "linked"
               ? "Verified owner — your listing is claimed and will stay in sync with Google."
               : status.status === "needs_review"
               ? "We found your business, but this listing is already claimed by another account — we'll review it."
@@ -90,24 +179,92 @@ export function ConnectGoogleBusiness() {
           {/* What happened to each connected location. Only worth showing when
               there's more than one, or when something needs explaining — a
               single cleanly-claimed listing is already covered by the line
-              above. */}
+              above. When a choice is still outstanding, the same list becomes
+              the picker rather than duplicating it as a second control. */}
           {!!status.outcomes?.length &&
             (status.outcomes.length > 1 || status.outcomes.some((o) => o.outcome === "skipped")) && (
-              <ul className="mt-2 space-y-1">
-                {status.outcomes.map((o, i) => (
-                  <li key={i} className="text-xs text-slate-500">
-                    <span className="font-bold text-slate-700">{o.title || "Untitled location"}</span>
-                    {o.city ? ` (${o.city})` : ""} —{" "}
-                    {o.outcome === "skipped"
-                      ? `not added: ${o.detail}`
-                      : OUTCOME_COPY[o.outcome || ""] || "connected"}
-                  </li>
-                ))}
+              <ul className="mt-2 space-y-1.5">
+                {status.outcomes.map((o, i) => {
+                  const isSelected = !!o.name && o.name === status.selectedLocation;
+                  const canChoose =
+                    status.status === "needs_selection" && o.selectable && !isSelected;
+                  // Only a business still awaiting review can change type —
+                  // once published it lives in a specific table.
+                  // Only a business still awaiting review can change type. Once
+                  // published, the row lives in a real table and moving it is a
+                  // migration — so the picker disappears rather than offering a
+                  // change the server will reject.
+                  const isStaged =
+                    (o.outcome === "staged" || o.outcome === "already_staged") && types.length > 0;
+                  return (
+                    <li key={o.name || i} className="flex items-start justify-between gap-3 text-xs">
+                      <span className="min-w-0 text-slate-500">
+                        <span className="font-bold text-slate-700">{o.title || "Untitled location"}</span>
+                        {o.city ? ` (${o.city})` : ""} —{" "}
+                        {o.outcome === "skipped"
+                          ? `not added: ${o.detail}`
+                          : OUTCOME_COPY[o.outcome || ""] || "connected"}
+                        {isSelected && (
+                          <span className="ml-1.5 font-bold text-emerald-700">· this is your listing</span>
+                        )}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2">
+                        {/* Google's primary category chose the table, and it's
+                            frequently ambiguous — one real listing was filed
+                            under barber shop, salon, barber school, beauty
+                            school and software company at once. The owner is
+                            the authority on which they are, so they set it here
+                            while the business is still awaiting review. */}
+                        {isStaged && o.name && (
+                          <select
+                            value={o.entityType || ""}
+                            onChange={(e) => o.name && setBusinessType(o.name, e.target.value)}
+                            disabled={!!retyping}
+                            aria-label={`Business type for ${o.title || "this location"}`}
+                            className="rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-50"
+                          >
+                            {!o.entityType && <option value="">Business type…</option>}
+                            {types.map((t) => (
+                              <option key={t.key} value={t.key}>
+                                {t.label}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        {canChoose && (
+                          <button
+                            type="button"
+                            onClick={() => o.name && chooseLocation(o.name)}
+                            disabled={!!selecting}
+                            className="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-700 transition-colors hover:bg-indigo-100 disabled:opacity-50"
+                          >
+                            {selecting === o.name ? "Selecting…" : "This one"}
+                          </button>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
-          <a href="/api/google-business/start" className="text-xs font-bold text-indigo-600 hover:underline mt-1 inline-block">
-            Reconnect
-          </a>
+          <div className="mt-2 flex items-center gap-4">
+            {/* Only meaningful once a published listing is attached to the
+                connection — before that there's nothing to fill. */}
+            {status.status === "linked" && (
+              <button
+                type="button"
+                onClick={syncFromGoogle}
+                disabled={syncing}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+                {syncing ? "Syncing…" : "Sync from Google"}
+              </button>
+            )}
+            <a href="/api/google-business/start" className="text-xs font-bold text-indigo-600 hover:underline">
+              Reconnect
+            </a>
+          </div>
         </div>
       </div>
     );

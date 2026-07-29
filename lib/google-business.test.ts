@@ -17,8 +17,14 @@ const loc = (over: Partial<GbpLocation>): GbpLocation => ({
   placeId: "ChIJtest",
   mapsUri: null,
   city: "Houston",
+  street: "1 Main St",
+  state: "TX",
+  postalCode: "77001",
   lat: null,
   lng: null,
+  description: null,
+  hours: null,
+  services: [],
   categoryIds: ["barber_shop"],
   categoryLabel: "Barber shop",
   ...over,
@@ -207,6 +213,53 @@ describe("stageGbpLocation", () => {
     const row = admin.inserted[0];
     expect(row.evidence.possible_duplicates.length).toBeGreaterThan(0);
     expect(row.directive_text).toMatch(/Possible existing match/);
+  });
+
+  it("no longer flags a same-name business in a different city", async () => {
+    // The real false positive: an Atlanta barbershop was flagged as a duplicate
+    // of a DALLAS school that shared only its name (and whose city field said
+    // "Atl"). Acting on that hint would have linked the wrong entity.
+    const INNER_G = loc({
+      title: "Inner G Complete Agency",
+      address: "1000 Northside Drive NW, Atlanta, GA, 30318",
+      city: "Atlanta",
+      phone: "(844) 699-1191",
+      categoryIds: ["barber_shop"],
+    });
+    const admin = fakeAdmin({
+      duplicates: [
+        {
+          slug: "inner-g-complete-agency-atl-db7a5fc1",
+          city: "Atl",
+          phone: "(945) 256-9199",
+          name: "Inner G Complete Agency",
+          shop_name: "Inner G Complete Agency",
+          school_name: "Inner G Complete Agency",
+        },
+      ],
+    });
+    const res = await stageGbpLocation(admin, "member-1", INNER_G);
+    expect(res.outcome).toBe("staged");
+    expect(admin.inserted[0].evidence.possible_duplicates).toBeUndefined();
+    expect(admin.inserted[0].directive_text).not.toMatch(/Possible existing match/);
+  });
+
+  it("still flags a match on the phone number even when the name differs", async () => {
+    const admin = fakeAdmin({
+      duplicates: [
+        {
+          slug: "unique-image-columbus-abc",
+          city: "Somewhere Else",
+          phone: "(614) 368-6069", // same number as UNIQUE_IMAGE
+          name: "Unique Image BBS",
+          shop_name: "Unique Image BBS",
+          school_name: "Unique Image BBS",
+        },
+      ],
+    });
+    const res = await stageGbpLocation(admin, "member-1", UNIQUE_IMAGE);
+    expect(res.outcome).toBe("staged");
+    expect(admin.inserted[0].evidence.possible_duplicates[0].reason).toBe("same phone number");
   });
 
   it("skips rather than stages what it can't publish", async () => {

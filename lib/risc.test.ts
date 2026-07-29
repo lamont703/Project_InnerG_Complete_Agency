@@ -128,6 +128,14 @@ describe("subjectOf", () => {
     expect(subjectOf({})).toEqual({});
     expect(subjectOf({ subject: {} })).toEqual({});
   });
+
+  it("flags token-scoped subjects instead of reporting a missing subject", () => {
+    // The real shape Google delivered alongside a "Remove access" click: the
+    // singular token-revoked event names a token, not a person.
+    expect(
+      subjectOf({ subject: { subject_type: "oauth_token", token_identifier: "abc", token_type: "refresh_token" } })
+    ).toEqual({ tokenScoped: true });
+  });
 });
 
 describe("event coverage", () => {

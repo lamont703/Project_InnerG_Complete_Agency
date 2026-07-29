@@ -75,6 +75,7 @@ export default function AgentDirectivesPage() {
   const [filter, setFilter] = useState<"pending" | "all">("pending");
   const [agentFilter, setAgentFilter] = useState<string>("all");
   const [denyingId, setDenyingId] = useState<string | null>(null);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
   const [denyReason, setDenyReason] = useState("");
 
   const load = () => {
@@ -142,6 +143,31 @@ export default function AgentDirectivesPage() {
     }
 
     load();
+  };
+
+  // "This staged business is already in the directory" — claims the existing
+  // entity for the owner and backfills the GBP place_id onto it, instead of
+  // publishing a duplicate. Offered only where a possible match was detected,
+  // and that detection now requires more than a shared name.
+  const linkToExisting = async (id: string, entityType: string, slug: string, name: string) => {
+    if (!window.confirm(`Link this submission to the existing "${name}" instead of publishing a new listing?`)) return;
+    setLinkingId(id);
+    try {
+      const res = await fetch("/api/admin/gbp-link-existing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directiveId: id, entityType, slug }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.success) throw new Error(body.error || "Could not link to the existing listing.");
+      const notes = (body.notes || []).join(" ");
+      window.alert(`Linked to ${body.entity?.name}.${body.claimed ? " Owner claim applied." : ""}${notes ? `\n\n${notes}` : ""}`);
+      load();
+    } catch (err: any) {
+      window.alert(err.message || "Could not link to the existing listing.");
+    } finally {
+      setLinkingId(null);
+    }
   };
 
   const startDeny = (id: string) => {
@@ -330,6 +356,46 @@ export default function AgentDirectivesPage() {
                 </div>
 
                 <p className="text-sm text-slate-800 leading-relaxed mb-3">{d.directive_text}</p>
+
+                {/* Probable existing match found when this business was
+                    staged from a Google connect. Publishing over one of these
+                    creates a duplicate; linking claims the existing entity and
+                    backfills the Google place_id so it stops re-staging. */}
+                {d.status === "pending" && !!activeEvidence?.possible_duplicates?.length && (
+                  <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                    <p className="text-xs font-black text-amber-900">
+                      Possibly already in the directory — check before publishing
+                    </p>
+                    <ul className="mt-2 space-y-1.5">
+                      {activeEvidence.possible_duplicates.map((m: any) => (
+                        <li key={`${m.entityType}-${m.slug}`} className="flex items-center justify-between gap-3">
+                          <span className="min-w-0 text-xs text-amber-900">
+                            <span className="font-bold">{m.name}</span>
+                            {m.city ? ` (${m.city})` : ""} · {m.entityType}
+                            {m.reason ? ` · ${m.reason}` : ""}
+                          </span>
+                          <span className="flex shrink-0 items-center gap-2">
+                            <a
+                              href={`/${m.entityType === "shop" ? "shop" : m.entityType === "salon" ? "salons" : m.entityType.includes("school") ? "schools" : "stores"}/${m.slug}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] font-bold text-amber-800 underline"
+                            >
+                              View
+                            </a>
+                            <button
+                              onClick={() => linkToExisting(d.id, m.entityType, m.slug, m.name)}
+                              disabled={linkingId === d.id}
+                              className="rounded-lg bg-amber-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-amber-700 disabled:opacity-50"
+                            >
+                              {linkingId === d.id ? "Linking…" : "This is the same business"}
+                            </button>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {d.evidence && Object.keys(d.evidence).length > 0 && (
                   <details className="mb-3">

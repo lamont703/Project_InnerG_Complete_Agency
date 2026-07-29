@@ -71,6 +71,30 @@ export async function gbpExchangeCode(origin: string, code: string, codeVerifier
 }
 
 /**
+ * A fresh access token from a stored refresh token, for work that happens
+ * outside the consent flow (the on-demand listing sync, and any background
+ * enrichment later). Throws with Google's own message so callers can tell a
+ * revoked grant apart from a transient failure.
+ */
+export async function gbpAccessToken(refreshToken: string): Promise<string> {
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: process.env.GOOGLE_CLIENT_ID || "",
+      client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.access_token) {
+    throw new Error(`token refresh ${res.status}: ${body.error_description || body.error || "no access_token"}`);
+  }
+  return body.access_token as string;
+}
+
+/**
  * Identity of the connected Google account, decoded from the id_token (we
  * requested openid+email).
  *
@@ -109,8 +133,19 @@ export interface GbpLocation {
   // needs the address broken apart — a single formatted string can't fill the
   // separate city column the publish gate requires.
   city: string | null;
+  // Google hands the address back already broken apart. We used to keep only
+  // the joined string, which meant an owner had to retype street/city/state/zip
+  // into the listing form — data we'd been given and thrown away.
+  street: string | null;
+  state: string | null;
+  postalCode: string | null;
   lat: number | null;
   lng: number | null;
+  // Enrichment pulled in the same call: the owner-written description, weekly
+  // opening hours, and the services they list on Google.
+  description: string | null;
+  hours: any | null;
+  services: string[];
   // Google's category ids (gcid), primary first. Decides which of our tables
   // the business belongs in, and filters out locations that aren't a beauty or
   // grooming business at all — an owner's Google account routinely manages
@@ -139,6 +174,33 @@ const GBP_CATEGORY_TO_ENTITY_TYPE: Record<string, string> = {
   barber_supply_store: "barber_supply_store",
   beauty_supply_store: "beauty_supply_store",
 };
+
+/**
+ * Google's service items → readable tags for the listing's Amenities & Tags.
+ *
+ * Structured items carry an id like "job_type_id:beard_trimming" and no display
+ * text, so the label is derived from the id; free-form items carry their own
+ * label. Real values seen on a live listing: beard_conditioner, beard_trimming,
+ * custom_cut.
+ */
+function serviceLabels(serviceItems: any[] | undefined): string[] {
+  const out: string[] = [];
+  for (const item of serviceItems || []) {
+    const free = item?.freeFormServiceItem?.label?.displayName;
+    if (free) {
+      out.push(String(free).trim());
+      continue;
+    }
+    const id = item?.structuredServiceItem?.serviceTypeId;
+    if (!id) continue;
+    const slug = String(id).split(":").pop() || "";
+    if (!slug) continue;
+    const label = slug.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+    out.push(label);
+  }
+  // Deduped and capped — this feeds a comma-separated tags field, not a catalog.
+  return [...new Set(out)].slice(0, 12);
+}
 
 // "categories/gcid:barber_shop" → "barber_shop"
 function gcidsOf(categories: any): string[] {
@@ -185,6 +247,39 @@ export interface EntityMatch {
   name: string;
 }
 
+/**
+ * Link a member to the entity a GBP location resolved to — the "connect =
+ * claim" step. Shared by the OAuth callback (single-location auto-claim) and
+ * the location picker (multi-location owners choosing which one is theirs), so
+ * the don't-hijack-an-existing-claim rule can't drift between the two.
+ *
+ * Returns "claimed_by_other" without writing anything when the entity already
+ * belongs to a different member: owning the Google listing is strong evidence,
+ * but not enough to silently take a claim off someone else's account.
+ */
+export async function claimEntityForMember(
+  admin: any,
+  memberId: string,
+  match: EntityMatch
+): Promise<"linked" | "claimed_by_other"> {
+  const { data: existing } = await admin
+    .from("community_member_entity_links")
+    .select("community_member_id")
+    .eq("entity_type", match.entityType)
+    .eq("entity_id", match.entityId)
+    .maybeSingle();
+
+  if (existing && existing.community_member_id !== memberId) return "claimed_by_other";
+
+  await admin
+    .from("community_member_entity_links")
+    .upsert(
+      { community_member_id: memberId, entity_type: match.entityType, entity_id: match.entityId },
+      { onConflict: "community_member_id" }
+    );
+  return "linked";
+}
+
 // Find the directory entity whose place_id matches this GBP location's place_id.
 export async function matchLocationToEntity(admin: any, placeId: string | null | undefined): Promise<EntityMatch | null> {
   if (!placeId) return null;
@@ -208,7 +303,11 @@ export async function matchLocationToEntity(admin: any, placeId: string | null |
 // the live API — both are valid readMask fields, and latlng comes back only on
 // some locations, so it stays optional.
 const GBP_LOCATION_READ_MASK =
-  "name,title,storefrontAddress,phoneNumbers,websiteUri,metadata,categories,latlng";
+  "name,title,storefrontAddress,phoneNumbers,websiteUri,metadata,categories,latlng," +
+  "profile,regularHours,serviceItems";
+// `attributes` looks like it belongs in that list but is rejected — the API
+// answers 400 "Invalid field mask provided" for it (verified against the live
+// endpoint). Amenities therefore come from serviceItems instead.
 
 // Fetch every location the granting account manages, flattened across accounts.
 // Uses the REST endpoints directly (googleapis lacks stable typed clients for
@@ -243,14 +342,95 @@ export async function gbpFetchLocations(accessToken: string): Promise<GbpLocatio
         placeId: loc.metadata?.placeId || null,
         mapsUri: loc.metadata?.mapsUri || null,
         city: a?.locality || null,
+        street: (a?.addressLines || []).join(" ") || null,
+        state: a?.administrativeArea || null,
+        postalCode: a?.postalCode || null,
         lat: loc.latlng?.latitude ?? null,
         lng: loc.latlng?.longitude ?? null,
+        description: loc.profile?.description || null,
+        hours: loc.regularHours || null,
+        services: serviceLabels(loc.serviceItems),
         categoryIds: gcidsOf(loc.categories),
         categoryLabel: loc.categories?.primaryCategory?.displayName || null,
       });
     }
   }
   return out;
+}
+
+// ── Photos & reviews (legacy v4 API) ────────────────────────────────────────
+// Photos and reviews are NOT in the Business Information API — they only exist
+// on the older mybusiness.googleapis.com v4 surface, which is a separately
+// enabled API. As of writing it answers 403 "Google My Business API has not
+// been used in project 1022222320701 before or it is disabled" (verified live),
+// so both helpers below return a `disabled` signal rather than throwing: a
+// listing sync should still fill everything else it can, and tell the owner
+// precisely which part is unavailable instead of failing wholesale.
+//
+// TO ENABLE: turn on the "Google My Business API" in the Cloud console for the
+// project that owns the OAuth client. Nothing here changes when you do.
+
+const V4_BASE = "https://mybusiness.googleapis.com/v4";
+
+export interface GbpMediaResult {
+  photos: string[];
+  disabled: boolean;
+  error?: string;
+}
+
+/** Public photo URLs for a location, newest first. */
+export async function gbpFetchPhotos(
+  accessToken: string,
+  locationName: string,
+  accountName: string,
+  limit = 10
+): Promise<GbpMediaResult> {
+  try {
+    const res = await fetch(`${V4_BASE}/${accountName}/${locationName}/media?pageSize=${limit}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.status === 403) return { photos: [], disabled: true, error: "Google My Business API is not enabled for this project." };
+    if (!res.ok) return { photos: [], disabled: false, error: `media ${res.status}` };
+    const body = await res.json();
+    const photos = (body.mediaItems || [])
+      .filter((m: any) => m?.mediaFormat === "PHOTO")
+      .map((m: any) => m.googleUrl || m.sourceUrl || m.thumbnailUrl)
+      .filter(Boolean)
+      .slice(0, limit);
+    return { photos, disabled: false };
+  } catch (e: any) {
+    return { photos: [], disabled: false, error: e?.message };
+  }
+}
+
+export interface GbpReviewsResult {
+  rating: number | null;
+  count: number | null;
+  disabled: boolean;
+  error?: string;
+}
+
+/** Aggregate rating and review count for a location. */
+export async function gbpFetchReviews(
+  accessToken: string,
+  locationName: string,
+  accountName: string
+): Promise<GbpReviewsResult> {
+  try {
+    const res = await fetch(`${V4_BASE}/${accountName}/${locationName}/reviews?pageSize=1`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.status === 403) return { rating: null, count: null, disabled: true, error: "Google My Business API is not enabled for this project." };
+    if (!res.ok) return { rating: null, count: null, disabled: false, error: `reviews ${res.status}` };
+    const body = await res.json();
+    return {
+      rating: typeof body.averageRating === "number" ? body.averageRating : null,
+      count: typeof body.totalReviewCount === "number" ? body.totalReviewCount : null,
+      disabled: false,
+    };
+  } catch (e: any) {
+    return { rating: null, count: null, disabled: false, error: e?.message };
+  }
 }
 
 // ── Door 2: create-on-connect ────────────────────────────────────────────────
@@ -268,7 +448,7 @@ export async function gbpFetchLocations(accessToken: string): Promise<GbpLocatio
 // Same defaults as the Door 3 route's own copy (app/api/account/add-business),
 // kept local per this codebase's convention of not sharing small maps across
 // layers. Satisfies the publish gate's required `category` field.
-const CATEGORY_BY_TYPE: Record<string, string> = {
+export const CATEGORY_BY_TYPE: Record<string, string> = {
   shop: "barber_shop",
   salon: "beauty_salon",
   barber_school: "barber_school",
@@ -277,8 +457,50 @@ const CATEGORY_BY_TYPE: Record<string, string> = {
   beauty_supply_store: "beauty_supply_store",
 };
 
+/**
+ * Display names for the business types an owner can pick.
+ *
+ * CLAIM_ENTITY_TYPES.noun can't be used here: it collapses barber_school and
+ * cosmetology_school to "school", and both supply-store types to "store", so a
+ * picker built from it offered "school, school, store, store" and the owner
+ * couldn't tell them apart. `noun` reads better mid-sentence ("add your
+ * school"), so it stays as it is — these are the labels for anywhere the types
+ * are shown side by side and have to be distinguishable.
+ */
+export const GBP_TYPE_LABELS: Record<string, string> = {
+  shop: "Barbershop",
+  salon: "Salon",
+  barber_school: "Barber school",
+  cosmetology_school: "Cosmetology school",
+  barber_supply_store: "Barber supply store",
+  beauty_supply_store: "Beauty supply store",
+};
+
+/** Identifies GBP-staged directives. Exported so the owner's business-type
+ *  picker can find the directive it needs to retarget. */
+export const GBP_STAGE_MISSION = "Google-verified owner connected a business that isn't in the directory";
+
 const BUSINESS_DISCOVERY_AGENT = "Website Business Discovery Agent";
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/**
+ * Dedupe key for a staged business. Shares Door 3's format so the manual form
+ * and a Google connect can't both stage the same business.
+ *
+ * The table is part of the key, which means retargeting a business to a
+ * different type has to rewrite the key too — otherwise it claims to identify a
+ * row it no longer describes. `placeIdSuffix` distinguishes two same-named
+ * storefronts in one city (a real multi-location case).
+ */
+export function gbpSubjectKey(
+  table: string,
+  name: string,
+  city: string,
+  placeIdSuffix?: string | null
+): string {
+  const base = `new_business::${table}::${norm(name)}::${city.toLowerCase()}`;
+  return placeIdSuffix ? `${base}::${placeIdSuffix}` : base;
+}
 
 export type GbpOutcomeKind = "linked" | "claimed_by_other" | "staged" | "already_staged" | "skipped" | "error";
 
@@ -290,24 +512,62 @@ export interface GbpLocationOutcome {
   entityType?: string;
 }
 
+// Same normalization the publish handler's duplicate check uses.
+function normalizePhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let digits = String(raw).replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
+  return digits.length === 10 ? digits : null;
+}
+
 /**
- * Businesses already in the directory that look like this location, by name.
- * Only a HINT recorded on the directive — never used to auto-link, because a
- * name (or a phone: two real test locations of the same business shared one
- * number) can't distinguish a second branch from a duplicate. The reviewer
- * decides, and the publish handler's own phone-duplicate warning is the
- * backstop if this misses.
+ * Businesses already in the directory that are probably the same as this
+ * location. Only a HINT recorded on the directive — never used to auto-link,
+ * because neither name nor phone alone can tell a second branch from a
+ * duplicate (two real test locations of the same business shared one phone
+ * number).
+ *
+ * Name alone is far too loose: it flagged an Atlanta barbershop as a duplicate
+ * of a *Dallas* school that merely shared the name. A hint that cries wolf is
+ * worse than none, because the admin action built on it would then link the
+ * wrong entity. So a candidate has to agree on more than its name:
+ *   • same phone number — strong on its own, businesses rarely share one, and
+ *   • otherwise same name AND same city, compared exactly (the Dallas row's
+ *     city was "Atl" against the location's "Atlanta"; treating that as a match
+ *     is what produced the false positive).
  */
-async function findPossibleDuplicates(admin: any, name: string): Promise<any[]> {
+async function findPossibleDuplicates(
+  admin: any,
+  name: string,
+  city: string | null,
+  phone: string | null
+): Promise<any[]> {
   const hits: any[] = [];
+  const wantPhone = normalizePhone(phone);
+  const wantName = norm(name);
+  const wantCity = city ? norm(city) : null;
+
   for (const cfg of MATCHABLE_ENTITY_TYPES) {
     try {
       const { data } = await admin
         .from(cfg.table)
-        .select(`slug, city, ${cfg.nameCol}`)
+        .select(`slug, city, phone, ${cfg.nameCol}`)
         .ilike(cfg.nameCol, `%${name}%`)
-        .limit(2);
-      for (const d of data || []) hits.push({ entityType: cfg.key, slug: d.slug, city: d.city, name: d[cfg.nameCol] });
+        .limit(5);
+      for (const d of data || []) {
+        const samePhone = !!wantPhone && normalizePhone(d.phone) === wantPhone;
+        const sameName = norm(d[cfg.nameCol] || "") === wantName;
+        const sameCity = !!wantCity && norm(d.city || "") === wantCity;
+        if (!samePhone && !(sameName && sameCity)) continue;
+        hits.push({
+          entityType: cfg.key,
+          slug: d.slug,
+          city: d.city,
+          name: d[cfg.nameCol],
+          // Recorded so the reviewer sees WHY it was flagged before acting on it.
+          reason: samePhone ? "same phone number" : "same name and city",
+        });
+      }
     } catch {
       /* table shape differs — skip */
     }
@@ -332,7 +592,7 @@ export async function stageGbpLocation(
 
   // Same subject_key format as Door 3, so an owner who already typed this
   // business into the manual form doesn't get a second directive for it.
-  const baseKey = `new_business::${cfg.table}::${norm(loc.title!)}::${loc.city!.toLowerCase()}`;
+  const baseKey = gbpSubjectKey(cfg.table, loc.title!, loc.city!);
   let subject_key = baseKey;
 
   const { data: existing } = await admin
@@ -354,7 +614,7 @@ export async function stageGbpLocation(
       !!loc.placeId && !!existing.evidence?.place_id && existing.evidence.place_id !== loc.placeId;
     if (!distinctStorefront) return { ...base, outcome: "already_staged", entityType };
 
-    subject_key = `${baseKey}::${loc.placeId}`;
+    subject_key = gbpSubjectKey(cfg.table, loc.title!, loc.city!, loc.placeId);
     const { data: alreadyStaged } = await admin
       .from("agent_directives")
       .select("id")
@@ -363,7 +623,7 @@ export async function stageGbpLocation(
     if (alreadyStaged) return { ...base, outcome: "already_staged", entityType };
   }
 
-  const possibleDuplicates = await findPossibleDuplicates(admin, loc.title!);
+  const possibleDuplicates = await findPossibleDuplicates(admin, loc.title!, loc.city, loc.phone);
 
   const evidence = {
     type: "new_business_candidate",
@@ -378,6 +638,15 @@ export async function stageGbpLocation(
     latitude: loc.lat,
     longitude: loc.lng,
     images: [],
+    // Everything below is what spares the owner retyping. The publish handler
+    // writes each one only into tables that actually have the column.
+    street_address: loc.street,
+    address_city: loc.city,
+    address_state: loc.state,
+    address_zip: loc.postalCode,
+    description: loc.description,
+    hours: loc.hours,
+    services: loc.services,
     // Exempts the 5-photo publish gate (a verified owner won't have 5 on hand)
     // and triggers the auto-link on approval.
     owner_source: true,
@@ -391,14 +660,14 @@ export async function stageGbpLocation(
   };
 
   const dupNote = possibleDuplicates.length
-    ? ` Possible existing match: ${possibleDuplicates.map((d) => `${d.name} (${d.city})`).join("; ")} — check before publishing.`
+    ? ` Possible existing match: ${possibleDuplicates.map((d) => `${d.name} (${d.city}, ${d.reason})`).join("; ")} — check before publishing.`
     : "";
 
   const { error } = await admin.from("agent_directives").insert({
     agent_name: BUSINESS_DISCOVERY_AGENT,
-    mission: "Google-verified owner connected a business that isn't in the directory",
+    mission: GBP_STAGE_MISSION,
     directive_text:
-      `Google Business Profile connect: ${loc.title} (${loc.city}) — ${cfg.noun}, ` +
+      `Google Business Profile connect: ${loc.title} (${loc.city}) — ${GBP_TYPE_LABELS[entityType] || cfg.noun}, ` +
       `Google category "${loc.categoryLabel || "unknown"}". The connecting member is the verified owner of this ` +
       `Google listing; data below is Google's. Review and publish; the member auto-links on approval.${dupNote}`,
     subject_key,

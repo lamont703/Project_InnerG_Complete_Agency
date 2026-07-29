@@ -124,10 +124,21 @@ export async function verifySecurityEventToken(
   return payload;
 }
 
-/** Google identifies the account by iss+sub, occasionally by email. */
-export function subjectOf(event: any): { sub?: string; email?: string } {
+/**
+ * Google identifies the account by iss+sub, occasionally by email.
+ *
+ * Some events name a TOKEN rather than a person — the singular
+ * `token-revoked` arrives with subject_type "oauth_token" and an opaque token
+ * identifier, which we can't map back to a connection and don't need to: it
+ * always accompanies the plural `tokens-revoked`, which carries the real
+ * account subject and does the revoking. Observed live: a single "Remove
+ * access" click delivered both. `tokenScoped` lets the caller log that
+ * accurately instead of reporting a missing subject as if something failed.
+ */
+export function subjectOf(event: any): { sub?: string; email?: string; tokenScoped?: boolean } {
   const subject = event?.subject || {};
   if (subject.sub) return { sub: subject.sub };
   if (subject.email) return { email: subject.email };
+  if (subject.subject_type === "oauth_token" || subject.token_identifier) return { tokenScoped: true };
   return {};
 }

@@ -65,14 +65,27 @@ const TABLE_CONFIG: Record<
     routePrefix: string;
     defaultPlaceTypes: string | null;
     mirrorPlaceIdTo?: string;
+    // Which enrichment columns this table actually has. Verified against the
+    // live schemas — they diverge a lot: only shop/salon carry the broken-out
+    // address parts, ai_culture_summary and custom_amenities; schools use
+    // google_photos where the others use google_images; google_hours was only
+    // on the school tables until migration 20260729140000 added it to the rest.
+    // Writing a column a table doesn't have fails the whole insert, so each one
+    // is opt-in here rather than assumed.
+    hasAddressParts?: boolean;
+    summaryField?: string;
+    amenitiesField?: string;
+    hoursField?: string;
   }
 > = {
   agent_barbershop_leads: {
+    hasAddressParts: true, summaryField: "ai_culture_summary", amenitiesField: "custom_amenities", hoursField: "google_hours",
     nameField: "shop_name", reviewCountField: "total_reviews", businessStatusField: "business_status",
     imagesField: "google_images", hasPlaceTypes: true, requiresPlaceId: false, supportsNearbyAreas: true,
     routePrefix: "shop", defaultPlaceTypes: "barber_shop | point_of_interest | establishment",
   },
   agent_salon_leads: {
+    hasAddressParts: true, summaryField: "ai_culture_summary", amenitiesField: "custom_amenities", hoursField: "google_hours",
     nameField: "shop_name", reviewCountField: "total_reviews", businessStatusField: "business_status",
     imagesField: "google_images", hasPlaceTypes: true, requiresPlaceId: false, supportsNearbyAreas: true,
     routePrefix: "salons", defaultPlaceTypes: "beauty_salon | point_of_interest | establishment",
@@ -91,21 +104,25 @@ const TABLE_CONFIG: Record<
   // ever re-enabled) — requiresPlaceId now only controls whether publish
   // hard-rejects a candidate for missing one, not whether it's used at all.
   agent_barber_school_leads: {
+    hoursField: "google_hours",
     nameField: "school_name", reviewCountField: "google_review_count", businessStatusField: "google_business_status",
     imagesField: "google_photos", hasPlaceTypes: false, requiresPlaceId: false, supportsNearbyAreas: false,
     routePrefix: "schools", defaultPlaceTypes: null, mirrorPlaceIdTo: "contact_id",
   },
   agent_cosmetology_school_leads: {
+    hoursField: "google_hours",
     nameField: "school_name", reviewCountField: "google_review_count", businessStatusField: "google_business_status",
     imagesField: "google_photos", hasPlaceTypes: false, requiresPlaceId: false, supportsNearbyAreas: false,
     routePrefix: "schools", defaultPlaceTypes: null,
   },
   agent_barber_supply_store_leads: {
+    hoursField: "google_hours",
     nameField: "name", reviewCountField: "total_reviews", businessStatusField: "business_status",
     imagesField: "google_images", hasPlaceTypes: true, requiresPlaceId: false, supportsNearbyAreas: false,
     routePrefix: "stores", defaultPlaceTypes: "store | point_of_interest | establishment",
   },
   agent_beauty_supply_store_leads: {
+    hoursField: "google_hours",
     nameField: "name", reviewCountField: "total_reviews", businessStatusField: "business_status",
     imagesField: "google_images", hasPlaceTypes: true, requiresPlaceId: false, supportsNearbyAreas: false,
     routePrefix: "stores", defaultPlaceTypes: "store | point_of_interest | establishment",
@@ -155,7 +172,7 @@ async function publishDiscoveredBusiness(
   evidence: any,
   force = false
 ): Promise<{ id: string; slug: string } | { error: string } | { duplicateWarning: { table: string; name: string; id: string } }> {
-  const { table, name, city, formatted_address, phone, rating, reviewCount, latitude, longitude, images, place_types, place_id, category } = evidence;
+  const { table, name, city, formatted_address, phone, rating, reviewCount, latitude, longitude, images, place_types, place_id, category, website, street_address, address_city, address_state, address_zip, description, hours, services } = evidence;
   const missingFields = REQUIRED_NON_EMPTY_FIELDS.filter((f) => !evidence?.[f]);
   if (missingFields.length > 0) {
     return { error: `Missing required field(s): ${missingFields.join(", ")}. This candidate isn't complete enough to publish.` };
@@ -215,6 +232,22 @@ async function publishDiscoveredBusiness(
   // the standard payload (no mirrorPlaceIdTo). Fall back to the row's own id so
   // an insert without a place_id (e.g. an owner self-submission) still satisfies
   // the constraint; the id is a fresh uuid so it's always unique.
+  // Enrichment carried from a Google Business Profile connect. Every one of
+  // these is a field the owner would otherwise retype into the listing form, so
+  // anything Google gave us gets written — but only where the column exists.
+  if (website) basePayload.website = website;
+  if (config.hasAddressParts) {
+    if (street_address) basePayload.street_address = street_address;
+    if (address_city) basePayload.address_city = address_city;
+    if (address_state) basePayload.address_state = address_state;
+    if (address_zip) basePayload.address_zip = address_zip;
+  }
+  if (config.summaryField && description) basePayload[config.summaryField] = description;
+  if (config.amenitiesField && Array.isArray(services) && services.length) {
+    basePayload[config.amenitiesField] = services;
+  }
+  if (config.hoursField && hours) basePayload[config.hoursField] = hours;
+
   if (isShop && !basePayload.contact_id) basePayload.contact_id = place_id || id;
   const insertPayload = isShop ? { ...basePayload, hiring_need: false, booth_count_available: 0 } : basePayload;
 
@@ -310,6 +343,50 @@ export async function POST(request: Request) {
           { onConflict: "community_member_id" }
         );
       if (linkErr) console.error("owner auto-link failed:", linkErr.message);
+
+      // Close the loop on a Google Business Profile connection. The owner
+      // connected, picked this location, and it didn't exist in the directory
+      // yet — so their connection has been sitting at "pending_review" with a
+      // null entity, which is all it could be until this moment. Now it exists,
+      // so point the connection at it.
+      //
+      // Matched on selected_location, not just the member: a multi-location
+      // owner has a staged directive per location, and only the one they chose
+      // should become the connection's entity.
+      if (activeEvidence?.gbp_location) {
+        // Mark this location published in the stored per-location outcomes too.
+        // Without it the owner's connect card keeps reporting "submitted for
+        // review" for a business that's already live, and keeps offering a
+        // business-type dropdown that now rejects every change — the type is
+        // settled once the row exists in a real table.
+        const { data: conn } = await (supabase.from("gbp_connections") as any)
+          .select("locations, selected_location")
+          .eq("community_member_id", ownerMemberId)
+          .maybeSingle();
+        const locations = Array.isArray(conn?.locations) ? conn.locations : [];
+        const publishedLocations = locations.map((l: any) =>
+          l?.name === activeEvidence.gbp_location
+            ? { ...l, outcome: { ...(l.outcome || {}), outcome: "published", entityType: ownerType, slug: result.slug } }
+            : l
+        );
+
+        const patch: Record<string, any> = {
+          locations: publishedLocations,
+          updated_at: new Date().toISOString(),
+        };
+        // Only the storefront the owner chose becomes the connection's entity;
+        // their other locations can publish without moving the claim.
+        if (conn && (conn as any).selected_location === activeEvidence.gbp_location) {
+          patch.entity_type = ownerType;
+          patch.entity_id = result.id;
+          patch.status = "linked";
+        }
+
+        const { error: connErr } = await (supabase.from("gbp_connections") as any)
+          .update(patch)
+          .eq("community_member_id", ownerMemberId);
+        if (connErr) console.error("gbp connection link failed:", connErr.message);
+      }
     }
   }
 
