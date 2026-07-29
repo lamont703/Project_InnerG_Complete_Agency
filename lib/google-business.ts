@@ -71,6 +71,30 @@ export async function gbpExchangeCode(origin: string, code: string, codeVerifier
 }
 
 /**
+ * A fresh access token from a stored refresh token, for work that happens
+ * outside the consent flow (the on-demand listing sync, and any background
+ * enrichment later). Throws with Google's own message so callers can tell a
+ * revoked grant apart from a transient failure.
+ */
+export async function gbpAccessToken(refreshToken: string): Promise<string> {
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: process.env.GOOGLE_CLIENT_ID || "",
+      client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.access_token) {
+    throw new Error(`token refresh ${res.status}: ${body.error_description || body.error || "no access_token"}`);
+  }
+  return body.access_token as string;
+}
+
+/**
  * Identity of the connected Google account, decoded from the id_token (we
  * requested openid+email).
  *
@@ -109,8 +133,19 @@ export interface GbpLocation {
   // needs the address broken apart — a single formatted string can't fill the
   // separate city column the publish gate requires.
   city: string | null;
+  // Google hands the address back already broken apart. We used to keep only
+  // the joined string, which meant an owner had to retype street/city/state/zip
+  // into the listing form — data we'd been given and thrown away.
+  street: string | null;
+  state: string | null;
+  postalCode: string | null;
   lat: number | null;
   lng: number | null;
+  // Enrichment pulled in the same call: the owner-written description, weekly
+  // opening hours, and the services they list on Google.
+  description: string | null;
+  hours: any | null;
+  services: string[];
   // Google's category ids (gcid), primary first. Decides which of our tables
   // the business belongs in, and filters out locations that aren't a beauty or
   // grooming business at all — an owner's Google account routinely manages
@@ -139,6 +174,33 @@ const GBP_CATEGORY_TO_ENTITY_TYPE: Record<string, string> = {
   barber_supply_store: "barber_supply_store",
   beauty_supply_store: "beauty_supply_store",
 };
+
+/**
+ * Google's service items → readable tags for the listing's Amenities & Tags.
+ *
+ * Structured items carry an id like "job_type_id:beard_trimming" and no display
+ * text, so the label is derived from the id; free-form items carry their own
+ * label. Real values seen on a live listing: beard_conditioner, beard_trimming,
+ * custom_cut.
+ */
+function serviceLabels(serviceItems: any[] | undefined): string[] {
+  const out: string[] = [];
+  for (const item of serviceItems || []) {
+    const free = item?.freeFormServiceItem?.label?.displayName;
+    if (free) {
+      out.push(String(free).trim());
+      continue;
+    }
+    const id = item?.structuredServiceItem?.serviceTypeId;
+    if (!id) continue;
+    const slug = String(id).split(":").pop() || "";
+    if (!slug) continue;
+    const label = slug.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+    out.push(label);
+  }
+  // Deduped and capped — this feeds a comma-separated tags field, not a catalog.
+  return [...new Set(out)].slice(0, 12);
+}
 
 // "categories/gcid:barber_shop" → "barber_shop"
 function gcidsOf(categories: any): string[] {
@@ -241,7 +303,11 @@ export async function matchLocationToEntity(admin: any, placeId: string | null |
 // the live API — both are valid readMask fields, and latlng comes back only on
 // some locations, so it stays optional.
 const GBP_LOCATION_READ_MASK =
-  "name,title,storefrontAddress,phoneNumbers,websiteUri,metadata,categories,latlng";
+  "name,title,storefrontAddress,phoneNumbers,websiteUri,metadata,categories,latlng," +
+  "profile,regularHours,serviceItems";
+// `attributes` looks like it belongs in that list but is rejected — the API
+// answers 400 "Invalid field mask provided" for it (verified against the live
+// endpoint). Amenities therefore come from serviceItems instead.
 
 // Fetch every location the granting account manages, flattened across accounts.
 // Uses the REST endpoints directly (googleapis lacks stable typed clients for
@@ -276,14 +342,95 @@ export async function gbpFetchLocations(accessToken: string): Promise<GbpLocatio
         placeId: loc.metadata?.placeId || null,
         mapsUri: loc.metadata?.mapsUri || null,
         city: a?.locality || null,
+        street: (a?.addressLines || []).join(" ") || null,
+        state: a?.administrativeArea || null,
+        postalCode: a?.postalCode || null,
         lat: loc.latlng?.latitude ?? null,
         lng: loc.latlng?.longitude ?? null,
+        description: loc.profile?.description || null,
+        hours: loc.regularHours || null,
+        services: serviceLabels(loc.serviceItems),
         categoryIds: gcidsOf(loc.categories),
         categoryLabel: loc.categories?.primaryCategory?.displayName || null,
       });
     }
   }
   return out;
+}
+
+// ── Photos & reviews (legacy v4 API) ────────────────────────────────────────
+// Photos and reviews are NOT in the Business Information API — they only exist
+// on the older mybusiness.googleapis.com v4 surface, which is a separately
+// enabled API. As of writing it answers 403 "Google My Business API has not
+// been used in project 1022222320701 before or it is disabled" (verified live),
+// so both helpers below return a `disabled` signal rather than throwing: a
+// listing sync should still fill everything else it can, and tell the owner
+// precisely which part is unavailable instead of failing wholesale.
+//
+// TO ENABLE: turn on the "Google My Business API" in the Cloud console for the
+// project that owns the OAuth client. Nothing here changes when you do.
+
+const V4_BASE = "https://mybusiness.googleapis.com/v4";
+
+export interface GbpMediaResult {
+  photos: string[];
+  disabled: boolean;
+  error?: string;
+}
+
+/** Public photo URLs for a location, newest first. */
+export async function gbpFetchPhotos(
+  accessToken: string,
+  locationName: string,
+  accountName: string,
+  limit = 10
+): Promise<GbpMediaResult> {
+  try {
+    const res = await fetch(`${V4_BASE}/${accountName}/${locationName}/media?pageSize=${limit}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.status === 403) return { photos: [], disabled: true, error: "Google My Business API is not enabled for this project." };
+    if (!res.ok) return { photos: [], disabled: false, error: `media ${res.status}` };
+    const body = await res.json();
+    const photos = (body.mediaItems || [])
+      .filter((m: any) => m?.mediaFormat === "PHOTO")
+      .map((m: any) => m.googleUrl || m.sourceUrl || m.thumbnailUrl)
+      .filter(Boolean)
+      .slice(0, limit);
+    return { photos, disabled: false };
+  } catch (e: any) {
+    return { photos: [], disabled: false, error: e?.message };
+  }
+}
+
+export interface GbpReviewsResult {
+  rating: number | null;
+  count: number | null;
+  disabled: boolean;
+  error?: string;
+}
+
+/** Aggregate rating and review count for a location. */
+export async function gbpFetchReviews(
+  accessToken: string,
+  locationName: string,
+  accountName: string
+): Promise<GbpReviewsResult> {
+  try {
+    const res = await fetch(`${V4_BASE}/${accountName}/${locationName}/reviews?pageSize=1`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.status === 403) return { rating: null, count: null, disabled: true, error: "Google My Business API is not enabled for this project." };
+    if (!res.ok) return { rating: null, count: null, disabled: false, error: `reviews ${res.status}` };
+    const body = await res.json();
+    return {
+      rating: typeof body.averageRating === "number" ? body.averageRating : null,
+      count: typeof body.totalReviewCount === "number" ? body.totalReviewCount : null,
+      disabled: false,
+    };
+  } catch (e: any) {
+    return { rating: null, count: null, disabled: false, error: e?.message };
+  }
 }
 
 // ── Door 2: create-on-connect ────────────────────────────────────────────────
@@ -491,6 +638,15 @@ export async function stageGbpLocation(
     latitude: loc.lat,
     longitude: loc.lng,
     images: [],
+    // Everything below is what spares the owner retyping. The publish handler
+    // writes each one only into tables that actually have the column.
+    street_address: loc.street,
+    address_city: loc.city,
+    address_state: loc.state,
+    address_zip: loc.postalCode,
+    description: loc.description,
+    hours: loc.hours,
+    services: loc.services,
     // Exempts the 5-photo publish gate (a verified owner won't have 5 on hand)
     // and triggers the auto-link on approval.
     owner_source: true,

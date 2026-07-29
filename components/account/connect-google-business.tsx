@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface LocationOutcome {
@@ -45,6 +45,7 @@ export function ConnectGoogleBusiness() {
   const [selecting, setSelecting] = useState<string | null>(null);
   const [retyping, setRetyping] = useState<string | null>(null);
   const [types, setTypes] = useState<{ key: string; label: string }[]>([]);
+  const [syncing, setSyncing] = useState(false);
 
   const refreshStatus = () =>
     fetch("/api/google-business/status", { credentials: "include" })
@@ -94,6 +95,23 @@ export function ConnectGoogleBusiness() {
       await refreshStatus(); // revert the select to the stored value
     } finally {
       setRetyping(null);
+    }
+  };
+
+  // Refills whatever is still blank on the claimed listing from Google. Never
+  // overwrites what the owner typed — the server enforces that.
+  const syncFromGoogle = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/google-business/sync", { method: "POST", credentials: "include" });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Sync failed.");
+      toast.success(data.message || "Synced from Google.");
+      if (data.filled?.length) setTimeout(() => window.location.reload(), 800);
+    } catch (e: any) {
+      toast.error(e.message || "Sync failed.");
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -229,9 +247,24 @@ export function ConnectGoogleBusiness() {
                 })}
               </ul>
             )}
-          <a href="/api/google-business/start" className="text-xs font-bold text-indigo-600 hover:underline mt-1 inline-block">
-            Reconnect
-          </a>
+          <div className="mt-2 flex items-center gap-4">
+            {/* Only meaningful once a published listing is attached to the
+                connection — before that there's nothing to fill. */}
+            {status.status === "linked" && (
+              <button
+                type="button"
+                onClick={syncFromGoogle}
+                disabled={syncing}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+                {syncing ? "Syncing…" : "Sync from Google"}
+              </button>
+            )}
+            <a href="/api/google-business/start" className="text-xs font-bold text-indigo-600 hover:underline">
+              Reconnect
+            </a>
+          </div>
         </div>
       </div>
     );
