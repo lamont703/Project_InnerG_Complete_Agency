@@ -8,6 +8,8 @@ import { Navbar } from "@/components/layout/navbar";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { WriteReviewButton } from "@/components/shared/write-review-button";
 import { ReviewsSection } from "@/components/shared/reviews-section";
+import { GoogleReviews } from "@/components/shared/google-reviews";
+import { GooglePosts } from "@/components/shared/google-posts";
 import { ShopPhotoGallery } from "@/components/shared/shop-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { SalonSponsoredAd } from "@/components/ads/SalonSponsoredAd";
@@ -467,6 +469,12 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
               entityName={salon.shop_name}
               action={<WriteReviewButton entityType="salon" entityId={salon.id} entityName={salon.shop_name} />}
             />
+
+            {/* Google reviews for an owner who connected their Business Profile.
+                Fetched live (never stored — Google's terms restrict caching
+                review content) and renders nothing when there's no connection. */}
+            <GooglePosts entityType="salon" entityId={salon.id} />
+            <GoogleReviews entityType="salon" entityId={salon.id} />
 
             {/* Your Market Ecosystem — salon/cosmetology side of the market only */}
             {ecosystemReport && (() => {

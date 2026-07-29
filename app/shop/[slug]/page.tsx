@@ -10,6 +10,8 @@ import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { WriteReviewButton } from "@/components/shared/write-review-button";
 import { ReviewsSection } from "@/components/shared/reviews-section";
+import { GoogleReviews } from "@/components/shared/google-reviews";
+import { GooglePosts } from "@/components/shared/google-posts";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { ShopSponsoredAd } from "@/components/ads/ShopSponsoredAd";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
@@ -520,6 +522,12 @@ export default async function ShopProfilePage({ params }: Props) {
               entityName={shop.shop_name}
               action={<WriteReviewButton entityType="shop" entityId={shop.id} entityName={shop.shop_name} />}
             />
+
+            {/* Google reviews for an owner who connected their Business Profile.
+                Fetched live (never stored — Google's terms restrict caching
+                review content) and renders nothing when there's no connection. */}
+            <GooglePosts entityType="shop" entityId={shop.id} />
+            <GoogleReviews entityType="shop" entityId={shop.id} />
 
             {/* Your Market Ecosystem — barbershop side of the market only */}
             {ecosystemReport && (() => {

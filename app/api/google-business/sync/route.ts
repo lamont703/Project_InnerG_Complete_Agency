@@ -7,6 +7,8 @@ import {
   gbpFetchLocations,
   gbpFetchPhotos,
   gbpFetchReviews,
+  pickCoverPhoto,
+  cacheGbpPhotos,
   type GbpLocation,
 } from "@/lib/google-business";
 
@@ -137,10 +139,35 @@ export async function POST() {
   const notes: string[] = [];
   const imagesField = "google_images" in entity ? "google_images" : "google_photos" in entity ? "google_photos" : null;
 
-  if (imagesField && isBlank(entity[imagesField])) {
+  // Google's lh3 links aren't durable, so a listing already holding them counts
+  // as needing photos even though the column isn't empty — otherwise the rows
+  // synced before caching existed would keep expiring links forever.
+  const holdsGoogleUrls =
+    !!imagesField &&
+    Array.isArray(entity[imagesField]) &&
+    entity[imagesField].some((u: any) => typeof u === "string" && u.includes("googleusercontent.com"));
+  const needsPhotos = !!imagesField && (isBlank(entity[imagesField]) || holdsGoogleUrls);
+  const needsHero = "shop_image_url" in entity && isBlank(entity.shop_image_url);
+  if (needsPhotos || needsHero) {
     const media = await gbpFetchPhotos(accessToken, loc.name, loc.account);
-    if (media.disabled) notes.push("Photos need the Google My Business API enabled on the Cloud project.");
-    else if (media.photos.length) candidates[imagesField] = media.photos;
+    if (media.disabled) {
+      notes.push("Photos need the Google My Business API enabled on the Cloud project.");
+    } else if (media.photos.length) {
+      // Cover first, so the profile hero is the image the owner chose as their
+      // cover rather than whatever happened to come back first.
+      const cover = pickCoverPhoto(media.photos);
+      const ordered = [
+        ...(cover ? [cover] : []),
+        ...media.photos.map((p) => p.url).filter((u) => u !== cover),
+      ];
+      const durable = await cacheGbpPhotos(admin, conn.entity_id, ordered);
+      if (durable.length) {
+        if (needsPhotos && imagesField) candidates[imagesField] = durable;
+        if (needsHero) candidates.shop_image_url = durable[0];
+      } else {
+        notes.push("Couldn't copy the Google photos into storage — none were saved.");
+      }
+    }
   }
   if (isBlank(entity.rating) || isBlank(entity.total_reviews)) {
     const reviews = await gbpFetchReviews(accessToken, loc.name, loc.account);
@@ -156,11 +183,16 @@ export async function POST() {
   if (fields.amenities) candidates[fields.amenities] = loc.services?.length ? loc.services : null;
   if (fields.hours) candidates[fields.hours] = loc.hours;
 
+  // Columns allowed to overwrite an existing value. Only the image list, and
+  // only to replace expiring Google URLs with our own copies — everything else
+  // stays fill-only, because the owner's edits outrank Google.
+  const overwritable = new Set<string>(holdsGoogleUrls && imagesField ? [imagesField] : []);
+
   const patch: Record<string, any> = {};
   for (const [column, value] of Object.entries(candidates)) {
     if (isBlank(value)) continue;
     if (!(column in entity)) continue;      // table doesn't have it
-    if (!isBlank(entity[column])) continue; // owner (or an earlier sync) already filled it
+    if (!isBlank(entity[column]) && !overwritable.has(column)) continue; // owner already filled it
     patch[column] = value;
   }
 
