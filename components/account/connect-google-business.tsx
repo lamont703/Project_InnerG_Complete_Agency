@@ -46,6 +46,7 @@ export function ConnectGoogleBusiness() {
   const [retyping, setRetyping] = useState<string | null>(null);
   const [types, setTypes] = useState<{ key: string; label: string }[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [perf, setPerf] = useState<{ callClicks: number; websiteClicks: number; directionRequests: number; impressions: number; days: number } | null>(null);
 
   const refreshStatus = () =>
     fetch("/api/google-business/status", { credentials: "include" })
@@ -131,6 +132,13 @@ export function ConnectGoogleBusiness() {
       toast.error("Google Business Profile connect isn't configured on this site yet. We've been notified.");
     else if (p === "error") toast.error("Couldn't connect Google Business Profile. Please try again.");
     else if (p === "nomember") toast.error("Finish creating your membership first, then connect.");
+
+    // Google's own numbers for the listing — what happened on Search/Maps
+    // before anyone ever reached us. Silent when unavailable.
+    fetch("/api/google-business/performance", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => d.available && setPerf(d.performance))
+      .catch(() => {});
 
     fetch("/api/google-business/business-type")
       .then((r) => r.json())
@@ -247,6 +255,20 @@ export function ConnectGoogleBusiness() {
                 })}
               </ul>
             )}
+          {perf && (
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                On Google · last {perf.days} days
+              </p>
+              <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-600">
+                <span><b className="text-slate-900">{perf.impressions.toLocaleString()}</b> views</span>
+                <span><b className="text-slate-900">{perf.callClicks.toLocaleString()}</b> calls</span>
+                <span><b className="text-slate-900">{perf.websiteClicks.toLocaleString()}</b> website clicks</span>
+                <span><b className="text-slate-900">{perf.directionRequests.toLocaleString()}</b> direction requests</span>
+              </div>
+            </div>
+          )}
+
           <div className="mt-2 flex items-center gap-4">
             {/* Only meaningful once a published listing is attached to the
                 connection — before that there's nothing to fill. */}

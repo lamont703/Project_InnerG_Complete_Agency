@@ -372,13 +372,30 @@ export async function gbpFetchLocations(accessToken: string): Promise<GbpLocatio
 
 const V4_BASE = "https://mybusiness.googleapis.com/v4";
 
+export interface GbpPhoto {
+  url: string;
+  /** COVER | PROFILE | LOGO | EXTERIOR | INTERIOR | … — Google's own labelling. */
+  category: string | null;
+  width: number | null;
+  height: number | null;
+}
+
 export interface GbpMediaResult {
-  photos: string[];
+  photos: GbpPhoto[];
   disabled: boolean;
   error?: string;
 }
 
-/** Public photo URLs for a location, newest first. */
+// Tiny images are usually icons or badges rather than usable storefront photos.
+const MIN_PHOTO_EDGE = 400;
+
+/**
+ * Photos for a location, with Google's own category on each.
+ *
+ * The category is the useful part: taking "the first N photos" left the profile
+ * with no hero image, because nothing said which one the owner had designated
+ * as their cover. COVER/PROFILE is exactly that designation.
+ */
 export async function gbpFetchPhotos(
   accessToken: string,
   locationName: string,
@@ -386,21 +403,73 @@ export async function gbpFetchPhotos(
   limit = 10
 ): Promise<GbpMediaResult> {
   try {
-    const res = await fetch(`${V4_BASE}/${accountName}/${locationName}/media?pageSize=${limit}`, {
+    const res = await fetch(`${V4_BASE}/${accountName}/${locationName}/media?pageSize=${Math.max(limit, 20)}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (res.status === 403) return { photos: [], disabled: true, error: "Google My Business API is not enabled for this project." };
     if (!res.ok) return { photos: [], disabled: false, error: `media ${res.status}` };
     const body = await res.json();
-    const photos = (body.mediaItems || [])
+
+    const photos: GbpPhoto[] = (body.mediaItems || [])
       .filter((m: any) => m?.mediaFormat === "PHOTO")
-      .map((m: any) => m.googleUrl || m.sourceUrl || m.thumbnailUrl)
-      .filter(Boolean)
-      .slice(0, limit);
-    return { photos, disabled: false };
+      .map((m: any) => ({
+        url: m.googleUrl || m.sourceUrl || m.thumbnailUrl,
+        category: m.locationAssociation?.category || null,
+        width: m.dimensions?.widthPixels ?? null,
+        height: m.dimensions?.heightPixels ?? null,
+      }))
+      .filter((p: GbpPhoto) => !!p.url)
+      // Drop obvious non-photos; a missing dimension is kept rather than guessed at.
+      .filter((p: GbpPhoto) => !p.width || !p.height || Math.min(p.width, p.height) >= MIN_PHOTO_EDGE);
+
+    return { photos: photos.slice(0, limit), disabled: false };
   } catch (e: any) {
     return { photos: [], disabled: false, error: e?.message };
   }
+}
+
+/** The photo the owner designated as their cover, for the profile hero. */
+export function pickCoverPhoto(photos: GbpPhoto[]): string | null {
+  const byCategory = (c: string) => photos.find((p) => p.category === c)?.url;
+  return byCategory("COVER") || byCategory("PROFILE") || photos[0]?.url || null;
+}
+
+/**
+ * Copy Google-hosted photos into our own storage bucket and return the public
+ * URLs.
+ *
+ * Google's lh3.googleusercontent.com links are not durable — this codebase
+ * already caches scraped Maps photos into `entity-photos` for exactly that
+ * reason (scripts/cache_google_images.js). GBP photos are the merchant's own
+ * uploads, retrieved with the merchant's authorization, so they get the same
+ * treatment rather than leaving a profile pointed at links that can rot.
+ *
+ * Anything that fails to copy is dropped rather than stored as a Google URL, so
+ * the column never ends up a mix of durable and expiring links.
+ */
+export async function cacheGbpPhotos(
+  admin: any,
+  entityId: string,
+  urls: string[]
+): Promise<string[]> {
+  const cached: string[] = [];
+  for (const [i, url] of urls.entries()) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const buffer = Buffer.from(await res.arrayBuffer());
+      if (!buffer.length) continue;
+      const path = `gbp/${entityId}_${i}.jpg`;
+      const { error } = await admin.storage
+        .from("entity-photos")
+        .upload(path, buffer, { contentType: "image/jpeg", upsert: true });
+      if (error) continue;
+      cached.push(admin.storage.from("entity-photos").getPublicUrl(path).data.publicUrl);
+    } catch {
+      /* skip this one, keep the rest */
+    }
+  }
+  return cached;
 }
 
 export interface GbpReviewsResult {
@@ -430,6 +499,94 @@ export async function gbpFetchReviews(
     };
   } catch (e: any) {
     return { rating: null, count: null, disabled: false, error: e?.message };
+  }
+}
+
+// ── Performance metrics ─────────────────────────────────────────────────────
+// A different API again (businessprofileperformance.googleapis.com) — verified
+// working with the same OAuth token. This is Google's own view of how the
+// listing performs: how many people saw it and how many acted. It's the
+// counterpart to our first-party pixel, and the thing an owner actually wants
+// to see next to "you're claimed".
+
+export interface GbpPerformance {
+  callClicks: number;
+  websiteClicks: number;
+  directionRequests: number;
+  impressions: number;
+  days: number;
+}
+
+const PERFORMANCE_METRICS = [
+  "CALL_CLICKS",
+  "WEBSITE_CLICKS",
+  "BUSINESS_DIRECTION_REQUESTS",
+  "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH",
+  "BUSINESS_IMPRESSIONS_MOBILE_SEARCH",
+  "BUSINESS_IMPRESSIONS_DESKTOP_MAPS",
+  "BUSINESS_IMPRESSIONS_MOBILE_MAPS",
+];
+
+const ymd = (d: Date) => ({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() });
+
+/** Totals over the trailing `days`. Null when the API says no. */
+export async function gbpFetchPerformance(
+  accessToken: string,
+  locationName: string,
+  days = 30
+): Promise<GbpPerformance | null> {
+  try {
+    // Google's data lags by a couple of days; ending "today" just yields empty
+    // trailing entries, which is harmless but worth knowing when totals look low.
+    const end = new Date();
+    const start = new Date(end.getTime() - days * 86400000);
+    const params = new URLSearchParams();
+    for (const m of PERFORMANCE_METRICS) params.append("dailyMetrics", m);
+    const s = ymd(start);
+    const e = ymd(end);
+    params.set("dailyRange.start_date.year", String(s.year));
+    params.set("dailyRange.start_date.month", String(s.month));
+    params.set("dailyRange.start_date.day", String(s.day));
+    params.set("dailyRange.end_date.year", String(e.year));
+    params.set("dailyRange.end_date.month", String(e.month));
+    params.set("dailyRange.end_date.day", String(e.day));
+
+    const res = await fetch(
+      `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!res.ok) return null;
+    const body = await res.json();
+
+    // Days with no activity come back as a dated entry with no `value` at all,
+    // so a missing value means zero rather than missing data.
+    const totals: Record<string, number> = {};
+    for (const group of body.multiDailyMetricTimeSeries || []) {
+      for (const series of group.dailyMetricTimeSeries || []) {
+        const metric = series.dailyMetric;
+        const sum = (series.timeSeries?.datedValues || []).reduce(
+          (acc: number, dv: any) => acc + Number(dv.value || 0),
+          0
+        );
+        totals[metric] = (totals[metric] || 0) + sum;
+      }
+    }
+
+    const impressions =
+      (totals.BUSINESS_IMPRESSIONS_DESKTOP_SEARCH || 0) +
+      (totals.BUSINESS_IMPRESSIONS_MOBILE_SEARCH || 0) +
+      (totals.BUSINESS_IMPRESSIONS_DESKTOP_MAPS || 0) +
+      (totals.BUSINESS_IMPRESSIONS_MOBILE_MAPS || 0);
+
+    return {
+      callClicks: totals.CALL_CLICKS || 0,
+      websiteClicks: totals.WEBSITE_CLICKS || 0,
+      directionRequests: totals.BUSINESS_DIRECTION_REQUESTS || 0,
+      impressions,
+      days,
+    };
+  } catch {
+    return null;
   }
 }
 
