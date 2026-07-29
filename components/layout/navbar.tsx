@@ -8,6 +8,7 @@ import { Menu, X, ArrowRight, ChevronDown, LogOut, User as UserIcon, LayoutGrid,
 import { Button } from "@/components/ui/button"
 import { trackNavClick, trackCTAClick } from "@/lib/analytics"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { LOGO_LOCKUP } from "@/lib/brand";
 
 const navLinks = [
   { label: "Market Insights", href: "/insights" },
@@ -27,18 +28,6 @@ interface AccountProject {
   href: string
 }
 
-
-/**
- * Which wordmark the header shows.
- *
- *   "product" — ShearQuery, with "by Inner G Complete Agency" as fine print
- *   "agency"  — the original single-line Inner G Complete Agency lockup
- *
- * Flip this one word to switch back. It's a constant rather than an env var or
- * a feature flag deliberately: this is a branding experiment someone should be
- * able to undo in a single edit without touching deploy config.
- */
-const LOGO_LOCKUP: "product" | "agency" = "product";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
