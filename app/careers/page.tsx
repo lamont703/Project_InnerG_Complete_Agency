@@ -210,6 +210,61 @@ export default function CareersPage() {
                 View Role <ArrowRight className="h-4 w-4" />
               </div>
             </Link>
+
+            {/* Trade roles. These are a different kind of posting from the ones
+                above: we're recruiting licensed professionals FOR the shops and
+                salons on ShearQuery, not hiring them onto the agency. Kept in
+                the same list so a barber landing on /careers finds them, but
+                labelled so nobody confuses the two. */}
+            <div className="pt-6 mt-2 border-t border-border/50">
+              <p className="text-xs font-black uppercase tracking-[0.25em] text-muted-foreground mb-1">
+                On the floor — placed with Houston shops &amp; salons
+              </p>
+              <p className="text-sm text-muted-foreground mb-6 max-w-xl">
+                Licensed barbers and cosmetologists: shops on our platform have chairs open. Entry to mid-level,
+                including recent graduates.
+              </p>
+            </div>
+
+            <Link
+              href="/careers/barber-jobs-houston"
+              className="group glass-panel p-8 rounded-2xl border border-border/50 hover:border-primary/50 transition-all hover:scale-[1.01] flex flex-col sm:flex-row sm:items-center justify-between gap-6"
+            >
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="px-2 py-1 rounded bg-primary/10 text-[10px] font-black text-primary uppercase tracking-widest border border-primary/20">Barbering</span>
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Houston / On-Site</span>
+                </div>
+                <h3 className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">Licensed Barber — Houston Barbershops</h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-xl text-balance">
+                  Fades, tapers and beard work under a Texas barber license. Staff positions, commission and chair
+                  rentals across Houston. 0–3 years, new graduates welcome.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-[0.2em] opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity mt-4 sm:mt-0">
+                View Role <ArrowRight className="h-4 w-4" />
+              </div>
+            </Link>
+
+            <Link
+              href="/careers/cosmetologist-jobs-houston"
+              className="group glass-panel p-8 rounded-2xl border border-border/50 hover:border-primary/50 transition-all hover:scale-[1.01] flex flex-col sm:flex-row sm:items-center justify-between gap-6"
+            >
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="px-2 py-1 rounded bg-primary/10 text-[10px] font-black text-primary uppercase tracking-widest border border-primary/20">Cosmetology</span>
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Houston / On-Site</span>
+                </div>
+                <h3 className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">Licensed Cosmetologist / Stylist — Houston Salons</h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-xl text-balance">
+                  Cutting, colour and chemical services under a Texas cosmetology license. Staff positions, commission
+                  and suite rentals across Houston. 0–3 years, new graduates welcome.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-[0.2em] opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity mt-4 sm:mt-0">
+                View Role <ArrowRight className="h-4 w-4" />
+              </div>
+            </Link>
           </div>
 
           <div className="mt-20 p-8 glass-panel border border-primary/20 rounded-2xl relative overflow-hidden max-w-3xl mx-auto text-center">
