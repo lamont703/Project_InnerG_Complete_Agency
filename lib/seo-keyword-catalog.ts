@@ -264,3 +264,29 @@ export function catalogTotals() {
   }
   return { pages, keywords, categories: SEO_KEYWORD_CATALOG.length }
 }
+
+/**
+ * The exact Search Console lookup keys this catalog needs — page paths and
+ * lowercased queries.
+ *
+ * Exists so the GSC payload can be narrowed to what the tracker actually reads
+ * before it's cached. The raw response for a 90-day window is ~3MB (9k+ pages,
+ * up to 25k query rows), which blows Next's 2MB data-cache ceiling; projected
+ * onto these keys it's a few hundred entries. Derived from the catalog rather
+ * than hardcoded so it can't drift from what the page looks up.
+ *
+ * Must stay in step with metricsFor() and the keyword chip lookup in
+ * app/tools/seo-keyword-tracker/page.tsx.
+ */
+export function catalogGscKeys(): { paths: string[]; queries: string[] } {
+  const paths = new Set<string>()
+  const queries = new Set<string>()
+  for (const cat of SEO_KEYWORD_CATALOG) {
+    for (const page of cat.pages) {
+      const key = page.templated ? page.representativePath : page.path
+      if (key) paths.add(key)
+      for (const kw of page.keywords) queries.add(kw.toLowerCase().trim())
+    }
+  }
+  return { paths: [...paths], queries: [...queries] }
+}
