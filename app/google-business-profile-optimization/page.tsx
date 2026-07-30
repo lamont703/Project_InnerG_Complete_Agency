@@ -6,7 +6,6 @@ import {
   ShieldAlert, Sparkles, Store, Users, XCircle,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
 
 /**
  * Money page for the local-SEO service.
@@ -243,7 +242,7 @@ export default function GbpOptimizationPage() {
 
       {/* Hero */}
       <section className="mx-auto max-w-4xl px-5 pt-28 pb-12 sm:px-6">
-        <span className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-indigo-700">
+        <span className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
           <MapPin className="h-3 w-3" /> Barbershops · Salons · Beauty Pros
         </span>
 
@@ -253,7 +252,7 @@ export default function GbpOptimizationPage() {
               drops whitespace across a line break — which rendered as
               "Optimizationfor barbershops". */}
           {"Google Business Profile Optimization "}
-          <span className="block text-indigo-600">for barbershops, salons &amp; beauty pros</span>
+          <span className="block text-primary">for barbershops, salons &amp; beauty pros</span>
         </h1>
 
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-600">
@@ -266,8 +265,8 @@ export default function GbpOptimizationPage() {
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link
-            href="/membership"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3.5 text-sm font-black uppercase tracking-wide text-white transition-colors hover:bg-indigo-700"
+            href="/google-business-profile-audit"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Get my free profile audit <ArrowRight className="h-4 w-4" />
           </Link>
@@ -281,7 +280,7 @@ export default function GbpOptimizationPage() {
 
         <p className="mt-4 text-sm font-bold text-slate-700">
           Free audit · ${IMPLEMENTATION_PRICE} implementation —{" "}
-          <span className="text-indigo-600">free for the first {LAUNCH_FREE_SLOTS} shops.</span>{" "}
+          <span className="text-primary">free for the first {LAUNCH_FREE_SLOTS} shops.</span>{" "}
           <span className="font-semibold text-slate-500">Monitoring ${MONITORING_PRICE}/mo, optional.</span>
         </p>
         <p className="mt-1.5 text-xs text-slate-500">
@@ -314,7 +313,7 @@ export default function GbpOptimizationPage() {
               { k: "750", v: "description characters, usually mostly unused", i: MessageSquare },
             ].map((s) => (
               <div key={s.k} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <s.i className="h-5 w-5 text-indigo-600" />
+                <s.i className="h-5 w-5 text-primary" />
                 <div className="mt-3 text-3xl font-black tabular-nums">{s.k}</div>
                 <div className="mt-1 text-sm leading-snug text-slate-600">{s.v}</div>
               </div>
@@ -337,7 +336,7 @@ export default function GbpOptimizationPage() {
             <div key={area.name} className="rounded-2xl border border-slate-200 bg-white p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <area.icon className="h-5 w-5 text-indigo-600" />
+                  <area.icon className="h-5 w-5 text-primary" />
                   <h3 className="text-lg font-black">{area.name}</h3>
                 </div>
                 <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
@@ -369,7 +368,7 @@ export default function GbpOptimizationPage() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {SEGMENTS.map((seg) => (
               <div key={seg.name} className="flex gap-3.5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <seg.icon className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                <seg.icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                 <div>
                   <h3 className="font-black text-slate-900">{seg.name}</h3>
                   <p className="mt-1.5 text-sm leading-snug text-slate-600">{seg.note}</p>
@@ -383,7 +382,7 @@ export default function GbpOptimizationPage() {
       {/* Search queries — the differentiator */}
       <section className="border-y border-slate-200 bg-slate-900 text-white">
         <div className="mx-auto max-w-4xl px-5 py-14 sm:px-6">
-          <ChartNoAxesColumn className="h-6 w-6 text-indigo-400" />
+          <ChartNoAxesColumn className="h-6 w-6 text-white" />
           <h2 className="mt-4 text-2xl font-black tracking-tight">
             The searches that actually surfaced your listing
           </h2>
@@ -430,7 +429,7 @@ export default function GbpOptimizationPage() {
             },
           ].map((step, i) => (
             <li key={step.t} className="flex gap-4">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-sm font-black text-white">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-black text-primary-foreground">
                 {i + 1}
               </div>
               <div>
@@ -457,13 +456,13 @@ export default function GbpOptimizationPage() {
               </p>
             </div>
 
-            <div className="relative rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-6">
+            <div className="relative rounded-2xl border-2 border-primary/40 bg-primary/5 p-6">
               {LAUNCH_FREE_SLOTS > 0 && (
-                <span className="absolute -top-3 left-6 rounded-full bg-indigo-600 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary-foreground">
                   First {LAUNCH_FREE_SLOTS} shops free
                 </span>
               )}
-              <div className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Implementation</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-primary/70">Implementation</div>
               <div className="mt-2 flex items-baseline gap-2">
                 <span className="text-4xl font-black">${IMPLEMENTATION_PRICE}</span>
                 <span className="text-sm font-semibold text-slate-500">one-time, per location</span>
@@ -473,7 +472,7 @@ export default function GbpOptimizationPage() {
                 the photos you supply. Snapshot taken first, every change reversible.
               </p>
               {LAUNCH_FREE_SLOTS > 0 && (
-                <p className="mt-3 text-sm font-bold text-indigo-700">
+                <p className="mt-3 text-sm font-bold text-primary">
                   We&apos;re waiving this for the first {LAUNCH_FREE_SLOTS} shops — the audit and the
                   implementation both cost nothing.
                 </p>
@@ -541,8 +540,8 @@ export default function GbpOptimizationPage() {
 
       {/* Close */}
       <section className="mx-auto max-w-4xl px-5 pb-20 sm:px-6">
-        <div className="rounded-3xl border-2 border-indigo-200 bg-indigo-50 p-8 text-center sm:p-10">
-          <ImageIcon className="mx-auto h-7 w-7 text-indigo-600" />
+        <div className="rounded-3xl border-2 border-primary/30 bg-primary/5 p-8 text-center sm:p-10">
+          <ImageIcon className="mx-auto h-7 w-7 text-primary" />
           <h2 className="mt-4 text-2xl font-black tracking-tight">
             Find out what your profile is missing
           </h2>
@@ -555,25 +554,24 @@ export default function GbpOptimizationPage() {
             )}
           </p>
           <Link
-            href="/membership"
-            className="mt-7 inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-7 py-3.5 text-sm font-black uppercase tracking-wide text-white transition-colors hover:bg-indigo-700"
+            href="/google-business-profile-audit"
+            className="mt-7 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Get my free profile audit <ArrowRight className="h-4 w-4" />
           </Link>
           <p className="mt-6 text-sm text-slate-500">
             Already listed with us?{" "}
-            <Link href="/account/manage-listing" className="font-bold text-indigo-600 hover:underline">
+            <Link href="/account/manage-listing" className="font-bold text-primary hover:underline">
               Connect Google from your listing
             </Link>{" "}
             · Comparing shops instead?{" "}
-            <Link href="/compare-shops" className="font-bold text-indigo-600 hover:underline">
+            <Link href="/compare-shops" className="font-bold text-primary hover:underline">
               Compare barbershops
             </Link>
           </p>
         </div>
       </section>
 
-      <Footer />
     </div>
   );
 }

@@ -132,6 +132,16 @@ export const SEO_KEYWORD_CATALOG: KeywordCategory[] = [
     intent: "service",
     pages: [
       {
+        path: "/google-business-profile-audit",
+        label: "Free Google Business Profile Audit (tool)",
+        keywords: [
+          "google business profile audit",
+          "free google business profile audit",
+          "local seo audit",
+          "google my business audit",
+        ],
+      },
+      {
         path: "/google-business-profile-optimization",
         label: "Google Business Profile Optimization",
         keywords: [
