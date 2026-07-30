@@ -21,6 +21,18 @@ export function CommunityMembershipForm() {
   const claimEntityName = searchParams.get("claim_name")
   const isClaiming = Boolean(claimEntityType && claimEntityId)
 
+  // Signup intent handed over by the free audit tool (?next=connect). Someone
+  // who arrived that way came to connect Google, not to read a membership page,
+  // so they're taken straight into the OAuth flow once the account exists.
+  //
+  // Whitelisted to a known destination rather than redirecting to whatever the
+  // query string says: an arbitrary post-signup redirect is a phishing
+  // primitive, and this form is exactly the kind of page worth abusing.
+  const nextIntent = searchParams.get("next")
+  const wantsConnect = nextIntent === "connect"
+  const destination = (fallback: string) =>
+    wantsConnect ? "/api/google-business/start" : fallback
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     firstName: "",
@@ -76,11 +88,11 @@ export function CommunityMembershipForm() {
 
       if (signInError) {
         console.error("[CommunityMembership] Shadow auth failed:", signInError)
-        window.location.href = "/login?redirect=" + encodeURIComponent(data.redirect)
+        window.location.href = "/login?redirect=" + encodeURIComponent(destination(data.redirect))
         return
       }
 
-      window.location.href = data.redirect
+      window.location.href = destination(data.redirect)
     } catch (err: any) {
       console.error("[CommunityMembership] Error:", err)
       toast.error(err.message || "Something went wrong. Please try again.")
@@ -90,6 +102,16 @@ export function CommunityMembershipForm() {
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
+      {wantsConnect && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-primary/20 bg-primary/10 px-4 py-3">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <p className="text-xs leading-relaxed text-slate-700">
+            <strong>Next: connecting your Google Business Profile.</strong> Membership is free and
+            takes a moment — then we&apos;ll send you straight to Google to authorise read-only
+            access and run your full audit.
+          </p>
+        </div>
+      )}
       {isClaiming && (
         <div className="flex items-start gap-2.5 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
@@ -102,8 +124,9 @@ export function CommunityMembershipForm() {
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</label>
+          <label htmlFor="cm-first-name" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</label>
           <input
+            id="cm-first-name"
             type="text"
             required
             minLength={2}
@@ -114,8 +137,9 @@ export function CommunityMembershipForm() {
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</label>
+          <label htmlFor="cm-last-name" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</label>
           <input
+            id="cm-last-name"
             type="text"
             required
             minLength={2}
@@ -128,8 +152,9 @@ export function CommunityMembershipForm() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</label>
+        <label htmlFor="cm-email" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</label>
         <input
+            id="cm-email"
           type="email"
           required
           placeholder="you@example.com"
@@ -140,8 +165,9 @@ export function CommunityMembershipForm() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Phone Number</label>
+        <label htmlFor="cm-phone" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Phone Number</label>
         <input
+            id="cm-phone"
           type="tel"
           required
           placeholder="(555) 000-0000"
@@ -152,8 +178,9 @@ export function CommunityMembershipForm() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Create Password</label>
+        <label htmlFor="cm-password" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Create Password</label>
         <input
+            id="cm-password"
           type="password"
           required
           minLength={6}
@@ -165,8 +192,9 @@ export function CommunityMembershipForm() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirm Password</label>
+        <label htmlFor="cm-confirm-password" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirm Password</label>
         <input
+            id="cm-confirm-password"
           type="password"
           required
           minLength={6}
