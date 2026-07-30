@@ -92,6 +92,18 @@ function inline(node: AnyNode, ctx: Ctx): string {
       const t = kids().trim();
       return t ? ` ${t} ` : "";
     }
+    // A span is inline by default — "Shear<span>Query</span>" must stay
+    // "ShearQuery" — but Tailwind's `block`/`sm:block` turns one into its own
+    // visual line, which is a common way to split a headline. Those need the
+    // same separator as the block tags above, or the twin renders
+    // "Google Business Profile Optimizationfor barbershops". Keyed off the
+    // class because the display value isn't knowable without the stylesheet.
+    case "span": {
+      const t = kids().trim();
+      if (!t) return "";
+      const cls = $(el).attr("class") || "";
+      return /(?:^|\s|:)block(?:\s|$)/.test(cls) ? ` ${t} ` : t;
+    }
     default:
       return kids();
   }
