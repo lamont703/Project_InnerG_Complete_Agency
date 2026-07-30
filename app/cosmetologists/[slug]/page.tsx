@@ -112,7 +112,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
     person.booksy_price_range || null,
   ].filter(Boolean);
   const description = `${descParts.join('. ')}. View gallery, services, and book online.`;
-  const heroImage = person.booksy_gallery_urls?.[0] || person.booksy_photo_url;
+  const heroImage = person.portfolio_images?.[0] || person.booksy_gallery_urls?.[0] || person.booksy_photo_url;
 
   return {
     title,
@@ -143,7 +143,7 @@ function buildCosmetologistJsonLd(person: any) {
   // doesn't support Person as the reviewed entity, so this used to generate
   // "Invalid object type" errors in Search Console with no upside — the
   // rating still displays visually on the page, just not in structured data.
-  const heroImg = person.booksy_gallery_urls?.[0] || person.booksy_photo_url;
+  const heroImg = person.portfolio_images?.[0] || person.booksy_gallery_urls?.[0] || person.booksy_photo_url;
   if (heroImg) ld.image = heroImg;
   const sameAs = [
     person.instagram_handle && `https://instagram.com/${person.instagram_handle.replace("@", "")}`,
@@ -164,7 +164,10 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
 
   const isClaimed = await isEntityClaimed("cosmetologist", person.id);
 
-  const gallery: string[] = Array.isArray(person.booksy_gallery_urls) ? person.booksy_gallery_urls : [];
+  // Owner-uploaded work leads, same reasoning as the barber page.
+  const ownerPhotos: string[] = Array.isArray(person.portfolio_images) ? person.portfolio_images : [];
+  const booksyPhotos: string[] = Array.isArray(person.booksy_gallery_urls) ? person.booksy_gallery_urls : [];
+  const gallery: string[] = [...ownerPhotos, ...booksyPhotos];
   const heroPhoto = gallery[0] || person.booksy_photo_url || null;
   const thumbnails = gallery.slice(1, 7);
   const remainingCount = Math.max(0, gallery.length - 1 - thumbnails.length);

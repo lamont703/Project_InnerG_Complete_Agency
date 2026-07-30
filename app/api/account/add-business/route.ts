@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getViewAsContext } from "@/lib/account/view-as";
 import { CLAIM_ENTITY_TYPES } from "@/lib/entity-claim";
 
 // Owner self-submission (Door 3): a member adds their own business. Rather than
@@ -28,6 +29,21 @@ export async function POST(req: Request) {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ success: false, error: "Please sign in first." }, { status: 401 });
+
+  // These flows create a listing under the *real* signed-in account, deliberately
+  // — nothing here resolves through View As. That makes them a trap while View As
+  // is on: the admin believes they're the member and would file a listing on
+  // their own account instead. Refuse rather than surprise them.
+  const viewAs = await getViewAsContext();
+  if (viewAs.viewingAs) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `View As is read-only. Exit View As (currently ${viewAs.viewingAs.name}) before creating a listing.`,
+      },
+      { status: 403 }
+    );
+  }
 
   const admin = createAdminClient();
   const { data: member } = await admin

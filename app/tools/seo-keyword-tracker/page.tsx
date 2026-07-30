@@ -1,12 +1,22 @@
 import Link from "next/link"
 import { Search, TrendingUp, Hash, AlertTriangle, MousePointerClick, Eye } from "lucide-react"
-import { getGscPerformance, type GscMetrics, type GscPerformance } from "@/lib/gsc-performance"
-import { SEO_KEYWORD_CATALOG, SITE_ORIGIN, catalogTotals, type KeywordPage } from "@/lib/seo-keyword-catalog"
+import { getCachedGscPerformance, type GscMetrics, type GscPerformance } from "@/lib/gsc-performance"
+import {
+  resolveGscWindow,
+  latestAvailableDay,
+  earliestAvailableDay,
+  windowShortLabel,
+} from "@/lib/gsc-window"
+import { GscWindowPicker } from "@/components/tools/gsc-window-picker"
+import { SEO_KEYWORD_CATALOG, SITE_ORIGIN, catalogTotals, catalogGscKeys, type KeywordPage } from "@/lib/seo-keyword-catalog"
 import { SeoTrackerViews, type PageRow } from "@/components/tools/seo-tracker-views"
 
 // Internal tool (gated by middleware INTERNAL_TOOL_ROUTES → /internal-lock).
-// Refresh live GSC figures hourly.
-export const revalidate = 3600
+//
+// Reading searchParams makes this route dynamic, so the old page-level
+// `revalidate = 3600` no longer applies. The hourly caching moved down to
+// getCachedGscPerformance, which is keyed per date window — otherwise every
+// range flip would be a fresh Search Console round-trip.
 
 export const metadata = {
   title: "SEO Keyword Tracker | Internal",
@@ -22,9 +32,22 @@ function metricsFor(page: KeywordPage, perf: GscPerformance | null): GscMetrics 
   return perf.byPath[key] || null
 }
 
-export default async function SeoKeywordTrackerPage() {
-  const perf = await getGscPerformance(28)
+export default async function SeoKeywordTrackerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ preset?: string; start?: string; end?: string }>
+}) {
+  const sp = await searchParams
+  // The server owns clamping: whatever arrives on the URL is reconciled against
+  // Search Console's 2-day lag and ~16-month retention before it's queried, and
+  // the same resolved window drives every label below.
+  const win = resolveGscWindow({ preset: sp.preset, start: sp.start, end: sp.end })
+  // Only the keys this page reads are fetched into cache — the raw response is
+  // ~3MB and would exceed Next's data-cache limit.
+  const perf = await getCachedGscPerformance({ start: win.start, end: win.end }, catalogGscKeys())
   const totals = catalogTotals()
+  const shortLabel = windowShortLabel(win)
+  const iso = (d: Date) => d.toISOString().slice(0, 10)
 
   // Flatten the catalog into serializable rows joined with live GSC metrics.
   const rows: PageRow[] = []
@@ -77,10 +100,27 @@ export default async function SeoKeywordTrackerPage() {
           </div>
         </div>
 
+        {/* Date range */}
+        <GscWindowPicker
+          activePreset={win.preset}
+          start={win.start}
+          end={win.end}
+          min={iso(earliestAvailableDay())}
+          max={iso(latestAvailableDay())}
+        />
+
+        {/* Any clamping the server applied to the requested range. */}
+        {win.notice && (
+          <div className="mt-2 flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            {win.notice}
+          </div>
+        )}
+
         {/* GSC status banner */}
         {perf ? (
           <div className="mt-4 text-xs text-slate-500">
-            Live GSC · {perf.window.start} → {perf.window.end} (28 days) · fetched {new Date(perf.fetchedAt).toLocaleString()}
+            Live GSC · {perf.window.start} → {perf.window.end} ({win.days} days · {win.label}) · fetched {new Date(perf.fetchedAt).toLocaleString()}
           </div>
         ) : (
           <div className="mt-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
@@ -96,8 +136,8 @@ export default async function SeoKeywordTrackerPage() {
             { label: "Keywords", value: fmtInt(totals.keywords), icon: <Search className="h-4 w-4" /> },
             { label: "Pages Ranking", value: fmtInt(ranking), icon: <TrendingUp className="h-4 w-4" /> },
             { label: "On Page 1", value: fmtInt(page1), icon: <TrendingUp className="h-4 w-4 text-emerald-600" /> },
-            { label: "28d Impressions", value: fmtInt(totImpr), icon: <Eye className="h-4 w-4" /> },
-            { label: "28d Clicks", value: fmtInt(totClicks), icon: <MousePointerClick className="h-4 w-4" /> },
+            { label: `${shortLabel} Impressions`, value: fmtInt(totImpr), icon: <Eye className="h-4 w-4" /> },
+            { label: `${shortLabel} Clicks`, value: fmtInt(totClicks), icon: <MousePointerClick className="h-4 w-4" /> },
           ].map((t) => (
             <div key={t.label} className="rounded-xl border border-slate-200 bg-white p-3">
               <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -123,7 +163,7 @@ export default async function SeoKeywordTrackerPage() {
         <SeoTrackerViews rows={rows} />
 
         <div className="mt-12 border-t border-slate-200 pt-4 text-xs text-slate-400">
-          Catalog source: <code className="text-slate-500">lib/seo-keyword-catalog.ts</code> (mirrors <code className="text-slate-500">SEO_KEYWORD_TRACKER.md</code>). Performance: live Google Search Console, page + query dimensions, last 28 days.
+          Catalog source: <code className="text-slate-500">lib/seo-keyword-catalog.ts</code> (mirrors <code className="text-slate-500">SEO_KEYWORD_TRACKER.md</code>). Performance: live Google Search Console, page + query dimensions, {win.start} → {win.end}.
         </div>
         <div className="mt-2">
           <Link href="/" className="text-xs font-semibold text-blue-600 hover:underline">← Back to site</Link>

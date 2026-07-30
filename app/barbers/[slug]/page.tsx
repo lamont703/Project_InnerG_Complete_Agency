@@ -107,7 +107,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
     barber.booksy_price_range ? barber.booksy_price_range : null,
   ].filter(Boolean);
   const description = `${descParts.join('. ')}. View gallery, services, and book online.`;
-  const heroImage = barber.booksy_gallery_urls?.[0] || barber.booksy_photo_url;
+  const heroImage = barber.portfolio_images?.[0] || barber.booksy_gallery_urls?.[0] || barber.booksy_photo_url;
 
   return {
     title,
@@ -144,7 +144,7 @@ function buildBarberJsonLd(barber: any) {
   // doesn't support Person as the reviewed entity, so this used to generate
   // "Invalid object type" errors in Search Console with no upside — the
   // rating still displays visually on the page, just not in structured data.
-  const heroImg = barber.booksy_gallery_urls?.[0] || barber.booksy_photo_url;
+  const heroImg = barber.portfolio_images?.[0] || barber.booksy_gallery_urls?.[0] || barber.booksy_photo_url;
   if (heroImg) person.image = heroImg;
   const sameAs = [
     barber.instagram_handle && `https://instagram.com/${barber.instagram_handle.replace("@", "")}`,
@@ -200,7 +200,12 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
   if (barber._resolvedByLegacyId) permanentRedirect(`/barbers/${barber.slug}`);
 
   const isClaimed = await isEntityClaimed("barber", barber.id);
-  const gallery: string[] = Array.isArray(barber.booksy_gallery_urls) ? barber.booksy_gallery_urls : [];
+  // Photos the professional uploaded themselves lead the gallery: they chose
+  // them, and a Booksy scrape is second-hand by comparison. Kept in a separate
+  // column because a re-scrape overwrites booksy_gallery_urls wholesale.
+  const ownerPhotos: string[] = Array.isArray(barber.portfolio_images) ? barber.portfolio_images : [];
+  const booksyPhotos: string[] = Array.isArray(barber.booksy_gallery_urls) ? barber.booksy_gallery_urls : [];
+  const gallery: string[] = [...ownerPhotos, ...booksyPhotos];
   const heroPhoto = gallery[0] || barber.booksy_photo_url || barber.passport_image_url || null;
   const thumbnails = gallery.slice(1, 7);
   const remainingCount = Math.max(0, gallery.length - 1 - thumbnails.length);

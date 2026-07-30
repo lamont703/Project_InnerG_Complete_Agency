@@ -8,6 +8,8 @@ import { Menu, X, ArrowRight, ChevronDown, LogOut, User as UserIcon, LayoutGrid,
 import { Button } from "@/components/ui/button"
 import { trackNavClick, trackCTAClick } from "@/lib/analytics"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { LOGO_LOCKUP } from "@/lib/brand";
+import { ViewAsMenuItem, ViewAsPicker, useViewAs } from "@/components/layout/view-as";
 
 const navLinks = [
   { label: "Market Insights", href: "/insights" },
@@ -27,18 +29,6 @@ interface AccountProject {
   href: string
 }
 
-
-/**
- * Which wordmark the header shows.
- *
- *   "product" — ShearQuery, with "by Inner G Complete Agency" as fine print
- *   "agency"  — the original single-line Inner G Complete Agency lockup
- *
- * Flip this one word to switch back. It's a constant rather than an env var or
- * a feature flag deliberately: this is a branding experiment someone should be
- * able to undo in a single edit without touching deploy config.
- */
-const LOGO_LOCKUP: "product" | "agency" = "product";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -108,6 +98,25 @@ export function Navbar() {
     return () => subscription.subscription.unsubscribe()
   }, [])
 
+  // Admin-only "View As" (components/layout/view-as.tsx). While it's active the
+  // account menu shows the viewed-as member's name and *their* project
+  // dashboards rather than the admin's, which is the whole point — the menu is
+  // one of the things that differs between accounts. Authentication itself still
+  // reflects the real session; View As changes what's displayed and which member
+  // the server-rendered account pages resolve to, not who is logged in.
+  const viewAs = useViewAs()
+  // Owned here rather than inside ViewAsMenuItem: the item is rendered inside the
+  // account/mobile menu blocks, and opening the picker closes those — which would
+  // unmount the item and its state before the picker could render.
+  const [isViewAsOpen, setIsViewAsOpen] = useState(false)
+  const accountEmail = viewAs.viewingAs?.email ?? null
+  const effectiveLabel = viewAs.viewingAs
+    ? viewAs.effectiveAccount?.label ?? viewAs.viewingAs.name
+    : accountLabel
+  const effectiveProjects = viewAs.viewingAs
+    ? viewAs.effectiveAccount?.projects ?? []
+    : accountProjects
+
   const isAuthenticated = authChecked && !!accountLabel
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -136,6 +145,7 @@ export function Navbar() {
   }
 
   return (
+    <>
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled
         ? "glass-panel-strong py-3"
@@ -242,11 +252,16 @@ export function Navbar() {
                   <div className="fixed inset-0 z-10" onClick={() => setIsAccountOpen(false)} />
                   <div className="absolute top-full right-0 mt-2 z-20 bg-white border border-slate-200 rounded-xl shadow-lg py-2 w-64">
                     <div className="px-4 py-2 border-b border-slate-100">
-                      <p className="text-xs font-bold text-slate-900 truncate">{accountLabel}</p>
+                      <p className="text-xs font-bold text-slate-900 truncate">{effectiveLabel}</p>
+                      {viewAs.viewingAs && (
+                        <p className="mt-0.5 truncate text-[10px] font-semibold text-amber-600">
+                          Viewing as {accountEmail || viewAs.viewingAs.name}
+                        </p>
+                      )}
                     </div>
-                    {accountProjects.length > 0 && (
+                    {effectiveProjects.length > 0 && (
                       <div className="py-1 max-h-64 overflow-y-auto">
-                        {accountProjects.map((project) => (
+                        {effectiveProjects.map((project) => (
                           <Link
                             key={project.slug}
                             href={project.href}
@@ -285,6 +300,14 @@ export function Navbar() {
                         Ad Performance
                       </Link>
                     </div>
+                    <ViewAsMenuItem
+                      isAdmin={viewAs.isAdmin}
+                      onClick={() => {
+                        setIsViewAsOpen(true)
+                        setIsAccountOpen(false)
+                      }}
+                      className="flex w-full items-center gap-2 border-t border-slate-100 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 hover:text-foreground"
+                    />
                     <div className="pt-1 border-t border-slate-100">
                       <button
                         onClick={handleSignOut}
@@ -365,9 +388,10 @@ export function Navbar() {
             {isAuthenticated && (
               <div className="mt-2 border-t border-border pt-2">
                 <p className="px-4 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  {accountLabel}
+                  {effectiveLabel}
+                  {viewAs.viewingAs && <span className="text-amber-500"> · viewing as</span>}
                 </p>
-                {accountProjects.map((project) => (
+                {effectiveProjects.map((project) => (
                   <Link
                     key={project.slug}
                     href={project.href}
@@ -402,6 +426,14 @@ export function Navbar() {
                   <BarChart3 className="h-3.5 w-3.5 shrink-0" />
                   Ad Performance
                 </Link>
+                <ViewAsMenuItem
+                  isAdmin={viewAs.isAdmin}
+                  onClick={() => {
+                    setIsViewAsOpen(true)
+                    setIsMobileOpen(false)
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-4 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
+                />
               </div>
             )}
 
@@ -441,5 +473,14 @@ export function Navbar() {
         </div>
       )}
     </header>
+
+    {isViewAsOpen && viewAs.isAdmin && (
+      <ViewAsPicker
+        members={viewAs.members}
+        activeMemberId={viewAs.viewingAs?.memberId ?? null}
+        onClose={() => setIsViewAsOpen(false)}
+      />
+    )}
+    </>
   )
 }

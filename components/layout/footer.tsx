@@ -1,5 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
+import { LOGO_LOCKUP } from "@/lib/brand"
 
 const footerLinks = {
   Solutions: [
@@ -58,7 +59,11 @@ export function Footer() {
         {/* Brand - Top Row */}
         <div className="mb-16 pb-8 border-b border-border/50">
           <div className="max-w-2xl">
-            <Link href="/" className="flex items-center gap-2 group" aria-label="Inner G Complete Home">
+            <Link
+              href="/"
+              className="flex items-center gap-2 group"
+              aria-label={LOGO_LOCKUP === "product" ? "ShearQuery by Inner G Complete Agency Home" : "Inner G Complete Agency Home"}
+            >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-105 overflow-hidden">
                 <Image
                   src="/icon-light-32x32.webp"
@@ -69,9 +74,23 @@ export function Footer() {
                   unoptimized
                 />
               </div>
-              <span className="text-xl font-bold tracking-tight text-foreground">
-                Inner G Complete<span className="hidden lg:inline text-muted-foreground font-normal"> Agency</span>
-              </span>
+              {LOGO_LOCKUP === "product" ? (
+                // Matches the header lockup exactly (components/layout/navbar.tsx),
+                // down to the accent on "Query". The byline isn't hidden here the
+                // way it is in the header — the footer has the room.
+                <span className="flex flex-col justify-center leading-none">
+                  <span className="text-xl font-bold tracking-tight text-foreground">
+                    Shear<span className="text-primary">Query</span>
+                  </span>
+                  <span className="mt-0.5 text-[10px] font-normal tracking-wide text-muted-foreground">
+                    by Inner G Complete Agency
+                  </span>
+                </span>
+              ) : (
+                <span className="text-xl font-bold tracking-tight text-foreground">
+                  Inner G Complete<span className="hidden lg:inline text-muted-foreground font-normal"> Agency</span>
+                </span>
+              )}
             </Link>
             {/* This blurb is what identifies the app and its purpose to a human
                 reader on the homepage — Google's OAuth verification review
@@ -83,11 +102,17 @@ export function Footer() {
                 data the connect flow requests and why — with the privacy policy
                 one click away. Trim it carefully. */}
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              <strong className="font-semibold text-foreground">ShearQuery by Inner G Complete Agency</strong> is a
-              directory and market-intelligence platform for the barber, beauty, and wellness industry. Search verified
-              barbershops, salons, schools, and supply stores, compare booth rent and licensing exam pass rates, and
-              claim your business listing to keep it accurate. We also architect the Artificial Domain Intelligence
-              (ADI) that powers enrollment, diagnostics, and Title-IV compliance for Barber and Cosmetology schools.
+              {/* The lockup above now carries the full name, so this doesn't
+                  repeat it verbatim an inch below. It still names the product,
+                  which is what Google's OAuth review needs the homepage to do —
+                  and still does if the lockup is reverted, since the sentence
+                  identifies ShearQuery either way. */}
+              <strong className="font-semibold text-foreground">ShearQuery</strong> is a directory and
+              market-intelligence platform for the barber, beauty, and wellness industry. Search verified barbershops,
+              salons, schools, and supply stores, compare booth rent and licensing exam pass rates, and claim your
+              business listing to keep it accurate. Inner G Complete Agency also architects the Artificial Domain
+              Intelligence (ADI) that powers enrollment, diagnostics, and Title-IV compliance for Barber and
+              Cosmetology schools.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               Business owners can optionally connect their Google Business Profile to verify that they own their

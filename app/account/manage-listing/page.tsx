@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { Navbar } from "@/components/layout/navbar"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { ConnectGoogleBusiness } from "@/components/account/connect-google-business"
+import { ProfessionalListingForm } from "@/components/account/professional-listing-form"
 
 const MAX_IMAGES = 5
 
@@ -45,6 +46,10 @@ export default function ManageListingPage() {
   const [authChecked, setAuthChecked] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [entity, setEntity] = useState<OwnedEntity | null>(null)
+  // A member's claim can be a PERSON (barber/cosmetologist) rather than a
+  // storefront. The business API returns data: null for those, which used to
+  // dead-end at "No Business Linked Yet" even though they had a claimed profile.
+  const [hasProfessional, setHasProfessional] = useState<boolean | null>(null)
   const [form, setForm] = useState<Partial<OwnedEntity>>({})
   const [isSaving, setIsSaving] = useState(false)
   const [images, setImages] = useState<string[]>([])
@@ -181,20 +186,37 @@ export default function ManageListingPage() {
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
               Loading your listing...
             </div>
+          ) : !entity && hasProfessional !== false ? (
+            // Their claim is a barber/cosmetologist profile, or we're still
+            // finding out. The professional form reports back via onNotFound so
+            // the business empty-state below is only shown once we know there's
+            // no profile either.
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8">
+              <ProfessionalListingForm onNotFound={() => setHasProfessional(false)} />
+            </div>
           ) : !entity ? (
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 text-center">
               <Store className="h-10 w-10 text-slate-300 mx-auto mb-4" />
-              <h1 className="text-lg font-black text-slate-900 mb-2">No Business Linked Yet</h1>
+              <h1 className="text-lg font-black text-slate-900 mb-2">No Listing Linked Yet</h1>
               <p className="text-sm text-slate-500 leading-relaxed max-w-md mx-auto mb-5">
-                Your membership isn&apos;t linked to a business yet. Connect your Google Business Profile above for
-                instant verification, or add your business and we&apos;ll review and link it.
+                Your membership isn&apos;t linked to a listing yet. Shop and salon owners can connect their Google
+                Business Profile above for instant verification, or add the business for review. Licensed barbers and
+                stylists add a professional profile instead.
               </p>
-              <Link
-                href="/account/add-business"
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white font-bold text-sm px-5 py-2.5 hover:bg-indigo-700 transition-colors"
-              >
-                Add your business
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link
+                  href="/account/add-business"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 text-white font-bold text-sm px-5 py-2.5 hover:bg-indigo-700 transition-colors"
+                >
+                  I own a shop or salon
+                </Link>
+                <Link
+                  href="/account/add-professional"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-sm px-5 py-2.5 hover:border-indigo-300 transition-colors"
+                >
+                  I&apos;m a barber or stylist
+                </Link>
+              </div>
             </div>
           ) : (
             <>

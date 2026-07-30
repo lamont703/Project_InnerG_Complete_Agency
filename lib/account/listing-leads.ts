@@ -1,5 +1,6 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveMemberContext } from "@/lib/account/view-as";
 
 // "Leads we sent you" data layer. Attribution runs through get_listing_lead_report
 // (page_url slug matching); this file resolves WHICH listing to report on —
@@ -77,23 +78,17 @@ export interface LeadMonth {
 // covers every claimable type, since leads matter for all of them.
 export async function resolveOwnedListing():
   Promise<{ status: 401 } | { listing: null } | { listing: ResolvedListing }> {
-  const supabase = await createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { status: 401 };
+  // Member comes from resolveMemberContext(), so an admin with View As active
+  // sees that member's listing insights instead of their own.
+  const ctx = await resolveMemberContext();
+  if ("error" in ctx) return { status: 401 };
 
   const admin = createAdminClient();
-
-  const { data: member } = await admin
-    .from("community_members")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!member) return { listing: null };
 
   const { data: link } = await (admin
     .from("community_member_entity_links") as any)
     .select("entity_type, entity_id")
-    .eq("community_member_id", (member as any).id)
+    .eq("community_member_id", ctx.memberId)
     .maybeSingle();
   if (!link) return { listing: null };
 

@@ -262,6 +262,74 @@ async function publishDiscoveredBusiness(
   return { id, slug };
 }
 
+
+// ── Professional (person) profiles ───────────────────────────────────────────
+// agent_barber_leads / agent_cosmetologist_leads describe a PERSON, and none of
+// the storefront machinery above fits them: they have no city,
+// formatted_address, category or place_id columns, so REQUIRED_NON_EMPTY_FIELDS
+// and TABLE_CONFIG would both reject or corrupt them. They get their own narrow
+// path rather than a pile of exceptions inside the business one.
+//
+// Location lives in `metro_area` with `address` optional — plenty of barbers
+// work a chair inside someone else's shop and have no address of their own.
+const PROFESSIONAL_CONFIG: Record<string, { nameField: string; routePrefix: string }> = {
+  agent_barber_leads: { nameField: "name", routePrefix: "barbers" },
+  agent_cosmetologist_leads: { nameField: "name", routePrefix: "cosmetologists" },
+};
+
+async function publishProfessionalProfile(
+  evidence: any
+): Promise<{ id: string; slug: string } | { error: string }> {
+  const { table, name, phone, metro_area } = evidence;
+  const config = PROFESSIONAL_CONFIG[table];
+  if (!config) return { error: `Unsupported professional table: ${table}` };
+
+  const missing = ["name", "phone", "metro_area"].filter((f) => !evidence?.[f]);
+  if (missing.length) {
+    return { error: `Missing required field(s): ${missing.join(", ")}.` };
+  }
+
+  // Both tables carry UNIQUE(phone). Checking first turns a raw 23505 at insert
+  // time into a sentence an admin can act on — and the answer is almost always
+  // "this person is already listed, link them instead of publishing a twin".
+  const normalized = normalizePhone(phone);
+  if (normalized) {
+    const { data: rows } = await supabase.from(table).select("id, phone").limit(5000);
+    const clash = ((rows || []) as any[]).find((r) => normalizePhone(r.phone) === normalized);
+    if (clash) {
+      return {
+        error: `A ${config.routePrefix.replace(/s$/, "")} with this phone number is already listed (id ${clash.id}). Link the member to that profile instead of publishing a duplicate.`,
+      };
+    }
+  }
+
+  const id = crypto.randomUUID();
+  const slug = buildSlug(name, metro_area, id);
+
+  const { error } = await supabase.from(table).insert({
+    id,
+    slug,
+    [config.nameField]: name,
+    phone,
+    metro_area,
+    address: evidence.address ?? null,
+    email: evidence.email ?? null,
+    website_url: evidence.website_url ?? null,
+    specialty_type: evidence.specialty_type ?? null,
+    licensure_status: evidence.licensure_status ?? null,
+    school_name: evidence.school_name ?? null,
+    instagram_handle: evidence.instagram_handle ?? null,
+    // Marks the provenance so these are distinguishable from scraped leads, and
+    // keeps them out of cold-outreach flows aimed at people we found rather than
+    // people who came to us.
+    source: "professional_self_submission",
+  });
+  if (error) return { error: error.message };
+
+  await pingIndexNow([`/${config.routePrefix}/${slug}`]);
+  return { id, slug };
+}
+
 // Closes the loop between Market Expansion Readiness Agent and the Google
 // Ads Agent finding that started the expansion in the first place: once
 // you've approved "this city has enough real data, build the page," the
@@ -308,7 +376,13 @@ export async function POST(request: Request) {
     // without ever being audited, or a row from before cleaned_evidence
     // existed.
     const activeEvidence = directive.cleaned_evidence || directive.evidence;
-    const result = await publishDiscoveredBusiness(activeEvidence, !!force);
+
+    // A self-submitted professional is a person, not a storefront — different
+    // table shape, different required fields, different route prefix.
+    const isProfessional = activeEvidence?.type === "new_professional_candidate";
+    const result = isProfessional
+      ? await publishProfessionalProfile(activeEvidence)
+      : await publishDiscoveredBusiness(activeEvidence, !!force);
     if ("duplicateWarning" in result) {
       // Not an error — status stays untouched, nothing published. The
       // dashboard shows this to the human and re-submits with force:true
