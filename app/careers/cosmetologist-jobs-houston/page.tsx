@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
 import { TradeRolePosting, type TradeRole } from "@/app/careers/components/TradeRolePosting";
 
 // Targets the salon half of the hiring intent: "hair salons hiring in Houston",
@@ -68,10 +66,6 @@ const ROLE: TradeRole = {
 
 export default function CosmetologistJobsHoustonPage() {
   return (
-    <>
-      <Navbar />
-      <TradeRolePosting role={ROLE} />
-      <Footer />
-    </>
+    <TradeRolePosting role={ROLE} />
   );
 }

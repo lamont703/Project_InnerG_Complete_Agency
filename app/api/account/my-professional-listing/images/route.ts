@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveOwnedProfessional } from "@/lib/account/resolve-owned-entity";
+import { assertNotImpersonating } from "@/lib/account/view-as";
 
 /**
  * Portfolio photo upload for a claimed barber or cosmetologist profile.
@@ -34,6 +35,13 @@ export async function POST(req: Request) {
   if (!resolved.link) {
     return NextResponse.json({ success: false, error: "No professional profile linked to this account." }, { status: 404 });
   }
+  // View As is read-only — an admin looking at a member's account must not be
+  // able to rewrite their record from it (lib/account/view-as.ts, property 2).
+  const readOnly = assertNotImpersonating(resolved);
+  if (readOnly) {
+    return NextResponse.json({ success: false, error: readOnly.error }, { status: readOnly.status });
+  }
+
 
   try {
     const formData = await req.formData();
@@ -98,6 +106,13 @@ export async function DELETE(req: Request) {
   if (!resolved.link) {
     return NextResponse.json({ success: false, error: "No professional profile linked to this account." }, { status: 404 });
   }
+  // View As is read-only — an admin looking at a member's account must not be
+  // able to rewrite their record from it (lib/account/view-as.ts, property 2).
+  const readOnly = assertNotImpersonating(resolved);
+  if (readOnly) {
+    return NextResponse.json({ success: false, error: readOnly.error }, { status: readOnly.status });
+  }
+
 
   try {
     const { index } = await req.json().catch(() => ({}));

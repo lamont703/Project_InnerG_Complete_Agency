@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getViewAsContext } from "@/lib/account/view-as";
 import {
   aggregateCampaigns,
   fetchAdEvents,
@@ -39,13 +40,23 @@ export default async function MyAdPerformancePage() {
     );
   }
 
+  // Campaigns are keyed to an auth user id, so under View As we key to the
+  // viewed-as member's. A member with no auth account (never signed in) can't
+  // own campaigns — show an empty list rather than falling back to the admin's
+  // own, which would present the admin's campaigns as if they were the
+  // member's.
+  const viewAs = await getViewAsContext();
+  const effectiveUserId = viewAs.viewingAs ? viewAs.viewingAs.userId : user.id;
+
   const admin = createAdminClient();
-  const { data: campaignRows } = await (admin as any)
-    .from("ad_campaigns")
-    .select("id, user_id, name, placement, creative, scope, target_states, target_cities, status, start_date, end_date")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .order("created_at", { ascending: false });
+  const { data: campaignRows } = effectiveUserId
+    ? await (admin as any)
+        .from("ad_campaigns")
+        .select("id, user_id, name, placement, creative, scope, target_states, target_cities, status, start_date, end_date")
+        .eq("user_id", effectiveUserId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+    : { data: [] };
 
   const campaigns = (campaignRows || []) as AdCampaign[];
   const events = campaigns.length ? await fetchAdEvents(admin as any) : [];

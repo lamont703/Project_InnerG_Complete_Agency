@@ -129,6 +129,7 @@ import { createServerClient } from "@/lib/supabase/server"
 import { FacebookSDK } from "@/components/providers/facebook-sdk"
 import { SiteNavigationTracker } from "@/components/layout/site-navigation-tracker"
 import { ScrollCTA } from "@/components/shared/scroll-cta"
+import { ViewAsBar } from "@/components/layout/view-as"
 
 export default async function RootLayout({
   children,
@@ -263,6 +264,12 @@ export default async function RootLayout({
 
           <Toaster position="top-right" richColors closeButton />
           <ScrollCTA />
+          {/* Admin-only, and renders nothing for everyone else. Lives in the
+              root layout so an active View As is impossible to lose track of —
+              it follows you onto pages that don't render the navbar. It's a
+              client component, so it costs the server nothing and can't affect
+              this layout's caching. */}
+          <ViewAsBar />
         </ThemeProvider>
       </body>
     </html>

@@ -9,6 +9,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { isMarkdownEligible } from "@/lib/public-routes"
+import { ADMIN_EMAILS } from "@/lib/admin-allowlist"
 
 /** Routes that require authentication */
 const PROTECTED_ROUTES = ["/select-portal", "/dashboard"]
@@ -39,8 +40,13 @@ const INTERNAL_TOOL_ROUTES = [
     "/shop-day-map",
     "/shop-day-connections",
     "/program-advisory-committee-kit",
+    // View As. The route handler re-checks admin status itself — this entry is
+    // defence in depth, not the boundary.
+    "/api/admin/view-as",
 ]
-const INTERNAL_TOOLS_ALLOWED_EMAIL = "lamont703@gmail.com"
+// Sourced from lib/admin-allowlist.ts so this and View As can never disagree
+// about who the admin is.
+const INTERNAL_TOOLS_ALLOWED_EMAIL = ADMIN_EMAILS[0]
 const INTERNAL_TOOLS_LOCK_ROUTE = "/internal-lock"
 
 /** Entity route prefixes served by app/api/llm/[entityType]/[slug]/route.ts */

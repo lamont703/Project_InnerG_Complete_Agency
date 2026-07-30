@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveMemberContext } from "@/lib/account/view-as";
 
 // Connection status for the signed-in member's GBP connection (drives the
 // Connect card UI). Never returns tokens.
@@ -9,17 +10,19 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ connected: false, authed: false });
 
+  // Read-only, so it resolves through resolveMemberContext(): with View As
+  // active the connect card on Manage My Listing shows the viewed-as member's
+  // Google connection rather than the admin's, which is the point of looking.
+  // The mutating routes in this folder (select, sync, business-type, callback)
+  // deliberately do NOT do this — see the guard in each.
+  const ctx = await resolveMemberContext();
+  if ("error" in ctx) return NextResponse.json({ connected: false, authed: true, member: false });
+
   const admin = createAdminClient();
-  const { data: member } = await admin
-    .from("community_members")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!member) return NextResponse.json({ connected: false, authed: true, member: false });
 
   const { data: conn } = await (admin.from("gbp_connections") as any)
     .select("google_account_email, locations, selected_location, status, last_synced_at")
-    .eq("community_member_id", (member as any).id)
+    .eq("community_member_id", ctx.memberId)
     .maybeSingle();
 
   if (!conn) return NextResponse.json({ connected: false, authed: true, member: true });

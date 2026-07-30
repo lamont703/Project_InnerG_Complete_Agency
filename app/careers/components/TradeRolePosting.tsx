@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Navbar } from "@/components/layout/navbar";
 import { ArrowLeft, ArrowRight, BadgeCheck, CheckCircle2, MapPin, Scissors, Search, Store, Users } from "lucide-react";
 
 /**
@@ -75,7 +76,13 @@ export function TradeRolePosting({ role }: { role: TradeRole }) {
   };
 
   return (
+    // The navbar renders inside this wrapper, not beside it, so the brand
+    // lockup picks up the light theme's --primary (the same blue as the
+    // homepage hero) instead of falling through to the dark :root cyan.
+    // Same arrangement the engineering role pages use.
     <main className="min-h-screen bg-background light text-foreground">
+      <Navbar />
+
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd) }}

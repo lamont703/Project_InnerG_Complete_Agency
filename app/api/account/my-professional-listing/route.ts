@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveOwnedProfessional } from "@/lib/account/resolve-owned-entity";
+import { assertNotImpersonating } from "@/lib/account/view-as";
 
 /**
  * Self-edit for a claimed barber or cosmetologist profile — the person-shaped
@@ -82,6 +83,13 @@ export async function PATCH(req: Request) {
   if (!resolved.link) {
     return NextResponse.json({ success: false, error: "No professional profile is linked to this account." }, { status: 404 });
   }
+  // View As is read-only — an admin looking at a member's account must not be
+  // able to rewrite their record from it (lib/account/view-as.ts, property 2).
+  const readOnly = assertNotImpersonating(resolved);
+  if (readOnly) {
+    return NextResponse.json({ success: false, error: readOnly.error }, { status: readOnly.status });
+  }
+
 
   const body = await req.json().catch(() => ({}));
   const update: Record<string, any> = {};
