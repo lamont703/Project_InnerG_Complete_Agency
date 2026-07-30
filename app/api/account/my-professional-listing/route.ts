@@ -37,6 +37,12 @@ const EDITABLE_FIELDS = [
   "is_actively_looking",
 ] as const;
 
+// Returned to the form but not writable here: portfolio_images has its own
+// upload/delete endpoint (my-professional-listing/images), exactly as
+// google_images does on the business route, and phone/slug are locked for the
+// reasons above.
+const READ_ONLY_FIELDS = ["id", "slug", "phone", "portfolio_images"] as const;
+
 // A profile with no name or metro area isn't findable, which defeats the point
 // of having one. Everything else is genuinely optional — a barber renting a
 // chair may have no address, no website and no Instagram.
@@ -51,7 +57,7 @@ export async function GET() {
 
   const admin = createAdminClient();
   const { data: entity, error } = await (admin.from(resolved.table as any) as any)
-    .select([...EDITABLE_FIELDS, "id", "slug", "phone"].join(", "))
+    .select([...EDITABLE_FIELDS, ...READ_ONLY_FIELDS].join(", "))
     .eq("id", resolved.link.entity_id)
     .maybeSingle();
 
@@ -115,7 +121,7 @@ export async function PATCH(req: Request) {
   const { data: saved, error } = await (admin.from(resolved.table as any) as any)
     .update(update)
     .eq("id", resolved.link.entity_id)
-    .select([...EDITABLE_FIELDS, "id", "slug", "phone"].join(", "))
+    .select([...EDITABLE_FIELDS, ...READ_ONLY_FIELDS].join(", "))
     .maybeSingle();
 
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });

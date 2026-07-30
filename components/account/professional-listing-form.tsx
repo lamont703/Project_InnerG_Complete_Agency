@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { BadgeCheck, Loader2, Save, Scissors, ShieldCheck } from "lucide-react";
+import { ImagePlus, Loader2, Save, Scissors, ShieldCheck, X } from "lucide-react";
 
 /**
  * Self-edit form for a claimed barber or cosmetologist profile.
@@ -36,7 +36,10 @@ interface ProfessionalListing {
   instagram_handle: string | null;
   desired_pay_structure: string | null;
   is_actively_looking: boolean | null;
+  portfolio_images: string[] | null;
 }
+
+const MAX_PHOTOS = 6;
 
 const LICENSE_STATES = [
   "Licensed — active",
@@ -67,6 +70,11 @@ export function ProfessionalListingForm({ onNotFound }: { onNotFound?: () => voi
   const [form, setForm] = useState<Partial<ProfessionalListing>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [busySlot, setBusySlot] = useState<number | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  // Which slot a picked file replaces — null means append.
+  const targetSlot = useRef<number | null>(null);
 
   useEffect(() => {
     fetch("/api/account/my-professional-listing", { credentials: "include" })
@@ -75,6 +83,7 @@ export function ProfessionalListingForm({ onNotFound }: { onNotFound?: () => voi
         if (d.success && d.data) {
           setListing(d.data);
           setForm(d.data);
+          setPhotos(Array.isArray(d.data.portfolio_images) ? d.data.portfolio_images : []);
         } else {
           onNotFound?.();
         }
@@ -85,6 +94,58 @@ export function ProfessionalListingForm({ onNotFound }: { onNotFound?: () => voi
   }, []);
 
   const set = (k: keyof ProfessionalListing, v: any) => setForm((f) => ({ ...f, [k]: v }));
+
+  const pickPhoto = (slot: number | null) => {
+    targetSlot.current = slot;
+    fileRef.current?.click();
+  };
+
+  const uploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // let the same file be re-picked later
+    if (!file) return;
+    const slot = targetSlot.current;
+    setBusySlot(slot ?? photos.length);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      if (slot != null) body.append("slotIndex", String(slot));
+      const res = await fetch("/api/account/my-professional-listing/images", {
+        method: "POST",
+        body,
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Upload failed.");
+      setPhotos(data.data.images);
+      toast.success("Photo added.");
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed.");
+    } finally {
+      setBusySlot(null);
+      targetSlot.current = null;
+    }
+  };
+
+  const removePhoto = async (index: number) => {
+    setBusySlot(index);
+    try {
+      const res = await fetch("/api/account/my-professional-listing/images", {
+        method: "DELETE",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ index }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Couldn't remove that photo.");
+      setPhotos(data.data.images);
+      toast.success("Photo removed.");
+    } catch (err: any) {
+      toast.error(err.message || "Couldn't remove that photo.");
+    } finally {
+      setBusySlot(null);
+    }
+  };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,11 +299,70 @@ export function ProfessionalListingForm({ onNotFound }: { onNotFound?: () => voi
         </div>
       </form>
 
-      <p className="mt-4 flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-400">
-        <BadgeCheck className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600" />
-        Photos aren&apos;t editable here yet — if you&apos;d like work added to your profile, send it to us and
-        we&apos;ll attach it.
-      </p>
+      {/* Portfolio. Sits after the form rather than inside it because each
+          upload saves immediately — there's no "unsaved photo" state to lose,
+          and it would be confusing for Save to appear to govern them. */}
+      <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <h2 className="text-lg font-black text-slate-900">Your work</h2>
+        <p className="mt-1 text-sm leading-relaxed text-slate-500">
+          Up to {MAX_PHOTOS} photos, shown first on your public profile — ahead of anything we found elsewhere. Owners
+          filling a chair look at these before they read anything else. Each photo saves as soon as you add it.
+        </p>
+
+        <input ref={fileRef} type="file" accept="image/*" onChange={uploadPhoto} className="hidden" />
+
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {Array.from({ length: MAX_PHOTOS }).map((_, i) => {
+            const url = photos[i];
+            const busy = busySlot === i;
+            return (
+              <div
+                key={i}
+                className="relative aspect-square overflow-hidden rounded-xl border-2 border-slate-100 bg-slate-50"
+              >
+                {url ? (
+                  <>
+                    {/* Supabase-hosted and already sized by the uploader, so a
+                        plain img avoids routing every portfolio shot through the
+                        image optimizer. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt={`Portfolio photo ${i + 1}`} className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(i)}
+                      disabled={busy}
+                      aria-label={`Remove photo ${i + 1}`}
+                      className="absolute right-1.5 top-1.5 rounded-lg bg-white/90 p-1 text-slate-600 shadow-sm transition-colors hover:text-red-600 disabled:opacity-50"
+                    >
+                      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => pickPhoto(i)}
+                      disabled={busy}
+                      className="absolute inset-x-1.5 bottom-1.5 rounded-lg bg-white/90 py-1 text-[10px] font-black uppercase tracking-widest text-slate-700 shadow-sm hover:text-indigo-600 disabled:opacity-50"
+                    >
+                      Replace
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => pickPhoto(null)}
+                    disabled={busy || photos.length >= MAX_PHOTOS}
+                    className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-slate-400 transition-colors hover:text-indigo-600 disabled:opacity-50"
+                  >
+                    {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                      {busy ? "Uploading" : "Add photo"}
+                    </span>
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
