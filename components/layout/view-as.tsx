@@ -160,8 +160,17 @@ export function ViewAsBar() {
   )
 }
 
-/** The member picker, opened from the account menu. */
-function ViewAsPicker({
+/**
+ * The member picker.
+ *
+ * Deliberately NOT owned by ViewAsMenuItem. The menu item lives inside the
+ * navbar's `{isAccountOpen && …}` / `{isMobileOpen && …}` blocks, and opening the
+ * picker closes that menu — which unmounts anything rendered in there along with
+ * its state. So the navbar owns the open/closed state and renders this as a
+ * sibling of <header>, where it also gets its own stacking context above the
+ * fixed navbar and the View As bar.
+ */
+export function ViewAsPicker({
   members,
   activeMemberId,
   onClose,
@@ -279,47 +288,31 @@ function ViewAsPicker({
 /**
  * Account-menu entry. Renders nothing for non-admins, so it can be dropped into
  * the shared navbar unconditionally.
+ *
+ * Stateless on purpose — see the note on ViewAsPicker. It only reports the click;
+ * the navbar decides to open the picker and to close its own menu.
  */
 export function ViewAsMenuItem({
-  members,
-  activeMemberId,
   isAdmin,
-  onOpen,
+  onClick,
   className,
 }: {
-  members: ViewAsMemberSummary[]
-  activeMemberId: string | null
   isAdmin: boolean
-  /** Lets the navbar close its dropdown when the modal opens. */
-  onOpen?: () => void
+  onClick: () => void
   className?: string
 }) {
-  const [open, setOpen] = useState(false)
-
   if (!isAdmin) return null
 
   return (
-    <>
-      <button
-        onClick={() => {
-          setOpen(true)
-          onOpen?.()
-        }}
-        className={
-          className ||
-          "flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 hover:text-foreground"
-        }
-      >
-        <Eye className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-        View As: Member Select
-      </button>
-      {open && (
-        <ViewAsPicker
-          members={members}
-          activeMemberId={activeMemberId}
-          onClose={() => setOpen(false)}
-        />
-      )}
-    </>
+    <button
+      onClick={onClick}
+      className={
+        className ||
+        "flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 hover:text-foreground"
+      }
+    >
+      <Eye className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+      View As: Member Select
+    </button>
   )
 }

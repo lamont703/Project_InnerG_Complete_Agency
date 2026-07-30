@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { trackNavClick, trackCTAClick } from "@/lib/analytics"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { LOGO_LOCKUP } from "@/lib/brand";
-import { ViewAsMenuItem, useViewAs } from "@/components/layout/view-as";
+import { ViewAsMenuItem, ViewAsPicker, useViewAs } from "@/components/layout/view-as";
 
 const navLinks = [
   { label: "Market Insights", href: "/insights" },
@@ -105,6 +105,10 @@ export function Navbar() {
   // reflects the real session; View As changes what's displayed and which member
   // the server-rendered account pages resolve to, not who is logged in.
   const viewAs = useViewAs()
+  // Owned here rather than inside ViewAsMenuItem: the item is rendered inside the
+  // account/mobile menu blocks, and opening the picker closes those — which would
+  // unmount the item and its state before the picker could render.
+  const [isViewAsOpen, setIsViewAsOpen] = useState(false)
   const accountEmail = viewAs.viewingAs?.email ?? null
   const effectiveLabel = viewAs.viewingAs
     ? viewAs.effectiveAccount?.label ?? viewAs.viewingAs.name
@@ -141,6 +145,7 @@ export function Navbar() {
   }
 
   return (
+    <>
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled
         ? "glass-panel-strong py-3"
@@ -297,9 +302,10 @@ export function Navbar() {
                     </div>
                     <ViewAsMenuItem
                       isAdmin={viewAs.isAdmin}
-                      members={viewAs.members}
-                      activeMemberId={viewAs.viewingAs?.memberId ?? null}
-                      onOpen={() => setIsAccountOpen(false)}
+                      onClick={() => {
+                        setIsViewAsOpen(true)
+                        setIsAccountOpen(false)
+                      }}
                       className="flex w-full items-center gap-2 border-t border-slate-100 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 hover:text-foreground"
                     />
                     <div className="pt-1 border-t border-slate-100">
@@ -422,9 +428,10 @@ export function Navbar() {
                 </Link>
                 <ViewAsMenuItem
                   isAdmin={viewAs.isAdmin}
-                  members={viewAs.members}
-                  activeMemberId={viewAs.viewingAs?.memberId ?? null}
-                  onOpen={() => setIsMobileOpen(false)}
+                  onClick={() => {
+                    setIsViewAsOpen(true)
+                    setIsMobileOpen(false)
+                  }}
                   className="flex w-full items-center gap-2 rounded-lg px-4 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
                 />
               </div>
@@ -466,5 +473,14 @@ export function Navbar() {
         </div>
       )}
     </header>
+
+    {isViewAsOpen && viewAs.isAdmin && (
+      <ViewAsPicker
+        members={viewAs.members}
+        activeMemberId={viewAs.viewingAs?.memberId ?? null}
+        onClose={() => setIsViewAsOpen(false)}
+      />
+    )}
+    </>
   )
 }
