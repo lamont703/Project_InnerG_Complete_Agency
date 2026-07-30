@@ -121,6 +121,35 @@ export const SEO_KEYWORD_CATALOG: KeywordCategory[] = [
     ],
   },
   {
+    // Verified against Google Ads Keyword Planner (US, Jul 2026):
+    // "google business profile optimization" 6,600/mo, "google my business
+    // optimization" 720, "local seo audit" 320, "how to rank higher on google
+    // maps" 210, "google business profile audit" 140. By contrast the
+    // trade-named variants are near-zero — "barber seo" 10/mo, "barbershop seo"
+    // and "seo for salons" no data at all — which is why the page targets the
+    // generic head term and carries the niche in the body copy.
+    title: "Local SEO Service (Google Business Profile)",
+    intent: "service",
+    pages: [
+      {
+        path: "/google-business-profile-optimization",
+        label: "Google Business Profile Optimization",
+        keywords: [
+          "google business profile optimization",
+          "google my business optimization",
+          "google business profile audit",
+          "local seo audit",
+          "how to rank higher on google maps",
+          "gmb optimization service",
+          "salon seo",
+          "hair salon seo",
+          "barbershop marketing",
+          "hair salon marketing",
+        ],
+      },
+    ],
+  },
+  {
     title: "Directory Hubs & Search",
     intent: "service",
     pages: [

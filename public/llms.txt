@@ -147,6 +147,22 @@ outside these four.
   tax, and why Texas doesn't actually require an LLC to rent a booth. Sourced from IRS
   Publication 4902.
 
+## For shop, salon, school and store owners
+
+- [Google Business Profile Optimization](/google-business-profile-optimization): a free,
+  read-only audit of a business's Google Business Profile, scored across four areas
+  (Foundation, Discovery, Engagement, Trust). Checks all available profile attributes,
+  primary and secondary categories, services, description, hours, photos, review reply rate,
+  verification standing, and whether Google's own record has drifted from the owner's. Also
+  reports the actual search queries that surfaced the listing, split into branded vs
+  discovery. Covers barbershops, hair and beauty salons, barber and cosmetology schools,
+  barber and beauty supply stores, and individual barbers, cosmetologists and stylists.
+  Audit is free; implementation is $397 one-time per location (waived for the first 5
+  businesses); optional monitoring is $97/month. No business names are changed and no
+  keywords are stuffed into descriptions — both risk Google suspension.
+- [Claim your listing](/membership): free community membership, required before connecting
+  a Google Business Profile or editing a listing.
+
 ## Directories
 
 - Barbershops: `/shop/{slug}`
