@@ -445,3 +445,112 @@ export async function writePlaceActionLink(args: {
 
   return { ok: true, snapshotId: snap.id, before, after };
 }
+
+
+/**
+ * Add a photo to a listing from a publicly reachable URL.
+ *
+ * Google fetches the bytes itself, which is why the caller uploads to our own
+ * storage first — streaming the file through this server to Google as well
+ * would double the transfer for no gain, and Vercel caps request bodies at
+ * around 4.5MB regardless.
+ *
+ * The snapshot records the media list before the upload. A revert here means
+ * deleting the item that was added, not restoring the list, because the other
+ * photos were never touched.
+ */
+export async function writeMediaFromUrl(args: {
+  token: string;
+  accountName: string;
+  locationName: string;
+  sourceUrl: string;
+  category: string;
+  memberId?: string | null;
+  note?: string;
+}): Promise<WriteResult & { mediaName?: string }> {
+  const { token, accountName, locationName, sourceUrl, category, memberId, note } = args;
+
+  if (!/^https:\/\//i.test(sourceUrl)) {
+    return { ok: false, error: "Google can only fetch photos over https." };
+  }
+
+  const parent = `${accountName}/${locationName}`;
+  const listUrl = `${V4}/${parent}/media?pageSize=1`;
+  const beforeRes = await gbpFetch(listUrl, token);
+  const before = { totalMediaItemCount: beforeRes.ok ? beforeRes.body?.totalMediaItemCount ?? null : null };
+
+  const admin = createAdminClient();
+  const { data: snap, error: snapErr } = await (admin.from("gbp_write_snapshots") as any)
+    .insert({
+      community_member_id: memberId ?? null,
+      location_name: locationName,
+      surface: "media",
+      before_state: before,
+      applied_patch: { sourceUrl, category },
+      status: "applied",
+      note: note ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (snapErr || !snap?.id) {
+    return { ok: false, error: `snapshot not saved, write aborted: ${snapErr?.message || "unknown"}` };
+  }
+
+  const res = await gbpFetch(`${V4}/${parent}/media`, token, {
+    method: "POST",
+    body: JSON.stringify({
+      mediaFormat: "PHOTO",
+      locationAssociation: { category },
+      sourceUrl,
+    }),
+  });
+
+  if (!res.ok) {
+    await (admin.from("gbp_write_snapshots") as any)
+      .update({ status: "failed", note: `${note ? note + " — " : ""}${res.body?.error?.message || res.status}` })
+      .eq("id", snap.id);
+    return { ok: false, snapshotId: snap.id, before, error: `upload failed (${res.status}): ${res.body?.error?.message || ""}` };
+  }
+
+  await (admin.from("gbp_write_snapshots") as any)
+    .update({ after_state: { mediaName: res.body?.name ?? null, category } })
+    .eq("id", snap.id);
+
+  return { ok: true, snapshotId: snap.id, before, after: res.body, mediaName: res.body?.name };
+}
+
+/** Remove a photo we added. */
+export async function deleteMedia(args: {
+  token: string;
+  mediaName: string;
+  locationName: string;
+  memberId?: string | null;
+}): Promise<WriteResult> {
+  const { token, mediaName, locationName, memberId } = args;
+
+  const admin = createAdminClient();
+  const { data: snap } = await (admin.from("gbp_write_snapshots") as any)
+    .insert({
+      community_member_id: memberId ?? null,
+      location_name: locationName,
+      surface: "media",
+      before_state: { mediaName },
+      applied_patch: { action: "delete", mediaName },
+      status: "applied",
+      note: "owner removed a photo",
+    })
+    .select("id")
+    .single();
+
+  const res = await gbpFetch(`${V4}/${mediaName}`, token, { method: "DELETE" });
+  if (!res.ok) {
+    if (snap?.id) {
+      await (admin.from("gbp_write_snapshots") as any)
+        .update({ status: "failed", note: res.body?.error?.message || String(res.status) })
+        .eq("id", snap.id);
+    }
+    return { ok: false, snapshotId: snap?.id, error: `delete failed (${res.status}): ${res.body?.error?.message || ""}` };
+  }
+  return { ok: true, snapshotId: snap?.id };
+}

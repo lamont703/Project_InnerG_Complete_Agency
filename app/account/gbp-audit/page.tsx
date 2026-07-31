@@ -425,6 +425,20 @@ export default async function MyGbpAuditPage() {
         </div>
       )}
 
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+        <h3 className="font-black">Check your photo coverage</h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+          Not how many photos you have — which kinds. Most listings have no picture of the inside of
+          the shop or of the people working there.
+        </p>
+        <Link
+          href="/account/gbp-photos"
+          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Start <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+
       <div className="mt-8 rounded-2xl border-2 border-primary/30 bg-primary/5 p-5">
         <h3 className="font-black">Want us to do the work?</h3>
         <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
