@@ -73,10 +73,20 @@ const nextConfig = {
     "puppeteer-core",
   ],
 
+  // Externalizing alone is not enough. Both routes reach the package through a
+  // DYNAMIC import inside a `if (process.env.VERCEL)` branch, and Next's output
+  // file tracer follows static imports — it cannot see through that, so the
+  // 66MB bin/ directory (chromium.br and friends) never ships and the function
+  // fails with "The input directory ... does not exist". Name it explicitly.
+  outputFileTracingIncludes: {
+    "/api/pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
+    "/api/events/extract": ["./node_modules/@sparticuz/chromium/bin/**"],
+  },
+
   // The full `puppeteer` package bundles its own ~170MB Chromium download and
   // is only used on the local branch of the launcher (see app/api/pdf). Tracing
-  // it into a serverless function would push it past Vercel's size limit for no
-  // benefit — on Vercel the @sparticuz build is the one that runs.
+  // it in alongside the 66MB above would blow Vercel's function size limit for
+  // no benefit — on Vercel the @sparticuz build is the one that runs.
   outputFileTracingExcludes: {
     "/api/pdf": ["./node_modules/puppeteer/**"],
     "/api/events/extract": ["./node_modules/puppeteer/**"],
