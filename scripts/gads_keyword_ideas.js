@@ -7,12 +7,13 @@
  * Usage: node scripts/gads_keyword_ideas.js
  */
 require('dotenv').config({ path: '.env.local' });
+const { internalEnv } = require('./_google_internal_oauth');
 const { GoogleAdsApi, enums } = require('google-ads-api');
 
 const {
   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_ADS_DEVELOPER_TOKEN,
   GOOGLE_ADS_CUSTOMER_ID, GOOGLE_ADS_LOGIN_CUSTOMER_ID, GOOGLE_ADS_REFRESH_TOKEN,
-} = process.env;
+} = internalEnv();
 
 const LANGUAGE_ENGLISH = 'languageConstants/1000';
 const GEO_US = 'geoTargetConstants/2840';

@@ -92,16 +92,43 @@ function inline(node: AnyNode, ctx: Ctx): string {
       const t = kids().trim();
       return t ? ` ${t} ` : "";
     }
+    // A span is inline by default — "Shear<span>Query</span>" must stay
+    // "ShearQuery" — but Tailwind's `block`/`sm:block` turns one into its own
+    // visual line, which is a common way to split a headline. Those need the
+    // same separator as the block tags above, or the twin renders
+    // "Google Business Profile Optimizationfor barbershops". Keyed off the
+    // class because the display value isn't knowable without the stylesheet.
+    case "span": {
+      const t = kids().trim();
+      if (!t) return "";
+      const cls = $(el).attr("class") || "";
+      return /(?:^|\s|:)block(?:\s|$)/.test(cls) ? ` ${t} ` : t;
+    }
     default:
       return kids();
   }
 }
 
-/** Join inline children, then normalize the separator artifacts that creates. */
+/**
+ * Join inline children, then normalize the separator artifacts that creates.
+ *
+ * The separator is chosen by looking at whether real text sits between the
+ * elements. Prose ("the <strong>bold</strong> word") interleaves text nodes
+ * with elements, and inserting spaces there would mangle it. A row of discrete
+ * items — badge spans in a flex container, a <time> next to a status pill —
+ * has element children and no text between them, and concatenating those
+ * produces "barbercosmetologyesthetician". Same rule covers both.
+ */
 function inlineAll(children: AnyNode[], ctx: Ctx): string {
+  const hasInterleavedText = children.some(
+    (c) => c.type === "text" && String((c as any).data || "").trim()
+  );
+  const elementCount = children.filter((c) => c.type === "tag").length;
+  const sep = !hasInterleavedText && elementCount > 1 ? " " : "";
+
   return children
     .map((c) => inline(c, ctx))
-    .join("")
+    .join(sep)
     .replace(/[ \t]+/g, " ")
     .replace(/ ([,.;:!?])/g, "$1")
     .trim();

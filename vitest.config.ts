@@ -24,7 +24,10 @@ export default defineConfig({
     },
     resolve: {
         alias: {
-            "@": path.resolve(__dirname, "./")
+            "@": path.resolve(__dirname, "./"),
+            // See test-stubs/server-only.ts — the real package throws at
+            // transform time, which would make any server module untestable.
+            "server-only": path.resolve(__dirname, "./test-stubs/server-only.ts")
         }
     }
 })

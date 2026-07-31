@@ -12,7 +12,11 @@ export async function GET(req: Request) {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.redirect(`${origin}/login?redirect=/account/manage-listing`);
+    // Send them back here after login, not to manage-listing — they clicked
+    // "connect Google" and should land in the OAuth flow, not a dashboard.
+    return NextResponse.redirect(
+      `${origin}/login?redirect=${encodeURIComponent("/api/google-business/start")}`
+    );
   }
 
   // Without the OAuth credentials, generateAuthUrl still happily builds a URL —

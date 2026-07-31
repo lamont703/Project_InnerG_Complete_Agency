@@ -4,6 +4,7 @@ import { google } from "googleapis";
 import { GoogleGenAI } from "@google/genai";
 import * as cheerio from "cheerio";
 import { upsertFinding, resolveStaleFindings, fetchAgentHistory } from "@/lib/agent-directives";
+import { internalEnv } from "@/lib/google-internal-oauth"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -244,7 +245,7 @@ export async function POST() {
   // and inserted regardless of this write's outcome.
   await supabase.from("sentinel_sweep_state").update({ next_offset: nextOffset, updated_at: new Date().toISOString() }).eq("id", 1);
 
-  const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+  const oauth2Client = new google.auth.OAuth2(internalEnv().GOOGLE_CLIENT_ID, internalEnv().GOOGLE_CLIENT_SECRET);
   oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_GSC_REFRESH_TOKEN });
   const searchconsole = google.searchconsole({ version: "v1", auth: oauth2Client });
 

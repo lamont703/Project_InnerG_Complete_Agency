@@ -65,6 +65,10 @@ const config: RenewalConfig = {
     { href: "/how-to-get-a-barber-license-in-texas", label: "How to get a barber license" },
     { href: "/texas-barber-exam-intelligence-prep", label: "Barber written exam prep" },
     { href: "/texas-barber-practical-exam-kit-list", label: "Practical exam kit list" },
+    // The fees, CE hours and deadlines above are point-in-time facts. When TDLR
+    // moves one, the dated entry lands on the update log before this page is
+    // rewritten — so send readers somewhere that is definitionally current.
+    { href: "/texas-tdlr-updates", label: "Latest TDLR rule changes" },
   ],
 }
 

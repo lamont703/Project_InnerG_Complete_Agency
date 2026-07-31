@@ -12,6 +12,56 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const BUSINESS_DISCOVERY_AGENT = "Website Business Discovery Agent";
 const MARKET_EXPANSION_READINESS_AGENT = "Market Expansion Readiness Agent";
 const GOOGLE_ADS_AGENT = "Google Ads Agent";
+const TDLR_BULLETIN_AGENT = "TDLR Bulletin Monitor";
+
+/**
+ * Approving a TDLR bulletin publishes a dated entry to /texas-tdlr-updates.
+ *
+ * Scope is deliberately narrow. This writes typed fields to tdlr_updates and
+ * nothing else — it does NOT touch the licensing guides, because those are
+ * hardcoded prose about how to keep a license and a human should write them.
+ * The directive names which guides went stale; updating them stays a manual
+ * job. What an agent can safely do on approval is post a dated, sourced record
+ * that a change happened.
+ */
+async function publishTdlrUpdate(directiveId: string, evidence: any) {
+  const x = evidence?.extracted;
+  if (!x?.headline || !x?.summary) {
+    return { error: "directive evidence is missing headline/summary — nothing to publish" };
+  }
+
+  // Effective dates come from a model reading an email. Anything unparseable
+  // becomes null rather than a wrong date on a page about legal deadlines.
+  let effective: string | null = null;
+  if (typeof x.effective_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(x.effective_date)) {
+    const d = new Date(`${x.effective_date}T00:00:00Z`);
+    if (!Number.isNaN(d.getTime())) effective = x.effective_date;
+  }
+
+  const { data, error } = await supabase
+    .from("tdlr_updates")
+    .insert({
+      slug: buildSlug(x.headline, "tdlr", directiveId, 6),
+      headline: String(x.headline).slice(0, 300),
+      summary: String(x.summary).slice(0, 2000),
+      what_changed: x.what_changed ? String(x.what_changed).slice(0, 2000) : null,
+      effective_date: effective,
+      license_types: Array.isArray(x.license_types) ? x.license_types.slice(0, 8) : [],
+      source_urls: Array.isArray(evidence?.source_urls) ? evidence.source_urls.slice(0, 5) : [],
+      directive_id: directiveId,
+    })
+    .select("id, slug")
+    .single();
+
+  if (error) return { error: error.message };
+
+  // Rule changes are the definition of time-sensitive — a licensee searching
+  // this week is the whole audience. Push it for immediate crawl rather than
+  // waiting for a natural recrawl.
+  await pingIndexNow(["/texas-tdlr-updates"]);
+
+  return { id: data.id, slug: data.slug };
+}
 
 // Business Discovery Agent doesn't insert into the live tables at
 // discovery time (unlike the other agents, which only ever recommend
@@ -466,6 +516,16 @@ export async function POST(request: Request) {
 
   if (status === "approved" && directive.agent_name === MARKET_EXPANSION_READINESS_AGENT && directive.evidence?.type === "content_page_ready" && directive.evidence?.city) {
     await resolveSourceExpansionDirective(directive.evidence.city);
+  }
+
+  if (status === "approved" && directive.agent_name === TDLR_BULLETIN_AGENT) {
+    const published = await publishTdlrUpdate(id, directive.cleaned_evidence || directive.evidence);
+    if (published.error) {
+      // Don't mark it approved if publishing failed — otherwise the directive
+      // reads as handled while the timeline never got the entry, and nobody
+      // finds out until someone notices the page is missing an update.
+      return NextResponse.json({ error: `Could not publish update: ${published.error}` }, { status: 500 });
+    }
   }
 
   const { error } = await supabase.from("agent_directives").update(update).eq("id", id);

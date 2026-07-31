@@ -10,10 +10,11 @@
 // can't be reused here. Mirrors scripts/google_ads_oauth_setup.js exactly,
 // same already-registered redirect URI, different scope.
 require("dotenv").config({ path: ".env.local" });
+const { internalEnv } = require('./_google_internal_oauth');
 const readline = require("readline");
 
-const clientId = process.env.GOOGLE_CLIENT_ID;
-const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const clientId = internalEnv().GOOGLE_CLIENT_ID;
+const clientSecret = internalEnv().GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI = "http://localhost:3000/youtube/callback";
 
 if (!clientId || !clientSecret) {

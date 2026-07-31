@@ -6,11 +6,12 @@
  * Usage: node scripts/gsc_landing_pages.js
  */
 require('dotenv').config({ path: '.env.local' });
+const { internalEnv } = require('./_google_internal_oauth');
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
 
-const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_GSC_REFRESH_TOKEN, GSC_SITE_URL } = process.env;
+const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_GSC_REFRESH_TOKEN, GSC_SITE_URL } = internalEnv();
 const OUT_DIR = path.join(__dirname, '..', 'scratchpad_reports');
 
 // Bucket a path into a page-type section for the aggregate view.

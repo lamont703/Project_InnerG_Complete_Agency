@@ -12,8 +12,14 @@ envContent.split('\n').forEach(line => {
   }
 });
 
-const CLIENT_ID = env['GOOGLE_CLIENT_ID'];
-const CLIENT_SECRET = env['GOOGLE_CLIENT_SECRET'];
+// Internal automation client, not the customer-facing app's — this flow asks
+// for sensitive YouTube scopes, which must not be attributed to the client that
+// shows barbershop owners a consent screen. See lib/google-internal-oauth.ts.
+const CLIENT_ID = env['GOOGLE_INTERNAL_CLIENT_ID'] || env['GOOGLE_CLIENT_ID'];
+const CLIENT_SECRET = env['GOOGLE_INTERNAL_CLIENT_SECRET'] || env['GOOGLE_CLIENT_SECRET'];
+if (!env['GOOGLE_INTERNAL_CLIENT_ID']) {
+  console.warn("[youtube-oauth] GOOGLE_INTERNAL_CLIENT_ID not set — using the app's client.");
+}
 
 // The exact redirect URI configured in Google Cloud
 const REDIRECT_URI = 'https://agency.innergcomplete.com/auth/google/callback';

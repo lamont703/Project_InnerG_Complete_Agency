@@ -15,6 +15,10 @@ const navLinks = [
   { label: "Market Insights", href: "/insights" },
   { label: "AI Lab", href: "/ai-solutions" },
   { label: "Membership", href: "/membership" },
+  // Points at the free audit rather than the service page: a nav click is cold,
+  // and the audit gives a shop owner their own score before asking for anything.
+  // Pricing is one click on from there.
+  { label: "Google Profile", href: "/google-business-profile-audit" },
   { label: "Advertise", href: "/media-kit" },
 ]
 

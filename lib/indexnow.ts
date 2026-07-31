@@ -27,6 +27,17 @@ export function toAbsoluteUrl(pathOrUrl: string): string {
 export async function pingIndexNow(urls: string[]): Promise<boolean> {
   const urlList = [...new Set(urls.filter(Boolean).map(toAbsoluteUrl))];
   if (urlList.length === 0) return false;
+
+  // Paths are absolutized onto the PRODUCTION host regardless of where this
+  // runs, so a publish performed from a dev server would tell Bing to crawl a
+  // production URL that may not exist there yet — a self-inflicted 404 in the
+  // index. Ping only from production; set INDEXNOW_FORCE=1 to override for a
+  // deliberate backfill.
+  if (process.env.NODE_ENV !== "production" && !process.env.INDEXNOW_FORCE) {
+    console.log(`[IndexNow] skipped (non-production): ${urlList.join(", ")}`);
+    return false;
+  }
+
   try {
     const res = await fetch(ENDPOINT, {
       method: "POST",
