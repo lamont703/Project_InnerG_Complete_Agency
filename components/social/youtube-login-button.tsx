@@ -30,7 +30,32 @@ export const YouTubeLoginButton: React.FC<YouTubeLoginButtonProps> = ({
             return
         }
         
-        const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        // Internal-tools web client, NOT the customer-facing app client.
+        //
+        // This admin connector asks for youtube.force-ssl — a sensitive write
+        // scope — and none of these YouTube scopes are declared on the app
+        // client's Data Access page. Requesting them through the same client
+        // that shows barbershop owners a business.manage consent screen is what
+        // makes that app look, to Google, like it reaches for a user's whole
+        // account. Keeping them apart leaves the app client with exactly the
+        // three non-sensitive scopes it declares.
+        //
+        // Must be a WEB client (this is a browser redirect to an https
+        // callback), so it's a different client from the Desktop one used by
+        // the CLI scripts — see lib/google-internal-oauth.ts.
+        //
+        // The exchange (supabase/functions/complete-youtube-auth) and the
+        // refresh (connector-sync) must use the SAME client, or the token
+        // fails with unauthorized_client. All three flip together.
+        const clientId =
+            process.env.NEXT_PUBLIC_GOOGLE_INTERNAL_WEB_CLIENT_ID ||
+            process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        if (!process.env.NEXT_PUBLIC_GOOGLE_INTERNAL_WEB_CLIENT_ID) {
+            console.warn(
+                "[youtube-connect] NEXT_PUBLIC_GOOGLE_INTERNAL_WEB_CLIENT_ID is not set — " +
+                "requesting sensitive YouTube scopes through the customer-facing app client."
+            )
+        }
         const redirectUri = typeof window !== "undefined" && window.location.origin.includes("localhost")
             ? "http://localhost:3000/youtube/callback"
             : "https://agency.innergcomplete.com/youtube/callback"
