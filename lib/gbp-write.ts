@@ -173,3 +173,126 @@ export async function revertAttributes(args: {
 
   return { ok: true, snapshotId, after, couldNotClear: couldNotClear.length ? couldNotClear : undefined };
 }
+
+
+/** Read only the fields we're about to change, so the snapshot is scoped. */
+export async function readLocationFields(token: string, locationName: string, readMask: string) {
+  const r = await gbpFetch(`${BIZ_INFO}/${locationName}?readMask=${encodeURIComponent(readMask)}`, token);
+  if (!r.ok) throw new Error(`read location failed (${r.status}): ${r.body?.error?.message || ""}`);
+  return r.body;
+}
+
+/**
+ * Patch fields on a location, recording an undo point first.
+ *
+ * The danger here is different from attributes. Fields like serviceItems and
+ * categories are REPLACED wholesale by a patch, not merged — sending two
+ * services to a listing that has forty-four deletes forty-two of them, silently
+ * and instantly. Callers must pass the complete intended value, and the merge
+ * helpers exist so they don't have to assemble it by hand.
+ *
+ * This function therefore refuses an empty updateMask and snapshots exactly the
+ * fields being replaced, so a mistake is recoverable rather than final.
+ */
+export async function writeLocationFields(args: {
+  token: string;
+  locationName: string;
+  /** Comma-separated field paths, e.g. "serviceItems" or "categories". */
+  updateMask: string;
+  /** Complete replacement value for those fields. */
+  patch: Record<string, unknown>;
+  memberId?: string | null;
+  note?: string;
+}): Promise<WriteResult> {
+  const { token, locationName, updateMask, patch, memberId, note } = args;
+
+  if (!updateMask.trim()) {
+    return { ok: false, error: "Refusing to patch a location with an empty updateMask." };
+  }
+
+  let before: any;
+  try {
+    before = await readLocationFields(token, locationName, updateMask);
+  } catch (e: any) {
+    return { ok: false, error: `could not snapshot before writing: ${e.message}` };
+  }
+
+  const admin = createAdminClient();
+  const { data: snap, error: snapErr } = await (admin.from("gbp_write_snapshots") as any)
+    .insert({
+      community_member_id: memberId ?? null,
+      location_name: locationName,
+      surface: "location",
+      before_state: before,
+      applied_patch: { updateMask, body: patch },
+      status: "applied",
+      note: note ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (snapErr || !snap?.id) {
+    return { ok: false, error: `snapshot not saved, write aborted: ${snapErr?.message || "unknown"}` };
+  }
+
+  const res = await gbpFetch(
+    `${BIZ_INFO}/${locationName}?updateMask=${encodeURIComponent(updateMask)}`,
+    token,
+    { method: "PATCH", body: JSON.stringify(patch) }
+  );
+
+  if (!res.ok) {
+    await (admin.from("gbp_write_snapshots") as any)
+      .update({ status: "failed", note: `${note ? note + " — " : ""}${res.body?.error?.message || res.status}` })
+      .eq("id", snap.id);
+    return { ok: false, snapshotId: snap.id, before, error: `write failed (${res.status}): ${res.body?.error?.message || ""}` };
+  }
+
+  const after = await readLocationFields(token, locationName, updateMask).catch(() => null);
+  await (admin.from("gbp_write_snapshots") as any).update({ after_state: after }).eq("id", snap.id);
+
+  return { ok: true, snapshotId: snap.id, before, after };
+}
+
+/**
+ * Restore location fields from a snapshot.
+ *
+ * Straightforward in a way the attribute revert isn't: because these fields are
+ * replaced wholesale, writing the recorded before-state back is a complete undo.
+ */
+export async function revertLocationFields(args: { token: string; snapshotId: string }): Promise<WriteResult> {
+  const { token, snapshotId } = args;
+  const admin = createAdminClient();
+
+  const { data: snap, error } = await (admin.from("gbp_write_snapshots") as any)
+    .select("id, location_name, surface, before_state, applied_patch")
+    .eq("id", snapshotId)
+    .maybeSingle();
+
+  if (error || !snap) return { ok: false, error: "snapshot not found" };
+  if (snap.surface !== "location") return { ok: false, error: `revert not implemented for surface "${snap.surface}"` };
+
+  const updateMask = String(snap.applied_patch?.updateMask || "");
+  if (!updateMask) return { ok: false, error: "snapshot has no updateMask" };
+
+  const body: Record<string, unknown> = { name: snap.location_name };
+  for (const field of updateMask.split(",").map((f) => f.trim()).filter(Boolean)) {
+    // A field absent from before_state was unset; send an empty value so the
+    // restore clears it rather than leaving what we added in place.
+    body[field] = snap.before_state?.[field] ?? (field === "serviceItems" ? [] : null);
+  }
+
+  const res = await gbpFetch(
+    `${BIZ_INFO}/${snap.location_name}?updateMask=${encodeURIComponent(updateMask)}`,
+    token,
+    { method: "PATCH", body: JSON.stringify(body) }
+  );
+  if (!res.ok) return { ok: false, error: `revert failed (${res.status}): ${res.body?.error?.message || ""}` };
+
+  const after = await readLocationFields(token, snap.location_name, updateMask).catch(() => null);
+  await (admin.from("gbp_write_snapshots") as any)
+    .update({ status: "reverted", reverted_at: new Date().toISOString(), after_state: after })
+    .eq("id", snapshotId);
+
+  return { ok: true, snapshotId, after };
+}
