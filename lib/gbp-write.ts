@@ -296,3 +296,74 @@ export async function revertLocationFields(args: { token: string; snapshotId: st
 
   return { ok: true, snapshotId, after };
 }
+
+
+const V4 = "https://mybusiness.googleapis.com/v4";
+
+/**
+ * Publish a reply to a Google review.
+ *
+ * Different in kind from the other writes here: this is public, it speaks in
+ * the owner's voice, and a customer will read it. Nothing should reach this
+ * function that the owner hasn't read and approved — the API layer is
+ * responsible for that, and the change-request row records it.
+ *
+ * The snapshot captures any existing reply so an edit can be undone. Usually
+ * there isn't one, which the snapshot records as null rather than as an empty
+ * string, so a revert can tell "there was no reply" from "the reply was blank".
+ */
+export async function writeReviewReply(args: {
+  token: string;
+  /** Full v4 resource name: accounts/{a}/locations/{l}/reviews/{r} */
+  reviewName: string;
+  comment: string;
+  locationName: string;
+  memberId?: string | null;
+  note?: string;
+}): Promise<WriteResult> {
+  const { token, reviewName, comment, locationName, memberId, note } = args;
+
+  const text = (comment || "").trim();
+  if (!text) return { ok: false, error: "Refusing to publish an empty reply." };
+  // Google's own cap. Failing here is a clearer error than a 400 from the API.
+  if (text.length > 4096) return { ok: false, error: "Reply is longer than Google allows (4096 characters)." };
+
+  const existing = await gbpFetch(`${V4}/${reviewName}`, token);
+  const before = existing.ok ? { reviewReply: existing.body?.reviewReply ?? null } : { reviewReply: null };
+
+  const admin = createAdminClient();
+  const { data: snap, error: snapErr } = await (admin.from("gbp_write_snapshots") as any)
+    .insert({
+      community_member_id: memberId ?? null,
+      location_name: locationName,
+      surface: "reviews",
+      before_state: { reviewName, ...before },
+      applied_patch: { reviewName, comment: text },
+      status: "applied",
+      note: note ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (snapErr || !snap?.id) {
+    return { ok: false, error: `snapshot not saved, write aborted: ${snapErr?.message || "unknown"}` };
+  }
+
+  const res = await gbpFetch(`${V4}/${reviewName}/reply`, token, {
+    method: "PUT",
+    body: JSON.stringify({ comment: text }),
+  });
+
+  if (!res.ok) {
+    await (admin.from("gbp_write_snapshots") as any)
+      .update({ status: "failed", note: `${note ? note + " — " : ""}${res.body?.error?.message || res.status}` })
+      .eq("id", snap.id);
+    return { ok: false, snapshotId: snap.id, before, error: `reply failed (${res.status}): ${res.body?.error?.message || ""}` };
+  }
+
+  await (admin.from("gbp_write_snapshots") as any)
+    .update({ after_state: { reviewName, reviewReply: res.body } })
+    .eq("id", snap.id);
+
+  return { ok: true, snapshotId: snap.id, before, after: res.body };
+}
