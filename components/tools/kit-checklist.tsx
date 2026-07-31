@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { CheckCircle2, Circle, Printer, RotateCcw, Tag, TagIcon } from "lucide-react"
+import { DownloadPdfButton } from "@/components/tools/download-pdf-button"
 
 export interface KitItem {
   label: string
@@ -18,6 +20,8 @@ export interface KitGroup {
 const STORAGE_KEY = "tx-barber-kit-checklist-v2026"
 
 export function KitChecklist({ groups }: { groups: KitGroup[] }) {
+  // The checklist is mounted on several kit pages; render whichever one we're on.
+  const pathname = usePathname()
   const allItems = groups.flatMap((g) => g.items.map((i) => i.label))
   const total = allItems.length
 
@@ -61,12 +65,16 @@ export function KitChecklist({ groups }: { groups: KitGroup[] }) {
             <RotateCcw className="w-3.5 h-3.5" />
             Reset
           </button>
+          {/* Server-rendered download is the primary path — it can't hang on a
+              wedged local print pipeline. Print stays as a secondary option for
+              anyone who actually wants paper. */}
+          <DownloadPdfButton path={pathname} />
           <button
             onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
           >
             <Printer className="w-3.5 h-3.5" />
-            Print / Save as PDF
+            Print
           </button>
         </div>
       </div>
@@ -85,7 +93,10 @@ export function KitChecklist({ groups }: { groups: KitGroup[] }) {
         </div>
       </div>
 
-      <div className="space-y-6">
+      {/* print-keep: each item is a <button> holding its own tick state, and the
+          global print stylesheet hides buttons. Without this the checklist —
+          the whole reason anyone prints this page — comes out empty. */}
+      <div className="space-y-6 print-keep">
         {groups.map((group) => (
           <div key={group.title}>
             <div className="flex items-center gap-2 mb-2">
