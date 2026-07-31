@@ -56,7 +56,31 @@ const nextConfig = {
   // hangs the Turbopack bundler if it's traced into the route bundle instead
   // of loaded natively at request time. googleapis (used for Search Console)
   // is the same problem at a much bigger scale (~200MB).
-  serverExternalPackages: ["google-ads-api", "google-ads-node", "googleapis"],
+  // @sparticuz/chromium ships a real Chromium as .br archives under its bin/
+  // directory and unpacks them at runtime. Bundling it rewrites the module's
+  // paths, so the directory it looks for is not the one that shipped, and every
+  // launch fails immediately with:
+  //   The input directory "/var/task/node_modules/@sparticuz/chromium/bin"
+  //   does not exist. ... you must externalize @sparticuz/chromium
+  // That is a 500 in ~200ms — too fast to look like a browser problem, which is
+  // what made it read as a memory or timeout issue. puppeteer-core is listed
+  // alongside it because it resolves that binary path.
+  serverExternalPackages: [
+    "google-ads-api",
+    "google-ads-node",
+    "googleapis",
+    "@sparticuz/chromium",
+    "puppeteer-core",
+  ],
+
+  // The full `puppeteer` package bundles its own ~170MB Chromium download and
+  // is only used on the local branch of the launcher (see app/api/pdf). Tracing
+  // it into a serverless function would push it past Vercel's size limit for no
+  // benefit — on Vercel the @sparticuz build is the one that runs.
+  outputFileTracingExcludes: {
+    "/api/pdf": ["./node_modules/puppeteer/**"],
+    "/api/events/extract": ["./node_modules/puppeteer/**"],
+  },
 
   // Required for Vercel deployment — disable x-powered-by header
   poweredByHeader: false,
