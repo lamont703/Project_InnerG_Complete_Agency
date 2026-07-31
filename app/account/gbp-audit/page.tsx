@@ -7,6 +7,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { createServerClient } from "@/lib/supabase/server";
 import { resolveMemberContext } from "@/lib/account/view-as";
 import { getMemberGbpAudit } from "@/lib/gbp-audit-fetch";
+import { diffSnapshots, recentSnapshots, recordSnapshot } from "@/lib/gbp-audit-history";
 import type { AuditCheck } from "@/lib/gbp-audit";
 
 /**
@@ -138,7 +139,23 @@ export default async function MyGbpAuditPage() {
     );
   }
 
-  const { business, report, performance, keywordSplit, generatedAt } = result.bundle;
+  const { business, report, performance, keywordSplit, keywords, generatedAt } = result.bundle;
+
+  // History is recorded on view and gated inside recordSnapshot, so a refresh
+  // doesn't create a row. Read first, so the diff compares against the previous
+  // run rather than the one we're about to write.
+  const history = await recentSnapshots(ctx.memberId, business.location);
+  const previous = history[0] ?? null;
+  const diff = previous ? diffSnapshots(previous, report) : null;
+  await recordSnapshot({
+    memberId: ctx.memberId,
+    locationName: business.location,
+    businessName: business.name,
+    report,
+    performance,
+    keywordCount: keywords.length,
+    latest: previous,
+  });
   const actions = performance ? performance.calls + performance.website + performance.directions : 0;
   const actionRate = performance && performance.impressions > 0
     ? ((actions / performance.impressions) * 100).toFixed(1) + "%"
@@ -192,6 +209,75 @@ export default async function MyGbpAuditPage() {
             Action rate separates &ldquo;not being seen&rdquo; from &ldquo;being seen and not acted on&rdquo; — opposite problems with opposite fixes.
           </p>
         </div>
+      )}
+
+      {/* What changed since last time — the reason to come back */}
+      {diff && (diff.improved.length > 0 || diff.regressed.length > 0 || diff.scoreDelta !== 0) && (
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">
+              Since {new Date(diff.since).toLocaleDateString()}
+            </h2>
+            {diff.scoreDelta !== 0 && (
+              <span
+                className={`text-sm font-black tabular-nums ${
+                  diff.scoreDelta > 0 ? "text-emerald-600" : "text-rose-600"
+                }`}
+              >
+                {diff.scoreDelta > 0 ? "+" : ""}{diff.scoreDelta} points
+              </span>
+            )}
+          </div>
+
+          {diff.improved.length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs font-black uppercase tracking-wider text-emerald-600">Improved</p>
+              {diff.improved.map((c) => (
+                <p key={c.id} className="mt-1.5 text-sm text-slate-600">
+                  <strong className="text-slate-900">{c.label}</strong> — {c.to}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {diff.regressed.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-black uppercase tracking-wider text-rose-600">
+                Went backwards
+              </p>
+              {diff.regressed.map((c) => (
+                <p key={c.id} className="mt-1.5 text-sm text-slate-600">
+                  <strong className="text-slate-900">{c.label}</strong> — was &ldquo;{c.from}&rdquo;, now &ldquo;{c.to}&rdquo;
+                </p>
+              ))}
+              <p className="mt-2 text-xs text-slate-500">
+                Some of this is Google, not you — profiles drift, edits get reverted, and customers
+                suggest changes.
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Score history */}
+      {history.length > 1 && (
+        <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">Score history</h2>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[...history].reverse().map((h) => (
+              <div key={h.id} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-center">
+                <div className="text-sm font-black tabular-nums">{h.score}</div>
+                <div className="text-[10px] text-slate-400">
+                  {new Date(h.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                </div>
+              </div>
+            ))}
+            <div className="rounded-lg border-2 border-primary bg-primary/5 px-2.5 py-1.5 text-center">
+              <div className="text-sm font-black tabular-nums text-primary">{report.score}</div>
+              <div className="text-[10px] font-bold text-primary/70">now</div>
+            </div>
+          </div>
+        </section>
       )}
 
       {/* Priorities */}
