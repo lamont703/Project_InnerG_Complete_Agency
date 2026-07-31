@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache"
 import { google } from "googleapis"
+import { internalEnv } from "@/lib/google-internal-oauth"
 
 // Live Google Search Console performance for the SEO keyword tracker.
 // Reuses the same OAuth-refresh-token pattern as scripts/gsc_*.js. Read-only.
@@ -18,7 +19,7 @@ export interface GscPerformance {
   fetchedAt: string
 }
 
-const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_GSC_REFRESH_TOKEN, GSC_SITE_URL } = process.env
+const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_GSC_REFRESH_TOKEN, GSC_SITE_URL } = internalEnv()
 
 /**
  * Fetch a window of Search Console performance.

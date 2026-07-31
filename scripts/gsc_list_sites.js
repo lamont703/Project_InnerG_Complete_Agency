@@ -5,9 +5,10 @@
 // anything that isn't an exact match, unlike the human-friendly GSC web UI.
 // Run: node scripts/gsc_list_sites.js
 require("dotenv").config({ path: ".env.local" });
+const { internalEnv } = require('./_google_internal_oauth');
 const { google } = require("googleapis");
 
-const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_GSC_REFRESH_TOKEN } = process.env;
+const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_GSC_REFRESH_TOKEN } = internalEnv();
 
 if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_GSC_REFRESH_TOKEN) {
   console.error("Missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_GSC_REFRESH_TOKEN in .env.local.");

@@ -12,10 +12,11 @@
 // we request doesn't have to match what that page expects, since we only
 // need the "code=" value out of the URL bar, not anything that page renders.
 require("dotenv").config({ path: ".env.local" });
+const { internalEnv } = require('./_google_internal_oauth');
 const readline = require("readline");
 
-const clientId = process.env.GOOGLE_CLIENT_ID;
-const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const clientId = internalEnv().GOOGLE_CLIENT_ID;
+const clientSecret = internalEnv().GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI = "http://localhost:3000/youtube/callback";
 
 if (!clientId || !clientSecret) {

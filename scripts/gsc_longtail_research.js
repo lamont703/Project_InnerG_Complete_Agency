@@ -8,12 +8,13 @@
  * Usage: node scripts/gsc_longtail_research.js
  */
 require('dotenv').config({ path: '.env.local' });
+const { internalEnv } = require('./_google_internal_oauth');
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
 const { createClient } = require('@supabase/supabase-js');
 
-const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_GSC_REFRESH_TOKEN, GSC_SITE_URL } = process.env;
+const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_GSC_REFRESH_TOKEN, GSC_SITE_URL } = internalEnv();
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const OUT_DIR = path.join(__dirname, '..', 'scratchpad_reports');
 
