@@ -367,3 +367,81 @@ export async function writeReviewReply(args: {
 
   return { ok: true, snapshotId: snap.id, before, after: res.body };
 }
+
+
+const PLACE_ACTIONS = "https://mybusinessplaceactions.googleapis.com/v1";
+
+/**
+ * Create, update or remove a booking link.
+ *
+ * Snapshots the full set of links before changing any of them. That matters
+ * more here than the single-field writes: deleting a link destroys its
+ * resource, so a revert has to recreate it from the recorded object rather than
+ * restore it in place.
+ */
+export async function writePlaceActionLink(args: {
+  token: string;
+  locationName: string;
+  action: "create" | "update" | "delete";
+  /** Required for update and delete: the link's resource name. */
+  linkName?: string;
+  uri?: string;
+  placeActionType?: string;
+  memberId?: string | null;
+  note?: string;
+}): Promise<WriteResult> {
+  const { token, locationName, action, linkName, uri, placeActionType, memberId, note } = args;
+
+  if (action !== "delete" && !uri) return { ok: false, error: "A booking link needs a URL." };
+  if (action !== "create" && !linkName) return { ok: false, error: "Which link should change?" };
+
+  const listUrl = `${PLACE_ACTIONS}/${locationName}/placeActionLinks`;
+  const beforeRes = await gbpFetch(listUrl, token);
+  const before = beforeRes.ok ? beforeRes.body : { placeActionLinks: [] };
+
+  const admin = createAdminClient();
+  const { data: snap, error: snapErr } = await (admin.from("gbp_write_snapshots") as any)
+    .insert({
+      community_member_id: memberId ?? null,
+      location_name: locationName,
+      surface: "placeActionLinks",
+      before_state: before,
+      applied_patch: { action, linkName: linkName ?? null, uri: uri ?? null, placeActionType: placeActionType ?? null },
+      status: "applied",
+      note: note ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (snapErr || !snap?.id) {
+    return { ok: false, error: `snapshot not saved, write aborted: ${snapErr?.message || "unknown"}` };
+  }
+
+  let res;
+  if (action === "create") {
+    res = await gbpFetch(listUrl, token, {
+      method: "POST",
+      body: JSON.stringify({ uri, placeActionType: placeActionType || "APPOINTMENT" }),
+    });
+  } else if (action === "update") {
+    res = await gbpFetch(`${PLACE_ACTIONS}/${linkName}?updateMask=uri`, token, {
+      method: "PATCH",
+      body: JSON.stringify({ uri }),
+    });
+  } else {
+    res = await gbpFetch(`${PLACE_ACTIONS}/${linkName}`, token, { method: "DELETE" });
+  }
+
+  if (!res.ok) {
+    await (admin.from("gbp_write_snapshots") as any)
+      .update({ status: "failed", note: `${note ? note + " — " : ""}${res.body?.error?.message || res.status}` })
+      .eq("id", snap.id);
+    return { ok: false, snapshotId: snap.id, before, error: `${action} failed (${res.status}): ${res.body?.error?.message || ""}` };
+  }
+
+  const afterRes = await gbpFetch(listUrl, token);
+  const after = afterRes.ok ? afterRes.body : null;
+  await (admin.from("gbp_write_snapshots") as any).update({ after_state: after }).eq("id", snap.id);
+
+  return { ok: true, snapshotId: snap.id, before, after };
+}
