@@ -241,3 +241,88 @@
     opacity: 1;
   }
 }
+/* ─── Print / Save-as-PDF ──────────────────────────────────────────────────
+ * Every page can be printed, but until now only the two exam kit pages
+ * carried any print rules — inline, and duplicated. Everything else printed
+ * with the fixed navbar burned into the output (and, being fixed, at risk of
+ * repeating on each page), plus buttons and nav chrome nobody wants on paper.
+ *
+ * `.no-print` is the opt-out any page can use. The rest of this block is the
+ * baseline: strip chrome, unpin fixed elements so they flow instead of
+ * overlaying, and stop headings/rows from splitting across a page break.
+ */
+@media print {
+  .no-print,
+  nav,
+  header,
+  footer {
+    display: none !important;
+  }
+
+  /* Pages offset their content for the fixed navbar; with the navbar hidden
+     that becomes a large blank gap at the top of page one. */
+  main {
+    padding-top: 0 !important;
+  }
+
+  /* A fixed element in print can be painted onto every page. Neutralize
+     rather than hide — some pages legitimately fix their main content. */
+  *,
+  *::before,
+  *::after {
+    position: static !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    /* Let the printer decide the width instead of inheriting a viewport. */
+    width: auto !important;
+    margin: 0 !important;
+  }
+
+  /* Keep colored badges/pills legible when backgrounds are dropped. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    break-after: avoid-page;
+    page-break-after: avoid;
+  }
+
+  li,
+  tr,
+  img,
+  blockquote,
+  pre {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Interactive affordances mean nothing on paper. */
+  button,
+  [role="button"] {
+    display: none !important;
+  }
+
+  /* The kit checklists are the main thing people actually print — keep the
+     tick state visible rather than hiding the control that shows it. */
+  .print-keep,
+  .print-keep button,
+  .print-keep [role="button"] {
+    display: revert !important;
+  }
+
+  a {
+    text-decoration: none !important;
+    color: #000 !important;
+  }
+}
