@@ -554,3 +554,77 @@ export async function deleteMedia(args: {
   }
   return { ok: true, snapshotId: snap?.id };
 }
+
+
+/**
+ * Publish a Google Post.
+ *
+ * Public and in the owner's voice, like a review reply, so nothing should reach
+ * here unapproved. The snapshot records the post count before publishing — a
+ * post can be deleted afterwards, but it cannot be un-seen, which is the real
+ * reason approval matters more than revertibility on this surface.
+ */
+export async function writeLocalPost(args: {
+  token: string;
+  accountName: string;
+  locationName: string;
+  summary: string;
+  callToAction: { actionType: string; url?: string };
+  memberId?: string | null;
+  note?: string;
+}): Promise<WriteResult & { postName?: string }> {
+  const { token, accountName, locationName, summary, callToAction, memberId, note } = args;
+
+  const text = (summary || "").trim();
+  if (!text) return { ok: false, error: "Refusing to publish an empty post." };
+
+  const parent = `${accountName}/${locationName}`;
+  const beforeRes = await gbpFetch(`${V4}/${parent}/localPosts?pageSize=1`, token);
+  const before = { existingPosts: beforeRes.ok ? (beforeRes.body?.localPosts || []).length : null };
+
+  const admin = createAdminClient();
+  const { data: snap, error: snapErr } = await (admin.from("gbp_write_snapshots") as any)
+    .insert({
+      community_member_id: memberId ?? null,
+      location_name: locationName,
+      surface: "localPosts",
+      before_state: before,
+      applied_patch: { summary: text, callToAction },
+      status: "applied",
+      note: note ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (snapErr || !snap?.id) {
+    return { ok: false, error: `snapshot not saved, write aborted: ${snapErr?.message || "unknown"}` };
+  }
+
+  const body: Record<string, unknown> = {
+    languageCode: "en-US",
+    summary: text,
+    topicType: "STANDARD",
+  };
+  // CALL takes no url; sending an empty one is rejected.
+  body.callToAction = callToAction.url
+    ? { actionType: callToAction.actionType, url: callToAction.url }
+    : { actionType: callToAction.actionType };
+
+  const res = await gbpFetch(`${V4}/${parent}/localPosts`, token, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    await (admin.from("gbp_write_snapshots") as any)
+      .update({ status: "failed", note: `${note ? note + " — " : ""}${res.body?.error?.message || res.status}` })
+      .eq("id", snap.id);
+    return { ok: false, snapshotId: snap.id, before, error: `post failed (${res.status}): ${res.body?.error?.message || ""}` };
+  }
+
+  await (admin.from("gbp_write_snapshots") as any)
+    .update({ after_state: { postName: res.body?.name ?? null } })
+    .eq("id", snap.id);
+
+  return { ok: true, snapshotId: snap.id, before, after: res.body, postName: res.body?.name };
+}

@@ -439,6 +439,22 @@ export default async function MyGbpAuditPage() {
         </Link>
       </div>
 
+      {report.checks.some((c) => c.id === "posts" && c.status !== "pass") && (
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+          <h3 className="font-black">Post something</h3>
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+            Ideas built from a real review, a service you list, or holiday hours you&apos;ve set —
+            never invented. Edit before it goes out.
+          </p>
+          <Link
+            href="/account/gbp-posts"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Start <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
+
       <div className="mt-8 rounded-2xl border-2 border-primary/30 bg-primary/5 p-5">
         <h3 className="font-black">Want us to do the work?</h3>
         <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
