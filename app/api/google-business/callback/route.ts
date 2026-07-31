@@ -147,7 +147,14 @@ export async function GET(req: Request) {
       return back("gbp=error");
     }
 
-    const res = back(`gbp=connected&locations=${locations.length}&staged=${staged}`);
+    // The payoff moment. A single-location owner connected in order to see their
+    // audit, so send them to it rather than to a listing-management screen they
+    // then have to navigate out of. More than one location still goes to
+    // manage-listing, because the audit needs to know which one to run against.
+    const res =
+      locations.length === 1
+        ? NextResponse.redirect(`${origin}/account/gbp-audit?gbp=connected`)
+        : back(`gbp=connected&locations=${locations.length}&staged=${staged}`);
     res.cookies.set("gbp_oauth_state", "", { maxAge: 0, path: "/" });
     res.cookies.set("gbp_oauth_verifier", "", { maxAge: 0, path: "/" });
     return res;

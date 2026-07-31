@@ -94,6 +94,14 @@ export default async function proxy(request: NextRequest) {
         return NextResponse.next()
     }
 
+    // Vercel Cron. Arrives with no session cookie and authenticates itself with
+    // CRON_SECRET in the Authorization header, so a Supabase lookup here is pure
+    // latency on a scheduled job — and a redirect to /login would silently turn
+    // every run into a no-op.
+    if (pathname.startsWith('/api/cron/')) {
+        return NextResponse.next()
+    }
+
     // Google's Cross-Account Protection receiver. Deliveries arrive from Google
     // with no cookies, so a Supabase session lookup here is pure latency on a
     // webhook — and the handler authenticates each delivery by verifying its
