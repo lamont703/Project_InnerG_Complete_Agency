@@ -65,6 +65,9 @@ const config: RenewalConfig = {
     { href: "/how-to-get-a-cosmetology-license-in-texas", label: "How to get a cosmetology license" },
     { href: "/texas-cosmetology-exam-intelligence-prep", label: "Cosmetology written exam prep" },
     { href: "/texas-cosmetology-practical-exam-kit-list", label: "Practical exam kit list" },
+    // See the note on the barber renewal page: this log is current by
+    // construction, while the fees and CE hours above are point-in-time.
+    { href: "/texas-tdlr-updates", label: "Latest TDLR rule changes" },
   ],
 }
 

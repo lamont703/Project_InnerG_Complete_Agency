@@ -160,6 +160,11 @@ outside these four.
   Audit is free; implementation is $397 one-time per location (waived for the first 5
   businesses); optional monitoring is $97/month. No business names are changed and no
   keywords are stuffed into descriptions — both risk Google suspension.
+- [Free Google Business Profile Audit](/google-business-profile-audit): a no-login tool that
+  scores any barbershop, salon, school or supply store in the directory on photos, reviews,
+  hours, website and phone, benchmarked against the median for other listings in the same
+  city. Reports how many of the full audit's checks it covers; the rest need the owner to
+  connect Google.
 - [Claim your listing](/membership): free community membership, required before connecting
   a Google Business Profile or editing a listing.
 

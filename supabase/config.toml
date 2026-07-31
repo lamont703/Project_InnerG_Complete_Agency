@@ -199,6 +199,9 @@ verify_jwt = false
 [functions.webhook-placement-email]
 verify_jwt = false
 
+[functions.webhook-tdlr-bulletin]
+verify_jwt = false
+
 [functions.webhook-recruitment-sms]
 enabled = true
 verify_jwt = false
