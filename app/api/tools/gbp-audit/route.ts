@@ -59,6 +59,42 @@ const hasHours = (row: any) => {
   return false;
 };
 
+/**
+ * Send-me-my-report. Deliberately a separate call from the audit itself: the
+ * score renders whether or not this is ever used, so an address is volunteered
+ * by someone who has already seen the value rather than exchanged for it.
+ */
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => ({}));
+  const email = String(body?.email || "").trim().toLowerCase();
+  const type = String(body?.type || "");
+  const slug = String(body?.slug || "");
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    return NextResponse.json({ success: false, error: "That doesn't look like an email address." }, { status: 400 });
+  }
+  if (!PUBLIC_ENTITY_TYPES[type] || !slug) {
+    return NextResponse.json({ success: false, error: "Which business was that?" }, { status: 400 });
+  }
+
+  const admin = createAdminClient();
+  const { error } = await (admin.from("gbp_public_audit_runs") as any).insert({
+    entity_type: type,
+    entity_slug: slug,
+    business_name: body?.businessName ? String(body.businessName).slice(0, 200) : null,
+    city: body?.city ? String(body.city).slice(0, 120) : null,
+    score: Number.isFinite(body?.score) ? Number(body.score) : null,
+    email,
+    referrer: req.headers.get("referer")?.slice(0, 500) ?? null,
+  });
+
+  if (error) {
+    console.warn("[gbp-audit] lead not saved:", error.message);
+    return NextResponse.json({ success: false, error: "Couldn't save that — try again." }, { status: 500 });
+  }
+  return NextResponse.json({ success: true });
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const q = (url.searchParams.get("q") || "").trim();
@@ -107,6 +143,23 @@ export async function GET(req: Request) {
       },
       computeBenchmark(benchmarkPeers, cityBase)
     );
+
+    // Recorded because the free tool otherwise forgets everyone who doesn't
+    // connect. This half is just "someone looked up this shop" — no personal
+    // data — and it fails quietly, because a logging problem must never take
+    // down the one genuinely useful free thing on the site.
+    void (admin.from("gbp_public_audit_runs") as any)
+      .insert({
+        entity_type: type,
+        entity_slug: slug,
+        business_name: row[cfg.nameField],
+        city: row.city,
+        score: audit.score,
+        referrer: req.headers.get("referer")?.slice(0, 500) ?? null,
+      })
+      .then(({ error }: any) => {
+        if (error) console.warn("[gbp-audit] run not logged:", error.message);
+      });
 
     return NextResponse.json({
       success: true,

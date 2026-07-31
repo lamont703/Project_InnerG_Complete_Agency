@@ -51,7 +51,14 @@ export interface GbpAuditInput {
   location: any;
   attributesSet: any[];
   attributesAvailable: any[];
-  photos: { count: number };
+  /**
+   * Counting photos was the wrong measure and disagreed with the photos screen:
+   * a listing with ninety uncategorised shots passed this check while having no
+   * picture of the room, the front, or the people. byCategory is what the check
+   * actually scores; count is kept for the wording and for callers that can't
+   * supply categories.
+   */
+  photos: { count: number; byCategory?: Record<string, number> };
   reviews: { total: number; average: number | null; sampled: number; unanswered: number };
   posts: { count: number; latestIso: string | null };
   performance:
@@ -75,6 +82,50 @@ function grade(score: number): string {
   if (score >= 70) return "C";
   if (score >= 60) return "D";
   return "F";
+}
+
+
+/**
+ * The categories a customer actually looks for before walking in. Scored
+ * against these rather than against a total, because the total is the number
+ * that lies: ninety photos with none of the room tells nobody anything.
+ */
+const PHOTO_PRIORITY = ["COVER", "EXTERIOR", "INTERIOR", "AT_WORK", "TEAMS"] as const;
+const PHOTO_TARGET_CATEGORIES = 4;
+
+function photoCheck(photos: { count: number; byCategory?: Record<string, number> }) {
+  const { count, byCategory } = photos;
+
+  // No category information (an older caller, or a source that doesn't expose
+  // it) falls back to counting rather than scoring zero for missing data.
+  if (!byCategory) {
+    return {
+      earned: scaled(count, 10, 8),
+      status: (count === 0 ? "fail" : count < 10 ? "warn" : "pass") as AuditStatus,
+      detail: `${count} photo(s) on the profile.`,
+      fix: count >= 10 ? undefined
+        : "Add at least 10 real photos — exterior, interior, and finished work.",
+    };
+  }
+
+  const covered = PHOTO_PRIORITY.filter((c) => (byCategory[c] || 0) > 0);
+  const missing = PHOTO_PRIORITY.filter((c) => !(byCategory[c] || 0));
+  const label = (c: string) =>
+    ({ COVER: "cover", EXTERIOR: "outside", INTERIOR: "inside", AT_WORK: "your work", TEAMS: "the team" }[c] || c.toLowerCase());
+
+  return {
+    earned: scaled(covered.length, PHOTO_TARGET_CATEGORIES, 8),
+    status: (covered.length === 0 ? "fail" : covered.length < PHOTO_TARGET_CATEGORIES ? "warn" : "pass") as AuditStatus,
+    detail:
+      `${count} photo(s), covering ${covered.length} of the ${PHOTO_PRIORITY.length} kinds customers look for` +
+      (missing.length ? ` — nothing showing ${missing.map(label).join(", ")}.` : "."),
+    // No fix on a pass, even when one category is still empty — the invariant
+    // elsewhere in this file is that a passing check has nothing outstanding,
+    // and a "do this too" on a green row erodes the meaning of green.
+    fix: missing.length && covered.length < PHOTO_TARGET_CATEGORIES
+      ? `Add a photo of ${missing.map(label).join(", ")}. A big library with none of these tells a customer nothing about the place.`
+      : undefined,
+  };
 }
 
 export function buildGbpAudit(input: GbpAuditInput): AuditReport {
@@ -190,11 +241,7 @@ export function buildGbpAudit(input: GbpAuditInput): AuditReport {
 
   add({
     id: "photos", area: "Engagement", label: "Photos", weight: 8,
-    earned: scaled(input.photos.count, 10, 8),
-    status: input.photos.count === 0 ? "fail" : input.photos.count < 10 ? "warn" : "pass",
-    detail: `${input.photos.count} photo(s) on the profile.`,
-    fix: input.photos.count >= 10 ? undefined
-      : "Add at least 10 real photos — exterior, interior, and finished work. This is the highest-effort item and the one clients must supply.",
+    ...photoCheck(input.photos),
   });
 
   const now = input.now ? input.now.getTime() : Date.now();

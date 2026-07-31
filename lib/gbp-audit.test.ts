@@ -170,3 +170,47 @@ describe("splitKeywords", () => {
     expect(s.discovery).toHaveLength(1);
   });
 });
+
+describe("photo scoring — coverage, not count", () => {
+  it("fails a big library that shows none of the kinds customers look for", () => {
+    // The listing this was found on: ninety photos, one cover, the rest
+    // uncategorised. Counting said "pass" while the photos screen said three
+    // whole categories were missing. Those two disagreed about one listing.
+    const r = buildGbpAudit({
+      ...EMPTY,
+      photos: { count: 90, byCategory: { COVER: 1, ADDITIONAL: 89 } },
+    });
+    const photos = r.checks.find((c) => c.id === "photos")!;
+    expect(photos.status).toBe("warn");
+    expect(photos.earned).toBeLessThan(photos.weight);
+    expect(photos.detail).toMatch(/nothing showing outside, inside, your work, the team/);
+  });
+
+  it("passes a small library that covers the right kinds", () => {
+    const r = buildGbpAudit({
+      ...EMPTY,
+      photos: { count: 6, byCategory: { COVER: 1, EXTERIOR: 1, INTERIOR: 2, AT_WORK: 2 } },
+    });
+    const photos = r.checks.find((c) => c.id === "photos")!;
+    expect(photos.status).toBe("pass");
+    expect(photos.fix).toBeUndefined();
+  });
+
+  it("names the missing kinds in the fix, not a number to hit", () => {
+    const r = buildGbpAudit({ ...EMPTY, photos: { count: 3, byCategory: { COVER: 3 } } });
+    expect(r.checks.find((c) => c.id === "photos")!.fix).toMatch(/Add a photo of outside, inside/);
+  });
+
+  it("fails a listing with no photos at all", () => {
+    expect(buildGbpAudit({ ...EMPTY, photos: { count: 0, byCategory: {} } })
+      .checks.find((c) => c.id === "photos")!.status).toBe("fail");
+  });
+
+  it("falls back to counting when categories aren't available", () => {
+    // An older caller shouldn't score zero because it can't supply categories.
+    const r = buildGbpAudit({ ...EMPTY, photos: { count: 12 } });
+    const photos = r.checks.find((c) => c.id === "photos")!;
+    expect(photos.status).toBe("pass");
+    expect(photos.detail).toBe("12 photo(s) on the profile.");
+  });
+});
