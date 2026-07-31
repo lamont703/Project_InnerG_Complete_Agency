@@ -50,8 +50,14 @@ export default createHandler(async ({ adminClient, body, user }) => {
         })
     }
 
-    const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")
-    const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")
+    // Internal-tools web client — must match the one the browser consent used
+    // (components/social/youtube-login-button.tsx), or the code exchange fails.
+    // Falls back to the app client so this keeps working until the new client
+    // is created and existing connectors are reconnected.
+    const GOOGLE_CLIENT_ID =
+        Deno.env.get("GOOGLE_INTERNAL_WEB_CLIENT_ID") ?? Deno.env.get("GOOGLE_CLIENT_ID")
+    const GOOGLE_CLIENT_SECRET =
+        Deno.env.get("GOOGLE_INTERNAL_WEB_CLIENT_SECRET") ?? Deno.env.get("GOOGLE_CLIENT_SECRET")
     
     // Determine Redirect URI based on environment
     const origin = "https://agency.innergcomplete.com" 

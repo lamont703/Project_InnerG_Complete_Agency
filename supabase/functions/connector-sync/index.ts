@@ -67,8 +67,11 @@ export default createHandler(async ({ adminClient, body, user, req }) => {
         logger,
         Deno.env.get("GHL_API_KEY") ?? "",
         Deno.env.get("GHL_LOCATION_ID") ?? "",
-        Deno.env.get("GOOGLE_CLIENT_ID") ?? "",
-        Deno.env.get("GOOGLE_CLIENT_SECRET") ?? "",
+        // Same client that minted the YouTube refresh token — a refresh token
+        // belongs to its minting client, so this must track
+        // complete-youtube-auth exactly.
+        Deno.env.get("GOOGLE_INTERNAL_WEB_CLIENT_ID") ?? Deno.env.get("GOOGLE_CLIENT_ID") ?? "",
+        Deno.env.get("GOOGLE_INTERNAL_WEB_CLIENT_SECRET") ?? Deno.env.get("GOOGLE_CLIENT_SECRET") ?? "",
         Deno.env.get("TIKTOK_PRODUCTION_CLIENT_KEY") ?? "",
         Deno.env.get("TIKTOK_PRODUCTION_CLIENT_SECRET") ?? ""
     )
