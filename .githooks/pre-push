@@ -1,0 +1,28 @@
+#!/bin/sh
+. "$(dirname "$0")/_branch-guard.sh"
+
+# stdin: <local ref> <local sha> <remote ref> <remote sha>
+status=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -z "$remote_ref" ] && continue
+    case "$remote_ref" in
+        refs/tags/*) continue ;;
+    esac
+    target="${remote_ref#refs/heads/}"
+    [ "$target" = "$ALLOWED_BRANCH" ] && continue
+    override_requested && continue
+
+    cat >&2 <<MSG
+
+  ✋  Refusing to push to "$target".
+
+      This project pushes to one branch only: $ALLOWED_BRANCH
+      Open a pull request from that branch instead of pushing here.
+
+      If you are a human who means it:
+        I_REALLY_MEAN_IT=yes git push ...
+
+MSG
+    status=1
+done
+exit $status

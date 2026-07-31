@@ -8,6 +8,7 @@ import { directoryHrefForSection } from "@/lib/directory-config";
 // (which live on /houston's own "Explore Houston Services" section instead,
 // since they're metro-specific, not statewide), these aren't tied to one city.
 const TEXAS_STATEWIDE_LINKS: { href: string; label: string }[] = [
+  { href: "/texas/licensing", label: "Texas Licence Data & TDLR" },
   { href: "/texas-school-leaderboard", label: "Texas School Leaderboard" },
   { href: "/texas-barber-exam-intelligence-prep", label: "Texas Barber Exam Prep" },
   { href: "/texas-cosmetology-exam-intelligence-prep", label: "Texas Cosmetology Exam Prep" },
@@ -46,12 +47,18 @@ export function TexasHubDirectory({
   subtitle,
   backHref,
   backLabel,
+  heroStat,
+  resourcesNote,
 }: {
   data: TexasHubData;
   title: string;
   subtitle: string;
   backHref: string;
   backLabel: string;
+  /** Extra chip in the hero row — same card treatment as the built-in stats. */
+  heroStat?: React.ReactNode;
+  /** One line of context above the Statewide Resources grid. */
+  resourcesNote?: React.ReactNode;
 }) {
   const qualifyingCities = data.cities.filter((c) => c.qualifies);
   const otherCities = data.cities.filter((c) => !c.qualifies);
@@ -66,8 +73,9 @@ export function TexasHubDirectory({
           <p className="text-slate-600">{subtitle}</p>
         </div>
 
-        {(data.avgSchoolScore != null || data.openChairs > 0 || data.medianWeeklyRent != null) && (
+        {(heroStat || data.avgSchoolScore != null || data.openChairs > 0 || data.medianWeeklyRent != null) && (
           <div className="max-w-2xl mx-auto mb-8 flex flex-wrap gap-3 justify-center">
+            {heroStat}
             {data.avgSchoolScore != null && (
               <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-5 py-3 flex items-center gap-2.5">
                 <Award className="w-5 h-5 text-indigo-600 shrink-0" />
@@ -217,6 +225,7 @@ export function TexasHubDirectory({
           <p className="text-xs text-slate-500 mb-4">
             Tools and guides that apply across Texas, not just one city.
           </p>
+          {resourcesNote}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {TEXAS_STATEWIDE_LINKS.map((link) => (
               <Link

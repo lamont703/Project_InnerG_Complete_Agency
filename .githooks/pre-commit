@@ -1,0 +1,29 @@
+#!/bin/sh
+. "$(dirname "$0")/_branch-guard.sh"
+
+current="$(git rev-parse --abbrev-ref HEAD)"
+[ "$current" = "$ALLOWED_BRANCH" ] && exit 0
+override_requested && exit 0
+
+# A detached HEAD is usually a bisect or a checked-out tag; committing there is
+# a different mistake but just as likely to be lost.
+cat >&2 <<MSG
+
+  ✋  Refusing to commit on "$current".
+
+      This project works on one branch only: $ALLOWED_BRANCH
+
+      Committing here is how work ends up on the wrong branch: a later
+      "git push origin $ALLOWED_BRANCH" pushes that branch's tip and reports
+      success, while this commit stays behind.
+
+      Do this instead:
+        git stash
+        git checkout $ALLOWED_BRANCH
+        git stash pop
+
+      If you are a human who means it:
+        I_REALLY_MEAN_IT=yes git commit ...
+
+MSG
+exit 1
