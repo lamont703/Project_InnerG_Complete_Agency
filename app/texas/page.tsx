@@ -31,6 +31,7 @@ export const metadata: Metadata = {
 
 const SITE = "https://agency.innergcomplete.com";
 const TDLR_URL = "https://www.tdlr.texas.gov/barbering-and-cosmetology/";
+const OC_1603 = "https://statutes.capitol.texas.gov/?tab=1&code=OC&chapter=OC.1603&artSec=";
 
 export default async function TexasHubPage() {
   const [data, licenseSummary] = await Promise.all([
@@ -72,13 +73,8 @@ export default async function TexasHubPage() {
           { "@type": "WebPage", name: "TDLR — Barbering and Cosmetology", url: TDLR_URL },
           {
             "@type": "Legislation",
-            name: "Texas Occupations Code Chapter 1601 — Barbers",
-            url: "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1601.htm",
-          },
-          {
-            "@type": "Legislation",
-            name: "Texas Occupations Code Chapter 1602 — Cosmetologists",
-            url: "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1602.htm",
+            name: "Texas Occupations Code Title 9, Chapter 1603 — Regulation of Barbering and Cosmetology",
+            url: OC_1603,
           },
         ],
         isPartOf: { "@type": "WebSite", name: "ShearQuery", url: SITE },
@@ -115,12 +111,8 @@ export default async function TexasHubPage() {
         Texas Department of Licensing and Regulation
       </a>{" "}
       under Occupations Code{" "}
-      <a href="https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1601.htm" className="font-semibold text-blue-700 hover:underline">
-        Ch. 1601
-      </a>{" "}
-      and{" "}
-      <a href="https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1602.htm" className="font-semibold text-blue-700 hover:underline">
-        1602
+      <a href={OC_1603} className="font-semibold text-blue-700 hover:underline">
+        Chapter 1603
       </a>
       . See the{" "}
       <Link href="/texas/licensing" className="font-semibold text-blue-700 hover:underline">

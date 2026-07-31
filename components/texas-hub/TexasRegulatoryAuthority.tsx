@@ -26,8 +26,14 @@ import type { TdlrLicenseSummary } from "@/lib/tdlr-license-summary";
  */
 
 const TDLR_URL = "https://www.tdlr.texas.gov/barbering-and-cosmetology/";
-const OC_1601 = "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1601.htm";
-const OC_1602 = "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1602.htm";
+// Texas Occupations Code Title 9, Chapter 1603 — "Regulation of Barbering and
+// Cosmetology". Note the URL form: statutes.capitol.texas.gov is a JavaScript
+// application, so every path returns the same shell to a plain HTTP fetch. A
+// status check proves nothing here; this link was confirmed in a browser.
+// The earlier citations to Chapters 1601 and 1602 resolved to "no document
+// found" — status 200 with an empty result — and were wrong on this page.
+const OC_1603 = "https://statutes.capitol.texas.gov/?tab=1&code=OC&chapter=OC.1603&artSec=";
+const TDLR_LAWS = "https://www.tdlr.texas.gov/barbering-and-cosmetology/laws-rules.htm";
 const OPEN_DATA = "https://data.texas.gov/dataset/Barber-and-Cosmetologist-Licensees/7358-krk7";
 const PAGE_URL = "https://agency.innergcomplete.com/texas";
 
@@ -64,16 +70,16 @@ export function TexasRegulatoryAuthority({ summary }: { summary: TdlrLicenseSumm
             Texas Department of Licensing and Regulation (TDLR)
           </a>
           , which issues and renews every individual, establishment and school licence in the
-          state. The underlying law is{" "}
-          <a href={OC_1601} className="font-semibold text-blue-700 underline decoration-blue-200 underline-offset-2 hover:decoration-blue-500">
-            Texas Occupations Code Chapter 1601
-          </a>{" "}
-          for barbering and{" "}
-          <a href={OC_1602} className="font-semibold text-blue-700 underline decoration-blue-200 underline-offset-2 hover:decoration-blue-500">
-            Chapter 1602
-          </a>{" "}
-          for cosmetology. Every shop, salon, school and licensed professional in this directory
-          operates under those chapters.
+          state. The governing law is{" "}
+          <a href={OC_1603} className="font-semibold text-blue-700 underline decoration-blue-200 underline-offset-2 hover:decoration-blue-500">
+            Texas Occupations Code Title 9, Chapter 1603 — Regulation of Barbering and Cosmetology
+          </a>
+          , with the administrative rules TDLR adopts under it published on its{" "}
+          <a href={TDLR_LAWS} className="font-semibold text-blue-700 underline decoration-blue-200 underline-offset-2 hover:decoration-blue-500">
+            laws and rules page
+          </a>
+          . Every shop, salon, school and licensed professional in this directory operates under
+          that chapter.
         </p>
 
         {/* The citable part */}

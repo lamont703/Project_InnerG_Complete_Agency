@@ -72,13 +72,8 @@ export default async function TexasLicensingPage() {
           { "@type": "WebPage", name: "TDLR — Barbering and Cosmetology", url: TDLR_URL },
           {
             "@type": "Legislation",
-            name: "Texas Occupations Code Chapter 1601 — Barbers",
-            url: "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1601.htm",
-          },
-          {
-            "@type": "Legislation",
-            name: "Texas Occupations Code Chapter 1602 — Cosmetologists",
-            url: "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.1602.htm",
+            name: "Texas Occupations Code Title 9, Chapter 1603 — Regulation of Barbering and Cosmetology",
+            url: "https://statutes.capitol.texas.gov/?tab=1&code=OC&chapter=OC.1603&artSec=",
           },
         ],
         breadcrumb: {
