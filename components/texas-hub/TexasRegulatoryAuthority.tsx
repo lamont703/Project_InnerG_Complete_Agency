@@ -35,7 +35,12 @@ const TDLR_URL = "https://www.tdlr.texas.gov/barbering-and-cosmetology/";
 const OC_1603 = "https://statutes.capitol.texas.gov/?tab=1&code=OC&chapter=OC.1603&artSec=";
 const TDLR_LAWS = "https://www.tdlr.texas.gov/barbering-and-cosmetology/laws-rules.htm";
 const OPEN_DATA = "https://data.texas.gov/dataset/Barber-and-Cosmetologist-Licensees/7358-krk7";
-const PAGE_URL = "https://agency.innergcomplete.com/texas";
+/** Defaults describe this component's actual home. Passing them explicitly is
+ *  required if it's ever rendered elsewhere — a citation box that names the
+ *  wrong page sends every publisher to the wrong URL, and it did: the block was
+ *  moved to /texas/licensing while still citing /texas. */
+const DEFAULT_PAGE_TITLE = "Texas Barber & Cosmetology Licence Data";
+const DEFAULT_PAGE_URL = "https://agency.innergcomplete.com/texas/licensing";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 
@@ -46,7 +51,15 @@ function niceDate(iso: string | null): string {
   });
 }
 
-export function TexasRegulatoryAuthority({ summary }: { summary: TdlrLicenseSummary | null }) {
+export function TexasRegulatoryAuthority({
+  summary,
+  pageTitle = DEFAULT_PAGE_TITLE,
+  pageUrl = DEFAULT_PAGE_URL,
+}: {
+  summary: TdlrLicenseSummary | null;
+  pageTitle?: string;
+  pageUrl?: string;
+}) {
   const asOf = niceDate(summary?.snapshotDate ?? null);
   const year = new Date().getUTCFullYear();
 
@@ -80,6 +93,14 @@ export function TexasRegulatoryAuthority({ summary }: { summary: TdlrLicenseSumm
           </a>
           . Every shop, salon, school and licensed professional in this directory operates under
           that chapter.
+        </p>
+
+        <p className="mt-3 max-w-3xl leading-relaxed text-slate-600">
+          Chapters <strong className="font-semibold text-slate-800">1601</strong> (barbers) and{" "}
+          <strong className="font-semibold text-slate-800">1602</strong> (cosmetologists) were
+          consolidated into Chapter 1603. Guides, forms and school handbooks that still cite 1601 or
+          1602 are referring to superseded chapters — worth checking if you&apos;re working from
+          older material.
         </p>
 
         {/* The citable part */}
@@ -154,8 +175,8 @@ export function TexasRegulatoryAuthority({ summary }: { summary: TdlrLicenseSumm
         <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-5">
           <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Cite this page</h3>
           <p className="mt-3 font-mono text-xs leading-relaxed text-slate-700">
-            Inner G Complete Agency. &ldquo;Texas Barbershops, Hair Salons &amp; Barber Schools
-            Directory.&rdquo; ShearQuery, {asOf}. {PAGE_URL}
+            Inner G Complete Agency. &ldquo;{pageTitle}.&rdquo; ShearQuery. Licence data as of{" "}
+            {asOf}. {pageUrl}
           </p>
           <p className="mt-3 text-xs leading-relaxed text-slate-500">
             Figures may be reproduced with attribution to this page and to TDLR as the underlying
