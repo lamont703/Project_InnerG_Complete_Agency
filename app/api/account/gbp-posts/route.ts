@@ -6,7 +6,7 @@ import { readLocationFields, writeLocalPost } from "@/lib/gbp-write";
 import { buildPostAngles, validatePost, resolveCallToAction, type PostContext, type PostPhoto } from "@/lib/gbp-posts";
 import { upcomingHolidays } from "@/lib/us-holidays";
 import {
-  eventsNear, toLocalPostEvent, buildAttendanceSummary, describeDates,
+  eventsNear, toLocalPostEvent, buildAttendanceSummary, describeDates, attendanceTitle,
   type DirectoryEvent,
 } from "@/lib/gbp-post-events";
 import {
@@ -159,6 +159,7 @@ export async function GET() {
     venue: e.venue_name ?? null,
     city: e.city ?? null,
     summary: buildAttendanceSummary(e, context.businessName),
+    cardTitle: attendanceTitle(e.title),
   }));
 
   // Structures with the amount left blank — we don't pick someone's discount.
@@ -228,7 +229,10 @@ export async function POST(req: Request) {
     if (!row) {
       return NextResponse.json({ success: false, error: "That event is no longer listed." }, { status: 404 });
     }
-    const built = toLocalPostEvent(row);
+    // The card is titled with what the SHOP is doing. Using the organiser's own
+    // event name renders "BARBERCON DALLAS" on a barbershop's listing, which
+    // reads as the shop running it.
+    const built = toLocalPostEvent(row, { titleOverride: attendanceTitle(row.title) });
     if (!built.event) {
       return NextResponse.json(
         { success: false, error: built.issues[0]?.message || "That event can't be posted." },

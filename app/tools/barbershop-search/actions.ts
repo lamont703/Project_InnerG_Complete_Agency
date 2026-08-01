@@ -175,6 +175,21 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     if (activeFilters.includes('booth_rent')) rentTypeFilter = 'Booth Rent';
     if (activeFilters.includes('commission')) rentTypeFilter = 'Commission';
 
+    // Booth AVAILABILITY, which is not the same question as hiring or as rent
+    // type and had no representation at all. The pixel log shows 461 searches
+    // asking for it — "open booth stations in houston barbershops" alone
+    // accounts for 276 — and none of them could reach the 52 shops with
+    // booth_count_available > 0.
+    //
+    // Read off the raw query rather than cleanQuery: "booth", "open" and
+    // "stations" survive stripping, but "chairs" is the word people actually
+    // use and the phrasing varies too much to rely on the stop-word list
+    // leaving it intact.
+    let openChairsOnly = activeFilters.includes('open_chairs');
+    if (!openChairsOnly && /\b(open (booth|chair|station)s?|(booth|chair|station)s? (available|open|free)|available (booth|chair|station)s?|looking for (a |an )?(booth|chair|station)s?|renting (booth|chair|station)s?|(booth|chair|station)s? for rent)\b/i.test(query)) {
+      openChairsOnly = true;
+    }
+
     // Embedding generation (Gemini round-trip) and rules lookup are
     // independent of each other's result — the embedding is computed from
     // the raw cleaned query, and rules only affect cleanQuery afterward.
@@ -215,11 +230,31 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       }
     });
 
+    const preStopWordQuery = cleanQuery;
     stopWordsList.forEach(word => {
       const regex = new RegExp(`\\b${word}\\b`, 'gi');
       cleanQuery = cleanQuery.replace(regex, '');
     });
     cleanQuery = cleanQuery.replace(/\s+/g, ' ').trim();
+
+    // Some queries are entirely stop words once intent phrases are pulled out —
+    // "any shop" and "are there" both reduce to nothing, since `shop`, `shops`
+    // and `any` are all on the list.
+    //
+    // An empty keyword is normally survivable: the ranked RPCs score on token
+    // matches rather than filtering by them, so the search degrades to semantic
+    // + quality ranking, and the embedding is deliberately computed from the RAW
+    // query before this stripping runs. That path is fine.
+    //
+    // It is NOT fine when the embedding is also missing — a Gemini failure or
+    // rate limit, which the code above already treats as an expected fallback.
+    // With no keyword and no vector, every row scores on quality alone and the
+    // user gets the same generic top listings whatever they typed. Restoring the
+    // pre-stripping query gives the keyword path something to work with in
+    // exactly that case, and changes nothing in the normal one.
+    if (!cleanQuery && !queryEmbedding) {
+      cleanQuery = preStopWordQuery;
+    }
 
     // --- Intent Detection ---
     // Used only as a bounded ranking boost now (see INTENT_CATEGORY_MAP /
@@ -626,7 +661,7 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
     // (e.g. "Under $150" and "Under $250" both checked) — a shop passing
     // the tighter threshold already satisfies the looser one too.
     const rentThreshold = activeRentThresholds.length > 0 ? Math.min(...activeRentThresholds) : null;
-    const shopFilterActive = activeFilters.includes('rating_4.5') || rentThreshold != null;
+    const shopFilterActive = activeFilters.includes('rating_4.5') || rentThreshold != null || openChairsOnly;
 
     async function fetchShopResults(): Promise<{ matches: any[]; count: number }> {
       let matches: any[] = [];
@@ -665,6 +700,14 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
         // client-side filtering," not that every condition should apply.
         if (activeFilters.includes('rating_4.5')) {
           matches = matches.filter(s => s.rating && s.rating >= 4.5);
+        }
+        // Post-filtered rather than pushed into the RPC: search_barbershops_ranked
+        // already returns booth_count_available, so this needs no signature
+        // change to a function seven other call sites depend on. shopFilterActive
+        // switches the fetch to FILTERED_FETCH_LIMIT rows, so there's a real pool
+        // to filter against rather than one page.
+        if (openChairsOnly) {
+          matches = matches.filter(s => Number(s.booth_count_available ?? 0) > 0);
         }
         if (rentThreshold != null) {
           matches = matches.filter(s => {
