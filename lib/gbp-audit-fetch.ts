@@ -143,7 +143,15 @@ export async function fetchGbpAudit(
     location,
     attributesSet: attrsSet?.attributes || [],
     attributesAvailable: attrsAvail?.attributeMetadata || [],
-    photos: { count: media?.totalMediaItemCount ?? (media?.mediaItems || []).length },
+    photos: {
+      count: media?.totalMediaItemCount ?? (media?.mediaItems || []).length,
+      byCategory: (media?.mediaItems || []).reduce((acc: Record<string, number>, m: any) => {
+        if ((m.mediaFormat ?? "PHOTO") !== "PHOTO") return acc;
+        const c = m.locationAssociation?.category || "ADDITIONAL";
+        acc[c] = (acc[c] || 0) + 1;
+        return acc;
+      }, {}),
+    },
     reviews: {
       total: reviews?.totalReviewCount ?? reviewList.length,
       average: reviews?.averageRating ?? null,

@@ -8,6 +8,9 @@ import { createServerClient } from "@/lib/supabase/server";
 import { resolveMemberContext } from "@/lib/account/view-as";
 import { getMemberGbpAudit } from "@/lib/gbp-audit-fetch";
 import { diffSnapshots, recentSnapshots, recordSnapshot } from "@/lib/gbp-audit-history";
+import { resolveOwnedEntity } from "@/lib/account/resolve-owned-entity";
+import { getLocalStanding } from "@/lib/account/local-standing";
+import { LocalStandingPanel } from "@/components/account/local-standing-panel";
 import type { AuditCheck } from "@/lib/gbp-audit";
 
 /**
@@ -156,6 +159,17 @@ export default async function MyGbpAuditPage() {
     keywordCount: keywords.length,
     latest: previous,
   });
+  // The competitive half of the report. Derived from the CLAIMED listing, not
+  // from the Google connection: ownership has to come from the
+  // session -> member -> entity-link chain (see resolve-owned-entity), and the
+  // comparison set is our own directory rather than anything Google exposes.
+  // Non-fatal — an owner with no claimed listing still gets the full audit.
+  const owned = await resolveOwnedEntity();
+  const standing =
+    "link" in owned && owned.link
+      ? await getLocalStanding(owned.link.entity_type, owned.link.entity_id)
+      : null;
+
   const actions = performance ? performance.calls + performance.website + performance.directions : 0;
   const actionRate = performance && performance.impressions > 0
     ? ((actions / performance.impressions) * 100).toFixed(1) + "%"
@@ -194,6 +208,12 @@ export default async function MyGbpAuditPage() {
           </div>
         ))}
       </div>
+
+      {standing && (
+        <div className="mt-6">
+          <LocalStandingPanel standing={standing} />
+        </div>
+      )}
 
       {performance && (
         <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
@@ -326,6 +346,148 @@ export default async function MyGbpAuditPage() {
           {report.checks.map((c) => <CheckRow key={c.id} c={c} />)}
         </div>
       </section>
+
+      {/* The one gap on the audit an owner can close themselves, right now. */}
+      {report.checks.some((c) => c.id === "attributes" && c.status !== "pass") && (
+        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5">
+          <h3 className="font-black">Answer your attributes</h3>
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+            The heaviest item above, and the one you can fix in a few minutes. Google fixes the list
+            of attributes for your category; we&apos;ll show what&apos;s unanswered and write your
+            answers straight to your profile.
+          </p>
+          <Link
+            href="/account/gbp-attributes"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Start <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
+
+      {report.checks.some((c) => c.id === "services" && c.status !== "pass") && (
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+          <h3 className="font-black">List your services</h3>
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+            Google keeps a set list for your categories, and anything it has no name for — locs,
+            silk press, braiding — you can write yourself.
+          </p>
+          <Link
+            href="/account/gbp-services"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Start <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
+
+      {report.checks.some((c) => c.id === "review-replies" && c.status !== "pass") && (
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+          <h3 className="font-black">Reply to your reviews</h3>
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+            We&apos;ll draft a reply for every review that doesn&apos;t have one. You edit and send —
+            nothing is published without you reading it.
+          </p>
+          <Link
+            href="/account/gbp-reviews"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Start <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
+
+      {report.checks.some((c) => c.id === "description" && c.status !== "pass") && (
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+          <h3 className="font-black">Write your description</h3>
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+            We&apos;ll draft one from what&apos;s already on your profile and check it against
+            Google&apos;s rules as you edit — no links, no prices, no keyword stuffing.
+          </p>
+          <Link
+            href="/account/gbp-description"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Start <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
+
+      {report.checks.some((c) => c.id === "place-actions" && c.status !== "pass") && (
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+          <h3 className="font-black">Add a booking link</h3>
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+            The Book button on your listing. Without one, someone ready to book has to go and find
+            your website first — and most won&apos;t.
+          </p>
+          <Link
+            href="/account/gbp-booking"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Start <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
+
+      {report.checks.some((c) => c.id === "special-hours" && c.status !== "pass") && (
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+          <h3 className="font-black">Set your holiday hours</h3>
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+            The next holidays, with your usual hours ready to adjust. Wrong hours on the day earn
+            one-star reviews from people who drove over for nothing.
+          </p>
+          <Link
+            href="/account/gbp-hours"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Start <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+        <h3 className="font-black">Check your photo coverage</h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+          Not how many photos you have — which kinds. Most listings have no picture of the inside of
+          the shop or of the people working there.
+        </p>
+        <Link
+          href="/account/gbp-photos"
+          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Start <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+
+      {report.checks.some((c) => c.id === "posts" && c.status !== "pass") && (
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+          <h3 className="font-black">Post something</h3>
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+            Ideas built from a real review, a service you list, or holiday hours you&apos;ve set —
+            never invented. Edit before it goes out.
+          </p>
+          <Link
+            href="/account/gbp-posts"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Start <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+        <h3 className="font-black">Review your categories</h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+          Categories decide which searches you&apos;re eligible for. Add what you genuinely are —
+          and take off anything that isn&apos;t.
+        </p>
+        <Link
+          href="/account/gbp-categories"
+          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Start <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
 
       <div className="mt-8 rounded-2xl border-2 border-primary/30 bg-primary/5 p-5">
         <h3 className="font-black">Want us to do the work?</h3>

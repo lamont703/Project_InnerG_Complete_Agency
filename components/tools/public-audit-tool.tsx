@@ -262,6 +262,8 @@ function AuditResult({
           </p>
         )}
 
+        <EmailReport business={business} score={audit.score} />
+
         <div className="mt-4 flex flex-wrap gap-4 text-xs">
           <Link href={business.href} className="font-bold text-primary hover:underline">
             View the public listing →
@@ -304,5 +306,91 @@ function AuditResult({
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * Optional: have the report emailed.
+ *
+ * Sits below the score, not in front of it. Nothing here gates the result — a
+ * visitor who ignores this box still sees everything, which is the point of a
+ * free audit. An address given after seeing the findings is worth more than one
+ * extracted before them, and asking first would cost more traffic than the
+ * addresses are worth.
+ */
+function EmailReport({
+  business,
+  score,
+}: {
+  business: Business;
+  score: number;
+}) {
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle");
+  const [message, setMessage] = useState<string | null>(null);
+
+  if (state === "done") {
+    return (
+      <p className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+        <CheckCircle2 className="h-3.5 w-3.5" /> Sent — check your inbox.
+      </p>
+    );
+  }
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setState("sending");
+    setMessage(null);
+    try {
+      const res = await fetch("/api/tools/gbp-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          type: business.type,
+          slug: business.slug,
+          businessName: business.name,
+          city: business.city,
+          score,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setState("error");
+        setMessage(json.error || "Couldn't save that.");
+        return;
+      }
+      setState("done");
+    } catch {
+      setState("error");
+      setMessage("Couldn't save that.");
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="mt-4 border-t border-slate-100 pt-4">
+      <label htmlFor="audit-email" className="text-xs text-slate-500">
+        Want this report emailed to you? Optional — we won&apos;t email you again unless you ask.
+      </label>
+      <div className="mt-1.5 flex gap-2">
+        <input
+          id="audit-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@yourshop.com"
+          className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+        />
+        <button
+          type="submit"
+          disabled={state === "sending" || !email.trim()}
+          className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-40"
+        >
+          {state === "sending" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Send it"}
+        </button>
+      </div>
+      {message && <p className="mt-1.5 text-xs text-rose-600">{message}</p>}
+    </form>
   );
 }
