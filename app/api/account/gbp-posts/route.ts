@@ -3,8 +3,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { gbpAccessToken } from "@/lib/google-business";
 import { resolveMemberContext, assertNotImpersonating } from "@/lib/account/view-as";
 import { readLocationFields, writeLocalPost } from "@/lib/gbp-write";
-import { buildPostAngles, validatePost, type PostContext } from "@/lib/gbp-posts";
+import { buildPostAngles, validatePost, resolveCallToAction, type PostContext, type PostPhoto } from "@/lib/gbp-posts";
 import { upcomingHolidays } from "@/lib/us-holidays";
+import {
+  eventsNear, toLocalPostEvent, buildAttendanceSummary, describeDates,
+  type DirectoryEvent,
+} from "@/lib/gbp-post-events";
+import {
+  offerStarters, defaultWindow, validateOffer, toLocalPostOffer, type OfferDraft,
+} from "@/lib/gbp-post-offers";
 import { formatTime } from "@/lib/gbp-special-hours";
 
 /**
@@ -51,10 +58,12 @@ async function resolveConnection() {
 /** Everything a post is allowed to draw on. */
 async function gatherContext(token: string, accountName: string, locationName: string): Promise<PostContext | null> {
   const headers = { Authorization: `Bearer ${token}` };
-  const [loc, reviewsRes, linksRes] = await Promise.all([
+  const [loc, reviewsRes, linksRes, mediaRes] = await Promise.all([
     readLocationFields(token, locationName, READ_MASK).catch(() => null),
     fetch(`${V4}/${accountName}/${locationName}/reviews?pageSize=25`, { headers, cache: "no-store" }),
     fetch(`${PLACE_ACTIONS}/${locationName}/placeActionLinks`, { headers, cache: "no-store" }),
+    // One page is enough: a post needs one good picture, not the whole library.
+    fetch(`${V4}/${accountName}/${locationName}/media?pageSize=100`, { headers, cache: "no-store" }),
   ]);
   if (!loc) return null;
 
@@ -86,6 +95,17 @@ async function gatherContext(token: string, accountName: string, locationName: s
     }
   }
 
+  // googleUrl is the hosted copy of a photo the owner has already published, so
+  // it is public and Google can fetch it when it renders the post. Anything
+  // without one is skipped rather than guessed at.
+  const photos: PostPhoto[] = ((mediaRes.ok ? (await mediaRes.json())?.mediaItems : []) || [])
+    .filter((m: any) => m.mediaFormat === "PHOTO" && m.googleUrl)
+    .map((m: any) => ({
+      url: m.googleUrl,
+      category: m.locationAssociation?.category ?? null,
+      createTime: m.createTime ?? null,
+    }));
+
   return {
     businessName: loc.title || "our shop",
     city: loc.storefrontAddress?.locality ?? null,
@@ -94,6 +114,7 @@ async function gatherContext(token: string, accountName: string, locationName: s
     bookingUrl: booking,
     websiteUrl: loc.websiteUri ?? null,
     upcomingHoliday,
+    photos,
   };
 }
 
@@ -113,11 +134,45 @@ export async function GET() {
   });
   const lastPost = recent.ok ? (await recent.json())?.localPosts?.[0]?.createTime ?? null : null;
 
+  // Industry events near the shop, offered as candidates rather than built into
+  // an angle: only the owner knows whether they're actually going, and we're
+  // not going to assert attendance on someone's public listing.
+  const admin = createAdminClient();
+  const { data: eventRows } = await (admin.from("events") as any)
+    .select("id, title, description, event_date, end_date, start_time, end_time, venue_name, city, ticket_url")
+    .gte("event_date", new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10))
+    .order("event_date", { ascending: true })
+    .limit(200);
+
+  const nearby = eventsNear((eventRows || []) as DirectoryEvent[], context.city).slice(0, 8).map((e) => ({
+    id: e.id,
+    title: e.title,
+    when: describeDates(e),
+    venue: e.venue_name ?? null,
+    city: e.city ?? null,
+    summary: buildAttendanceSummary(e, context.businessName),
+  }));
+
+  // Structures with the amount left blank — we don't pick someone's discount.
+  const starters = offerStarters(context.businessName).map((s) => ({
+    ...s, ...defaultWindow(s.days),
+  }));
+
   return NextResponse.json({
     success: true,
     angles: buildPostAngles(context),
+    // The button an offer or event post uses. Angles carry their own copy of
+    // this, but an offer needs one when the listing has no angles at all —
+    // a shop with no reviews and no services is exactly the one that needs an
+    // offer most.
+    callToAction: resolveCallToAction(context),
+    events: nearby,
+    offerStarters: starters,
     hasBookingLink: !!context.bookingUrl,
     lastPostAt: lastPost,
+    // The full library, so the owner can swap the suggested photo for another
+    // of their own rather than being stuck with our pick.
+    photos: (context.photos ?? []).slice(0, 24),
   });
 }
 
@@ -137,6 +192,9 @@ export async function POST(req: Request) {
   const actionType = String(body?.actionType || "LEARN_MORE");
   const url = body?.url ? String(body.url) : undefined;
   const angleId = body?.angleId ? String(body.angleId) : null;
+  const photoUrl = body?.photoUrl ? String(body.photoUrl) : null;
+  const eventId = body?.eventId ? String(body.eventId) : null;
+  const offerInput = body?.offer ?? null;
 
   const check = validatePost(summary, { actionType: actionType as any, url });
   if (!check.ok) {
@@ -144,12 +202,59 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient();
+
+  // The event is read from our table rather than taken from the request. The
+  // client could send any title and date, and this publishes to a public
+  // listing — the dates have to be the ones we hold.
+  let localPostEvent = null;
+  if (eventId) {
+    const { data: row } = await (admin.from("events") as any)
+      .select("id, title, event_date, end_date, start_time, end_time")
+      .eq("id", eventId)
+      .maybeSingle();
+    if (!row) {
+      return NextResponse.json({ success: false, error: "That event is no longer listed." }, { status: 404 });
+    }
+    const built = toLocalPostEvent(row);
+    if (!built.event) {
+      return NextResponse.json(
+        { success: false, error: built.issues[0]?.message || "That event can't be posted." },
+        { status: 400 }
+      );
+    }
+    localPostEvent = built.event;
+  }
+
+  // An offer is validated server-side too. The client checks as you type so the
+  // form can be helpful; this is the check that decides what reaches a listing.
+  let localPostOffer = null;
+  if (offerInput) {
+    const draft: OfferDraft = {
+      title: String(offerInput.title || ""),
+      startDate: String(offerInput.startDate || ""),
+      endDate: String(offerInput.endDate || ""),
+      couponCode: offerInput.couponCode ? String(offerInput.couponCode) : null,
+      redeemOnlineUrl: offerInput.redeemOnlineUrl ? String(offerInput.redeemOnlineUrl) : null,
+      termsConditions: offerInput.termsConditions ? String(offerInput.termsConditions) : null,
+    };
+    const checked = validateOffer(draft);
+    if (!checked.ok) {
+      return NextResponse.json(
+        { success: false, error: checked.issues.find((i) => i.level === "error")?.message, issues: checked.issues },
+        { status: 400 }
+      );
+    }
+    const built = toLocalPostOffer(draft);
+    localPostOffer = built.offer;
+    localPostEvent = built.event;
+  }
+
   const { data: request } = await (admin.from("gbp_change_requests") as any)
     .insert({
       community_member_id: ctx.memberId,
       location_name: locationName,
       surface: "localPosts",
-      proposed: { summary, actionType, url, angleId },
+      proposed: { summary, actionType, url, angleId, photoUrl, eventId, offer: offerInput },
       origin: "owner-approved post",
       status: "approved",
       approved_at: new Date().toISOString(),
@@ -158,7 +263,9 @@ export async function POST(req: Request) {
     .single();
 
   const write = await writeLocalPost({
-    token, accountName, locationName, summary,
+    token, accountName, locationName, summary, photoUrl,
+    event: localPostEvent,
+    offer: localPostOffer,
     callToAction: { actionType, url },
     memberId: ctx.memberId, note: `owner-approved post${angleId ? ` — ${angleId}` : ""}`,
   });

@@ -118,10 +118,32 @@ export async function GET(req: Request) {
         continue;
       }
 
+      // Read the post feed only for people we're already emailing — no point
+      // spending a Google call on the majority who get nothing this week.
+      // Failure here just omits the nudge; it must not cost them the email.
+      let lastPostAt: string | null = null;
+      try {
+        const token = await gbpAccessToken(conn.refresh_token);
+        const accountsRes = await fetch("https://mybusinessaccountmanagement.googleapis.com/v1/accounts", {
+          headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+        });
+        const accountName = accountsRes.ok ? (await accountsRes.json())?.accounts?.[0]?.name ?? null : null;
+        if (accountName) {
+          const posts = await fetch(
+            `https://mybusiness.googleapis.com/v4/${accountName}/${locationName}/localPosts?pageSize=1`,
+            { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }
+          );
+          if (posts.ok) lastPostAt = (await posts.json())?.localPosts?.[0]?.createTime ?? null;
+        }
+      } catch (e: any) {
+        console.warn("[gbp-monitor] could not read posts:", e?.message);
+      }
+
       const email = buildMonitoringEmail({
         businessName: bundle.business.name,
         score: bundle.report.score,
         diff,
+        lastPostAt,
       });
       if (!email) {
         summary.quiet++;

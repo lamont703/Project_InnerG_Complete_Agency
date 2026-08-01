@@ -570,13 +570,52 @@ export async function writeLocalPost(args: {
   locationName: string;
   summary: string;
   callToAction: { actionType: string; url?: string };
+  /**
+   * Public https URL of a photo to attach. Google fetches it server-side, so it
+   * has to be reachable without auth — a signed or expiring link fails at
+   * Google's end, not ours, and the post is rejected whole.
+   */
+  photoUrl?: string | null;
+  /**
+   * Set for an EVENT post. Google requires the event object whenever topicType
+   * is EVENT, so the two travel together and are validated as a pair.
+   */
+  event?: {
+    title: string;
+    schedule: {
+      startDate: { year: number; month: number; day: number };
+      startTime: { hours: number; minutes: number };
+      endDate: { year: number; month: number; day: number };
+      endTime: { hours: number; minutes: number };
+    };
+  } | null;
+  /**
+   * Set for an OFFER post. Google requires the event object alongside it, so
+   * an offer without one is refused here rather than by Google.
+   */
+  offer?: { couponCode?: string; redeemOnlineUrl?: string; termsConditions?: string } | null;
   memberId?: string | null;
   note?: string;
 }): Promise<WriteResult & { postName?: string }> {
-  const { token, accountName, locationName, summary, callToAction, memberId, note } = args;
+  const { token, accountName, locationName, summary, callToAction, photoUrl, event, offer, memberId, note } = args;
+
+  // Google's rule, enforced before the request: "Event information. Required
+  // for topic types EVENT and OFFER." An offer with no window would be rejected
+  // anyway; catching it here keeps the error readable.
+  if (offer && !event) {
+    return { ok: false, error: "An offer needs a name and the dates it runs for." };
+  }
 
   const text = (summary || "").trim();
   if (!text) return { ok: false, error: "Refusing to publish an empty post." };
+
+  // Reject a bad photo URL here rather than letting Google reject the whole
+  // post. Losing the image is recoverable; losing the post the owner just
+  // approved is the thing worth avoiding.
+  const photo = (photoUrl || "").trim();
+  if (photo && !/^https:\/\//i.test(photo)) {
+    return { ok: false, error: "The photo link must be a public https:// URL." };
+  }
 
   const parent = `${accountName}/${locationName}`;
   const beforeRes = await gbpFetch(`${V4}/${parent}/localPosts?pageSize=1`, token);
@@ -589,7 +628,7 @@ export async function writeLocalPost(args: {
       location_name: locationName,
       surface: "localPosts",
       before_state: before,
-      applied_patch: { summary: text, callToAction },
+      applied_patch: { summary: text, callToAction, photoUrl: photo || null, event: event ?? null, offer: offer ?? null },
       status: "applied",
       note: note ?? null,
     })
@@ -600,15 +639,24 @@ export async function writeLocalPost(args: {
     return { ok: false, error: `snapshot not saved, write aborted: ${snapErr?.message || "unknown"}` };
   }
 
+  // topicType and event are inseparable: EVENT without the object is rejected,
+  // and an event object under STANDARD is silently dropped, which would publish
+  // a post that looks right here and wrong on the listing.
   const body: Record<string, unknown> = {
     languageCode: "en-US",
     summary: text,
-    topicType: "STANDARD",
+    topicType: offer ? "OFFER" : event ? "EVENT" : "STANDARD",
   };
+  if (event) body.event = event;
+  if (offer) body.offer = offer;
   // CALL takes no url; sending an empty one is rejected.
   body.callToAction = callToAction.url
     ? { actionType: callToAction.actionType, url: callToAction.url }
     : { actionType: callToAction.actionType };
+
+  // sourceUrl is the ONLY data field a LocalPost MediaItem accepts — there is
+  // no upload path here, unlike location photos. Google fetches the URL itself.
+  if (photo) body.media = [{ mediaFormat: "PHOTO", sourceUrl: photo }];
 
   const res = await gbpFetch(`${V4}/${parent}/localPosts`, token, {
     method: "POST",

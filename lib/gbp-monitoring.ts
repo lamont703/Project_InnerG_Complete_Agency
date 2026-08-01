@@ -33,6 +33,49 @@ const esc = (s: unknown) =>
   String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
 /**
+ * Google Posts drop out of the feed after about a week, so an owner who posted
+ * once and moved on has nothing showing. Nobody remembers to come back on their
+ * own, and this email is the only thing that already reaches them regularly.
+ */
+const POST_STALE_DAYS = 14;
+
+/**
+ * The "you haven't posted lately" line, or null when there's nothing to say.
+ *
+ * IMPORTANT: this NEVER causes an email to be sent. shouldNotify() is still the
+ * only thing that decides that, and the footer of this email promises "we only
+ * email when something actually changes — never on a schedule." A nudge that
+ * could trigger its own send would make that sentence false, and the day this
+ * becomes a weekly reminder is the day people stop opening it.
+ *
+ * So: a passenger on an email already going out, and nothing more.
+ */
+export function postNudge(
+  lastPostAt: string | null | undefined,
+  now: Date = new Date()
+): { headline: string; detail: string } | null {
+  if (!lastPostAt) {
+    return {
+      headline: "You haven't posted to your listing yet",
+      detail:
+        "Posts show up on your profile in Search and Maps. There are ready-made ones waiting, drawn from your own reviews and services.",
+    };
+  }
+
+  const then = new Date(lastPostAt);
+  if (Number.isNaN(then.getTime())) return null;
+
+  const days = Math.floor((now.getTime() - then.getTime()) / 86_400_000);
+  if (days < POST_STALE_DAYS) return null;
+
+  return {
+    headline: `Your last post was ${days} days ago`,
+    detail:
+      "Google posts drop out of the feed after about a week, so nothing of yours is showing right now. A new one takes a minute.",
+  };
+}
+
+/**
  * Compose the email. Returns null when there's nothing worth saying, so a caller
  * can't accidentally send an empty one.
  *
@@ -45,8 +88,11 @@ export function buildMonitoringEmail(args: {
   businessName: string;
   score: number;
   diff: AuditDiff | null;
+  /** createTime of the most recent Google Post, if any. */
+  lastPostAt?: string | null;
+  now?: Date;
 }): MonitoringEmail | null {
-  const { businessName, score, diff } = args;
+  const { businessName, score, diff, lastPostAt } = args;
   if (!shouldNotify(diff) || !diff) return null;
 
   const since = new Date(diff.since).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -82,6 +128,19 @@ export function buildMonitoringEmail(args: {
       <table style="width:100%;border-collapse:collapse">
         ${diff.improved.map((c) => row(c.label, c.to, "#0f172a")).join("")}
       </table>`);
+  }
+
+  // Appended only to an email already being sent — see postNudge().
+  const nudge = postNudge(lastPostAt, args.now);
+  if (nudge) {
+    sections.push(`
+      <div style="margin:24px 0 0;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;background:#f8fafc">
+        <strong style="font-size:14px;color:#0f172a">${esc(nudge.headline)}</strong>
+        <p style="margin:6px 0 10px;color:#475569;font-size:14px;line-height:1.5">${esc(nudge.detail)}</p>
+        <a href="${SITE}/account/gbp-posts" style="color:#1d4ed8;font-weight:700;font-size:14px;text-decoration:none">
+          Write a post →
+        </a>
+      </div>`);
   }
 
   const html = `

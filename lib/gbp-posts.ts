@@ -35,6 +35,53 @@ export interface PostAngle {
   callToAction: PostCallToAction;
   /** Set when the copy quotes a customer, so the UI can warn appropriately. */
   quotesReview?: boolean;
+  /** Suggested photo for this angle. The owner can change or clear it. */
+  photoUrl?: string | null;
+}
+
+/**
+ * A photo already on the profile, offered as the post's image.
+ *
+ * Posts are text-only today, which reads thin in a feed where competitors post
+ * pictures. Google's LocalPost media accepts sourceUrl and nothing else — it
+ * fetches the URL itself — so the practical source is a photo the owner has
+ * already published, which has the useful side effect that nothing new is put
+ * on their listing without them choosing it.
+ */
+export interface PostPhoto {
+  url: string;
+  category?: string | null;
+  createTime?: string | null;
+}
+
+/** Categories worth putting on a post, best first. */
+const PHOTO_PREFERENCE: Record<PostAngleKind, string[]> = {
+  // A review is about the work, so lead with the work.
+  review: ["AT_WORK", "TEAMS", "INTERIOR", "COVER", "EXTERIOR"],
+  service: ["AT_WORK", "INTERIOR", "COVER", "TEAMS", "EXTERIOR"],
+  // Hours are about turning up at a door, so show the door.
+  hours: ["EXTERIOR", "COVER", "INTERIOR", "AT_WORK", "TEAMS"],
+};
+
+/**
+ * Pick the photo that best fits an angle.
+ *
+ * Falls through the preference order, then to the newest photo of any category,
+ * then to nothing — a post without an image is still a post, and picking a
+ * random unsuitable picture is worse than picking none.
+ */
+export function pickPostPhoto(photos: PostPhoto[], kind: PostAngleKind): string | null {
+  const usable = photos.filter((p) => p.url && /^https:\/\//i.test(p.url));
+  if (!usable.length) return null;
+
+  const newestFirst = (a: PostPhoto, b: PostPhoto) =>
+    String(b.createTime || "").localeCompare(String(a.createTime || ""));
+
+  for (const category of PHOTO_PREFERENCE[kind]) {
+    const match = usable.filter((p) => p.category === category).sort(newestFirst)[0];
+    if (match) return match.url;
+  }
+  return [...usable].sort(newestFirst)[0]?.url ?? null;
 }
 
 export const POST_MAX = 1500;
@@ -96,6 +143,8 @@ export interface PostContext {
   websiteUrl?: string | null;
   /** Upcoming holiday already set on the profile, if any. */
   upcomingHoliday?: { name: string; date: string; closed: boolean; openTime?: string; closeTime?: string } | null;
+  /** Photos already on the listing, offered as the post image. */
+  photos?: PostPhoto[];
 }
 
 /** The best review to feature: highest rating, with actual text, most recent. */
@@ -122,6 +171,7 @@ export function trimQuote(comment: string, max = 180): string {
  */
 export function buildPostAngles(ctx: PostContext): PostAngle[] {
   const cta = resolveCallToAction(ctx);
+  const photos = ctx.photos ?? [];
   const angles: PostAngle[] = [];
 
   const review = pickShowcaseReview(ctx.reviews);
@@ -134,6 +184,7 @@ export function buildPostAngles(ctx: PostContext): PostAngle[] {
       quotesReview: true,
       summary: `"${trimQuote(review.comment || "")}" — ${name}\n\nThank you ${name}. If you're due a visit, we'd love to see you.`,
       callToAction: cta,
+      photoUrl: pickPostPhoto(photos, "review"),
     });
   }
 
@@ -145,6 +196,7 @@ export function buildPostAngles(ctx: PostContext): PostAngle[] {
       reason: `You list ${ctx.services.length} service${ctx.services.length === 1 ? "" : "s"} on your profile`,
       summary: `${service} at ${ctx.businessName}${ctx.city ? ` in ${ctx.city}` : ""}. Book a time that suits you.`,
       callToAction: cta,
+      photoUrl: pickPostPhoto(photos, "service"),
     });
   }
 
@@ -161,6 +213,7 @@ export function buildPostAngles(ctx: PostContext): PostAngle[] {
         ? `We'll be closed on ${when} for ${h.name}. Book ahead so you're not left waiting.`
         : `${h.name} hours: we're open ${h.openTime}–${h.closeTime} on ${when}. Book ahead — these days fill up.`,
       callToAction: cta,
+      photoUrl: pickPostPhoto(photos, "hours"),
     });
   }
 

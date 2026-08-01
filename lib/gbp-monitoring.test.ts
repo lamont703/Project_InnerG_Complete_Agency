@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildMonitoringEmail, shouldNotify } from "./gbp-monitoring";
+import { buildMonitoringEmail, shouldNotify, postNudge } from "./gbp-monitoring";
 import type { AuditDiff, CheckChange } from "./gbp-audit-history";
 
 const change = (over: Partial<CheckChange> = {}): CheckChange => ({
@@ -105,5 +105,63 @@ describe("buildMonitoringEmail", () => {
   it("links to the audit page", () => {
     const email = buildMonitoringEmail({ ...base, diff: diff({ improved: [change()] }) })!;
     expect(email.html).toContain("/account/gbp-audit");
+  });
+});
+
+describe("postNudge", () => {
+  const NOW = new Date("2026-08-01T00:00:00Z");
+
+  it("nudges someone who has never posted", () => {
+    expect(postNudge(null, NOW)?.headline).toMatch(/haven't posted/i);
+  });
+
+  it("stays quiet while a recent post is still in the feed", () => {
+    expect(postNudge("2026-07-28T00:00:00Z", NOW)).toBeNull();
+  });
+
+  it("speaks up once the last post has aged out", () => {
+    expect(postNudge("2026-07-10T00:00:00Z", NOW)?.headline).toBe("Your last post was 22 days ago");
+  });
+
+  it("says nothing on an unparseable date rather than inventing a number", () => {
+    expect(postNudge("not-a-date", NOW)).toBeNull();
+  });
+});
+
+describe("the nudge never causes a send", () => {
+  const NOW = new Date("2026-08-01T00:00:00Z");
+
+  it("returns null when nothing changed, however stale the posts are", () => {
+    // The footer promises "we only email when something actually changes —
+    // never on a schedule". A nudge that could trigger its own send would make
+    // that sentence false and turn this into the weekly mail nobody opens.
+    expect(
+      buildMonitoringEmail({ businessName: "X", score: 60, diff: null, lastPostAt: null, now: NOW })
+    ).toBeNull();
+  });
+
+  it("rides along on an email that was going out anyway", () => {
+    const diff = {
+      since: "2026-07-01T00:00:00Z",
+      scoreDelta: -4,
+      improved: [],
+      regressed: [{ id: "hours", label: "Hours", from: "set", to: "missing", delta: -4 }],
+    };
+    const email = buildMonitoringEmail({ businessName: "X", score: 60, diff, lastPostAt: null, now: NOW });
+    expect(email?.html).toMatch(/haven't posted/i);
+    expect(email?.html).toContain("/account/gbp-posts");
+  });
+
+  it("omits the nudge when the owner posted recently", () => {
+    const diff = {
+      since: "2026-07-01T00:00:00Z",
+      scoreDelta: 3,
+      improved: [{ id: "photos", label: "Photos", from: "2", to: "6", delta: 3 }],
+      regressed: [],
+    };
+    const email = buildMonitoringEmail({
+      businessName: "X", score: 70, diff, lastPostAt: "2026-07-30T00:00:00Z", now: NOW,
+    });
+    expect(email?.html).not.toMatch(/haven't posted|days ago/i);
   });
 });
