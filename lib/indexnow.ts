@@ -21,6 +21,43 @@ export function toAbsoluteUrl(pathOrUrl: string): string {
   return `https://${HOST}${pathOrUrl.startsWith("/") ? "" : "/"}${pathOrUrl}`;
 }
 
+/**
+ * Build the request for a set of URLs.
+ *
+ * One URL goes as a GET with query parameters; several go as the POST urlList.
+ * Bing classifies a site's submission mode by the SHAPE of the request, not by
+ * how many URLs it carries — so posting a urlList of one made every ordinary
+ * publish look like a batch submission, and Bing Webmaster Tools flagged the
+ * site as batch mode even though the pings were already one page at a time.
+ *
+ * Separated from the network call so the shape can be tested, which is the
+ * whole thing that was wrong.
+ */
+export function buildIndexNowRequest(urlList: string[]): {
+  url: string;
+  init: RequestInit;
+  mode: "streaming" | "batch";
+} {
+  if (urlList.length === 1) {
+    const q = new URLSearchParams({
+      url: urlList[0],
+      key: INDEXNOW_KEY,
+      keyLocation: KEY_LOCATION,
+    });
+    return { url: `${ENDPOINT}?${q}`, init: { method: "GET" }, mode: "streaming" };
+  }
+
+  return {
+    url: ENDPOINT,
+    init: {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ host: HOST, key: INDEXNOW_KEY, keyLocation: KEY_LOCATION, urlList }),
+    },
+    mode: "batch",
+  };
+}
+
 // Submit one or more URLs to IndexNow. Never throws — a failed ping must never
 // break the publish flow that calls it. IndexNow accepts up to 10,000 URLs per
 // request; callers submitting more should batch.
@@ -39,11 +76,8 @@ export async function pingIndexNow(urls: string[]): Promise<boolean> {
   }
 
   try {
-    const res = await fetch(ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-      body: JSON.stringify({ host: HOST, key: INDEXNOW_KEY, keyLocation: KEY_LOCATION, urlList }),
-    });
+    const { url, init } = buildIndexNowRequest(urlList);
+    const res = await fetch(url, init);
     // 200 = accepted, 202 = accepted (validation pending). Anything else is a
     // soft failure we just log.
     if (res.status !== 200 && res.status !== 202) {

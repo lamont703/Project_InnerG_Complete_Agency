@@ -36,6 +36,7 @@ import { GoogleReviews } from "@/components/shared/google-reviews";
 import { GooglePosts } from "@/components/shared/google-posts";
 import { WriteReviewButton } from "@/components/shared/write-review-button";
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
+import { composeDescription, ratingClause, streetClause, percentClause } from "@/lib/seo-description";
 
 export const revalidate = 3600;
 
@@ -127,11 +128,31 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   if (!school) return { title: "School Not Found" };
 
   const title = `${school.school_name}${synonymSuffix(school._matchType)}${school.city ? ` — ${school.school_category} in ${school.city}` : ""}`;
-  const description = `${school.school_category}${school._matchType === "cosmetology" ? " (also known as a beauty school or hair school)" : ""}${
-    school.city ? ` in ${school.city}` : ""
-  }.${school.annual_tuition ? ` Tuition ~$${Number(school.annual_tuition).toLocaleString()}.` : ""}${
-    school.pell_grant_rate != null ? ` ${Math.round(school.pell_grant_rate * 100)}% of students receive financial aid.` : ""
-  }${school.state_pass_rate ? ` State board pass rate: ${school.state_pass_rate}.` : ""}`;
+  // This description previously opened with the CATEGORY, not the school — so
+  // every cosmetology school in a city shared the identical string. Non-unique
+  // is the real defect; the length Bing complained about was a symptom.
+  //
+  // 2026 exam outcomes lead where we have them. They're the one fact here no
+  // competitor's snippet can carry, and they're already the basis of
+  // /compare-schools — the legacy state_pass_rate is kept only as a fallback.
+  const cosmet = school._matchType === "cosmetology";
+  const writtenRate = cosmet ? school.cosmetology_written_pass_rate_2026 : school.written_pass_rate_2026;
+  const writtenTakers = cosmet ? school.cosmetology_written_test_takers_2026 : school.written_test_takers_2026;
+  const practicalRate = cosmet ? school.cosmetology_practical_pass_rate_2026 : school.practical_pass_rate_2026;
+
+  const description = composeDescription([
+    `${school.school_name} — ${school.school_category}${cosmet ? " (beauty & hair school)" : ""}${school.city ? ` in ${school.city}` : ""}`,
+    percentClause(writtenRate, "2026 written exam pass rate", writtenTakers),
+    percentClause(practicalRate, "practical"),
+    !writtenRate && school.state_pass_rate ? `State board pass rate ${school.state_pass_rate}` : null,
+    school.accreditation_status === "Accredited"
+      ? `Accredited${school.accreditor_name ? ` by ${school.accreditor_name}` : ""}`
+      : null,
+    school.annual_tuition ? `Tuition ~$${Number(school.annual_tuition).toLocaleString()}/yr` : null,
+    school.pell_grant_rate != null ? `${Math.round(Number(school.pell_grant_rate) * 100)}% receive financial aid` : null,
+    ratingClause(school.rating, school.google_review_count),
+    streetClause(school.formatted_address, school.city),
+  ]);
   const heroImage = Array.isArray(school.google_photos) ? school.google_photos[0] : null;
 
   return {

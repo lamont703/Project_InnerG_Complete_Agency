@@ -19,6 +19,7 @@ import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import { computeShopEcosystemReport } from "@/lib/shop-ecosystem";
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { SALON_PUBLIC_COLUMNS } from "@/lib/public-columns";
+import { composeDescription, ratingClause, streetClause } from "@/lib/seo-description";
 import {
   MapPin,
   Phone,
@@ -84,18 +85,23 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const title = isHiring
     ? `${salon.shop_name} is Hiring on Shop Day Network`
     : `${salon.shop_name} — Hair & Beauty Salon${salon.city ? ` in ${salon.city}` : ""}`;
-  const descParts = [
-    `${salon.shop_name}${salon.city ? ` in ${salon.city}` : ""}`,
-    salon.booth_count_available ? `— ${salon.booth_count_available} chair${salon.booth_count_available > 1 ? 's' : ''} available` : null,
-    salon.rent_type ? `(${salon.rent_type}${salon.rent_rate ? ` at $${salon.rent_rate}/week` : ''})` : null,
-    salon.rating ? `Rated ${Number(salon.rating).toFixed(1)}★` : null,
-    salon.total_reviews ? `(${salon.total_reviews} reviews)` : null,
-  ].filter(Boolean);
   const nearbyAreas: string[] = Array.isArray(salon.nearby_areas) ? salon.nearby_areas : [];
-  const nearbyAreasNote = nearbyAreas.length > 0 ? ` Also serving ${nearbyAreas.join(", ")}.` : "";
-  const description = isHiring
-    ? `${descParts.join('. ')}. View photos and request a Shop Day.${nearbyAreasNote}`
-    : `${descParts.join('. ')}. View photos, hours, and contact info.${nearbyAreasNote}`;
+
+  // Mirrors app/shop/[slug]/page.tsx — same clause order, same fallbacks. Salon
+  // records are thinner than shops (booth rent is null across the whole table
+  // today), so the address and rating clauses carry most of these.
+  const description = composeDescription([
+    `${salon.shop_name} — hair & beauty salon${salon.city ? ` in ${salon.city}` : ""}${salon.address_state ? `, ${salon.address_state}` : ""}`,
+    salon.booth_count_available
+      ? `${salon.booth_count_available} chair${salon.booth_count_available > 1 ? "s" : ""} available${salon.rent_type ? ` (${salon.rent_type}${salon.rent_rate ? ` at $${salon.rent_rate}/week` : ""})` : ""}`
+      : isHiring
+      ? "Now hiring"
+      : null,
+    ratingClause(salon.rating, salon.total_reviews),
+    streetClause(salon.formatted_address, salon.city),
+    nearbyAreas.length > 0 ? `Also serving ${nearbyAreas.join(", ")}` : null,
+    isHiring ? "See photos and request a Shop Day" : "See photos, hours and contact details",
+  ]);
   const heroImage = (Array.isArray(salon.google_images) && salon.google_images[0]) || salon.shop_image_url || undefined;
 
   return {

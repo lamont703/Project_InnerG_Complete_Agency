@@ -1,3 +1,4 @@
+import { composeDescription, ratingClause, streetClause, cleanPlace } from "@/lib/seo-description";
 import { createClient } from "@supabase/supabase-js";
 import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -83,14 +84,16 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const { store, storeType } = result;
   const storeLabel = storeType === "beauty_supply" ? "Beauty Supply Store" : "Barber Supply Store";
 
-  const title = `${store.name} — ${storeLabel}${store.city ? ` in ${store.city}` : ""}`;
-  const descParts = [
-    store.name,
-    store.city ? `${storeLabel.toLowerCase()} in ${store.city}` : storeLabel.toLowerCase(),
-    store.rating ? `Rated ${Number(store.rating).toFixed(1)}★` : null,
-    store.total_reviews ? `(${store.total_reviews} reviews)` : null,
-  ].filter(Boolean);
-  const description = `${descParts.join('. ')}. View hours, photos, and find nearby shops.`;
+  const title = `${store.name} — ${storeLabel}${cleanPlace(store.city) ? ` in ${cleanPlace(store.city)}` : ""}`;
+  // Name and label joined into one clause rather than two, and the street
+  // address added so two stores of the same type in one city don't produce
+  // near-identical snippets.
+  const description = composeDescription([
+    `${store.name} — ${storeLabel.toLowerCase()}${store.city ? ` in ${store.city}` : ""}`,
+    ratingClause(store.rating, store.total_reviews),
+    streetClause(store.formatted_address, cleanPlace(store.city)),
+    store.website ? "Hours, photos and directions" : "Hours, photos and nearby barbershops",
+  ]);
   const heroImage = Array.isArray(store.google_images) ? store.google_images[0] : undefined;
 
   return {
