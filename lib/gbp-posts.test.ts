@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { buildPostAngles, validatePost, resolveCallToAction, pickShowcaseReview, trimQuote, POST_MAX, type PostContext } from "./gbp-posts";
+import {
+  buildPostAngles,
+  validatePost,
+  resolveCallToAction,
+  pickShowcaseReview,
+  trimQuote,
+  POST_MAX,
+  type PostContext,
+  pickPostPhoto,
+} from "./gbp-posts";
 import type { GoogleReview } from "./gbp-review-replies";
 
 const review = (over: Partial<GoogleReview> = {}): GoogleReview => ({
@@ -128,5 +137,63 @@ describe("validatePost", () => {
 
   it("rejects HTML", () => {
     expect(validatePost("<b>Book now</b> for a fresh cut this weekend", cta).ok).toBe(false);
+  });
+});
+
+describe("pickPostPhoto", () => {
+  const p = (url: string, category: string | null, createTime?: string) => ({ url, category, createTime });
+
+  it("prefers work photos for a review post and the storefront for hours", () => {
+    const lib = [p("https://x/1", "EXTERIOR"), p("https://x/2", "AT_WORK"), p("https://x/3", "INTERIOR")];
+    expect(pickPostPhoto(lib, "review")).toBe("https://x/2");
+    // Hours are about turning up at a door, so the door wins.
+    expect(pickPostPhoto(lib, "hours")).toBe("https://x/1");
+  });
+
+  it("walks down the preference order when the best category is missing", () => {
+    expect(pickPostPhoto([p("https://x/9", "INTERIOR")], "review")).toBe("https://x/9");
+  });
+
+  it("falls back to the newest photo when no category matches", () => {
+    const lib = [p("https://x/old", "MENU", "2026-01-01T00:00:00Z"), p("https://x/new", "MENU", "2026-07-01T00:00:00Z")];
+    expect(pickPostPhoto(lib, "service")).toBe("https://x/new");
+  });
+
+  it("picks the newest within a category, not just the first", () => {
+    const lib = [
+      p("https://x/a", "AT_WORK", "2026-01-01T00:00:00Z"),
+      p("https://x/b", "AT_WORK", "2026-06-01T00:00:00Z"),
+    ];
+    expect(pickPostPhoto(lib, "review")).toBe("https://x/b");
+  });
+
+  it("returns null rather than a bad image", () => {
+    // Google fetches this URL itself, so a non-https one fails at their end and
+    // takes the whole post with it.
+    expect(pickPostPhoto([], "review")).toBeNull();
+    expect(pickPostPhoto([p("http://insecure/1", "AT_WORK")], "review")).toBeNull();
+  });
+});
+
+describe("buildPostAngles — photos", () => {
+  const ctx = (over: any = {}) => ({
+    businessName: "Test Shop",
+    city: "Houston",
+    services: ["Fade cut"],
+    reviews: [],
+    websiteUrl: "https://example.com",
+    ...over,
+  });
+
+  it("suggests a photo on each angle when the listing has one", () => {
+    const angles = buildPostAngles(ctx({ photos: [{ url: "https://x/1", category: "AT_WORK" }] }));
+    expect(angles.length).toBeGreaterThan(0);
+    for (const a of angles) expect(a.photoUrl).toBe("https://x/1");
+  });
+
+  it("still builds angles for a listing with no photos", () => {
+    const angles = buildPostAngles(ctx());
+    expect(angles.length).toBeGreaterThan(0);
+    expect(angles[0].photoUrl).toBeNull();
   });
 });

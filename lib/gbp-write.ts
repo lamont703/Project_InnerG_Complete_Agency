@@ -570,13 +570,27 @@ export async function writeLocalPost(args: {
   locationName: string;
   summary: string;
   callToAction: { actionType: string; url?: string };
+  /**
+   * Public https URL of a photo to attach. Google fetches it server-side, so it
+   * has to be reachable without auth — a signed or expiring link fails at
+   * Google's end, not ours, and the post is rejected whole.
+   */
+  photoUrl?: string | null;
   memberId?: string | null;
   note?: string;
 }): Promise<WriteResult & { postName?: string }> {
-  const { token, accountName, locationName, summary, callToAction, memberId, note } = args;
+  const { token, accountName, locationName, summary, callToAction, photoUrl, memberId, note } = args;
 
   const text = (summary || "").trim();
   if (!text) return { ok: false, error: "Refusing to publish an empty post." };
+
+  // Reject a bad photo URL here rather than letting Google reject the whole
+  // post. Losing the image is recoverable; losing the post the owner just
+  // approved is the thing worth avoiding.
+  const photo = (photoUrl || "").trim();
+  if (photo && !/^https:\/\//i.test(photo)) {
+    return { ok: false, error: "The photo link must be a public https:// URL." };
+  }
 
   const parent = `${accountName}/${locationName}`;
   const beforeRes = await gbpFetch(`${V4}/${parent}/localPosts?pageSize=1`, token);
@@ -589,7 +603,7 @@ export async function writeLocalPost(args: {
       location_name: locationName,
       surface: "localPosts",
       before_state: before,
-      applied_patch: { summary: text, callToAction },
+      applied_patch: { summary: text, callToAction, photoUrl: photo || null },
       status: "applied",
       note: note ?? null,
     })
@@ -609,6 +623,10 @@ export async function writeLocalPost(args: {
   body.callToAction = callToAction.url
     ? { actionType: callToAction.actionType, url: callToAction.url }
     : { actionType: callToAction.actionType };
+
+  // sourceUrl is the ONLY data field a LocalPost MediaItem accepts — there is
+  // no upload path here, unlike location photos. Google fetches the URL itself.
+  if (photo) body.media = [{ mediaFormat: "PHOTO", sourceUrl: photo }];
 
   const res = await gbpFetch(`${V4}/${parent}/localPosts`, token, {
     method: "POST",

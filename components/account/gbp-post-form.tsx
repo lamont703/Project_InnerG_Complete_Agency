@@ -22,6 +22,9 @@ export function GbpPostForm() {
   const [text, setText] = useState("");
   const [hasBooking, setHasBooking] = useState(true);
   const [lastPostAt, setLastPostAt] = useState<string | null>(null);
+  const [library, setLibrary] = useState<{ url: string; category?: string | null }[]>([]);
+  // null = the owner cleared the image; undefined = follow the angle's suggestion.
+  const [photo, setPhoto] = useState<string | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [published, setPublished] = useState(false);
@@ -36,6 +39,7 @@ export function GbpPostForm() {
         setAngles(json.angles || []);
         setHasBooking(json.hasBookingLink);
         setLastPostAt(json.lastPostAt);
+        setLibrary(json.photos || []);
         if (json.angles?.[0]) { setChosen(json.angles[0].id); setText(json.angles[0].summary); }
       } catch { setError("Could not load post ideas."); }
       finally { setLoading(false); }
@@ -43,6 +47,8 @@ export function GbpPostForm() {
   }, []);
 
   const angle = angles.find((a) => a.id === chosen) ?? null;
+  // An explicit choice wins; otherwise use whatever the angle suggested.
+  const activePhoto = photo === undefined ? angle?.photoUrl ?? null : photo;
   const check = angle ? validatePost(text, angle.callToAction) : null;
 
   const publish = async () => {
@@ -52,7 +58,7 @@ export function GbpPostForm() {
       const res = await fetch("/api/account/gbp-posts", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          summary: text, angleId: angle.id,
+          summary: text, angleId: angle.id, photoUrl: activePhoto,
           actionType: angle.callToAction.actionType, url: angle.callToAction.url,
         }),
       });
@@ -107,7 +113,7 @@ export function GbpPostForm() {
             {angles.map((a) => (
               <button
                 key={a.id}
-                onClick={() => { setChosen(a.id); setText(a.summary); }}
+                onClick={() => { setChosen(a.id); setText(a.summary); setPhoto(undefined); }}
                 className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
                   chosen === a.id ? "border-primary bg-primary text-primary-foreground" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                 }`}
@@ -128,6 +134,43 @@ export function GbpPostForm() {
                   This quotes a customer. Their first name only, never a photo — they left a review,
                   they didn&apos;t agree to appear in your advertising.
                 </p>
+              )}
+
+              {library.length > 0 && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Photo</p>
+                    {activePhoto && (
+                      <button
+                        onClick={() => setPhoto(null)}
+                        className="text-[11px] font-bold text-slate-500 underline hover:text-slate-800"
+                      >
+                        Post without a photo
+                      </button>
+                    )}
+                  </div>
+                  <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                    {library.map((p) => (
+                      <button
+                        key={p.url}
+                        onClick={() => setPhoto(p.url)}
+                        aria-label={p.category ? `Use ${p.category.toLowerCase()} photo` : "Use this photo"}
+                        aria-pressed={activePhoto === p.url}
+                        className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
+                          activePhoto === p.url ? "border-primary" : "border-transparent hover:border-slate-300"
+                        }`}
+                      >
+                        {/* Google-hosted, already public on the listing. */}
+                        <img src={p.url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
+                    {activePhoto
+                      ? "Posts with a photo get noticed; text-only ones look thin in the feed."
+                      : "This will post as text only."}
+                  </p>
+                </div>
               )}
 
               <textarea

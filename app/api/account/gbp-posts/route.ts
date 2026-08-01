@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { gbpAccessToken } from "@/lib/google-business";
 import { resolveMemberContext, assertNotImpersonating } from "@/lib/account/view-as";
 import { readLocationFields, writeLocalPost } from "@/lib/gbp-write";
-import { buildPostAngles, validatePost, type PostContext } from "@/lib/gbp-posts";
+import { buildPostAngles, validatePost, type PostContext, type PostPhoto } from "@/lib/gbp-posts";
 import { upcomingHolidays } from "@/lib/us-holidays";
 import { formatTime } from "@/lib/gbp-special-hours";
 
@@ -51,10 +51,12 @@ async function resolveConnection() {
 /** Everything a post is allowed to draw on. */
 async function gatherContext(token: string, accountName: string, locationName: string): Promise<PostContext | null> {
   const headers = { Authorization: `Bearer ${token}` };
-  const [loc, reviewsRes, linksRes] = await Promise.all([
+  const [loc, reviewsRes, linksRes, mediaRes] = await Promise.all([
     readLocationFields(token, locationName, READ_MASK).catch(() => null),
     fetch(`${V4}/${accountName}/${locationName}/reviews?pageSize=25`, { headers, cache: "no-store" }),
     fetch(`${PLACE_ACTIONS}/${locationName}/placeActionLinks`, { headers, cache: "no-store" }),
+    // One page is enough: a post needs one good picture, not the whole library.
+    fetch(`${V4}/${accountName}/${locationName}/media?pageSize=100`, { headers, cache: "no-store" }),
   ]);
   if (!loc) return null;
 
@@ -86,6 +88,17 @@ async function gatherContext(token: string, accountName: string, locationName: s
     }
   }
 
+  // googleUrl is the hosted copy of a photo the owner has already published, so
+  // it is public and Google can fetch it when it renders the post. Anything
+  // without one is skipped rather than guessed at.
+  const photos: PostPhoto[] = ((mediaRes.ok ? (await mediaRes.json())?.mediaItems : []) || [])
+    .filter((m: any) => m.mediaFormat === "PHOTO" && m.googleUrl)
+    .map((m: any) => ({
+      url: m.googleUrl,
+      category: m.locationAssociation?.category ?? null,
+      createTime: m.createTime ?? null,
+    }));
+
   return {
     businessName: loc.title || "our shop",
     city: loc.storefrontAddress?.locality ?? null,
@@ -94,6 +107,7 @@ async function gatherContext(token: string, accountName: string, locationName: s
     bookingUrl: booking,
     websiteUrl: loc.websiteUri ?? null,
     upcomingHoliday,
+    photos,
   };
 }
 
@@ -118,6 +132,9 @@ export async function GET() {
     angles: buildPostAngles(context),
     hasBookingLink: !!context.bookingUrl,
     lastPostAt: lastPost,
+    // The full library, so the owner can swap the suggested photo for another
+    // of their own rather than being stuck with our pick.
+    photos: (context.photos ?? []).slice(0, 24),
   });
 }
 
@@ -137,6 +154,7 @@ export async function POST(req: Request) {
   const actionType = String(body?.actionType || "LEARN_MORE");
   const url = body?.url ? String(body.url) : undefined;
   const angleId = body?.angleId ? String(body.angleId) : null;
+  const photoUrl = body?.photoUrl ? String(body.photoUrl) : null;
 
   const check = validatePost(summary, { actionType: actionType as any, url });
   if (!check.ok) {
@@ -149,7 +167,7 @@ export async function POST(req: Request) {
       community_member_id: ctx.memberId,
       location_name: locationName,
       surface: "localPosts",
-      proposed: { summary, actionType, url, angleId },
+      proposed: { summary, actionType, url, angleId, photoUrl },
       origin: "owner-approved post",
       status: "approved",
       approved_at: new Date().toISOString(),
@@ -158,7 +176,7 @@ export async function POST(req: Request) {
     .single();
 
   const write = await writeLocalPost({
-    token, accountName, locationName, summary,
+    token, accountName, locationName, summary, photoUrl,
     callToAction: { actionType, url },
     memberId: ctx.memberId, note: `owner-approved post${angleId ? ` — ${angleId}` : ""}`,
   });
