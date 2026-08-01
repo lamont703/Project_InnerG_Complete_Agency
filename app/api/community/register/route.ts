@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { claimTypeConfig } from "@/lib/entity-claim";
+import { upsertGhlContact, memberTags, isTestContact } from "@/lib/ghl-contacts";
+import { sendGhlEmail } from "@/lib/ghl-email";
+import { buildCommunityWelcomeEmail } from "@/lib/community-welcome-email";
 
 // Deliberately much simpler than /api/barber/register — community members
 // get a search-visible directory profile, not a business dashboard, so
@@ -62,6 +65,8 @@ export async function POST(req: Request) {
     // claim CTA was a dead end — sign up, get nothing, badge never appears.
     let claimLinked = false;
     let claimRedirect: string | null = null;
+    let claimedName: string | null = null;
+    let ghlContactId: string | undefined;
     if (claimEntityType && claimEntityId) {
       // Validate against the canonical list rather than trusting the client —
       // these values come straight off a query string.
@@ -70,9 +75,11 @@ export async function POST(req: Request) {
         console.warn(`[CommunityRegister] Unknown claim entity type: ${claimEntityType}`);
       } else {
         // Confirm the entity actually exists before linking a member to it.
+        // nameCol comes along so the welcome email can name what they claimed
+        // rather than saying "your listing".
         const { data: entity } = await (adminSupabase as any)
           .from(config.table)
-          .select("id, slug")
+          .select(`id, slug, ${config.nameCol}`)
           .eq("id", claimEntityId)
           .maybeSingle();
 
@@ -102,6 +109,7 @@ export async function POST(req: Request) {
               console.error("[CommunityRegister] Entity link failed:", linkError);
             } else {
               claimLinked = true;
+              claimedName = entity[config.nameCol] || null;
               // shop/salon also carry a claimed_at column that the rest of the
               // app reads; keep it in sync (see CLAIMED_AT_TYPES).
               if (config.key === "shop" || config.key === "salon") {
@@ -123,6 +131,79 @@ export async function POST(req: Request) {
             }
           }
         }
+      }
+    }
+
+    // Push the member into GoHighLevel.
+    //
+    // Runs last, after the claim is resolved, so the contact carries the right
+    // tags on its first write rather than needing a second pass. Awaited rather
+    // than fired and forgotten: this route runs serverless, and work left
+    // in flight when the response returns may simply be killed.
+    //
+    // A CRM failure must never cost someone their membership — the rows that
+    // matter are already committed — so this only ever logs. Contacts missed
+    // here are picked up by scripts/sync_members_to_ghl.js, which treats a null
+    // contact_id as its work queue.
+    try {
+      const ghl = await upsertGhlContact({
+        firstName,
+        lastName,
+        email,
+        phone,
+        source: "Community Signup",
+        tags: memberTags({ claimedEntityType: claimEntityType, claimLinked }),
+      });
+
+      if (ghl.ok && ghl.contactId) {
+        await (adminSupabase.from("community_members") as any)
+          .update({ contact_id: ghl.contactId, contact_synced_at: new Date().toISOString() })
+          .eq("user_id", authUser.id);
+        if (!ghl.tagged) {
+          console.warn(`[CommunityRegister] GHL contact ${ghl.contactId} saved without tags`);
+        }
+      } else if (!ghl.skipped) {
+        console.error("[CommunityRegister] GHL sync failed:", ghl.error);
+      }
+      ghlContactId = ghl.contactId;
+    } catch (ghlError: any) {
+      console.error("[CommunityRegister] GHL sync threw:", ghlError?.message);
+    }
+
+    // The welcome email.
+    //
+    // Signup used to end in a toast on a page people navigate away from, so a
+    // member left with nothing in their inbox and no route back. Sent from here
+    // rather than a CRM workflow because it confirms an account someone just
+    // created — that has to fire on the actual event.
+    //
+    // Skipped for test accounts, which reach this route like anyone else.
+    // Recorded either way: a row with no welcome_email_sent_at is a member who
+    // signed up and heard nothing.
+    if (!isTestContact({ email, phone })) {
+      try {
+        const { subject, html } = buildCommunityWelcomeEmail({
+          firstName,
+          claimedEntityName: claimLinked ? claimedName : null,
+          claimedEntityUrl: claimRedirect,
+        });
+        const sent = await sendGhlEmail({
+          email,
+          subject,
+          html,
+          name: `${firstName} ${lastName}`,
+          contactId: ghlContactId,
+        });
+        await (adminSupabase.from("community_members") as any)
+          .update(
+            sent.ok
+              ? { welcome_email_sent_at: new Date().toISOString(), welcome_email_error: null }
+              : { welcome_email_error: sent.error || "unknown" }
+          )
+          .eq("user_id", authUser.id);
+        if (!sent.ok) console.error("[CommunityRegister] Welcome email failed:", sent.error);
+      } catch (mailError: any) {
+        console.error("[CommunityRegister] Welcome email threw:", mailError?.message);
       }
     }
 

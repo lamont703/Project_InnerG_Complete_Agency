@@ -27,6 +27,12 @@ export async function sendGhlEmail(args: {
   html: string;
   /** Used when the contact has to be created. */
   name?: string;
+  /**
+   * Skip the lookup when the caller already holds the contact id — the signup
+   * route has just upserted the contact, and creating it again only to be told
+   * it is a duplicate is a wasted round trip on a path a person is waiting on.
+   */
+  contactId?: string;
 }): Promise<GhlEmailResult> {
   const apiKey = process.env.GHL_API_KEY;
   const locationId = process.env.GHL_LOCATION_ID;
@@ -40,26 +46,29 @@ export async function sendGhlEmail(args: {
     Version: "2021-07-28",
   };
 
-  let contactId: string | undefined;
-  try {
-    const res = await fetch(`${GHL_API_BASE}/contacts/`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ email: args.email, name: args.name || args.email, locationId }),
-    });
-    const body = await res.json().catch(() => ({}));
-    contactId = body.contact?.id;
+  let contactId: string | undefined = args.contactId;
 
-    if (!res.ok) {
-      // Already a contact — the id comes back on the duplicate error.
-      if (res.status === 400 && String(body.message || "").includes("duplicated")) {
-        contactId = body.meta?.contactId;
-      } else {
-        return { ok: false, error: `contact upsert failed: ${body.message || res.status}` };
+  if (!contactId) {
+    try {
+      const res = await fetch(`${GHL_API_BASE}/contacts/`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ email: args.email, name: args.name || args.email, locationId }),
+      });
+      const body = await res.json().catch(() => ({}));
+      contactId = body.contact?.id;
+
+      if (!res.ok) {
+        // Already a contact — the id comes back on the duplicate error.
+        if (res.status === 400 && String(body.message || "").includes("duplicated")) {
+          contactId = body.meta?.contactId;
+        } else {
+          return { ok: false, error: `contact upsert failed: ${body.message || res.status}` };
+        }
       }
+    } catch (e: any) {
+      return { ok: false, error: `contact upsert threw: ${e?.message}` };
     }
-  } catch (e: any) {
-    return { ok: false, error: `contact upsert threw: ${e?.message}` };
   }
 
   if (!contactId) return { ok: false, error: "no contact id returned" };
