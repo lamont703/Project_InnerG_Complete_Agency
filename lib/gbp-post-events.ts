@@ -108,6 +108,41 @@ export interface EventIssue {
 }
 
 /**
+ * Strip the noise organisers put in event names.
+ *
+ * "Connecticut Barber Expo 15 - June 6-8, 2026 (Barber Grammy's on June 6)"
+ * carries its own dates and a sub-event, both of which Google is about to
+ * render separately. What's left is the name a person would say out loud.
+ */
+export function cleanEventName(title: string): string {
+  return (title || "")
+    .replace(/\s*\([^)]*\)\s*$/, "")
+    .replace(/\s+[-–—]\s+.*$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * The title on the event card.
+ *
+ * It has to say what the shop is doing, not what the organiser is doing. Using
+ * the convention's own name here — which is what this did first — renders an
+ * event card on the shop's listing headed "BARBERCON DALLAS" with dates
+ * attached, and a customer reads that as the shop hosting it. The body said
+ * "we'll be there" while the card said otherwise, and the card is what gets
+ * read.
+ *
+ * The prefix is trimmed along with the name so the whole thing fits Google's
+ * limit — a title cut to "We're at BARBERCON DALL…" is still unambiguous, one
+ * cut to "…DALLAS" would not be.
+ */
+export function attendanceTitle(title: string): string {
+  const name = cleanEventName(title);
+  if (!name) return "";
+  return trimEventTitle(`We're at ${name}`);
+}
+
+/**
  * Build the Google event object from a directory row.
  *
  * Returns issues rather than throwing, so the caller can show an owner why a
@@ -209,7 +244,7 @@ export function buildAttendanceSummary(event: DirectoryEvent, businessName: stri
   const when = describeDates(event);
   const where = event.venue_name ? ` at ${event.venue_name}` : event.city ? ` in ${event.city}` : "";
   return [
-    `We'll be at ${event.title.replace(/\s+-\s+.*$/, "").trim()} on ${when}${where}.`,
+    `We'll be at ${cleanEventName(event.title)} on ${when}${where}.`,
     "",
     `Come and say hello if you're going. ${businessName}`,
   ].join("\n");

@@ -1,8 +1,19 @@
 import { describe, it, expect } from "vitest";
 import {
-  parseDate, parseTime, trimEventTitle, toLocalPostEvent, isPostableEvent,
-  eventsNear, describeDates, buildAttendanceSummary,
-  DAY_START, DAY_END, EVENT_TITLE_MAX, type DirectoryEvent,
+  parseDate,
+  parseTime,
+  trimEventTitle,
+  toLocalPostEvent,
+  isPostableEvent,
+  eventsNear,
+  describeDates,
+  buildAttendanceSummary,
+  DAY_START,
+  DAY_END,
+  EVENT_TITLE_MAX,
+  type DirectoryEvent,
+  cleanEventName,
+  attendanceTitle,
 } from "./gbp-post-events";
 
 // The real rows in the directory, which is where the awkward cases come from.
@@ -165,5 +176,56 @@ describe("buildAttendanceSummary", () => {
   it("drops a trailing date suffix from a messy title", () => {
     const s = buildAttendanceSummary(CT_EXPO, "Test Shop");
     expect(s).not.toContain("June 6-8, 2026 (Barber Grammy");
+  });
+});
+
+describe("cleanEventName", () => {
+  it("drops the dates and sub-event organisers bury in a title", () => {
+    // Google is about to render the dates separately; repeating them in the
+    // name is noise inside a 58-character limit.
+    expect(cleanEventName(CT_EXPO.title)).toBe("Connecticut Barber Expo 15");
+  });
+
+  it("leaves a clean name alone", () => {
+    expect(cleanEventName("BARBERCON DALLAS")).toBe("BARBERCON DALLAS");
+  });
+
+  it("doesn't eat a hyphenated word", () => {
+    expect(cleanEventName("Fade-Off Championship")).toBe("Fade-Off Championship");
+  });
+});
+
+describe("attendanceTitle", () => {
+  it("says what the SHOP is doing, not what the organiser is doing", () => {
+    // The bug this fixes: the card read "BARBERCON DALLAS" on a barbershop's
+    // listing with dates attached, which a customer takes as the shop running
+    // it. The body said "we'll be there"; the card is what gets read.
+    expect(attendanceTitle("BARBERCON DALLAS")).toBe("We're at BARBERCON DALLAS");
+  });
+
+  it("cleans the name before prefixing it", () => {
+    expect(attendanceTitle(CT_EXPO.title)).toBe("We're at Connecticut Barber Expo 15");
+  });
+
+  it("keeps the prefix when it has to truncate", () => {
+    // "…DALLAS" alone would be ambiguous; "We're at …" never is.
+    const t = attendanceTitle("The Extremely Long National Barbering And Cosmetology Championship Of Texas");
+    expect(t.length).toBeLessThanOrEqual(EVENT_TITLE_MAX);
+    expect(t.startsWith("We're at ")).toBe(true);
+    expect(t.endsWith("…")).toBe(true);
+  });
+
+  it("returns nothing for an empty name rather than a bare prefix", () => {
+    expect(attendanceTitle("")).toBe("");
+    expect(attendanceTitle("   ")).toBe("");
+  });
+});
+
+describe("toLocalPostEvent — attendance framing", () => {
+  it("uses the override the route supplies", () => {
+    const { event } = toLocalPostEvent(BARBERCON, { titleOverride: attendanceTitle(BARBERCON.title) });
+    expect(event!.title).toBe("We're at BARBERCON DALLAS");
+    // The dates still describe the event itself.
+    expect(event!.schedule.startDate).toEqual({ year: 2026, month: 9, day: 13 });
   });
 });

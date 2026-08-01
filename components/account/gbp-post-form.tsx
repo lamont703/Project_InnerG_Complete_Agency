@@ -30,6 +30,8 @@ interface EventCandidate {
   venue: string | null;
   city: string | null;
   summary: string;
+  /** The heading Google puts on the event card. */
+  cardTitle: string;
 }
 
 /**
@@ -242,8 +244,9 @@ export function GbpPostForm() {
 
               {chosenEvent && (
                 <p className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
-                  This will post as an <strong>event</strong>, showing {chosenEvent.when} on your listing.
-                  Edit the wording below — say if the shop is closed.
+                  This posts as an <strong>event</strong> headed &ldquo;{chosenEvent.cardTitle}&rdquo;,
+                  showing {chosenEvent.when}. It says you&apos;re attending, not hosting. Edit the
+                  wording below — say if the shop is closed.
                 </p>
               )}
             </section>
