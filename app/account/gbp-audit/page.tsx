@@ -8,6 +8,9 @@ import { createServerClient } from "@/lib/supabase/server";
 import { resolveMemberContext } from "@/lib/account/view-as";
 import { getMemberGbpAudit } from "@/lib/gbp-audit-fetch";
 import { diffSnapshots, recentSnapshots, recordSnapshot } from "@/lib/gbp-audit-history";
+import { resolveOwnedEntity } from "@/lib/account/resolve-owned-entity";
+import { getLocalStanding } from "@/lib/account/local-standing";
+import { LocalStandingPanel } from "@/components/account/local-standing-panel";
 import type { AuditCheck } from "@/lib/gbp-audit";
 
 /**
@@ -156,6 +159,17 @@ export default async function MyGbpAuditPage() {
     keywordCount: keywords.length,
     latest: previous,
   });
+  // The competitive half of the report. Derived from the CLAIMED listing, not
+  // from the Google connection: ownership has to come from the
+  // session -> member -> entity-link chain (see resolve-owned-entity), and the
+  // comparison set is our own directory rather than anything Google exposes.
+  // Non-fatal — an owner with no claimed listing still gets the full audit.
+  const owned = await resolveOwnedEntity();
+  const standing =
+    "link" in owned && owned.link
+      ? await getLocalStanding(owned.link.entity_type, owned.link.entity_id)
+      : null;
+
   const actions = performance ? performance.calls + performance.website + performance.directions : 0;
   const actionRate = performance && performance.impressions > 0
     ? ((actions / performance.impressions) * 100).toFixed(1) + "%"
@@ -194,6 +208,12 @@ export default async function MyGbpAuditPage() {
           </div>
         ))}
       </div>
+
+      {standing && (
+        <div className="mt-6">
+          <LocalStandingPanel standing={standing} />
+        </div>
+      )}
 
       {performance && (
         <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
