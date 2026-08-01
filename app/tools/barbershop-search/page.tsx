@@ -178,13 +178,19 @@ function SearchContent() {
   // shot. Position is 1-based since that's how a person would describe
   // "this showed up 3rd," not how an array index would.
   const trackImpressions = (searchResults: any[], q: string, tab: string, pageNum: number) => {
-    if (!searchResults || searchResults.length === 0) return;
+    // A zero-result search used to return here before logging anything, which
+    // made the single most useful search-quality signal — which queries find
+    // nothing — impossible to measure. The empty case is now logged like any
+    // other, with result_count so it can be aggregated without unpacking the
+    // results array.
+    const list = searchResults || [];
     if ((window as any).innerG?.track) {
       (window as any).innerG.track('search_impression', {
         query: q,
         filter: tab,
         page: pageNum,
-        results: searchResults.map((r, i) => ({
+        result_count: list.length,
+        results: list.map((r, i) => ({
           resultType: r.resultType,
           entityId: r.id || r.href || null,
           position: i + 1,
@@ -392,6 +398,38 @@ function SearchContent() {
     } catch {}
   }, [verificationRequested]);
 
+  // search_executed is logged here rather than inside the search effect above,
+  // because the two answer different questions. That effect runs on a 300ms
+  // debounce so results feel instant — which meant every intermediate keystroke
+  // was logged as a search ("ba", "bar", "barbers in"), every page change was
+  // logged as a new search, and pressing Back replayed one from cache. The
+  // recorded data showed 437 events for "houston" across 7 sessions.
+  //
+  // Two changes make the number mean "a person ran this search": a longer
+  // settle so only the query someone stopped typing is recorded, and a
+  // signature that deliberately excludes `page`, so paging through results
+  // isn't counted as searching again.
+  const lastTrackedSearch = useRef<string | null>(null);
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) return;
+
+    const signature = `${q}||${filterTab}||${[...activeFilters].sort().join(',')}`;
+    const settle = setTimeout(() => {
+      if (lastTrackedSearch.current === signature) return;
+      lastTrackedSearch.current = signature;
+      if (typeof window !== "undefined" && (window as any).innerG?.track) {
+        (window as any).innerG.track('search_executed', {
+          query: q,
+          filter: filterTab,
+          filters_used: activeFilters,
+        });
+      }
+    }, 1200);
+
+    return () => clearTimeout(settle);
+  }, [query, filterTab, activeFilters]);
+
   useEffect(() => {
     // `ignore` guards against a stale in-flight search resolving after the
     // query has since changed (e.g. cleared) — without it, clearTimeout only
@@ -411,16 +449,6 @@ function SearchContent() {
       window.history.replaceState(null, '', `?${params.toString()}`);
 
       if (query.trim().length >= 2) {
-        // Custom VC Metrics Tracking: Track Search Intent
-        if (typeof window !== "undefined") {
-          if ((window as any).innerG?.track) {
-            console.log("[Search Tracking] Firing search_executed event:", query.trim());
-            (window as any).innerG.track('search_executed', { query: query.trim(), filter: filterTab, page: page, filters_used: activeFilters });
-          } else {
-            console.warn("[Search Tracking] window.innerG is not loaded yet!");
-          }
-        }
-
         // Intercept with Session Storage Cache to prevent re-fetching when hitting "Back"
         const cacheKey = `search_${query}_${filterTab}_${page}_${activeFilters.join(',')}`;
         const cached = sessionStorage.getItem(cacheKey);
