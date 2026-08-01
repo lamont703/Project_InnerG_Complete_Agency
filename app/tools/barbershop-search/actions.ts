@@ -215,11 +215,31 @@ export async function searchBarbershops(query: string, page: number = 1, filterT
       }
     });
 
+    const preStopWordQuery = cleanQuery;
     stopWordsList.forEach(word => {
       const regex = new RegExp(`\\b${word}\\b`, 'gi');
       cleanQuery = cleanQuery.replace(regex, '');
     });
     cleanQuery = cleanQuery.replace(/\s+/g, ' ').trim();
+
+    // Some queries are entirely stop words once intent phrases are pulled out —
+    // "any shop" and "are there" both reduce to nothing, since `shop`, `shops`
+    // and `any` are all on the list.
+    //
+    // An empty keyword is normally survivable: the ranked RPCs score on token
+    // matches rather than filtering by them, so the search degrades to semantic
+    // + quality ranking, and the embedding is deliberately computed from the RAW
+    // query before this stripping runs. That path is fine.
+    //
+    // It is NOT fine when the embedding is also missing — a Gemini failure or
+    // rate limit, which the code above already treats as an expected fallback.
+    // With no keyword and no vector, every row scores on quality alone and the
+    // user gets the same generic top listings whatever they typed. Restoring the
+    // pre-stripping query gives the keyword path something to work with in
+    // exactly that case, and changes nothing in the normal one.
+    if (!cleanQuery && !queryEmbedding) {
+      cleanQuery = preStopWordQuery;
+    }
 
     // --- Intent Detection ---
     // Used only as a bounded ranking boost now (see INTENT_CATEGORY_MAP /
