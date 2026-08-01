@@ -15,6 +15,12 @@
  *
  * Requires the key file be live at KEY_LOCATION (deploy first) or IndexNow
  * rejects the submission.
+ *
+ * ONE-OFF, NOT A SCHEDULE. Every run here is a batch submission, and Bing reads
+ * repeated batches as the site's submission mode — which is what put "IndexNow
+ * is in batch mode" in Webmaster Tools. Ordinary publishing is already covered
+ * one page at a time by lib/indexnow.ts; use this only to backfill a large set
+ * of pages that were never pinged (a new sitemap section, a bulk re-publish).
  */
 const HOST = "agency.innergcomplete.com";
 const KEY = "e352d1c5dee74b9084f780187d522a3a"; // Bing-issued IndexNow key; keep in sync with lib/indexnow.ts + public/<key>.txt
