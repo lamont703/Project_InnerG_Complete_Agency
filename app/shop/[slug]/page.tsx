@@ -19,6 +19,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
+import { composeDescription, ratingClause, streetClause } from "@/lib/seo-description";
 
 export const dynamic = 'force-dynamic';
 
@@ -110,18 +111,26 @@ export async function generateMetadata(
   const title = isHiring
     ? `${shop.shop_name} is Hiring on Shop Day Network`
     : `${shop.shop_name} — Barbershop Profile in ${shop.city}, TX`;
-  const descParts = [
-    `${shop.shop_name} in ${shop.city}`,
-    shop.booth_count_available ? `— ${shop.booth_count_available} chair${shop.booth_count_available > 1 ? 's' : ''} available` : null,
-    shop.rent_type ? `(${shop.rent_type}${shop.rent_rate ? ` at $${shop.rent_rate}/week` : ''})` : null,
-    shop.rating ? `Rated ${shop.rating}★` : null,
-    shop.total_reviews ? `(${shop.total_reviews} reviews)` : null,
-  ].filter(Boolean);
   const nearbyAreas: string[] = Array.isArray(shop.nearby_areas) ? shop.nearby_areas : [];
-  const nearbyAreasNote = nearbyAreas.length > 0 ? ` Also serving ${nearbyAreas.join(", ")}.` : "";
-  const description = isHiring
-    ? `${descParts.join('. ')}. View photos and request a Shop Day.${nearbyAreasNote}`
-    : `${shop.shop_name} in ${shop.city}, TX${shop.rating ? ` — rated ${shop.rating}★` : ''}${shop.total_reviews ? ` (${shop.total_reviews} reviews)` : ''}. View photos, hours, and contact details.${nearbyAreasNote}`;
+
+  // The non-hiring branch used to discard everything gathered here and rebuild
+  // a short string from name/city/rating alone, which is why these pages came
+  // out around 90 characters and Bing flagged them. Both branches now draw from
+  // the same clause list, ordered so the most differentiating fact leads.
+  const description = composeDescription([
+    `${shop.shop_name} — barbershop in ${shop.city}${shop.address_state ? `, ${shop.address_state}` : ", TX"}`,
+    shop.booth_count_available
+      ? `${shop.booth_count_available} chair${shop.booth_count_available > 1 ? "s" : ""} available${shop.rent_type ? ` (${shop.rent_type}${shop.rent_rate ? ` at $${shop.rent_rate}/week` : ""})` : ""}`
+      : isHiring
+      ? "Now hiring"
+      : null,
+    ratingClause(shop.rating, shop.total_reviews),
+    // Concrete and unique to this record — what a sparse listing falls back on
+    // instead of a generic "view photos" tail.
+    streetClause(shop.formatted_address, shop.city),
+    nearbyAreas.length > 0 ? `Also serving ${nearbyAreas.join(", ")}` : null,
+    isHiring ? "See photos and request a Shop Day" : "See photos, hours and contact details",
+  ]);
   const image = shop.shop_image_url || "/shop_day_card.jpg";
 
   return {
