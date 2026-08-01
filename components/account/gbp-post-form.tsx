@@ -5,6 +5,18 @@ import Link from "next/link";
 import { AlertTriangle, ArrowRight, CalendarDays, Check, Clock, Loader2, MessageSquareQuote, Sparkles, Tag } from "lucide-react";
 import { validatePost, POST_MAX, type PostAngle, type PostCallToAction } from "@/lib/gbp-posts";
 import { validateOffer, type OfferDraft } from "@/lib/gbp-post-offers";
+import { validateSchedule, describeSchedule, suggestedSlots } from "@/lib/gbp-post-schedule";
+
+interface ScheduledPost {
+  id: string;
+  summary: string;
+  scheduledFor: string;
+  kind: "post" | "event" | "offer";
+}
+
+/** datetime-local wants "YYYY-MM-DDTHH:mm" in local time, not an ISO string. */
+const toLocalInput = (d: Date) =>
+  new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 
 interface OfferStarterUI {
   id: string; label: string; title: string; summary: string;
@@ -47,6 +59,9 @@ export function GbpPostForm() {
   // The button to use when no angle is selected — an offer or event post
   // doesn't depend on there being a review or a service to draw on.
   const [fallbackCta, setFallbackCta] = useState<PostCallToAction>({ actionType: "CALL" });
+  const [queue, setQueue] = useState<ScheduledPost[]>([]);
+  // "" = publish now. Anything else queues it.
+  const [when, setWhen] = useState("");
   // null = not writing an offer. The amount is always the owner's to fill in.
   const [offer, setOffer] = useState<OfferDraft | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,6 +82,7 @@ export function GbpPostForm() {
         setEvents(json.events || []);
         setStarters(json.offerStarters || []);
         if (json.callToAction) setFallbackCta(json.callToAction);
+        setQueue(json.scheduled || []);
         if (json.angles?.[0]) { setChosen(json.angles[0].id); setText(json.angles[0].summary); }
       } catch { setError("Could not load post ideas."); }
       finally { setLoading(false); }
@@ -82,10 +98,17 @@ export function GbpPostForm() {
   // An offer or an event is enough on its own; an angle is one way in, not the
   // only one.
   const composing = Boolean(angle || eventId || offer);
+  const scheduleCheck = when ? validateSchedule(when) : null;
   const check = composing ? validatePost(text, activeCta) : null;
+
+  const cancelScheduled = async (id: string) => {
+    setQueue((q) => q.filter((p) => p.id !== id));
+    await fetch(`/api/account/gbp-posts?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
+  };
 
   const publish = async () => {
     if (!composing) return;
+    if (when && !validateSchedule(when).ok) return;
     setPosting(true); setError(null);
     try {
       const res = await fetch("/api/account/gbp-posts", {
@@ -93,10 +116,20 @@ export function GbpPostForm() {
         body: JSON.stringify({
           summary: text, angleId: angle?.id ?? null, photoUrl: activePhoto, eventId, offer,
           actionType: activeCta.actionType, url: activeCta.url,
+          scheduledFor: when ? new Date(when).toISOString() : null,
         }),
       });
       const json = await res.json();
       if (!json.success) { setError(json.error || "Could not publish."); return; }
+      if (json.scheduled) {
+        // Stay on the page — the point of a queue is lining several up.
+        setQueue((q) => [...q, {
+          id: json.id, summary: text, scheduledFor: json.scheduledFor,
+          kind: (offer ? "offer" : eventId ? "event" : "post") as ScheduledPost["kind"],
+        }].sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor)));
+        setChosen(null); setEventId(null); setOffer(null); setText(""); setWhen(""); setPhoto(undefined);
+        return;
+      }
       setPublished(true);
     } catch { setError("Could not publish."); }
     finally { setPosting(false); }
@@ -130,6 +163,35 @@ export function GbpPostForm() {
           </p>
         )}
       </div>
+
+      {queue.length > 0 && (
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-sm font-bold text-slate-900">
+            {queue.length} post{queue.length === 1 ? "" : "s"} queued
+          </p>
+          <ul className="mt-3 space-y-2">
+            {queue.map((q) => (
+              <li key={q.id} className="flex items-start justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                <span className="min-w-0">
+                  <span className="block truncate text-xs font-semibold text-slate-700">
+                    {q.summary.split("\n")[0]}
+                  </span>
+                  <span className="block text-[11px] text-slate-500">
+                    {q.kind === "offer" ? "Offer · " : q.kind === "event" ? "Event · " : ""}
+                    {describeSchedule(q.scheduledFor)}
+                  </span>
+                </span>
+                <button
+                  onClick={() => cancelScheduled(q.id)}
+                  className="shrink-0 text-[11px] font-bold text-slate-500 underline hover:text-rose-700"
+                >
+                  Cancel
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {published ? (
         <p className="mt-6 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
@@ -402,12 +464,50 @@ export function GbpPostForm() {
                 </ul>
               )}
 
+              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setWhen("")}
+                    aria-pressed={!when}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+                      !when ? "border-primary bg-primary text-primary-foreground" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    Publish now
+                  </button>
+                  {suggestedSlots(new Date(), 3).map((d, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setWhen(toLocalInput(d))}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-100"
+                    >
+                      In {i + 1} week{i ? "s" : ""}
+                    </button>
+                  ))}
+                  <input
+                    type="datetime-local"
+                    value={when}
+                    onChange={(e) => setWhen(e.target.value)}
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-slate-400"
+                  />
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                  {when
+                    ? "Queued here, not with Google — you can cancel it any time before it goes out. An offer or event that expires first is dropped rather than published late."
+                    : "Posts drop out of the feed after about a week. Lining up a few now is the difference between posting once and staying visible."}
+                </p>
+                {scheduleCheck && !scheduleCheck.ok && (
+                  <p className="mt-2 text-xs font-semibold text-rose-700">{scheduleCheck.issues[0]?.message}</p>
+                )}
+              </div>
+
               <button
                 onClick={publish}
-                disabled={posting || !check?.ok || (!!offer && !offerCheck?.ok)}
+                disabled={posting || !check?.ok || (!!offer && !offerCheck?.ok) || (!!when && !scheduleCheck?.ok)}
                 className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
-                {posting && <Loader2 className="h-4 w-4 animate-spin" />} Publish post
+                {posting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {when ? "Schedule post" : "Publish post"}
               </button>
             </article>
           )}

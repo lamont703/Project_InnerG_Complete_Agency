@@ -12,6 +12,7 @@ import {
 import {
   offerStarters, defaultWindow, validateOffer, toLocalPostOffer, type OfferDraft,
 } from "@/lib/gbp-post-offers";
+import { validateSchedule } from "@/lib/gbp-post-schedule";
 import { formatTime } from "@/lib/gbp-special-hours";
 
 /**
@@ -134,6 +135,13 @@ export async function GET() {
   });
   const lastPost = recent.ok ? (await recent.json())?.localPosts?.[0]?.createTime ?? null : null;
 
+  const { data: scheduled } = await (createAdminClient().from("gbp_scheduled_posts") as any)
+    .select("id, summary, scheduled_for, event, offer")
+    .eq("community_member_id", resolved.ctx.memberId)
+    .eq("location_name", locationName)
+    .eq("status", "pending")
+    .order("scheduled_for", { ascending: true });
+
   // Industry events near the shop, offered as candidates rather than built into
   // an angle: only the owner knows whether they're actually going, and we're
   // not going to assert attendance on someone's public listing.
@@ -166,6 +174,10 @@ export async function GET() {
     // a shop with no reviews and no services is exactly the one that needs an
     // offer most.
     callToAction: resolveCallToAction(context),
+    scheduled: (scheduled || []).map((r: any) => ({
+      id: r.id, summary: r.summary, scheduledFor: r.scheduled_for,
+      kind: r.offer ? "offer" : r.event ? "event" : "post",
+    })),
     events: nearby,
     offerStarters: starters,
     hasBookingLink: !!context.bookingUrl,
@@ -195,6 +207,7 @@ export async function POST(req: Request) {
   const photoUrl = body?.photoUrl ? String(body.photoUrl) : null;
   const eventId = body?.eventId ? String(body.eventId) : null;
   const offerInput = body?.offer ?? null;
+  const scheduledFor = body?.scheduledFor ? String(body.scheduledFor) : null;
 
   const check = validatePost(summary, { actionType: actionType as any, url });
   if (!check.ok) {
@@ -249,6 +262,31 @@ export async function POST(req: Request) {
     localPostEvent = built.event;
   }
 
+  // Queue rather than publish. The post is stored resolved — the event and
+  // offer objects, not an events.id — so a row edited between now and the send
+  // can't change what goes out under the owner's name.
+  if (scheduledFor) {
+    const when = validateSchedule(scheduledFor);
+    if (!when.ok) {
+      return NextResponse.json({ success: false, error: when.issues[0]?.message }, { status: 400 });
+    }
+    const { data: queued, error: queueErr } = await (admin.from("gbp_scheduled_posts") as any)
+      .insert({
+        community_member_id: ctx.memberId,
+        location_name: locationName,
+        summary, action_type: actionType, action_url: url ?? null,
+        photo_url: photoUrl, event: localPostEvent, offer: localPostOffer,
+        angle_id: angleId, scheduled_for: new Date(scheduledFor).toISOString(),
+      })
+      .select("id, scheduled_for")
+      .single();
+
+    if (queueErr) {
+      return NextResponse.json({ success: false, error: "Could not schedule that post." }, { status: 500 });
+    }
+    return NextResponse.json({ success: true, scheduled: true, id: queued.id, scheduledFor: queued.scheduled_for });
+  }
+
   const { data: request } = await (admin.from("gbp_change_requests") as any)
     .insert({
       community_member_id: ctx.memberId,
@@ -282,4 +320,36 @@ export async function POST(req: Request) {
 
   if (!write.ok) return NextResponse.json({ success: false, error: write.error }, { status: 502 });
   return NextResponse.json({ success: true, postName: write.postName });
+}
+
+/**
+ * Cancel a queued post.
+ *
+ * The reason the queue lives in our database rather than in Google's
+ * scheduledTime: a post already handed to Google can't be called back.
+ */
+export async function DELETE(req: Request) {
+  const resolved = await resolveConnection();
+  if ("error" in resolved) {
+    return NextResponse.json({ success: false, error: resolved.error }, { status: resolved.status });
+  }
+  const { ctx, locationName } = resolved;
+
+  const readOnly = assertNotImpersonating(ctx);
+  if (readOnly) return NextResponse.json({ success: false, error: readOnly.error }, { status: readOnly.status });
+
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ success: false, error: "Which post?" }, { status: 400 });
+
+  // Scoped to this member AND this location, so an id from elsewhere matches
+  // nothing rather than cancelling someone else's post.
+  const { error } = await (createAdminClient().from("gbp_scheduled_posts") as any)
+    .update({ status: "cancelled", updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("community_member_id", ctx.memberId)
+    .eq("location_name", locationName)
+    .eq("status", "pending");
+
+  if (error) return NextResponse.json({ success: false, error: "Could not cancel that." }, { status: 500 });
+  return NextResponse.json({ success: true });
 }
