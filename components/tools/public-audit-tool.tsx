@@ -332,7 +332,7 @@ function EmailReport({
   if (state === "done") {
     return (
       <p className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-        <CheckCircle2 className="h-3.5 w-3.5" /> We&apos;ll send it over shortly.
+        <CheckCircle2 className="h-3.5 w-3.5" /> Sent — check your inbox.
       </p>
     );
   }
@@ -371,7 +371,7 @@ function EmailReport({
   return (
     <form onSubmit={submit} className="mt-4 border-t border-slate-100 pt-4">
       <label htmlFor="audit-email" className="text-xs text-slate-500">
-        Want this emailed to you? Optional.
+        Want this report emailed to you? Optional — we won&apos;t email you again unless you ask.
       </label>
       <div className="mt-1.5 flex gap-2">
         <input
