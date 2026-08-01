@@ -27,6 +27,10 @@ yarn-error.log*
 .vercel
 # Markdown docs (all .md files excluded from repo)
 *.md
+# ...except the project instructions. These are rules for anyone working in this
+# repo — the branch policy exists to stop commits landing on main — and a rule
+# that lives only on one laptop protects only that laptop.
+!CLAUDE.md
 
 
 
