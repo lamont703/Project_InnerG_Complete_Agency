@@ -2,8 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, Check, Clock, Loader2, MessageSquareQuote, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarDays, Check, Clock, Loader2, MessageSquareQuote, Sparkles } from "lucide-react";
 import { validatePost, POST_MAX, type PostAngle } from "@/lib/gbp-posts";
+
+interface EventCandidate {
+  id: string;
+  title: string;
+  when: string;
+  venue: string | null;
+  city: string | null;
+  summary: string;
+}
 
 /**
  * Google Posts.
@@ -25,6 +34,9 @@ export function GbpPostForm() {
   const [library, setLibrary] = useState<{ url: string; category?: string | null }[]>([]);
   // null = the owner cleared the image; undefined = follow the angle's suggestion.
   const [photo, setPhoto] = useState<string | null | undefined>(undefined);
+  const [events, setEvents] = useState<EventCandidate[]>([]);
+  // The event the owner has said they're attending. Never preselected.
+  const [eventId, setEventId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [published, setPublished] = useState(false);
@@ -40,12 +52,14 @@ export function GbpPostForm() {
         setHasBooking(json.hasBookingLink);
         setLastPostAt(json.lastPostAt);
         setLibrary(json.photos || []);
+        setEvents(json.events || []);
         if (json.angles?.[0]) { setChosen(json.angles[0].id); setText(json.angles[0].summary); }
       } catch { setError("Could not load post ideas."); }
       finally { setLoading(false); }
     })();
   }, []);
 
+  const chosenEvent = events.find((e) => e.id === eventId) ?? null;
   const angle = angles.find((a) => a.id === chosen) ?? null;
   // An explicit choice wins; otherwise use whatever the angle suggested.
   const activePhoto = photo === undefined ? angle?.photoUrl ?? null : photo;
@@ -58,7 +72,7 @@ export function GbpPostForm() {
       const res = await fetch("/api/account/gbp-posts", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          summary: text, angleId: angle.id, photoUrl: activePhoto,
+          summary: text, angleId: angle.id, photoUrl: activePhoto, eventId,
           actionType: angle.callToAction.actionType, url: angle.callToAction.url,
         }),
       });
@@ -109,11 +123,58 @@ export function GbpPostForm() {
         </p>
       ) : (
         <>
+          {events.length > 0 && (
+            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex items-start gap-2">
+                <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <div>
+                  <p className="text-sm font-bold text-slate-900">Going to any of these?</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+                    Industry events near you. Only pick one if you&apos;ll actually be there — this
+                    publishes to your listing as your own news, with the date attached.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3 space-y-1.5">
+                {events.map((e) => (
+                  <button
+                    key={e.id}
+                    onClick={() => {
+                      if (eventId === e.id) { setEventId(null); return; }
+                      setEventId(e.id);
+                      setText(e.summary);
+                    }}
+                    aria-pressed={eventId === e.id}
+                    className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
+                      eventId === e.id ? "border-primary bg-primary/5" : "border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-slate-800">{e.title}</span>
+                      <span className="block truncate text-xs text-slate-500">
+                        {e.when}{e.venue ? ` · ${e.venue}` : e.city ? ` · ${e.city}` : ""}
+                      </span>
+                    </span>
+                    {eventId === e.id && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                  </button>
+                ))}
+              </div>
+
+              {chosenEvent && (
+                <p className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
+                  This will post as an <strong>event</strong>, showing {chosenEvent.when} on your listing.
+                  Edit the wording below — say if the shop is closed.
+                </p>
+              )}
+            </section>
+          )}
+
           <div className="mt-6 flex flex-wrap gap-2">
             {angles.map((a) => (
               <button
                 key={a.id}
-                onClick={() => { setChosen(a.id); setText(a.summary); setPhoto(undefined); }}
+                onClick={() => { setChosen(a.id); setText(a.summary); setPhoto(undefined); setEventId(null); }}
                 className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
                   chosen === a.id ? "border-primary bg-primary text-primary-foreground" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                 }`}

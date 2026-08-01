@@ -5,6 +5,10 @@ import { resolveMemberContext, assertNotImpersonating } from "@/lib/account/view
 import { readLocationFields, writeLocalPost } from "@/lib/gbp-write";
 import { buildPostAngles, validatePost, type PostContext, type PostPhoto } from "@/lib/gbp-posts";
 import { upcomingHolidays } from "@/lib/us-holidays";
+import {
+  eventsNear, toLocalPostEvent, buildAttendanceSummary, describeDates,
+  type DirectoryEvent,
+} from "@/lib/gbp-post-events";
 import { formatTime } from "@/lib/gbp-special-hours";
 
 /**
@@ -127,9 +131,29 @@ export async function GET() {
   });
   const lastPost = recent.ok ? (await recent.json())?.localPosts?.[0]?.createTime ?? null : null;
 
+  // Industry events near the shop, offered as candidates rather than built into
+  // an angle: only the owner knows whether they're actually going, and we're
+  // not going to assert attendance on someone's public listing.
+  const admin = createAdminClient();
+  const { data: eventRows } = await (admin.from("events") as any)
+    .select("id, title, description, event_date, end_date, start_time, end_time, venue_name, city, ticket_url")
+    .gte("event_date", new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10))
+    .order("event_date", { ascending: true })
+    .limit(200);
+
+  const nearby = eventsNear((eventRows || []) as DirectoryEvent[], context.city).slice(0, 8).map((e) => ({
+    id: e.id,
+    title: e.title,
+    when: describeDates(e),
+    venue: e.venue_name ?? null,
+    city: e.city ?? null,
+    summary: buildAttendanceSummary(e, context.businessName),
+  }));
+
   return NextResponse.json({
     success: true,
     angles: buildPostAngles(context),
+    events: nearby,
     hasBookingLink: !!context.bookingUrl,
     lastPostAt: lastPost,
     // The full library, so the owner can swap the suggested photo for another
@@ -155,6 +179,7 @@ export async function POST(req: Request) {
   const url = body?.url ? String(body.url) : undefined;
   const angleId = body?.angleId ? String(body.angleId) : null;
   const photoUrl = body?.photoUrl ? String(body.photoUrl) : null;
+  const eventId = body?.eventId ? String(body.eventId) : null;
 
   const check = validatePost(summary, { actionType: actionType as any, url });
   if (!check.ok) {
@@ -162,12 +187,35 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient();
+
+  // The event is read from our table rather than taken from the request. The
+  // client could send any title and date, and this publishes to a public
+  // listing — the dates have to be the ones we hold.
+  let localPostEvent = null;
+  if (eventId) {
+    const { data: row } = await (admin.from("events") as any)
+      .select("id, title, event_date, end_date, start_time, end_time")
+      .eq("id", eventId)
+      .maybeSingle();
+    if (!row) {
+      return NextResponse.json({ success: false, error: "That event is no longer listed." }, { status: 404 });
+    }
+    const built = toLocalPostEvent(row);
+    if (!built.event) {
+      return NextResponse.json(
+        { success: false, error: built.issues[0]?.message || "That event can't be posted." },
+        { status: 400 }
+      );
+    }
+    localPostEvent = built.event;
+  }
+
   const { data: request } = await (admin.from("gbp_change_requests") as any)
     .insert({
       community_member_id: ctx.memberId,
       location_name: locationName,
       surface: "localPosts",
-      proposed: { summary, actionType, url, angleId, photoUrl },
+      proposed: { summary, actionType, url, angleId, photoUrl, eventId },
       origin: "owner-approved post",
       status: "approved",
       approved_at: new Date().toISOString(),
@@ -177,6 +225,7 @@ export async function POST(req: Request) {
 
   const write = await writeLocalPost({
     token, accountName, locationName, summary, photoUrl,
+    event: localPostEvent,
     callToAction: { actionType, url },
     memberId: ctx.memberId, note: `owner-approved post${angleId ? ` — ${angleId}` : ""}`,
   });

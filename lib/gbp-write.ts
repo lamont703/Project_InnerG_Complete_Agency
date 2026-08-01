@@ -576,10 +576,23 @@ export async function writeLocalPost(args: {
    * Google's end, not ours, and the post is rejected whole.
    */
   photoUrl?: string | null;
+  /**
+   * Set for an EVENT post. Google requires the event object whenever topicType
+   * is EVENT, so the two travel together and are validated as a pair.
+   */
+  event?: {
+    title: string;
+    schedule: {
+      startDate: { year: number; month: number; day: number };
+      startTime: { hours: number; minutes: number };
+      endDate: { year: number; month: number; day: number };
+      endTime: { hours: number; minutes: number };
+    };
+  } | null;
   memberId?: string | null;
   note?: string;
 }): Promise<WriteResult & { postName?: string }> {
-  const { token, accountName, locationName, summary, callToAction, photoUrl, memberId, note } = args;
+  const { token, accountName, locationName, summary, callToAction, photoUrl, event, memberId, note } = args;
 
   const text = (summary || "").trim();
   if (!text) return { ok: false, error: "Refusing to publish an empty post." };
@@ -603,7 +616,7 @@ export async function writeLocalPost(args: {
       location_name: locationName,
       surface: "localPosts",
       before_state: before,
-      applied_patch: { summary: text, callToAction, photoUrl: photo || null },
+      applied_patch: { summary: text, callToAction, photoUrl: photo || null, event: event ?? null },
       status: "applied",
       note: note ?? null,
     })
@@ -614,11 +627,15 @@ export async function writeLocalPost(args: {
     return { ok: false, error: `snapshot not saved, write aborted: ${snapErr?.message || "unknown"}` };
   }
 
+  // topicType and event are inseparable: EVENT without the object is rejected,
+  // and an event object under STANDARD is silently dropped, which would publish
+  // a post that looks right here and wrong on the listing.
   const body: Record<string, unknown> = {
     languageCode: "en-US",
     summary: text,
-    topicType: "STANDARD",
+    topicType: event ? "EVENT" : "STANDARD",
   };
+  if (event) body.event = event;
   // CALL takes no url; sending an empty one is rejected.
   body.callToAction = callToAction.url
     ? { actionType: callToAction.actionType, url: callToAction.url }
