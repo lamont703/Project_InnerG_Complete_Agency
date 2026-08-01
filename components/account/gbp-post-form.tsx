@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, CalendarDays, Check, Clock, Loader2, MessageSquareQuote, Sparkles, Tag } from "lucide-react";
-import { validatePost, POST_MAX, type PostAngle } from "@/lib/gbp-posts";
+import { validatePost, POST_MAX, type PostAngle, type PostCallToAction } from "@/lib/gbp-posts";
 import { validateOffer, type OfferDraft } from "@/lib/gbp-post-offers";
 
 interface OfferStarterUI {
@@ -44,6 +44,9 @@ export function GbpPostForm() {
   // The event the owner has said they're attending. Never preselected.
   const [eventId, setEventId] = useState<string | null>(null);
   const [starters, setStarters] = useState<OfferStarterUI[]>([]);
+  // The button to use when no angle is selected — an offer or event post
+  // doesn't depend on there being a review or a service to draw on.
+  const [fallbackCta, setFallbackCta] = useState<PostCallToAction>({ actionType: "CALL" });
   // null = not writing an offer. The amount is always the owner's to fill in.
   const [offer, setOffer] = useState<OfferDraft | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +66,7 @@ export function GbpPostForm() {
         setLibrary(json.photos || []);
         setEvents(json.events || []);
         setStarters(json.offerStarters || []);
+        if (json.callToAction) setFallbackCta(json.callToAction);
         if (json.angles?.[0]) { setChosen(json.angles[0].id); setText(json.angles[0].summary); }
       } catch { setError("Could not load post ideas."); }
       finally { setLoading(false); }
@@ -74,17 +78,21 @@ export function GbpPostForm() {
   const angle = angles.find((a) => a.id === chosen) ?? null;
   // An explicit choice wins; otherwise use whatever the angle suggested.
   const activePhoto = photo === undefined ? angle?.photoUrl ?? null : photo;
-  const check = angle ? validatePost(text, angle.callToAction) : null;
+  const activeCta = angle?.callToAction ?? fallbackCta;
+  // An offer or an event is enough on its own; an angle is one way in, not the
+  // only one.
+  const composing = Boolean(angle || eventId || offer);
+  const check = composing ? validatePost(text, activeCta) : null;
 
   const publish = async () => {
-    if (!angle) return;
+    if (!composing) return;
     setPosting(true); setError(null);
     try {
       const res = await fetch("/api/account/gbp-posts", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          summary: text, angleId: angle.id, photoUrl: activePhoto, eventId, offer,
-          actionType: angle.callToAction.actionType, url: angle.callToAction.url,
+          summary: text, angleId: angle?.id ?? null, photoUrl: activePhoto, eventId, offer,
+          actionType: activeCta.actionType, url: activeCta.url,
         }),
       });
       const json = await res.json();
@@ -123,12 +131,7 @@ export function GbpPostForm() {
         )}
       </div>
 
-      {angles.length === 0 ? (
-        <p className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
-          Nothing to draw on yet. Add services, or reply to a review, and there'll be something true
-          to post about.
-        </p>
-      ) : published ? (
+      {published ? (
         <p className="mt-6 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
           <Check className="h-4 w-4" /> Posted. It may take a few minutes to appear on your listing.
         </p>
@@ -155,6 +158,9 @@ export function GbpPostForm() {
                       if (eventId === e.id) { setEventId(null); return; }
                       setEventId(e.id);
                       setText(e.summary);
+                      setChosen(null);
+                      setOffer(null);
+                      setPhoto(undefined);
                     }}
                     aria-pressed={eventId === e.id}
                     className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
@@ -207,6 +213,8 @@ export function GbpPostForm() {
                       });
                       setText(st.summary);
                       setEventId(null);
+                      setChosen(null);
+                      setPhoto(undefined);
                     }}
                     aria-pressed={active}
                     className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
@@ -297,6 +305,12 @@ export function GbpPostForm() {
             )}
           </section>
 
+          {angles.length === 0 ? (
+            <p className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 text-xs leading-relaxed text-slate-600">
+              No ready-made ideas yet — those come from your reviews, your services and any holiday
+              hours you&apos;ve set. An offer or an event above needs none of that.
+            </p>
+          ) : (
           <div className="mt-6 flex flex-wrap gap-2">
             {angles.map((a) => (
               <button
@@ -311,12 +325,15 @@ export function GbpPostForm() {
               </button>
             ))}
           </div>
+          )}
 
-          {angle && (
+          {composing && (
             <article className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{angle.reason}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                {angle ? angle.reason : offer ? "Offer post" : "Event post"}
+              </p>
 
-              {angle.quotesReview && (
+              {angle?.quotesReview && (
                 <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   This quotes a customer. Their first name only, never a photo — they left a review,
@@ -373,7 +390,7 @@ export function GbpPostForm() {
                   {text.length} / {POST_MAX}
                 </span>
                 <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-500">
-                  button: {angle.callToAction.actionType.replace("_", " ").toLowerCase()}
+                  button: {activeCta.actionType.replace("_", " ").toLowerCase()}
                 </span>
               </div>
 

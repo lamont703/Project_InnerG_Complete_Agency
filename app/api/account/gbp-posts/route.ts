@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { gbpAccessToken } from "@/lib/google-business";
 import { resolveMemberContext, assertNotImpersonating } from "@/lib/account/view-as";
 import { readLocationFields, writeLocalPost } from "@/lib/gbp-write";
-import { buildPostAngles, validatePost, type PostContext, type PostPhoto } from "@/lib/gbp-posts";
+import { buildPostAngles, validatePost, resolveCallToAction, type PostContext, type PostPhoto } from "@/lib/gbp-posts";
 import { upcomingHolidays } from "@/lib/us-holidays";
 import {
   eventsNear, toLocalPostEvent, buildAttendanceSummary, describeDates,
@@ -161,6 +161,11 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     angles: buildPostAngles(context),
+    // The button an offer or event post uses. Angles carry their own copy of
+    // this, but an offer needs one when the listing has no angles at all —
+    // a shop with no reviews and no services is exactly the one that needs an
+    // offer most.
+    callToAction: resolveCallToAction(context),
     events: nearby,
     offerStarters: starters,
     hasBookingLink: !!context.bookingUrl,
