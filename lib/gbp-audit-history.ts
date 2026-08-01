@@ -1,3 +1,4 @@
+import { tagCommunityMember, TAG_AUDIT_RUN } from "@/lib/ghl-contacts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AuditCheck, AuditReport } from "@/lib/gbp-audit";
 
@@ -139,4 +140,15 @@ export async function recordSnapshot(args: {
   });
 
   if (error) console.warn("[gbp-audit-history] write failed:", error.message);
+
+  // Tell the CRM this member has actually run an audit, so an onboarding
+  // sequence stops asking them to. Deliberately here rather than in the page:
+  // this point is already gated by the quiet period above, so it fires when a
+  // real audit is recorded rather than on every refresh of the page.
+  //
+  // Non-fatal, and after the insert — the snapshot is the thing that matters.
+  const tagged = await tagCommunityMember(memberId, [TAG_AUDIT_RUN]);
+  if (!tagged.ok && !tagged.skipped) {
+    console.warn("[gbp-audit-history] tagging failed:", tagged.error);
+  }
 }

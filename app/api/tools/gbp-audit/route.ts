@@ -9,6 +9,7 @@ import {
 } from "@/lib/gbp-audit-public";
 import { buildPublicAuditEmail } from "@/lib/gbp-public-audit-email";
 import { sendGhlEmail } from "@/lib/ghl-email";
+import { addGhlTags, TAG_AUDIT_RUN } from "@/lib/ghl-contacts";
 
 /**
  * Public, unauthenticated endpoint behind the free audit tool.
@@ -192,6 +193,15 @@ export async function POST(req: Request) {
     await (admin.from("gbp_public_audit_runs") as any)
       .update(sent.ok ? { emailed_at: new Date().toISOString() } : { email_error: sent.error })
       .eq("id", row.id);
+  }
+
+  // Tag the contact sendGhlEmail just resolved. These people aren't members —
+  // this is the free tool, no account required — but the tag matches on the
+  // same email address, so someone who runs the audit first and joins later
+  // arrives already marked and skips the "run your audit" branch. Non-fatal.
+  if (sent.contactId) {
+    const tagged = await addGhlTags(sent.contactId, [TAG_AUDIT_RUN, "Free Audit Lead"]);
+    if (!tagged.ok && !tagged.skipped) console.warn("[gbp-audit] tagging failed:", tagged.error);
   }
 
   if (!sent.ok) {

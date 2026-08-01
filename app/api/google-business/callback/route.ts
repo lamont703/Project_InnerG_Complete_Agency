@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { tagCommunityMember, TAG_GOOGLE_CONNECTED } from "@/lib/ghl-contacts";
 import {
   gbpExchangeCode,
   gbpFetchLocations,
@@ -145,6 +146,15 @@ export async function GET(req: Request) {
     if (upErr) {
       console.error("[gbp callback] save failed:", upErr.message);
       return back("gbp=error");
+    }
+
+    // Record the connection in the CRM. This is the tag that takes a member
+    // OUT of the onboarding sequence — they're now on the weekly monitoring
+    // email, and being asked to connect Google after doing so reads as though
+    // nobody was paying attention. Non-fatal.
+    const tagged = await tagCommunityMember((member as any).id, [TAG_GOOGLE_CONNECTED]);
+    if (!tagged.ok && !tagged.skipped) {
+      console.warn("[gbp callback] tagging failed:", tagged.error);
     }
 
     // The payoff moment. A single-location owner connected in order to see their
