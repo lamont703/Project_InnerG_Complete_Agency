@@ -12,7 +12,6 @@ import { LOGO_LOCKUP } from "@/lib/brand";
 import { ViewAsMenuItem, ViewAsPicker, useViewAs } from "@/components/layout/view-as";
 
 const navLinks = [
-  { label: "Market Insights", href: "/insights" },
   { label: "AI Lab", href: "/ai-solutions" },
   { label: "Membership", href: "/membership" },
   // Points at the free audit rather than the service page: a nav click is cold,
