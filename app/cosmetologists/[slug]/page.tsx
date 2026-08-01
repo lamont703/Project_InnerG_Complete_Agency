@@ -1,3 +1,4 @@
+import { composeDescription, ratingClause, streetClause, servicesClause, priceClause, cleanPlace } from "@/lib/seo-description";
 import { createClient } from "@supabase/supabase-js";
 import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -102,16 +103,17 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   if (!person) return { title: "Cosmetologist Profile Not Found" };
 
   const role = person.specialty_type || extractRoleFromName(person.name) || "Beauty Professional";
-  const title = `${person.name} — ${role}${person.metro_area ? ` in ${person.metro_area}` : ""}`;
-  const descParts = [
-    person.name,
-    role,
-    person.metro_area ? `in ${person.metro_area}` : null,
-    person.booksy_rating ? `Rated ${Number(person.booksy_rating).toFixed(1)}★` : null,
-    person.booksy_review_count ? `(${person.booksy_review_count} reviews)` : null,
-    person.booksy_price_range || null,
-  ].filter(Boolean);
-  const description = `${descParts.join('. ')}. View gallery, services, and book online.`;
+  const title = `${person.name} — ${role}${cleanPlace(person.metro_area) ? ` in ${cleanPlace(person.metro_area)}` : ""}`;
+  // Same shape as app/barbers/[slug]/page.tsx — see the note there on why
+  // services carry this rather than specialty_type.
+  const description = composeDescription([
+    `${person.name} — ${role}${person.metro_area ? ` in ${person.metro_area}` : ""}`,
+    ratingClause(person.booksy_rating, person.booksy_review_count),
+    servicesClause(person.booksy_services),
+    priceClause(person.booksy_price_range),
+    streetClause(person.address, cleanPlace(person.metro_area)),
+    "Book online",
+  ]);
   const heroImage = person.portfolio_images?.[0] || person.booksy_gallery_urls?.[0] || person.booksy_photo_url;
 
   return {

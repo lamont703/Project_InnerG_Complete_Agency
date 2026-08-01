@@ -1,3 +1,4 @@
+import { composeDescription, ratingClause, streetClause, servicesClause, priceClause, cleanPlace } from "@/lib/seo-description";
 import { createClient } from "@supabase/supabase-js";
 import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -97,16 +98,19 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
 
   const { city, zip } = extractLocationFromAddress(barber.address);
   const location = barber.metro_area || city;
-  const title = `${barber.name} — ${barber.specialty_type || "Professional Barber"}${location ? ` in ${location}` : ""}${zip ? ` ${zip}` : ""}`;
-  const descParts = [
-    `${barber.name}`,
-    barber.specialty_type ? barber.specialty_type : "Professional Barber",
-    location ? `in ${location}` : null,
-    barber.booksy_rating ? `Rated ${Number(barber.booksy_rating).toFixed(1)}★` : null,
-    barber.booksy_review_count ? `(${barber.booksy_review_count} reviews)` : null,
-    barber.booksy_price_range ? barber.booksy_price_range : null,
-  ].filter(Boolean);
-  const description = `${descParts.join('. ')}. View gallery, services, and book online.`;
+  const title = `${barber.name} — ${barber.specialty_type || "Professional Barber"}${cleanPlace(location) ? ` in ${cleanPlace(location)}` : ""}${zip ? ` ${zip}` : ""}`;
+  // Name, role and location are ONE clause — split across three they joined as
+  // "Charles. Professional Barber. in Houston." Services lead the detail because
+  // specialty_type is set on 2 of 1,429 barbers while booksy_services is on all
+  // of them, so keying on specialty made almost every page say the same thing.
+  const description = composeDescription([
+    `${barber.name} — ${barber.specialty_type || "barber"}${location ? ` in ${location}` : ""}`,
+    ratingClause(barber.booksy_rating, barber.booksy_review_count),
+    servicesClause(barber.booksy_services),
+    priceClause(barber.booksy_price_range),
+    streetClause(barber.address, cleanPlace(location)),
+    "Book online",
+  ]);
   const heroImage = barber.portfolio_images?.[0] || barber.booksy_gallery_urls?.[0] || barber.booksy_photo_url;
 
   return {
