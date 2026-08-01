@@ -182,7 +182,8 @@ export default function AISolutionsPage() {
           </p>
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground text-balance">
             Experience the Power of <br className="hidden sm:block" />
-            <span className="text-primary mt-2 inline-block">Aesthetic Intelligence</span>
+            {/* Same split as the navbar and hero lockups — one wordmark, one treatment. */}
+            <span className="mt-2 inline-block">Shear<span className="text-primary">Query</span></span>
           </h1>
           <p className="mx-auto mt-4 sm:mt-6 max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed px-2 sm:px-0">
             Try out our tools for yourself. Click below to interact with our live dashboards, exam simulators, and job placement matchers designed specifically for barber and cosmetology schools.
