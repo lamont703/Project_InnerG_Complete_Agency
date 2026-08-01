@@ -30,6 +30,11 @@ const PRIMARY_MOBILE_TABS = ['AI Mode', 'All'];
 const FILTERS_BY_TAB: Record<string, { id: string; label: string }[]> = {
   Barbershops: [
     { id: 'hiring_now', label: 'Hiring Now' },
+    // Distinct from "Hiring Now": a shop can want an employee without having a
+    // booth free, and can have a booth free without advertising a job. 461
+    // logged searches ask for chairs/booths/stations and had no way to express
+    // it — see the intent regex in actions.ts.
+    { id: 'open_chairs', label: 'Chairs Available' },
     { id: 'booth_rent', label: 'Booth Rent' },
     { id: 'commission', label: 'Commission' },
     { id: 'rent_under_150', label: 'Under $150/wk' },
