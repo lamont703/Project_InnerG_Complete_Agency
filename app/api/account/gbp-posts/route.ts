@@ -9,6 +9,9 @@ import {
   eventsNear, toLocalPostEvent, buildAttendanceSummary, describeDates,
   type DirectoryEvent,
 } from "@/lib/gbp-post-events";
+import {
+  offerStarters, defaultWindow, validateOffer, toLocalPostOffer, type OfferDraft,
+} from "@/lib/gbp-post-offers";
 import { formatTime } from "@/lib/gbp-special-hours";
 
 /**
@@ -150,10 +153,16 @@ export async function GET() {
     summary: buildAttendanceSummary(e, context.businessName),
   }));
 
+  // Structures with the amount left blank — we don't pick someone's discount.
+  const starters = offerStarters(context.businessName).map((s) => ({
+    ...s, ...defaultWindow(s.days),
+  }));
+
   return NextResponse.json({
     success: true,
     angles: buildPostAngles(context),
     events: nearby,
+    offerStarters: starters,
     hasBookingLink: !!context.bookingUrl,
     lastPostAt: lastPost,
     // The full library, so the owner can swap the suggested photo for another
@@ -180,6 +189,7 @@ export async function POST(req: Request) {
   const angleId = body?.angleId ? String(body.angleId) : null;
   const photoUrl = body?.photoUrl ? String(body.photoUrl) : null;
   const eventId = body?.eventId ? String(body.eventId) : null;
+  const offerInput = body?.offer ?? null;
 
   const check = validatePost(summary, { actionType: actionType as any, url });
   if (!check.ok) {
@@ -210,12 +220,36 @@ export async function POST(req: Request) {
     localPostEvent = built.event;
   }
 
+  // An offer is validated server-side too. The client checks as you type so the
+  // form can be helpful; this is the check that decides what reaches a listing.
+  let localPostOffer = null;
+  if (offerInput) {
+    const draft: OfferDraft = {
+      title: String(offerInput.title || ""),
+      startDate: String(offerInput.startDate || ""),
+      endDate: String(offerInput.endDate || ""),
+      couponCode: offerInput.couponCode ? String(offerInput.couponCode) : null,
+      redeemOnlineUrl: offerInput.redeemOnlineUrl ? String(offerInput.redeemOnlineUrl) : null,
+      termsConditions: offerInput.termsConditions ? String(offerInput.termsConditions) : null,
+    };
+    const checked = validateOffer(draft);
+    if (!checked.ok) {
+      return NextResponse.json(
+        { success: false, error: checked.issues.find((i) => i.level === "error")?.message, issues: checked.issues },
+        { status: 400 }
+      );
+    }
+    const built = toLocalPostOffer(draft);
+    localPostOffer = built.offer;
+    localPostEvent = built.event;
+  }
+
   const { data: request } = await (admin.from("gbp_change_requests") as any)
     .insert({
       community_member_id: ctx.memberId,
       location_name: locationName,
       surface: "localPosts",
-      proposed: { summary, actionType, url, angleId, photoUrl, eventId },
+      proposed: { summary, actionType, url, angleId, photoUrl, eventId, offer: offerInput },
       origin: "owner-approved post",
       status: "approved",
       approved_at: new Date().toISOString(),
@@ -226,6 +260,7 @@ export async function POST(req: Request) {
   const write = await writeLocalPost({
     token, accountName, locationName, summary, photoUrl,
     event: localPostEvent,
+    offer: localPostOffer,
     callToAction: { actionType, url },
     memberId: ctx.memberId, note: `owner-approved post${angleId ? ` — ${angleId}` : ""}`,
   });

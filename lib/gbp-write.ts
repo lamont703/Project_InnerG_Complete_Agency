@@ -589,10 +589,22 @@ export async function writeLocalPost(args: {
       endTime: { hours: number; minutes: number };
     };
   } | null;
+  /**
+   * Set for an OFFER post. Google requires the event object alongside it, so
+   * an offer without one is refused here rather than by Google.
+   */
+  offer?: { couponCode?: string; redeemOnlineUrl?: string; termsConditions?: string } | null;
   memberId?: string | null;
   note?: string;
 }): Promise<WriteResult & { postName?: string }> {
-  const { token, accountName, locationName, summary, callToAction, photoUrl, event, memberId, note } = args;
+  const { token, accountName, locationName, summary, callToAction, photoUrl, event, offer, memberId, note } = args;
+
+  // Google's rule, enforced before the request: "Event information. Required
+  // for topic types EVENT and OFFER." An offer with no window would be rejected
+  // anyway; catching it here keeps the error readable.
+  if (offer && !event) {
+    return { ok: false, error: "An offer needs a name and the dates it runs for." };
+  }
 
   const text = (summary || "").trim();
   if (!text) return { ok: false, error: "Refusing to publish an empty post." };
@@ -616,7 +628,7 @@ export async function writeLocalPost(args: {
       location_name: locationName,
       surface: "localPosts",
       before_state: before,
-      applied_patch: { summary: text, callToAction, photoUrl: photo || null, event: event ?? null },
+      applied_patch: { summary: text, callToAction, photoUrl: photo || null, event: event ?? null, offer: offer ?? null },
       status: "applied",
       note: note ?? null,
     })
@@ -633,9 +645,10 @@ export async function writeLocalPost(args: {
   const body: Record<string, unknown> = {
     languageCode: "en-US",
     summary: text,
-    topicType: event ? "EVENT" : "STANDARD",
+    topicType: offer ? "OFFER" : event ? "EVENT" : "STANDARD",
   };
   if (event) body.event = event;
+  if (offer) body.offer = offer;
   // CALL takes no url; sending an empty one is rejected.
   body.callToAction = callToAction.url
     ? { actionType: callToAction.actionType, url: callToAction.url }

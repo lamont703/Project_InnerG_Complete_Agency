@@ -2,8 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CalendarDays, Check, Clock, Loader2, MessageSquareQuote, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarDays, Check, Clock, Loader2, MessageSquareQuote, Sparkles, Tag } from "lucide-react";
 import { validatePost, POST_MAX, type PostAngle } from "@/lib/gbp-posts";
+import { validateOffer, type OfferDraft } from "@/lib/gbp-post-offers";
+
+interface OfferStarterUI {
+  id: string; label: string; title: string; summary: string;
+  terms: string; reason: string; startDate: string; endDate: string;
+}
 
 interface EventCandidate {
   id: string;
@@ -37,6 +43,9 @@ export function GbpPostForm() {
   const [events, setEvents] = useState<EventCandidate[]>([]);
   // The event the owner has said they're attending. Never preselected.
   const [eventId, setEventId] = useState<string | null>(null);
+  const [starters, setStarters] = useState<OfferStarterUI[]>([]);
+  // null = not writing an offer. The amount is always the owner's to fill in.
+  const [offer, setOffer] = useState<OfferDraft | null>(null);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [published, setPublished] = useState(false);
@@ -53,6 +62,7 @@ export function GbpPostForm() {
         setLastPostAt(json.lastPostAt);
         setLibrary(json.photos || []);
         setEvents(json.events || []);
+        setStarters(json.offerStarters || []);
         if (json.angles?.[0]) { setChosen(json.angles[0].id); setText(json.angles[0].summary); }
       } catch { setError("Could not load post ideas."); }
       finally { setLoading(false); }
@@ -60,6 +70,7 @@ export function GbpPostForm() {
   }, []);
 
   const chosenEvent = events.find((e) => e.id === eventId) ?? null;
+  const offerCheck = offer ? validateOffer(offer) : null;
   const angle = angles.find((a) => a.id === chosen) ?? null;
   // An explicit choice wins; otherwise use whatever the angle suggested.
   const activePhoto = photo === undefined ? angle?.photoUrl ?? null : photo;
@@ -72,7 +83,7 @@ export function GbpPostForm() {
       const res = await fetch("/api/account/gbp-posts", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          summary: text, angleId: angle.id, photoUrl: activePhoto, eventId,
+          summary: text, angleId: angle.id, photoUrl: activePhoto, eventId, offer,
           actionType: angle.callToAction.actionType, url: angle.callToAction.url,
         }),
       });
@@ -170,11 +181,127 @@ export function GbpPostForm() {
             </section>
           )}
 
+          <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="flex items-start gap-2">
+              <Tag className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div>
+                <p className="text-sm font-bold text-slate-900">Running an offer?</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+                  Offers get their own format on your listing, with the dates shown. Pick a shape —
+                  the amount is yours to decide.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {starters.map((st) => {
+                const active = offer?.title === st.title;
+                return (
+                  <button
+                    key={st.id}
+                    onClick={() => {
+                      if (active) { setOffer(null); return; }
+                      setOffer({
+                        title: st.title, startDate: st.startDate, endDate: st.endDate,
+                        termsConditions: st.terms, couponCode: "", redeemOnlineUrl: "",
+                      });
+                      setText(st.summary);
+                      setEventId(null);
+                    }}
+                    aria-pressed={active}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+                      active ? "border-primary bg-primary text-primary-foreground" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {st.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {offer && (
+              <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
+                <p className="text-xs leading-relaxed text-slate-500">
+                  {starters.find((st) => st.title === offer.title)?.reason}
+                </p>
+
+                <label className="block">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Offer name</span>
+                  <input
+                    value={offer.title}
+                    onChange={(e) => setOffer({ ...offer, title: e.target.value })}
+                    placeholder="$5 off your first visit"
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                  />
+                  <span className="mt-1 block text-[11px] text-slate-400">
+                    Replace the blank with your amount. This is the headline customers see.
+                  </span>
+                </label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Starts</span>
+                    <input
+                      type="date" value={offer.startDate}
+                      onChange={(e) => setOffer({ ...offer, startDate: e.target.value })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Ends</span>
+                    <input
+                      type="date" value={offer.endDate}
+                      onChange={(e) => setOffer({ ...offer, endDate: e.target.value })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                    />
+                  </label>
+                </div>
+
+                <label className="block">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+                    Terms <span className="font-bold normal-case tracking-normal text-slate-400">— what it doesn&apos;t cover</span>
+                  </span>
+                  <textarea
+                    value={offer.termsConditions || ""}
+                    onChange={(e) => setOffer({ ...offer, termsConditions: e.target.value })}
+                    rows={2}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+                    Code <span className="font-bold normal-case tracking-normal text-slate-400">— optional</span>
+                  </span>
+                  <input
+                    value={offer.couponCode || ""}
+                    onChange={(e) => setOffer({ ...offer, couponCode: e.target.value })}
+                    placeholder="FIRSTCUT"
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                  />
+                </label>
+
+                {offerCheck && offerCheck.issues.length > 0 && (
+                  <ul className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    {offerCheck.issues.map((i, n) => (
+                      <li
+                        key={n}
+                        className={`text-xs ${i.level === "error" ? "font-semibold text-rose-800" : "text-amber-800"}`}
+                      >
+                        {i.message}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </section>
+
           <div className="mt-6 flex flex-wrap gap-2">
             {angles.map((a) => (
               <button
                 key={a.id}
-                onClick={() => { setChosen(a.id); setText(a.summary); setPhoto(undefined); setEventId(null); }}
+                onClick={() => { setChosen(a.id); setText(a.summary); setPhoto(undefined); setEventId(null); setOffer(null); }}
                 className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
                   chosen === a.id ? "border-primary bg-primary text-primary-foreground" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                 }`}
@@ -260,7 +387,7 @@ export function GbpPostForm() {
 
               <button
                 onClick={publish}
-                disabled={posting || !check?.ok}
+                disabled={posting || !check?.ok || (!!offer && !offerCheck?.ok)}
                 className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
                 {posting && <Loader2 className="h-4 w-4 animate-spin" />} Publish post
