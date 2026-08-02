@@ -271,7 +271,7 @@ export default async function HowToGetCosmetologyLicenseTexasPage() {
               <ArrowRight className="w-4 h-4 text-indigo-600 shrink-0" />
             </Link>
             <Link
-              href="/insights/texas-barber-cosmetology-license-requirements"
+              href="/texas-barber-license-requirements-guide"
               className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl p-4 hover:border-indigo-300 transition-colors"
             >
               <span className="text-sm font-bold text-slate-900">Full TDLR application, fees &amp; renewal guide</span>

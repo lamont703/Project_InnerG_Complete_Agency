@@ -168,7 +168,7 @@ export default function HairWeavingPracticalExamKitListPage() {
       </div>
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-28 pb-10 sm:pb-14">
         <Link
-          href="/insights/texas-barber-cosmetology-license-requirements"
+          href="/texas-barber-license-requirements-guide"
           className="no-print inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-primary hover:underline mb-6"
         >
           <ArrowLeft className="w-3.5 h-3.5" />

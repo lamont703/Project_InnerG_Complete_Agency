@@ -232,6 +232,17 @@ const nextConfig = {
         destination: "/barber-beauty-network",
         permanent: true,
       },
+      // The combined barber+cosmetology requirements page is now two pages.
+      //
+      // It ranked and holds links, so it redirects rather than 404ing — to the
+      // barber guide, which is the larger share of what it covered. The
+      // cosmetology guide is linked prominently from there.
+      {
+        source: "/insights/texas-barber-cosmetology-license-requirements",
+        destination: "/texas-barber-license-requirements-guide",
+        permanent: true,
+      },
+
       // El Paso barber exam prep now points at the statewide page.
       //
       // The page itself stays — it still ranks and its content is city-specific

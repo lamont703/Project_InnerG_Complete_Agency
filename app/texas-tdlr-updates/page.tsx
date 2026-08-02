@@ -215,7 +215,7 @@ export default async function TdlrUpdatesPage() {
               ["/texas-barber-license-renewal", "Texas barber license renewal"],
               ["/texas-cosmetology-license-renewal", "Texas cosmetology license renewal"],
               ["/barber-cos-continuing-education", "Continuing education portal"],
-              ["/insights/texas-barber-cosmetology-license-requirements", "License requirements, fees & renewal cycle"],
+              ["/texas-barber-license-requirements-guide", "License requirements, fees & renewal cycle"],
               ["/how-to-get-a-barber-license-in-texas", "How to get a barber license in Texas"],
               ["/how-to-get-a-cosmetology-license-in-texas", "How to get a cosmetology license in Texas"],
             ].map(([href, label]) => (

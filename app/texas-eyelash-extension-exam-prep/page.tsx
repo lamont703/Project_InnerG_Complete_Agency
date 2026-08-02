@@ -55,7 +55,7 @@ export default function TexasEyelashExtensionExamPrepPage() {
       <Navbar />
       <main className="mx-auto max-w-5xl px-4 sm:px-6 pt-28 pb-16">
         <Link
-          href="/insights/texas-barber-cosmetology-license-requirements"
+          href="/texas-barber-license-requirements-guide"
           className="mb-6 inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-primary hover:underline"
         >
           <ArrowLeft className="h-3.5 w-3.5" />

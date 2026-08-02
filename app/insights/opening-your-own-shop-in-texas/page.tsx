@@ -293,7 +293,7 @@ export default async function OpeningYourOwnShopGuide() {
                 open a business. Operating a barbershop or salon requires a separate establishment license from
                 TDLR, applied for independently of any individual practitioner license. (Still working on your own
                 license first? See our{" "}
-                <Link href="/insights/texas-barber-cosmetology-license-requirements" className="text-primary font-bold hover:underline">
+                <Link href="/texas-barber-license-requirements-guide" className="text-primary font-bold hover:underline">
                   Texas Barber &amp; Cosmetology License Requirements guide
                 </Link>{" "}
                 instead.)
@@ -685,7 +685,7 @@ export default async function OpeningYourOwnShopGuide() {
                   d: (
                     <>
                       The establishment license is separate and doesn&apos;t replace it. Still working on yours? See our{" "}
-                      <Link href="/insights/texas-barber-cosmetology-license-requirements" className="text-primary font-bold hover:underline">
+                      <Link href="/texas-barber-license-requirements-guide" className="text-primary font-bold hover:underline">
                         Texas License Requirements guide
                       </Link>
                       .
@@ -754,7 +754,7 @@ export default async function OpeningYourOwnShopGuide() {
                 Every requirement on this page is sourced directly from TDLR&apos;s own barbering-and-cosmetology
                 establishment pages, not third-party guides. Establishment rules are distinct from individual
                 licensing rules — see our{" "}
-                <Link href="/insights/texas-barber-cosmetology-license-requirements" className="text-primary font-bold hover:underline not-italic">
+                <Link href="/texas-barber-license-requirements-guide" className="text-primary font-bold hover:underline not-italic">
                   License Requirements guide
                 </Link>{" "}
                 for the individual-practitioner side of this. Confirm current requirements directly with TDLR
