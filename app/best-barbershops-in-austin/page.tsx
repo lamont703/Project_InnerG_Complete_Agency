@@ -1,7 +1,7 @@
 import { BestOfDirectory, type BestOfEntry } from "@/components/best-of/BestOfDirectory";
 
 export const metadata = {
-  title: "Best Barbershops in Austin (2026) — Top Rated, Real Reviews | Inner G Complete",
+  title: "Best Barbershops in Austin (2026) — Top Rated, Real Reviews",
   description:
     "The 10 highest-rated barbershops in Austin, ranked by real Google rating and review count — led by Barbers X Alkemy at 5.0★ across 426 reviews. 44 real shops clear our 4.5+ rating threshold.",
   keywords: [

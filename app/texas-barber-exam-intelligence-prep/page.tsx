@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { TdlrExamProcess } from "@/components/tools/tdlr-exam-process";
 import Link from "next/link"
 import { 
   ArrowRight, 
@@ -33,8 +34,8 @@ function GlowOrb({ className }: { className: string }) {
 }
 
 const metrics = [
-  { label: "TX Written Pass Rate", value: "37.25%", icon: TrendingUp, color: "text-red-600" },
-  { label: "Practical Pass Rate", value: "89.80%", icon: CheckCircle2, color: "text-primary" },
+  { label: "Written — 1st Attempt", value: "56.98%", icon: TrendingUp, color: "text-red-600" },
+  { label: "Practical Pass Rate", value: "92.34%", icon: CheckCircle2, color: "text-primary" },
   { label: "NACCAS Safe Buffer", value: "70.00%", icon: Shield, color: "text-primary" },
 ]
 
@@ -124,9 +125,9 @@ export default function TexasBarberExamPrep() {
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { label: "Primary Problem", text: "Texas barber students fail the PSI written exam at a 37.25% pass rate — well below the NACCAS 70% safety threshold — due to a systemic informational design failure, not a lack of practical skill." },
+              { label: "Primary Problem", text: "Texas barber students pass the PSI written exam at 56.98% on the first attempt — well below the NACCAS 70% threshold — while passing the practical at 92.34%. The gap is a systemic informational design failure, not a lack of practical skill." },
               { label: "ADI Architecture", text: "Artificial Domain Intelligence (ADI) decodes PSI distractor logic and trains students on Texas TDLR Chapter 82 alignment across all 85 scored items of the written exam." },
-              { label: "Quantitative Signal", text: "TX Written Pass Rate: 37.25%. Practical Pass Rate: 89.80%. Annual wage leak: $15M statewide. Houston, Dallas, and San Antonio are the highest-risk metropolitan clusters." },
+              { label: "Quantitative Signal", text: "First-attempt written pass rate: 56.98% (2,411 sittings, Jan-May 2026). Practical pass rate: 92.34%. 36.55% of candidates never pass the written exam. El Paso (42.11%), San Antonio (52.17%) and Austin (58.82%) sit below the NACCAS 70% threshold." },
               { label: "Solution", text: "The Barber Exam Prep Pilot Scholarship provides zero-cost ADI-powered prep for qualifying Texas barber students and schools, targeting first-time pass rates of 92%+." },
             ].map((item) => (
               <div key={item.label} className="space-y-2">
@@ -164,10 +165,10 @@ export default function TexasBarberExamPrep() {
                 </h2>
                 <div className="space-y-4 lg:space-y-6 text-base lg:text-lg text-slate-800 font-bold leading-relaxed">
                   <p>
-                    Texas barber schools are currently facing critical NACCAS Title IV vulnerability. The structural written pass rate—currently a staggering 37.25% statewide—is not a teaching failure; it is an Informational Design Failure.
+                    Texas barber schools are currently facing critical NACCAS Title IV vulnerability. The first-attempt written pass rate—56.98% statewide, with 36.55% of candidates never passing at all—is not a teaching failure; it is an Informational Design Failure.
                   </p>
                   <p>
-                    While students achieve a 89.8% pass rate on practical exams, the 85-item PSI written theory remains the primary blocker. Our research division identified this "Licensure Crisis" as the primary driver of student attrition and institutional revenue leakage ($15M statewide).
+                    While students pass the practical at 92.34%, the 85-item PSI written theory remains the primary blocker. Our research division identified this "Licensure Crisis" as the primary driver of student attrition and institutional revenue leakage ($15M statewide).
                   </p>
                 </div>
 
@@ -189,9 +190,9 @@ export default function TexasBarberExamPrep() {
                      <span className="text-[9px] lg:text-[11px] font-black uppercase tracking-[0.4em] text-primary mb-8 lg:mb-12 block">Regional Cluster Audit</span>
                      <div className="space-y-8 lg:space-y-12">
                         {[
-                          { area: "Houston Hub", risk: "Critical", pass: "36.8%", back: "90 Days" },
-                          { area: "Dallas Metro", risk: "High", pass: "37.5%", back: "60 Days" },
-                          { area: "San Antonio", risk: "Critical", pass: "35.2%", back: "75 Days" },
+                          { area: "Houston Hub", risk: "Watch", pass: "67.87%", back: "90 Days" },
+                          { area: "Dallas Metro", risk: "Clear", pass: "78.43%", back: "60 Days" },
+                          { area: "San Antonio", risk: "Critical", pass: "52.17%", back: "75 Days" },
                         ].map((hub) => (
                           <div key={hub.area} className="border-b border-white/20 pb-6 lg:pb-8 flex items-end justify-between group cursor-default">
                              <div>
@@ -373,12 +374,12 @@ export default function TexasBarberExamPrep() {
                 
                 <div className="space-y-8 text-lg text-slate-800 font-medium leading-relaxed">
                   <p>
-                    Inner G Complete research division has identified a fatal divergence in the Texas market: while students exhibit 89.80% mastery of technical barbering skills, the written theory exam remains a 37.25% pass-rate bottleneck.
+                    Inner G Complete research division has identified a fatal divergence in the Texas market: while students exhibit 92.34% mastery of technical barbering skills, the written theory exam remains a 56.98% first-attempt bottleneck.
                   </p>
                   
                   <div className="grid grid-cols-2 gap-4 py-8 border-y border-slate-100">
                     <div>
-                        <div className="text-4xl font-black text-red-600 mb-1 tracking-tighter">37.25%</div>
+                        <div className="text-4xl font-black text-red-600 mb-1 tracking-tighter">56.98%</div>
                         <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Written Pass Rate</div>
                     </div>
                     <div>
@@ -478,7 +479,7 @@ export default function TexasBarberExamPrep() {
                       {/* Mobile ROI Cards */}
                       <div className="lg:hidden space-y-4">
                          {[
-                           { scenario: "Standard Academy", pass: "37.25% (W)", lag: "90+ Days", utility: "$0 Baseline" },
+                           { scenario: "Standard Academy", pass: "56.98% (W)", lag: "90+ Days", utility: "$0 Baseline" },
                            { scenario: "Pilot Academy", pass: "92% (Target)", lag: "3-7 Days", utility: "+ $5,000+" },
                          ].map((item, idx) => (
                            <div key={idx} className={`p-4 rounded-2xl border ${idx === 1 ? "bg-primary/5 border-primary/20 shadow-lg" : "bg-slate-50 border-slate-200"}`}>
@@ -509,7 +510,7 @@ export default function TexasBarberExamPrep() {
                         <div className="min-w-[600px] space-y-8">
                            {[
                              ["Scenario", "TX Pass Rate", "Workforce Lag", "Economic Utility"],
-                             ["Standard Academy", "37.25% (W)", "90+ Days", "$0 Baseline"],
+                             ["Standard Academy", "56.98% (W)", "90+ Days", "$0 Baseline"],
                              ["Pilot Academy", "92% (Target)", "3-7 Days", "+ $5,000+"],
                            ].map((row, i) => (
                              <div key={i} className={`grid grid-cols-[1.5fr_1fr_1fr_1fr] gap-4 py-6 ${i === 0 ? "border-b-2 border-slate-950" : "border-b border-slate-100"}`}>
@@ -561,6 +562,10 @@ export default function TexasBarberExamPrep() {
         </div>
       </section>
 
+      <div className="mx-auto max-w-5xl px-6">
+        <TdlrExamProcess courseName="Class A Barber" hoursForWritten={900} />
+      </div>
+
       {/* FAQ Section — People Also Ask / LLM answer extraction */}
       <section aria-label="Frequently Asked Questions About Texas Barber Exam Prep" className="py-20 lg:py-32 bg-slate-50 border-t border-slate-200">
         <div className="mx-auto max-w-3xl px-6">
@@ -574,11 +579,11 @@ export default function TexasBarberExamPrep() {
             {[
               {
                 q: "What is the Texas barber written exam pass rate?",
-                a: "The statewide Texas barber written exam pass rate is 37.25% based on April 2026 TDLR data. More than 6 in 10 students fail their first attempt, creating a $15M annual wage leak from delayed licensure.",
+                a: "From the 2026 TDLR roster — 2,411 sittings between January and May 2026 — 56.98% of candidates pass on their first attempt and 63.45% pass eventually, meaning 36.55% never pass in that window. Every retake is more delay before licensure.",
               },
               {
                 q: "Why do Texas barber students fail the PSI written exam?",
-                a: "Students achieve an 89.8% pass rate on practical exams — the failure is not a skills gap. The PSI written theory exam uses specific distractor logic and question syntax that standard classroom curricula don't address, creating an informational design failure.",
+                a: "Students pass the practical at 92.34% — the failure is not a skills gap. The PSI written theory exam uses specific distractor logic and question syntax that standard classroom curricula don't address, creating an informational design failure.",
               },
               {
                 q: "What is the Texas Barber Exam Intelligence Prep™?",
@@ -594,7 +599,7 @@ export default function TexasBarberExamPrep() {
               },
               {
                 q: "Which Texas cities have the worst barber exam pass rates?",
-                a: "Based on April 2026 TDLR data, Houston (36.8%), San Antonio (35.2%), and Dallas (37.5%) are the highest-risk metropolitan clusters. Combined, these hubs drive the majority of Texas's $15M annual licensure wage leak.",
+                a: "Written pass rates by metro, weighted by test takers: El Paso 42.11%, San Antonio 52.17% and Austin 58.82% fall below the NACCAS 70% threshold. Houston sits at 67.87% on the largest candidate pool in the state (249 takers). Dallas (78.43%) and Fort Worth (77.91%) clear it.",
               },
             ].map((faq, i) => (
               <details key={i} className="group rounded-2xl border border-slate-200 bg-white overflow-hidden">

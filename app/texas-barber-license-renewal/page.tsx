@@ -5,7 +5,7 @@ import { RenewalLanding, type RenewalConfig } from "@/components/renewal/renewal
 export const revalidate = 86400 // refresh live renewal counts daily
 
 export const metadata = {
-  title: "Texas Barber License Renewal (2026): CE Hours, Fee & Steps | Inner G Complete",
+  title: "Texas Barber License Renewal (2026): CE Hours, Fee & Steps",
   description:
     "Renew your Texas Class A Barber license: the $50 fee, 2-year cycle, 4 required CE hours (2 if licensed 15+ years), and the exact step-by-step renewal process through TDLR. Sourced from TDLR, with live renewal counts.",
   keywords: [

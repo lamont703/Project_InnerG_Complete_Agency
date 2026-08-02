@@ -41,6 +41,27 @@ If a clone doesn't have the hooks active, run:
 
     git config core.hooksPath .githooks
 
+## TDLR claims — cite the page, don't carry the number across
+
+**`lib/tdlr-sources.ts` lists every TDLR page this site treats as authoritative
+and what each one actually settles.** Before stating a fee, a deadline, a CE
+requirement or a rule number on a public page, fetch the source named there and
+check it.
+
+Do not copy a figure from a sibling page. The specialty licences differ from the
+operator licences more than they look like they should, and "sourced from TDLR"
+is worth nothing if the specific document behind the number isn't recorded.
+
+Two things that file records because they cost real time to establish:
+
+- **Whether specialty licence holders need continuing education is unresolved.**
+  The at-a-glance PDF says "Barber and Cosmetology Operators licensees"; the CE
+  page says "your license" with no qualifier. Three fetches did not settle it.
+  Any page needing this must say it is unresolved and point at TDLR.
+- **The late-renewal bands are rule-based** — 1.5× the fee at 90 days or less,
+  2× beyond that up to 18 months. `/texas-barber-license-renewal` states them
+  differently and is worth re-checking.
+
 ## SEO claims — check the docs, don't recall them
 
 **Never assert how Google behaves from memory. Fetch the page that says it, and

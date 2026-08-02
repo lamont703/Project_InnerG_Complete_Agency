@@ -35,7 +35,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "Best Commission Splits & Lowest Booth Rent: Highest Paying Barbershops in Houston (2026) | Inner G Complete",
+  title: "Best Commission Splits & Lowest Booth Rent: Highest Paying Barbershops in Houston (2026)",
   description:
     "For barbers, not customers: the real, currently-listed lowest booth rents and highest commission splits among Houston barbershops — the pay terms that actually determine what you keep.",
   keywords: [

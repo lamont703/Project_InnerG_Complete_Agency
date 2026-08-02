@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { TdlrExamProcess } from "@/components/tools/tdlr-exam-process";
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -135,7 +136,7 @@ export default function TexasCosmetologyExamPrep() {
             {[
               { label: "Primary Problem", text: "41% of Texas cosmetology candidates fail the PSI written exam on their first attempt — a real, verified gap, even though the eventual pass rate (72.1%) and practical pass rate (96.9%) are strong." },
               { label: "ADI Architecture", text: "Artificial Domain Intelligence (ADI) decodes PSI distractor logic and trains candidates on Texas TDLR Chapter 83 alignment across cosmetology written exam theory categories." },
-              { label: "Quantitative Signal", text: "Overall Written Pass Rate: 72.1%. First-Attempt Pass Rate: 58.9%. Practical Pass Rate: 96.9%. San Antonio (66.6%) is currently the only major metro cluster below the NACCAS 70% threshold." },
+              { label: "Quantitative Signal", text: "Overall Written Pass Rate: 72.1%. First-Attempt Pass Rate: 58.9%. Practical Pass Rate: 96.9%. San Antonio (65.44%) is currently the only major metro cluster below the NACCAS 70% threshold." },
               { label: "Solution", text: "A free practice deck is live today; an AI-enhanced, personalized version is in pilot development for qualifying Texas cosmetology candidates and schools." },
             ].map((item) => (
               <div key={item.label} className="space-y-2">
@@ -198,7 +199,7 @@ export default function TexasCosmetologyExamPrep() {
                      <span className="text-[9px] lg:text-[11px] font-black uppercase tracking-[0.4em] text-primary mb-8 lg:mb-12 block">Regional Cluster Audit</span>
                      <div className="space-y-8 lg:space-y-12">
                         {[
-                          { area: "San Antonio", risk: "Below Threshold", pass: "66.6%", takers: "305 test-takers" },
+                          { area: "San Antonio", risk: "Below Threshold", pass: "65.44%", takers: "305 test-takers" },
                           { area: "Houston Hub", risk: "Monitor", pass: "71.5%", takers: "745 test-takers" },
                           { area: "Dallas Metro", risk: "Healthy", pass: "76.3%", takers: "240 test-takers" },
                         ].map((hub) => (
@@ -358,7 +359,7 @@ export default function TexasCosmetologyExamPrep() {
                 <div className="space-y-4">
                   {[
                     { label: "Statewide (7,502 test-takers)", overall: "72.1%", first: "58.9%" },
-                    { label: "San Antonio (305 test-takers)", overall: "66.6%", first: "55.7%" },
+                    { label: "San Antonio (305 test-takers)", overall: "65.44%", first: "55.7%" },
                     { label: "Houston (745 test-takers)", overall: "71.5%", first: "59.0%" },
                     { label: "Dallas (240 test-takers)", overall: "76.3%", first: "67.5%" },
                     { label: "El Paso (140 test-takers)", overall: "80.0%", first: "66.4%" },
@@ -501,6 +502,10 @@ export default function TexasCosmetologyExamPrep() {
         </div>
       </section>
 
+      <div className="mx-auto max-w-5xl px-6">
+        <TdlrExamProcess courseName="Cosmetology Operator" hoursForWritten={900} />
+      </div>
+
       {/* FAQ Section — People Also Ask / LLM answer extraction */}
       <section aria-label="Frequently Asked Questions About Texas Cosmetology Exam Prep" className="py-20 lg:py-32 bg-slate-50 border-t border-slate-200">
         <div className="mx-auto max-w-3xl px-6">
@@ -530,11 +535,11 @@ export default function TexasCosmetologyExamPrep() {
               },
               {
                 q: "What is the NACCAS 70% threshold, and is cosmetology at risk?",
-                a: "NACCAS requires accredited cosmetology schools to maintain a 70% written exam pass rate. Statewide, cosmetology sits just above that floor at 72.1% — but San Antonio's metro cluster (66.6%) is currently below it, which is enough to trigger a Request for Monitoring for schools in that cluster.",
+                a: "NACCAS requires accredited cosmetology schools to maintain a 70% written exam pass rate. Statewide, cosmetology sits just above that floor at 72.1% — but San Antonio's metro cluster (65.44%) is currently below it, which is enough to trigger a Request for Monitoring for schools in that cluster.",
               },
               {
                 q: "Which Texas cities have the lowest cosmetology written exam pass rates?",
-                a: "Based on 2026 TDLR data, San Antonio (66.6%) is the only major metro cluster currently below the NACCAS 70% threshold. Houston (71.5%) sits just above it. Dallas (76.3%) and El Paso (80.0%) post the strongest regional pass rates.",
+                a: "Based on 2026 TDLR data, San Antonio (65.44%) is the only major metro cluster currently below the NACCAS 70% threshold. Houston (71.5%) sits just above it. Dallas (76.3%) and El Paso (80.0%) post the strongest regional pass rates.",
               },
             ].map((faq, i) => (
               <details key={i} className="group rounded-2xl border border-slate-200 bg-white overflow-hidden">

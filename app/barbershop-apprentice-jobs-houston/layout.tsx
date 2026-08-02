@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Barbershop Apprentice Jobs in Houston | Find Shops Hiring Now | Inner G Complete",
+  title: "Barbershop Apprentice Jobs in Houston | Find Shops Hiring Now",
   description:
     "Tell us your Houston neighborhood and pay-structure preference (booth rent or commission) — we'll show real barbershops confirmed hiring near you right now. Free, no account needed.",
   keywords: [

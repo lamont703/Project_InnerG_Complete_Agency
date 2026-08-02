@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Kids Haircuts in Houston | Real Barbers, Real Prices | Inner G Complete",
+  title: "Kids Haircuts in Houston | Real Barbers, Real Prices",
   description:
     "Real Houston barbers who list a kids haircut as a named service — ranked by real customer ratings, with real prices and age ranges. Not a generic barbershop directory.",
   keywords: [

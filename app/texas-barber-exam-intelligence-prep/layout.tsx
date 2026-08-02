@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Texas Barber Written Exam Prep: Pass Rates & Practice Test (2026) | Inner G Complete",
+  title: "Texas Barber Exam Prep (2026): Pass Rates & Practice Test",
   description:
     "Real 2026 Texas barber written exam pass-rate data by city, a PSI-aligned study guide, and free practice questions — everything you need to pass the state board exam on your first try.",
   keywords: [
@@ -21,9 +21,9 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true },
   },
   openGraph: {
-    title: "Texas Barber Written Exam Prep: Pass Rates & Practice Test (2026)",
+    title: "Texas Barber Exam Prep (2026): Pass Rates & Practice Test",
     description:
-      "37.25% statewide written exam failure rate. Real 2026 pass-rate data, a study guide, and free practice questions for the Texas Class A Barber written exam.",
+      "Only 56.98% of Texas barber candidates pass the written exam on the first attempt, against 92.34% on the practical. Real 2026 TDLR data, a study guide and free practice questions.",
     url: "https://agency.innergcomplete.com/texas-barber-exam-intelligence-prep",
     siteName: "Inner G Complete Agency",
     images: [
@@ -39,9 +39,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Texas Barber Written Exam Prep: Pass Rates & Practice Test (2026)",
+    title: "Texas Barber Exam Prep (2026): Pass Rates & Practice Test",
     description:
-      "Texas's 37.25% written exam failure rate demands a new approach. Real pass-rate data, a study guide, and free practice questions.",
+      "56.98% first-attempt written pass rate against 92.34% practical. Real 2026 TDLR data, a study guide and free practice questions.",
     images: ["/texas_barber_crisis_cover.png"],
   },
   alternates: {
@@ -54,7 +54,7 @@ const courseJsonLd = {
   "@type": "Course",
   name: "Texas Barber Exam Intelligence Prep™",
   description:
-    "ADI-powered barber board exam preparation targeting Texas's 37.25% statewide written failure rate. Covers PSI syntax decoding, NACCAS compliance, and domain-specific mastery across all 85 scored written exam items for TDLR licensure.",
+    "ADI-powered barber board exam preparation targeting Texas's 56.98% first-attempt written pass rate. Covers PSI syntax decoding, NACCAS compliance, and domain-specific mastery across all 85 scored written exam items for TDLR licensure.",
   url: "https://agency.innergcomplete.com/texas-barber-exam-intelligence-prep",
   datePublished: "2026-04-01",
   provider: {
@@ -114,7 +114,7 @@ const faqJsonLd = {
       name: "What is the Texas barber written exam pass rate?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "The statewide Texas barber written exam pass rate is 37.25% based on April 2026 TDLR data. This means more than 6 in 10 students fail their first attempt, creating a significant bottleneck to licensure.",
+        text: "It depends which question you are asking. From the 2026 TDLR roster of 2,411 sittings between January and May 2026: 56.98% of candidates pass on their first attempt, 44.09% of all attempts including retakes are passes, and 63.45% of candidates pass eventually — meaning 36.55% never pass in that window.",
       },
     },
     {
@@ -122,7 +122,7 @@ const faqJsonLd = {
       name: "Why do Texas barber students fail the PSI written exam?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "The failure is not due to lack of practical skill — students achieve an 89.8% pass rate on practical exams. The PSI written theory exam uses specific distractor logic and question syntax that standard barbering curricula don't explicitly address, creating an informational design failure.",
+        text: "The failure is not due to lack of practical skill — students pass the practical at 92.34%. The PSI written theory exam uses specific distractor logic and question syntax that standard barbering curricula don't explicitly address, creating an informational design failure.",
       },
     },
     {
@@ -154,7 +154,7 @@ const faqJsonLd = {
       name: "Which Texas cities have the worst barber exam pass rates?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Based on April 2026 TDLR data, Houston (36.8%), San Antonio (35.2%), and Dallas (37.5%) represent the highest-risk metropolitan clusters. These three hubs account for the majority of the statewide $15M annual wage leak caused by licensure delays.",
+        text: "Written pass rates by metro, weighted by test takers: El Paso 42.11%, San Antonio 52.17% and Austin 58.82% all sit below the NACCAS 70% threshold. Houston reaches 67.87% on the largest candidate pool of any metro (249 takers), while Dallas (78.43%) and Fort Worth (77.91%) clear it comfortably.",
       },
     },
   ],

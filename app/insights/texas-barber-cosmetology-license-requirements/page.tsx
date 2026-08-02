@@ -103,7 +103,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "Texas Barber & Cosmetology License Requirements & Renewal Guide (2026) | Inner G Complete",
+  title: "Texas Barber & Cosmetology License Requirements & Renewal Guide (2026)",
   description:
     "Real Texas cosmetology and barber license renewal costs — the 2-year cycle, $50-$100 fee tiers, CE hours, and reciprocity from other states — plus how to get licensed in the first place. Sourced directly from TDLR.",
   keywords: [

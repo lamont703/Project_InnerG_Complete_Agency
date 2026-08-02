@@ -13,7 +13,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { KitChecklist, type KitGroup } from "@/components/tools/kit-checklist";
 
 export const metadata = {
-  title: "Texas Cosmetology Practical Exam Kit List & Checklist (2026) | Inner G Complete",
+  title: "Texas Cosmetology Practical Exam Kit List & Checklist (2026)",
   description:
     "The complete Texas Cosmetology Operator practical exam kit list and printable checklist, sourced from the official PSI/TDLR Candidate Information Bulletin effective January 1, 2026 — which items must be labeled in English, which must not be labeled at all, and all 13 timed stations in order.",
   keywords: [
@@ -319,6 +319,18 @@ export default function CosmetologyPracticalExamKitListPage() {
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-extrabold text-sm uppercase tracking-wider transition-colors"
           >
             View Barber Kit List
+          </Link>
+          <Link
+            href="/texas-eyelash-extension-practical-exam-kit-list"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-extrabold text-sm uppercase tracking-wider transition-colors"
+          >
+            View Eyelash Extension Kit List
+          </Link>
+          <Link
+            href="/texas-hair-weaving-practical-exam-kit-list"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-extrabold text-sm uppercase tracking-wider transition-colors"
+          >
+            View Hair Weaving Kit List
           </Link>
         </div>
 

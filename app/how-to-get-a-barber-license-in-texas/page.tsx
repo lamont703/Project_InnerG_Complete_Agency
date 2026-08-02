@@ -249,7 +249,7 @@ export default async function HowToGetBarberLicenseTexasPage() {
           <h2 className="text-sm font-black uppercase tracking-wider text-slate-500 mb-4">Go Deeper</h2>
           <div className="grid sm:grid-cols-2 gap-3">
             <Link
-              href="/insights/texas-barber-cosmetology-license-requirements"
+              href="/texas-barber-license-requirements-guide"
               className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl p-4 hover:border-indigo-300 transition-colors"
             >
               <span className="text-sm font-bold text-slate-900">

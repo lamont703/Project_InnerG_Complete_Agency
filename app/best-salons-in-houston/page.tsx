@@ -1,7 +1,7 @@
 import { BestOfDirectory, type BestOfEntry } from "@/components/best-of/BestOfDirectory";
 
 export const metadata = {
-  title: "Best-Rated Salons in Houston (2026) — Top Rated, Real Reviews | Inner G Complete",
+  title: "Best-Rated Salons in Houston (2026) — Top Rated, Real Reviews",
   description:
     "The 10 highest-rated hair salons in Houston, ranked by real Google rating and review count — led by Vella Bella Salon Park & Nail Spa at 5.0★ across 1,312 reviews. 1,027 real salons clear our 4.5+ rating threshold.",
   keywords: [

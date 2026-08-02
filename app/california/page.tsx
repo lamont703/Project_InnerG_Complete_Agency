@@ -5,7 +5,7 @@ import { CaliforniaHubDirectory } from "@/components/california-hub/CaliforniaHu
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "California Barbershops, Hair Salons & Barber Schools Directory | Inner G Complete",
+  title: "California Barbershops, Hair Salons & Barber Schools Directory",
   description:
     "Find real barbershops, hair salons, barbers, and licensed cosmetology/barber schools across California — real ratings and real reviews, not available on Google.",
   keywords: [

@@ -1,7 +1,7 @@
 import { BestOfDirectory, type BestOfEntry } from "@/components/best-of/BestOfDirectory";
 
 export const metadata = {
-  title: "Best-Rated Salons in Austin (2026) — Top Rated, Real Reviews | Inner G Complete",
+  title: "Best-Rated Salons in Austin (2026) — Top Rated, Real Reviews",
   description:
     "The 10 highest-rated hair salons in Austin, ranked by real Google rating and review count — led by Red Stella Salon and Method Hair, both 5.0★ at 500 reviews. 33 real salons clear our 4.5+ rating threshold.",
   keywords: [

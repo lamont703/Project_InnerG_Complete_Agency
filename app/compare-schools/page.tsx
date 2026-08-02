@@ -10,7 +10,7 @@ export const revalidate = 3600;
 const SITE = "https://agency.innergcomplete.com";
 
 export const metadata: Metadata = {
-  title: "Compare Barber & Cosmetology Schools — Real Exam Pass Rates | Inner G Complete",
+  title: "Compare Barber & Cosmetology Schools — Real Exam Pass Rates",
   description:
     "Compare barber and cosmetology schools side by side on real 2026 licensing exam pass rates — written, practical, first-attempt success and retest burden. Drill into any city.",
   keywords: [

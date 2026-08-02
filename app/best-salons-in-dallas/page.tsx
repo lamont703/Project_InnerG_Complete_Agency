@@ -1,7 +1,7 @@
 import { BestOfDirectory, type BestOfEntry } from "@/components/best-of/BestOfDirectory";
 
 export const metadata = {
-  title: "Best-Rated Salons in Dallas (2026) — Top Rated, Real Reviews | Inner G Complete",
+  title: "Best-Rated Salons in Dallas (2026) — Top Rated, Real Reviews",
   description:
     "The 10 highest-rated hair salons in Dallas, ranked by real Google rating and review count — led by MERE Salon and Muse the Salon, both 5.0★ at 205 reviews. 54 real salons clear our 4.5+ rating threshold.",
   keywords: [

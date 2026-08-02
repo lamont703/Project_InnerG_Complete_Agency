@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "How to Get a Barber License in Texas (Barber Certification 2026) | Inner G Complete",
+  title: "How to Get a Barber License in Texas (Barber Certification 2026)",
   description:
     "Step-by-step: how to get a barber license in Texas — TDLR training hours, the Class A written & practical exam, application steps, and renewal — plus real 2026 pass rates for every Texas barber school.",
   keywords: [

@@ -6,7 +6,7 @@ export const revalidate = 3600;
 const CANONICAL = "https://agency.innergcomplete.com/california-barber-exam-intelligence-prep";
 
 export const metadata: Metadata = {
-  title: "California Barber Exam Intelligence Prep — Real 2026 Pass Rates | Inner G Complete",
+  title: "California Barber Exam Intelligence Prep — Real 2026 Pass Rates",
   description:
     "Real 2026 first-time written pass rates for California barber schools, from the California Board of Barbering & Cosmetology (BBC), ranked by school. Know where you stand before the California barber state board exam. Not available on Google.",
   keywords: [

@@ -8,7 +8,7 @@ import type { Metadata } from "next";
 // /texas-school-leaderboard page (statewide framing, no Houston keyword
 // match at all) wasn't targeting.
 export const metadata: Metadata = {
-  title: "Cosmetology & Barber Schools in Houston, TX (2026 Pass Rates) | Inner G Complete",
+  title: "Cosmetology & Barber Schools in Houston, TX (2026 Pass Rates)",
   description:
     "Real 2026 TDLR exam pass rates for Houston cosmetology and barber schools — 90 cosmetology schools and 21 barber schools, ranked by how well they prepare students to pass on the first try.",
   keywords: [

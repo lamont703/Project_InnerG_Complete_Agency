@@ -52,7 +52,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "How Long Does Barber School Take in Texas? (2026) | Inner G Complete",
+  title: "How Long Does Barber School Take in Texas? (2026)",
   description:
     "Barber school in Texas requires 1,000 hours — typically 6-9 months full-time. Texas has no barber apprenticeship pathway at all, but there's a real 300-hour accelerated path for licensed cosmetologists.",
   keywords: [
@@ -317,7 +317,7 @@ export default function BarberSchoolLengthArticle() {
                 This works in reverse too — Texas barbers can use their license toward a cosmetology license under
                 a similar accelerated framework, and the esthetician license (750 hours, a separate specialty
                 covering skincare and waxing) follows its own distinct path — see our{" "}
-                <Link href="/insights/texas-barber-cosmetology-license-requirements" className="text-primary font-bold hover:underline">
+                <Link href="/texas-barber-license-requirements-guide" className="text-primary font-bold hover:underline">
                   License Requirements guide
                 </Link>{" "}
                 for the full esthetician-vs-cosmetologist breakdown.

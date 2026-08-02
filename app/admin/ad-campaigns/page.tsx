@@ -21,7 +21,7 @@ const CITY_OPTIONS = [
 const BANNER_PLACEMENTS = new Set(["state_hub_banner", "city_hub_banner"]);
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Ad Campaigns (Admin) | Inner G Complete", robots: { index: false, follow: false } };
+export const metadata = { title: "Ad Campaigns (Admin)", robots: { index: false, follow: false } };
 
 // Assign an ad placement to an advertiser (a user account). Their
 // /account/ad-performance page then reports on the ad events matching this

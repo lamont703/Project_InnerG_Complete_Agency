@@ -67,7 +67,7 @@ const terms = [
 ]
 
 export const metadata: Metadata = {
-  title: "Technical Glossary | Artificial Domain Intelligence | Inner G Complete",
+  title: "Technical Glossary | Artificial Domain Intelligence",
   description: "Official definitions for the core entities of the ADI and CPMAI framework — the vocabulary behind sovereign artificial intelligence in grooming and wellness.",
   alternates: {
     canonical: "https://agency.innergcomplete.com/glossary",

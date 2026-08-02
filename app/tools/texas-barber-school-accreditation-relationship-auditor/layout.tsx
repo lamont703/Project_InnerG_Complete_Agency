@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 // "use client" page with no metadata of its own — was silently inheriting
 // the root layout's generic homepage title/description.
 export const metadata: Metadata = {
-  title: "Accreditation Relationship Auditor™ | Title IV Risk Tracking | Inner G Complete",
+  title: "Accreditation Relationship Auditor™ | Title IV Risk Tracking",
   description:
     "Institutional relationship auditing for Texas barber schools — tracks instructional fidelity and Title IV risk level to help protect NACCAS accreditation before a compliance drop happens.",
   keywords: [

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "How to Get a Cosmetology License in Texas (2026 Requirements) | Inner G Complete",
+  title: "How to Get a Cosmetology License in Texas (2026 Requirements)",
   description:
     "Step-by-step: how to get a cosmetology license in Texas — TDLR-approved training hours, the PSI written & practical operator exam, application steps, and renewal — plus real 2026 pass rates for every Texas cosmetology school.",
   keywords: [

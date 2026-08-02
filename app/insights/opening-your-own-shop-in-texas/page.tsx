@@ -78,7 +78,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "How to Open a Barbershop in Texas (2026): Costs, Licenses & Profit | Inner G Complete",
+  title: "How to Open a Barbershop in Texas (2026): Costs, Licenses & Profit",
   description:
     "What it really costs to open a barbershop in Texas — a full startup cost breakdown (~$28k–$110k), licensing fees, and real profit math grounded in current Houston booth-rent data. Plus the TDLR establishment license and inspection rules, sourced directly from TDLR.",
   keywords: [
@@ -293,7 +293,7 @@ export default async function OpeningYourOwnShopGuide() {
                 open a business. Operating a barbershop or salon requires a separate establishment license from
                 TDLR, applied for independently of any individual practitioner license. (Still working on your own
                 license first? See our{" "}
-                <Link href="/insights/texas-barber-cosmetology-license-requirements" className="text-primary font-bold hover:underline">
+                <Link href="/texas-barber-license-requirements-guide" className="text-primary font-bold hover:underline">
                   Texas Barber &amp; Cosmetology License Requirements guide
                 </Link>{" "}
                 instead.)
@@ -685,7 +685,7 @@ export default async function OpeningYourOwnShopGuide() {
                   d: (
                     <>
                       The establishment license is separate and doesn&apos;t replace it. Still working on yours? See our{" "}
-                      <Link href="/insights/texas-barber-cosmetology-license-requirements" className="text-primary font-bold hover:underline">
+                      <Link href="/texas-barber-license-requirements-guide" className="text-primary font-bold hover:underline">
                         Texas License Requirements guide
                       </Link>
                       .
@@ -754,7 +754,7 @@ export default async function OpeningYourOwnShopGuide() {
                 Every requirement on this page is sourced directly from TDLR&apos;s own barbering-and-cosmetology
                 establishment pages, not third-party guides. Establishment rules are distinct from individual
                 licensing rules — see our{" "}
-                <Link href="/insights/texas-barber-cosmetology-license-requirements" className="text-primary font-bold hover:underline not-italic">
+                <Link href="/texas-barber-license-requirements-guide" className="text-primary font-bold hover:underline not-italic">
                   License Requirements guide
                 </Link>{" "}
                 for the individual-practitioner side of this. Confirm current requirements directly with TDLR

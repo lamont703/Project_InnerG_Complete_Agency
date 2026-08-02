@@ -8,7 +8,7 @@ import { BadgeCheck } from "lucide-react";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Texas Barbershops, Hair Salons & Barber Schools Directory | Inner G Complete",
+  title: "Texas Barbershops, Hair Salons & Barber Schools Directory",
   description:
     "Find real barbershops, hair salons, barbers, and licensed cosmetology/barber schools across Texas — real ratings, real reviews, and 2026 licensing exam pass rates, not available on Google.",
   keywords: [

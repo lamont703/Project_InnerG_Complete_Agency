@@ -44,7 +44,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "Booth Rental Requirements in Texas (2026): Mini-Establishment License, Contract & Insurance | Inner G Complete",
+  title: "Booth Rental Requirements in Texas (2026): Mini-Establishment License, Contract & Insurance",
   description:
     "What Texas actually requires for booth rental — the TDLR Mini-Establishment license, who applies for it, what belongs in your rental contract, and the insurance shop owners expect you to carry.",
   keywords: [

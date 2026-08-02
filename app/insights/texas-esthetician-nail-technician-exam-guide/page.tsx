@@ -74,7 +74,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "Texas Esthetician Exam (2026): Cost, Content Outline & Practical Timing | Inner G Complete",
+  title: "Texas Esthetician Exam (2026): Cost, Content Outline & Practical Timing",
   description:
     "The Texas esthetician exam costs $55 written and $76 practical (2026 PSI fees). 75 scored questions in 105 minutes, 70% to pass; the practical runs 1 hr 41 min for 76 points. Full content outline and manicurist exam included — sourced from the January 2026 PSI/TDLR bulletins.",
   keywords: [
@@ -249,7 +249,7 @@ export default function EstheticianNailTechExamGuide() {
                 For the full comparison of esthetician vs. cosmetologist scope of practice, application steps,
                 renewal cycle, and continuing education — all of which work the same way across both licenses —
                 see our{" "}
-                <Link href="/insights/texas-barber-cosmetology-license-requirements" className="text-primary font-bold hover:underline">
+                <Link href="/texas-barber-license-requirements-guide" className="text-primary font-bold hover:underline">
                   Texas Barber &amp; Cosmetology License Requirements
                 </Link>{" "}
                 guide. This page focuses specifically on the exam itself.
@@ -565,7 +565,7 @@ export default function EstheticianNailTechExamGuide() {
                 Exam fees are paid to PSI and are <strong>not refundable or transferable</strong>. A separate fee is
                 required for each attempt, and your fee is forfeited if you do not test within one year of the date
                 PSI receives it. TDLR charges its own licensing fee on top of these — see our{" "}
-                <Link href="/insights/texas-barber-cosmetology-license-requirements" className="text-primary font-bold hover:underline">
+                <Link href="/texas-barber-license-requirements-guide" className="text-primary font-bold hover:underline">
                   license requirements guide
                 </Link>{" "}
                 for those. Figures current as of the January 2026 bulletins; older guides still list $50 and $72.
@@ -665,7 +665,7 @@ export default function EstheticianNailTechExamGuide() {
                 quote the pre-2026 $50/$72 fees and an outdated esthetician content outline. For
                 application, renewal, reciprocity, and continuing-education details common to every license type
                 on this page, see our{" "}
-                <Link href="/insights/texas-barber-cosmetology-license-requirements" className="text-primary font-bold hover:underline not-italic">
+                <Link href="/texas-barber-license-requirements-guide" className="text-primary font-bold hover:underline not-italic">
                   full license requirements guide
                 </Link>
                 .

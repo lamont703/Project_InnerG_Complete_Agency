@@ -10,7 +10,7 @@ export const revalidate = 3600;
 const CANONICAL = "https://agency.innergcomplete.com/directory";
 
 export const metadata: Metadata = {
-  title: "Full Directory — Barbershops, Salons, Barbers, Schools & Supply Stores | Inner G Complete",
+  title: "Full Directory — Barbershops, Salons, Barbers, Schools & Supply Stores",
   description:
     "Browse every barbershop, hair salon, barber, cosmetologist, barber and cosmetology school, and supply store in our directory — the complete A–Z index.",
   alternates: { canonical: CANONICAL },

@@ -5,7 +5,7 @@ import { HoustonDirectory } from "./HoustonDirectory";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Houston Barbershops, Hair Salons & Hair Stylists Directory | Inner G Complete",
+  title: "Houston Barbershops, Hair Salons & Hair Stylists Directory",
   description: "Find real hair stylists, hairdressers, barbershops, and hair salons in Houston, TX — plus licensed cosmetology and barber schools ranked by real 2026 licensing exam pass rates, data not available on Google.",
   keywords: [
     "houston barber",

@@ -7,7 +7,7 @@ import ContinuingEducationClient from './ContinuingEducationClient';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: "Texas Barber & Cosmetology Continuing Education Portal (2026) | Inner G Complete",
+  title: "Texas Barber & Cosmetology Continuing Education Portal (2026)",
   description:
     "Maintain your active Texas barber or cosmetology license — a TDLR-approved 2026 continuing education course catalog covering infection control, chemistry, Texas barber law, and styling technique, with instant verified CE credit.",
   keywords: [

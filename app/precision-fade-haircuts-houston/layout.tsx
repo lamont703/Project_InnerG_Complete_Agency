@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Precision Fade Haircuts in Houston | Real Barbers, Real Prices | Inner G Complete",
+  title: "Precision Fade Haircuts in Houston | Real Barbers, Real Prices",
   description:
     "Real Houston barbers who list a fade as a named service — ranked by real customer ratings, with real prices. Not a generic barbershop directory — every listing here specializes in fades.",
   keywords: [

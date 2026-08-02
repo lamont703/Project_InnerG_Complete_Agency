@@ -42,7 +42,7 @@ const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 
 export const metadata: Metadata = {
-  title: "Texas TDLR Barber & Cosmetology Rule Changes — Dated Update Log | Inner G Complete",
+  title: "Texas TDLR Barber & Cosmetology Rule Changes — Dated Update Log",
   description:
     "Every TDLR barber and cosmetology rule, fee, continuing-education and exam change, dated and sourced. Know what changed, when it takes effect, and which license types it hits.",
   keywords: [
@@ -215,7 +215,7 @@ export default async function TdlrUpdatesPage() {
               ["/texas-barber-license-renewal", "Texas barber license renewal"],
               ["/texas-cosmetology-license-renewal", "Texas cosmetology license renewal"],
               ["/barber-cos-continuing-education", "Continuing education portal"],
-              ["/insights/texas-barber-cosmetology-license-requirements", "License requirements, fees & renewal cycle"],
+              ["/texas-barber-license-requirements-guide", "License requirements, fees & renewal cycle"],
               ["/how-to-get-a-barber-license-in-texas", "How to get a barber license in Texas"],
               ["/how-to-get-a-cosmetology-license-in-texas", "How to get a cosmetology license in Texas"],
             ].map(([href, label]) => (

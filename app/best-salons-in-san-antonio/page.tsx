@@ -1,7 +1,7 @@
 import { BestOfDirectory, type BestOfEntry } from "@/components/best-of/BestOfDirectory";
 
 export const metadata = {
-  title: "Best-Rated Salons in San Antonio (2026) — Top Rated, Real Reviews | Inner G Complete",
+  title: "Best-Rated Salons in San Antonio (2026) — Top Rated, Real Reviews",
   description:
     "The 10 highest-rated hair salons in San Antonio, ranked by real Google rating and review count — led by Pure Glam Hair and Makeup at 5.0★ across 427 reviews. 40 real salons clear our 4.5+ rating threshold.",
   keywords: [

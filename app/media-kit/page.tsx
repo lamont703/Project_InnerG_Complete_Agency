@@ -6,7 +6,7 @@ export const revalidate = 3600;
 const CANONICAL = "https://agency.innergcomplete.com/media-kit";
 
 export const metadata: Metadata = {
-  title: "Advertising Media Kit — Sponsorships & Ad Placements | Inner G Complete",
+  title: "Advertising Media Kit — Sponsorships & Ad Placements",
   description:
     "Advertise on ShearQuery / Inner G Complete — the barber & cosmetology intelligence platform. ~223K monthly search impressions, nearly 9,000 listed entities across TX & CA, and four ad products: geographic sponsorships, on-profile ads, and search-results placements.",
   keywords: [

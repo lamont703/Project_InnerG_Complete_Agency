@@ -1,7 +1,7 @@
 import { BestOfDirectory, type BestOfEntry } from "@/components/best-of/BestOfDirectory";
 
 export const metadata = {
-  title: "Best Barbershops in Houston (2026) — Top Rated, Real Reviews | Inner G Complete",
+  title: "Best Barbershops in Houston (2026) — Top Rated, Real Reviews",
   description:
     "The 10 highest-rated barbershops in Houston, ranked by real Google rating and review count — led by Fade Da Nawf at 5.0★ across 1,345 reviews. 457 real shops clear our 4.5+ rating threshold.",
   keywords: [

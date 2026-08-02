@@ -36,7 +36,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "Booth Rent Taxes & Do You Need an LLC in Texas (2026) | Inner G Complete",
+  title: "Booth Rent Taxes & Do You Need an LLC in Texas (2026)",
   description:
     "Booth renters are independent contractors, not employees — what that means for deductions, 1099s, and self-employment tax, and why Texas doesn't actually require an LLC to rent a booth.",
   keywords: [

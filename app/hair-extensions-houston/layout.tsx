@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Hair Extensions in Houston | Real Barbers & Stylists, Real Prices | Inner G Complete",
+  title: "Hair Extensions in Houston | Real Barbers & Stylists, Real Prices",
   description:
     "Real Houston barbers and cosmetologists who list hair extensions — tape-ins, sew-ins, K-tips, clip-ins — as a named service on their own menu, ranked by real customer ratings.",
   keywords: [
