@@ -11,28 +11,28 @@ import { TDLR_SOURCES } from "@/lib/tdlr-sources";
  * $580, and the pattern is not what the names suggest.
  */
 
-const REQ = findRequirement('manicurist')!;
-const SOURCE = TDLR_SOURCES.find((s) => s.id === 'apply-manicurist');
+const REQ = findRequirement('esthetician')!;
+const SOURCE = TDLR_SOURCES.find((s) => s.id === 'apply-esthetician');
 
 export const metadata = {
-  title: 'Texas Manicurist License Requirements (2026)',
-  description: "What a Texas manicurist licence requires — 600 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.",
-  keywords: ["texas manicurist license requirements", "how to get a manicurist license in texas", "texas manicurist license", "manicurist license texas cost", "texas manicurist license application", "tdlr license requirements texas", "manicurist hours texas"],
-  openGraph: { title: 'Texas Manicurist License Requirements (2026)', description: "What a Texas manicurist licence requires — 600 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages." },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-manicurist-license-requirements-guide" },
+  title: 'Texas Esthetician License Requirements (2026)',
+  description: "What a Texas esthetician licence requires — 750 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.",
+  keywords: ["texas esthetician license requirements", "how to get a esthetician license in texas", "texas esthetician license", "esthetician license texas cost", "texas esthetician license application", "tdlr license requirements texas", "esthetician hours texas"],
+  openGraph: { title: 'Texas Esthetician License Requirements (2026)', description: "What a Texas esthetician licence requires — 750 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages." },
+  alternates: { canonical: "https://agency.innergcomplete.com/texas-esthetician-license-requirements-guide" },
 };
 
 const FAQS = [
   {
-    q: "How many hours do you need for a Texas manicurist licence?",
-    a: "600 hours of instruction at a school licensed in Texas."
+    q: "How many hours do you need for a Texas esthetician licence?",
+    a: "750 hours of instruction at a school licensed in Texas."
   },
   {
-    q: "How much does a Texas manicurist licence cost?",
+    q: "How much does a Texas esthetician licence cost?",
     a: "$50 to apply, non-refundable, and the licence is valid two years from the date of issue."
   },
   {
-    q: "How long is a Texas manicurist licence valid?",
+    q: "How long is a Texas esthetician licence valid?",
     a: "Two years from the date of issue, then it renews on a two-year cycle."
   },
   {
@@ -41,7 +41,7 @@ const FAQS = [
   }
 ];
 
-export default function TexasManicuristRequirementsPage() {
+export default function TexasEstheticianRequirementsPage() {
   return (
     <div className="min-h-screen light bg-white text-slate-950">
       <Navbar />
@@ -52,16 +52,16 @@ export default function TexasManicuristRequirementsPage() {
         </Link>
 
         <h1 className="mb-3 text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl">
-          Texas Manicurist License Requirements
+          Texas Esthetician License Requirements
         </h1>
         <p className="mb-10 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
-          What it takes to be licensed as a manicurist in Texas — the hours, the fee, the exams and the order they happen in.
+          What it takes to be licensed as a esthetician in Texas — the hours, the fee, the exams and the order they happen in.
         </p>
 
         <div className="mb-12 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <GraduationCap className="mb-2 h-4 w-4 text-indigo-600" />
-            <p className="text-lg font-black text-slate-900">600</p>
+            <p className="text-lg font-black text-slate-900">750</p>
             <p className="mt-0.5 text-xs font-semibold text-slate-500">Course hours</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -121,7 +121,7 @@ export default function TexasManicuristRequirementsPage() {
           <div className="flex flex-wrap gap-3">
             <Link href="/texas-barber-license-requirements-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Class A Barber</Link>
             <Link href="/texas-cosmetology-license-requirements-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Cosmetology Operator</Link>
-            <Link href="/texas-esthetician-license-requirements-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Esthetician</Link>
+            <Link href="/texas-manicurist-license-requirements-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Manicurist</Link>
             <Link href="/texas-eyelash-extension-license-requirements-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Eyelash Extension Specialist</Link>
             <Link href="/texas-hair-weaving-license-requirements-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Hair Weaving Specialist</Link>
             <Link href="/texas-barber-license-transfer-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Cosmetologist to Class A Barber</Link>
@@ -142,7 +142,7 @@ export default function TexasManicuristRequirementsPage() {
       </main>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", name: 'Texas Manicurist License Requirements (2026)', description: "What a Texas manicurist licence requires — 600 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.", estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: REQ.feeUsd }, step: REQ.conditions.map((c, i) => ({ "@type": "HowToStep", position: i + 1, text: c })) }) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", name: 'Texas Esthetician License Requirements (2026)', description: "What a Texas esthetician licence requires — 750 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.", estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: REQ.feeUsd }, step: REQ.conditions.map((c, i) => ({ "@type": "HowToStep", position: i + 1, text: c })) }) }} />
     </div>
   );
 }

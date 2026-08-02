@@ -74,7 +74,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "Texas Esthetician License Requirements Guide (2026)",
+  title: "Texas Esthetician Exam (2026): Cost, Content Outline & Practical Timing",
   description:
     "The Texas esthetician exam costs $55 written and $76 practical (2026 PSI fees). 75 scored questions in 105 minutes, 70% to pass; the practical runs 1 hr 41 min for 76 points. Full content outline and manicurist exam included — sourced from the January 2026 PSI/TDLR bulletins.",
   keywords: [
@@ -92,7 +92,7 @@ export const metadata = {
     "tdlr nail tech license",
   ],
   openGraph: {
-    title: "Texas Esthetician License Requirements Guide (2026)",
+    title: "Texas Esthetician Exam (2026): Cost, Content Outline & Practical Timing",
     description:
       "$55 written, $76 practical. 75 scored questions in 105 minutes at 70% to pass; practical runs 1 hr 41 min for 76 points. Full content outline for the esthetician and manicurist exams, from the January 2026 PSI/TDLR bulletins.",
     url: "https://agency.innergcomplete.com/insights/texas-esthetician-nail-technician-exam-guide",
@@ -101,7 +101,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Texas Esthetician License Requirements Guide (2026)",
+    title: "Texas Esthetician Exam (2026): Cost, Content Outline & Practical Timing",
     description: "$55 written, $76 practical. Full content outline and practical timing for the Texas esthetician and manicurist exams, from the January 2026 PSI/TDLR bulletins.",
     images: ["/images/esthetician_nail_tech_exam_cover.webp"],
   },
