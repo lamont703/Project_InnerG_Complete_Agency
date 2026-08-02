@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Late Night Barbers in Houston | Real Hours, Ranked by Closing Time | Inner G Complete",
+  title: "Late Night Barbers in Houston | Real Hours, Ranked by Closing Time",
   description:
     "Real Houston barbers with a closing time of 8 PM or later, ranked by how late they're actually open — pulled from real, currently-listed hours, not a generic directory.",
   keywords: [

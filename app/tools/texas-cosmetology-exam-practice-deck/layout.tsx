@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Cosmetology State Board Practice Test — Free 2026 Texas Written Exam Prep | Inner G Complete",
+  title: "Cosmetology State Board Practice Test — Free 2026 Texas Written Exam Prep",
   description:
     "Free cosmetology state board practice test for the Texas written exam, aligned to the PSI exam TDLR uses for the actual cosmetology operator license. Milady-cited answers and explanations for every question — practice before your state board.",
   keywords: [

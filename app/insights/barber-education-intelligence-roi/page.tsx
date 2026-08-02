@@ -111,7 +111,7 @@ const metrics = [
 ]
 
 export const metadata = {
-  title: "Overcoming the Blockade: Barber Education Intelligence | Inner G Complete",
+  title: "Overcoming the Blockade: Barber Education Intelligence",
   description: "Barber students invest $16,800+ into an education that prepares them physically but repeatedly fails them theoretically. A definitive ROI analysis on the Cognitive RAG solution to guarantee licensure velocity.",
   keywords: [
     "barber education ROI",

@@ -105,7 +105,7 @@ const metrics = [
 ]
 
 export const metadata = {
-  title: "TDLR Barber Exam Pass Rate: The Texas Barber Licensure Crisis (2026) | Inner G Complete",
+  title: "TDLR Barber Exam Pass Rate: The Texas Barber Licensure Crisis (2026)",
   description: "The TDLR barber exam pass rate is 37.25% (FY 2025) for the written exam, vs. 89.80% practical — a 'Licensure Cliff' putting Texas barber school accreditation at risk. Full data audit and the ADI Pilot response.",
   keywords: [
     "Texas barber licensure crisis",

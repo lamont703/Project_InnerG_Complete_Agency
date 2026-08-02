@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 // also have a real, well-known business literally named "East End
 // Barber" (650 reviews) plus 21 other real shops in the same zip cluster.
 export const metadata: Metadata = {
-  title: "Barbershops in Houston's East End | Real Shops, Real Ratings | Inner G Complete",
+  title: "Barbershops in Houston's East End | Real Shops, Real Ratings",
   description:
     "Real barbershops in Houston's East End (77003, 77011, 77012, 77023, 77029) — ranked by real customer ratings and review counts, including East End Barber.",
   keywords: [

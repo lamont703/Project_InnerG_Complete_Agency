@@ -44,7 +44,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "Booth Rent vs. Commission (2026): What the Real Houston Numbers Say | Inner G Complete",
+  title: "Booth Rent vs. Commission (2026): What the Real Houston Numbers Say",
   description:
     "Booth rent vs. commission, decided with real Houston barbershop data — median weekly rent, typical commission splits, and the exact breakeven revenue where one model beats the other. Includes a free calculator.",
   keywords: [

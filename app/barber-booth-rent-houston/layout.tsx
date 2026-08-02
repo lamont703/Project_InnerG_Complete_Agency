@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Barber Booth Rental Near Me in Houston — Rent Cost & Open Chairs | Inner G Complete",
+  title: "Barber Booth Rental Near Me in Houston — Rent Cost & Open Chairs",
   description:
     "Real, currently-listed barber booth rentals near you in Houston — see weekly rent cost, open chairs, and each shop's full profile. Free to browse, no account needed.",
   keywords: [

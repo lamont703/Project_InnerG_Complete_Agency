@@ -19,7 +19,7 @@ type Props = { params: Promise<{ city: string }> };
 // change a single character of already-live metadata for either.
 const CITY_METADATA_OVERRIDES: Record<string, { title: string; description: string }> = {
   dallas: {
-    title: "Dallas Barbershops & Hair Salons Directory | Inner G Complete",
+    title: "Dallas Barbershops & Hair Salons Directory",
     description:
       "Find real barbershops, hair salons, barbers, and licensed cosmetology/barber schools in Dallas, TX — real ratings, real reviews, real data, not available on Google.",
   },
@@ -46,7 +46,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const override = CITY_METADATA_OVERRIDES[slug];
 
   if (!cityName && !override) {
-    return { title: "Directory Not Found | Inner G Complete" };
+    return { title: "Directory Not Found" };
   }
 
   const title = override?.title || `${cityName} Barbershops & Salons Directory | Inner G Complete`;

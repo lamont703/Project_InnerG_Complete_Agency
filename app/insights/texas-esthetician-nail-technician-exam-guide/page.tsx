@@ -74,7 +74,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "Texas Esthetician Exam (2026): Cost, Content Outline & Practical Timing | Inner G Complete",
+  title: "Texas Esthetician Exam (2026): Cost, Content Outline & Practical Timing",
   description:
     "The Texas esthetician exam costs $55 written and $76 practical (2026 PSI fees). 75 scored questions in 105 minutes, 70% to pass; the practical runs 1 hr 41 min for 76 points. Full content outline and manicurist exam included — sourced from the January 2026 PSI/TDLR bulletins.",
   keywords: [

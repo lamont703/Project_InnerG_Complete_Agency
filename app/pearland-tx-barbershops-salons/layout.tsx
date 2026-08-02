@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Barbershops & Salons in Pearland, TX | Real Ratings & Reviews | Inner G Complete",
+  title: "Barbershops & Salons in Pearland, TX | Real Ratings & Reviews",
   description:
     "Real barbershops and salons in Pearland, TX — verified businesses ranked by live customer ratings and review counts, updated regularly, not a generic directory.",
   keywords: [

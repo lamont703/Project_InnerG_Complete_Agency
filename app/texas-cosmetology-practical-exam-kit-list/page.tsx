@@ -13,7 +13,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { KitChecklist, type KitGroup } from "@/components/tools/kit-checklist";
 
 export const metadata = {
-  title: "Texas Cosmetology Practical Exam Kit List & Checklist (2026) | Inner G Complete",
+  title: "Texas Cosmetology Practical Exam Kit List & Checklist (2026)",
   description:
     "The complete Texas Cosmetology Operator practical exam kit list and printable checklist, sourced from the official PSI/TDLR Candidate Information Bulletin effective January 1, 2026 — which items must be labeled in English, which must not be labeled at all, and all 13 timed stations in order.",
   keywords: [

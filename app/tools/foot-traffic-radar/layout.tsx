@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 // duplicate-homepage-title bug as the other tool pages, just via a
 // different mechanism (metadata omission instead of "use client").
 export const metadata: Metadata = {
-  title: "Foot Traffic Radar | Barbershop Competitive Intelligence | Inner G Complete",
+  title: "Foot Traffic Radar | Barbershop Competitive Intelligence",
   description:
     "Explore competitive intelligence and local foot traffic data for barbershops across the network — find the right chair to rent with data-backed confidence.",
   keywords: [

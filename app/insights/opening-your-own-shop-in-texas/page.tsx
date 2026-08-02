@@ -78,7 +78,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "How to Open a Barbershop in Texas (2026): Costs, Licenses & Profit | Inner G Complete",
+  title: "How to Open a Barbershop in Texas (2026): Costs, Licenses & Profit",
   description:
     "What it really costs to open a barbershop in Texas — a full startup cost breakdown (~$28k–$110k), licensing fees, and real profit math grounded in current Houston booth-rent data. Plus the TDLR establishment license and inspection rules, sourced directly from TDLR.",
   keywords: [

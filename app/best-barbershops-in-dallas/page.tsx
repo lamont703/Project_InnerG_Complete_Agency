@@ -1,7 +1,7 @@
 import { BestOfDirectory, type BestOfEntry } from "@/components/best-of/BestOfDirectory";
 
 export const metadata = {
-  title: "Best Barbershops in Dallas (2026) — Top Rated, Real Reviews | Inner G Complete",
+  title: "Best Barbershops in Dallas (2026) — Top Rated, Real Reviews",
   description:
     "The 10 highest-rated barbershops in Dallas, ranked by real Google rating and review count — led by Sauccy Fades Dallas Barbershop at 5.0★ across 517 reviews. 57 real shops clear our 4.5+ rating threshold.",
   keywords: [

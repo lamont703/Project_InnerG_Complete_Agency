@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Texas Cosmetology Written Exam Prep: Pass Rates & Study Guide (2026) | Inner G Complete",
+  title: "Texas Cosmetology Exam Prep (2026): Pass Rates & Study Guide",
   description:
     "Real 2026 Texas cosmetology written exam pass-rate data by city, a PSI-aligned study guide, and free practice questions — everything you need to pass the state board exam on your first try.",
   keywords: [
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true },
   },
   openGraph: {
-    title: "Texas Cosmetology Written Exam Prep: Pass Rates & Study Guide (2026)",
+    title: "Texas Cosmetology Exam Prep (2026): Pass Rates & Study Guide",
     description:
       "41% of first-time candidates fail the PSI written exam despite a 96.9% practical pass rate. Real 2026 pass-rate data, a study guide, and free practice questions.",
     url: "https://agency.innergcomplete.com/texas-cosmetology-exam-intelligence-prep",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Texas Cosmetology Written Exam Prep: Pass Rates & Study Guide (2026)",
+    title: "Texas Cosmetology Exam Prep (2026): Pass Rates & Study Guide",
     description:
       "41% of Texas cosmetology candidates fail the PSI written exam on the first try. Real pass-rate data, a study guide, and free practice questions.",
   },
@@ -135,7 +135,7 @@ const faqJsonLd = {
       name: "What happens if a Texas cosmetology school falls below the NACCAS 70% threshold?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Schools falling below NACCAS's 70% written exam pass rate threshold are issued a Request for Monitoring. Consecutive failures can result in loss of Title IV federal funding eligibility. Statewide, cosmetology sits just above that floor at 72.1% — but individual metro clusters, like San Antonio at 66.6%, currently fall below it.",
+        text: "Schools falling below NACCAS's 70% written exam pass rate threshold are issued a Request for Monitoring. Consecutive failures can result in loss of Title IV federal funding eligibility. Statewide, cosmetology sits just above that floor at 72.1% — but individual metro clusters, like San Antonio at 65.44%, currently fall below it.",
       },
     },
     {
@@ -143,7 +143,7 @@ const faqJsonLd = {
       name: "Which Texas cities have the lowest cosmetology written exam pass rates?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Based on 2026 TDLR data, San Antonio (66.6%) is currently the only major metro cluster below the NACCAS 70% threshold. Houston (71.5%) sits just above it, while Dallas (76.3%) and El Paso (80.0%) post the strongest regional pass rates.",
+        text: "Based on 2026 TDLR data, San Antonio (65.44%) is currently the only major metro cluster below the NACCAS 70% threshold. Houston (71.5%) sits just above it, while Dallas (76.3%) and El Paso (80.0%) post the strongest regional pass rates.",
       },
     },
   ],

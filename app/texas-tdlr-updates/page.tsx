@@ -42,7 +42,7 @@ const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 
 export const metadata: Metadata = {
-  title: "Texas TDLR Barber & Cosmetology Rule Changes — Dated Update Log | Inner G Complete",
+  title: "Texas TDLR Barber & Cosmetology Rule Changes — Dated Update Log",
   description:
     "Every TDLR barber and cosmetology rule, fee, continuing-education and exam change, dated and sourced. Know what changed, when it takes effect, and which license types it hits.",
   keywords: [

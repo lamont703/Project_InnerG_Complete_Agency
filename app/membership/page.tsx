@@ -5,7 +5,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { CommunityMembershipForm } from "@/components/forms/CommunityMembershipForm";
 
 export const metadata: Metadata = {
-  title: "Free Community Membership — Verified Badge on Your Listing | Inner G Complete",
+  title: "Free Community Membership — Verified Badge on Your Listing",
   description:
     "Join Inner G Complete's free community membership — barbers, stylists, and beauty professionals claim their listing and earn a verified badge on their ShearQuery profile, showing clients and shops it's owner-verified.",
   alternates: {

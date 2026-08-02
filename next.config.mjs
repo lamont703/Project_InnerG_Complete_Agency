@@ -232,6 +232,19 @@ const nextConfig = {
         destination: "/barber-beauty-network",
         permanent: true,
       },
+      // El Paso barber exam prep now points at the statewide page.
+      //
+      // The page itself stays — it still ranks and its content is city-specific
+      // — but a candidate arriving there wants exam prep, and the statewide
+      // page has the current pass-rate data, the TDLR process documents and
+      // both practice decks. Permanent, so the ranking consolidates rather
+      // than splitting across two pages that answer the same question.
+      {
+        source: "/el-paso-barber-exam-intelligence-prep",
+        destination: "/texas-barber-exam-intelligence-prep",
+        permanent: true,
+      },
+
       // --- Deduplicated / deleted entity redirects ---
       // These pages were indexed by Google before deduplication removed
       // their underlying database rows. Each one redirects to the

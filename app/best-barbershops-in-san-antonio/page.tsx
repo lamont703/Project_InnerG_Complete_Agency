@@ -1,7 +1,7 @@
 import { BestOfDirectory, type BestOfEntry } from "@/components/best-of/BestOfDirectory";
 
 export const metadata = {
-  title: "Best Barbershops in San Antonio (2026) — Top Rated, Real Reviews | Inner G Complete",
+  title: "Best Barbershops in San Antonio (2026) — Top Rated, Real Reviews",
   description:
     "The 10 highest-rated barbershops in San Antonio, ranked by real Google rating and review count — led by Fineline Barbershop #3 at 5.0★ across 1,152 reviews. 56 real shops clear our 4.5+ rating threshold.",
   keywords: [

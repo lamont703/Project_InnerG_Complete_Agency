@@ -64,7 +64,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const { type: typeKey, rest } = await props.params;
   const type = getDirectoryType(typeKey);
   const parsed = parseRoute(typeKey, rest);
-  if (!type || parsed.kind === "notfound") return { title: "Directory Not Found | Inner G Complete" };
+  if (!type || parsed.kind === "notfound") return { title: "Directory Not Found" };
   if (parsed.kind === "redirect") {
     return { title: `${type.label} Directory | Inner G Complete`, alternates: { canonical: `${ORIGIN}${parsed.to}` } };
   }

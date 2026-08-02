@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "California Cosmetology & Barber School Pass Rates (2026 State Board) | Inner G Complete",
+  title: "California Cosmetology & Barber School Pass Rates (2026 State Board)",
   description:
     "Real 2026 California state board pass rates by school — first-time written exam results from the California Board of Barbering & Cosmetology (BBC), ranked for cosmetology, barber, esthetics, and manicuring programs. Not available on Google.",
   keywords: [

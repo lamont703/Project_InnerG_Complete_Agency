@@ -28,7 +28,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const cityName = citySlugToNameCA(slug);
 
   if (!cityName) {
-    return { title: "Directory Not Found | Inner G Complete" };
+    return { title: "Directory Not Found" };
   }
 
   const title = `${cityName} Barbershops & Salons Directory | Inner G Complete`;

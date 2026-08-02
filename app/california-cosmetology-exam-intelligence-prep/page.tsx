@@ -6,7 +6,7 @@ export const revalidate = 3600;
 const CANONICAL = "https://agency.innergcomplete.com/california-cosmetology-exam-intelligence-prep";
 
 export const metadata: Metadata = {
-  title: "California Cosmetology Exam Intelligence Prep — Real 2026 Pass Rates | Inner G Complete",
+  title: "California Cosmetology Exam Intelligence Prep — Real 2026 Pass Rates",
   description:
     "Real 2026 first-time written pass rates for California cosmetology schools, from the California Board of Barbering & Cosmetology (BBC), ranked by school. Know where you stand before the California cosmetology state board exam. Not available on Google.",
   keywords: [

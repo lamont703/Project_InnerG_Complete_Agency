@@ -52,7 +52,7 @@ const references = [
 ]
 
 export const metadata = {
-  title: "How Long Does Barber School Take in Texas? (2026) | Inner G Complete",
+  title: "How Long Does Barber School Take in Texas? (2026)",
   description:
     "Barber school in Texas requires 1,000 hours — typically 6-9 months full-time. Texas has no barber apprenticeship pathway at all, but there's a real 300-hour accelerated path for licensed cosmetologists.",
   keywords: [

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Locs in Houston | Real Barbers & Loctitians, Real Prices | Inner G Complete",
+  title: "Locs in Houston | Real Barbers & Loctitians, Real Prices",
   description:
     "Real Houston barbers and cosmetologists who list a loc service — retwists, starter locs, interlocking — as a named service on their own menu, ranked by real customer ratings.",
   keywords: [

@@ -11,7 +11,7 @@ const SITE = "https://agency.innergcomplete.com";
 const money = (v: number | null) => (v != null ? `$${v.toLocaleString()}` : "—");
 
 export const metadata: Metadata = {
-  title: "Compare Barbershops & Salons — Booth Rent, Chairs & Ratings | Inner G Complete",
+  title: "Compare Barbershops & Salons — Booth Rent, Chairs & Ratings",
   description:
     "Compare barbershops and salons side by side on booth rent, chairs available, ratings and who's hiring. Drill into any city to see what a chair actually costs before you commit.",
   keywords: [

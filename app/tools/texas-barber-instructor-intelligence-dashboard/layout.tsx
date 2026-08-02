@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 // "use client" page with no metadata of its own — was silently inheriting
 // the root layout's generic homepage title/description.
 export const metadata: Metadata = {
-  title: "Instructor Intelligence Dashboard™ | NACCAS Compliance | Inner G Complete",
+  title: "Instructor Intelligence Dashboard™ | NACCAS Compliance",
   description:
     "Class-level pass-rate prediction, student confidence tracking, and at-risk pupil alerts for Texas barber school instructors — built to protect NACCAS accreditation and Title IV eligibility.",
   keywords: [
