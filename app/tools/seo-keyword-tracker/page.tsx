@@ -1,6 +1,13 @@
 import Link from "next/link"
 import { Search, TrendingUp, Hash, AlertTriangle, MousePointerClick, Eye } from "lucide-react"
-import { getCachedGscPerformance, type GscMetrics, type GscPerformance } from "@/lib/gsc-performance"
+import {
+  getCachedGscPerformance,
+  gscLastFailure,
+  gscMissingConfig,
+  type GscMetrics,
+  type GscPerformance,
+  type GscUnavailableReason,
+} from "@/lib/gsc-performance"
 import {
   resolveGscWindow,
   latestAvailableDay,
@@ -45,6 +52,17 @@ export default async function SeoKeywordTrackerPage({
   // Only the keys this page reads are fetched into cache — the raw response is
   // ~3MB and would exceed Next's data-cache limit.
   const perf = await getCachedGscPerformance({ start: win.start, end: win.end }, catalogGscKeys())
+
+  // Why it's missing, when it is. gscLastFailure() only reflects a run that
+  // actually happened — unstable_cache serves a cached null without re-entering
+  // the function, so on a cache hit there is no recorded reason. The config
+  // check needs no network and is always current, so it fills that gap: the
+  // common case (credentials absent on this deployment) still explains itself.
+  let gscFailure: GscUnavailableReason | null = null
+  if (!perf) {
+    const missing = gscMissingConfig()
+    gscFailure = missing.length ? { kind: "not-configured", missing } : gscLastFailure()
+  }
   const totals = catalogTotals()
   const shortLabel = windowShortLabel(win)
   const iso = (d: Date) => d.toISOString().slice(0, 10)
@@ -123,9 +141,37 @@ export default async function SeoKeywordTrackerPage({
             Live GSC · {perf.window.start} → {perf.window.end} ({win.days} days · {win.label}) · fetched {new Date(perf.fetchedAt).toLocaleString()}
           </div>
         ) : (
-          <div className="mt-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
-            <AlertTriangle className="h-4 w-4" />
-            Live GSC data unavailable — showing the keyword catalog without performance metrics.
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <div className="flex items-center gap-2 font-semibold">
+              <AlertTriangle className="h-4 w-4" />
+              Live GSC data unavailable — showing the keyword catalog without performance metrics.
+            </div>
+            {/* The three causes need three different fixes, and the generic
+                message above sent people to check the token when the usual
+                culprit is a missing env var on the deployment. Say which. */}
+            {gscFailure?.kind === "not-configured" && (
+              <p className="mt-1.5 font-normal">
+                Search Console credentials are not set on this deployment. Missing:{" "}
+                <span className="font-mono font-semibold">{gscFailure.missing.join(", ")}</span>. Add them to the
+                hosting environment and redeploy — env vars are not picked up by an existing deployment.
+              </p>
+            )}
+            {gscFailure?.kind === "auth-failed" && (
+              <p className="mt-1.5 font-normal">
+                Google rejected the credentials (<span className="font-mono">{gscFailure.detail}</span>). A refresh
+                token only works with the OAuth client that minted it, so this is almost always{" "}
+                <span className="font-mono font-semibold">GOOGLE_INTERNAL_CLIENT_ID</span>/
+                <span className="font-mono font-semibold">_SECRET</span> missing here — the code then falls back to
+                the customer-facing app client, which never issued this token. Set both and redeploy, or re-mint the
+                token with <span className="font-mono">scripts/gsc_oauth_setup.js</span>.
+              </p>
+            )}
+            {gscFailure?.kind === "api-error" && (
+              <p className="mt-1.5 font-normal">
+                Search Console returned an error (<span className="font-mono">{gscFailure.detail}</span>). Credentials
+                look correct, so this is likely transient or a quota limit — the catalog below is unaffected.
+              </p>
+            )}
           </div>
         )}
 
