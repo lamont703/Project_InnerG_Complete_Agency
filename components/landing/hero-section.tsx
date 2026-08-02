@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { ArrowRight, Sparkles, Shield, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -14,6 +15,20 @@ function GlowOrb({ className }: { className: string }) {
 }
 
 export function HeroSection() {
+  // Which video to fetch. Starts as desktop and corrects on mount rather than
+  // rendering nothing first — the poster is what paints either way, and a
+  // server/client mismatch on the <source> would only cost a swap. matchMedia
+  // rather than a resize listener: the breakpoint is the only thing that
+  // matters and it rarely changes mid-session.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('#') || href.startsWith('/#')) {
       const id = href.replace('/#', '').replace('#', '');
@@ -28,28 +43,37 @@ export function HeroSection() {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-      {/* Video Background */}
+      {/* Video Background.
+       *
+       * Both videos used to be rendered together and hidden with CSS, one per
+       * breakpoint. `display: none` does not stop an autoplaying <video> from
+       * fetching its source, so every visitor downloaded BOTH — 51.6 MB for a
+       * decorative background at half opacity, on a phone, on cellular. It is
+       * why Lighthouse reported ERR_CONNECTION_FAILED on these files: on a
+       * throttled connection the download never finished and the request was
+       * abandoned.
+       *
+       * Now one <video> whose source is chosen at runtime, so the browser
+       * fetches exactly the file it will show. The poster paints immediately,
+       * which means the hero no longer waits on video to render something.
+       */}
       <div className="absolute inset-0 z-0 overflow-hidden bg-background">
-        {/* Desktop Video - Optimized for Landscape */}
         <video
+          key={isMobile ? "mobile" : "desktop"}
           autoPlay
           loop
           muted
           playsInline
-          className="hidden md:block h-full w-full object-cover opacity-50"
+          // Metadata only: enough for the browser to start playback promptly
+          // without committing to the whole file before first paint.
+          preload="metadata"
+          poster={isMobile ? "/barber_hero_mobile_poster.jpg" : "/barber_hero_desktop_poster.jpg"}
+          className={`h-full w-full object-cover ${isMobile ? "object-center opacity-60" : "opacity-50"}`}
         >
-          <source src="/barber_hero_section_video.mp4" type="video/mp4" />
-        </video>
-
-        {/* Mobile Video - Optimized for Portrait/Phone View */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="block md:hidden h-full w-full object-cover object-center opacity-60"
-        >
-          <source src="/barber_hero_mobile_phone_view.mp4" type="video/mp4" />
+          <source
+            src={isMobile ? "/barber_hero_mobile_phone_view.mp4" : "/barber_hero_section_video.mp4"}
+            type="video/mp4"
+          />
         </video>
 
         {/* Dynamic Overlay for Depth and Readability */}
