@@ -292,6 +292,12 @@ export default function EyelashExtensionPracticalExamKitListPage() {
           >
             View Esthetician Kit List
           </Link>
+          <Link
+            href="/texas-eyelash-extension-exam-prep"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-extrabold text-sm uppercase tracking-wider transition-colors"
+          >
+            Eyelash Exam Prep
+          </Link>
         </div>
 
         <div className="border-t border-slate-200 pt-10">
