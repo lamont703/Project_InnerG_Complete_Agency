@@ -103,6 +103,20 @@ export default async function MyGbpAuditPage() {
     );
   }
 
+  // Resolved BEFORE the Google gate below, because it needs nothing from
+  // Google. The comparison is computed entirely from our own directory, so an
+  // owner who has claimed their listing but never connected a Google account
+  // can still see where they stand — previously this sat under the early
+  // return and was reachable by exactly one member.
+  //
+  // Read-only and non-fatal: a member with no claimed listing gets null and
+  // the page behaves exactly as it did before.
+  const owned = await resolveOwnedEntity();
+  const standing =
+    "link" in owned && owned.link
+      ? await getLocalStanding(owned.link.entity_type, owned.link.entity_id)
+      : null;
+
   const result = await getMemberGbpAudit(ctx.memberId);
 
   if (result.status !== "ok") {
@@ -126,6 +140,11 @@ export default async function MyGbpAuditPage() {
 
     return (
       <Shell>
+        {/* Shown above the connect prompt on purpose: "you are #23 of 27
+            nearby" is a far better argument for connecting Google than the
+            copy underneath it, and it makes this screen useful rather than a
+            dead end. */}
+        {standing && <LocalStandingPanel standing={standing} />}
         <h1 className="text-2xl font-black">{copy.h}</h1>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-600">{copy.p}</p>
         <Link href={copy.cta.href} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-black uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90">
@@ -159,17 +178,6 @@ export default async function MyGbpAuditPage() {
     keywordCount: keywords.length,
     latest: previous,
   });
-  // The competitive half of the report. Derived from the CLAIMED listing, not
-  // from the Google connection: ownership has to come from the
-  // session -> member -> entity-link chain (see resolve-owned-entity), and the
-  // comparison set is our own directory rather than anything Google exposes.
-  // Non-fatal — an owner with no claimed listing still gets the full audit.
-  const owned = await resolveOwnedEntity();
-  const standing =
-    "link" in owned && owned.link
-      ? await getLocalStanding(owned.link.entity_type, owned.link.entity_id)
-      : null;
-
   const actions = performance ? performance.calls + performance.website + performance.directions : 0;
   const actionRate = performance && performance.impressions > 0
     ? ((actions / performance.impressions) * 100).toFixed(1) + "%"
