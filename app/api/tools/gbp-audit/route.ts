@@ -10,6 +10,7 @@ import {
 import { buildPublicAuditEmail } from "@/lib/gbp-public-audit-email";
 import { sendGhlEmail } from "@/lib/ghl-email";
 import { addGhlTags, TAG_AUDIT_RUN } from "@/lib/ghl-contacts";
+import { auditPublicEntity, type ScoredBusiness } from "@/lib/gbp-audit-public-fetch";
 
 /**
  * Public, unauthenticated endpoint behind the free audit tool.
@@ -26,118 +27,6 @@ import { addGhlTags, TAG_AUDIT_RUN } from "@/lib/ghl-contacts";
 
 export const dynamic = "force-dynamic";
 
-const photoCount = (row: any, cfg: PublicEntityConfig): number | null => {
-  if (!cfg.imagesField) return null;
-  const v = row[cfg.imagesField];
-  if (Array.isArray(v)) return v.length;
-  if (typeof v === "string" && v.trim()) {
-    try { const p = JSON.parse(v); return Array.isArray(p) ? p.length : 0; } catch { return 0; }
-  }
-  return 0;
-};
-
-
-/**
- * City values in these tables are inconsistent — a ZIP is appended on many rows,
- * so "Houston" and "Houston 77062" are stored as different cities. Matching
- * exactly found 36 Houston barbershops when there are 591, and produced a median
- * review count of 428 against a true median of 98. That would have told almost
- * every shop in the city it was far below par, from a sample of 6% of its peers.
- *
- * Stripping the trailing ZIP and prefix-matching pulls the real peer set. It
- * also sweeps in neighbouring names like "Houston Heights", which is acceptable
- * — same metro, fair comparison — and far better than the fragmentation.
- */
-function normalizeCity(city: string | null | undefined): string | null {
-  if (!city) return null;
-  const base = String(city).replace(/[\s,]+\d{5}(?:-\d{4})?\s*$/, "").trim();
-  return base || null;
-}
-
-const hasHours = (row: any) => {
-  const h = row.google_hours;
-  if (!h) return false;
-  if (Array.isArray(h)) return h.length > 0;
-  if (typeof h === "object") return Object.keys(h).length > 0;
-  if (typeof h === "string") return h.trim().length > 2;
-  return false;
-};
-
-/**
- * Send-me-my-report. Deliberately a separate call from the audit itself: the
- * score renders whether or not this is ever used, so an address is volunteered
- * by someone who has already seen the value rather than exchanged for it.
- */
-
-export interface ScoredBusiness {
-  business: {
-    type: string; typeLabel: string; name: string; slug: string;
-    city: string | null; address: string | null; category: string | null; href: string;
-  };
-  audit: PublicAuditResult;
-}
-
-/**
- * Score one business.
- *
- * Shared by the page request and the email request so the number in someone's
- * inbox is the number they saw. Computing it twice from different code was how
- * they would drift.
- */
-async function auditBusiness(
-  admin: ReturnType<typeof createAdminClient>,
-  type: string,
-  cfg: PublicEntityConfig,
-  slug: string
-): Promise<ScoredBusiness | null> {
-  const cols = [
-    cfg.nameField, "slug", "city", "website", "phone", "rating", "formatted_address",
-    cfg.reviewField, ...(cfg.imagesField ? [cfg.imagesField] : []), "google_hours", "google_category",
-  ];
-  const { data: row } = await (admin.from(cfg.table) as any)
-    .select(cols.join(", ")).eq("slug", slug).maybeSingle();
-  if (!row) return null;
-
-  // Local peers, for the benchmark. Same trade, same city — the comparison a
-  // shop owner actually cares about, and the one a single-profile tool can't make.
-  let benchmarkPeers: { photos: number; reviews: number }[] = [];
-  const cityBase = normalizeCity(row.city);
-  if (cityBase) {
-    const peerCols = [cfg.reviewField, ...(cfg.imagesField ? [cfg.imagesField] : [])];
-    const { data: peers } = await (admin.from(cfg.table) as any)
-      .select(peerCols.join(", ")).ilike("city", `${cityBase}%`).limit(800);
-    benchmarkPeers = (peers || []).map((p: any) => ({
-      photos: photoCount(p, cfg) ?? 0,
-      reviews: Number(p[cfg.reviewField] || 0),
-    }));
-  }
-
-  const audit = buildPublicAudit(
-    {
-      photos: photoCount(row, cfg),
-      reviews: Number(row[cfg.reviewField] || 0),
-      rating: row.rating != null ? Number(row.rating) : null,
-      hasHours: hasHours(row),
-      website: row.website || null,
-      phone: row.phone || null,
-    },
-    computeBenchmark(benchmarkPeers, cityBase)
-  );
-
-  return {
-    business: {
-      type,
-      typeLabel: cfg.label,
-      name: row[cfg.nameField],
-      slug: row.slug,
-      city: row.city ?? null,
-      address: row.formatted_address ?? null,
-      category: row.google_category ?? null,
-      href: `${cfg.route}/${row.slug}`,
-    },
-    audit,
-  };
-}
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -158,7 +47,7 @@ export async function POST(req: Request) {
   // Recomputed here rather than taken from the request. The client's copy could
   // be stale or edited, and this score is going into someone's inbox with our
   // name on it.
-  const scored = await auditBusiness(admin, type, cfg, slug);
+  const scored = await auditPublicEntity(admin, type, cfg, slug);
   if (!scored) {
     return NextResponse.json({ success: false, error: "That business is no longer in our directory." }, { status: 404 });
   }
@@ -230,7 +119,7 @@ export async function GET(req: Request) {
     const cfg = PUBLIC_ENTITY_TYPES[type];
     if (!cfg) return NextResponse.json({ success: false, error: "Unknown business type." }, { status: 400 });
 
-    const scored = await auditBusiness(admin, type, cfg, slug);
+    const scored = await auditPublicEntity(admin, type, cfg, slug);
     if (!scored) return NextResponse.json({ success: false, error: "Business not found." }, { status: 404 });
 
     // Recorded because the free tool otherwise forgets everyone who doesn't
