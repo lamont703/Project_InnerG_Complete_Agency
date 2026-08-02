@@ -12,6 +12,20 @@ export interface GscMetrics {
   position: number
 }
 
+/**
+ * Why live data is missing, when it is.
+ *
+ * Collapsing every failure to `null` meant the page said "unavailable" whether
+ * the credentials were absent, the refresh token belonged to the wrong OAuth
+ * client, or Google was simply down — three problems with three different
+ * fixes, indistinguishable on screen. This is what tells them apart without
+ * anyone opening the function logs.
+ */
+export type GscUnavailableReason =
+  | { kind: "not-configured"; missing: string[] }
+  | { kind: "auth-failed"; detail: string }
+  | { kind: "api-error"; detail: string }
+
 export interface GscPerformance {
   byPath: Record<string, GscMetrics> // pathname -> aggregated metrics
   byQuery: Record<string, GscMetrics> // lowercased query -> metrics
@@ -20,6 +34,30 @@ export interface GscPerformance {
 }
 
 const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_GSC_REFRESH_TOKEN, GSC_SITE_URL } = internalEnv()
+
+/**
+ * Set on the failing path and read by the page after it gets null back.
+ *
+ * Module scope rather than a return value because getGscPerformance is wrapped
+ * in unstable_cache, which caches the resolved value — threading a reason
+ * through the return type would cache the reason too, and a stale "not
+ * configured" would outlive the fix by an hour.
+ */
+let lastFailure: GscUnavailableReason | null = null
+
+export function gscLastFailure(): GscUnavailableReason | null {
+  return lastFailure
+}
+
+/** Reported when credentials are absent, so the page can name them. */
+export function gscMissingConfig(): string[] {
+  return [
+    !GOOGLE_CLIENT_ID && "GOOGLE_INTERNAL_CLIENT_ID (or GOOGLE_CLIENT_ID)",
+    !GOOGLE_CLIENT_SECRET && "GOOGLE_INTERNAL_CLIENT_SECRET (or GOOGLE_CLIENT_SECRET)",
+    !GOOGLE_GSC_REFRESH_TOKEN && "GOOGLE_GSC_REFRESH_TOKEN",
+    !GSC_SITE_URL && "GSC_SITE_URL",
+  ].filter(Boolean) as string[]
+}
 
 /**
  * Fetch a window of Search Console performance.
@@ -37,18 +75,10 @@ export async function getGscPerformance(window: {
   start: string
   end: string
 }): Promise<GscPerformance | null> {
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_GSC_REFRESH_TOKEN || !GSC_SITE_URL) {
-    console.warn(
-      "[gsc-performance] not configured — missing:",
-      [
-        !GOOGLE_CLIENT_ID && "GOOGLE_CLIENT_ID",
-        !GOOGLE_CLIENT_SECRET && "GOOGLE_CLIENT_SECRET",
-        !GOOGLE_GSC_REFRESH_TOKEN && "GOOGLE_GSC_REFRESH_TOKEN",
-        !GSC_SITE_URL && "GSC_SITE_URL",
-      ]
-        .filter(Boolean)
-        .join(", ")
-    )
+  const missing = gscMissingConfig()
+  if (missing.length) {
+    lastFailure = { kind: "not-configured", missing }
+    console.warn("[gsc-performance] not configured — missing:", missing.join(", "))
     return null
   }
 
@@ -111,7 +141,15 @@ export async function getGscPerformance(window: {
 
     return { byPath, byQuery, window: { start: startDate, end: endDate }, fetchedAt: new Date().toISOString() }
   } catch (e) {
-    console.error("[gsc-performance] fetch failed:", (e as Error).message)
+    const detail = (e as Error).message || "unknown error"
+    // unauthorized_client / invalid_grant mean the refresh token was minted by
+    // a DIFFERENT OAuth client than the one in use — the exact failure when
+    // GOOGLE_INTERNAL_CLIENT_ID is absent and internalEnv() silently falls back
+    // to the customer-facing app client. Naming it is the whole point: the
+    // generic message sends people to look at the token, which is fine.
+    const isAuth = /unauthorized_client|invalid_grant|invalid_client/i.test(detail)
+    lastFailure = isAuth ? { kind: "auth-failed", detail } : { kind: "api-error", detail }
+    console.error(`[gsc-performance] fetch failed (${isAuth ? "auth" : "api"}):`, detail)
     return null
   }
 }
