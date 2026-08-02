@@ -165,5 +165,20 @@ summarises away detail, so fetch the raw file.
   stated for remote-only servers — verify against the schema rather than
   assuming it is required or that it is not.
 
-**Still unresolved:** whether a remote-only document may omit `packages`
-entirely. `validate` answers this in seconds; use it rather than guessing.
+**Resolved since:** a remote-only document may omit `packages` entirely — the
+docs state `remotes` and `packages` may coexist, and show a remote-only example.
+Nothing requires `remotes[].url` to match the verified domain either; the docs'
+own example verifies `example.com` and serves from `analytics.example.com`.
+
+**Domain verification is APEX ONLY.** This is the finding that decides the
+name: "The TXT record must be placed on the apex of your domain (e.g.
+`example.com`), not under a selector." There is no documented way to verify a
+subdomain. So hosting at `agency.innergcomplete.com` does not get us
+`com.innergcomplete.agency` — we verify the apex `innergcomplete.com` and
+publish under `com.innergcomplete/*`, with the endpoint URL free to stay on the
+subdomain.
+
+That also settles DNS vs HTTP here. HTTP verification would need the file at
+`https://innergcomplete.com/.well-known/mcp-registry-auth` — the apex, a
+different origin from the app, and one we do not serve. DNS needs only a TXT
+record and no hosting at all.

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.innergcomplete/shearquery",
+  "title": "ShearQuery — Barber & Beauty Industry Data",
+  "description": "Licensing exam pass rates for barber and cosmetology schools, barbershop and salon booth rent with chair availability, and Texas licensee counts. Sourced from state licensing records and owner-reported listings rather than scraped review sites.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/lamont703/Project_InnerG_Complete_Agency",
+    "source": "github"
+  },
+  "websiteUrl": "https://agency.innergcomplete.com",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://agency.innergcomplete.com/mcp"
+    }
+  ]
+}
