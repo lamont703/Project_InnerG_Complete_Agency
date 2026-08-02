@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
+import { entityPath } from "@/lib/entity-claim";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveOwnedEntity } from "@/lib/account/resolve-owned-entity";
 import { assertNotImpersonating } from "@/lib/account/view-as";
@@ -182,6 +184,21 @@ export async function PATCH(req: Request) {
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    // Entity pages are cached and regenerated hourly, so without this an owner
+    // saves an edit, opens their listing, and sees the old version — the most
+    // confidence-destroying thing an editor can do. Salons and schools have
+    // had this staleness since they went to ISR; shops join them today.
+    const { data: row } = await (admin.from(resolved.table as any) as any)
+      .select("slug").eq("id", resolved.link.entity_id).maybeSingle();
+    const path = entityPath(resolved.link.entity_type, row?.slug);
+    if (path) {
+      try {
+        revalidatePath(path);
+      } catch (e: any) {
+        console.warn("[my-listing PATCH] revalidate failed:", e?.message);
+      }
     }
 
     return NextResponse.json({ success: true, data: updates });
