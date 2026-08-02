@@ -165,8 +165,15 @@ summarises away detail, so fetch the raw file.
   stated for remote-only servers — verify against the schema rather than
   assuming it is required or that it is not.
 
-**Resolved since:** a remote-only document may omit `packages` entirely — the
-docs state `remotes` and `packages` may coexist, and show a remote-only example.
+**Resolved since:** a remote-only document may omit `packages` entirely —
+confirmed not just by the docs but by `mcp-publisher validate` accepting ours
+against the live registry.
+
+**`description` is capped at 100 characters** and the registry rejects a longer
+one with a 422, not a warning. Nothing in the quickstart mentions the limit; it
+surfaced only on validate. `title` has room (42 chars passed), so put the detail
+there and keep `description` to one line. Always run `validate` before
+`publish` — it caught this in one round trip.
 Nothing requires `remotes[].url` to match the verified domain either; the docs'
 own example verifies `example.com` and serves from `analytics.example.com`.
 
