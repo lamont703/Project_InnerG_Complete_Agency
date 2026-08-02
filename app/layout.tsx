@@ -164,6 +164,16 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${_inter.variable} ${_jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
+        {/* Warm the connections to every third-party origin we load a script
+            from. Each one otherwise costs a DNS lookup and a TLS handshake at
+            the moment the script is requested — on mobile that is most of the
+            third-party cost, and it is the part we control. */}
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://connect.facebook.net" />
+        <link rel="preconnect" href="https://senkwhdxgtypcrtoggyf.supabase.co" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://connect.facebook.net" />
+
         {/* Google Tag (gtag.js) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-VGHV9QQG46"

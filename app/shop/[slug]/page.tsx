@@ -21,7 +21,20 @@ import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { composeDescription, ratingClause, streetClause } from "@/lib/seo-description";
 
-export const dynamic = 'force-dynamic';
+/**
+ * Cached and regenerated hourly, matching /salons/[slug] and /schools/[slug].
+ *
+ * This was force-dynamic — every one of ~2,500 shop pages recomputed on every
+ * request, including the ecosystem report and the nearby-entity lookup. Our own
+ * field data put /shop at an LCP p75 of 3.14s against 2.60s for salons and
+ * 2.58s for schools, which are the same shape of page on the same data and
+ * differ only in this line.
+ *
+ * Nothing about the URL changes. Staleness is bounded by revalidatePath() in
+ * the claim flow (app/api/community/register/route.ts), so a newly claimed shop
+ * shows its badge immediately rather than waiting out the hour.
+ */
+export const revalidate = 3600;
 
 type Props = {
   params: { slug: string }

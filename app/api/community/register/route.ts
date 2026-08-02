@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { claimTypeConfig } from "@/lib/entity-claim";
+import { claimTypeConfig, entityPath } from "@/lib/entity-claim";
 import { upsertGhlContact, memberTags, isTestContact } from "@/lib/ghl-contacts";
 import { sendGhlEmail } from "@/lib/ghl-email";
 import { buildCommunityWelcomeEmail } from "@/lib/community-welcome-email";
@@ -119,14 +120,19 @@ export async function POST(req: Request) {
                   .eq("id", claimEntityId);
               }
               if (entity.slug) {
-                const routes: Record<string, string> = {
-                  shop: "/shop", salon: "/salons", barber: "/barbers",
-                  cosmetologist: "/cosmetologists", barber_school: "/schools",
-                  cosmetology_school: "/schools", barber_supply_store: "/stores",
-                  beauty_supply_store: "/stores", event: "/events",
-                };
-                const base = routes[config.key];
-                if (base) claimRedirect = `${base}/${entity.slug}?claimed=1`;
+                const path = entityPath(config.key, entity.slug);
+                if (path) {
+                  claimRedirect = `${path}?claimed=1`;
+                  // Entity pages are cached and regenerated hourly, so a fresh
+                  // claim would otherwise show no badge for up to an hour —
+                  // on the one page the new member is about to be sent to.
+                  // Rebuild it now instead of waiting out the window.
+                  try {
+                    revalidatePath(path);
+                  } catch (e: any) {
+                    console.warn("[CommunityRegister] revalidate failed:", e?.message);
+                  }
+                }
               }
             }
           }

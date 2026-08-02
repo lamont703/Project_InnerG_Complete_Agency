@@ -57,3 +57,14 @@ scripts/.ghl_sync_progress.json
 RISC-SERVICE-KEY.json
 risc-service-key.json
 risc*key.json
+
+# Ed25519 private key proving ownership of innergcomplete.com to the MCP
+# registry (see the MCP section in CLAUDE.md). Whoever holds it can publish
+# under com.innergcomplete/* — it is a publishing credential, not a secret that
+# only reads. Patterns are broad on purpose, following the RISC key above: the
+# risk is a variant filename slipping past a narrow rule on a case-sensitive
+# filesystem.
+mcp-registry-key.pem
+mcp-registry-key*.pem
+*mcp*key*.pem
+mcp-registry-auth

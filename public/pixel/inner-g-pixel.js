@@ -67,9 +67,50 @@
     let lcpValue = null;
     let clsValue = 0;
     let inpValue = null;
+
+    // Stop taking new measurements once the page stops loading.
+    //
+    // WHY THIS EXISTS: the browser keeps emitting largest-contentful-paint
+    // candidates until the user first interacts. On a tab that is opened and
+    // left — which is most of what a laptop user does — nothing ever stops
+    // them, and each new candidate carries a startTime measured from
+    // navigation. That produced a recorded LCP of 24,502 SECONDS on a session
+    // that lasted 24,503 seconds: not a slow page, a page open for seven hours.
+    //
+    // It corrupted every percentile above the median. /careers read as p50
+    // 2.94s and p75 47.79s off the same 35 samples, and the p75 was the number
+    // being acted on.
+    //
+    // The spec's own finalisation rule is first interaction; visibility change
+    // is added because a backgrounded tab is finished as far as a real user is
+    // concerned. Same reasoning applies to INP, which was taking a running
+    // maximum with nothing to close it.
+    // Two different rules, because the metrics finalise differently:
+    //
+    //   LCP  stops at the FIRST INTERACTION (the spec's own rule) or when the
+    //        page is hidden, whichever comes first.
+    //   INP  and CLS must keep measuring after an interaction — that is what
+    //        they measure — so they stop only when the page is hidden.
+    //
+    // Collapsing these into one flag looks tidy and destroys INP entirely,
+    // since the freeze would fire on the very interaction being measured.
+    let lcpDone = false;
+    let pageDone = false;
+    ["keydown", "click", "pointerdown"].forEach((evt) => {
+        try {
+            addEventListener(evt, () => { lcpDone = true; }, { once: true, capture: true, passive: true });
+        } catch (e) {}
+    });
+    try {
+        addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "hidden") { lcpDone = true; pageDone = true; }
+        }, { capture: true });
+    } catch (e) {}
+
     if (typeof PerformanceObserver !== "undefined") {
         try {
             new PerformanceObserver((list) => {
+                if (lcpDone) return;
                 const entries = list.getEntries();
                 const last = entries[entries.length - 1];
                 if (last) lcpValue = Math.round(last.renderTime || last.loadTime || last.startTime);
@@ -78,6 +119,7 @@
 
         try {
             new PerformanceObserver((list) => {
+                if (pageDone) return;
                 for (const entry of list.getEntries()) {
                     if (!entry.hadRecentInput) clsValue += entry.value;
                 }
@@ -86,6 +128,7 @@
 
         try {
             new PerformanceObserver((list) => {
+                if (pageDone) return;
                 for (const entry of list.getEntries()) {
                     if (inpValue === null || entry.duration > inpValue) inpValue = Math.round(entry.duration);
                 }

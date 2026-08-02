@@ -49,6 +49,14 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // Inline the stylesheet into the HTML instead of linking it.
+    //
+    // Lighthouse put render-blocking requests at 450ms on mobile against 40ms
+    // on desktop — the gap is the two <link rel="stylesheet"> fetches on a slow
+    // connection, which have to complete before anything paints. Inlining
+    // removes the round trip entirely, which is most of the 100ms we need to
+    // get mobile LCP under the 2.5s threshold.
+    inlineCss: true,
   },
 
   // Explicitly allow server-only packages to prevent accidental browser bundling.
@@ -110,6 +118,21 @@ const nextConfig = {
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
+      },
+      // Static files under /public were being served with
+      // "max-age=0, must-revalidate" — every image refetched on every visit,
+      // which is what PageSpeed counted as 237 KiB of wasted transfer.
+      //
+      // A week rather than a year, and deliberately so: these filenames are NOT
+      // content-hashed the way /_next/static is, so replacing a logo or a
+      // background under the same name has to reach people in a reasonable
+      // time. stale-while-revalidate keeps it instant for a month after that
+      // while the new copy is fetched in the background.
+      {
+        source: "/:path*.(png|jpg|jpeg|gif|webp|avif|svg|ico|woff|woff2|ttf|otf|mp4|webm)",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=2592000" },
         ],
       },
     ]

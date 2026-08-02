@@ -91,3 +91,101 @@ codebase keeps raising, each with the page that answers it.
 
 Prefix the relative paths with `https://developers.google.com`. Verify a path
 before citing it — pages move, and a broken citation is its own kind of drift.
+
+## MCP registry claims — same rule, and the schema is date-versioned
+
+**Never assert how the MCP registry, `server.json`, or the publishing flow works
+from memory.** The protocol and the registry are both young and still moving;
+anything recalled rather than read is likely to be a version behind.
+
+This one has a sharper edge than the Google docs. The schema is pinned to a
+dated URL:
+
+    https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json
+
+A `server.json` that validated last month can fail against a newer schema, and
+the failure surfaces at publish time, not at write time. **Check the current
+schema date before editing or publishing `server.json` — do not copy the date
+above forward on trust.** It is recorded here to be checked, not reused.
+
+Same standing rule as the SEO docs: do not vendor a copy of the MCP docs into
+this repo. Fetch, read, then claim.
+
+### How to reach the docs
+
+1. **Docs live in the registry repo**, not on a docs site:
+   `https://github.com/modelcontextprotocol/registry/tree/main/docs`
+2. Fetch the **raw** file — the GitHub HTML view summarises and drops detail.
+   Prefix with `https://raw.githubusercontent.com/modelcontextprotocol/registry/main/`.
+
+### Pages that settle the recurring questions
+
+Exact filenames — several plausible-looking paths 404, and the GitHub HTML view
+summarises away detail, so fetch the raw file.
+
+| Question | Page |
+|---|---|
+| How do I publish, end to end? | `docs/modelcontextprotocol-io/quickstart.mdx` |
+| Every `server.json` field, incl. remote servers | `docs/reference/server-json/generic-server-json.md` |
+| What the OFFICIAL registry enforces on top | `docs/reference/server-json/official-registry-requirements.md` |
+| Every CLI command and login method | `docs/reference/cli/commands.md` |
+| Schema version history (drift check) | `docs/reference/server-json/CHANGELOG.md` |
+| Registry REST API (consuming, not publishing) | `docs/reference/api/generic-registry-api.md` |
+
+### What was verified on 2026-08-02 — recheck, don't trust
+
+- We are a **hosted web app, not an npm package**, so this is a `remotes` entry:
+  `{"type": "streamable-http", "url": "https://…/mcp"}`. `sse` is the only other
+  transport.
+- Flow: `mcp-publisher init` → `login` → `validate` → `publish`. `validate`
+  checks `server.json` without publishing and is worth running first.
+- **Namespace is granted by the login method** — this is the decision that
+  shapes everything else:
+
+  | Login | Namespace granted |
+  |---|---|
+  | `login github` | `io.github.{user}/*`, `io.github.{org}/*` |
+  | `login github-oidc` (CI) | same; needs `id-token: write` |
+  | `login dns --domain=D --private-key=HEX` | `com.D.*` |
+  | `login http --domain=D --private-key=HEX` | `com.D.*` |
+  | `login none` | local testing only |
+
+- For a branded namespace (`com.innergcomplete.*`) either DNS or HTTP works:
+  - **DNS**: TXT at the domain root, `v=MCPv1; k=ed25519; p=PUBLIC_KEY`
+  - **HTTP**: same string served at
+    `https://<domain>/.well-known/mcp-registry-auth`
+  - Keys: Ed25519 (64-char hex) or ECDSA P-384 (96-char hex).
+  - **HTTP is the cheaper option here** — that well-known path is a route in
+    this app, so it ships with a deploy and needs no DNS access.
+- The official registry additionally: restricts package registry URLs to
+  official sources, silently drops `_meta` keys other than
+  `io.modelcontextprotocol.registry/publisher-provided`, and caps that metadata
+  at 4KB.
+- `mcpName` in `package.json` is documented for the **npm** path only. Not
+  stated for remote-only servers — verify against the schema rather than
+  assuming it is required or that it is not.
+
+**Resolved since:** a remote-only document may omit `packages` entirely —
+confirmed not just by the docs but by `mcp-publisher validate` accepting ours
+against the live registry.
+
+**`description` is capped at 100 characters** and the registry rejects a longer
+one with a 422, not a warning. Nothing in the quickstart mentions the limit; it
+surfaced only on validate. `title` has room (42 chars passed), so put the detail
+there and keep `description` to one line. Always run `validate` before
+`publish` — it caught this in one round trip.
+Nothing requires `remotes[].url` to match the verified domain either; the docs'
+own example verifies `example.com` and serves from `analytics.example.com`.
+
+**Domain verification is APEX ONLY.** This is the finding that decides the
+name: "The TXT record must be placed on the apex of your domain (e.g.
+`example.com`), not under a selector." There is no documented way to verify a
+subdomain. So hosting at `agency.innergcomplete.com` does not get us
+`com.innergcomplete.agency` — we verify the apex `innergcomplete.com` and
+publish under `com.innergcomplete/*`, with the endpoint URL free to stay on the
+subdomain.
+
+That also settles DNS vs HTTP here. HTTP verification would need the file at
+`https://innergcomplete.com/.well-known/mcp-registry-auth` — the apex, a
+different origin from the app, and one we do not serve. DNS needs only a TXT
+record and no hosting at all.
