@@ -13,7 +13,10 @@ import { directoryHrefForSection } from "@/lib/directory-config";
 // than the two that happened to exist when this array was written. Linking the
 // same page twice on one page splits nothing and clutters both sections.
 const TEXAS_STATEWIDE_LINKS: { href: string; label: string }[] = [
-  { href: "/texas/licensing", label: "Texas Licence Data & TDLR" },
+  // /texas/licensing is deliberately NOT here. The page already links it twice
+  // and more prominently — from the hero stat chip carrying the statewide
+  // licence count, and from the regulator note beneath it. A third card was
+  // the same destination a third time on one screen.
   { href: "/texas-school-leaderboard", label: "Texas School Leaderboard" },
   { href: "/barber-cos-continuing-education", label: "Continuing Education Portal" },
   { href: "/how-to-get-a-barber-license-in-texas", label: "How to Get a Barber License in Texas" },
