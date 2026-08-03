@@ -5,6 +5,7 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
+import { LicenceGuideLinks } from "@/components/insights/licence-guide-links"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { BoothRentCalculator } from "@/components/insights/booth-rent-calculator"
 import { Navbar } from "@/components/layout/navbar"
@@ -372,6 +373,15 @@ export default function BoothRentVsCommissionArticle() {
 
           <AuthorBio />
 
+
+          <LicenceGuideLinks
+            heading='If you go booth rent'
+            intro='Renting means operating as your own business, which means your own establishment licence on top of your practitioner licence.'
+            links={[
+              { href: '/texas-mini-establishment-license-requirements-guide', label: 'Mini-Establishment Licence', why: '$70 for a room or suite inside a licensed shop.' },
+              { href: '/texas-barber-license-renewal', label: 'Keeping your licence current', why: '$50 every two years — and the late bands that double it.' },
+            ]}
+          />
           <RelatedArticles currentSlug="booth-rent-vs-commission" />
 
           <div className="pt-12 border-t border-border">

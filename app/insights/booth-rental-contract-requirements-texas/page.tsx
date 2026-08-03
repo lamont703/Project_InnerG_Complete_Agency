@@ -5,6 +5,7 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
+import { LicenceGuideLinks } from "@/components/insights/licence-guide-links"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import {
@@ -396,6 +397,15 @@ export default function BoothRentalRequirementsGuide() {
 
           <AuthorBio />
 
+
+          <LicenceGuideLinks
+            heading='The licence a booth renter needs'
+            intro="A leased room or suite inside another shop is a mini-establishment under 16 TAC 83.71 — it carries its own licence, separate from the host's and separate from yours."
+            links={[
+              { href: '/texas-mini-establishment-license-requirements-guide', label: 'Mini-Establishment Licence', why: '$70, and you may only offer services the host establishment is licensed for.' },
+              { href: '/texas-barber-establishment-license-requirements-guide', label: 'Full Establishment Licence', why: 'If you take the whole premises rather than a room.' },
+            ]}
+          />
           <RelatedArticles currentSlug="booth-rental-contract-requirements-texas" />
 
           <div className="pt-12 border-t border-border">

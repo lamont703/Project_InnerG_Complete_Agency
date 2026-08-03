@@ -5,6 +5,7 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
+import { LicenceGuideLinks } from "@/components/insights/licence-guide-links"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { getHoustonBoothRentStats } from "@/lib/houston-booth-rent"
@@ -830,6 +831,19 @@ export default async function OpeningYourOwnShopGuide() {
 
           <AuthorBio />
 
+
+          <LicenceGuideLinks
+            heading='Licensing the business'
+            intro="Opening a shop means a second licence on top of your own. Which one depends on the space — a full establishment, a room inside someone else's, or a unit on wheels."
+            links={[
+              { href: '/texas-barber-establishment-license-requirements-guide', label: 'Barber Establishment Licence', why: '$78, two-year term, and the residence rule that catches home-attached shops.' },
+              { href: '/texas-cosmetology-establishment-license-requirements-guide', label: 'Cosmetology Establishment Licence', why: 'Same $78 and the same ownership disclosure — the difference is scope, not price.' },
+              { href: '/texas-specialty-establishment-license-requirements-guide', label: 'Specialty Establishment Licence', why: 'For a shop offering only esthetics, nails, lashes or weaving.' },
+              { href: '/texas-mini-establishment-license-requirements-guide', label: 'Mini-Establishment Licence', why: '$70. If you are renting a suite inside another shop, this is the one you need.' },
+              { href: '/texas-mobile-establishment-license-requirements-guide', label: 'Mobile Establishment Licence', why: 'Water tank, anchored furniture, GPS or filed itineraries — the rules are strict.' },
+              { href: '/texas-barber-school-license-requirements-guide', label: 'School Licence', why: '$580 including the inspection, if the plan is to teach rather than cut.' },
+            ]}
+          />
           <RelatedArticles currentSlug="opening-your-own-shop-in-texas" />
 
           <div className="pt-12 border-t border-border">
