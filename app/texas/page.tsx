@@ -134,11 +134,11 @@ export default async function TexasHubPage() {
         backLabel="← Back to Search"
         heroStat={heroStat}
         resourcesNote={resourcesNote}
+        /* Below the directory on purpose — someone here for a barbershop should
+           not scroll past a licensing index to reach one — but above the back
+           link, which ends the page. */
+        beforeBackLink={<TexasResourceIndex />}
       />
-      {/* Below the directory on purpose. Someone here for a barbershop should
-          not scroll past a licensing index to reach one — this is for the other
-          audience, and it gives 13 previously orphaned pages an inbound link. */}
-      <TexasResourceIndex />
     </>
   );
 }
