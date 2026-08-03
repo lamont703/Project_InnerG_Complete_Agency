@@ -105,12 +105,12 @@ export default function TexasBarberSchoolRequirementsPage() {
         <div className="mb-12">
           <h2 className="mb-4 text-lg font-black text-slate-900">Other Texas licence guides</h2>
           <div className="flex flex-wrap gap-3">
+            <Link href="/texas-cosmetology-school-license-requirements-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Cosmetology School</Link>
             <Link href="/texas-barber-license-requirements-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Class A Barber</Link>
             <Link href="/texas-cosmetology-license-requirements-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Cosmetology Operator</Link>
             <Link href="/texas-esthetician-license-requirements-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Esthetician</Link>
             <Link href="/texas-manicurist-license-requirements-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Manicurist</Link>
             <Link href="/texas-eyelash-extension-license-requirements-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Eyelash Extension Specialist</Link>
-            <Link href="/texas-hair-weaving-license-requirements-guide" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-900 transition-colors hover:bg-slate-50">Hair Weaving Specialist</Link>
           </div>
         </div>
 

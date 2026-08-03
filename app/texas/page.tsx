@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTexasHubData } from "@/lib/texas-hub-data";
 import { TexasHubDirectory } from "@/components/texas-hub/TexasHubDirectory";
+import { TexasResourceIndex } from "@/components/texas-hub/TexasResourceIndex";
 import { getTdlrLicenseSummary } from "@/lib/tdlr-license-summary";
 import Link from "next/link";
 import { BadgeCheck } from "lucide-react";
@@ -134,6 +135,10 @@ export default async function TexasHubPage() {
         heroStat={heroStat}
         resourcesNote={resourcesNote}
       />
+      {/* Below the directory on purpose. Someone here for a barbershop should
+          not scroll past a licensing index to reach one — this is for the other
+          audience, and it gives 13 previously orphaned pages an inbound link. */}
+      <TexasResourceIndex />
     </>
   );
 }
