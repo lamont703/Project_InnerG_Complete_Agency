@@ -5,6 +5,7 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
+import { LicenceGuideLinks } from "@/components/insights/licence-guide-links"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { LLCDecisionTool } from "@/components/insights/llc-decision-tool"
 import { Navbar } from "@/components/layout/navbar"
@@ -351,6 +352,15 @@ export default function BoothRentTaxesArticle() {
 
           <AuthorBio />
 
+
+          <LicenceGuideLinks
+            heading='The licences behind the LLC'
+            intro='Forming an entity does not license the space. Those are separate filings with separate regulators.'
+            links={[
+              { href: '/texas-mini-establishment-license-requirements-guide', label: 'Mini-Establishment Licence', why: '$70 if you rent a suite; required regardless of how you incorporate.' },
+              { href: '/texas-barber-establishment-license-requirements-guide', label: 'Establishment Licence', why: '$78 if you hold the whole premises.' },
+            ]}
+          />
           <RelatedArticles currentSlug="booth-rent-taxes-and-llc-texas" />
 
           <div className="pt-12 border-t border-border">

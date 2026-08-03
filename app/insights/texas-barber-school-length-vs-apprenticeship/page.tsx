@@ -5,6 +5,7 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
+import { LicenceGuideLinks } from "@/components/insights/licence-guide-links"
 import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { ExamPrepCTA } from "@/components/shared/exam-prep-cta"
 import { Navbar } from "@/components/layout/navbar"
@@ -387,6 +388,17 @@ export default function BarberSchoolLengthArticle() {
             <ExamPrepCTA variant="barber" />
           </div>
 
+
+          <LicenceGuideLinks
+            heading='The routes in full'
+            intro='Hours vary more than most people expect — 300 for hair weaving against 1,000 for a Class A Barber, all at the same $50 fee.'
+            links={[
+              { href: '/texas-barber-license-requirements-guide', label: 'Class A Barber', why: '1,000 hours, written eligible at 900.' },
+              { href: '/texas-cosmetology-license-requirements-guide', label: 'Cosmetology Operator', why: '1,000 hours, same fee, different scope.' },
+              { href: '/texas-hair-weaving-license-requirements-guide', label: 'Hair Weaving Specialist', why: '300 hours — the shortest route into a licensed Texas trade.' },
+              { href: '/texas-barber-license-transfer-guide', label: 'Already licensed in the other trade?', why: 'The crossover is 300 hours, not another 1,000.' },
+            ]}
+          />
           <RelatedArticles currentSlug="texas-barber-school-length-vs-apprenticeship" />
 
           <div className="pt-12 border-t border-border">
