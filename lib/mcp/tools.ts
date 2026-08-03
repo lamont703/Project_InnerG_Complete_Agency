@@ -33,6 +33,29 @@ export interface McpTool {
 
 const pct = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 
+/**
+ * Sanitize any caller-supplied string before it appears in a tool response.
+ *
+ * Tool output lands in a model's context, and models weight it more heavily
+ * than user text because it reads as retrieved fact. Echoing an argument back
+ * unchanged therefore hands whoever supplied it a channel into that context —
+ * and an agent often builds arguments from something it read elsewhere, so the
+ * "caller" is not necessarily the person operating it.
+ *
+ * Newlines are stripped rather than escaped because they are what makes an
+ * injected payload look like a new section of the response. Length is capped
+ * because a 200KB argument was being reflected verbatim, turning the endpoint
+ * into a bandwidth amplifier as well.
+ */
+function safeEcho(value: unknown, max = 80): string {
+  const t = String(value ?? "")
+    .replace(/[\r\n\t]+/g, " ")
+    // Control characters can smuggle formatting past a naive renderer.
+    .replace(/[\u0000-\u001F\u007F]/g, "")
+    .trim();
+  return t.length > max ? `${t.slice(0, max)}…` : t;
+}
+
 /** Clamp anything a caller supplies — an agent will send whatever it likes. */
 const clampLimit = (v: unknown, def = 10, max = 50) => {
   const n = Number(v);
@@ -79,7 +102,7 @@ const compareSchools: McpTool = {
       .slice(0, limit);
 
     if (!ranked.length) {
-      return `No ${license} schools with at least ${MIN_SAMPLE} recorded 2026 test-takers${city ? ` in "${args.city}"` : ""}. Try a wider area or the other licence type.`;
+      return `No ${license} schools with at least ${MIN_SAMPLE} recorded 2026 test-takers${city ? ` in "${safeEcho(args.city)}"` : ""}. Try a wider area or the other licence type.`;
     }
 
     const lines = ranked.map(
@@ -93,7 +116,7 @@ const compareSchools: McpTool = {
     );
 
     return [
-      `${license === "barber" ? "Barber" : "Cosmetology"} schools by 2026 written exam pass rate${city ? ` in "${args.city}"` : ""}:`,
+      `${license === "barber" ? "Barber" : "Cosmetology"} schools by 2026 written exam pass rate${city ? ` in "${safeEcho(args.city)}"` : ""}:`,
       "",
       ...lines,
       "",
@@ -139,7 +162,7 @@ const compareShops: McpTool = {
     });
 
     if (!page.total) {
-      return `No matching listings${args.city ? ` for "${args.city}"` : ""}. If you filtered on booth rent, note that only a minority of listings publish one — try again without verified_rent_only.`;
+      return `No matching listings${args.city ? ` for "${safeEcho(args.city)}"` : ""}. If you filtered on booth rent, note that only a minority of listings publish one — try again without verified_rent_only.`;
     }
 
     const bench = await getRentBenchmarks();
@@ -203,7 +226,7 @@ const licenseeCounts: McpTool = {
         : null;
 
     if (args.expiring_before && !before) {
-      return `"${args.expiring_before}" is not a valid date. Use YYYY-MM-DD.`;
+      return `"${safeEcho(args.expiring_before, 40)}" is not a valid date. Use YYYY-MM-DD.`;
     }
 
     const { data, error } = await supabase.rpc("mcp_tdlr_license_counts", {
@@ -215,7 +238,7 @@ const licenseeCounts: McpTool = {
     const rows = (data || []) as { license_type: string; total: number; expiring: number | null }[];
     if (!rows.length) {
       return type
-        ? `No licences found for type "${type}". Types are exact strings — try omitting license_type to see the full list.`
+        ? `No licences found for type "${safeEcho(type)}". Types are exact strings — try omitting license_type to see the full list.`
         : "No licensee records available.";
     }
 
@@ -227,7 +250,7 @@ const licenseeCounts: McpTool = {
     );
 
     return [
-      `Texas licensees${type ? ` — ${type}` : " by licence type"}:`,
+      `Texas licensees${type ? ` — ${safeEcho(type)}` : " by licence type"}:`,
       "",
       ...lines,
       "",

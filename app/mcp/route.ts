@@ -45,6 +45,42 @@ const ALLOWED_ORIGINS = [
   "https://www.shearquery.com",
 ];
 
+/**
+ * A JSON-RPC message for three read-only tools has no legitimate reason to be
+ * large. Without a cap, a 200KB argument was accepted, processed, and echoed
+ * back in full — an amplifier that costs us function time and bandwidth for
+ * every byte an attacker sends.
+ */
+const MAX_BODY_BYTES = 32 * 1024;
+
+/**
+ * Best-effort throttle. Serverless makes this partial by nature: memory is
+ * per-instance, so a distributed flood spreads across instances and slips
+ * through. It is kept anyway because the realistic abuse here is one client
+ * looping against one warm instance, which this does stop — and it is stated
+ * plainly rather than mistaken for real protection. Durable limiting needs
+ * Vercel WAF or a shared store.
+ */
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 60;
+const hits = new Map<string, number[]>();
+
+function rateLimited(request: NextRequest): boolean {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+  const now = Date.now();
+  const recent = (hits.get(ip) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  recent.push(now);
+  hits.set(ip, recent);
+  // Unbounded growth would be its own denial of service; drop idle keys.
+  if (hits.size > 5000) {
+    for (const [k, v] of hits) if (!v.some((t) => now - t < RATE_LIMIT_WINDOW_MS)) hits.delete(k);
+  }
+  return recent.length > RATE_LIMIT_MAX;
+}
+
 const JSONRPC_PARSE_ERROR = -32700;
 const JSONRPC_INVALID_REQUEST = -32600;
 const JSONRPC_METHOD_NOT_FOUND = -32601;
@@ -76,6 +112,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
   }
 
+  if (rateLimited(request)) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
+
+  // Checked before reading the body so an oversized payload is refused rather
+  // than buffered.
+  const declared = Number(request.headers.get("content-length") || 0);
+  if (declared > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+  }
+
   const requested = request.headers.get("mcp-protocol-version");
   if (requested && !SUPPORTED_PROTOCOL_VERSIONS.includes(requested)) {
     return NextResponse.json(
@@ -86,7 +136,13 @@ export async function POST(request: NextRequest) {
 
   let body: any;
   try {
-    body = await request.json();
+    // Read as text first: Content-Length can be absent or lie under chunked
+    // encoding, so the real length is only knowable after the fact.
+    const raw = await request.text();
+    if (raw.length > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+    }
+    body = JSON.parse(raw);
   } catch {
     return rpcError(null, JSONRPC_PARSE_ERROR, "Parse error: body is not valid JSON");
   }
