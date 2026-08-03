@@ -7,15 +7,16 @@ import { directoryHrefForSection } from "@/lib/directory-config";
 // Genuinely statewide resources — unlike the Houston-area service pages
 // (which live on /houston's own "Explore Houston Services" section instead,
 // since they're metro-specific, not statewide), these aren't tied to one city.
+// Only what the licensing index further down does NOT cover. Four entries were
+// removed as duplicates — barber and cosmetology exam prep, and both practical
+// exam kit lists — because TexasResourceIndex now lists all six of each rather
+// than the two that happened to exist when this array was written. Linking the
+// same page twice on one page splits nothing and clutters both sections.
 const TEXAS_STATEWIDE_LINKS: { href: string; label: string }[] = [
   { href: "/texas/licensing", label: "Texas Licence Data & TDLR" },
   { href: "/texas-school-leaderboard", label: "Texas School Leaderboard" },
-  { href: "/texas-barber-exam-intelligence-prep", label: "Texas Barber Exam Prep" },
-  { href: "/texas-cosmetology-exam-intelligence-prep", label: "Texas Cosmetology Exam Prep" },
   { href: "/barber-cos-continuing-education", label: "Continuing Education Portal" },
   { href: "/how-to-get-a-barber-license-in-texas", label: "How to Get a Barber License in Texas" },
-  { href: "/texas-barber-practical-exam-kit-list", label: "Texas Barber Practical Exam Kit List" },
-  { href: "/texas-cosmetology-practical-exam-kit-list", label: "Texas Cosmetology Practical Exam Kit List" },
   { href: "/directory", label: "Full Directory (A–Z)" },
 ];
 
