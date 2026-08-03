@@ -53,6 +53,7 @@ export function TexasHubDirectory({
   backLabel,
   heroStat,
   resourcesNote,
+  beforeBackLink,
 }: {
   data: TexasHubData;
   title: string;
@@ -63,6 +64,13 @@ export function TexasHubDirectory({
   heroStat?: React.ReactNode;
   /** One line of context above the Statewide Resources grid. */
   resourcesNote?: React.ReactNode;
+  /**
+   * Rendered after Statewide Resources but BEFORE the back link, inside this
+   * component's light theme scope. The Texas licensing index used to render as
+   * a sibling of this component, which put it visually below "Back to Search" —
+   * the last thing on the page sat after the thing that ends the page.
+   */
+  beforeBackLink?: React.ReactNode;
 }) {
   const qualifyingCities = data.cities.filter((c) => c.qualifies);
   const otherCities = data.cities.filter((c) => !c.qualifies);
@@ -242,6 +250,8 @@ export function TexasHubDirectory({
             ))}
           </div>
         </div>
+
+        {beforeBackLink}
 
         <div className="text-center mt-10">
           <Link href={backHref} className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors">

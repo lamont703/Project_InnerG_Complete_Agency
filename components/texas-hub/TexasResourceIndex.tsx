@@ -116,11 +116,11 @@ const GROUPS: ResourceGroup[] = [
 
 export function TexasResourceIndex() {
   return (
-    // `light` and the slate background are carried explicitly: this renders as a
-    // sibling of TexasHubDirectory rather than a child, so it does not inherit
-    // that component's theme scoping and would otherwise pick up the dark root.
-    <section className="light bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 pb-16">
+    // Rendered through TexasHubDirectory's beforeBackLink slot, so it sits
+    // inside that component's light theme scope and its container. No wrapper
+    // of its own is needed — an earlier version carried one because it used to
+    // render as a sibling and inherited the dark root theme.
+    <section className="mt-12">
       <div className="mb-6 border-t border-slate-200 pt-10">
         <h2 className="text-2xl font-black tracking-tight text-slate-900">
           Licensing, exams and opening a shop in Texas
@@ -156,7 +156,6 @@ export function TexasResourceIndex() {
             </ul>
           </div>
         ))}
-        </div>
       </div>
     </section>
   );
