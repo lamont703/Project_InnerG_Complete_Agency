@@ -2,7 +2,7 @@
  * inner-g-pixel.js
  * Inner G Complete Agency — Client Intelligence Tracking Library
  * 
- * Version: 1.0.0
+ * Version: 1.1.0
  * 
  * Instructions:
  * <script 
@@ -52,7 +52,79 @@
 
     const visitorId = getVisitorId();
     const sessionId = getSessionId();
-    const pageLoadTime = Date.now();
+
+    // 3a. Per-pageview state (as opposed to per-document state)
+    //
+    // This site is a Next.js App Router SPA: every internal <Link> is a
+    // history.pushState, not a document load. This script used to run once per
+    // document and assume that was once per page, so a soft navigation emitted
+    // no page_view at all, never restarted the duration clock, and re-reported
+    // the FIRST page's Web Vitals against whatever URL was current by then.
+    //
+    // A real session showed all three at once: a visitor landed on a school
+    // page, clicked through to the exam-prep page, and that second page
+    // recorded zero pageviews and a 407-second "time on page" measured from
+    // the school page's load.
+    //
+    // Anything scoped to one pageview rather than one document lives here and
+    // is reset by resetPageState() on every soft navigation.
+    const newId = () => (crypto.randomUUID
+        ? crypto.randomUUID()
+        : Date.now().toString(36) + Math.random().toString(36).substring(2));
+
+    let pageLoadTime = Date.now();
+    let viewId = newId();
+
+    // "hard" = a real document load, so the Web Vitals below were measured for
+    // THIS page. "soft" = arrived via pushState, where the browser measures no
+    // new LCP/CLS/INP at all and carrying the previous page's numbers forward
+    // would be a fabrication. Read by handlePageLeave().
+    let navType = "hard";
+
+    // document.referrer does not update across a soft navigation, so on an SPA
+    // it reports the original external referrer for the rest of the visit —
+    // every internal page looked like it came straight from Google. Track the
+    // real previous URL instead.
+    let currentReferrer = document.referrer;
+
+    // Events go out via fetch(keepalive) and are inserted concurrently, so
+    // created_at cannot order events that land in the same second (a real
+    // session recorded "Close menu" five seconds before "Open menu"). A
+    // per-document counter makes the true order recoverable.
+    let eventSeq = 0;
+
+    // The framework updates document.title during render, after the URL has
+    // already changed. Recording the new page_view immediately would attach the
+    // outgoing page's title to it.
+    const SOFT_NAV_TITLE_DELAY_MS = 350;
+
+    // The hash is in-page UI state, not a distinct page. Including it split
+    // page_view and page_leave onto different page_url values after an anchor
+    // jump, which defeats the ingest function's server-side duration recompute
+    // (it matches those two rows on page_url) and silently falls back to the
+    // client's self-reported number — the value that recompute exists to
+    // distrust.
+    const currentUrl = () =>
+        window.location.origin + window.location.pathname + window.location.search;
+
+    // What counts as "a different page" — deliberately the path only.
+    //
+    // /tools/barbershop-search rewrites its query string via replaceState on
+    // every filter and page change (see that page's handlers). Treating the
+    // query as part of a page's identity would turn each of those into a
+    // pageview, inflating that one page's traffic well above reality and
+    // burying the genuine entries. Query strings here are view state, not
+    // destinations.
+    const currentPath = () => window.location.pathname;
+
+    // The URL recorded for THIS pageview, frozen when it starts.
+    //
+    // page_view and page_leave must carry byte-identical page_url values: the
+    // ingest function pairs them on that column to recompute duration from
+    // server clocks, and a query string that changed mid-visit would break the
+    // pairing and silently fall back to the client's number. Interaction events
+    // still report the live URL, so filter state at click time is not lost.
+    let viewUrl = currentUrl();
 
     // 3b. Core Web Vitals (LCP, CLS, a simplified INP proxy) — collected
     // continuously via PerformanceObserver and attached to the existing
@@ -67,6 +139,10 @@
     let lcpValue = null;
     let clsValue = 0;
     let inpValue = null;
+    // Distinguishes "measured, and the page was perfectly stable" from "never
+    // measured". Reporting a true zero as null threw away the best possible
+    // result and made every CLS-clean page look like missing data.
+    let clsSupported = false;
 
     // Stop taking new measurements once the page stops loading.
     //
@@ -124,6 +200,7 @@
                     if (!entry.hadRecentInput) clsValue += entry.value;
                 }
             }).observe({ type: "layout-shift", buffered: true });
+            clsSupported = true;
         } catch (e) {}
 
         try {
@@ -137,16 +214,25 @@
     }
 
     // 4. Tracking Method
-    function track(eventName, metadata = {}) {
+    function track(eventName, metadata = {}, overrides = {}) {
         // Automatically inject session_id into metadata
         metadata.session_id = sessionId;
+        // Groups every event belonging to a single pageview. Without it the
+        // repeated page_leave events one pageview can legitimately emit (see
+        // section 8) are indistinguishable from separate visits, and any
+        // average built over page_leave rows double-counts.
+        metadata.view_id = viewId;
+        metadata.seq = eventSeq++;
         const payload = {
             projectId: projectId,
             visitorId: visitorId,
             event: eventName,
-            url: window.location.href,
+            // A page_leave fired by a soft navigation belongs to the page being
+            // left, but location has already moved by the time we observe it,
+            // so that URL has to be passed in explicitly.
+            url: overrides.url || currentUrl(),
             title: document.title,
-            referrer: document.referrer,
+            referrer: currentReferrer,
             metadata: metadata,
             timestamp: new Date().toISOString()
         };
@@ -200,7 +286,7 @@
 
     // 6. Automatic Interaction Events
     const handleInitialPing = () => {
-        track("page_view");
+        track("page_view", { nav_type: "hard" }, { url: viewUrl });
     };
 
     const handleAutoClickTracking = (e) => {
@@ -272,16 +358,24 @@
     // visibilitychange->visible, so returning to the tab still allows a
     // later, genuinely separate departure to track again (SPA feel).
     let pageLeaveTracked = false;
-    const handlePageLeave = () => {
+    const handlePageLeave = (urlOverride) => {
         if (!pageLeaveTracked) {
             pageLeaveTracked = true;
             const durationSeconds = Math.round((Date.now() - pageLoadTime) / 1000);
             track("page_leave", {
                 duration_seconds: durationSeconds,
-                lcp_ms: lcpValue,
-                cls: clsValue > 0 ? Math.round(clsValue * 1000) / 1000 : null,
-                inp_ms: inpValue,
-            });
+                nav_type: navType,
+                // Only a hard navigation has Vitals that belong to this URL.
+                // null is skipped by every consumer (the sentinel agent tests
+                // typeof === "number" and needs CWV_MIN_SAMPLES to render a
+                // verdict), so a soft-navigated page now gets no CWV verdict
+                // instead of confidently getting the previous page's one.
+                lcp_ms: navType === "hard" ? lcpValue : null,
+                cls: navType === "hard" && clsSupported
+                    ? Math.round(clsValue * 1000) / 1000
+                    : null,
+                inp_ms: navType === "hard" ? inpValue : null,
+            }, { url: typeof urlOverride === "string" ? urlOverride : viewUrl });
         }
     };
 
@@ -293,7 +387,80 @@
         }
     });
 
-    window.addEventListener("pagehide", handlePageLeave);
+    // Wrapped, not passed by reference: the listener receives an Event, which
+    // would arrive as handlePageLeave's urlOverride argument.
+    window.addEventListener("pagehide", () => handlePageLeave());
+
+    // 8b. Soft (SPA) navigation
+    //
+    // Next.js App Router routes internal links through history.pushState, which
+    // fires no event of its own — patching the two history methods is the only
+    // way to observe it. popstate covers back and forward.
+    //
+    // Placed after sections 7 and 8 because resetPageState() reassigns the
+    // scroll and page_leave state those sections declare.
+    let lastPath = currentPath();
+
+    function resetPageState(prevUrl) {
+        pageLoadTime = Date.now();
+        viewId = newId();
+        viewUrl = currentUrl();
+        navType = "soft";
+        currentReferrer = prevUrl;
+        pageLeaveTracked = false;
+        scrollDepthsTracked = { 50: false, 90: false };
+        // The browser measures LCP, CLS and INP once per document and does not
+        // re-measure them for a soft navigation. Clearing them is what stops
+        // the previous page's numbers being attributed to this URL.
+        lcpValue = null;
+        clsValue = 0;
+        inpValue = null;
+        // The observers have nothing left to contribute to a page they cannot
+        // measure; stop them accumulating into values we will not report.
+        lcpDone = true;
+        pageDone = true;
+    }
+
+    function handleSoftNavigation() {
+        const nextPath = currentPath();
+        // Anchor jumps, filter-driven replaceState calls and the framework's own
+        // bookkeeping all leave the path alone and are not new pageviews.
+        if (nextPath === lastPath) return;
+
+        // The departing page's frozen URL, captured before resetPageState()
+        // overwrites it.
+        const prevUrl = viewUrl;
+        lastPath = nextPath;
+
+        // Close out the departing page first, while navType and the Vitals
+        // still describe it, then hand the new page a clean slate.
+        handlePageLeave(prevUrl);
+        resetPageState(prevUrl);
+
+        // document.title still holds the previous page's value here. Wait for
+        // the framework to render, then confirm the URL has not moved on again
+        // before recording the view.
+        setTimeout(() => {
+            if (currentPath() !== nextPath) return;
+            track("page_view", { nav_type: "soft" }, { url: viewUrl });
+        }, SOFT_NAV_TITLE_DELAY_MS);
+    }
+
+    // Deferred to a microtask so the framework has finished applying the new
+    // URL before currentUrl() reads it.
+    const notifyNav = () => { Promise.resolve().then(handleSoftNavigation); };
+
+    ["pushState", "replaceState"].forEach((method) => {
+        const original = history[method];
+        if (typeof original !== "function") return;
+        history[method] = function () {
+            const result = original.apply(this, arguments);
+            // Never let a tracking failure break the host app's routing.
+            try { notifyNav(); } catch (e) {}
+            return result;
+        };
+    });
+    window.addEventListener("popstate", notifyNav);
 
     // 9. Inbound Link Identity Resolution (GoHighLevel)
     const urlParams = new URLSearchParams(window.location.search);
