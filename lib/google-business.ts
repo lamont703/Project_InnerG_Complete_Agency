@@ -89,9 +89,32 @@ export async function gbpAccessToken(refreshToken: string): Promise<string> {
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok || !body.access_token) {
-    throw new Error(`token refresh ${res.status}: ${body.error_description || body.error || "no access_token"}`);
+    // `invalid_grant` is categorically different from every other failure here
+    // and needs to be distinguishable by callers. It means the refresh token is
+    // dead and no retry will fix it — the owner revoked access, the token went
+    // six months unused, or (not our case: this project is In production) the
+    // OAuth app sat in Testing status where refresh tokens expire after 7 days.
+    // The only remedy is for the owner to reconnect.
+    //
+    // Everything else — a 500 from Google, a network blip, a clock skew — is
+    // transient and SHOULD be retried. Collapsing the two into one generic
+    // Error is why a dead connection surfaced as an opaque server error instead
+    // of a "reconnect your Google account" prompt.
+    const err = new Error(
+      body.error === "invalid_grant"
+        ? "Google refresh token is no longer valid — the owner must reconnect their Google Business Profile."
+        : `token refresh ${res.status}: ${body.error_description || body.error || "no access_token"}`
+    ) as Error & { code?: string; retryable?: boolean };
+    err.code = body.error || `http_${res.status}`;
+    err.retryable = body.error !== "invalid_grant";
+    throw err;
   }
   return body.access_token as string;
+}
+
+/** True when an error from gbpAccessToken means "reconnect", not "retry". */
+export function isGbpReconnectRequired(e: unknown): boolean {
+  return Boolean(e && typeof e === "object" && (e as { code?: string }).code === "invalid_grant");
 }
 
 /**

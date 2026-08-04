@@ -124,13 +124,36 @@ export async function GET(req: Request) {
       outcome: outcomes.find((o) => o.location === l.name) || null,
     }));
 
+    // NEVER write a null refresh token over a stored one.
+    //
+    // Google does not guarantee a refresh_token on re-consent. `prompt=consent`
+    // makes it very likely, not certain — and this is an upsert keyed on
+    // community_member_id, so `tokens.refresh_token || null` would replace a
+    // working token with null the one time Google omits it. The row would still
+    // read status "linked" while every downstream route, all of which check
+    // `if (!conn?.refresh_token)`, reports "No Google Business Profile is
+    // connected". A reconnect that silently destroys the connection is the
+    // worst possible failure here because the obvious remedy — reconnect again
+    // — is what caused it.
+    //
+    // Omitting the key entirely leaves the stored value untouched on update.
+    const tokenFields: Record<string, unknown> = {};
+    if (tokens.refresh_token) {
+      tokenFields.refresh_token = tokens.refresh_token;
+    } else {
+      console.warn(
+        "[gbp callback] Google returned no refresh_token; keeping the stored one for member",
+        (member as any).id
+      );
+    }
+
     const { error: upErr } = await (admin.from("gbp_connections") as any).upsert(
       {
         community_member_id: (member as any).id,
         google_account_email: identity.email,
         google_user_id: identity.sub,
         access_token: accessToken,
-        refresh_token: tokens.refresh_token || null,
+        ...tokenFields,
         token_expiry: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
         scope: tokens.scope || null,
         locations: locationsWithOutcome,
