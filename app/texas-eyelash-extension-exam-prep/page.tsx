@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { PracticalExamDrill } from "@/components/tools/practical-exam-drill";
 import { TdlrExamProcess } from "@/components/tools/tdlr-exam-process";
 import { SPECIALTY_EXAMS, countCriteria, formatDuration } from "@/lib/texas-specialty-exams";
+import { authorSchema } from "@/lib/author";
 
 /**
  * Built entirely from TexasEyelashCIB2026.pdf and the TDLR Barber & Cosmetology Exam
@@ -153,7 +154,7 @@ export default function TexasEyelashExtensionExamPrepPage() {
       </main>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", name: "Texas Eyelash Extension Practical Exam — Section Order", description: "The 4 timed sections of the Texas eyelash extension practical exam in order, per the PSI/TDLR Candidate Information Bulletin effective January 1, 2026.", totalTime: "PT57M", step: EXAM.sections.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.name, text: [...s.procedure, ...s.safety].join("; ") })) }) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", author: authorSchema(), name: "Texas Eyelash Extension Practical Exam — Section Order", description: "The 4 timed sections of the Texas eyelash extension practical exam in order, per the PSI/TDLR Candidate Information Bulletin effective January 1, 2026.", totalTime: "PT57M", step: EXAM.sections.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.name, text: [...s.procedure, ...s.safety].join("; ") })) }) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "Course", name: "Texas Eyelash Extension Exam Prep", description: 'Every scored criterion on the Texas eyelash extension practical exam, the 4 timed sections, and the written exam format — from the Jan 1, 2026 PSI/TDLR bulletin.', url: "https://agency.innergcomplete.com/texas-eyelash-extension-exam-prep", provider: { "@type": "Organization", name: "Inner G Complete Agency", url: "https://agency.innergcomplete.com" }, teaches: "Texas eyelash extension practical exam scored criteria, section order and written exam format", offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } }) }} />
     </div>
   );

@@ -135,7 +135,9 @@ export default function ElPasoRescueReport() {
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://agency.innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about",
+                "jobTitle": "Senior Product Owner | Machine Learning Engineer",
+                "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
             },
             "publisher": {
               "@type": "Organization",
@@ -213,7 +215,7 @@ export default function ElPasoRescueReport() {
                 <div>
                   <div className="text-xs font-black uppercase">Lamont Evans</div>
                   <div className="text-[10px] text-muted-foreground uppercase font-bold">
-                    Principal Architect · Inner G Complete Agency
+                    Senior Product Owner | Machine Learning Engineer · Inner G Complete Agency
                   </div>
                 </div>
               </div>

@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -89,7 +90,7 @@ export default function BoothRentVsCommissionArticle() {
             headline: "Booth Rent vs. Commission: What the Real Houston Numbers Say",
             description:
               "A real-data comparison of booth rent and commission pay structures for Texas barbers and cosmetologists, using live Houston barbershop data and an interactive breakeven calculator.",
-            author: { "@type": "Person", name: "Lamont Evans", url: "https://agency.innergcomplete.com/about" },
+            author: authorSchema(),
             publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
             datePublished: "2026-07-09T08:00:00Z",
           }),
@@ -168,7 +169,7 @@ export default function BoothRentVsCommissionArticle() {
                 <div>
                   <div className="text-xs font-black uppercase">Lamont Evans</div>
                   <div className="text-[10px] text-muted-foreground uppercase font-bold">
-                    Principal Architect · Inner G Complete Agency
+                    Senior Product Owner | Machine Learning Engineer · Inner G Complete Agency
                   </div>
                 </div>
               </div>

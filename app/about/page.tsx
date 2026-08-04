@@ -200,7 +200,7 @@ export default async function AboutPage() {
                   <div>
                     <div className="text-sm font-black uppercase tracking-tight text-foreground">Lamont Evans</div>
                     <div className="text-[10px] text-primary font-bold uppercase tracking-widest">
-                      Principal Architect · {tenantName}
+                      Senior Product Owner | Machine Learning Engineer · {tenantName}
                     </div>
                   </div>
                 </div>

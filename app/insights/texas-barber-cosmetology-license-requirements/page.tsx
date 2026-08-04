@@ -30,6 +30,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -151,7 +152,7 @@ export default function LicenseRequirementsGuide() {
             headline: "Texas Cosmetology & Barber License Renewal: Fees, CE Hours, Application, Reciprocity",
             description:
               "The real Texas cosmetology and barber license renewal costs, CE hours, and 2-year cycle, sourced directly from TDLR — plus application steps for those just getting licensed and reciprocity from other states.",
-            author: { "@type": "Person", name: "Lamont Evans", url: "https://agency.innergcomplete.com/about" },
+            author: authorSchema(),
             publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
             datePublished: "2026-07-08T08:00:00Z",
             dateModified: "2026-07-27T08:00:00Z",
@@ -255,7 +256,7 @@ export default function LicenseRequirementsGuide() {
                 <div>
                   <div className="text-xs font-black uppercase">Lamont Evans</div>
                   <div className="text-[10px] text-muted-foreground uppercase font-bold">
-                    Principal Architect · Inner G Complete Agency
+                    Senior Product Owner | Machine Learning Engineer · Inner G Complete Agency
                   </div>
                 </div>
               </div>

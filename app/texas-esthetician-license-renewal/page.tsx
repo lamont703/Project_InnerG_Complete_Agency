@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, DollarSign, CalendarClock, AlertTriangle, ShieldAlert, ExternalLink, HelpCircle } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { SPECIALTY_RENEWAL, TDLR_RENEW_URL, TDLR_OAG_URL } from "@/lib/tdlr-sources";
+import { authorSchema } from "@/lib/author";
 
 /**
  * Figures come from lib/tdlr-sources.ts, which records which TDLR page settles
@@ -185,7 +186,7 @@ export default function TexasEstheticianLicenseRenewalPage() {
       </main>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", name: "Renew a Texas Esthetician License", description: 'Renew your Texas esthetician license: the $50 fee, 2-year cycle, late-renewal bands and the exact TDLR process — with what TDLR has not published about CE.', estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: SPECIALTY_RENEWAL.feeUsd }, step: STEPS.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.t, text: s.d })) }) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", author: authorSchema(), name: "Renew a Texas Esthetician License", description: 'Renew your Texas esthetician license: the $50 fee, 2-year cycle, late-renewal bands and the exact TDLR process — with what TDLR has not published about CE.', estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: SPECIALTY_RENEWAL.feeUsd }, step: STEPS.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.t, text: s.d })) }) }} />
     </div>
   );
 }

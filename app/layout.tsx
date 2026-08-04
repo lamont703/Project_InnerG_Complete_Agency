@@ -130,6 +130,7 @@ import { FacebookSDK } from "@/components/providers/facebook-sdk"
 import { SiteNavigationTracker } from "@/components/layout/site-navigation-tracker"
 import { ScrollCTA } from "@/components/shared/scroll-cta"
 import { ViewAsBar } from "@/components/layout/view-as"
+import { authorSchema } from "@/lib/author"
 
 export default async function RootLayout({
   children,
@@ -226,11 +227,12 @@ export default async function RootLayout({
               "sameAs": [
                 "https://www.linkedin.com/company/inner-g-complete-agency/"
               ],
-              "founder": {
-                "@type": "Person",
-                "name": "Lamont Evans",
-                "jobTitle": "Principal Architect"
-              },
+              // sameAs (carried by authorSchema) is what ties the founder to a
+              // real person. Before this the Organization pointed only at the
+              // company page and the founder pointed nowhere, so nothing
+              // connected the research on this site to anyone identifiable.
+              // Sourced from lib/author.ts so the job title cannot drift again.
+              "founder": authorSchema(),
               "description": isTexasBarbering
                 ? "Institutional-grade licensure prep for Texas Barber students using AI-enhanced pathways."
                 : "Inner G Complete Agency operates ShearQuery, a directory and market-intelligence platform for the barber, beauty, and wellness industry, and architects the Artificial Domain Intelligence behind it.",

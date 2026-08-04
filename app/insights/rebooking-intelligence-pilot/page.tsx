@@ -211,7 +211,9 @@ export default function RebookingIntelligencePilot() {
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://agency.innergcomplete.com/about"
+              "url": "https://agency.innergcomplete.com/about",
+                "jobTitle": "Senior Product Owner | Machine Learning Engineer",
+                "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
             },
             "publisher": {
               "@type": "Organization",
@@ -273,7 +275,7 @@ export default function RebookingIntelligencePilot() {
                 <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center font-bold text-primary-foreground border-2 border-white shadow-sm">LE</div>
                 <div>
                   <div className="text-xs font-black uppercase tracking-tight">Lamont Evans</div>
-                  <div className="text-[10px] text-muted-foreground uppercase font-bold">Principal Architect · Inner G Complete Agency</div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">Senior Product Owner | Machine Learning Engineer · Inner G Complete Agency</div>
                 </div>
               </div>
               <ArticleActions />

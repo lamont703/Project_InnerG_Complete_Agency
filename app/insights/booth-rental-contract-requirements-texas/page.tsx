@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -91,7 +92,7 @@ export default function BoothRentalRequirementsGuide() {
             headline: "Booth Rental Requirements in Texas: Mini-Establishment License, Contract & Insurance",
             description:
               "What Texas requires for booth rental — the TDLR Mini-Establishment license, contract terms, and insurance every booth renter should know before signing.",
-            author: { "@type": "Person", name: "Lamont Evans", url: "https://agency.innergcomplete.com/about" },
+            author: authorSchema(),
             publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
             datePublished: "2026-07-09T08:00:00Z",
           }),
@@ -172,7 +173,7 @@ export default function BoothRentalRequirementsGuide() {
                 <div>
                   <div className="text-xs font-black uppercase">Lamont Evans</div>
                   <div className="text-[10px] text-muted-foreground uppercase font-bold">
-                    Principal Architect · Inner G Complete Agency
+                    Senior Product Owner | Machine Learning Engineer · Inner G Complete Agency
                   </div>
                 </div>
               </div>

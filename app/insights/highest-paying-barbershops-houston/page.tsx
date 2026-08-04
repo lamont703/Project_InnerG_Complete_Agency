@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -77,7 +78,7 @@ export default function HighestPayingBarbershopsArticle() {
             headline: "Highest Paying Barbershops in Houston: Best Pay Terms, Real Listings",
             description:
               "The real, currently-listed pay terms across Houston barbershops — lowest booth rents and highest commission splits — sourced from live platform data, not earnings estimates.",
-            author: { "@type": "Person", name: "Lamont Evans", url: "https://agency.innergcomplete.com/about" },
+            author: authorSchema(),
             publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
             datePublished: "2026-07-10T08:00:00Z",
           }),
@@ -157,7 +158,7 @@ export default function HighestPayingBarbershopsArticle() {
                 <div>
                   <div className="text-xs font-black uppercase">Lamont Evans</div>
                   <div className="text-[10px] text-muted-foreground uppercase font-bold">
-                    Principal Architect · Inner G Complete Agency
+                    Senior Product Owner | Machine Learning Engineer · Inner G Complete Agency
                   </div>
                 </div>
               </div>
