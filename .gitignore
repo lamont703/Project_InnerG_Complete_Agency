@@ -68,3 +68,18 @@ mcp-registry-key.pem
 mcp-registry-key*.pem
 *mcp*key*.pem
 mcp-registry-auth
+
+# Python bytecode caches.
+#
+# venv/ is tracked in this repo deliberately (11,154 non-bytecode files), but
+# the compiled caches under it are not source — CPython regenerates them from
+# the .py files whenever they are missing or stale. Running any script that
+# imports pypdf dirties ~48 of them, which buries a real diff under binary
+# noise and has already had to be reverted by hand twice.
+#
+# NOTE: an ignore rule does not untrack files that are already in the index.
+# The 8,485 __pycache__ files committed under venv/ keep appearing in
+# `git status` until they are removed with `git rm --cached`.
+__pycache__/
+*.py[cod]
+*$py.class
