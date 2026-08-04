@@ -324,6 +324,16 @@ export default function TexasOnlineSchoolGuidePage() {
                 why: "213 Texas barber school profiles with contact details to ask the approval question directly.",
               },
               {
+                href: "/states-that-allow-online-cosmetology-school",
+                label: "Which States Allow Online School",
+                why: "The verified state-by-state matrix — Alabama matches Texas at 50%, California permits none at all.",
+              },
+              {
+                href: "/naccas-distance-education-requirements",
+                label: "NACCAS VI.02 — for school owners",
+                why: "The accreditation requirements that stack on top of TDLR's, including the 10-business-day campus rule.",
+              },
+              {
                 href: "/texas",
                 label: "Texas Licensing Hub",
                 why: "Every licence, exam, kit list and renewal guide we hold for Texas, grouped by the question being asked.",

@@ -105,8 +105,17 @@ const GROUPS: ResourceGroup[] = [
     links: [
       {
         href: "/texas-online-barber-cosmetology-school-guide",
-        label: "Online & Hybrid School Rules",
+        label: "Texas Online & Hybrid Rules",
         note: "50% max",
+      },
+      {
+        href: "/states-that-allow-online-cosmetology-school",
+        label: "Which States Allow It",
+        note: "verified matrix",
+      },
+      {
+        href: "/naccas-distance-education-requirements",
+        label: "NACCAS VI.02 (for school owners)",
       },
     ],
   },
