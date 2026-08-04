@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileText, ListChecks, RefreshCw, ClipboardCheck, ArrowLeftRight, Building2 } from "lucide-react";
+import { FileText, ListChecks, RefreshCw, ClipboardCheck, ArrowLeftRight, Building2, Monitor } from "lucide-react";
 
 /**
  * The index of everything we've written about being licensed in Texas.
@@ -96,6 +96,27 @@ const GROUPS: ResourceGroup[] = [
       { href: "/texas-cosmetology-license-transfer-guide", label: "Barber → Cosmetologist", note: "300 hrs" },
       { href: "/texas-california-license-reciprocity", label: "Texas ↔ California", note: "no reciprocity exists" },
       { href: "/texas-tdlr-updates", label: "TDLR Rule Updates" },
+    ],
+  },
+  {
+    title: "Studying online",
+    blurb: "Distance education is capped at half a course and cannot touch the practical hours — the limit per licence, from TDLR's own approval forms.",
+    icon: Monitor,
+    links: [
+      {
+        href: "/texas-online-barber-cosmetology-school-guide",
+        label: "Texas Online & Hybrid Rules",
+        note: "50% max",
+      },
+      {
+        href: "/states-that-allow-online-cosmetology-school",
+        label: "Which States Allow It",
+        note: "verified matrix",
+      },
+      {
+        href: "/naccas-distance-education-requirements",
+        label: "NACCAS VI.02 (for school owners)",
+      },
     ],
   },
   {
