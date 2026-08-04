@@ -10,6 +10,8 @@ import {
   VERIFIED_ON,
   type StateDistanceRule,
 } from "@/lib/distance-education-states";
+import { ResearchByline } from "@/components/research-byline";
+import { authorSchema } from "@/lib/author";
 
 /**
  * The state-by-state matrix — the hub of the distance-education cluster.
@@ -124,6 +126,8 @@ export default function StatesOnlineCosmetologySchoolPage() {
         <h1 className="mb-4 text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl">
           Which States Allow Online Cosmetology &amp; Barber School?
         </h1>
+
+        <ResearchByline verifiedOn={VERIFIED_ON} what="Researched and verified" />
 
         <p className="mb-8 max-w-3xl text-base leading-relaxed text-slate-600 sm:text-lg">
           <strong className="text-slate-900">None of them, if you mean finishing a programme online.</strong>{" "}
@@ -356,6 +360,7 @@ export default function StatesOnlineCosmetologySchoolPage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Article",
+            author: authorSchema(),
             headline: TITLE,
             description: DESCRIPTION,
             dateModified: VERIFIED_ON,

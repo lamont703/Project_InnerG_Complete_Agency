@@ -8,6 +8,7 @@ import {
   NO_COUNTERPART,
   gap,
 } from "@/lib/license-reciprocity";
+import { ResearchByline } from "@/components/research-byline";
 
 /**
  * Texas ↔ California only, deliberately.
@@ -96,6 +97,8 @@ export default function TexasCaliforniaReciprocityPage() {
         <h1 className="mb-3 text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl">
           Texas &harr; California Licence Reciprocity
         </h1>
+        <ResearchByline verifiedOn="2026-08-02" what="Researched and verified" />
+
         <p className="mb-8 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
           The short version: there isn&apos;t any. Neither state transfers a barbering or cosmetology
           licence from the other. Here is what actually happens instead, in both directions, per

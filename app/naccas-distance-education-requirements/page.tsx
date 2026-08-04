@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ExternalLink, ShieldCheck, AlertTriangle, ArrowRight } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { NACCAS_POLICY, STATE_RULES, VERIFIED_ON } from "@/lib/distance-education-states";
+import { ResearchByline } from "@/components/research-byline";
+import { authorSchema } from "@/lib/author";
 
 /**
  * The school-operator layer of the distance-education cluster.
@@ -83,6 +85,8 @@ export default function NaccasDistanceEducationPage() {
         <h1 className="mb-4 text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl">
           NACCAS Policy VI.02: Distance Education Requirements
         </h1>
+
+        <ResearchByline verifiedOn={VERIFIED_ON} what="Read in full and verified" />
 
         <p className="mb-8 max-w-3xl text-base leading-relaxed text-slate-600 sm:text-lg">
           If your institution offers distance education, {NACCAS_POLICY.id} sets five things your
@@ -274,6 +278,7 @@ export default function NaccasDistanceEducationPage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Article",
+            author: authorSchema(),
             headline: TITLE,
             description: DESCRIPTION,
             dateModified: VERIFIED_ON,

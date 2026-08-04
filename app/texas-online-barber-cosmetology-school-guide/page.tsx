@@ -18,6 +18,8 @@ import {
   VERIFIED_ON,
   split,
 } from "@/lib/texas-distance-education";
+import { ResearchByline } from "@/components/research-byline";
+import { authorSchema } from "@/lib/author";
 
 /**
  * The state-level answer to "can I do barber or cosmetology school online in
@@ -108,6 +110,8 @@ export default function TexasOnlineSchoolGuidePage() {
         <h1 className="mb-4 text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl">
           Online &amp; Hybrid Barber and Cosmetology School in Texas
         </h1>
+
+        <ResearchByline verifiedOn={VERIFIED_ON} what="Researched and verified" />
 
         {/* The answer, first, in one sentence — for readers and for assistants. */}
         <p className="mb-8 max-w-3xl text-base leading-relaxed text-slate-600 sm:text-lg">
@@ -441,6 +445,7 @@ export default function TexasOnlineSchoolGuidePage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Article",
+            author: authorSchema(),
             headline: TITLE,
             description: DESCRIPTION,
             dateModified: VERIFIED_ON,

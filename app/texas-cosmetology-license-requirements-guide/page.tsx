@@ -3,6 +3,7 @@ import { ArrowLeft, GraduationCap, DollarSign, CalendarClock, CheckCircle2, Exte
 import { Navbar } from "@/components/layout/navbar";
 import { findRequirement } from "@/lib/texas-license-requirements";
 import { TDLR_SOURCES } from "@/lib/tdlr-sources";
+import { authorSchema } from "@/lib/author";
 
 /**
  * Every figure comes from lib/texas-license-requirements.ts, read in turn from
@@ -142,7 +143,7 @@ export default function TexasCosmetologyOperatorRequirementsPage() {
       </main>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", name: 'Texas Cosmetology Operator License Requirements (2026)', description: "What a Texas cosmetology operator licence requires — 1,000 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.", estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: REQ.feeUsd }, step: REQ.conditions.map((c, i) => ({ "@type": "HowToStep", position: i + 1, text: c })) }) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", author: authorSchema(), name: 'Texas Cosmetology Operator License Requirements (2026)', description: "What a Texas cosmetology operator licence requires — 1,000 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.", estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: REQ.feeUsd }, step: REQ.conditions.map((c, i) => ({ "@type": "HowToStep", position: i + 1, text: c })) }) }} />
     </div>
   );
 }
