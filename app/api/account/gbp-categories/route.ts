@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { gbpAccessToken } from "@/lib/google-business";
+import { gbpAccessToken, isGbpReconnectRequired, markGbpRevoked } from "@/lib/google-business";
 import { resolveMemberContext, assertNotImpersonating } from "@/lib/account/view-as";
 import { readLocationFields, writeLocationFields } from "@/lib/gbp-write";
 import { mergeCategories, MAX_ADDITIONAL_CATEGORIES, type Category } from "@/lib/gbp-services";
@@ -42,6 +42,19 @@ async function resolveConnection() {
   try {
     return { ctx, token: await gbpAccessToken(conn.refresh_token), locationName } as const;
   } catch (e: any) {
+    // A dead refresh token is not an outage. 502 says "Google is unreachable,
+    // try again", which is wrong and unactionable — no amount of retrying
+    // revives a revoked token. 409 plus an explicit instruction is the only
+    // response the owner can act on.
+    if (isGbpReconnectRequired(e)) {
+      // Record it once so the rest of the app stops treating this connection as
+      // live — sync, performance and both review paths already skip "revoked".
+      await markGbpRevoked(admin, { community_member_id: ctx.memberId });
+      return {
+        error: "Your Google connection has expired. Reconnect your Google Business Profile to continue.",
+        status: 409,
+      } as const;
+    }
     return { error: `Could not reach Google: ${e?.message}`, status: 502 } as const;
   }
 }

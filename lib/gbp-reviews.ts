@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { gbpAccessToken } from "@/lib/google-business";
+import { gbpAccessToken, isGbpReconnectRequired, markGbpRevoked } from "@/lib/google-business";
 
 /**
  * Google reviews for a claimed listing, fetched LIVE at render time.
@@ -70,8 +70,26 @@ async function resolveConnection(
     (locations.length === 1 ? locations[0] : null);
   if (!loc?.name || !loc?.account) return null;
 
+  // Every other exit from this function is `return null` — a caller that gets
+  // null renders without Google data. An uncaught throw here would instead take
+  // down whichever page embeds reviews, and a dead token is a routine state
+  // (the owner revoked access), not an exceptional one. Fail the same way the
+  // rest of the function does.
+  let accessToken: string;
+  try {
+    accessToken = await gbpAccessToken(conn.refresh_token);
+  } catch (e) {
+    if (isGbpReconnectRequired(e)) {
+      console.warn(`[gbp-reviews] ${entityType}/${entityId}: refresh token dead, owner must reconnect`);
+      await markGbpRevoked(admin, { entity_type: entityType, entity_id: entityId });
+    } else {
+      console.warn(`[gbp-reviews] ${entityType}/${entityId}: token refresh failed:`, (e as Error)?.message);
+    }
+    return null;
+  }
+
   return {
-    accessToken: await gbpAccessToken(conn.refresh_token),
+    accessToken,
     account: loc.account,
     location: loc.name,
     mapsUri: loc.mapsUri || null,
@@ -153,24 +171,17 @@ export async function getGoogleReviewsForEntity(
   if (hit && Date.now() - hit.at < REVIEW_TTL_MS) return hit.value;
 
   try {
-    const admin = createAdminClient();
-    const { data: conn } = await (admin.from("gbp_connections") as any)
-      .select("refresh_token, selected_location, locations, status")
-      .eq("entity_type", entityType)
-      .eq("entity_id", entityId)
-      .maybeSingle();
+    // Was a copy of resolveConnection inlined here. The copy meant a dead token
+    // on this path got swallowed by the outer catch below without ever being
+    // recorded — so the listing silently lost its reviews and nothing knew why.
+    // resolveConnection already returns exactly the four things this needs, and
+    // marks the connection revoked when the token turns out to be dead.
+    const conn = await resolveConnection(entityType, entityId);
+    if (!conn) return null;
+    const { accessToken, mapsUri } = conn;
 
-    if (!conn?.refresh_token || conn.status === "revoked") return null;
-
-    const locations: any[] = Array.isArray(conn.locations) ? conn.locations : [];
-    const loc =
-      locations.find((l) => l?.name === conn.selected_location) ||
-      (locations.length === 1 ? locations[0] : null);
-    if (!loc?.name || !loc?.account) return null;
-
-    const accessToken = await gbpAccessToken(conn.refresh_token);
     const res = await fetch(
-      `${V4_BASE}/${loc.account}/${loc.name}/reviews?pageSize=${limit}&orderBy=updateTime desc`,
+      `${V4_BASE}/${conn.account}/${conn.location}/reviews?pageSize=${limit}&orderBy=updateTime desc`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     if (!res.ok) return null;
@@ -195,7 +206,7 @@ export async function getGoogleReviewsForEntity(
         // above already counts it.
         .filter((r: GoogleReview) => !!r.text)
         .slice(0, limit),
-      mapsUri: loc.mapsUri || null,
+      mapsUri,
     };
 
     cache.set(key, { at: Date.now(), value });

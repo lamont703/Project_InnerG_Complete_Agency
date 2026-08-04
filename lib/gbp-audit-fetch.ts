@@ -1,7 +1,7 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { gbpAccessToken } from "@/lib/google-business";
+import { gbpAccessToken, isGbpReconnectRequired, markGbpRevoked } from "@/lib/google-business";
 import { buildGbpAudit, splitKeywords, type AuditReport, type SearchKeyword } from "@/lib/gbp-audit";
 
 /**
@@ -239,6 +239,12 @@ export async function getMemberGbpAudit(memberId: string): Promise<
     if (!bundle) return { status: "error", message: "Google didn't return this location. It may have been disconnected." };
     return { status: "ok", bundle };
   } catch (e: any) {
+    // Marked out here rather than inside the unstable_cache callback above: a
+    // cached function must stay a pure read, and its body may not run at all on
+    // a cache hit. The throw propagates out to this catch either way.
+    if (isGbpReconnectRequired(e)) {
+      await markGbpRevoked(admin, { community_member_id: memberId });
+    }
     return { status: "error", message: e?.message || "Could not reach Google." };
   }
 }

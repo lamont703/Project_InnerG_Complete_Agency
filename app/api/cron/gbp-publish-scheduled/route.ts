@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { gbpAccessToken } from "@/lib/google-business";
+import { gbpAccessToken, isGbpReconnectRequired, markGbpRevoked } from "@/lib/google-business";
 import { writeLocalPost } from "@/lib/gbp-write";
 import { isStillPublishable } from "@/lib/gbp-post-schedule";
 
@@ -114,6 +114,19 @@ export async function GET(req: Request) {
       }
     } catch (e: any) {
       const attempts = (row.attempts ?? 0) + 1;
+      if (isGbpReconnectRequired(e)) {
+        // Retrying a dead token only burns the attempt budget and delays the
+        // real answer. Fail now, say why in terms the owner can act on, and
+        // record the connection so the other GBP paths stop trying too.
+        await markGbpRevoked(admin, { community_member_id: row.community_member_id });
+        await finish({
+          status: "failed",
+          attempts,
+          error: "Google connection expired — reconnect your Google Business Profile and reschedule this post.",
+        });
+        summary.failed++;
+        continue;
+      }
       await finish({
         status: attempts >= MAX_ATTEMPTS ? "failed" : "pending",
         attempts,
