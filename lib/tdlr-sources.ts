@@ -225,6 +225,33 @@ export const TDLR_SOURCES: TdlrSource[] = [
     settles: ["Supplied by the client as background context; not used as a source for any figure"],
     checked: "2026-08-02",
   },
+  {
+    id: "school-distance-education",
+    url: "https://www.tdlr.texas.gov/barbering-and-cosmetology/schools/distance-education-responsibilities.htm",
+    title: "School Distance Education Responsibilities",
+    settles: [
+      "The definition of distance education — theory only, student and instructor separated by physical distance",
+      "That distance education does NOT satisfy the practical portion of any curriculum",
+      "The five school duties: account for hours, grant credit only per Chapter 83, maintain documents, track by the same method used for in-person attendance, report electronically",
+      "That distance hours are the only hours completable without an instructor physically present",
+    ],
+    checked: "2026-08-03",
+  },
+  {
+    // The cap is NOT on the distance-education page — that page says inspectors
+    // confirm "approved hour limits" without publishing one. It is on each
+    // course-approval application, which is why all eight were read separately.
+    id: "school-course-applications",
+    url: "https://www.tdlr.texas.gov/barbering-and-cosmetology/schools/forms.htm",
+    title: "Course-approval applications — all eight course types",
+    settles: [
+      "The 50% cap — schools may not designate more than 50% of a course's total hours as theory delivered via distance education, per 16 TAC §83.202(e)(1)",
+      "That a school must NAME the learning management system it will use, on the application",
+      "Per-course totals: barber 1,000, cosmetology 1,000, esthetician 750, manicurist 600, eyelash 320, hair weaving 300",
+      "That the §83.202 subsections cited DIFFER by course — barber (a)(1)+(a)(3), cosmetology (a)(1)+(a)(2), esthetician (d)(1)",
+    ],
+    checked: "2026-08-03",
+  },
 ];
 
 export const TDLR_RENEW_URL = TDLR_SOURCES[0].url;

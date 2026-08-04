@@ -114,6 +114,22 @@ export default function TexasCosmetologySchoolRequirementsPage() {
           </div>
         </div>
 
+        {/* Same rationale as the barber school guide — distance education is a
+            separate, course-level approval and the obvious next question. */}
+        <Link
+          href="/texas-online-barber-cosmetology-school-guide"
+          className="mb-12 block rounded-2xl border border-indigo-200 bg-indigo-50/50 px-6 py-5 transition-colors hover:border-indigo-300"
+        >
+          <p className="text-sm font-black text-indigo-900">
+            Planning to offer an online or hybrid programme? &rarr;
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-indigo-900/80">
+            Distance education is approved course by course, capped at 50% of total hours, and never
+            covers the practical curriculum. The limits per licence, and the five things TDLR
+            requires a school to be able to prove on inspection.
+          </p>
+        </Link>
+
         <div className="border-t border-slate-200 pt-10">
           <h2 className="mb-6 text-xl font-black text-slate-900">Common Questions</h2>
           <div className="space-y-6">
