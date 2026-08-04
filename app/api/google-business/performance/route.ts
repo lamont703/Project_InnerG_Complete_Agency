@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { gbpAccessToken, gbpFetchPerformance } from "@/lib/google-business";
+import { gbpAccessToken, gbpFetchPerformance, isGbpReconnectRequired, markGbpRevoked } from "@/lib/google-business";
 
 /**
  * Google's own performance numbers for the owner's claimed listing — how many
@@ -40,7 +40,14 @@ export async function GET() {
     const performance = await gbpFetchPerformance(accessToken, conn.selected_location);
     if (!performance) return NextResponse.json({ available: false });
     return NextResponse.json({ available: true, performance });
-  } catch {
+  } catch (e) {
+    // available:false is honest for "Google has no data", but it also hid a
+    // dead token — the owner saw an empty panel forever with no way to know
+    // why. Record the revocation; the response stays soft so the page renders.
+    if (isGbpReconnectRequired(e)) {
+      await markGbpRevoked(admin, { community_member_id: (member as any).id });
+      return NextResponse.json({ available: false, reconnectRequired: true });
+    }
     return NextResponse.json({ available: false });
   }
 }

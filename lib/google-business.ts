@@ -118,6 +118,38 @@ export function isGbpReconnectRequired(e: unknown): boolean {
 }
 
 /**
+ * Record that a connection's refresh token is dead.
+ *
+ * WHY THIS EXISTS. `status: "revoked"` was already read in four places —
+ * gbp-reviews (twice), sync, and performance all skip a revoked connection —
+ * but only ever WRITTEN by the RISC webhook in app/api/security/risc/route.ts.
+ * That webhook fires on Cross-Account Protection events, which covers an owner
+ * explicitly revoking access. It does not cover a token that simply dies: six
+ * months unused, a credential reset, or a revocation Google never signals.
+ *
+ * So a quietly-dead token left every read path believing the connection was
+ * live, failing one call at a time forever with nothing recorded. The first
+ * code path to actually observe invalid_grant is the only thing that knows —
+ * this is how it tells the rest of the system.
+ *
+ * Deliberately non-fatal: it is bookkeeping on an error path, and throwing here
+ * would replace a clear "reconnect" response with a database error.
+ */
+export async function markGbpRevoked(
+  admin: { from: (t: string) => any },
+  match: Record<string, unknown>
+): Promise<void> {
+  try {
+    await admin
+      .from("gbp_connections")
+      .update({ status: "revoked", updated_at: new Date().toISOString() })
+      .match(match);
+  } catch (e) {
+    console.warn("[gbp] could not mark connection revoked:", (e as Error)?.message);
+  }
+}
+
+/**
  * Identity of the connected Google account, decoded from the id_token (we
  * requested openid+email).
  *

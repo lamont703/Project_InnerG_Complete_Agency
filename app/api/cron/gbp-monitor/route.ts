@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { gbpAccessToken } from "@/lib/google-business";
+import { gbpAccessToken, isGbpReconnectRequired, markGbpRevoked } from "@/lib/google-business";
 import { fetchGbpAudit } from "@/lib/gbp-audit-fetch";
 import { diffSnapshots, recentSnapshots, recordSnapshot } from "@/lib/gbp-audit-history";
 import { buildMonitoringEmail, shouldNotify } from "@/lib/gbp-monitoring";
@@ -161,7 +161,15 @@ export async function GET(req: Request) {
       else summary.failed.push(`${conn.google_account_email}: ${sent.error}`);
     } catch (e: any) {
       // One bad connection must not end the run for everyone else.
-      summary.failed.push(`${conn.google_account_email}: ${e?.message}`);
+      if (isGbpReconnectRequired(e)) {
+        // Otherwise this connection fails on every weekly run forever, the
+        // owner silently receives nothing, and no record explains why. Mark it
+        // once — sync, performance and both review paths already skip revoked.
+        await markGbpRevoked(admin, { community_member_id: conn.community_member_id });
+        summary.skipped.push(`${conn.google_account_email}: token revoked — owner must reconnect`);
+      } else {
+        summary.failed.push(`${conn.google_account_email}: ${e?.message}`);
+      }
     }
   }
 

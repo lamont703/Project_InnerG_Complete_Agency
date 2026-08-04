@@ -5,6 +5,8 @@ import { getViewAsContext } from "@/lib/account/view-as";
 import { CLAIM_ENTITY_TYPES } from "@/lib/entity-claim";
 import {
   gbpAccessToken,
+  isGbpReconnectRequired,
+  markGbpRevoked,
   gbpFetchLocations,
   gbpFetchPhotos,
   gbpFetchReviews,
@@ -109,6 +111,16 @@ export async function POST() {
     locations = await gbpFetchLocations(accessToken);
   } catch (e: any) {
     console.error("[gbp sync] fetch failed:", e?.message);
+    if (isGbpReconnectRequired(e)) {
+      // "Please try again" is the wrong instruction — no retry revives a dead
+      // token, and this is the button an owner presses when things look stale,
+      // so it is exactly where the misleading advice would land.
+      await markGbpRevoked(admin, { community_member_id: memberId });
+      return NextResponse.json(
+        { success: false, error: "Your Google connection has expired. Reconnect your Google Business Profile to sync." },
+        { status: 409 }
+      );
+    }
     return NextResponse.json(
       { success: false, error: "Couldn't reach Google just now. Please try again." },
       { status: 502 }
