@@ -1,0 +1,43 @@
+{
+  "recordedAt": "2026-08-04",
+  "sources": {
+    "tx-distance-responsibilities": {
+      "id": "tx-distance-responsibilities",
+      "hash": "eb1439bcebbfdd66",
+      "chars": 6796,
+      "missing": []
+    },
+    "tx-barber-course-app": {
+      "id": "tx-barber-course-app",
+      "hash": "cf08e605a9daf302",
+      "bytes": 731305
+    },
+    "tx-cosmo-course-app": {
+      "id": "tx-cosmo-course-app",
+      "hash": "ecc98cbb618b2a54",
+      "bytes": 810958
+    },
+    "al-rule-changes": {
+      "id": "al-rule-changes",
+      "hash": "623875e729486f04",
+      "chars": 5213,
+      "missing": []
+    },
+    "pa-cte": {
+      "id": "pa-cte",
+      "hash": "940c4805cda4bde7",
+      "chars": 37051,
+      "missing": []
+    },
+    "ca-act-regs": {
+      "id": "ca-act-regs",
+      "hash": "b62aa0a986e2c817",
+      "bytes": 5056203
+    },
+    "naccas-vi-02": {
+      "id": "naccas-vi-02",
+      "hash": "a346bc60dd23c318",
+      "bytes": 236595
+    }
+  }
+}
