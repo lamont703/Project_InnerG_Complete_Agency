@@ -14,6 +14,26 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
   '/select-portal',
   '/login',
   '/internal-lock',
+  // Auth and per-user account surfaces.
+  //
+  // These four sat in MARKDOWN_EXTRA_EXCLUDE_PREFIXES only, which made the
+  // invariant in this file's header true in one direction and false in the
+  // other: the Markdown layer refused them as "nothing a crawler should
+  // ingest", while the sitemap advertised all 18 of them to Google and Bing.
+  //
+  // Worse, unlike /dashboard these are not in middleware's PROTECTED_ROUTES,
+  // so they are not redirected — /account/add-business, /accept-invite,
+  // /forgot-password and /reset-password each return 200 with a client-gated
+  // app shell. We were pointing crawlers at fifteen near-identical empty
+  // shells, which is the thin-content profile a sitemap exists to avoid.
+  //
+  // Listed here rather than below because isMarkdownEligible() consults this
+  // array first, so a prefix here is excluded from BOTH surfaces and the two
+  // answers cannot drift apart again.
+  '/account',
+  '/accept-invite',
+  '/forgot-password',
+  '/reset-password',
   '/pixel-analytics',
   '/pinterest-queue',
   '/ad-performance',
@@ -35,10 +55,10 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
  * should ingest, even though some are technically reachable.
  */
 export const MARKDOWN_EXTRA_EXCLUDE_PREFIXES = [
-  '/account',
-  '/accept-invite',
-  '/forgot-password',
-  '/reset-password',
+  // /account, /accept-invite, /forgot-password and /reset-password moved up
+  // into SITEMAP_EXCLUDE_PREFIXES — they were always meant to be withheld
+  // here, and that array is consulted first, so behaviour on this surface is
+  // unchanged.
   '/api',
   '/playground',
   '/discord',
