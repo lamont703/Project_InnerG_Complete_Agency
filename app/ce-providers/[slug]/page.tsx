@@ -53,12 +53,22 @@ async function getProvider(slug: string) {
   return data as any;
 }
 
-/** Other licences registered at the same street address, or sharing the phone. */
+/**
+ * Other licences registered at the same street address, or sharing the phone.
+ *
+ * `website` comes along because the absence is the interesting part. In the
+ * largest cluster — 20 licences on one 888 number — only four have a website,
+ * and the other sixteen have no domain at all: the obvious ones for their names
+ * return ENOTFOUND, so those brands do not exist online in any form. A licence
+ * with a name, no site, and nineteen relatives is a position in TDLR's
+ * alphabetical list rather than a business a licensee can evaluate, and saying
+ * so is the whole reason to prefer this page over the state's own search.
+ */
 async function getSiblings(p: any) {
   if (!p) return [];
   const { data } = await supabase
     .from("agent_texas_ce_provider_leads")
-    .select("slug, name, city, is_active")
+    .select("slug, name, city, is_active, website")
     .or(`street_address.eq.${p.street_address ?? "__none__"},phone.eq.${p.phone ?? "__none__"}`)
     .neq("slug", p.slug)
     .limit(30);
@@ -179,14 +189,31 @@ export default async function CeProviderPage(props: { params: Promise<{ slug: st
               <Users className="h-4.5 w-4.5" />
               This licence is not the only one at this address or number
             </h2>
-            <p className="mb-4 text-sm leading-relaxed text-amber-900/90">
+            <p className="mb-3 text-sm leading-relaxed text-amber-900/90">
               {p.address_provider_count > 1
                 ? `${p.address_provider_count} CE provider licences are registered at ${p.street_address}, ${p.city}. `
                 : ""}
-              Several Texas CE providers trade under multiple names from one operation &mdash; one
-              holds 20 licences across 20 cities on a single phone number. Worth knowing before you
-              treat these as competing choices.
+              This licence shares an address or phone number with{" "}
+              <strong>{siblings.length} other{siblings.length === 1 ? "" : "s"}</strong>. Several
+              Texas CE providers trade under many names from one operation &mdash; the largest holds
+              20 licences across 20 cities on a single phone number.
             </p>
+            {/* The absence is the point: a brand with no site is a position in
+                TDLR's alphabetical list, not a business to evaluate. */}
+            {(() => {
+              const group = [p, ...siblings];
+              const withSite = group.filter((s: any) => s.website).length;
+              if (withSite >= group.length) return null;
+              return (
+                <p className="mb-4 text-sm leading-relaxed text-amber-900/90">
+                  <strong>
+                    {group.length - withSite} of these {group.length} have no website at all
+                  </strong>{" "}
+                  &mdash; not merely one we could not find. The obvious domains for those names do
+                  not resolve, so there is nothing for a licensee to evaluate beyond the name itself.
+                </p>
+              );
+            })()}
             <div className="flex flex-wrap gap-2">
               {siblings.slice(0, 12).map((s) => (
                 <Link
@@ -196,6 +223,7 @@ export default async function CeProviderPage(props: { params: Promise<{ slug: st
                 >
                   {s.name}
                   {!s.is_active ? " (expired)" : ""}
+                  {!s.website ? <span className="ml-1 text-amber-600">· no site</span> : null}
                 </Link>
               ))}
               {siblings.length > 12 ? (
