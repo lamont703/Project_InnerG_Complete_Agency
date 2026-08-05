@@ -131,6 +131,26 @@ export default function AuditBinderPage() {
           ))}
         </section>
 
+        {/* The conversion moment is here, after the checks have shown what they
+            catch — not at the top before anyone has seen one fire. */}
+        <section className="mt-8 rounded-2xl border border-slate-900 bg-slate-900 px-6 py-6 sm:px-8 sm:py-7">
+          <h2 className="text-lg font-black tracking-tight text-white sm:text-xl">
+            This is running on sample data. Yours will look different.
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
+            Send us an hours export and we&apos;ll run your actual roster through the same checks
+            against the same sources, and hand back a dated binder you can put in the file.
+          </p>
+          <Link
+            href="/contact"
+            data-ig-click="binder_cta_contact"
+            className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-slate-900 shadow-md transition-colors hover:bg-slate-100"
+          >
+            Run this on our school
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </section>
+
         <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-5 text-sm leading-relaxed text-slate-600">
           Rules sourced from TDLR&apos;s{" "}
           <a href="https://www.tdlr.texas.gov/SHEARS/Operations%20Manual%20for%20SHEARS.pdf" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-bold text-indigo-600 hover:underline">

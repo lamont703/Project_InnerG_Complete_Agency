@@ -12,6 +12,7 @@ import {
 } from "@/lib/distance-education-states";
 import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
+import { DistanceEducationCta } from "@/components/distance-education-cta";
 
 /**
  * The state-by-state matrix — the hub of the distance-education cluster.
@@ -338,6 +339,7 @@ export default function StatesOnlineCosmetologySchoolPage() {
             ))}
           </div>
         </div>
+        <DistanceEducationCta source="states" />
       </main>
 
       <script

@@ -3,6 +3,7 @@ import { AlertTriangle, ExternalLink, ArrowRight, Scale, ShieldAlert } from "luc
 import { Navbar } from "@/components/layout/navbar";
 import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
+import { DistanceEducationCta } from "@/components/distance-education-cta";
 import {
   PENALTY_CLASSES,
   DISTANCE_VIOLATIONS,
@@ -269,6 +270,7 @@ export default function TexasSchoolPenaltiesPage() {
             ))}
           </div>
         </div>
+        <DistanceEducationCta source="penalties" />
       </main>
 
       <script
