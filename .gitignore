@@ -31,6 +31,11 @@ yarn-error.log*
 # repo — the branch policy exists to stop commits landing on main — and a rule
 # that lives only on one laptop protects only that laptop.
 !CLAUDE.md
+# ...and the skills, for the same reason. A skill is a checklist that runs
+# before a page ships; one that exists only on the machine it was written on
+# catches nothing anywhere else. Narrow on purpose — this re-includes skill
+# definitions, not documentation generally.
+!.claude/skills/**/*.md
 
 
 
