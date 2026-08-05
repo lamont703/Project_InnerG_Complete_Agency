@@ -48,20 +48,38 @@ curl -s -o /dev/null -w "%{http_code} -> %{redirect_url}\n" https://staging.inne
 # 302 -> https://vercel.com/sso-api?url=...
 ```
 
-The documented way through is **Protection Bypass for Automation**. Vercel
-generates a secret (Project Settings → Deployment Protection), exposed as
-`VERCEL_AUTOMATION_BYPASS_SECRET`, and accepts it two ways:
+The way through is **Protection Bypass for Automation**. The secret is in
+`.env.local` as `VERCEL_AUTOMATION_BYPASS_SECRET` (generated in Project
+Settings → Deployment Protection). Both documented methods work here,
+confirmed against staging:
 
 ```bash
-# header (preferred)
-curl -s -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" https://staging.innergcomplete.com/some-page
-# query parameter (for things that cannot set headers)
-curl -s "https://staging.innergcomplete.com/some-page?x-vercel-protection-bypass=$SECRET"
+S=$(grep '^VERCEL_AUTOMATION_BYPASS_SECRET=' .env.local | cut -d= -f2- | tr -d '"'"'"' \r\n')
+
+# header — preferred
+curl -s -H "x-vercel-protection-bypass: $S" https://staging.innergcomplete.com/some-page
+# query parameter — for anything that cannot set headers
+curl -s "https://staging.innergcomplete.com/some-page?x-vercel-protection-bypass=$S"
 ```
 
-**This secret is not currently set in `.env.local`.** Until it is, staging
-cannot be checked from the command line — verify on `localhost` instead and
-say so, rather than reporting a 302 as a finding.
+**Extract the secret with `grep`/`cut`, not `source .env.local`.** Sourcing
+that file fails partway through and leaves the variable **empty**, so the
+request goes out with a blank header, comes back 302, and looks exactly like
+a bad secret. Always confirm you actually loaded something:
+
+```bash
+[ ${#S} -eq 32 ] || echo "secret not loaded — length ${#S}"
+```
+
+A convenience wrapper worth defining when auditing several pages:
+
+```bash
+stg() { curl -s -H "x-vercel-protection-bypass: $S" --max-time 45 "https://staging.innergcomplete.com$1"; }
+```
+
+Note that staging serves **production canonicals** (`alternates.canonical` is
+absolute), so staging pages cannot compete in the index. That is intended —
+do not "fix" it.
 
 ## 3. `curl` prints a redirect's body, so a 307 can look like a 200
 
