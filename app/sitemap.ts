@@ -106,6 +106,7 @@ const getCachedSitemapData = unstable_cache(
       allSalons,
       allCosmetologists,
       allEvents,
+      ceProviders,
     ] = await Promise.all([
       fetchAllRows(supabase, 'agent_barbershop_leads', 'slug, updated_at'),
       fetchAllRows(supabase, 'agent_barber_school_leads', 'slug, updated_at'),
@@ -116,6 +117,8 @@ const getCachedSitemapData = unstable_cache(
       fetchAllRows(supabase, 'agent_salon_leads', 'slug, updated_at'),
       fetchAllRows(supabase, 'agent_cosmetologist_leads', 'slug, updated_at'),
       fetchAllRows(supabase, 'events', 'slug, updated_at'),
+      // is_active comes along so the sitemap can submit only live providers.
+      fetchAllRows(supabase, 'agent_texas_ce_provider_leads', 'slug, updated_at, is_active'),
     ]);
 
     return {
@@ -133,6 +136,7 @@ const getCachedSitemapData = unstable_cache(
       allSalons,
       allCosmetologists,
       allEvents,
+      ceProviders,
     };
   },
   ['sitemap-data'],
@@ -161,6 +165,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       allSalons,
       allCosmetologists,
       allEvents,
+      ceProviders,
     } = await getCachedSitemapData();
 
     const staticSitemap = uniqueRoutes.map((route) => {
@@ -283,6 +288,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }));
 
+    // Active CE providers only — expired ones carry robots noindex, and a
+    // sitemap entry for a noindex URL asks Google to index what we told it not
+    // to. They stay reachable by internal link from the sibling callout.
+    const ceProviderProfileSitemap = (ceProviders as any[])
+      .filter((r) => r.slug && r.is_active)
+      .map((r: any) => ({
+        url: `${baseUrl}/ce-providers/${r.slug}`,
+        lastModified: r.updated_at ? new Date(r.updated_at) : new Date(),
+        changeFrequency: 'monthly' as const,
+        priority: 0.6,
+      }));
+
     const eventProfileSitemap = allEvents.map((event: any) => ({
       url: `${baseUrl}/events/${event.slug}`,
       lastModified: event.updated_at ? new Date(event.updated_at) : new Date(),
@@ -304,6 +321,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       { key: 'barber-supply-stores', rows: barberSupplyStores },
       { key: 'beauty-supply-stores', rows: beautySupplyStores },
       { key: 'events', rows: allEvents },
+      // Active only — the browse pages should not paginate over providers
+      // whose profile carries robots noindex.
+      { key: 'ce-providers', rows: (ceProviders as any[]).filter((r) => r.is_active) },
     ];
     const directorySitemap = [
       {
@@ -338,6 +358,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...salonProfileSitemap,
       ...cosmetologistProfileSitemap,
       ...eventProfileSitemap,
+      ...ceProviderProfileSitemap,
     ];
   } catch (error) {
     // Fallback static array just in case the production serverless environment strips the source folder

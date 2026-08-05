@@ -128,6 +128,23 @@ export const DIRECTORY_TYPES: DirectoryType[] = [
     cityCol: "city",
     description: "Industry events, shows, and meetups in our directory.",
   },
+  {
+    // The only family sourced from TDLR rather than Google Places, which is why
+    // every row has an address and a licence number and none started with a
+    // place_id. The description leads with price because that is the whole
+    // reason to browse these: the state's own list is 235 names in alphabetical
+    // order, and the same mandated four hours costs $5 at one provider and $24
+    // at another.
+    key: "ce-providers",
+    label: "Continuing Education Providers",
+    labelSingular: "Continuing Education Provider",
+    table: "agent_texas_ce_provider_leads",
+    entityPrefix: "/ce-providers",
+    nameCol: "name",
+    cityCol: "city",
+    description:
+      "Every TDLR-licensed continuing education provider in Texas, with licence status and course pricing where we could verify it.",
+  },
 ];
 
 export function getDirectoryType(key: string): DirectoryType | undefined {
