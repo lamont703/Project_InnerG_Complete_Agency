@@ -117,6 +117,16 @@ const GROUPS: ResourceGroup[] = [
         href: "/naccas-distance-education-requirements",
         label: "NACCAS VI.02 (for school owners)",
       },
+      {
+        href: "/texas-distance-education-compliance",
+        label: "Reporting Distance Hours (SHEARS)",
+        note: "350 + 150",
+      },
+      {
+        href: "/texas-school-penalties-distance-education",
+        label: "Penalties for Getting It Wrong",
+        note: "up to revocation",
+      },
     ],
   },
   {
