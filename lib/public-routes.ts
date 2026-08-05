@@ -55,6 +55,12 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
   '/tiktok',
   '/x',
   '/youtube',
+  // Retired. The panels were AI/blockchain guidance for developers — the one
+  // clear topical outlier on a domain that is otherwise entirely barber and
+  // beauty. 4 pixel events in 90 days, none from search. noindex'd in
+  // app/discussions/layout.tsx and dropped from the sitemap so it stops
+  // counting toward what this site claims to be about.
+  '/discussions',
   '/pixel-analytics',
   '/pinterest-queue',
   '/ad-performance',
