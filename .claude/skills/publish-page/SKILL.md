@@ -115,55 +115,34 @@ Two things that are **not** true and shouldn't be assumed:
 
 ## 7. Verify by rendering, not by reading
 
-This is the step that catches everything above. Every bug in this file
+This is the step that catches everything above — every bug in this file
 survived code review and died the moment someone fetched the page.
 
+**Use the `verify-live` skill.** It holds the commands and, more importantly,
+the five ways the check itself lies: wrong environment, SSO-protected
+staging, `curl` printing a redirect's body, `unstable_cache` serving a stale
+sitemap, and BSD `sed` silently not stripping hosts. All five have produced a
+confident wrong answer here. They are not repeated here so the two files
+cannot drift.
+
+The short version for a page change:
+
 ```bash
+pkill -9 -f "next dev"; rm -rf .next     # the sitemap filter is cached
 npx next dev -p 3399 &
-# then, per route:
-curl -s localhost:3399/<route> | grep -io '<meta name="robots"[^>]*>'
-curl -s localhost:3399/<route> | grep -io '<title>[^<]*</title>'
-curl -s localhost:3399/<route> | grep -o 'rel="canonical"[^>]*'
+curl -s localhost:3399/<route> | grep -ioE '<title>[^<]*</title>|<meta name="robots"[^>]*>|rel="canonical" href="[^"]*"'
 curl -s localhost:3399/<route>.md | head -20
 ```
 
 If you changed `lib/public-routes.ts`, diff the whole sitemap rather than
-trusting the unit logic. Two things will otherwise give you a confident wrong
-answer, and both did:
+trusting the unit logic — `verify-live` §4 and §5 have the working recipe.
 
-**Kill every dev server and wipe `.next` first.** `app/sitemap.ts` calls
-`isExcludedFromSitemap` *inside* `unstable_cache`, so the route filter's
-result is cached and editing `lib/public-routes.ts` does not invalidate it.
-Worse, several dev servers share one `.next`, so clearing the cache under a
-running server just lets another repopulate it.
+Then `npm run build`. **A metadata mistake will not fail the build**, which
+is precisely why the render check comes first.
 
-```bash
-pkill -f "next dev"; rm -rf .next
-npx next dev -p 3399 &
-```
-
-**A fast sitemap response is a cached one.** Real generation is a filesystem
-walk plus nine full-table Supabase scans — about **15 seconds**. A reply in
-under a second is a stale answer that will show your change did nothing (or,
-worse, look like it worked when it didn't).
-
-Then diff, **normalising the host** — the local sitemap uses the dev host, so
-a raw diff shows every URL as changed. Use `sed -E`: BSD sed on macOS does
-not support `\?` in a basic regex, and the host silently survives.
-
-```bash
-norm() { grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | sed -E 's|https?://[^/]+||' | sort -u; }
-curl -s -m 900 localhost:3399/sitemap.xml | norm > /tmp/new.txt
-curl -s https://agency.innergcomplete.com/sitemap.xml | norm > /tmp/old.txt
-comm -23 /tmp/old.txt /tmp/new.txt    # removed — must be exactly what you intended
-comm -13 /tmp/old.txt /tmp/new.txt    # added
-```
-
-An empty "removed" list when you expected removals means the cache, not a
-working exclusion.
-
-Then `npm run build`. A metadata mistake will not fail the build, which is
-precisely why the render check comes first.
+Remember what a push does and does not do: it reaches
+`staging.innergcomplete.com`, not production. `agency.innergcomplete.com`
+only moves on a manual PR into `main`.
 
 ## 8. Claims on the page
 
