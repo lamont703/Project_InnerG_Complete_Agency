@@ -69,6 +69,14 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
   '/shop-day-requests',
   '/shop-day-matches',
   '/program-advisory-committee-kit',
+  // Product demos, not destinations. /tools/ai-booth-station is a bare
+  // redirect() and answered 307 straight out of the sitemap — a sitemap entry
+  // that redirects is wasted crawl budget. shop-site-template serves a
+  // fabricated barbershop that was competing in the index with 8,900 real
+  // listings. Both subtrees are noindex'd in their own layout.tsx as well;
+  // this stops us advertising them in the first place.
+  '/tools/ai-booth-station',
+  '/tools/shop-site-template',
   '/tools/domain-management',
   '/tools/event-submission',
   '/tools/employment-match-review',
