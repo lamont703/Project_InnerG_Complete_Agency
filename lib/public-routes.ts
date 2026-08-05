@@ -34,6 +34,27 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
   '/accept-invite',
   '/forgot-password',
   '/reset-password',
+  // OAuth callback shims. Each of these directories contains nothing but a
+  // `callback` child — there is no /discord or /x page, which is why those
+  // paths 404. The callbacks themselves are redirect handlers with no reader.
+  //
+  // Same divergence as the block above: six of them were in
+  // MARKDOWN_EXTRA_EXCLUDE_PREFIXES and therefore refused as prose, while the
+  // sitemap advertised /x/callback, /discord/callback and five siblings —
+  // each serving the HOMEPAGE's title and description, so they were also
+  // seven duplicate-title competitors against the front page.
+  //
+  // /alpaca was in neither list and is added here. /pinterest has no
+  // directory at all; it is kept so a future route is covered by default
+  // rather than by someone remembering.
+  '/alpaca',
+  '/discord',
+  '/instagram',
+  '/linkedin',
+  '/pinterest',
+  '/tiktok',
+  '/x',
+  '/youtube',
   '/pixel-analytics',
   '/pinterest-queue',
   '/ad-performance',
@@ -59,16 +80,14 @@ export const MARKDOWN_EXTRA_EXCLUDE_PREFIXES = [
   // into SITEMAP_EXCLUDE_PREFIXES — they were always meant to be withheld
   // here, and that array is consulted first, so behaviour on this surface is
   // unchanged.
+  // The social prefixes moved up into SITEMAP_EXCLUDE_PREFIXES too — they
+  // were only ever half-excluded. Behaviour on this surface is unchanged,
+  // since that array is consulted first.
   '/api',
   '/playground',
-  '/discord',
-  '/instagram',
-  '/linkedin',
-  '/tiktok',
-  '/x',
-  '/youtube',
-  '/pinterest',
-  // OAuth callbacks and social redirect shims render nothing readable.
+  // Shop short-links: /s/{id} redirects to the full profile, so there is
+  // nothing to read. Not in the sitemap either — the filesystem crawler skips
+  // bracketed segments and /s has no page of its own.
   '/s/',
 ]
 

@@ -128,18 +128,39 @@ curl -s localhost:3399/<route>.md | head -20
 ```
 
 If you changed `lib/public-routes.ts`, diff the whole sitemap rather than
-trusting the unit logic — and **normalise the host first**, because the local
-sitemap uses the dev host and a raw diff will otherwise show every URL as
-changed:
+trusting the unit logic. Two things will otherwise give you a confident wrong
+answer, and both did:
+
+**Kill every dev server and wipe `.next` first.** `app/sitemap.ts` calls
+`isExcludedFromSitemap` *inside* `unstable_cache`, so the route filter's
+result is cached and editing `lib/public-routes.ts` does not invalidate it.
+Worse, several dev servers share one `.next`, so clearing the cache under a
+running server just lets another repopulate it.
 
 ```bash
-curl -s localhost:3399/sitemap.xml | grep -o '<loc>[^<]*</loc>' \
-  | sed 's/<[^>]*>//g; s|https\?://[^/]*||' | sort -u > /tmp/new.txt
-curl -s https://agency.innergcomplete.com/sitemap.xml | grep -o '<loc>[^<]*</loc>' \
-  | sed 's/<[^>]*>//g; s|https\?://[^/]*||' | sort -u > /tmp/old.txt
+pkill -f "next dev"; rm -rf .next
+npx next dev -p 3399 &
+```
+
+**A fast sitemap response is a cached one.** Real generation is a filesystem
+walk plus nine full-table Supabase scans — about **15 seconds**. A reply in
+under a second is a stale answer that will show your change did nothing (or,
+worse, look like it worked when it didn't).
+
+Then diff, **normalising the host** — the local sitemap uses the dev host, so
+a raw diff shows every URL as changed. Use `sed -E`: BSD sed on macOS does
+not support `\?` in a basic regex, and the host silently survives.
+
+```bash
+norm() { grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | sed -E 's|https?://[^/]+||' | sort -u; }
+curl -s -m 900 localhost:3399/sitemap.xml | norm > /tmp/new.txt
+curl -s https://agency.innergcomplete.com/sitemap.xml | norm > /tmp/old.txt
 comm -23 /tmp/old.txt /tmp/new.txt    # removed — must be exactly what you intended
 comm -13 /tmp/old.txt /tmp/new.txt    # added
 ```
+
+An empty "removed" list when you expected removals means the cache, not a
+working exclusion.
 
 Then `npm run build`. A metadata mistake will not fail the build, which is
 precisely why the render check comes first.
