@@ -357,17 +357,36 @@ export function Navbar() {
           </Button>
         </div>
 
+        {/* 44px, not 40. Apple's minimum tap target is 44pt and this button sits
+            near the screen edge, where a near-miss reads to the user as "I tapped
+            it and nothing happened". The negative margin keeps it visually where
+            it was while giving the touch area the extra 4px on each axis. */}
         <button
           onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-secondary/50 lg:hidden"
+          className="-mr-0.5 flex h-11 w-11 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-secondary/50 active:bg-secondary lg:hidden"
           aria-label={isMobileOpen ? "Close menu" : "Open menu"}
+          aria-expanded={isMobileOpen}
+          aria-controls="mobile-nav-panel"
         >
           {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </nav>
 
+      {/* The panel lives inside a `fixed` header, so anything past the fold is
+          unreachable — the page cannot be scrolled to it. Measured at 663px with
+          13 items, which overflows a 667px phone (iPhone SE/8) and strands the
+          bottom of the menu permanently. Capping to the viewport and scrolling
+          inside the panel is what makes those items reachable.
+
+          100dvh rather than 100vh: on mobile Safari and Chrome, 100vh is the
+          viewport WITHOUT the retracting browser chrome, so a vh-based cap is
+          taller than the space actually visible and re-creates the same problem
+          in a subtler form. */}
       {isMobileOpen && (
-        <div className="glass-panel-strong mx-4 mt-3 rounded-2xl p-4 lg:hidden">
+        <div
+          id="mobile-nav-panel"
+          className="glass-panel-strong mx-4 mt-3 max-h-[calc(100dvh-6rem)] overflow-y-auto overscroll-contain rounded-2xl p-4 lg:hidden"
+        >
           <div className="flex flex-col gap-1">
             {navLinks.map((link) => (
               <Link
