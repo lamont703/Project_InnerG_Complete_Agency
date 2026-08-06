@@ -22,12 +22,15 @@
 /**
  * The canonical production host.
  *
- * Phase 3 of the domain move flips this to "shearquery.com". It is deliberately
- * still the old host: both domains serve this same deployment, so changing it
- * changes what every page declares canonical, and that must happen as a
- * decision rather than as a side effect of adding a staging guard.
+ * Flipped from agency.innergcomplete.com on 2026-08-06. Every canonical, JSON-LD
+ * @id, breadcrumb item and og:url in the app resolves from here, so from this
+ * deploy onward BOTH domains tell Google the original lives on shearquery.com.
+ *
+ * That is the cross-domain consolidation signal, and it deliberately lands
+ * BEFORE the 301. The redirect is the irreversible half; this half is one line
+ * to revert, so it goes first and gets a few days to be observed.
  */
-export const SITE_HOST = "agency.innergcomplete.com";
+export const SITE_HOST = "shearquery.com";
 
 /**
  * WHAT FLIPPING THIS DOES NOT COVER. Everything inside the Next.js app follows
@@ -60,15 +63,18 @@ export const SITE_URL = `https://${SITE_HOST}`;
 /**
  * Hosts permitted to be indexed.
  *
- * Both production domains are listed during the migration window. shearquery.com
- * serves 200s now but every page on it still declares the old domain canonical,
- * so Google treats it as a duplicate that consolidates to the old URL rather
- * than as a competitor — that is the intended Phase 1 state, and noindexing it
- * instead would have to be undone at exactly the moment it matters most.
+ * Both production domains are listed, and the direction has now reversed: the
+ * OLD domain is the duplicate that consolidates to shearquery.com. It must stay
+ * indexable rather than being noindexed — Google has to keep crawling those
+ * 9,785 URLs to see the canonical, and later the 301. Blocking them is how a
+ * migration loses its equity instead of transferring it.
  *
- * texasbarbering.innergcomplete.com is a live host with its own root rewrite
- * (see middleware) and its own verified Search Console property. It is here to
- * preserve today's behaviour, not because the domain move needs it.
+ * texasbarbering.innergcomplete.com is listed but never actually reaches this
+ * check: next.config.mjs 308s the whole host away catch-all, and that runs
+ * before middleware. It was a near-duplicate of the site that Google had begun
+ * ranking ABOVE the canonical URLs, and consolidating it is the same move this
+ * migration is making at a larger scale. Kept here so that reviving the
+ * subdomain by deleting one redirect cannot silently also deindex it.
  *
  * Everything absent is non-indexable by default, which is the safe direction:
  * a new host that nobody remembered to add stays out of the index, rather than
