@@ -21,6 +21,7 @@ import {
 import Link from "next/link"
 import Image from "next/image"
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -69,7 +70,7 @@ export const metadata = {
     title: "How Long Does Barber School Take in Texas?",
     description:
       "1,000 hours, no apprenticeship pathway — what Texas actually requires, and the real accelerated path for licensed cosmetologists.",
-    url: "https://agency.innergcomplete.com/insights/texas-barber-school-length-vs-apprenticeship",
+    url: `${SITE_URL}/insights/texas-barber-school-length-vs-apprenticeship`,
     type: "article",
     images: [{ url: "/insights-library-cover.png", width: 1200, height: 630, alt: "How Long Does Barber School Take in Texas" }],
   },
@@ -79,7 +80,7 @@ export const metadata = {
     description: "1,000 hours, no apprenticeship pathway — what Texas actually requires.",
     images: ["/insights-library-cover.png"],
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/texas-barber-school-length-vs-apprenticeship" },
+  alternates: { canonical: `${SITE_URL}/insights/texas-barber-school-length-vs-apprenticeship` },
 }
 
 export default function BarberSchoolLengthArticle() {
@@ -93,7 +94,7 @@ export default function BarberSchoolLengthArticle() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/texas-barber-school-length-vs-apprenticeship",
+              "@id": `${SITE_URL}/insights/texas-barber-school-length-vs-apprenticeship`,
             },
             headline: "How Long Does Barber School Take in Texas? (And Why There's No Apprenticeship Path)",
             description:

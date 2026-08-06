@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * ShopDay, the two-sided placement network.
@@ -29,10 +30,10 @@ export const metadata: Metadata = {
     title: "ShopDay: Barber & Cosmetology Job Placement Network",
     description:
       "Shop placement for barbering, beauty and wellness. Students and licensed professionals build a passport; shop owners browse and hire from it.",
-    url: "https://agency.innergcomplete.com/barber-beauty-network",
+    url: `${SITE_URL}/barber-beauty-network`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/barber-beauty-network" },
+  alternates: { canonical: `${SITE_URL}/barber-beauty-network` },
 };
 
 export default function BarberBeautyNetworkLayout({ children }: { children: React.ReactNode }) {

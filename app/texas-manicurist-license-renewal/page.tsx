@@ -3,6 +3,7 @@ import { ArrowLeft, DollarSign, CalendarClock, AlertTriangle, ShieldAlert, Exter
 import { Navbar } from "@/components/layout/navbar";
 import { SPECIALTY_RENEWAL, TDLR_RENEW_URL, TDLR_OAG_URL } from "@/lib/tdlr-sources";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Figures come from lib/tdlr-sources.ts, which records which TDLR page settles
@@ -22,7 +23,7 @@ export const metadata = {
   description: 'Renew your Texas manicurist (nail technician) license: the $50 fee, 2-year cycle, late-renewal bands and the exact TDLR process — plus what TDLR has not published.',
   keywords: ["texas manicurist license renewal", "renew nail tech license texas", "texas nail technician license renewal", "manicurist license renewal tdlr", "texas manicurist license expired", "nail tech ce hours texas", "renew texas manicurist license online"],
   openGraph: { title: 'Texas Manicurist License Renewal (2026): Fee, Cycle & Steps', description: 'Renew your Texas manicurist (nail technician) license: the $50 fee, 2-year cycle, late-renewal bands and the exact TDLR process — plus what TDLR has not published.' },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-manicurist-license-renewal" },
+  alternates: { canonical: `${SITE_URL}/texas-manicurist-license-renewal` },
 };
 
 const FAQS = [

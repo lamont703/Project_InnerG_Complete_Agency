@@ -21,6 +21,7 @@ import {
 import Image from "next/image"
 import Link from "next/link"
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -63,7 +64,7 @@ export const metadata = {
     title: "Booth Rental Requirements in Texas (2026)",
     description:
       "The TDLR Mini-Establishment license, contract terms, and insurance every Texas booth renter should know before signing.",
-    url: "https://agency.innergcomplete.com/insights/booth-rental-contract-requirements-texas",
+    url: `${SITE_URL}/insights/booth-rental-contract-requirements-texas`,
     type: "article",
     images: [{ url: "/booth_rental_texas_contract_cover.png", width: 1024, height: 1024, alt: "Booth Rental Requirements in Texas" }],
   },
@@ -73,7 +74,7 @@ export const metadata = {
     description: "The Mini-Establishment license, contract terms, and insurance every Texas booth renter should know.",
     images: ["/booth_rental_texas_contract_cover.png"],
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/booth-rental-contract-requirements-texas" },
+  alternates: { canonical: `${SITE_URL}/insights/booth-rental-contract-requirements-texas` },
 }
 
 export default function BoothRentalRequirementsGuide() {
@@ -87,7 +88,7 @@ export default function BoothRentalRequirementsGuide() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/booth-rental-contract-requirements-texas",
+              "@id": `${SITE_URL}/insights/booth-rental-contract-requirements-texas`,
             },
             headline: "Booth Rental Requirements in Texas: Mini-Establishment License, Contract & Insurance",
             description:

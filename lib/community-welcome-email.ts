@@ -23,8 +23,9 @@
  *
  * Pure — no network, so the copy can be tested.
  */
+import { SITE_URL } from "./site";
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 
 const esc = (s: unknown) =>
   String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));

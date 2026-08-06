@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Barbershops & Salons in Pearland, TX | Real Ratings & Reviews",
@@ -15,10 +16,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Barbershops & Salons in Pearland, TX | Real Ratings & Reviews",
     description: "Real barbershops and salons in Pearland, TX, ranked by real customer ratings.",
-    url: "https://agency.innergcomplete.com/pearland-tx-barbershops-salons",
+    url: `${SITE_URL}/pearland-tx-barbershops-salons`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/pearland-tx-barbershops-salons" },
+  alternates: { canonical: `${SITE_URL}/pearland-tx-barbershops-salons` },
 };
 
 export default function PearlandBarbershopsSalonsLayout({ children }: { children: React.ReactNode }) {

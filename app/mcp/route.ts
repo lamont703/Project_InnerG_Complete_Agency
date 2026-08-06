@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MCP_TOOLS, TOOL_BY_NAME, toolDescriptors } from "@/lib/mcp/tools";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * MCP endpoint — Streamable HTTP transport, stateless.
@@ -40,7 +41,7 @@ const DEFAULT_PROTOCOL_VERSION = "2025-06-18";
  * Origin at all, which is permitted.
  */
 const ALLOWED_ORIGINS = [
-  "https://agency.innergcomplete.com",
+  SITE_URL,
   "https://shearquery.com",
   "https://www.shearquery.com",
 ];
@@ -261,10 +262,10 @@ export async function GET() {
     "USE IT",
     "",
     "  Add this URL to any MCP client:",
-    "    https://agency.innergcomplete.com/mcp",
+    `    ${SITE_URL}/mcp`,
     "",
     "  Or from a terminal:",
-    "    curl -X POST https://agency.innergcomplete.com/mcp \\",
+    `    curl -X POST ${SITE_URL}/mcp \\`,
     "      -H 'Content-Type: application/json' \\",
     `      -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'`,
     "",
@@ -272,9 +273,9 @@ export async function GET() {
     "",
     "THE DATA BEHIND IT",
     "",
-    "  Barber & cosmetology school exam outcomes  https://agency.innergcomplete.com/compare-schools",
-    "  Booth rent and chairs available            https://agency.innergcomplete.com/compare-shops",
-    "  Texas licence renewal guidance             https://agency.innergcomplete.com/texas-barber-license-renewal",
+    `  Barber & cosmetology school exam outcomes  ${SITE_URL}/compare-schools`,
+    `  Booth rent and chairs available            ${SITE_URL}/compare-shops`,
+    `  Texas licence renewal guidance             ${SITE_URL}/texas-barber-license-renewal`,
     "",
   ].join("\n");
 

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: 'Contact ShearQuery — Compliance Binders & Listing Help',
@@ -6,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Contact ShearQuery — Compliance Binders & Listing Help',
     description: "Distance-education compliance binders for schools, plus listing and claim help for barbershops and salons. Reply within one business day.",
-    url: 'https://agency.innergcomplete.com/contact',
+    url: `${SITE_URL}/contact`,
     type: 'website',
     images: [
       {
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
     images: ['/og-image.png'],
   },
   alternates: {
-    canonical: 'https://agency.innergcomplete.com/contact',
+    canonical: `${SITE_URL}/contact`,
   },
 }
 

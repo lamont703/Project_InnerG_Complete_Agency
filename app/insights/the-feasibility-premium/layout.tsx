@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: 'AI Implementation Failures: The Feasibility Premium [Case Study]',
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
     title: 'AI Implementation Failures: The Feasibility Premium [Case Study]',
     description: 'Why the most successful AI projects in wellness and grooming begin with a ruthless CPMAI viability audit, not a development sprint.',
     type: 'article',
-    url: 'https://agency.innergcomplete.com/insights/the-feasibility-premium',
+    url: `${SITE_URL}/insights/the-feasibility-premium`,
     siteName: 'Inner G Complete Agency',
     images: [
       {
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
     images: ['/the_feasibility_premium_cover_1776042291644.png'],
   },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/insights/the-feasibility-premium",
+    canonical: `${SITE_URL}/insights/the-feasibility-premium`,
   },
 }
 

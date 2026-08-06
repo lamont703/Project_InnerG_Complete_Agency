@@ -5,6 +5,7 @@ import { getCityHubData } from "@/lib/city-hub-data";
 import { CityHubDirectory } from "@/components/city-hub/CityHubDirectory";
 import { MIN_TOTAL_BUSINESSES, MIN_PER_CATEGORY } from "@/lib/city-readiness";
 import { citySlugToNameCA, getQualifyingCitiesCA, CA_BESPOKE_CITY_ROUTES } from "@/lib/california-city-readiness";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -33,7 +34,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
   const title = `${cityName} Barbershops & Salons Directory | Inner G Complete`;
   const description = `Find real barbershops, hair salons, barbers, and licensed cosmetology/barber schools in ${cityName}, CA — real ratings, real reviews, real data, not available on Google.`;
-  const canonicalUrl = `https://agency.innergcomplete.com/california/${slug}`;
+  const canonicalUrl = `${SITE_URL}/california/${slug}`;
   const lowerCity = cityName.toLowerCase();
 
   return {

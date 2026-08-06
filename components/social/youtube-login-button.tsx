@@ -3,6 +3,7 @@
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { MonitorPlay } from "lucide-react"
+import { SITE_URL } from "@/lib/site";
 
 interface YouTubeLoginButtonProps {
     projectId: string
@@ -58,7 +59,7 @@ export const YouTubeLoginButton: React.FC<YouTubeLoginButtonProps> = ({
         }
         const redirectUri = typeof window !== "undefined" && window.location.origin.includes("localhost")
             ? "http://localhost:3000/youtube/callback"
-            : "https://agency.innergcomplete.com/youtube/callback"
+            : `${SITE_URL}/youtube/callback`
 
         // youtube.force-ssl is a WRITE scope but genuinely required — the
         // connector's caption/transcript sync fails with 403 without it (see

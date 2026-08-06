@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MapPin, DollarSign, Star, Loader2, Users, Search, Scissors, ArrowRight } from "lucide-react";
 import { fetchBoothRentListings, fetchNeighborhoodRentSummary, type BoothRentListing, type ZipRentSummary } from "./actions";
 import { Navbar } from "@/components/layout/navbar";
+import { SITE_URL } from "@/lib/site";
 
 const FAQS = [
   {
@@ -247,7 +248,7 @@ export default function BarberBoothRentHoustonPage() {
             provider: {
               "@type": "Organization",
               name: "Inner G Complete",
-              url: "https://agency.innergcomplete.com",
+              url: SITE_URL,
             },
             offers: {
               "@type": "AggregateOffer",

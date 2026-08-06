@@ -12,6 +12,7 @@ import {
   SOURCE_URL,
   VERIFIED_ON,
 } from "@/lib/tdlr-school-penalties";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * What non-compliance actually costs, from TDLR's own published schedule.
@@ -49,7 +50,7 @@ export const metadata = {
   ],
   openGraph: { title: TITLE, description: DESCRIPTION },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/texas-school-penalties-distance-education",
+    canonical: `${SITE_URL}/texas-school-penalties-distance-education`,
   },
 };
 

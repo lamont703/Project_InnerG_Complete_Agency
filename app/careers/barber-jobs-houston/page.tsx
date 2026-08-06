@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { TradeRolePosting, type TradeRole } from "@/app/careers/components/TradeRolePosting";
+import { SITE_URL } from "@/lib/site";
 
 // Targets the barbering half of the hiring intent: "barbershops hiring in
 // Houston", "barber jobs Houston", "barber chair for rent Houston". Kept
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
     title: "Barbershops Hiring in Houston | Barber Jobs — ShearQuery",
     description:
       "Licensed barbers: Houston shops on ShearQuery have chairs open. Create a free barber listing and approach them with your work, license and specialties.",
-    url: "https://agency.innergcomplete.com/careers/barber-jobs-houston",
+    url: `${SITE_URL}/careers/barber-jobs-houston`,
     type: "website",
   },
 };

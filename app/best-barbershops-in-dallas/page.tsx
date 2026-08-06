@@ -1,4 +1,5 @@
 import { BestOfDirectory, type BestOfEntry } from "@/components/best-of/BestOfDirectory";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata = {
   title: "Best Barbershops in Dallas (2026) — Top Rated, Real Reviews",
@@ -14,7 +15,7 @@ export const metadata = {
   openGraph: {
     title: "Best Barbershops in Dallas (2026)",
     description: "The real, highest-rated barbershops in Dallas — ranked by live Google rating and review count.",
-    url: "https://agency.innergcomplete.com/best-barbershops-in-dallas",
+    url: `${SITE_URL}/best-barbershops-in-dallas`,
     type: "article",
   },
   twitter: {
@@ -22,7 +23,7 @@ export const metadata = {
     title: "Best Barbershops in Dallas (2026)",
     description: "Real, highest-rated barbershops in Dallas — ranked by live rating and review count.",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/best-barbershops-in-dallas" },
+  alternates: { canonical: `${SITE_URL}/best-barbershops-in-dallas` },
 };
 
 const topRated: BestOfEntry[] = [
@@ -56,9 +57,9 @@ export default function BestBarbershopsDallas() {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
             itemListElement: [
-              { "@type": "ListItem", position: 1, name: "Home", item: "https://agency.innergcomplete.com" },
-              { "@type": "ListItem", position: 2, name: "Dallas", item: "https://agency.innergcomplete.com/texas/dallas" },
-              { "@type": "ListItem", position: 3, name: "Best Barbershops in Dallas", item: "https://agency.innergcomplete.com/best-barbershops-in-dallas" },
+              { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+              { "@type": "ListItem", position: 2, name: "Dallas", item: `${SITE_URL}/texas/dallas` },
+              { "@type": "ListItem", position: 3, name: "Best Barbershops in Dallas", item: `${SITE_URL}/best-barbershops-in-dallas` },
             ],
           }),
         }}
@@ -80,7 +81,7 @@ export default function BestBarbershopsDallas() {
                 name: s.name,
                 address: { "@type": "PostalAddress", streetAddress: s.address, addressRegion: "TX", addressCountry: "US" },
                 aggregateRating: { "@type": "AggregateRating", ratingValue: s.rating, reviewCount: s.reviews, bestRating: 5, worstRating: 1 },
-                url: `https://agency.innergcomplete.com/shop/${s.slug}`,
+                url: `${SITE_URL}/shop/${s.slug}`,
               },
             })),
           }),

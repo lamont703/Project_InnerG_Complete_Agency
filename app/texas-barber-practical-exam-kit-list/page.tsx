@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { KitChecklist, type KitGroup } from "@/components/tools/kit-checklist";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata = {
   title: "Texas Barber Practical Exam Kit List & Checklist (2026)",
@@ -31,7 +32,7 @@ export const metadata = {
     description:
       "Every required kit item, the exact must-label vs. do-not-label rules, and all 11 timed stations for the Texas Class A Barber practical exam — sourced from the official PSI/TDLR bulletin effective January 1, 2026.",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-barber-practical-exam-kit-list" },
+  alternates: { canonical: `${SITE_URL}/texas-barber-practical-exam-kit-list` },
 };
 
 const FAQS = [

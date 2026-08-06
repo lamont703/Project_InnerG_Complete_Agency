@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "California Cosmetology & Barber School Pass Rates (2026 State Board)",
@@ -17,10 +18,10 @@ export const metadata: Metadata = {
     title: "California Cosmetology & Barber School Pass Rates (2026 State Board)",
     description:
       "Real 2026 first-time written state board pass rates by California school, from the Board of Barbering & Cosmetology — not available on Google.",
-    url: "https://agency.innergcomplete.com/california-school-leaderboard",
+    url: `${SITE_URL}/california-school-leaderboard`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/california-school-leaderboard" },
+  alternates: { canonical: `${SITE_URL}/california-school-leaderboard` },
 };
 
 export default function CaliforniaLeaderboardLayout({ children }: { children: React.ReactNode }) {

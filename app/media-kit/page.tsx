@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/navbar";
+import { SITE_HOST, SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
-const CANONICAL = "https://agency.innergcomplete.com/media-kit";
+const CANONICAL = `${SITE_URL}/media-kit`;
 
 export const metadata: Metadata = {
   title: "Advertising Media Kit — Sponsorships & Ad Placements",
@@ -273,7 +274,7 @@ export default function MediaKitPage() {
             <h2>Let&rsquo;s put your<br />brand in front of them.</h2>
             <p>Tell us the geography and category you want to own, and we&rsquo;ll match you to the right placement and package.</p>
             <a className="btn" href={MAILTO}>Start a conversation</a>
-            <div className="contact"><b>sponsorships@innergcomplete.com</b> &nbsp;·&nbsp; agency.innergcomplete.com</div>
+            <div className="contact"><b>sponsorships@innergcomplete.com</b> &nbsp;·&nbsp; {SITE_HOST}</div>
           </div>
         </div>
       </section>

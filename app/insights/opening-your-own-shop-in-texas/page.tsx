@@ -31,6 +31,7 @@ import {
 import Link from "next/link"
 import Image from "next/image"
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -99,7 +100,7 @@ export const metadata = {
     title: "How to Open a Barbershop in Texas (2026): Costs, Licenses & Profit",
     description:
       "Full startup cost breakdown, licensing fees, and profit math grounded in real Houston booth-rent data — plus the TDLR establishment license rules.",
-    url: "https://agency.innergcomplete.com/insights/opening-your-own-shop-in-texas",
+    url: `${SITE_URL}/insights/opening-your-own-shop-in-texas`,
     type: "article",
     images: [{ url: "/opening_shop_texas_cover.png", width: 1200, height: 630, alt: "How to Open a Barbershop in Texas" }],
   },
@@ -109,7 +110,7 @@ export const metadata = {
     description: "Startup cost breakdown, licensing fees, and profit math grounded in real Houston booth-rent data.",
     images: ["/opening_shop_texas_cover.png"],
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/opening-your-own-shop-in-texas" },
+  alternates: { canonical: `${SITE_URL}/insights/opening-your-own-shop-in-texas` },
 }
 
 // Refresh the tracked Houston booth-rent figures once a day (ISR) so the
@@ -148,7 +149,7 @@ export default async function OpeningYourOwnShopGuide() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/opening-your-own-shop-in-texas",
+              "@id": `${SITE_URL}/insights/opening-your-own-shop-in-texas`,
             },
             headline: "How to Open a Barbershop in Texas: Costs, Licenses & Profit",
             description:

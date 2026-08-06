@@ -6,6 +6,7 @@ import {
   ShieldAlert, Sparkles, Store, Users, XCircle,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Money page for the local-SEO service.
@@ -22,7 +23,7 @@ import { Navbar } from "@/components/layout/navbar";
  * should change with it, because prospects are shown the same report.
  */
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 
 /**
  * Pricing. Free audit, one-time implementation, optional monthly monitoring.

@@ -7,6 +7,7 @@ import {
   ArrowRight, BadgeCheck, XCircle, Users,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * A Texas continuing-education provider.
@@ -90,7 +91,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
     title,
     description,
     openGraph: { title, description },
-    alternates: { canonical: `https://agency.innergcomplete.com/ce-providers/${p.slug}` },
+    alternates: { canonical: `${SITE_URL}/ce-providers/${p.slug}` },
     // An expired licence is a page worth keeping — someone searching the name
     // deserves to learn it lapsed — but it should not be promoted.
     robots: p.is_active ? undefined : { index: false, follow: true },
@@ -323,7 +324,7 @@ export default async function CeProviderPage(props: { params: Promise<{ slug: st
             "@context": "https://schema.org",
             "@type": "EducationalOrganization",
             name: p.name,
-            url: `https://agency.innergcomplete.com/ce-providers/${p.slug}`,
+            url: `${SITE_URL}/ce-providers/${p.slug}`,
             ...(p.website ? { sameAs: [p.website] } : {}),
             ...(p.phone ? { telephone: p.phone } : {}),
             address: {

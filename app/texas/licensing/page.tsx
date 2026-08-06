@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/navbar";
 import { TexasRegulatoryAuthority } from "@/components/texas-hub/TexasRegulatoryAuthority";
 import { getTdlrLicenseSummary } from "@/lib/tdlr-license-summary";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Texas licensing authority and statewide licence counts.
@@ -19,7 +20,7 @@ import { getTdlrLicenseSummary } from "@/lib/tdlr-license-summary";
  * visitor needs.
  */
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 const TDLR_URL = "https://www.tdlr.texas.gov/barbering-and-cosmetology/";
 const OPEN_DATA = "https://data.texas.gov/dataset/Barber-and-Cosmetologist-Licensees/7358-krk7";
 

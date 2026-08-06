@@ -1,7 +1,7 @@
 import "server-only";
 import * as cheerio from "cheerio";
 import type { AnyNode, Element } from "domhandler";
-import { protectionBypassHeaders } from "./site";
+import { protectionBypassHeaders } from "./vercel-bypass";
 
 /**
  * Generic Markdown rendering of any public page, for the `.md` convention

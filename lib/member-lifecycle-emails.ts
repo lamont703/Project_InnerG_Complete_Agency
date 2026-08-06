@@ -1,5 +1,6 @@
 import type { LifecycleStage } from "@/lib/member-lifecycle";
 import type { PublicAuditResult } from "@/lib/gbp-audit-public";
+import { SITE_URL } from "./site";
 
 /**
  * The lifecycle emails.
@@ -16,7 +17,7 @@ import type { PublicAuditResult } from "@/lib/gbp-audit-public";
  * Pure — no network, so the copy is testable.
  */
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 
 const esc = (s: unknown) =>
   String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));

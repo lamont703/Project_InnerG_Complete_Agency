@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: 'Autonomous Concierge ROI: How AI Saves Barbers $12k/Yr [Case Study]',
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     title: 'Autonomous Concierge ROI: How AI Saves Barbers $12k/Yr [Case Study]',
     description: 'Quantifying the massive economic impact of AI-driven booking agents. See how autonomous concierges eliminate no-shows and increase clinical throughput.',
     type: 'article',
-    url: 'https://agency.innergcomplete.com/insights/autonomous-concierge-roi-analysis',
+    url: `${SITE_URL}/insights/autonomous-concierge-roi-analysis`,
     siteName: 'Inner G Complete Agency',
     images: [
       {
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
     images: ['/autonomous_concierge_roi_cover_1776043024026.png'],
   },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/insights/autonomous-concierge-roi-analysis",
+    canonical: `${SITE_URL}/insights/autonomous-concierge-roi-analysis`,
   },
 }
 

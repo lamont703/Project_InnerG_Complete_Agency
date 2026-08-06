@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { AdminHeader } from "@/features/agency/components/AdminHeader"
+import { SITE_HOST } from "@/lib/site";
 
 // ─────────────────────────────────────────────
 // SETTINGS SECTIONS
@@ -272,7 +273,7 @@ export default function AgencySettingsPage() {
                                     <Input
                                         value={primaryDomain}
                                         onChange={(e) => setPrimaryDomain(e.target.value)}
-                                        placeholder="agency.innergcomplete.com"
+                                        placeholder={SITE_HOST}
                                         className="bg-background border-border rounded-xl max-w-md"
                                     />
                                     <p className="text-[10px] text-muted-foreground/60 mt-1.5">Custom domain for white-label client portals.</p>

@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { NACCAS_POLICY, STATE_RULES, VERIFIED_ON } from "@/lib/distance-education-states";
 import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * The school-operator layer of the distance-education cluster.
@@ -41,7 +42,7 @@ export const metadata = {
   ],
   openGraph: { title: TITLE, description: DESCRIPTION },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/naccas-distance-education-requirements",
+    canonical: `${SITE_URL}/naccas-distance-education-requirements`,
   },
 };
 

@@ -5,12 +5,13 @@ import { Navbar } from "@/components/layout/navbar";
 import { MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import { getDirectoryType, DIRECTORY_TYPES, PAGE_SIZE } from "@/lib/directory-config";
 import { getDirectoryPage, resolveDirectoryCity } from "@/lib/directory-data";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
 type Props = { params: Promise<{ type: string; rest?: string[] }> };
 
-const ORIGIN = "https://agency.innergcomplete.com";
+const ORIGIN = SITE_URL;
 
 type Parsed =
   | { kind: "ok"; citySlug: string | null; cityName: string | null; page: number }

@@ -4,10 +4,11 @@ import { Navbar } from "@/components/layout/navbar";
 import { CompareShopsClient } from "./compare-client";
 import { getVenueIndex, queryVenues } from "@/lib/compare-shops-data";
 import { getShopCompareContent } from "@/lib/compare-content";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 const money = (v: number | null) => (v != null ? `$${v.toLocaleString()}` : "—");
 
 export const metadata: Metadata = {

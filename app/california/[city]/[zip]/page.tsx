@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getCityHubData } from "@/lib/city-hub-data";
 import { CityHubDirectory } from "@/components/city-hub/CityHubDirectory";
 import { citySlugToNameCA, CA_BESPOKE_CITY_ROUTES } from "@/lib/california-city-readiness";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -18,7 +19,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
   const title = `${cityName} ${zip} Barber & Cosmetology Directory | Inner G Complete`;
   const description = `Barbershops, salons, licensed pros, and barber/cosmetology schools in the ${cityName} ${zip} zip code — real ratings and reviews, not available on Google.`;
-  const canonicalUrl = `https://agency.innergcomplete.com/california/${slug}/${zip}`;
+  const canonicalUrl = `${SITE_URL}/california/${slug}/${zip}`;
 
   return {
     title,

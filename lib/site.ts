@@ -29,6 +29,31 @@
  */
 export const SITE_HOST = "agency.innergcomplete.com";
 
+/**
+ * WHAT FLIPPING THIS DOES NOT COVER. Everything inside the Next.js app follows
+ * the constant. These do not, and each is deliberate rather than an oversight:
+ *
+ *   server.json .............. MCP registry: websiteUrl + remotes[].url. Keep the
+ *                              name com.innergcomplete/shearquery — renaming
+ *                              needs a fresh apex TXT record and mints a second
+ *                              registry entry with the old one left pointing at
+ *                              a dead URL. Re-check the dated schema first.
+ *   supabase/functions/* ..... Deno, no @/ alias. _shared/cors.ts is the one that
+ *                              bites: a stale allowed origin fails at runtime,
+ *                              not at build.
+ *   scripts/*.js ............. operational tooling. indexnow_bulk_submit and
+ *                              audit_published_pages submit real URLs.
+ *   OAuth setup scripts ...... redirect URIs are REGISTERED WITH THE PROVIDER.
+ *                              Editing the string here without updating LinkedIn
+ *                              / TikTok / Notion / Google breaks the flow.
+ *   supabase/migrations/* .... already applied. Never edit.
+ *   public/*.csv ............. Search Console exports. Historical records of what
+ *                              the URLs were; rewriting them destroys the data.
+ *
+ * lib/indexnow.ts and GSC_SITE_URL in the environment are separate switches too
+ * — IndexNow needs the key file reachable on the new host before it is flipped.
+ */
+
 /** Canonical origin, no trailing slash. */
 export const SITE_URL = `https://${SITE_HOST}`;
 
@@ -72,54 +97,4 @@ export function isIndexableHost(host: string | null | undefined): boolean {
   // Strip any :port (localhost:3000, and Vercel passes none in production).
   const bare = host.split(":")[0].toLowerCase();
   return INDEXABLE_HOSTS.has(bare);
-}
-
-/**
- * Hostnames that belong to us, as opposed to hosts we merely may be indexed on.
- *
- * Wider than INDEXABLE_HOSTS on purpose: staging and preview deployments are
- * ours but must never be indexed, so the two lists answer different questions
- * and must not be collapsed into one.
- */
-const OWN_HOST_SUFFIXES = ["shearquery.com", "innergcomplete.com", "vercel.app"] as const;
-
-function isOwnHost(host: string): boolean {
-  const bare = host.split(":")[0].toLowerCase();
-  if (bare === "localhost" || bare === "127.0.0.1") return true;
-  return OWN_HOST_SUFFIXES.some((s) => bare === s || bare.endsWith(`.${s}`));
-}
-
-/**
- * Headers that let a server-side self-fetch through Vercel Deployment Protection.
- *
- * THE PROBLEM THIS SOLVES. Two routes render a page by fetching their own URL —
- * the .md layer (lib/page-markdown.ts) and the PDF renderer (app/api/pdf) — and
- * both build that URL from the inbound Host header. On staging.shearquery.com
- * that self-fetch hits a deployment behind Vercel Authentication and comes back
- * as Vercel's login page, so the .md output was literally "# Log in to Vercel"
- * and a PDF would render the same thing. Production is unaffected, which is
- * exactly why this would have gone unnoticed until someone tested on staging.
- *
- * Vercel documents the header as `x-vercel-protection-bypass` carrying
- * VERCEL_AUTOMATION_BYPASS_SECRET, which it injects into deployments itself.
- *
- * THE HOST CHECK IS THE POINT. The origin comes from a request header, and this
- * secret is what lets anyone past our deployment protection — so it goes out
- * only to hosts we recognise as ours. Vercel already refuses to route unknown
- * Hosts to the deployment; this is the second lock, not the first.
- *
- * Deliberately NOT setting `x-vercel-set-bypass-cookie` — that exists for
- * in-browser testing and answers with a redirect and a Set-Cookie, which is
- * pure overhead for a one-shot server-side fetch.
- */
-export function protectionBypassHeaders(origin: string): Record<string, string> {
-  const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-  if (!secret) return {};
-  let hostname: string;
-  try {
-    hostname = new URL(origin).hostname;
-  } catch {
-    return {};
-  }
-  return isOwnHost(hostname) ? { "x-vercel-protection-bypass": secret } : {};
 }

@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
 import { BinderClient, BinderLegend } from "./binder-client";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * The audit binder, demonstrated.
@@ -43,7 +44,7 @@ export const metadata = {
   ],
   openGraph: { title: TITLE, description: DESCRIPTION },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/tools/distance-education-audit-binder",
+    canonical: `${SITE_URL}/tools/distance-education-audit-binder`,
   },
 };
 

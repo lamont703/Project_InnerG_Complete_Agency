@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Texas Barber Exam Practice Test — Free 2026 State Board Written Prep",
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
     description:
       "Free Texas barber exam practice test for the Class A written state board exam, aligned to the PSI exam TDLR uses for the actual license.",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/tools/texas-barber-exam-practice-deck" },
+  alternates: { canonical: `${SITE_URL}/tools/texas-barber-exam-practice-deck` },
 };
 
 export default function PracticeDeckLayout({ children }: { children: React.ReactNode }) {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Locs in Houston | Real Barbers & Loctitians, Real Prices",
@@ -15,10 +16,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Locs in Houston | Real Barbers & Loctitians, Real Prices",
     description: "Real Houston barbers and cosmetologists who list a loc service, ranked by real customer ratings.",
-    url: "https://agency.innergcomplete.com/locs-houston",
+    url: `${SITE_URL}/locs-houston`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/locs-houston" },
+  alternates: { canonical: `${SITE_URL}/locs-houston` },
 };
 
 export default function LocsHoustonLayout({ children }: { children: React.ReactNode }) {

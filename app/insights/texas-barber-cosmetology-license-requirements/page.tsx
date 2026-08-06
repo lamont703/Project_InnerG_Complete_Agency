@@ -31,6 +31,7 @@ import {
 import Link from "next/link"
 import Image from "next/image"
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -123,7 +124,7 @@ export const metadata = {
     title: "Texas Cosmetology & Barber License Renewal (2026)",
     description:
       "Real renewal costs, CE hours, and the 2-year cycle for Texas cosmetology and barber licenses — plus reciprocity from other states. Sourced directly from TDLR.",
-    url: "https://agency.innergcomplete.com/insights/texas-barber-cosmetology-license-requirements",
+    url: `${SITE_URL}/insights/texas-barber-cosmetology-license-requirements`,
     type: "article",
     images: [{ url: "/texas_barber_licensing_requirements_cover.png", width: 1200, height: 630, alt: "Texas Cosmetology & Barber License Renewal" }],
   },
@@ -133,7 +134,7 @@ export const metadata = {
     description: "Renewal fees, CE hours, and the 2-year cycle — the canonical TDLR renewal guide.",
     images: ["/texas_barber_licensing_requirements_cover.png"],
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/texas-barber-cosmetology-license-requirements" },
+  alternates: { canonical: `${SITE_URL}/insights/texas-barber-cosmetology-license-requirements` },
 }
 
 export default function LicenseRequirementsGuide() {
@@ -147,7 +148,7 @@ export default function LicenseRequirementsGuide() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/texas-barber-cosmetology-license-requirements",
+              "@id": `${SITE_URL}/insights/texas-barber-cosmetology-license-requirements`,
             },
             headline: "Texas Cosmetology & Barber License Renewal: Fees, CE Hours, Application, Reciprocity",
             description:

@@ -3,6 +3,7 @@ import { getShopCompareContent, getSchoolCompareContent, type Faq } from "@/lib/
 import { MIN_SAMPLE } from "@/lib/compare-entities";
 import { isMarkdownEligible } from "@/lib/public-routes";
 import { renderPageMarkdown } from "@/lib/page-markdown";
+import { SITE_URL, SITE_HOST } from "@/lib/site";
 
 /**
  * Markdown twin for non-entity pages (tools, comparison hubs).
@@ -20,7 +21,7 @@ import { renderPageMarkdown } from "@/lib/page-markdown";
  */
 export const revalidate = 3600;
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 const money = (v: number | null) => (v != null ? `$${v.toLocaleString()}` : "—");
 const pct = (v: number | null | undefined) => (v != null ? `${Math.round(v * 100)}%` : "—");
 
@@ -190,7 +191,7 @@ const BUILDERS: Record<string, () => Promise<string>> = {
 // Mirrors app/layout.tsx and app/robots.ts — never hardcode a host that can
 // drift from the request, and resolve correctly on localhost while testing.
 function getOrigin(request: NextRequest): string {
-  const host = request.headers.get("host") || "agency.innergcomplete.com";
+  const host = request.headers.get("host") || SITE_HOST;
   return `${host.includes("localhost") ? "http" : "https"}://${host}`;
 }
 

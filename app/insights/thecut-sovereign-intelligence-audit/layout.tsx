@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: 'TheCut App Review 2026: Features, Pricing & What Barbers Are Saying',
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     title: 'TheCut App Review 2026: Features, Pricing & What Barbers Are Saying',
     description: 'An honest look at TheCut\'s booking app for barbers — what works, common complaints, and how it compares to newer AI-driven tools.',
     type: 'article',
-    url: 'https://agency.innergcomplete.com/insights/thecut-sovereign-intelligence-audit',
+    url: `${SITE_URL}/insights/thecut-sovereign-intelligence-audit`,
     siteName: 'Inner G Complete Agency',
     images: [
       {
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
     images: ['/thecut_sovereign_intelligence_audit.png'],
   },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/insights/thecut-sovereign-intelligence-audit",
+    canonical: `${SITE_URL}/insights/thecut-sovereign-intelligence-audit`,
   },
 }
 

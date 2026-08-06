@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { findRequirement } from "@/lib/texas-license-requirements";
 import { TDLR_SOURCES } from "@/lib/tdlr-sources";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Every figure comes from lib/texas-license-requirements.ts, read in turn from
@@ -20,7 +21,7 @@ export const metadata = {
   description: "What a Texas cosmetologist to class a barber licence requires — 300 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.",
   keywords: ["texas cosmetologist to class a barber license requirements", "how to get a cosmetologist to class a barber license in texas", "texas cosmetologist to class a barber license", "cosmetologist to class a barber license texas cost", "texas cosmetologist to class a barber license application", "tdlr license requirements texas", "cosmetologist to class a barber hours texas"],
   openGraph: { title: 'Texas Cosmetologist to Class A Barber Crossover Guide (2026)', description: "What a Texas cosmetologist to class a barber licence requires — 300 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages." },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-barber-license-transfer-guide" },
+  alternates: { canonical: `${SITE_URL}/texas-barber-license-transfer-guide` },
 };
 
 const FAQS = [

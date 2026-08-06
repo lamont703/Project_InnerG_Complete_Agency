@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { findRequirement } from "@/lib/texas-license-requirements";
 import { TDLR_SOURCES } from "@/lib/tdlr-sources";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Every figure comes from lib/texas-license-requirements.ts, read in turn from
@@ -20,7 +21,7 @@ export const metadata = {
   description: "What a Texas manicurist licence requires — 600 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.",
   keywords: ["texas manicurist license requirements", "how to get a manicurist license in texas", "texas manicurist license", "manicurist license texas cost", "texas manicurist license application", "tdlr license requirements texas", "manicurist hours texas"],
   openGraph: { title: 'Texas Manicurist License Requirements (2026)', description: "What a Texas manicurist licence requires — 600 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages." },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-manicurist-license-requirements-guide" },
+  alternates: { canonical: `${SITE_URL}/texas-manicurist-license-requirements-guide` },
 };
 
 const FAQS = [

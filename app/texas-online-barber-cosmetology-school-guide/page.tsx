@@ -20,6 +20,7 @@ import {
 } from "@/lib/texas-distance-education";
 import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * The state-level answer to "can I do barber or cosmetology school online in
@@ -62,7 +63,7 @@ export const metadata = {
   ],
   openGraph: { title: TITLE, description: DESCRIPTION },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/texas-online-barber-cosmetology-school-guide",
+    canonical: `${SITE_URL}/texas-online-barber-cosmetology-school-guide`,
   },
 };
 

@@ -1,4 +1,5 @@
 import type { PublicAuditResult } from "@/lib/gbp-audit-public";
+import { SITE_URL } from "./site";
 
 /**
  * The free audit, as an email.
@@ -16,7 +17,7 @@ import type { PublicAuditResult } from "@/lib/gbp-audit-public";
  * Pure — no network.
  */
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 
 const esc = (s: unknown) =>
   String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));

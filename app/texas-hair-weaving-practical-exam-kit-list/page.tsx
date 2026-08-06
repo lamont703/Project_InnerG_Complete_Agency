@@ -12,6 +12,7 @@ import {
 import { Navbar } from "@/components/layout/navbar";
 import { KitChecklist, type KitGroup } from "@/components/tools/kit-checklist";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Sourced from public/TexasHairWeavingCIB2026.pdf — the PSI Hair Weaving
@@ -43,7 +44,7 @@ export const metadata = {
       "Every required kit item, the must-label vs. do-not-label rules, and all 6 timed sections for the Texas hair weaving practical exam — from the official PSI/TDLR bulletin effective January 1, 2026.",
   },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/texas-hair-weaving-practical-exam-kit-list",
+    canonical: `${SITE_URL}/texas-hair-weaving-practical-exam-kit-list`,
   },
 };
 

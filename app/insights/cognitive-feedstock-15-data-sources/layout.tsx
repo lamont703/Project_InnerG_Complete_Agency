@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: 'Cognitive Feedstock: 15 Data Sources for Aesthetic AI | Technical Brief',
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Cognitive Feedstock: 15 Data Sources for Aesthetic AI',
     type: 'article',
-    url: 'https://agency.innergcomplete.com/insights/cognitive-feedstock-15-data-sources',
+    url: `${SITE_URL}/insights/cognitive-feedstock-15-data-sources`,
     siteName: 'Inner G Complete Agency',
     images: [
       {
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
     images: ['/cognitive_feedstock_brief_cover_1776041859371.png'],
   },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/insights/cognitive-feedstock-15-data-sources",
+    canonical: `${SITE_URL}/insights/cognitive-feedstock-15-data-sources`,
   },
 }
 

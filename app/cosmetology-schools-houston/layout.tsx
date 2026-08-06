@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 // Built off real Keyword Planner data: "cosmetology school houston,"
 // "cosmetology classes houston," "cosmetology colleges in houston,"
@@ -22,10 +23,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Cosmetology & Barber Schools in Houston, TX (2026 Pass Rates)",
     description: "Real 2026 TDLR exam pass rates for Houston cosmetology and barber schools, ranked by first-attempt success.",
-    url: "https://agency.innergcomplete.com/cosmetology-schools-houston",
+    url: `${SITE_URL}/cosmetology-schools-houston`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/cosmetology-schools-houston" },
+  alternates: { canonical: `${SITE_URL}/cosmetology-schools-houston` },
 };
 
 export default function CosmetologySchoolsHoustonLayout({ children }: { children: React.ReactNode }) {

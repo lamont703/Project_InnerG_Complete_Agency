@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { CaliforniaExamPrep } from "@/components/exam-prep/CaliforniaExamPrep";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
-const CANONICAL = "https://agency.innergcomplete.com/california-cosmetology-exam-intelligence-prep";
+const CANONICAL = `${SITE_URL}/california-cosmetology-exam-intelligence-prep`;
 
 export const metadata: Metadata = {
   title: "California Cosmetology Exam Intelligence Prep — Real 2026 Pass Rates",

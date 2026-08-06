@@ -18,7 +18,7 @@ import { AnalyticsProvider } from '@/components/providers/analytics-provider'
 
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = await headers()
-  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const host = headersList.get('host') || SITE_HOST
   const isTexasBarbering = host.includes('texasbarbering')
   const protocol = host.includes('localhost') ? 'http' : 'https'
   const domainUrl = `${protocol}://${host}`
@@ -28,7 +28,16 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(domainUrl),
     alternates: {
-      canonical: '/',
+      // metadataBase stays host-derived because the texasbarbering tenant needs
+      // its own origin for og:image and friends — but the CANONICAL must not
+      // follow the requesting host, or every host that serves this app declares
+      // itself canonical. With shearquery.com and agency.innergcomplete.com both
+      // answering 200 during the migration, that produced two homepages each
+      // claiming to be the original and no signal telling Google they are the
+      // same page. Absolute for the main site; texasbarbering is a genuinely
+      // separate property with its own Search Console entry, so it still
+      // self-references on its own host.
+      canonical: isTexasBarbering ? '/' : SITE_URL,
     },
     // The non-Texas title/description double as the homepage's Markdown twin
     // (/index.md renders them as its H1 and summary) and as what an OAuth
@@ -131,6 +140,7 @@ import { SiteNavigationTracker } from "@/components/layout/site-navigation-track
 import { ScrollCTA } from "@/components/shared/scroll-cta"
 import { ViewAsBar } from "@/components/layout/view-as"
 import { authorSchema } from "@/lib/author"
+import { SITE_HOST, SITE_URL } from "@/lib/site";
 
 export default async function RootLayout({
   children,
@@ -138,7 +148,7 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const headersList = await headers()
-  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const host = headersList.get('host') || SITE_HOST
   const isTexasBarbering = host.includes('texasbarbering')
   const protocol = host.includes('localhost') ? 'http' : 'https'
   const domainUrl = `${protocol}://${host}`

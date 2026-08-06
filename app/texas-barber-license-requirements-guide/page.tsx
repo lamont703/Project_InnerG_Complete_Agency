@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { findRequirement } from "@/lib/texas-license-requirements";
 import { TDLR_SOURCES } from "@/lib/tdlr-sources";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Every figure comes from lib/texas-license-requirements.ts, read in turn from
@@ -20,7 +21,7 @@ export const metadata = {
   description: "What a Texas class a barber licence requires — 1,000 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.",
   keywords: ["texas class a barber license requirements", "how to get a class a barber license in texas", "texas class a barber license", "class a barber license texas cost", "texas class a barber license application", "tdlr license requirements texas", "class a barber hours texas"],
   openGraph: { title: 'Texas Class A Barber License Requirements (2026)', description: "What a Texas class a barber licence requires — 1,000 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages." },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-barber-license-requirements-guide" },
+  alternates: { canonical: `${SITE_URL}/texas-barber-license-requirements-guide` },
 };
 
 const FAQS = [

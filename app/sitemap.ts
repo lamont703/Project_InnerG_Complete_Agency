@@ -19,6 +19,7 @@ import { PAGE_SIZE as DIRECTORY_PAGE_SIZE } from '@/lib/directory-config'
 // now lives in lib/public-routes.ts so the Markdown (.md) layer can't drift
 // from what the sitemap considers public.
 import { isExcludedFromSitemap } from '@/lib/public-routes'
+import { SITE_HOST } from "@/lib/site";
 
 export const dynamic = 'force-dynamic'
 
@@ -147,7 +148,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const headersList = await headers()
   const host = headersList.get('host')
   const protocol = host?.includes('localhost') ? 'http' : 'https'
-  const baseUrl = `${protocol}://${host || 'agency.innergcomplete.com'}`
+  const baseUrl = `${protocol}://${host || SITE_HOST}`
 
   try {
     const {

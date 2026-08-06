@@ -13,6 +13,7 @@ import {
 import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
 import { DistanceEducationCta } from "@/components/distance-education-cta";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * The state-by-state matrix — the hub of the distance-education cluster.
@@ -53,7 +54,7 @@ export const metadata = {
   ],
   openGraph: { title: TITLE, description: DESCRIPTION },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/states-that-allow-online-cosmetology-school",
+    canonical: `${SITE_URL}/states-that-allow-online-cosmetology-school`,
   },
 };
 

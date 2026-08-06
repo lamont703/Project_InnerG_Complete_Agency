@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BookOpen, Building2, Database, GraduationCap, Scale, Users } from "lucide-react";
 import type { TdlrLicenseSummary } from "@/lib/tdlr-license-summary";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Regulatory authority and statewide licence counts for /texas.
@@ -40,7 +41,7 @@ const OPEN_DATA = "https://data.texas.gov/dataset/Barber-and-Cosmetologist-Licen
  *  wrong page sends every publisher to the wrong URL, and it did: the block was
  *  moved to /texas/licensing while still citing /texas. */
 const DEFAULT_PAGE_TITLE = "Texas Barber & Cosmetology Licence Data";
-const DEFAULT_PAGE_URL = "https://agency.innergcomplete.com/texas/licensing";
+const DEFAULT_PAGE_URL = `${SITE_URL}/texas/licensing`;
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 

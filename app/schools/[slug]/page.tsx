@@ -38,6 +38,7 @@ import { WriteReviewButton } from "@/components/shared/write-review-button";
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { composeDescription, ratingClause, streetClause, percentClause } from "@/lib/seo-description";
 import { PassRateAlert } from "@/components/schools/pass-rate-alert";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -159,7 +160,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   return {
     title,
     description,
-    alternates: { canonical: `https://agency.innergcomplete.com/schools/${slug}` },
+    alternates: { canonical: `${SITE_URL}/schools/${slug}` },
     openGraph: {
       title,
       description,

@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { findRequirement } from "@/lib/texas-license-requirements";
 import { TDLR_SOURCES } from "@/lib/tdlr-sources";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Every figure comes from lib/texas-license-requirements.ts, read in turn from
@@ -20,7 +21,7 @@ export const metadata = {
   description: "What a Texas barber to cosmetology operator licence requires — 300 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.",
   keywords: ["texas barber to cosmetology operator license requirements", "how to get a barber to cosmetology operator license in texas", "texas barber to cosmetology operator license", "barber to cosmetology operator license texas cost", "texas barber to cosmetology operator license application", "tdlr license requirements texas", "barber to cosmetology operator hours texas"],
   openGraph: { title: 'Texas Barber to Cosmetology Operator Crossover Guide (2026)', description: "What a Texas barber to cosmetology operator licence requires — 300 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages." },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-cosmetology-license-transfer-guide" },
+  alternates: { canonical: `${SITE_URL}/texas-cosmetology-license-transfer-guide` },
 };
 
 const FAQS = [

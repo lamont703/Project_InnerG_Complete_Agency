@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 import { LeaderboardTable } from "./leaderboard-table";
 import { Navbar } from "@/components/layout/navbar";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -117,10 +118,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Texas Barber & Cosmetology School Leaderboard (2026)",
     description: "Compare Texas barber and cosmetology schools by real 2026 Class A licensing exam outcomes — data not available on Google.",
-    url: "https://agency.innergcomplete.com/texas-school-leaderboard",
+    url: `${SITE_URL}/texas-school-leaderboard`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-school-leaderboard" },
+  alternates: { canonical: `${SITE_URL}/texas-school-leaderboard` },
 };
 
 export default async function SchoolLeaderboardPage() {
@@ -142,7 +143,7 @@ export default async function SchoolLeaderboardPage() {
       item: {
         "@type": "EducationalOrganization",
         name: s.school_name,
-        url: `https://agency.innergcomplete.com/schools/${s.slug}`,
+        url: `${SITE_URL}/schools/${s.slug}`,
         ...(s.city ? { address: { "@type": "PostalAddress", addressLocality: s.city, addressRegion: "TX" } } : {}),
       },
     })),

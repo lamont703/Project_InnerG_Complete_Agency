@@ -1,4 +1,5 @@
 import React from "react"
+import { SITE_URL } from "@/lib/site";
 
 interface BreadcrumbSchemaProps {
   slug: string
@@ -14,19 +15,19 @@ export function BreadcrumbSchema({ slug, title }: BreadcrumbSchemaProps) {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://agency.innergcomplete.com"
+        "item": SITE_URL
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Insights",
-        "item": "https://agency.innergcomplete.com/insights"
+        "item": `${SITE_URL}/insights`
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": title,
-        "item": `https://agency.innergcomplete.com/insights/${slug}`
+        "item": `${SITE_URL}/insights/${slug}`
       }
     ]
   }

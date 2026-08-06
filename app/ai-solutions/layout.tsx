@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * The page was serving the homepage's title and description verbatim, because
@@ -26,10 +27,10 @@ export const metadata: Metadata = {
     title: "Barber and Cosmetology Software Tools",
     description:
       "Exam prep simulators, pass-rate dashboards, booth rent comparison and placement matching — built for the barber and cosmetology industry.",
-    url: "https://agency.innergcomplete.com/ai-solutions",
+    url: `${SITE_URL}/ai-solutions`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/ai-solutions" },
+  alternates: { canonical: `${SITE_URL}/ai-solutions` },
 };
 
 export default function AiSolutionsLayout({ children }: { children: React.ReactNode }) {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Texas Cosmetology Exam Prep (2026): Pass Rates & Study Guide",
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
     title: "Texas Cosmetology Exam Prep (2026): Pass Rates & Study Guide",
     description:
       "41% of first-time candidates fail the PSI written exam despite a 96.9% practical pass rate. Real 2026 pass-rate data, a study guide, and free practice questions.",
-    url: "https://agency.innergcomplete.com/texas-cosmetology-exam-intelligence-prep",
+    url: `${SITE_URL}/texas-cosmetology-exam-intelligence-prep`,
     siteName: "Inner G Complete Agency",
     type: "website",
     locale: "en_US",
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
       "41% of Texas cosmetology candidates fail the PSI written exam on the first try. Real pass-rate data, a study guide, and free practice questions.",
   },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/texas-cosmetology-exam-intelligence-prep",
+    canonical: `${SITE_URL}/texas-cosmetology-exam-intelligence-prep`,
   },
 }
 
@@ -46,13 +47,13 @@ const courseJsonLd = {
   name: "Texas Cosmetology Exam Intelligence Prep™",
   description:
     "ADI-powered cosmetology board exam preparation targeting the 41% first-attempt failure rate on Texas's PSI written exam. Covers PSI syntax decoding, NACCAS compliance, and domain-specific mastery for TDLR Cosmetology Operator licensure.",
-  url: "https://agency.innergcomplete.com/texas-cosmetology-exam-intelligence-prep",
+  url: `${SITE_URL}/texas-cosmetology-exam-intelligence-prep`,
   datePublished: "2026-07-12",
   provider: {
     "@type": "Organization",
     name: "Inner G Complete Agency",
-    url: "https://agency.innergcomplete.com",
-    logo: "https://agency.innergcomplete.com/apple-icon.png",
+    url: SITE_URL,
+    logo: `${SITE_URL}/apple-icon.png`,
   },
   educationalLevel: "Professional Certification",
   about: [
@@ -83,13 +84,13 @@ const breadcrumbJsonLd = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home", item: "https://agency.innergcomplete.com" },
-    { "@type": "ListItem", position: 2, name: "Solutions", item: "https://agency.innergcomplete.com/solutions" },
+    { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+    { "@type": "ListItem", position: 2, name: "Solutions", item: `${SITE_URL}/solutions` },
     {
       "@type": "ListItem",
       position: 3,
       name: "Texas Cosmetology Exam Intelligence Prep",
-      item: "https://agency.innergcomplete.com/texas-cosmetology-exam-intelligence-prep",
+      item: `${SITE_URL}/texas-cosmetology-exam-intelligence-prep`,
     },
   ],
 }

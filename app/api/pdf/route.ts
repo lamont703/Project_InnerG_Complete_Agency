@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isMarkdownEligible } from "@/lib/public-routes";
-import { protectionBypassHeaders } from "@/lib/site";
+import { protectionBypassHeaders } from "@/lib/vercel-bypass";
+import { SITE_HOST } from "@/lib/site";
 
 /**
  * Server-rendered PDF download.
@@ -33,7 +34,7 @@ function resolvePath(raw: string | null): string | null {
 }
 
 function originOf(request: NextRequest): string {
-  const host = request.headers.get("host") || "agency.innergcomplete.com";
+  const host = request.headers.get("host") || SITE_HOST;
   return `${host.includes("localhost") ? "http" : "https"}://${host}`;
 }
 
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
       headerTemplate: "<div></div>",
       footerTemplate: `
         <div style="width:100%;font-size:8px;color:#666;padding:0 0.5in;display:flex;justify-content:space-between;">
-          <span>agency.innergcomplete.com</span>
+          <span>${SITE_HOST}</span>
           <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
         </div>`,
       timeout: 45000,

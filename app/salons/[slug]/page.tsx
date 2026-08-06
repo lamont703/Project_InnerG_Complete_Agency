@@ -43,6 +43,7 @@ import {
   Scissors,
   Info,
 } from "lucide-react";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -107,7 +108,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   return {
     title,
     description,
-    alternates: { canonical: `https://agency.innergcomplete.com/salons/${slug}` },
+    alternates: { canonical: `${SITE_URL}/salons/${slug}` },
     openGraph: {
       title,
       description,

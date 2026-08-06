@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 // Server component page, but never exported its own metadata — same
 // duplicate-homepage-title bug as the other tool pages, just via a
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
     description:
       "Competitive intelligence and local foot traffic data for barbershops — find the right chair with data-backed confidence.",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/tools/foot-traffic-radar" },
+  alternates: { canonical: `${SITE_URL}/tools/foot-traffic-radar` },
 };
 
 export default function FootTrafficRadarLayout({ children }: { children: React.ReactNode }) {

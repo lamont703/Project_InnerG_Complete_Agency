@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Late Night Barbers in Houston | Real Hours, Ranked by Closing Time",
@@ -14,10 +15,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Late Night Barbers in Houston | Real Hours, Ranked by Closing Time",
     description: "Real Houston barbers with a closing time of 8 PM or later, ranked by how late they're actually open.",
-    url: "https://agency.innergcomplete.com/late-night-barbers-houston",
+    url: `${SITE_URL}/late-night-barbers-houston`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/late-night-barbers-houston" },
+  alternates: { canonical: `${SITE_URL}/late-night-barbers-houston` },
 };
 
 export default function LateNightBarbersHoustonLayout({ children }: { children: React.ReactNode }) {

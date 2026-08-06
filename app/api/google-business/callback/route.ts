@@ -11,6 +11,7 @@ import {
   stageGbpLocation,
   type GbpLocationOutcome,
 } from "@/lib/google-business";
+import { SITE_HOST } from "@/lib/site";
 
 // OAuth callback: verifies the state nonce, exchanges the code for tokens,
 // fetches the account's GBP locations, and stores the connection for the
@@ -30,7 +31,7 @@ import {
 // their behalf out of several would be a guess.
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const host = req.headers.get("host") || "agency.innergcomplete.com";
+  const host = req.headers.get("host") || SITE_HOST;
   const origin = `${host.includes("localhost") ? "http" : "https"}://${host}`;
   const back = (q: string) => NextResponse.redirect(`${origin}/account/manage-listing?${q}`);
 

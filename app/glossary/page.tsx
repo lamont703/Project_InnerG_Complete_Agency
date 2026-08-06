@@ -12,6 +12,7 @@ import {
   Layers, 
   FileText 
 } from "lucide-react"
+import { SITE_URL } from "@/lib/site";
 
 const terms = [
   {
@@ -70,7 +71,7 @@ export const metadata: Metadata = {
   title: "Technical Glossary | Artificial Domain Intelligence",
   description: "Official definitions for the core entities of the ADI and CPMAI framework — the vocabulary behind sovereign artificial intelligence in grooming and wellness.",
   alternates: {
-    canonical: "https://agency.innergcomplete.com/glossary",
+    canonical: `${SITE_URL}/glossary`,
   },
 }
 

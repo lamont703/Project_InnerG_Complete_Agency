@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import type { Metadata } from 'next';
 import ContinuingEducationClient from './ContinuingEducationClient';
+import { SITE_URL } from "@/lib/site";
 
 export const dynamic = 'force-dynamic';
 
@@ -22,10 +23,10 @@ export const metadata: Metadata = {
     title: "Texas Barber & Cosmetology Continuing Education Portal",
     description:
       "TDLR-approved 2026 continuing education course catalog for Texas barbers and cosmetologists — instant verified CE credit.",
-    url: "https://agency.innergcomplete.com/barber-cos-continuing-education",
+    url: `${SITE_URL}/barber-cos-continuing-education`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/barber-cos-continuing-education" },
+  alternates: { canonical: `${SITE_URL}/barber-cos-continuing-education` },
 };
 
 interface RawSchool {

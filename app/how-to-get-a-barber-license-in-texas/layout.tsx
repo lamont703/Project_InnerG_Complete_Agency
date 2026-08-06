@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "How to Get a Barber License in Texas (Barber Certification 2026)",
@@ -19,10 +20,10 @@ export const metadata: Metadata = {
     title: "How to Get a Barber License in Texas (Barber Certification 2026)",
     description:
       "TDLR training hours, the Class A written & practical exam, application steps, and renewal — plus real 2026 pass rates for every Texas barber school.",
-    url: "https://agency.innergcomplete.com/how-to-get-a-barber-license-in-texas",
+    url: `${SITE_URL}/how-to-get-a-barber-license-in-texas`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/how-to-get-a-barber-license-in-texas" },
+  alternates: { canonical: `${SITE_URL}/how-to-get-a-barber-license-in-texas` },
 };
 
 export default function HowToGetBarberLicenseTexasLayout({ children }: { children: React.ReactNode }) {

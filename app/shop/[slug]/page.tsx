@@ -20,6 +20,7 @@ import { SearchVisibilityCard } from "@/components/shared/search-visibility-card
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { composeDescription, ratingClause, streetClause } from "@/lib/seo-description";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Cached and regenerated hourly, matching /salons/[slug] and /schools/[slug].
@@ -149,7 +150,7 @@ export async function generateMetadata(
   return {
     title,
     description,
-    alternates: { canonical: `https://agency.innergcomplete.com/shop/${resolvedParams.slug}` },
+    alternates: { canonical: `${SITE_URL}/shop/${resolvedParams.slug}` },
     openGraph: {
       title,
       description,

@@ -3,10 +3,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { CalendarClock, ExternalLink, Info, Scale } from "lucide-react";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 900;
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

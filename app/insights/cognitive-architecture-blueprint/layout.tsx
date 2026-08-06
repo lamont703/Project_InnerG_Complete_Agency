@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: 'How We Build AI Systems for Barbershops: Our Framework Explained',
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
     title: 'How We Build AI Systems for Barbershops: Our Framework Explained',
     description: 'A behind-the-scenes look at the framework we use to design reliable, governance-first AI tools for the barber and beauty industry.',
     type: 'article',
-    url: 'https://agency.innergcomplete.com/insights/cognitive-architecture-blueprint',
+    url: `${SITE_URL}/insights/cognitive-architecture-blueprint`,
     siteName: 'Inner G Complete Agency',
     images: [
       {
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
     images: ['/cpmai_framework_cover.png'],
   },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/insights/cognitive-architecture-blueprint",
+    canonical: `${SITE_URL}/insights/cognitive-architecture-blueprint`,
   },
 }
 

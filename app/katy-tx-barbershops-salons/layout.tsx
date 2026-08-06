@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Barbershops & Salons in Katy, TX | Real Ratings & Reviews",
@@ -15,10 +16,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Barbershops & Salons in Katy, TX | Real Ratings & Reviews",
     description: "Real barbershops and salons in Katy, TX, ranked by real customer ratings.",
-    url: "https://agency.innergcomplete.com/katy-tx-barbershops-salons",
+    url: `${SITE_URL}/katy-tx-barbershops-salons`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/katy-tx-barbershops-salons" },
+  alternates: { canonical: `${SITE_URL}/katy-tx-barbershops-salons` },
 };
 
 export default function KatyBarbershopsSalonsLayout({ children }: { children: React.ReactNode }) {

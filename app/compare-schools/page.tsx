@@ -4,10 +4,11 @@ import { Navbar } from "@/components/layout/navbar";
 import { CompareSchoolsClient } from "./compare-client";
 import { getSchoolIndex, MIN_SAMPLE } from "@/lib/compare-schools-data";
 import { getSchoolCompareContent } from "@/lib/compare-content";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 
 export const metadata: Metadata = {
   title: "Compare Barber & Cosmetology Schools — Real Exam Pass Rates",

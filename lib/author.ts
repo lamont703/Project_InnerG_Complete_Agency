@@ -13,6 +13,7 @@
  * here. Changing the title in one place changes it in the markup, the visible
  * byline and the structured data at once.
  */
+import { SITE_URL } from "./site";
 
 export const AUTHOR = {
   name: "Lamont Evans",
@@ -22,7 +23,7 @@ export const AUTHOR = {
    */
   jobTitle: "Senior Product Owner | Machine Learning Engineer",
   linkedin: "https://www.linkedin.com/in/lamont-evans-57ab4922a/",
-  url: "https://agency.innergcomplete.com",
+  url: SITE_URL,
   image: "/avatars/lamont.webp",
   description:
     "Lamont Evans is a certified CPMAI (Cognitive Project Management for AI) professional specialized in architecting sovereign intelligence layers for the wellness and grooming sectors. He focuses on the intersection of agentic workflows and proprietary domain-specific models, ensuring every deployment is institutionally auditable and built for long-term ownership.",

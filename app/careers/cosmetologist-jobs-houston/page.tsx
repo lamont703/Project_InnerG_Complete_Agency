@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { TradeRolePosting, type TradeRole } from "@/app/careers/components/TradeRolePosting";
+import { SITE_URL } from "@/lib/site";
 
 // Targets the salon half of the hiring intent: "hair salons hiring in Houston",
 // "beauty salons hiring in Houston", "cosmetologist jobs Houston", "salon suite
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
     title: "Hair & Beauty Salons Hiring in Houston | Cosmetologist Jobs — ShearQuery",
     description:
       "Licensed cosmetologists and stylists: Houston salons on ShearQuery have chairs and suites open. Create a free listing and approach them with your portfolio.",
-    url: "https://agency.innergcomplete.com/careers/cosmetologist-jobs-houston",
+    url: `${SITE_URL}/careers/cosmetologist-jobs-houston`,
     type: "website",
   },
 };
