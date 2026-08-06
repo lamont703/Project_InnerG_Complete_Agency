@@ -1,6 +1,7 @@
 import "server-only";
 import * as cheerio from "cheerio";
 import type { AnyNode, Element } from "domhandler";
+import { protectionBypassHeaders } from "./site";
 
 /**
  * Generic Markdown rendering of any public page, for the `.md` convention
@@ -254,6 +255,10 @@ export async function renderPageMarkdown(
         // and keeps it out of human-traffic analytics.
         "User-Agent": "InnerGComplete-MarkdownRenderer/1.0",
         "X-Markdown-Render": "1",
+        // Without this, the self-fetch on a Deployment-Protection-guarded host
+        // returns Vercel's login page and we cheerfully convert that to
+        // Markdown. No-op on production, where nothing is protected.
+        ...protectionBypassHeaders(origin),
       },
       next: { revalidate: 3600 },
     });

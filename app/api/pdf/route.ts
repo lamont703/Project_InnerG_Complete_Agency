@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isMarkdownEligible } from "@/lib/public-routes";
+import { protectionBypassHeaders } from "@/lib/site";
 
 /**
  * Server-rendered PDF download.
@@ -72,7 +73,11 @@ export async function GET(request: NextRequest) {
 
     // Marks the render in logs and lets a page suppress anything it shouldn't
     // export. Not a security boundary — resolvePath is.
-    await page.setExtraHTTPHeaders({ "X-PDF-Render": "1" });
+    //
+    // The bypass header rides along for the same reason as the .md renderer:
+    // on a Deployment-Protection-guarded host this navigation lands on Vercel's
+    // login screen, and we would export a PDF of it. No-op on production.
+    await page.setExtraHTTPHeaders({ "X-PDF-Render": "1", ...protectionBypassHeaders(url) });
     await page.goto(url, { waitUntil: "networkidle2", timeout: 45000 });
 
     // Print styles are what strip the navbar and restore the checklist items;
