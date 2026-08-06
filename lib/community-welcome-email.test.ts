@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildCommunityWelcomeEmail } from "./community-welcome-email";
+import { SITE_URL } from "./site";
 
 describe("buildCommunityWelcomeEmail", () => {
   it("greets the member by name", () => {
@@ -21,7 +22,7 @@ describe("buildCommunityWelcomeEmail", () => {
     });
     expect(r.subject).toBe("You've claimed Timber Lodge Parlor on ShearQuery");
     expect(r.html).toContain("Timber Lodge Parlor is yours");
-    expect(r.html).toContain("https://agency.innergcomplete.com/shop/timber-lodge-parlor-abc123?claimed=1");
+    expect(r.html).toContain(`${SITE_URL}/shop/timber-lodge-parlor-abc123?claimed=1`);
   });
 
   it("leaves an absolute claim URL alone instead of double-prefixing it", () => {

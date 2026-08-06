@@ -1,0 +1,12 @@
+Pre-migration baseline captured 2026-08-06
+
+Property        https://agency.innergcomplete.com/
+Window          2026-02-07 .. 2026-08-05 (180 days)
+Clicks          1545
+Impressions     370385
+Distinct URLs   9785
+Distinct queries 25040
+
+Compare against this at week 2 and week 6 after the redirect goes live.
+A medium site takes "a few weeks for most pages to move" (Google), so a dip
+inside that window is expected; what matters is distinct-URL count recovering.

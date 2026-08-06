@@ -198,7 +198,11 @@ const nextConfig = {
       {
         source: "/:path*",
         has: [{ type: "host", value: "texasbarbering.innergcomplete.com" }],
-        destination: "https://agency.innergcomplete.com/:path*",
+        // Retargeted to shearquery.com with the domain move. Pointing it at the
+        // old domain would still work — it would just 301 again — but that is a
+        // two-hop chain on every one of these URLs for no reason, and chains are
+        // the thing Google asks you to keep short. One hop to the final home.
+        destination: "https://shearquery.com/:path*",
         permanent: true,
       },
       ...cityRedirects,

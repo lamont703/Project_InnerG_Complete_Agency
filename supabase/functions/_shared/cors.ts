@@ -4,7 +4,16 @@
  *
  * Allows requests from:
  *  - localhost:3000 (local dev)
- *  - agency.innergcomplete.com (production)
+ *  - shearquery.com (production)
+ *  - agency.innergcomplete.com (the previous domain)
+ *  - staging.shearquery.com (preview, behind Deployment Protection)
+ *
+ * Deno, so this list cannot import lib/site.ts and does not follow SITE_HOST.
+ * The old domain stays listed for as long as it resolves: it 301s to the new
+ * one for page loads, but a redirect does not help a browser that has already
+ * loaded a page from the old origin and is issuing an XHR — that request
+ * carries the OLD Origin header and would fail CORS, in the browser, with
+ * nothing in any server log. Remove it only once the old domain is retired.
  *
  * Import in every Edge Function:
  *   import { corsHeaders } from "../_shared/cors.ts"
@@ -12,7 +21,9 @@
 
 const ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "https://shearquery.com",
     "https://agency.innergcomplete.com",
+    "https://staging.shearquery.com",
 ]
 
 export const corsHeaders = {

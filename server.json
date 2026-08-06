@@ -3,16 +3,16 @@
   "name": "com.innergcomplete/shearquery",
   "title": "ShearQuery — Barber & Beauty Industry Data",
   "description": "Barber & cosmetology exam pass rates, booth rent with open chairs, and Texas licensee counts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "repository": {
     "url": "https://github.com/lamont703/Project_InnerG_Complete_Agency",
     "source": "github"
   },
-  "websiteUrl": "https://agency.innergcomplete.com",
+  "websiteUrl": "https://shearquery.com",
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://agency.innergcomplete.com/mcp"
+      "url": "https://shearquery.com/mcp"
     }
   ]
 }
