@@ -180,6 +180,44 @@ const nextConfig = {
     });
 
     return [
+      // ---------------------------------------------------------------------
+      // THE DOMAIN MOVE: agency.innergcomplete.com -> shearquery.com
+      // ---------------------------------------------------------------------
+      // Permanent (308) and path-preserving. Google treats 301 and 308 alike
+      // as permanent, so 308 is chosen for the other half of its meaning: 301
+      // historically lets a client turn a POST into a GET, 308 requires the
+      // method be preserved. This domain still receives POSTs (/mcp, form
+      // handlers), and a silently downgraded POST fails in a way nothing logs.
+      //
+      // Page-by-page, never a catch-all to "/". Google: "Don't redirect many
+      // old URLs to one irrelevant single URL destination, such as the home
+      // page." The equity here is 9,785 long-tail entity URLs, so a homepage
+      // catch-all would discard essentially all of it.
+      //
+      // WHAT IS EXCLUDED, AND WHY IT COSTS NOTHING. /api/* and the OAuth
+      // */callback routes keep answering on the old host. They are machine
+      // endpoints registered with third parties — /api/security/risc is where
+      // Google POSTs Cross-Account Protection tokens, and seven providers hold
+      // redirect URIs on this domain. A browser follows a 308; a server-to-
+      // server caller may not, and would fail silently. Every one of these is
+      // robots-disallowed or unindexed, so keeping them is free in SEO terms.
+      // Remove these exclusions once each integration has been repointed.
+      {
+        source: "/",
+        has: [{ type: "host", value: "agency.innergcomplete.com" }],
+        destination: "https://shearquery.com/",
+        permanent: true,
+      },
+      {
+        // The exclusions live in this pattern rather than in earlier "skip"
+        // rules, because Next.js redirects have no skip — a rule that sends a
+        // path back to itself is a loop, not an exemption.
+        source: "/:path((?!api/|_next/|_vercel/)(?!.*callback).*)",
+        has: [{ type: "host", value: "agency.innergcomplete.com" }],
+        destination: "https://shearquery.com/:path",
+        permanent: true,
+      },
+
       // Consolidate the texasbarbering.innergcomplete.com subdomain onto the
       // primary agency.innergcomplete.com domain. That subdomain served a
       // near-complete duplicate of the entire site (only its homepage was
