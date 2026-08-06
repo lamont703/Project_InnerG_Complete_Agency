@@ -91,18 +91,24 @@ const ESTHETICIAN_QUESTIONS: QuizQuestion[] = [
   },
 ];
 
-const DECK: Record<QuizVariant, { questions: QuizQuestion[]; href: string; cta: string }> = {
+const DECK: Record<QuizVariant, { questions: QuizQuestion[]; href: string; cta: string; blurb: string }> = {
   barber: {
     questions: BARBER_QUESTIONS,
     href: "/tools/texas-barber-exam-practice-deck",
     cta: "Take the Full Practice Deck",
+    blurb: "That's a tiny taste of the written exam. The full practice deck has the complete question bank.",
   },
   esthetician: {
     // No standalone esthetician deck route yet — the guide itself is the
     // destination, and it carries the full content outline these come from.
     questions: ESTHETICIAN_QUESTIONS,
-    href: "/insights/texas-esthetician-nail-technician-exam-guide",
+    // Was the guide's own URL — the page this quiz renders on — so clicking the
+    // CTA navigated nowhere and gave no feedback. The outline it promises is a
+    // section further down the SAME page, so this is an in-page anchor.
+    href: "#content-outline",
     cta: "See the Full Content Outline",
+    // The barber blurb promised a practice deck this CTA does not lead to.
+    blurb: "That's a tiny taste of the written exam. The full content outline below breaks down every domain and its question count.",
   },
 };
 
@@ -112,7 +118,10 @@ export function MiniExamQuiz({ variant = "barber" }: { variant?: QuizVariant } =
   const [correctCount, setCorrectCount] = useState(0);
   const [done, setDone] = useState(false);
 
-  const { questions: SAMPLE_QUESTIONS, href, cta } = DECK[variant];
+  const { questions: SAMPLE_QUESTIONS, href, cta, blurb } = DECK[variant];
+  // A pure hash is an in-page jump; next/link is for route changes and handles
+  // bare fragments inconsistently, so anchors render as a plain <a>.
+  const isAnchor = href.startsWith("#");
   const current = SAMPLE_QUESTIONS[index];
 
   const handleSelect = (optionId: string) => {
@@ -140,14 +149,23 @@ export function MiniExamQuiz({ variant = "barber" }: { variant?: QuizVariant } =
             {correctCount} / {SAMPLE_QUESTIONS.length}
           </p>
           <p className="text-sm text-muted-foreground font-medium mb-5">
-            That&apos;s a tiny taste of the written exam. The full practice deck has the complete question bank.
+            {blurb}
           </p>
-          <Link
-            href={href}
-            className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-6 py-3 text-sm font-bold hover:opacity-90 transition-opacity"
-          >
-            {cta} <ArrowRight className="h-4 w-4" />
-          </Link>
+          {isAnchor ? (
+            <a
+              href={href}
+              className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-6 py-3 text-sm font-bold hover:opacity-90 transition-opacity"
+            >
+              {cta} <ArrowRight className="h-4 w-4" />
+            </a>
+          ) : (
+            <Link
+              href={href}
+              className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-6 py-3 text-sm font-bold hover:opacity-90 transition-opacity"
+            >
+              {cta} <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
         </div>
       ) : (
         <>

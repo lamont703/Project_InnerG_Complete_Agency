@@ -336,8 +336,14 @@ export default function EstheticianNailTechExamGuide() {
             </div>
           </section>
 
-          {/* Written Exam Content Outline */}
-          <section>
+          {/* Written Exam Content Outline.
+              The id is load-bearing: the quiz CTA below ("See the Full Content
+              Outline") scrolls here. Without it the CTA had nowhere to go and
+              was pointed at this page's own URL instead, which did nothing —
+              one visitor clicked it six times in 21 seconds, including a
+              double-click, before giving up. scroll-mt clears the fixed header
+              so the heading is not hidden under it on arrival. */}
+          <section id="content-outline" className="scroll-mt-28">
             <div className="flex items-center gap-3 mb-6">
               <Target className="h-5 w-5 text-primary" />
               <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">
