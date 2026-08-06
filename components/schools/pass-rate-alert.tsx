@@ -23,6 +23,33 @@ import { X, TrendingUp, Loader2, CheckCircle2 } from "lucide-react";
 
 const DISMISS_KEY = "sq_pass_rate_alert_dismissed";
 
+/**
+ * What we currently publish, and what we are promising to send.
+ *
+ * The live figures are a PARTIAL 2026 year — lib/texas-exam-stats.ts records
+ * the roster as "2,411 records, Jan 2 – May 16 2026". So the next release is
+ * not twelve months out, and saying "2027" would both understate how soon it
+ * lands and overstate how long someone has to wait before hearing from us.
+ *
+ * Kept as constants because the underlying year is hard-coded into column
+ * names (written_pass_rate_2026 and siblings in lib/compare-schools-data.ts).
+ * When those roll forward, these are the strings that have to move with them.
+ */
+const CURRENT_PERIOD = "2026";
+const NEXT_PERIOD = "2026–27";
+
+/**
+ * How far into 2026 each board's published figures actually reach. They are
+ * not the same, and saying "run to May" on a California page would be wrong:
+ * TDLR's roster is Jan 2 – May 16 2026 (lib/texas-exam-stats.ts), while the
+ * California Board of Barbering & Cosmetology set is Q1 2026 only
+ * (app/california-school-leaderboard).
+ */
+const COVERAGE: Record<string, string> = {
+  TX: "run to May",
+  CA: "cover Q1",
+};
+
 export function PassRateAlert({
   schoolId,
   schoolName,
@@ -142,7 +169,8 @@ export function PassRateAlert({
             <div>
               <p className="text-sm font-black text-white">You&apos;re on the list.</p>
               <p className="mt-1 text-sm text-slate-300">
-                We&apos;ll email you when {schoolName}&apos;s next results publish. Nothing else.
+                We&apos;ll email you when {schoolName}&apos;s {NEXT_PERIOD} results publish. Nothing
+                else.
               </p>
             </div>
           </div>
@@ -157,8 +185,10 @@ export function PassRateAlert({
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-slate-300">
                   We publish {examState === "CA" ? "California" : "Texas"} state board results by
-                  school each year. Leave your email and we&apos;ll send you this
-                  school&apos;s next set — plus the three questions worth asking on your tour.
+                  school. The {CURRENT_PERIOD} figures on this page{" "}
+                  {COVERAGE[examState === "CA" ? "CA" : "TX"]}; leave your email and we&apos;ll send
+                  you this school&apos;s {NEXT_PERIOD} results when they land — plus the three
+                  questions worth asking on your tour.
                 </p>
               </div>
             </div>
@@ -192,7 +222,7 @@ export function PassRateAlert({
 
             {error && <p className="mt-2 text-xs font-semibold text-rose-400">{error}</p>}
             <p className="mt-2 text-[11px] text-slate-500">
-              One email when the results land. No newsletter.
+              One email when the {NEXT_PERIOD} results land. No newsletter.
             </p>
           </>
         )}
