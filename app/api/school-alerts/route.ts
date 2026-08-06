@@ -59,7 +59,10 @@ export async function POST(request: NextRequest) {
   // Honeypot — 200 so a bot cannot tell it was caught.
   if (clean(body.website)) return NextResponse.json({ ok: true });
 
-  const email = clean(body.email, 320);
+  // Lowercased here, not in the index. The unique index has to be on plain
+  // columns for ON CONFLICT to match it (a functional index on lower(email)
+  // does not), so normalising is the route's job.
+  const email = clean(body.email, 320)?.toLowerCase() ?? null;
   const school_id = clean(body.school_id, 64);
   const school_name = clean(body.school_name);
   const school_slug = clean(body.school_slug);
