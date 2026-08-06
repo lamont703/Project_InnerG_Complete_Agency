@@ -265,6 +265,40 @@ const nextConfig = {
       // their underlying database rows. Each one redirects to the
       // surviving counterpart so organic traffic and ranking signal are
       // preserved instead of 404ing.
+      //
+      // The four below were found by replaying every click-earning URL from
+      // the pre-migration Search Console baseline against the site: each still
+      // draws impressions and returns a 404. Added BEFORE the domain redirect
+      // so they resolve in one hop rather than becoming old-domain → new-domain
+      // → survivor.
+      //
+      // Matched on an exact name-and-city slug prefix with a differing id
+      // suffix, which is the signature deduplication leaves. Nothing looser:
+      // matching schools on name alone has already put the wrong campus on a
+      // record in this repo. Ten other dead URLs had no same-name-same-city
+      // survivor and are deliberately left to 404 — Google asks that removed
+      // content return 404 or 410, and pointing them at a city listing instead
+      // would be the soft-404 it warns about.
+      {
+        source: "/schools/aveda-institute-san-antonio-san-antonio-4bc38f59",
+        destination: "/schools/aveda-institute-san-antonio-san-antonio-9fb3eb1c",
+        permanent: true,
+      },
+      {
+        source: "/schools/clarendon-college-clarendon-ea2bce35",
+        destination: "/schools/clarendon-college-clarendon-45ae5683",
+        permanent: true,
+      },
+      {
+        source: "/schools/m-j-academy-llc-dallas-9098795b",
+        destination: "/schools/m-j-academy-llc-dallas-f813edde",
+        permanent: true,
+      },
+      {
+        source: "/schools/paul-mitchell-the-school-san-antonio-san-antonio-b469e84d",
+        destination: "/schools/paul-mitchell-the-school-san-antonio-san-antonio-0d7c9a47",
+        permanent: true,
+      },
       {
         source: "/stores/beauty-pop-houston-77095-05bff1bf",
         destination: "/stores/beauty-pop-san-antonio-e75f251c",
