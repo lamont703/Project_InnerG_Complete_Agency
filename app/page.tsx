@@ -12,7 +12,6 @@ import { SolutionsSection } from "@/components/landing/solutions-section"
 import { PlatformResourcesSection } from "@/components/landing/platform-resources-section"
 import { ResultsSection } from "@/components/landing/results-section"
 import { TestimonialsSection } from "@/components/landing/testimonials-section"
-import { CtaSection } from "@/components/landing/cta-section"
 import { Footer } from "@/components/layout/footer"
 
 export default function Home() {
@@ -35,7 +34,6 @@ export default function Home() {
       <PlatformResourcesSection />
       <ResultsSection />
       <TestimonialsSection />
-      <CtaSection />
       */}
       <Footer />
     </main>
