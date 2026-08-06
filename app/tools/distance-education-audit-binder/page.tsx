@@ -142,7 +142,7 @@ export default function AuditBinderPage() {
             against the same sources, and hand back a dated binder you can put in the file.
           </p>
           <Link
-            href="/contact"
+            href="/contact?from=binder"
             data-ig-click="binder_cta_contact"
             className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-slate-900 shadow-md transition-colors hover:bg-slate-100"
           >

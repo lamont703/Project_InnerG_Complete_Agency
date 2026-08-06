@@ -124,23 +124,24 @@ run_test "process-kpi-aggregation (missing connection_id → 400)" 400 "$RESPONS
 echo ""
 
 # ─── TIER 3: GHL Integration ─────────────────────────────────────────────────
-echo -e "${YELLOW}▶ TIER 3: Growth Audit Lead (Public Endpoint)${NC}"
+echo -e "${YELLOW}▶ TIER 3: Contact Form (Public Endpoint)${NC}"
 
-# [7] submit-growth-audit-lead with real data → should return 200 or partial success
-# NOTE: Uses test prefix to avoid polluting real CRM
+# [7] /api/contact — replaced submit-growth-audit-lead when growth_audit_leads
+# was dropped. Lives in the Next app now, not an Edge Function, so it is hit on
+# the site origin rather than FUNCTIONS_URL.
+# NOTE: uses a test address; lib/ghl-contacts.ts keeps those out of the CRM.
 RESPONSE=$(curl -s -o /tmp/smoke_response.txt -w "%{http_code}" \
-    -X POST "${FUNCTIONS_URL}/submit-growth-audit-lead" \
-    -H "Authorization: Bearer ${ANON_KEY}" \
+    -X POST "${SITE_URL:-https://agency.innergcomplete.com}/api/contact" \
     -H "Content-Type: application/json" \
     -d '{
-        "full_name": "SMOKE TEST - Do Not Call",
+        "name": "SMOKE TEST - Do Not Call",
         "email": "smoke-test@innergcomplete.com",
-        "phone": "555-000-0000",
-        "company_name": "Smoke Test Inc",
-        "challenge": "This is an automated smoke test. Please ignore."
+        "business_name": "Smoke Test Inc",
+        "message": "This is an automated smoke test. Please ignore.",
+        "source": "smoke_test"
     }')
 BODY=$(cat /tmp/smoke_response.txt)
-run_test "submit-growth-audit-lead (real submission → 200)" 200 "$RESPONSE" "$BODY"
+run_test "/api/contact (real submission → 200)" 200 "$RESPONSE" "$BODY"
 
 echo ""
 

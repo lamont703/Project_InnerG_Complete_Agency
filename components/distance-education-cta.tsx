@@ -48,7 +48,7 @@ export function DistanceEducationCta({
               Runs against the TDLR and NACCAS rules, student by student, with the source behind every
               flag.{" "}
               <Link
-                href="/contact"
+                href={`/contact?from=${source}`}
                 data-ig-click={`binder_contact_${source}`}
                 className="font-semibold text-slate-700 underline underline-offset-2 hover:text-slate-900"
               >

@@ -251,10 +251,18 @@ export function formatGithubRepo(row: any): string {
     return `GitHub Repository: "${row.full_name || row.name}" [Language: ${row.language || "Unknown"}]. Stars: ${row.stargazers_count ?? 0}, Forks: ${row.forks_count ?? 0}. Description: ${row.description || "No description"}.`
 }
 
-export function formatGrowthAuditLead(row: any): string {
+export function formatContactForm(row: any): string {
+    // Repointed from growth_audit_leads, which was dropped with the agency
+    // lead flow. That version read company_name / contact_name / website_url /
+    // audit_score — none of which contact_form has, so leaving the branch
+    // pointed at the old shape would have produced "Unknown Company" for every
+    // row rather than failing loudly.
     const status = row.status || "new"
-    const score = row.audit_score != null ? `${row.audit_score}/100` : "N/A"
-    return `Growth Audit Lead [${status}]: ${row.company_name || "Unknown Company"} (${row.contact_name || "Unknown Contact"}). Website: ${row.website_url || "N/A"}. AI Audit Score: ${score}.`
+    const who = row.name || "Unknown"
+    const where = row.business_name ? ` of ${row.business_name}` : ""
+    const via = row.source ? ` via ${row.source}` : ""
+    const msg = row.message ? ` Message: ${String(row.message).slice(0, 400)}` : ""
+    return `Contact form submission [${status}]${via}: ${who}${where} (${row.email || "no email"}).${msg}`
 }
 
 export function formatPixelEvent(row: any): string {
@@ -313,7 +321,7 @@ export function formatSourceRow(sourceTable: string, row: any): string {
             case "instagram_media": return formatInstagramMedia(row)
             case "instagram_comments": return formatInstagramComment(row)
             case "github_repos": return formatGithubRepo(row)
-            case "growth_audit_leads": return formatGrowthAuditLead(row)
+            case "contact_form": return formatContactForm(row)
             case "pixel_events": return formatPixelEvent(row)
             case "pixel_visitors": return formatPixelVisitor(row)
             case "social_content_plan": return formatSocialContentPlan(row)
