@@ -37,6 +37,7 @@ import { GooglePosts } from "@/components/shared/google-posts";
 import { WriteReviewButton } from "@/components/shared/write-review-button";
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { composeDescription, ratingClause, streetClause, percentClause } from "@/lib/seo-description";
+import { PassRateAlert } from "@/components/schools/pass-rate-alert";
 
 export const revalidate = 3600;
 
@@ -693,6 +694,17 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
           />
         </div>
       </div>
+
+      {/* Fires only after an outbound click — see the component for why the
+          capture sits behind the click rather than in front of it. examState
+          is recomputed here because the other two call sites live in
+          generateMetadata and an IIFE, neither in scope at this level. */}
+      <PassRateAlert
+        schoolId={school.id}
+        schoolName={school.school_name}
+        schoolSlug={school.slug}
+        examState={deriveExamState(school.formatted_address)}
+      />
     </div>
   );
 }
