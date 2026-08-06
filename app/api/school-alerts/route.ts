@@ -109,6 +109,13 @@ export async function POST(request: NextRequest) {
         .update({ ghl_contact_id: res.contactId, ghl_synced: true })
         .eq("email", email)
         .eq("school_id", school_id);
+    } else {
+      // Same silent-failure path as /api/contact — upsertGhlContact returns
+      // {ok:false} rather than throwing, so this branch is the only place the
+      // reason surfaces. See that route for the Vercel credential gap.
+      console.warn(
+        `[school-alerts] GHL not synced (${email}): ${res.error || "unknown"}${res.skipped ? " [skipped]" : ""}`
+      );
     }
   } catch (err) {
     console.error("[school-alerts] GHL sync failed (non-fatal):", err);

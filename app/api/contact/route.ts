@@ -125,6 +125,19 @@ export async function POST(request: NextRequest) {
         .from("contact_form")
         .update({ ghl_contact_id: res.contactId, ghl_synced: true })
         .eq("id", row.id);
+    } else {
+      // upsertGhlContact reports most failures by RETURNING {ok:false},
+      // not by throwing — missing credentials, a non-2xx from GHL, a
+      // timeout, a response with no contact id. The catch below never sees
+      // those, so without this branch the row just lands with
+      // ghl_synced=false and no trace of why.
+      //
+      // That is exactly how the first real submission failed: GHL_API_KEY and
+      // GHL_LOCATION_ID are set in .env.local but were never added to Vercel,
+      // so on staging and production this returns skipped=true immediately.
+      console.warn(
+        `[contact] GHL not synced (row ${row.id}): ${res.error || "unknown"}${res.skipped ? " [skipped]" : ""}`
+      );
     }
   } catch (err) {
     console.error("[contact] GHL sync failed (non-fatal):", err);
