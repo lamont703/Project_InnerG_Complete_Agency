@@ -32,6 +32,7 @@ import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { isEntityClaimed } from "@/lib/entity-claim";
 import { GoogleReviews } from "@/components/shared/google-reviews";
 import { GooglePosts } from "@/components/shared/google-posts";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -99,7 +100,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   return {
     title,
     description,
-    alternates: { canonical: `https://agency.innergcomplete.com/stores/${slug}` },
+    alternates: { canonical: `${SITE_URL}/stores/${slug}` },
     openGraph: {
       title,
       description,

@@ -1,3 +1,4 @@
+import { SITE_HOST } from "./site";
 // IndexNow — instantly notify Bing (and Yandex, Seznam, etc. — they share one
 // submission network) when a URL is created or changed, instead of waiting for
 // a crawl. Ownership is proven by the key file served at KEY_LOCATION.
@@ -10,7 +11,7 @@
 // IndexNow only authorizes the key it issued for the verified property — a
 // self-generated key returns 403 UserForbiddedToAccessSite, which is exactly
 // what happened with the previous key (be496c55…4c25).
-const HOST = "agency.innergcomplete.com";
+const HOST = SITE_HOST;
 export const INDEXNOW_KEY = "e352d1c5dee74b9084f780187d522a3a";
 const KEY_LOCATION = `https://${HOST}/${INDEXNOW_KEY}.txt`;
 const ENDPOINT = "https://api.indexnow.org/indexnow";

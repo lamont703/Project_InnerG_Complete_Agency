@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 // This page is a "use client" component, so it can't export metadata
 // itself — without this layout it silently fell back to the root
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
     description:
       "Search Texas barbershops, salons, barbers, cosmetologists, schools, supply stores, and events in one unified, semantic search engine.",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/tools/barbershop-search" },
+  alternates: { canonical: `${SITE_URL}/tools/barbershop-search` },
 };
 
 export default function BarbershopSearchLayout({ children }: { children: React.ReactNode }) {

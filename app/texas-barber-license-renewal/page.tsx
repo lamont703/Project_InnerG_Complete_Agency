@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { getRenewalStats } from "@/lib/tdlr-renewal-stats"
 import { RenewalLanding, type RenewalConfig } from "@/components/renewal/renewal-landing"
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 86400 // refresh live renewal counts daily
 
@@ -22,7 +23,7 @@ export const metadata = {
     description:
       "The $50 fee, 2-year cycle, 4 CE hours, and step-by-step renewal for a Texas Class A Barber license — sourced from TDLR.",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-barber-license-renewal" },
+  alternates: { canonical: `${SITE_URL}/texas-barber-license-renewal` },
 }
 
 const config: RenewalConfig = {

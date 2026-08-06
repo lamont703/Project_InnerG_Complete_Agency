@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { ArrowLeft, ArrowRight, BadgeCheck, CheckCircle2, MapPin, Scissors, Search, Store, Users } from "lucide-react";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Shared layout for the trade-side job postings (barber, cosmetologist).
@@ -42,7 +43,7 @@ export interface TradeRole {
   occupationalCategory: string;
 }
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 
 export function TradeRolePosting({ role }: { role: TradeRole }) {
   // Google for Jobs. hiringOrganization is us because we do the recruiting and

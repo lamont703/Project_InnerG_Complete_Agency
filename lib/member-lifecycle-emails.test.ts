@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildLifecycleEmail } from "./member-lifecycle-emails";
 import type { PublicAuditResult } from "./gbp-audit-public";
+import { SITE_HOST } from "./site";
 
 const audit = (over: Partial<PublicAuditResult> = {}): PublicAuditResult => ({
   score: 46,
@@ -61,7 +62,7 @@ describe("every stage", () => {
     for (const s of stages) {
       const e = buildLifecycleEmail(s, { firstName: "A", businessName: "B", audit: audit() })!;
       expect(e.subject, s).toBeTruthy();
-      expect(e.html, s).toContain("agency.innergcomplete.com");
+      expect(e.html, s).toContain(SITE_HOST);
       expect(e.html, s).toMatch(/Reply to this email/);
     }
   });

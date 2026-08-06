@@ -4,6 +4,7 @@ import { google } from "googleapis";
 import { GoogleGenAI } from "@google/genai";
 import { upsertFinding, resolveStaleFindings, fetchAgentHistory, getThresholdMultiplier } from "@/lib/agent-directives";
 import { internalEnv } from "@/lib/google-internal-oauth"
+import { SITE_URL } from "@/lib/site"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -37,7 +38,7 @@ const RISING_QUERY_GROWTH_THRESHOLD = 0.5;
 const RISING_QUERY_PERIOD_DAYS = 14;
 
 const ACCIDENTAL_RANKING_MIN_IMPRESSIONS = 15;
-const GENERIC_PAGES = new Set(["https://agency.innergcomplete.com/", "https://agency.innergcomplete.com/tools/barbershop-search"]);
+const GENERIC_PAGES = new Set([`${SITE_URL}/`, `${SITE_URL}/tools/barbershop-search`]);
 
 const GEOGRAPHIC_GAP_MIN_IMPRESSIONS = 10;
 // Static list on purpose — deriving this from formatted_address strings

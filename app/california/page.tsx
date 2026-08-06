@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getCaliforniaHubData } from "@/lib/california-hub-data";
 import { CaliforniaHubDirectory } from "@/components/california-hub/CaliforniaHubDirectory";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -20,10 +21,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "California Barbershops, Hair Salons & Barber Schools Directory",
     description: "Real barbershops, hair salons, barbers, and licensed schools across California — real ratings and reviews, not available on Google.",
-    url: "https://agency.innergcomplete.com/california",
+    url: `${SITE_URL}/california`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/california" },
+  alternates: { canonical: `${SITE_URL}/california` },
 };
 
 export default async function CaliforniaHubPage() {

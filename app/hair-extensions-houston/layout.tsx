@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Hair Extensions in Houston | Real Barbers & Stylists, Real Prices",
@@ -14,10 +15,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Hair Extensions in Houston | Real Barbers & Stylists, Real Prices",
     description: "Real Houston barbers and cosmetologists who list hair extensions, ranked by real customer ratings.",
-    url: "https://agency.innergcomplete.com/hair-extensions-houston",
+    url: `${SITE_URL}/hair-extensions-houston`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/hair-extensions-houston" },
+  alternates: { canonical: `${SITE_URL}/hair-extensions-houston` },
 };
 
 export default function HairExtensionsHoustonLayout({ children }: { children: React.ReactNode }) {

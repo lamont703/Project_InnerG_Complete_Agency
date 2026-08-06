@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { PublicAuditTool } from "@/components/tools/public-audit-tool";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * The free audit tool — the destination the money page's CTAs point at.
@@ -20,7 +21,7 @@ import { PublicAuditTool } from "@/components/tools/public-audit-tool";
  * first and the account is asked for once they've seen their own number.
  */
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 
 export const metadata: Metadata = {
   title: "Free Google Business Profile Audit | Barbershops, Salons & Schools",

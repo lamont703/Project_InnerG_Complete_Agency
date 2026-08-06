@@ -5,6 +5,7 @@ import { PracticalExamDrill } from "@/components/tools/practical-exam-drill";
 import { TdlrExamProcess } from "@/components/tools/tdlr-exam-process";
 import { SPECIALTY_EXAMS, countCriteria, formatDuration } from "@/lib/texas-specialty-exams";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Built entirely from TexasEstheticianCIB2026.pdf and the TDLR Barber & Cosmetology Exam
@@ -23,7 +24,7 @@ export const metadata = {
     title: 'Texas Esthetician Exam Prep (2026): Practical Drill & Kit',
     description: 'Every scored criterion on the Texas esthetician practical exam, the 8 timed sections, and the written exam format — from the Jan 1, 2026 PSI/TDLR bulletin.',
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-esthetician-exam-prep" },
+  alternates: { canonical: `${SITE_URL}/texas-esthetician-exam-prep` },
 };
 
 const FAQS = [
@@ -155,7 +156,7 @@ export default function TexasEstheticianExamPrepPage() {
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", author: authorSchema(), name: "Texas Esthetician Practical Exam — Section Order", description: "The 8 timed sections of the Texas esthetician practical exam in order, per the PSI/TDLR Candidate Information Bulletin effective January 1, 2026.", totalTime: "PT1H41M", step: EXAM.sections.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.name, text: [...s.procedure, ...s.safety].join("; ") })) }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "Course", name: "Texas Esthetician Exam Prep", description: 'Every scored criterion on the Texas esthetician practical exam, the 8 timed sections, and the written exam format — from the Jan 1, 2026 PSI/TDLR bulletin.', url: "https://agency.innergcomplete.com/texas-esthetician-exam-prep", provider: { "@type": "Organization", name: "Inner G Complete Agency", url: "https://agency.innergcomplete.com" }, teaches: "Texas esthetician practical exam scored criteria, section order and written exam format", offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } }) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "Course", name: "Texas Esthetician Exam Prep", description: 'Every scored criterion on the Texas esthetician practical exam, the 8 timed sections, and the written exam format — from the Jan 1, 2026 PSI/TDLR bulletin.', url: `${SITE_URL}/texas-esthetician-exam-prep`, provider: { "@type": "Organization", name: "Inner G Complete Agency", url: SITE_URL }, teaches: "Texas esthetician practical exam scored criteria, section order and written exam format", offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } }) }} />
     </div>
   );
 }

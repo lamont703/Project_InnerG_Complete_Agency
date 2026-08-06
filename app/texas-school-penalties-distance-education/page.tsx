@@ -3,6 +3,7 @@ import { AlertTriangle, ExternalLink, ArrowRight, Scale, ShieldAlert } from "luc
 import { Navbar } from "@/components/layout/navbar";
 import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
+import { DistanceEducationCta } from "@/components/distance-education-cta";
 import {
   PENALTY_CLASSES,
   DISTANCE_VIOLATIONS,
@@ -11,6 +12,7 @@ import {
   SOURCE_URL,
   VERIFIED_ON,
 } from "@/lib/tdlr-school-penalties";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * What non-compliance actually costs, from TDLR's own published schedule.
@@ -48,7 +50,7 @@ export const metadata = {
   ],
   openGraph: { title: TITLE, description: DESCRIPTION },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/texas-school-penalties-distance-education",
+    canonical: `${SITE_URL}/texas-school-penalties-distance-education`,
   },
 };
 
@@ -269,6 +271,7 @@ export default function TexasSchoolPenaltiesPage() {
             ))}
           </div>
         </div>
+        <DistanceEducationCta source="penalties" />
       </main>
 
       <script

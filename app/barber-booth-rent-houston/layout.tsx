@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Barber Booth Rental Near Me in Houston — Rent Cost & Open Chairs",
@@ -16,10 +17,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Barber Booth Rental Near Me in Houston — Rent Cost & Open Chairs",
     description: "Real, currently-listed barber booth rentals in Houston — weekly rent cost, open chairs, and a direct link to each shop's profile.",
-    url: "https://agency.innergcomplete.com/barber-booth-rent-houston",
+    url: `${SITE_URL}/barber-booth-rent-houston`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/barber-booth-rent-houston" },
+  alternates: { canonical: `${SITE_URL}/barber-booth-rent-houston` },
 };
 
 export default function BarberBoothRentLayout({ children }: { children: React.ReactNode }) {

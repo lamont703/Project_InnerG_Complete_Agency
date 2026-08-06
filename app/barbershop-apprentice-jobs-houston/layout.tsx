@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Barbershop Apprentice Jobs in Houston | Find Shops Hiring Now",
@@ -16,10 +17,10 @@ export const metadata: Metadata = {
     title: "Barbershop Apprentice Jobs in Houston | Find Shops Hiring Now",
     description:
       "Enter your neighborhood and pay-structure preference — see real Houston barbershops confirmed hiring right now.",
-    url: "https://agency.innergcomplete.com/barbershop-apprentice-jobs-houston",
+    url: `${SITE_URL}/barbershop-apprentice-jobs-houston`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/barbershop-apprentice-jobs-houston" },
+  alternates: { canonical: `${SITE_URL}/barbershop-apprentice-jobs-houston` },
 };
 
 export default function BarbershopApprenticeJobsLayout({ children }: { children: React.ReactNode }) {

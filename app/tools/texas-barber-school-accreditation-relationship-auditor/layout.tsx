@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 // "use client" page with no metadata of its own — was silently inheriting
 // the root layout's generic homepage title/description.
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
       "Institutional relationship auditing for Texas barber schools — tracks instructional fidelity and Title IV risk level.",
   },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/tools/texas-barber-school-accreditation-relationship-auditor",
+    canonical: `${SITE_URL}/tools/texas-barber-school-accreditation-relationship-auditor`,
   },
 };
 

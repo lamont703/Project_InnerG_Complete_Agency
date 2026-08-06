@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CalendarDays, MapPin, Compass } from "lucide-react";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { Navbar } from "@/components/layout/navbar";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -14,7 +15,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export const metadata: Metadata = {
   title: "Texas Barber & Cosmetology Industry Events",
   description: "Upcoming and past barber battles, cosmetology expos, trade shows, and industry events across Texas — dates, locations, and details for grooming professionals.",
-  alternates: { canonical: "https://agency.innergcomplete.com/events" },
+  alternates: { canonical: `${SITE_URL}/events` },
 };
 
 function formatEventDate(dateStr: string): string {

@@ -21,10 +21,11 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 import { headers } from 'next/headers'
+import { SITE_HOST } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = await headers()
-  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const host = headersList.get('host') || SITE_HOST
   const isTexasBarbering = host.includes('texasbarbering')
   const tenantName = isTexasBarbering ? 'Texas Barbering Intelligence' : 'Inner G Complete Agency'
   const domainUrl = `https://${host}`
@@ -118,7 +119,7 @@ const stats = [
 
 export default async function AboutPage() {
   const headersList = await headers()
-  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const host = headersList.get('host') || SITE_HOST
   const isTexasBarbering = host.includes('texasbarbering')
   const tenantName = isTexasBarbering ? 'Texas Barbering Intelligence' : 'Inner G Complete Agency'
 

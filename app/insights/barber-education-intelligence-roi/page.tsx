@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
+import { SITE_URL } from "@/lib/site";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -124,7 +125,7 @@ export const metadata = {
   openGraph: {
     title: "Overcoming the Blockade: Barber Education Intelligence",
     description: "A $16,800+ education preparing students physically but failing them theoretically. The ROI case for a Cognitive RAG solution.",
-    url: "https://agency.innergcomplete.com/insights/barber-education-intelligence-roi",
+    url: `${SITE_URL}/insights/barber-education-intelligence-roi`,
     type: "article",
     images: [{ url: "/barber_education_adi_vision_cover.png", width: 1200, height: 630, alt: "Overcoming the Blockade: Barber Education Intelligence" }],
   },
@@ -134,7 +135,7 @@ export const metadata = {
     description: "A definitive ROI analysis on the Cognitive RAG solution to guarantee barber licensure velocity.",
     images: ["/barber_education_adi_vision_cover.png"],
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/barber-education-intelligence-roi" },
+  alternates: { canonical: `${SITE_URL}/insights/barber-education-intelligence-roi` },
 }
 
 export default function BarberEducationADI() {
@@ -149,14 +150,14 @@ export default function BarberEducationADI() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/barber-education-intelligence-roi"
+              "@id": `${SITE_URL}/insights/barber-education-intelligence-roi`
             },
             "headline": "Barber Education Intelligence | State Board ADI Solution",
             "description": "Architecting the State Board ADI: Eradicating the $16K Barber Education Bottleneck with Sovereign Intelligence.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://agency.innergcomplete.com/about",
+              "url": `${SITE_URL}/about`,
                 "jobTitle": "Senior Product Owner | Machine Learning Engineer",
                 "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
             },
@@ -165,7 +166,7 @@ export default function BarberEducationADI() {
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
+                "url": `${SITE_URL}/icon-dark-32x32.png`
               }
             },
             "datePublished": "2026-04-19T08:00:00Z"

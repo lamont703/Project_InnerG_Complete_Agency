@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Rebooking AI Case Study: Eliminating Barber No-Shows in 2026",
@@ -17,9 +18,9 @@ export const metadata: Metadata = {
     title: "Rebooking AI Case Study: Eliminating Barber No-Shows in 2026",
     description: "Read the pilot case study on how autonomous AI is predicting no-shows and automatically rebooking clients to maintain 100% floor revenue.",
     type: "article",
-    url: "https://agency.innergcomplete.com/insights/rebooking-intelligence-pilot",
+    url: `${SITE_URL}/insights/rebooking-intelligence-pilot`,
     publishedTime: "2026-04-14T08:00:00Z",
-    authors: ["https://agency.innergcomplete.com/about"],
+    authors: [`${SITE_URL}/about`],
     siteName: 'Inner G Complete Agency',
     images: [
       {
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
     images: ['/rebooking_intelligence_pilot_brief.png'],
   },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/insights/rebooking-intelligence-pilot",
+    canonical: `${SITE_URL}/insights/rebooking-intelligence-pilot`,
   },
 }
 

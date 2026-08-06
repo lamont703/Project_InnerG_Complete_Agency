@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { isEntityClaimed } from "@/lib/entity-claim";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -119,7 +120,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   return {
     title,
     description,
-    alternates: { canonical: `https://agency.innergcomplete.com/cosmetologists/${slug}` },
+    alternates: { canonical: `${SITE_URL}/cosmetologists/${slug}` },
     openGraph: {
       title,
       description,

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: 'Careers at Inner G Complete | Build Sovereign Intelligence',
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Careers at Inner G Complete | Build Sovereign Intelligence',
     description: 'We are hiring elite AI product managers, engineers, and strategists to build the intelligence standard for wellness and grooming.',
-    url: 'https://agency.innergcomplete.com/careers',
+    url: `${SITE_URL}/careers`,
     type: 'website',
     images: [
       {
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
     images: ['/careers-hub-cover.png'],
   },
   alternates: {
-    canonical: 'https://agency.innergcomplete.com/careers',
+    canonical: `${SITE_URL}/careers`,
   },
 }
 

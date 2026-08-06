@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
+import { SITE_URL } from "@/lib/site";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -92,14 +93,14 @@ export default function FeasibilityPremiumArticle() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/the-feasibility-premium"
+              "@id": `${SITE_URL}/insights/the-feasibility-premium`
             },
             "headline": "The Feasibility Premium | Strategic View | Inner G Complete",
             "description": "Why execution feasibility is the new barrier to entry in enterprise AI integration.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://agency.innergcomplete.com/about",
+              "url": `${SITE_URL}/about`,
                 "jobTitle": "Senior Product Owner | Machine Learning Engineer",
                 "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
             },
@@ -108,7 +109,7 @@ export default function FeasibilityPremiumArticle() {
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
+                "url": `${SITE_URL}/icon-dark-32x32.png`
               }
             },
             "datePublished": "2026-04-12T08:00:00Z"

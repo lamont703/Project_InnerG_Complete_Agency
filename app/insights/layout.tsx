@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Research & Insights | Inner G Complete Agency',
     description: 'Institutional research mapping the strategic intersection of Aesthetic Domain Intelligence, generative AI, and predictive modeling.',
-    url: 'https://agency.innergcomplete.com/insights',
+    url: `${SITE_URL}/insights`,
     type: 'website',
     images: [
       {
@@ -32,11 +32,12 @@ export const metadata: Metadata = {
     images: ['/insights-library-cover.png'],
   },
   alternates: {
-    canonical: 'https://agency.innergcomplete.com/insights',
+    canonical: `${SITE_URL}/insights`,
   },
 }
 
 import { ScrollTracker } from '@/components/insights/scroll-tracker'
+import { SITE_URL } from "@/lib/site";
 
 export default function InsightsLayout({
   children,

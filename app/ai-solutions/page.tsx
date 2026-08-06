@@ -3,11 +3,19 @@
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { Navbar } from "@/components/layout/navbar"
-import { Brain, BarChart3, GraduationCap, LayoutDashboard, ArrowRight, Shield, Users, Calendar, Globe, Armchair, Radar, ClipboardList, Scale } from "lucide-react"
+import { Brain, BarChart3, GraduationCap, LayoutDashboard, ArrowRight, Shield, Users, Calendar, Globe, Armchair, Radar, ClipboardList, Scale, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 const solutions = [
+  {
+    title: "Distance Education Audit Binder",
+    label: "NACCAS & TDLR Compliance",
+    description: "Every distance-education obligation a Texas school must evidence per student — the 350/150 core-and-specialty split, the 10-business-day campus clock, the 184-hour monthly ceiling — computed and printable. A student can sit at exactly 50% distance hours and still be in breach.",
+    icon: ShieldCheck,
+    href: "/tools/distance-education-audit-binder",
+    roles: ["School Administrators", "Compliance Directors"]
+  },
   {
     title: "Barbershop & Salon Comparison Tool",
     label: "Booth Rent & Chair Comparison",

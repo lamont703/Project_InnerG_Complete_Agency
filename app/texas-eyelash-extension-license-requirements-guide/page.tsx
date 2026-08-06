@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { findRequirement } from "@/lib/texas-license-requirements";
 import { TDLR_SOURCES } from "@/lib/tdlr-sources";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Every figure comes from lib/texas-license-requirements.ts, read in turn from
@@ -20,7 +21,7 @@ export const metadata = {
   description: "What a Texas eyelash extension specialist licence requires — 320 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.",
   keywords: ["texas eyelash extension specialist license requirements", "how to get a eyelash extension specialist license in texas", "texas eyelash extension specialist license", "eyelash extension specialist license texas cost", "texas eyelash extension specialist license application", "tdlr license requirements texas", "eyelash extension specialist hours texas"],
   openGraph: { title: 'Texas Eyelash Extension Specialist License Requirements (2026)', description: "What a Texas eyelash extension specialist licence requires — 320 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages." },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-eyelash-extension-license-requirements-guide" },
+  alternates: { canonical: `${SITE_URL}/texas-eyelash-extension-license-requirements-guide` },
 };
 
 const FAQS = [

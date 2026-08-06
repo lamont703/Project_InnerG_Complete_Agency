@@ -3,6 +3,7 @@ import { ArrowLeft, DollarSign, CalendarClock, AlertTriangle, ShieldAlert, Exter
 import { Navbar } from "@/components/layout/navbar";
 import { SPECIALTY_RENEWAL, TDLR_RENEW_URL, TDLR_OAG_URL } from "@/lib/tdlr-sources";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Figures come from lib/tdlr-sources.ts, which records which TDLR page settles
@@ -22,7 +23,7 @@ export const metadata = {
   description: 'Renew your Texas eyelash extension specialist license: the $50 fee, 2-year cycle, late-renewal bands and the TDLR process — plus what TDLR has not published about CE.',
   keywords: ["texas eyelash extension license renewal", "renew lash license texas", "texas lash tech license renewal", "eyelash extension specialist license texas", "texas eyelash license expired", "lash extension ce hours texas", "renew texas eyelash license"],
   openGraph: { title: 'Texas Eyelash Extension License Renewal (2026): Fee & Steps', description: 'Renew your Texas eyelash extension specialist license: the $50 fee, 2-year cycle, late-renewal bands and the TDLR process — plus what TDLR has not published about CE.' },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-eyelash-extension-license-renewal" },
+  alternates: { canonical: `${SITE_URL}/texas-eyelash-extension-license-renewal` },
 };
 
 const FAQS = [

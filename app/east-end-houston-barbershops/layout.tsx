@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 // "east end barber houston" was the one Low-competition term in a batch
 // otherwise dominated by Medium — a real neighborhood-modifier win. We
@@ -17,10 +18,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Barbershops in Houston's East End | Real Shops, Real Ratings",
     description: "Real barbershops in Houston's East End neighborhood, ranked by real customer ratings.",
-    url: "https://agency.innergcomplete.com/east-end-houston-barbershops",
+    url: `${SITE_URL}/east-end-houston-barbershops`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/east-end-houston-barbershops" },
+  alternates: { canonical: `${SITE_URL}/east-end-houston-barbershops` },
 };
 
 export default function EastEndHoustonBarbershopsLayout({ children }: { children: React.ReactNode }) {

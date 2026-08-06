@@ -9,6 +9,7 @@ import {
   gap,
 } from "@/lib/license-reciprocity";
 import { ResearchByline } from "@/components/research-byline";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Texas ↔ California only, deliberately.
@@ -42,7 +43,7 @@ export const metadata = {
     description:
       "Neither state grants reciprocity. Hours compared per licence, both directions, and the four credentials that have no counterpart in the other state.",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-california-license-reciprocity" },
+  alternates: { canonical: `${SITE_URL}/texas-california-license-reciprocity` },
 };
 
 const FAQS = [

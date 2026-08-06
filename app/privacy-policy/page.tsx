@@ -2,10 +2,11 @@ import { Navbar } from "@/components/layout/navbar"
 import { headers } from 'next/headers'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { SITE_HOST } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = await headers()
-  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const host = headersList.get('host') || SITE_HOST
   const isTexasBarbering = host.includes('texasbarbering')
   const tenantName = isTexasBarbering ? 'Texas Barbering Intelligence' : 'Inner G Complete Agency'
 
@@ -26,7 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PrivacyPolicyPage() {
   const headersList = await headers()
-  const host = headersList.get('host') || 'agency.innergcomplete.com'
+  const host = headersList.get('host') || SITE_HOST
   const isTexasBarbering = host.includes('texasbarbering')
   const tenantName = isTexasBarbering ? 'Texas Barbering Intelligence' : 'Inner G Complete Agency'
   const supportEmail = isTexasBarbering ? 'support@texasbarbering.innergcomplete.com' : 'support@agency.innergcomplete.com'

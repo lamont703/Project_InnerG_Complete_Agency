@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: 'Booksy for Barbershops: 2026 Review — Pricing, Limits & Alternatives',
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     title: 'Booksy for Barbershops: 2026 Review — Pricing, Limits & Alternatives',
     description: 'An independent look at Booksy\'s booking platform for barbershops in 2026 — what it does well, where it falls short, and what AI-driven alternatives now offer.',
     type: 'article',
-    url: 'https://agency.innergcomplete.com/insights/booksy-sovereign-intelligence-audit',
+    url: `${SITE_URL}/insights/booksy-sovereign-intelligence-audit`,
     siteName: 'Inner G Complete Agency',
     images: [
       {
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
     images: ['/booksy_sovereign_intelligence_audit.png'],
   },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/insights/booksy-sovereign-intelligence-audit",
+    canonical: `${SITE_URL}/insights/booksy-sovereign-intelligence-audit`,
   },
 }
 

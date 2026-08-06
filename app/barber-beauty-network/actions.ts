@@ -3,6 +3,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { sendMetaConversionEvent, hashData, hashPhone } from "@/lib/meta-capi";
 import { geocode } from "@/lib/geocoding";
+import { SITE_URL } from "@/lib/site";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -12,7 +13,7 @@ const GHL_API_BASE = "https://services.leadconnectorhq.com";
 const ghlApiKey = process.env.GHL_API_KEY || "";
 const locationId = "QLyYYRoOhCg65lKW9HDX";
 
-const CHAIR_PRICING_BASE_URL = "https://agency.innergcomplete.com/tools/ai-booth-station";
+const CHAIR_PRICING_BASE_URL = `${SITE_URL}/tools/ai-booth-station`;
 
 // Matches the slug shape scripts/update_chair_pricing_urls.ts already used
 // to backfill all existing shops — kept identical so both old and newly

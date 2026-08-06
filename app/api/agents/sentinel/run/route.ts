@@ -5,6 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 import * as cheerio from "cheerio";
 import { upsertFinding, resolveStaleFindings, fetchAgentHistory } from "@/lib/agent-directives";
 import { internalEnv } from "@/lib/google-internal-oauth"
+import { SITE_URL } from "@/lib/site"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -13,7 +14,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const AGENT_NAME = "Website Technology Performance Agent";
 const MISSION = "Guard the gates — ensure every page gets indexed and doesn't throw errors.";
-const SITEMAP_URL = "https://agency.innergcomplete.com/sitemap.xml";
+const SITEMAP_URL = `${SITE_URL}/sitemap.xml`;
 
 // Real GSC URL Inspection calls take ~6.5s each (confirmed by testing, not
 // the sub-second latency originally assumed) — one invocation can only

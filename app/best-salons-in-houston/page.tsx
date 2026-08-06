@@ -1,4 +1,5 @@
 import { BestOfDirectory, type BestOfEntry } from "@/components/best-of/BestOfDirectory";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata = {
   title: "Best-Rated Salons in Houston (2026) — Top Rated, Real Reviews",
@@ -14,7 +15,7 @@ export const metadata = {
   openGraph: {
     title: "Best-Rated Salons in Houston (2026)",
     description: "The real, highest-rated hair salons in Houston — ranked by live Google rating and review count.",
-    url: "https://agency.innergcomplete.com/best-salons-in-houston",
+    url: `${SITE_URL}/best-salons-in-houston`,
     type: "article",
   },
   twitter: {
@@ -22,7 +23,7 @@ export const metadata = {
     title: "Best-Rated Salons in Houston (2026)",
     description: "Real, highest-rated salons in Houston — ranked by live rating and review count.",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/best-salons-in-houston" },
+  alternates: { canonical: `${SITE_URL}/best-salons-in-houston` },
 };
 
 const topRated: BestOfEntry[] = [
@@ -57,9 +58,9 @@ export default function BestSalonsHouston() {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
             itemListElement: [
-              { "@type": "ListItem", position: 1, name: "Home", item: "https://agency.innergcomplete.com" },
-              { "@type": "ListItem", position: 2, name: "Houston", item: "https://agency.innergcomplete.com/texas/houston" },
-              { "@type": "ListItem", position: 3, name: "Best-Rated Salons in Houston", item: "https://agency.innergcomplete.com/best-salons-in-houston" },
+              { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+              { "@type": "ListItem", position: 2, name: "Houston", item: `${SITE_URL}/texas/houston` },
+              { "@type": "ListItem", position: 3, name: "Best-Rated Salons in Houston", item: `${SITE_URL}/best-salons-in-houston` },
             ],
           }),
         }}
@@ -81,7 +82,7 @@ export default function BestSalonsHouston() {
                 name: s.name,
                 address: { "@type": "PostalAddress", streetAddress: s.address, addressRegion: "TX", addressCountry: "US" },
                 aggregateRating: { "@type": "AggregateRating", ratingValue: s.rating, reviewCount: s.reviews, bestRating: 5, worstRating: 1 },
-                url: `https://agency.innergcomplete.com/salons/${s.slug}`,
+                url: `${SITE_URL}/salons/${s.slug}`,
               },
             })),
           }),

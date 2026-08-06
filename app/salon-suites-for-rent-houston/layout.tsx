@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Salon Suites for Rent in Houston | Inner G Complete",
@@ -15,10 +16,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Salon Suites for Rent in Houston | Inner G Complete",
     description: "Real, currently-listed salon suite availability in Houston, plus what a suite rental requires in Texas.",
-    url: "https://agency.innergcomplete.com/salon-suites-for-rent-houston",
+    url: `${SITE_URL}/salon-suites-for-rent-houston`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/salon-suites-for-rent-houston" },
+  alternates: { canonical: `${SITE_URL}/salon-suites-for-rent-houston` },
 };
 
 export default function SalonSuitesLayout({ children }: { children: React.ReactNode }) {

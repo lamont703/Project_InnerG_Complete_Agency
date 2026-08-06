@@ -19,6 +19,10 @@ const TEXAS_STATEWIDE_LINKS: { href: string; label: string }[] = [
   // the same destination a third time on one screen.
   { href: "/texas-school-leaderboard", label: "Texas School Leaderboard" },
   { href: "/barber-cos-continuing-education", label: "Continuing Education Portal" },
+  // The portal explains what the 4 hours must cover; this is who can sell them
+  // to you, and for how much. Distinct enough to earn its own card — the state's
+  // own list is 235 names alphabetically with no price and no licence status.
+  { href: "/directory/ce-providers", label: "CE Providers & Pricing" },
   { href: "/how-to-get-a-barber-license-in-texas", label: "How to Get a Barber License in Texas" },
   { href: "/directory", label: "Full Directory (A–Z)" },
 ];

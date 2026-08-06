@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { isEntityClaimed } from "@/lib/entity-claim";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -91,7 +92,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
     title,
     description,
     keywords,
-    alternates: { canonical: `https://agency.innergcomplete.com/events/${slug}` },
+    alternates: { canonical: `${SITE_URL}/events/${slug}` },
     openGraph: {
       title,
       description,
@@ -193,9 +194,9 @@ function buildEventBreadcrumbJsonLd(event: any) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "https://agency.innergcomplete.com" },
-      { "@type": "ListItem", position: 2, name: "Events", item: "https://agency.innergcomplete.com/events" },
-      { "@type": "ListItem", position: 3, name: event.title, item: `https://agency.innergcomplete.com/events/${event.slug}` },
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Events", item: `${SITE_URL}/events` },
+      { "@type": "ListItem", position: 3, name: event.title, item: `${SITE_URL}/events/${event.slug}` },
     ],
   };
 }

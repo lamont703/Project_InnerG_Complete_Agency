@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import * as cheerio from 'cheerio';
+import { SITE_URL } from "@/lib/site";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
       try {
         const response = await fetch(domain.domain_url, {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; BarberIntelBot/1.0; +https://agency.innergcomplete.com)'
+            'User-Agent': `Mozilla/5.0 (compatible; BarberIntelBot/1.0; +${SITE_URL})`
           }
         });
 

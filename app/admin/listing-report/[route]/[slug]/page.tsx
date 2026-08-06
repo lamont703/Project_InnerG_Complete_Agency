@@ -7,6 +7,7 @@ import {
   fetchListingLeadReport,
   ROUTE_LABEL,
 } from "@/lib/account/listing-leads";
+import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function AdminListingReportPage({
   if (!listing) notFound();
 
   const series = await fetchListingLeadReport(listing.route, listing.slug, 12);
-  const publicUrl = `https://agency.innergcomplete.com/${listing.route}/${listing.slug}`;
+  const publicUrl = `${SITE_URL}/${listing.route}/${listing.slug}`;
 
   return (
     <div className="min-h-screen bg-slate-50 light print:bg-white">

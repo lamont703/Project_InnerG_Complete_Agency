@@ -3,6 +3,7 @@ import { ArrowLeft, DollarSign, CalendarClock, AlertTriangle, ShieldAlert, Exter
 import { Navbar } from "@/components/layout/navbar";
 import { SPECIALTY_RENEWAL, TDLR_RENEW_URL, TDLR_OAG_URL } from "@/lib/tdlr-sources";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Figures come from lib/tdlr-sources.ts, which records which TDLR page settles
@@ -22,7 +23,7 @@ export const metadata = {
   description: 'Renew your Texas hair weaving specialist license: the $50 fee, 2-year cycle, late-renewal bands and the exact TDLR process — plus what TDLR has not published about CE.',
   keywords: ["texas hair weaving license renewal", "renew hair weaving license texas", "hair weaving specialist license texas", "texas braiding license renewal", "hair weaving license expired texas", "hair weaving ce hours texas", "renew texas weaving license"],
   openGraph: { title: 'Texas Hair Weaving License Renewal (2026): Fee & Steps', description: 'Renew your Texas hair weaving specialist license: the $50 fee, 2-year cycle, late-renewal bands and the exact TDLR process — plus what TDLR has not published about CE.' },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-hair-weaving-license-renewal" },
+  alternates: { canonical: `${SITE_URL}/texas-hair-weaving-license-renewal` },
 };
 
 const FAQS = [

@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { findRequirement } from "@/lib/texas-license-requirements";
 import { TDLR_SOURCES } from "@/lib/tdlr-sources";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Every figure comes from lib/texas-license-requirements.ts, read in turn from
@@ -20,7 +21,7 @@ export const metadata = {
   description: "What a Texas barber school licence requires — $580 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.",
   keywords: ["texas barber school license requirements", "how to get a barber school license in texas", "texas barber school license", "barber school license texas cost", "texas barber school license application", "tdlr license requirements texas"],
   openGraph: { title: 'Texas Barber School License Requirements (2026)', description: "What a Texas barber school licence requires — $580 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages." },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-barber-school-license-requirements-guide" },
+  alternates: { canonical: `${SITE_URL}/texas-barber-school-license-requirements-guide` },
 };
 
 const FAQS = [

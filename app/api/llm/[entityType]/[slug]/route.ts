@@ -10,6 +10,7 @@ import {
   EVENT_PUBLIC_COLUMNS,
   SHOP_PUBLIC_COLUMNS,
 } from "@/lib/public-columns";
+import { SITE_HOST } from "@/lib/site";
 
 // Reached only via middleware's rewrite of a `.md` request (e.g.
 // /barbers/{slug}.md -> /api/llm/barbers/{slug}) — a real visitor never
@@ -35,7 +36,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // hardcode a domain that drifts from whatever the request actually came
 // in on (also correctly resolves to localhost while testing).
 function getBaseUrl(request: NextRequest): string {
-  const host = request.headers.get("host") || "agency.innergcomplete.com";
+  const host = request.headers.get("host") || SITE_HOST;
   const protocol = host.includes("localhost") ? "http" : "https";
   return `${protocol}://${host}`;
 }

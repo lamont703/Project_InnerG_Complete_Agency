@@ -1,3 +1,4 @@
+import { SITE_URL } from "./site";
 // Structured catalog of the long-tail keywords each published page targets.
 // Single source of truth for the /tools/seo-keyword-tracker dashboard; mirrors
 // SEO_KEYWORD_TRACKER.md. Keep the two in sync when targeting changes.
@@ -18,7 +19,7 @@ export interface KeywordCategory {
   pages: KeywordPage[]
 }
 
-export const SITE_ORIGIN = "https://agency.innergcomplete.com"
+export const SITE_ORIGIN = SITE_URL
 
 export const SEO_KEYWORD_CATALOG: KeywordCategory[] = [
   // ───────────────────────── SERVICE ─────────────────────────

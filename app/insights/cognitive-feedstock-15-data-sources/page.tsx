@@ -30,6 +30,7 @@ import {
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
+import { SITE_URL } from "@/lib/site";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -237,14 +238,14 @@ export default function DataSourcesBrief() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/cognitive-feedstock-15-data-sources"
+              "@id": `${SITE_URL}/insights/cognitive-feedstock-15-data-sources`
             },
             "headline": "Cognitive Feedstock: The 15 Enterprise Data Sources | Inner G Complete",
             "description": "A breakdown of the 15 critical data streams that fuel an enterprise Artificial Domain Intelligence model.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://agency.innergcomplete.com/about",
+              "url": `${SITE_URL}/about`,
                 "jobTitle": "Senior Product Owner | Machine Learning Engineer",
                 "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
             },
@@ -253,7 +254,7 @@ export default function DataSourcesBrief() {
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
+                "url": `${SITE_URL}/icon-dark-32x32.png`
               }
             },
             "datePublished": "2026-04-12T08:00:00Z"

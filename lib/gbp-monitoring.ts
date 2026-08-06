@@ -1,4 +1,5 @@
 import type { AuditDiff } from "@/lib/gbp-audit-history";
+import { SITE_URL } from "./site";
 
 /**
  * Deciding whether a weekly monitoring email is worth sending, and writing it.
@@ -9,7 +10,7 @@ import type { AuditDiff } from "@/lib/gbp-audit-history";
  * and then the one week something *does* break, they don't see it.
  */
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 
 export interface MonitoringEmail {
   subject: string;

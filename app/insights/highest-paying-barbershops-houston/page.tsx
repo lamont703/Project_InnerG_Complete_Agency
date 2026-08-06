@@ -19,6 +19,7 @@ import {
 import Link from "next/link"
 import Image from "next/image"
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -49,7 +50,7 @@ export const metadata = {
   openGraph: {
     title: "Highest Paying Barbershops in Houston",
     description: "The real, currently-listed pay terms — lowest booth rents and highest commission splits — across Houston barbershops.",
-    url: "https://agency.innergcomplete.com/insights/highest-paying-barbershops-houston",
+    url: `${SITE_URL}/insights/highest-paying-barbershops-houston`,
     type: "article",
     images: [{ url: "/insights-library-cover.png", width: 1200, height: 630, alt: "Highest Paying Barbershops in Houston" }],
   },
@@ -59,7 +60,7 @@ export const metadata = {
     description: "Real pay-term data — lowest booth rents and highest commission splits — not guesses.",
     images: ["/insights-library-cover.png"],
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/highest-paying-barbershops-houston" },
+  alternates: { canonical: `${SITE_URL}/insights/highest-paying-barbershops-houston` },
 }
 
 export default function HighestPayingBarbershopsArticle() {
@@ -73,7 +74,7 @@ export default function HighestPayingBarbershopsArticle() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/highest-paying-barbershops-houston",
+              "@id": `${SITE_URL}/insights/highest-paying-barbershops-houston`,
             },
             headline: "Highest Paying Barbershops in Houston: Best Pay Terms, Real Listings",
             description:

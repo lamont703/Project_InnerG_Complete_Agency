@@ -10,6 +10,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { isMarkdownEligible } from "@/lib/public-routes"
 import { ADMIN_EMAILS } from "@/lib/admin-allowlist"
+import { isIndexableHost } from "@/lib/site"
 
 /** Routes that require authentication */
 const PROTECTED_ROUTES = ["/select-portal", "/dashboard"]
@@ -61,6 +62,25 @@ export default async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
     console.log('--- Proxy Intercept:', { host, pathname })
 
+    // Host guard. Anything that isn't a production domain (staging.shearquery.com
+    // above all) gets X-Robots-Tag: noindex so it can never enter the index.
+    //
+    // Deliberately a header and NOT a robots.txt Disallow. Google: "For the
+    // noindex rule to be effective, the page or resource must not be blocked by
+    // a robots.txt file" — a disallowed URL is never fetched, so the noindex is
+    // never read, and the URL "can still appear in search results" off external
+    // links. Blocking the crawl would hide the very instruction we are sending.
+    //
+    // Applied at the returns that serve indexable content: the .md rewrites and
+    // the public-page pass-through. API, cron, auth-redirect and lock-screen
+    // paths serve nothing a crawler would index. Nothing here alters status,
+    // body or routing — staging behaves exactly like production.
+    const nonIndexable = !isIndexableHost(host)
+    const guard = <T extends NextResponse>(res: T): T => {
+        if (nonIndexable) res.headers.set('X-Robots-Tag', 'noindex, nofollow')
+        return res
+    }
+
     // Generative Engine Optimization: AI crawlers (GPTBot, ClaudeBot,
     // PerplexityBot, etc.) can append .md to any entity profile URL to get
     // the same facts as the page's JSON-LD, reformatted as plain Markdown.
@@ -74,10 +94,10 @@ export default async function proxy(request: NextRequest) {
         // record and is richer than anything derived from rendered HTML.
         if (segments.length === 2 && LLM_MARKDOWN_ENTITY_TYPES.has(segments[0])) {
             const [entityType, slug] = segments
-            return NextResponse.rewrite(new URL(`/api/llm/${entityType}/${slug}`, request.url))
+            return guard(NextResponse.rewrite(new URL(`/api/llm/${entityType}/${slug}`, request.url)))
         }
         if (segments.length > 0 && isMarkdownEligible(basePath)) {
-            return NextResponse.rewrite(new URL(`/api/llm-page${basePath}`, request.url))
+            return guard(NextResponse.rewrite(new URL(`/api/llm-page${basePath}`, request.url)))
         }
         // Not an eligible page — fall through so it 404s as a normal route
         // rather than leaking which private paths exist.
@@ -138,7 +158,7 @@ export default async function proxy(request: NextRequest) {
         AUTH_ROUTES.includes(pathname) ||
         INTERNAL_TOOL_ROUTES.some((route) => pathname.startsWith(route))
     if (!needsAuthCheck) {
-        return NextResponse.next()
+        return guard(NextResponse.next())
     }
 
     try {
@@ -251,7 +271,7 @@ export default async function proxy(request: NextRequest) {
             }
         }
 
-        return response
+        return guard(response)
     } catch (error) {
         console.error('Proxy Execution Error:', error)
         return NextResponse.next()

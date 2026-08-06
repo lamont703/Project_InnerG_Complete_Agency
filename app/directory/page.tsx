@@ -4,10 +4,11 @@ import { Navbar } from "@/components/layout/navbar";
 import { Library, ArrowRight } from "lucide-react";
 import { DIRECTORY_TYPES } from "@/lib/directory-config";
 import { getDirectoryCounts } from "@/lib/directory-data";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
-const CANONICAL = "https://agency.innergcomplete.com/directory";
+const CANONICAL = `${SITE_URL}/directory`;
 
 export const metadata: Metadata = {
   title: "Full Directory — Barbershops, Salons, Barbers, Schools & Supply Stores",

@@ -21,6 +21,7 @@ import {
 import Image from "next/image"
 import Link from "next/link"
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -61,7 +62,7 @@ export const metadata = {
     title: "Booth Rent vs. Commission: What the Real Houston Numbers Say",
     description:
       "Real Houston barbershop data on booth rent and commission splits, plus the exact breakeven revenue where one model beats the other.",
-    url: "https://agency.innergcomplete.com/insights/booth-rent-vs-commission",
+    url: `${SITE_URL}/insights/booth-rent-vs-commission`,
     type: "article",
     images: [{ url: "/booth_vs_commission_cover.png", width: 1024, height: 1024, alt: "Booth Rent vs. Commission" }],
   },
@@ -71,7 +72,7 @@ export const metadata = {
     description: "Real data on booth rent and commission splits, plus the exact breakeven revenue between them.",
     images: ["/booth_vs_commission_cover.png"],
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/booth-rent-vs-commission" },
+  alternates: { canonical: `${SITE_URL}/insights/booth-rent-vs-commission` },
 }
 
 export default function BoothRentVsCommissionArticle() {
@@ -85,7 +86,7 @@ export default function BoothRentVsCommissionArticle() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/booth-rent-vs-commission",
+              "@id": `${SITE_URL}/insights/booth-rent-vs-commission`,
             },
             headline: "Booth Rent vs. Commission: What the Real Houston Numbers Say",
             description:

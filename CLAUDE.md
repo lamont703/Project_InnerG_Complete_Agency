@@ -210,3 +210,87 @@ That also settles DNS vs HTTP here. HTTP verification would need the file at
 `https://innergcomplete.com/.well-known/mcp-registry-auth` — the apex, a
 different origin from the app, and one we do not serve. DNS needs only a TXT
 record and no hosting at all.
+
+## PSI claims — the exam vendor, and the bulletins are numbered not named
+
+**TDLR does not write or administer the licensing exams. PSI does, under
+contract.** So anything about exam content, question counts, time limits,
+passing scores or the practical rubric is a PSI claim, not a TDLR one — and it
+is settled by the Candidate Information Bulletin for that specific licence, not
+by a TDLR page summarising it.
+
+Same standing rule as everywhere else: fetch the bulletin, read it, then claim.
+Do not carry a figure from one licence's CIB to another — the whole point of
+`lib/texas-specialty-exams.ts` is that the specialty rubrics differ per licence
+in ways the names do not suggest.
+
+### How to reach the bulletins
+
+`https://www.psiexams.com/licensure/barber-cosmetology/` is a marketing page and
+settles nothing. The bulletins live behind **opaque numeric IDs**, which is the
+detail worth writing down because nothing on the URL says which exam you are
+fetching:
+
+    https://test-takers.psiexams.com/api/content/bulletin/{id}
+
+| ID | Bulletin |
+|---|---|
+| 701 | Barber License Examination |
+| 703 | Cosmetology Operator License Examination |
+| 705 | Barber Technician License Examination |
+| 707 | Barber Manicurist |
+| 709 | Shampoo License |
+| 711 | Hair Weaving License Examination |
+| 713 | Manicurist License Examination |
+| 715 | Esthetician License Examination |
+
+Verified 2026-08-05 — every ID returned a PDF and the title above was read from
+page 1 of each. **Re-check the mapping before relying on an ID.** These are
+numbers on a vendor's content API, not stable document names, and nothing
+guarantees 713 stays the manicurist bulletin.
+
+TDLR's own exam page — `/barbering-and-cosmetology/individuals/examinations/` —
+is the right place for the process (eligibility, order of written before
+practical, the 5-year eligibility window). Content questions go to the CIB.
+
+## NACCAS claims — accreditation, and it stacks on top of the state
+
+**NACCAS accredits most career beauty schools, and its requirements are separate
+from and additional to TDLR's.** A school meets the stricter of the two on every
+dimension. Treating a TDLR rule as the whole obligation is how the
+distance-education work nearly went wrong.
+
+### How to reach the docs
+
+**The certificate chain on `naccas.org` does not validate.** `WebFetch` fails
+outright ("unable to verify the first certificate") and `curl` needs `-k`. That
+is not a reason to skip the source — it is a reason to know the workaround
+before assuming the site is down.
+
+- `https://naccas.org/naccas-handbook` — Standards & Policies, the governing set
+- `https://naccas.org/resources-materials` — forms, guidelines, candidate-school material
+- Individual policies live on the elibrary, not the main site:
+  `http://elibrary.naccas.org/InfoRouter/docs/Public/NACCAS%20Handbook/Policies%20III.01-IX.02/Policy%20{ID}.pdf`
+  That host is flaky — it refused a connection once mid-session and served fine a
+  minute later. Retry before concluding it is gone.
+- Several documents are on SharePoint links from `resources-materials`, which
+  may expire. Prefer the handbook.
+
+### The correction that earned this section
+
+**Policy VI.02 does NOT contain a 50% distance-education cap.** Multiple
+secondary sources say it does, a web search summary said it did, and that claim
+was repeated into a draft here before the policy was read. VI.02 has five
+elements and no percentage; the complete policy set III.01–IX.02 contains "50%"
+exactly once, in a refund table. The 50% figures are set by Texas and Alabama
+independently.
+
+What VI.02 actually requires — all five, quoted in
+`lib/distance-education-states.ts`: measurable instructor-validated
+participation, all GPA-bearing assessment physically on campus, the student on
+campus at least once every 10 business days, distance hours identified on every
+transcript, and a signed dated reciprocity disclaimer in each student file.
+
+**The lesson is the general one: a summary of a policy is not the policy.** If a
+claim about NACCAS cannot be traced to a numbered policy or standard, it is not
+citable.

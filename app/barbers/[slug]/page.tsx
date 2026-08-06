@@ -31,6 +31,7 @@ import {
   CalendarCheck,
   Phone,
 } from "lucide-react";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -116,7 +117,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   return {
     title,
     description,
-    alternates: { canonical: `https://agency.innergcomplete.com/barbers/${slug}` },
+    alternates: { canonical: `${SITE_URL}/barbers/${slug}` },
     openGraph: {
       title,
       description,

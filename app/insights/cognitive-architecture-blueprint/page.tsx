@@ -33,6 +33,7 @@ import {
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
+import { SITE_URL } from "@/lib/site";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -180,14 +181,14 @@ export default function CognitiveArchitectureBlueprint() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/cognitive-architecture-blueprint"
+              "@id": `${SITE_URL}/insights/cognitive-architecture-blueprint`
             },
             "headline": "Cognitive Architecture Blueprint | Technical View | Inner G Complete",
             "description": "The fundamental engineering blueprint for transitioning a wellness enterprise from traditional systems to advanced sovereign AI.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://agency.innergcomplete.com/about",
+              "url": `${SITE_URL}/about`,
                 "jobTitle": "Senior Product Owner | Machine Learning Engineer",
                 "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
             },
@@ -196,7 +197,7 @@ export default function CognitiveArchitectureBlueprint() {
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
+                "url": `${SITE_URL}/icon-dark-32x32.png`
               }
             },
             "datePublished": "2026-04-12T08:00:00Z"

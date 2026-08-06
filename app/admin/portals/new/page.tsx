@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { AdminHeader } from "@/features/agency/components/AdminHeader"
+import { SITE_HOST } from "@/lib/site";
 
 export default function CreatePortalPage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -244,7 +245,7 @@ export default function CreatePortalPage() {
                                         <label className="text-sm font-medium">Instance Slug</label>
                                         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                                             <Globe className="h-3 w-3" />
-                                            agency.innergcomplete.com/dashboard/
+                                            {SITE_HOST}/dashboard/
                                         </div>
                                     </div>
                                     <Input

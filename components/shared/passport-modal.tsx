@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, ArrowRight, User, GraduationCap, Clock, Award, Scissors, CheckCircle2, Lock, Camera, MapPin, Search } from 'lucide-react';
 import { submitCareerPassport } from '@/app/barber-beauty-network/actions';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { SITE_URL } from "@/lib/site";
 
 export function PassportModal({ 
   isOpen, 
@@ -419,7 +420,7 @@ export function PassportModal({
                                 instagram: newPassportInstagram ? `https://instagram.com/${newPassportInstagram}` : "https://instagram.com",
                                 tiktok: newPassportTiktok ? `https://tiktok.com/@${newPassportTiktok.replace('@', '')}` : "https://tiktok.com",
                                 youtube: newPassportYoutube ? `https://youtube.com/@${newPassportYoutube.replace('@', '')}` : "https://youtube.com",
-                                portfolio: newPassportPortfolio ? `https://${newPassportPortfolio}` : "https://agency.innergcomplete.com",
+                                portfolio: newPassportPortfolio ? `https://${newPassportPortfolio}` : "${SITE_URL}",
                                 pathway: newPassportPathway,
                                 specialties: newPassportSpecialties.split(',').map(s => s.trim()).filter(Boolean)
                               };

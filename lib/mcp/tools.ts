@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { getSchoolIndex, getSchoolBenchmarks, MIN_SAMPLE } from "@/lib/compare-schools-data";
 import { queryVenues, getRentBenchmarks } from "@/lib/compare-shops-data";
+import { SITE_URL } from "../site";
 
 /**
  * Tools exposed over MCP at /mcp.
@@ -21,7 +22,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 
 export interface McpTool {
   name: string;

@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { SITE_URL } from "@/lib/site";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -204,14 +205,14 @@ export default function RebookingIntelligencePilot() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/rebooking-intelligence-pilot"
+              "@id": `${SITE_URL}/insights/rebooking-intelligence-pilot`
             },
             "headline": "Rebooking Intelligence Pilot | Barber Grooming ADI Architecture",
             "description": "A CPMAI-governed pilot architecture for deploying an ADI model that autonomously triggers client rebooking, eliminates no-shows, and maintains floor revenue.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://agency.innergcomplete.com/about",
+              "url": `${SITE_URL}/about`,
                 "jobTitle": "Senior Product Owner | Machine Learning Engineer",
                 "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
             },
@@ -220,7 +221,7 @@ export default function RebookingIntelligencePilot() {
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
+                "url": `${SITE_URL}/icon-dark-32x32.png`
               }
             },
             "datePublished": "2026-04-14T08:00:00Z"

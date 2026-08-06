@@ -21,6 +21,7 @@ import {
 import Link from "next/link"
 import Image from "next/image"
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -53,7 +54,7 @@ export const metadata = {
     title: "Booth Rent Taxes & Do You Need an LLC in Texas?",
     description:
       "What booth renters actually owe, what's deductible, and why Texas doesn't require an LLC to rent a booth.",
-    url: "https://agency.innergcomplete.com/insights/booth-rent-taxes-and-llc-texas",
+    url: `${SITE_URL}/insights/booth-rent-taxes-and-llc-texas`,
     type: "article",
     images: [{ url: "/insights-library-cover.png", width: 1200, height: 630, alt: "Booth Rent Taxes & LLC in Texas" }],
   },
@@ -63,7 +64,7 @@ export const metadata = {
     description: "What's deductible, what you owe, and why an LLC isn't actually required.",
     images: ["/insights-library-cover.png"],
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/booth-rent-taxes-and-llc-texas" },
+  alternates: { canonical: `${SITE_URL}/insights/booth-rent-taxes-and-llc-texas` },
 }
 
 export default function BoothRentTaxesArticle() {
@@ -77,7 +78,7 @@ export default function BoothRentTaxesArticle() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/booth-rent-taxes-and-llc-texas",
+              "@id": `${SITE_URL}/insights/booth-rent-taxes-and-llc-texas`,
             },
             headline: "Booth Rent Taxes & Do You Need an LLC in Texas?",
             description:

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Cosmetology State Board Practice Test — Free 2026 Texas Written Exam Prep",
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
     description:
       "Free cosmetology state board practice test for the Texas written exam, aligned to the PSI exam TDLR uses for the actual license.",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/tools/texas-cosmetology-exam-practice-deck" },
+  alternates: { canonical: `${SITE_URL}/tools/texas-cosmetology-exam-practice-deck` },
 };
 
 export default function PracticeDeckLayout({ children }: { children: React.ReactNode }) {

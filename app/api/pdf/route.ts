@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isMarkdownEligible } from "@/lib/public-routes";
+import { protectionBypassHeaders } from "@/lib/vercel-bypass";
+import { SITE_HOST } from "@/lib/site";
 
 /**
  * Server-rendered PDF download.
@@ -32,7 +34,7 @@ function resolvePath(raw: string | null): string | null {
 }
 
 function originOf(request: NextRequest): string {
-  const host = request.headers.get("host") || "agency.innergcomplete.com";
+  const host = request.headers.get("host") || SITE_HOST;
   return `${host.includes("localhost") ? "http" : "https"}://${host}`;
 }
 
@@ -72,7 +74,11 @@ export async function GET(request: NextRequest) {
 
     // Marks the render in logs and lets a page suppress anything it shouldn't
     // export. Not a security boundary — resolvePath is.
-    await page.setExtraHTTPHeaders({ "X-PDF-Render": "1" });
+    //
+    // The bypass header rides along for the same reason as the .md renderer:
+    // on a Deployment-Protection-guarded host this navigation lands on Vercel's
+    // login screen, and we would export a PDF of it. No-op on production.
+    await page.setExtraHTTPHeaders({ "X-PDF-Render": "1", ...protectionBypassHeaders(url) });
     await page.goto(url, { waitUntil: "networkidle2", timeout: 45000 });
 
     // Print styles are what strip the navbar and restore the checklist items;
@@ -89,7 +95,7 @@ export async function GET(request: NextRequest) {
       headerTemplate: "<div></div>",
       footerTemplate: `
         <div style="width:100%;font-size:8px;color:#666;padding:0 0.5in;display:flex;justify-content:space-between;">
-          <span>agency.innergcomplete.com</span>
+          <span>${SITE_HOST}</span>
           <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
         </div>`,
       timeout: 45000,

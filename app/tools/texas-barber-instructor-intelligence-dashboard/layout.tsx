@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 // "use client" page with no metadata of its own — was silently inheriting
 // the root layout's generic homepage title/description.
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
       "Class-level pass-rate prediction and at-risk pupil alerts for Texas barber school instructors — built to protect NACCAS accreditation.",
   },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/tools/texas-barber-instructor-intelligence-dashboard",
+    canonical: `${SITE_URL}/tools/texas-barber-instructor-intelligence-dashboard`,
   },
 };
 

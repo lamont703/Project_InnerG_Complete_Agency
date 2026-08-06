@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { createServerClient } from "@/lib/supabase/server";
 import { gbpAuthUrl, gbpPkcePair } from "@/lib/google-business";
+import { SITE_HOST } from "@/lib/site";
 
 // Kicks off the Google Business Profile OAuth consent for the signed-in member.
 // Sets a state nonce cookie (CSRF) and redirects to Google.
 export async function GET(req: Request) {
-  const host = req.headers.get("host") || "agency.innergcomplete.com";
+  const host = req.headers.get("host") || SITE_HOST;
   const origin = `${host.includes("localhost") ? "http" : "https"}://${host}`;
 
   const supabase = await createServerClient();

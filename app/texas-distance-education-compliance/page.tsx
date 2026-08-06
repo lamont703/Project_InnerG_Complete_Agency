@@ -4,6 +4,8 @@ import { Navbar } from "@/components/layout/navbar";
 import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
 import { SHEARS, SHEARS_RULES, COURSE_CAPS, OBLIGATIONS, VERIFIED_ON } from "@/lib/tdlr-shears";
+import { DistanceEducationCta } from "@/components/distance-education-cta";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * What distance education requires that in-person compliance software does not
@@ -45,7 +47,7 @@ export const metadata = {
   ],
   openGraph: { title: TITLE, description: DESCRIPTION },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/texas-distance-education-compliance",
+    canonical: `${SITE_URL}/texas-distance-education-compliance`,
   },
 };
 
@@ -301,6 +303,7 @@ export default function TexasDistanceEducationCompliancePage() {
             ))}
           </div>
         </div>
+        <DistanceEducationCta source="compliance" />
       </main>
 
       <script

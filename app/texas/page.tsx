@@ -5,6 +5,7 @@ import { TexasResourceIndex } from "@/components/texas-hub/TexasResourceIndex";
 import { getTdlrLicenseSummary } from "@/lib/tdlr-license-summary";
 import Link from "next/link";
 import { BadgeCheck } from "lucide-react";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -24,13 +25,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Texas Barbershops, Hair Salons & Barber Schools Directory",
     description: "Real barbershops, hair salons, barbers, and licensed schools across Texas — real ratings and reviews, not available on Google.",
-    url: "https://agency.innergcomplete.com/texas",
+    url: `${SITE_URL}/texas`,
     type: "website",
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas" },
+  alternates: { canonical: `${SITE_URL}/texas` },
 };
 
-const SITE = "https://agency.innergcomplete.com";
+const SITE = SITE_URL;
 const TDLR_URL = "https://www.tdlr.texas.gov/barbering-and-cosmetology/";
 const OC_1603 = "https://statutes.capitol.texas.gov/?tab=1&code=OC&chapter=OC.1603&artSec=";
 

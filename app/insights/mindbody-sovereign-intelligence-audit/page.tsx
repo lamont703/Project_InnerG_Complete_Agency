@@ -29,6 +29,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { SITE_URL } from "@/lib/site";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -51,14 +52,14 @@ export default function MindbodySovereignIntelligenceAudit() {
             "@type": "TechArticle",
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/mindbody-sovereign-intelligence-audit"
+              "@id": `${SITE_URL}/insights/mindbody-sovereign-intelligence-audit`
             },
             "headline": "MindBody's Intelligence Ceiling | Strategic View | Inner G Complete",
             "description": "A strategic audit of MindBody's enterprise limits and why the top 1% of wellness brands must build intelligence layers on top of it.",
             "author": {
               "@type": "Person",
               "name": "Lamont Evans",
-              "url": "https://agency.innergcomplete.com/about",
+              "url": `${SITE_URL}/about`,
                 "jobTitle": "Senior Product Owner | Machine Learning Engineer",
                 "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
             },
@@ -67,7 +68,7 @@ export default function MindbodySovereignIntelligenceAudit() {
               "name": "Inner G Complete Agency",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://agency.innergcomplete.com/icon-dark-32x32.png"
+                "url": `${SITE_URL}/icon-dark-32x32.png`
               }
             },
             "datePublished": "2026-04-12T08:00:00Z"

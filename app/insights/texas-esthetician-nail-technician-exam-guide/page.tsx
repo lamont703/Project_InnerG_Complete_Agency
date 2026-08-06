@@ -27,6 +27,7 @@ import {
 import Link from "next/link"
 import Image from "next/image"
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
 }
@@ -96,7 +97,7 @@ export const metadata = {
     title: "Texas Esthetician Exam (2026): Cost, Content Outline & Practical Timing",
     description:
       "$55 written, $76 practical. 75 scored questions in 105 minutes at 70% to pass; practical runs 1 hr 41 min for 76 points. Full content outline for the esthetician and manicurist exams, from the January 2026 PSI/TDLR bulletins.",
-    url: "https://agency.innergcomplete.com/insights/texas-esthetician-nail-technician-exam-guide",
+    url: `${SITE_URL}/insights/texas-esthetician-nail-technician-exam-guide`,
     type: "article",
     images: [{ url: "/images/esthetician_nail_tech_exam_cover.webp", width: 1400, height: 600, alt: "Texas Esthetician & Nail Technician Exam Guide" }],
   },
@@ -106,7 +107,7 @@ export const metadata = {
     description: "$55 written, $76 practical. Full content outline and practical timing for the Texas esthetician and manicurist exams, from the January 2026 PSI/TDLR bulletins.",
     images: ["/images/esthetician_nail_tech_exam_cover.webp"],
   },
-  alternates: { canonical: "https://agency.innergcomplete.com/insights/texas-esthetician-nail-technician-exam-guide" },
+  alternates: { canonical: `${SITE_URL}/insights/texas-esthetician-nail-technician-exam-guide` },
 }
 
 export default function EstheticianNailTechExamGuide() {
@@ -120,7 +121,7 @@ export default function EstheticianNailTechExamGuide() {
             "@type": "TechArticle",
             mainEntityOfPage: {
               "@type": "WebPage",
-              "@id": "https://agency.innergcomplete.com/insights/texas-esthetician-nail-technician-exam-guide",
+              "@id": `${SITE_URL}/insights/texas-esthetician-nail-technician-exam-guide`,
             },
             headline: "Texas Esthetician & Nail Technician Exam Guide: Written + Practical Format",
             description:
@@ -336,8 +337,14 @@ export default function EstheticianNailTechExamGuide() {
             </div>
           </section>
 
-          {/* Written Exam Content Outline */}
-          <section>
+          {/* Written Exam Content Outline.
+              The id is load-bearing: the quiz CTA below ("See the Full Content
+              Outline") scrolls here. Without it the CTA had nowhere to go and
+              was pointed at this page's own URL instead, which did nothing —
+              one visitor clicked it six times in 21 seconds, including a
+              double-click, before giving up. scroll-mt clears the fixed header
+              so the heading is not hidden under it on arrival. */}
+          <section id="content-outline" className="scroll-mt-28">
             <div className="flex items-center gap-3 mb-6">
               <Target className="h-5 w-5 text-primary" />
               <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">

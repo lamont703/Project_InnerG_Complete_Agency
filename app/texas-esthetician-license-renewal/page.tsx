@@ -3,6 +3,7 @@ import { ArrowLeft, DollarSign, CalendarClock, AlertTriangle, ShieldAlert, Exter
 import { Navbar } from "@/components/layout/navbar";
 import { SPECIALTY_RENEWAL, TDLR_RENEW_URL, TDLR_OAG_URL } from "@/lib/tdlr-sources";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Figures come from lib/tdlr-sources.ts, which records which TDLR page settles
@@ -22,7 +23,7 @@ export const metadata = {
   description: 'Renew your Texas esthetician license: the $50 fee, 2-year cycle, late-renewal bands and the exact TDLR process — with what TDLR has not published about CE.',
   keywords: ["texas esthetician license renewal", "renew esthetician license texas", "texas esthetician license renewal fee", "esthetician license renewal tdlr", "texas esthetician license expired", "esthetician ce hours texas", "renew texas facial specialist license"],
   openGraph: { title: 'Texas Esthetician License Renewal (2026): Fee, Cycle & Steps', description: 'Renew your Texas esthetician license: the $50 fee, 2-year cycle, late-renewal bands and the exact TDLR process — with what TDLR has not published about CE.' },
-  alternates: { canonical: "https://agency.innergcomplete.com/texas-esthetician-license-renewal" },
+  alternates: { canonical: `${SITE_URL}/texas-esthetician-license-renewal` },
 };
 
 const FAQS = [

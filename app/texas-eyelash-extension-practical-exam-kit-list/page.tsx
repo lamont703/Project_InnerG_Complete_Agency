@@ -12,6 +12,7 @@ import {
 import { Navbar } from "@/components/layout/navbar";
 import { KitChecklist, type KitGroup } from "@/components/tools/kit-checklist";
 import { authorSchema } from "@/lib/author";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Sourced from public/TexasEyelashCIB2026.pdf — the PSI Eyelash Extension
@@ -44,7 +45,7 @@ export const metadata = {
       "Every required kit item, the must-label vs. do-not-label rules, and all 4 timed sections for the Texas eyelash extension practical exam — from the official PSI/TDLR bulletin effective January 1, 2026.",
   },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/texas-eyelash-extension-practical-exam-kit-list",
+    canonical: `${SITE_URL}/texas-eyelash-extension-practical-exam-kit-list`,
   },
 };
 

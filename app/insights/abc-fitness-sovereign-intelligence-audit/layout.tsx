@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: 'ABC Fitness Software Review 2026: Features, Cost & Better Fits for Boutique Studios',
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
     title: 'ABC Fitness Software Review 2026: Features, Cost & Better Fits for Boutique Studios',
     description: 'What ABC Fitness gets right for large gym chains — and why boutique studio owners are increasingly looking elsewhere.',
     type: 'article',
-    url: 'https://agency.innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit',
+    url: `${SITE_URL}/insights/abc-fitness-sovereign-intelligence-audit`,
     siteName: 'Inner G Complete Agency',
     images: [
       {
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
     images: ['/abc_fitness_sovereign_intelligence_audit.png'],
   },
   alternates: {
-    canonical: "https://agency.innergcomplete.com/insights/abc-fitness-sovereign-intelligence-audit",
+    canonical: `${SITE_URL}/insights/abc-fitness-sovereign-intelligence-audit`,
   },
 }
 

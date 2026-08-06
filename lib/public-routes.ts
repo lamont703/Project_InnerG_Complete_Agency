@@ -14,6 +14,53 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
   '/select-portal',
   '/login',
   '/internal-lock',
+  // Auth and per-user account surfaces.
+  //
+  // These four sat in MARKDOWN_EXTRA_EXCLUDE_PREFIXES only, which made the
+  // invariant in this file's header true in one direction and false in the
+  // other: the Markdown layer refused them as "nothing a crawler should
+  // ingest", while the sitemap advertised all 18 of them to Google and Bing.
+  //
+  // Worse, unlike /dashboard these are not in middleware's PROTECTED_ROUTES,
+  // so they are not redirected — /account/add-business, /accept-invite,
+  // /forgot-password and /reset-password each return 200 with a client-gated
+  // app shell. We were pointing crawlers at fifteen near-identical empty
+  // shells, which is the thin-content profile a sitemap exists to avoid.
+  //
+  // Listed here rather than below because isMarkdownEligible() consults this
+  // array first, so a prefix here is excluded from BOTH surfaces and the two
+  // answers cannot drift apart again.
+  '/account',
+  '/accept-invite',
+  '/forgot-password',
+  '/reset-password',
+  // OAuth callback shims. Each of these directories contains nothing but a
+  // `callback` child — there is no /discord or /x page, which is why those
+  // paths 404. The callbacks themselves are redirect handlers with no reader.
+  //
+  // Same divergence as the block above: six of them were in
+  // MARKDOWN_EXTRA_EXCLUDE_PREFIXES and therefore refused as prose, while the
+  // sitemap advertised /x/callback, /discord/callback and five siblings —
+  // each serving the HOMEPAGE's title and description, so they were also
+  // seven duplicate-title competitors against the front page.
+  //
+  // /alpaca was in neither list and is added here. /pinterest has no
+  // directory at all; it is kept so a future route is covered by default
+  // rather than by someone remembering.
+  '/alpaca',
+  '/discord',
+  '/instagram',
+  '/linkedin',
+  '/pinterest',
+  '/tiktok',
+  '/x',
+  '/youtube',
+  // Retired. The panels were AI/blockchain guidance for developers — the one
+  // clear topical outlier on a domain that is otherwise entirely barber and
+  // beauty. 4 pixel events in 90 days, none from search. noindex'd in
+  // app/discussions/layout.tsx and dropped from the sitemap so it stops
+  // counting toward what this site claims to be about.
+  '/discussions',
   '/pixel-analytics',
   '/pinterest-queue',
   '/ad-performance',
@@ -22,6 +69,14 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
   '/shop-day-requests',
   '/shop-day-matches',
   '/program-advisory-committee-kit',
+  // Product demos, not destinations. /tools/ai-booth-station is a bare
+  // redirect() and answered 307 straight out of the sitemap — a sitemap entry
+  // that redirects is wasted crawl budget. shop-site-template serves a
+  // fabricated barbershop that was competing in the index with 8,900 real
+  // listings. Both subtrees are noindex'd in their own layout.tsx as well;
+  // this stops us advertising them in the first place.
+  '/tools/ai-booth-station',
+  '/tools/shop-site-template',
   '/tools/domain-management',
   '/tools/event-submission',
   '/tools/employment-match-review',
@@ -35,20 +90,18 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
  * should ingest, even though some are technically reachable.
  */
 export const MARKDOWN_EXTRA_EXCLUDE_PREFIXES = [
-  '/account',
-  '/accept-invite',
-  '/forgot-password',
-  '/reset-password',
+  // /account, /accept-invite, /forgot-password and /reset-password moved up
+  // into SITEMAP_EXCLUDE_PREFIXES — they were always meant to be withheld
+  // here, and that array is consulted first, so behaviour on this surface is
+  // unchanged.
+  // The social prefixes moved up into SITEMAP_EXCLUDE_PREFIXES too — they
+  // were only ever half-excluded. Behaviour on this surface is unchanged,
+  // since that array is consulted first.
   '/api',
   '/playground',
-  '/discord',
-  '/instagram',
-  '/linkedin',
-  '/tiktok',
-  '/x',
-  '/youtube',
-  '/pinterest',
-  // OAuth callbacks and social redirect shims render nothing readable.
+  // Shop short-links: /s/{id} redirects to the full profile, so there is
+  // nothing to read. Not in the sitemap either — the filesystem crawler skips
+  // bracketed segments and /s has no page of its own.
   '/s/',
 ]
 
