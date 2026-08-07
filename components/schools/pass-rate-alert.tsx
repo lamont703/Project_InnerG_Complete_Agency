@@ -187,8 +187,17 @@ export function PassRateAlert({
                   We publish {examState === "CA" ? "California" : "Texas"} state board results by
                   school. The {CURRENT_PERIOD} figures on this page{" "}
                   {COVERAGE[examState === "CA" ? "CA" : "TX"]}; leave your email and we&apos;ll send
-                  you this school&apos;s {NEXT_PERIOD} results when they land — plus the three
-                  questions worth asking on your tour.
+                  you this school&apos;s {NEXT_PERIOD} results when they land — plus the{" "}
+                  <a
+                    href="/questions-to-ask-a-barber-cosmetology-school"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-ig-click="panel_three_questions"
+                    className="font-semibold text-indigo-300 underline underline-offset-2 hover:text-indigo-200"
+                  >
+                    three questions worth asking on your tour
+                  </a>
+                  .
                 </p>
               </div>
             </div>

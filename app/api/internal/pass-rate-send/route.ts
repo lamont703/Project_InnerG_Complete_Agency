@@ -78,6 +78,10 @@ function emailHtml(opts: {
       <a href="${url}">${opts.schoolName} on ShearQuery</a> &middot;
       <a href="${SITE}/compare-schools">Compare all schools</a>
     </p>
+    <p>And the other half of what we promised you &mdash;
+      <a href="${SITE}/questions-to-ask-a-barber-cosmetology-school">the three questions worth asking on your tour</a>.
+      The first is about why the exam is written in language your textbook never uses.
+    </p>
     <p style="color:#666;font-size:12px">You're getting this because you asked for ${opts.schoolName}'s ${opts.period} results on ShearQuery. That was the only email we promised.</p>
   `;
 }

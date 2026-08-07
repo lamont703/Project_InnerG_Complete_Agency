@@ -21,16 +21,24 @@ mistake that was actually made, not a hypothetical.
 |---|---|---|
 | `localhost:<port>` | your working tree | `next dev` |
 | `staging.innergcomplete.com` | `barber-intel-diagnostic-v2` | pushing to the branch |
-| `agency.innergcomplete.com` | `main` — **production** | a **manual PR**, merged by a human |
+| `shearquery.com` | `main` — **production** | a **manual PR**, merged by a human |
+| `agency.innergcomplete.com` | nothing — **308s to shearquery.com** | — |
+
+**The production domain moved.** `agency.innergcomplete.com` now 308-redirects
+every path to `shearquery.com`, and `SITE_URL` in `lib/site.ts` is the one
+place that origin is written down. Checking the old host without `-L` returns
+a 15-byte "Redirecting..." body, whose `<title>` and canonical greps both come
+back empty — which reads exactly like a page with no metadata. Use `-L`, or
+check `shearquery.com` directly.
 
 **Pushing does not change production.** A fix committed and pushed reaches
-staging only. Checking `agency.innergcomplete.com` afterwards shows the old
+staging only. Checking `shearquery.com` afterwards shows the old
 behaviour, which reads exactly like the fix failing — and the natural
 response, "re-apply it harder", makes things worse.
 
 So:
 
-- **Diagnosing what is wrong in the wild** → `agency.innergcomplete.com`.
+- **Diagnosing what is wrong in the wild** → `shearquery.com`.
   That is what real users and Googlebot get.
 - **Confirming your fix works** → `localhost` or `staging`, never production
   until the PR is merged.
@@ -92,8 +100,8 @@ signal.
 Always establish the status before interpreting the body:
 
 ```bash
-curl -s --no-location -D - -o /dev/null https://agency.innergcomplete.com/some-page | head -3
-curl -sL -o /dev/null -w "final: %{url_effective} (%{num_redirects} hops, %{http_code})\n" https://agency.innergcomplete.com/some-page
+curl -s --no-location -D - -o /dev/null https://shearquery.com/some-page | head -3
+curl -sL -o /dev/null -w "final: %{url_effective} (%{num_redirects} hops, %{http_code})\n" https://shearquery.com/some-page
 ```
 
 If it redirects, `noindex` markup is the wrong tool — fix it in the sitemap
@@ -124,7 +132,7 @@ survives and every URL reads as changed. Use `sed -E`.
 ```bash
 norm() { grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | sed -E 's|https?://[^/]+||' | sort -u; }
 curl -s -m 900 localhost:3399/sitemap.xml | norm > /tmp/new.txt
-curl -s https://agency.innergcomplete.com/sitemap.xml | norm > /tmp/old.txt
+curl -s https://shearquery.com/sitemap.xml | norm > /tmp/old.txt
 comm -23 /tmp/old.txt /tmp/new.txt   # removed — must be exactly what you intended
 comm -13 /tmp/old.txt /tmp/new.txt   # added
 ```
@@ -137,7 +145,7 @@ exclusion.
 ## The checks themselves
 
 ```bash
-P=https://agency.innergcomplete.com/some-page     # or localhost:3399/some-page
+P=https://shearquery.com/some-page     # or localhost:3399/some-page
 curl -s "$P" | grep -io '<title>[^<]*</title>'
 curl -s "$P" | grep -io '<meta name="description" content="[^"]*"'
 curl -s "$P" | grep -io '<meta name="robots"[^>]*>'
@@ -159,10 +167,10 @@ Loop over the sitemap rather than spot-checking, and let the data pick the
 priorities:
 
 ```bash
-curl -s https://agency.innergcomplete.com/sitemap.xml | grep -o '<loc>[^<]*</loc>' \
+curl -s https://shearquery.com/sitemap.xml | grep -o '<loc>[^<]*</loc>' \
   | sed 's/<[^>]*>//g' | sort -R | head -30 | while read u; do
   h=$(curl -s --max-time 30 "$u")
-  printf "%-64s %s | %s\n" "${u#https://agency.innergcomplete.com}" \
+  printf "%-64s %s | %s\n" "${u#https://shearquery.com}" \
     "$(echo "$h" | grep -io 'content="\(noindex[^"]*\|index, follow\)"' | head -1)" \
     "$(echo "$h" | grep -io '<title>[^<]*</title>' | head -1 | sed 's/<[^>]*>//g' | cut -c1-40)"
 done

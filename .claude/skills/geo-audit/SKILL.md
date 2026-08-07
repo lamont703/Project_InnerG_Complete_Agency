@@ -28,7 +28,7 @@ The twin is automatic, so the failure mode is silent: a route that becomes
 markdown-ineligible loses its twin with no error anywhere.
 
 ```bash
-curl -s https://agency.innergcomplete.com/sitemap.xml | grep -o '<loc>[^<]*</loc>' \
+curl -s https://shearquery.com/sitemap.xml | grep -o '<loc>[^<]*</loc>' \
   | sed 's/<[^>]*>//g' | sort -R | head -25 | while read u; do
   b=$(curl -s --max-time 30 "$u.md" | wc -c | tr -d ' ')
   s=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$u.md")
@@ -58,7 +58,7 @@ Spot-check a figure that appears in both, especially after touching
 `lib/compare-content.ts` or a page that renders live data:
 
 ```bash
-curl -s https://agency.innergcomplete.com/compare-shops.md | head -40
+curl -s https://shearquery.com/compare-shops.md | head -40
 ```
 
 Numbers there must come from the same builder the HTML page uses. If someone
@@ -80,7 +80,7 @@ That is currently tolerated, not accidental — but re-check it whenever
 anything from an AI crawler.
 
 ```bash
-curl -s https://agency.innergcomplete.com/robots.txt
+curl -s https://shearquery.com/robots.txt
 ```
 
 Also confirm the `*` group still carries `Disallow: /*.md$` — the twins are
@@ -96,7 +96,7 @@ entry covers both.
 
 ```bash
 for p in /account/add-business /accept-invite /admin/ad-campaigns /dashboard; do
-  printf "  %-26s %s\n" "$p" "$(curl -s -o /dev/null -w '%{http_code}' https://agency.innergcomplete.com$p.md)"
+  printf "  %-26s %s\n" "$p" "$(curl -s -o /dev/null -w '%{http_code}' https://shearquery.com$p.md)"
 done
 ```
 
@@ -106,7 +106,7 @@ deliberately, so the response does not reveal which private paths exist.
 ## 5. Is the MCP server answering?
 
 ```bash
-curl -s -X POST https://agency.innergcomplete.com/mcp \
+curl -s -X POST https://shearquery.com/mcp \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | python3 -m json.tool | head -20
 ```

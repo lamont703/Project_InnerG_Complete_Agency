@@ -78,7 +78,7 @@ not reintroduce a `.slice(0, 160)`.
 
 ## 4. Canonical
 
-`alternates: { canonical: "https://agency.innergcomplete.com/<route>" }` on
+`alternates: { canonical: "https://shearquery.com/<route>" }` on
 every public page. The pages currently without one are all private or
 noindex, which is correct — keep it that way.
 
@@ -141,7 +141,7 @@ Then `npm run build`. **A metadata mistake will not fail the build**, which
 is precisely why the render check comes first.
 
 Remember what a push does and does not do: it reaches
-`staging.innergcomplete.com`, not production. `agency.innergcomplete.com`
+`staging.innergcomplete.com`, not production. `shearquery.com`
 only moves on a manual PR into `main`.
 
 ## 8. Claims on the page
