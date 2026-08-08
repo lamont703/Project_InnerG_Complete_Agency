@@ -142,45 +142,6 @@ exclusion.
 
 ---
 
-## 6. Whatever wrote it must not be the only thing that checks it
-
-The five traps above are about the *command* lying. This one is about the
-*reasoning* lying, and it is the more expensive failure.
-
-An error and the check for that error, produced by the same chain of
-reasoning, agree with each other. That is not verification, it is the same
-judgement twice. Three claims in this repo were made confidently and were
-wrong for exactly that reason:
-
-- **"Verified end to end"** on the school pass-rate panel. The component, the
-  payload and the browser test were all genuinely correct — against a table
-  that did not exist yet. The insert was the one link untested, and it was
-  the broken one.
-- The `ON CONFLICT` upsert and the `lower(email)` functional index that could
-  never match it were written together, then "verified" together. Every
-  signup 500'd.
-- `FAQPage` JSON-LD was added to a new page without checking whether the
-  feature still existed. It was withdrawn from Search in 2026; 63 pages carry
-  markup that earns nothing.
-
-**So a claim needs a check that could have come back the other way.**
-
-- Name the command and the environment. "It works" is not a result;
-  `curl -s https://shearquery.com/x | grep robots` returning `noindex` is.
-- Prefer a check with a different failure mode than the thing it tests. Code
-  correctness is checked by HTTP status, DB row counts, a rendered viewport
-  measurement, a sitemap diff — not by re-reading the code.
-- If the only available check shares the assumption being tested, say the
-  claim is unverified rather than upgrading it. "The route is correct but I
-  could not exercise the insert" is a useful sentence. "Verified" was not.
-- When a subagent produces a finding, the agent that verifies it should not
-  inherit the context that produced it. Shared context turns a second opinion
-  back into the first one.
-
-The asymmetry worth remembering: an unverified claim costs a follow-up
-message. A wrongly-verified claim costs whatever gets built on top of it
-before someone notices.
-
 ## The checks themselves
 
 ```bash
