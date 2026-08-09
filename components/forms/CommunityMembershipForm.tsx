@@ -1,11 +1,38 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { ArrowRight, Loader2, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { toast } from "sonner"
+
+/**
+ * Funnel instrumentation for this form.
+ *
+ * WHY. The pixel could already show someone reaching this page, scrolling it,
+ * and leaving without an account — but nothing about what happened between. A
+ * failed submit, a validation error and an idle refresh were indistinguishable,
+ * so "why did that claim not convert?" was unanswerable. These events make the
+ * difference visible: which field they stopped at, how far they got, and
+ * whether the server rejected them.
+ *
+ * WHAT IS NEVER SENT: field values. Not one, not truncated, not hashed. This
+ * form takes a password, and a pixel that ships input values is a credential
+ * leak with an analytics dashboard attached. Only the field NAME and whether it
+ * currently holds anything ever leaves the browser.
+ */
+const FIELDS = ["firstName", "lastName", "email", "phone", "password", "confirmPassword"] as const
+type FieldName = (typeof FIELDS)[number]
+
+/** Fire-and-forget: analytics must never be able to break a signup. */
+function track(event: string, payload: Record<string, unknown>) {
+  try {
+    ;(window as any).innerG?.track?.(event, payload)
+  } catch {
+    /* pixel absent or throwing — the form carries on regardless */
+  }
+}
 
 // Modeled on BarberRegisterForm's shadow-auth-handshake pattern (register
 // via the admin-privileged API route, then sign in client-side with the
@@ -43,10 +70,111 @@ export function CommunityMembershipForm() {
     confirmPassword: "",
   })
 
+  // ---- funnel instrumentation ------------------------------------------
+  // Refs rather than state: none of this should trigger a render, and the
+  // pagehide handler has to read the CURRENT values, not the ones captured
+  // when the listener was attached.
+  const latest = useRef(formData)
+  useEffect(() => {
+    latest.current = formData
+  }, [formData])
+
+  const meta = useRef({
+    started: false,
+    submitted: false,
+    abandonSent: false,
+    lastFocused: null as FieldName | null,
+    startedAt: 0,
+    invalidCount: 0,
+  })
+
+  const claimContext = useCallback(
+    () => ({
+      form: "community_membership",
+      is_claiming: isClaiming,
+      claim_entity_type: claimEntityType || undefined,
+      claim_entity_id: claimEntityId || undefined,
+      wants_connect: wantsConnect,
+    }),
+    [isClaiming, claimEntityType, claimEntityId, wantsConnect]
+  )
+
+  /** Field names only — see the note above about never sending values. */
+  const progress = useCallback(() => {
+    const d = latest.current
+    const filled = FIELDS.filter((f) => String(d[f] ?? "").trim().length > 0)
+    return {
+      filled,
+      empty: FIELDS.filter((f) => String(d[f] ?? "").trim().length === 0),
+      completed: filled.length,
+      total: FIELDS.length,
+      seconds_in_form: meta.current.startedAt
+        ? Math.round((Date.now() - meta.current.startedAt) / 1000)
+        : 0,
+    }
+  }, [])
+
+  const onFieldFocus = useCallback(
+    (name: FieldName) => {
+      meta.current.lastFocused = name
+      if (!meta.current.started) {
+        meta.current.started = true
+        meta.current.startedAt = Date.now()
+        track("form_start", { ...claimContext(), first_field: name })
+      }
+    },
+    [claimContext]
+  )
+
+  // Native HTML5 validation (required, minLength, type=email) rejecting a
+  // submit is a real abandonment cause and is otherwise completely silent —
+  // the browser shows its own bubble and no JS runs.
+  const onFieldInvalid = useCallback(
+    (name: FieldName) => {
+      meta.current.invalidCount += 1
+      track("form_validation_error", { ...claimContext(), field: name, kind: "native_constraint" })
+    },
+    [claimContext]
+  )
+
+  // pagehide fires reliably on mobile where beforeunload does not; the
+  // visibility fallback catches tab-switch-then-kill. Both routed through one
+  // guarded path so a single abandonment reports once.
+  useEffect(() => {
+    const report = () => {
+      const m = meta.current
+      if (!m.started || m.submitted || m.abandonSent) return
+      m.abandonSent = true
+      track("form_abandon", {
+        ...claimContext(),
+        last_field: m.lastFocused,
+        validation_errors: m.invalidCount,
+        ...progress(),
+      })
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") report()
+    }
+    window.addEventListener("pagehide", report)
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => {
+      window.removeEventListener("pagehide", report)
+      document.removeEventListener("visibilitychange", onVisibility)
+    }
+  }, [claimContext, progress])
+  // ----------------------------------------------------------------------
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    track("form_submit_attempt", { ...claimContext(), ...progress() })
+
     if (formData.password !== formData.confirmPassword) {
+      track("form_validation_error", {
+        ...claimContext(),
+        field: "confirmPassword",
+        kind: "password_mismatch",
+      })
       toast.error("Passwords do not match.")
       return
     }
@@ -63,14 +191,28 @@ export function CommunityMembershipForm() {
       const data = await response.json()
 
       if (!data.success) {
+        // Distinguish "the server said no" from "they gave up". Previously both
+        // ended as an account that never appeared, with nothing to tell them
+        // apart. The message is our own copy, never anything they typed.
+        track("form_submit_error", {
+          ...claimContext(),
+          status: response.status,
+          reason: data.error || "unknown",
+          ...progress(),
+        })
         throw new Error(data.error || "Failed to create membership.")
       }
+
+      // Suppresses form_abandon: the navigation that follows is success, not
+      // an exit.
+      meta.current.submitted = true
 
       if ((window as any).innerG?.track) {
         (window as any).innerG.track('community_membership_signup', {
           claim_entity_type: claimEntityType || undefined,
           claim_entity_id: claimEntityId || undefined,
           claim_linked: !!data.claimLinked,
+          seconds_to_signup: progress().seconds_in_form,
         })
       }
 
@@ -95,6 +237,14 @@ export function CommunityMembershipForm() {
       window.location.href = destination(data.redirect)
     } catch (err: any) {
       console.error("[CommunityMembership] Error:", err)
+      // A network failure never reaches the branch above, so it is reported
+      // here or not at all.
+      track("form_submit_error", {
+        ...claimContext(),
+        status: 0,
+        reason: err?.message || "network_or_unhandled",
+        ...progress(),
+      })
       toast.error(err.message || "Something went wrong. Please try again.")
       setIsSubmitting(false)
     }
@@ -133,6 +283,8 @@ export function CommunityMembershipForm() {
             placeholder="Jordan"
             value={formData.firstName}
             onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+            onFocus={() => onFieldFocus("firstName")}
+            onInvalid={() => onFieldInvalid("firstName")}
             className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-500 focus:ring-0 transition-all outline-none"
           />
         </div>
@@ -146,6 +298,8 @@ export function CommunityMembershipForm() {
             placeholder="Rivera"
             value={formData.lastName}
             onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+            onFocus={() => onFieldFocus("lastName")}
+            onInvalid={() => onFieldInvalid("lastName")}
             className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-500 focus:ring-0 transition-all outline-none"
           />
         </div>
@@ -160,6 +314,8 @@ export function CommunityMembershipForm() {
           placeholder="you@example.com"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          onFocus={() => onFieldFocus("email")}
+          onInvalid={() => onFieldInvalid("email")}
           className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-500 focus:ring-0 transition-all outline-none"
         />
       </div>
@@ -173,6 +329,8 @@ export function CommunityMembershipForm() {
           placeholder="(555) 000-0000"
           value={formData.phone}
           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+          onFocus={() => onFieldFocus("phone")}
+          onInvalid={() => onFieldInvalid("phone")}
           className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-500 focus:ring-0 transition-all outline-none"
         />
       </div>
@@ -187,6 +345,8 @@ export function CommunityMembershipForm() {
           placeholder="••••••••"
           value={formData.password}
           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          onFocus={() => onFieldFocus("password")}
+          onInvalid={() => onFieldInvalid("password")}
           className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-500 focus:ring-0 transition-all outline-none"
         />
       </div>
@@ -201,6 +361,8 @@ export function CommunityMembershipForm() {
           placeholder="••••••••"
           value={formData.confirmPassword}
           onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+          onFocus={() => onFieldFocus("confirmPassword")}
+          onInvalid={() => onFieldInvalid("confirmPassword")}
           className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-500 focus:ring-0 transition-all outline-none"
         />
       </div>
