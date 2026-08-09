@@ -108,3 +108,12 @@ mcp-registry-auth
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Regulator reference libraries — mirrored PDFs from state licensing boards.
+# Deliberately NOT committed: the California set alone is several hundred MB of
+# third-party government documents that a script reproduces in minutes, and
+# fresher than any commit would hold. scripts/fetch_*_pdfs.js IS the archive.
+# They also must not sit under public/, where they would be served and crawled
+# as duplicates of the .gov originals.
+reference/
+.ca_bbc_added.json
