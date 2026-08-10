@@ -61,6 +61,11 @@ const STATES = {
     // Bulletins, which are the single most valuable documents here and are NOT
     // reachable from the board site or from any page's HTML — see psiBulletins().
     psiPortal: "cabacos",
+    // A sister state agency, not a vendor. /forms_pubs/index.shtml links the
+    // workplace posting that every establishment is legally required to display,
+    // and it is hosted by the Department of Industrial Relations rather than the
+    // board. dir.ca.gov's robots.txt permits /dlse/publications/.
+    docHosts: ["https://www.dir.ca.gov/dlse/publications/"],
     // The Act and the regulations are HTML on external legal sites, not PDFs.
     // These two pages are complete section indexes — 145 B&P Code sections and
     // 80 of 16 CCR Division 9 — so we capture the MAP (number, title, url) and
@@ -151,10 +156,25 @@ const abs = (h, base) => {
  */
 const DOC_HOSTS = ["https://proctor2.psionline.com", "https://candidate.psiexams.com", "https://test-takers.psiexams.com"];
 
-const knownHost = (u) => u.startsWith(CFG.origin) || DOC_HOSTS.some((h) => u.startsWith(h));
+const knownHost = (u) =>
+  u.startsWith(CFG.origin) ||
+  DOC_HOSTS.some((h) => u.startsWith(h)) ||          // exam vendor, common to all states
+  (CFG.docHosts || []).some((h) => u.startsWith(h)); // sister agencies, state-specific
 const allowed = (u) =>
   knownHost(u) && !CFG.robotsDisallow.some((d) => u.replace(CFG.origin, "").startsWith(d));
-const clean = (s) => s.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&#\d+;/g, "").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+// Named entities matter here because this text becomes a FILENAME. The board
+// writes "2024 &ndash; Issue No. 6", and decoding only &amp; and numerics left
+// twelve newsletters on disk called "California 2024 &ndash; Issue No. 6.pdf".
+const ENTITIES = { amp: "&", nbsp: " ", ndash: "\u2013", mdash: "\u2014", lsquo: "\u2018",
+  rsquo: "\u2019", ldquo: "\u201c", rdquo: "\u201d", hellip: "\u2026", quot: '"',
+  apos: "'", lt: "<", gt: ">", deg: "\u00b0", sect: "\u00a7", bull: "\u2022" };
+const clean = (s) =>
+  s.replace(/<[^>]+>/g, "")
+   .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+   .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
+   .replace(/&([a-z]+);/gi, (m, name) => ENTITIES[name.toLowerCase()] ?? m)
+   .replace(/\s+/g, " ")
+   .trim();
 
 async function get(url, buf = false) {
   const res = await fetch(url, { headers: { "User-Agent": UA }, redirect: "follow" });
@@ -235,6 +255,39 @@ async function main() {
   for (const u of locs.filter((u) => u.toLowerCase().endsWith(".pdf"))) if (allowed(u)) found.set(u, { title: null, section: null });
   const pages = locs.filter((u) => !u.toLowerCase().endsWith(".pdf") && allowed(u));
   console.log(`  sitemap (in scope): ${found.size} PDFs, ${pages.length} HTML pages to scan`);
+
+  /**
+   * ONE extra level of HTML discovery, and only one.
+   *
+   * The sitemap's page list is incomplete in the same way its PDF list is: on
+   * barbercosmo.ca.gov, 24 .shtml pages are linked from listed pages but are
+   * not themselves listed — including /forms_pubs/publications/index.shtml,
+   * which alone holds 13 documents (every board newsletter since 2023 plus the
+   * 2026 Sunset Review Report) that nothing else links to.
+   *
+   * Deliberately not recursive. Fixed at one additional hop so the crawl still
+   * terminates by construction rather than by a depth counter, which is the
+   * whole reason for preferring this over a crawler.
+   */
+  if (!SOURCES_ONLY) {
+    const seenPage = new Set(pages);
+    const extra = [];
+    for (const u of pages) {
+      let html;
+      try { html = await get(u); } catch { continue; }
+      for (const [, href] of html.matchAll(/href="([^"]+\.shtml)"/gi)) {
+        let abs2;
+        try { abs2 = new URL(href, u).href; } catch { continue; }
+        if (seenPage.has(abs2) || !allowed(abs2) || !CFG.inScope(abs2)) continue;
+        seenPage.add(abs2); extra.push(abs2);
+      }
+      await sleep(DELAY_MS);
+    }
+    if (extra.length) {
+      pages.push(...extra);
+      console.log(`  + ${extra.length} pages linked but not listed in the sitemap`);
+    }
+  }
 
   const translated = new Set();
   for (const page of pages) {
