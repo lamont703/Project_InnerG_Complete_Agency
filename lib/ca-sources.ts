@@ -150,6 +150,23 @@ export const CA_SOURCES: CaSource[] = [
     checked: "2026-08-09",
   },
   {
+    id: "sunset-2026-table4",
+    url: "https://www.barbercosmo.ca.gov",
+    title: "2026 Sunset Review Report, Tables 3–4 — Fee Schedule and Revenue (data as of 17 Nov 2025)",
+    settles: [
+      "The ACTUAL fees charged, not the statutory caps — the board's own report to the Legislature",
+      "Renewal is $50 for every individual licence type; delinquency renewal $25",
+      "Application and exam fee $75 (barber, cosmetology, esthetician, electrologist, manicurist)",
+      "Hairstylist exam fee: NONE",
+      "Initial licence: barber/cosmetology/electrologist/hairstylist $50, esthetician $40, manicurist $35",
+      "Establishment: licence $50 against an $80 cap — the one fee charged BELOW its statutory limit",
+      "Establishment renewal $40, delinquency $20; mobile unit renewal $40",
+      "Apprenticeship licence $25; duplicate licence $10",
+      "FY21/22 and FY22/23 revenue is depressed by COVID-era renewal fee waivers — do not read it as a decline in licensees",
+    ],
+    checked: "2026-08-10",
+  },
+  {
     id: "breeze",
     url: "https://www.breeze.ca.gov",
     title: "BreEZe — DCA online licensing system",
@@ -174,6 +191,26 @@ export const CA_TRAINING_HOURS = [
 ] as const;
 
 /**
+ * Fees actually charged, from Sunset Review Tables 3-4 — NOT the BPC 7423 caps.
+ *
+ * The board charges its statutory maximum on almost everything, which makes
+ * the cap/price distinction look academic until you reach the establishment
+ * licence: $50 against an $80 cap. One row in nineteen, and it is the row that
+ * proves publishing caps as prices would have been wrong.
+ */
+export const CA_FEES = {
+  applicationAndExam: 75,      // barber, cosmetology, esthetician, electrologist, manicurist
+  hairstylistExam: 0,          // the board lists "None"
+  initialLicense: { barber: 50, cosmetology: 50, electrologist: 50, hairstylist: 50, esthetician: 40, manicurist: 35 },
+  renewalIndividual: 50,       // every individual licence type
+  delinquencyIndividual: 25,   // 50% of renewal
+  establishment: { initial: 50, renewal: 40, delinquency: 20, statutoryCap: 80 },
+  apprenticeship: 25,
+  duplicate: 10,
+  source: "sunset-2026-table4",
+} as const;
+
+/**
  * WHAT IS SETTLED, AND WHAT IS NOT.
  *
  * SETTLED — no continuing education requirement.
@@ -194,12 +231,10 @@ export const CA_TRAINING_HOURS = [
  *   none. Anyone moving between the two needs to know it, and nobody frames it
  *   that way.
  *
- * NOT SETTLED — the actual renewal fee.
- *   BPC 7423 caps it at $50. The board charges some amount at or below that,
- *   and the figure is not in the statute, not in the Act and Regulations book,
- *   and not in any of the 301 mirrored PDFs — the board publishes it as a web
- *   page. A renewal page must either cite the cap AS a cap, or get the live
- *   figure from BreEZe / barbercosmo.ca.gov first.
+ * SETTLED SINCE — the actual renewal fee is $50.
+ *   Found in the 2026 Sunset Review Report, Tables 3-4, which prints "Current
+ *   Fee Amount" beside "Statutory Limit". It was never on a board web page;
+ *   it was on page 21 of a 517-page report to the Legislature. See CA_FEES.
  *
  * NOT SETTLED — whether the hour minimums above have been amended.
  *   `California Notice of Approval (Effective July 1, 2026).pdf` and the
