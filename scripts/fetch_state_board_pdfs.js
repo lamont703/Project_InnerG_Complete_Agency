@@ -40,6 +40,14 @@ const STATES = {
     // the useful files and turn a reference into an archive you have to search.
     exclude: (u) => /\/about_us\/meetings\//.test(u),
     robotsDisallow: ["/css", "/images", "/js", "/fonts", "/templates", "/ssi"],
+    // PSI delivers California's exams and runs its own candidate portal at
+    // test-takers.psiexams.com/cabacos. It is a JavaScript app with no sitemap
+    // and no PDF links in its served HTML — everything comes from an API. So
+    // discovery there means reading the API the app itself calls, found by
+    // watching its network traffic. Yield is small (5 PDFs, 4 of them
+    // translations) but it is the only place the board's ID-requirements and
+    // reciprocity notices are published.
+    jsonSources: ["https://test-takers.psiexams.com/api/account/cabacos/content"],
     notes: null,
   },
   maryland: {
@@ -73,7 +81,20 @@ if (!CFG) {
   process.exit(1);
 }
 const DRY = process.argv.includes("--dry-run");
+// Skip sitemap/HTML discovery and pull only the JSON API sources. Exists so a
+// small, fast-moving source can be re-checked without a 900-URL crawl.
+const SOURCES_ONLY = process.argv.includes("--sources-only");
 const DEST = path.join(__dirname, "..", "reference", CFG.folder);
+/**
+ * Provenance for every file ever fetched, kept beside the PDFs.
+ *
+ * Without this, a partial run (--sources-only, or an interrupted one) rebuilds
+ * INDEX.md knowing only the handful of files IT fetched, and every other
+ * document collapses into "Added manually" with no source URL — destroying
+ * exactly what the index exists to record. Learned by doing it: one
+ * --sources-only run took California's index from richly grouped to 2 groups.
+ */
+const PROV = path.join(DEST, ".provenance.json");
 const QUARANTINE = path.join(DEST, "_non-english");
 const UA = "Mozilla/5.0 (compatible; ShearQuery-reference-archive/1.0; +https://shearquery.com)";
 const DELAY_MS = 300;
@@ -113,16 +134,28 @@ const LANG_BARE = /^(korean|spanish|vietnamese|simplified chinese|chinese|españ
 const LANG_PAREN = /\((korean|spanish|vietnamese|simplified chinese|chinese|español)\)\s*$/i;
 const LANG_FILE = /(^|[_\-/])(ko|kr|korean|sp|es|spanish|vt|vn|vi|viet|vietnamese|sc|ch|cs|simpl|chinese)([_\-.]|$)/i;
 
-/** The arbiter: what the document actually reads as. Filenames lie. */
+/**
+ * The arbiter: what the document actually reads as. Filenames lie.
+ *
+ * MULTILINGUAL DOCUMENTS COUNT AS ENGLISH. PSI publishes some notices with the
+ * English text first and Korean, Spanish and Chinese versions appended in the
+ * same PDF. Judging on "does another script appear anywhere" rejected exactly
+ * such a file — California's ID-requirements notice, which opens "Attention
+ * California Board of Barbering and Cosmetology Examination and Reciprocity
+ * Candidates". So a strong English signal wins outright; the script checks only
+ * decide documents that are NOT substantially English.
+ */
 function nonEnglish(text) {
   if (!text || text.length < 40) return null;
-  const s = text.slice(0, 4000);
+  const s = text.slice(0, 6000);
+  const w = s.toLowerCase().split(/\W+/);
+  const en = w.filter((x) => ["the","and","of","to","for","you","your","is","are","with","in","or","must","not","be"].includes(x)).length;
+  if (en >= 25) return null; // reads as English, whatever else it also contains
+
   if ((s.match(/[가-힯]/g) || []).length > 10) return "korean";
   if ((s.match(/[一-鿿]/g) || []).length > 10) return "chinese";
   if ((s.match(/[Ạ-ỹĐđ]/g) || []).length > 10) return "vietnamese";
-  const w = s.toLowerCase().split(/\W+/);
   const es = w.filter((x) => ["de","la","el","los","las","que","para","con","del","una","por","su"].includes(x)).length;
-  const en = w.filter((x) => ["the","and","of","to","for","you","your","is","are","with","in","or"].includes(x)).length;
   return es > 12 && es > en * 1.5 ? "spanish" : null;
 }
 
@@ -161,7 +194,7 @@ async function main() {
   console.log(`${CFG.label}\n  → reference/${CFG.folder}\n`);
 
   // ---- discover ---------------------------------------------------------
-  const sm = await get(`${CFG.origin}/sitemap.xml`);
+  const sm = SOURCES_ONLY ? "" : await get(`${CFG.origin}/sitemap.xml`);
   const locs = [...sm.matchAll(/<loc>\s*([^<]+?)\s*<\/loc>/g)].map((m) => m[1]).filter(CFG.inScope);
   const found = new Map();
   for (const u of locs.filter((u) => u.toLowerCase().endsWith(".pdf"))) if (allowed(u)) found.set(u, { title: null, section: null });
@@ -191,6 +224,28 @@ async function main() {
   for (const u of translated) found.delete(u);
   console.log(`  after scanning pages: ${found.size} PDFs (${translated.size} labelled as translations by the site)`);
 
+  for (const api of CFG.jsonSources || []) {
+    try {
+      const body = await get(api);
+      // Spaces are legal in these URLs and PSI uses them —
+      // ".../CADCA/CABBCReciprocity phone.pdf" is real. A pattern that stops at
+      // whitespace silently drops it, so match non-greedily up to ".pdf" and
+      // percent-encode afterwards.
+      const urls = [...new Set((body.match(/https?:\/\/[^"'<>\\]+?\.pdf/gi) || []))]
+        .map((u) => u.replace(/\\u0026/g, "&").trim().replace(/ /g, "%20"));
+      let kept = 0;
+      for (const u of urls) {
+        if (!allowed(u)) continue;              // must be an allowlisted doc host
+        if (found.has(u)) continue;
+        found.set(u, { title: null, section: "PSI candidate portal" });
+        kept++;
+      }
+      console.log(`  ${api.split("/").slice(2, 3)}: ${urls.length} PDFs, ${kept} new`);
+    } catch (e) {
+      console.log(`  ${api}: FAILED (${e.message})`);
+    }
+  }
+
   let urls = [...found.keys()].filter((u) => !CFG.exclude(u));
   const excluded = found.size - urls.length;
   const byName = urls.filter((u) => LANG_FILE.test(u.split("/").pop().replace(/\.pdf$/i, "")));
@@ -209,8 +264,11 @@ async function main() {
   console.log(`\nfetching (${have.size} already held)…`);
 
   const records = [], stats = { added: 0, skipped: 0, rejected: 0, dead: 0 };
-  // filename -> provenance for files that were already on disk
-  const attribution = new Map();
+  // filename -> provenance, seeded from previous runs so a partial run adds to
+  // the record rather than replacing it.
+  const attribution = new Map(
+    fs.existsSync(PROV) ? Object.entries(JSON.parse(fs.readFileSync(PROV, "utf8"))) : []
+  );
   const deadList = [];
   for (const [i, url] of urls.entries()) {
     if (i && i % 40 === 0) console.log(`  …${i}/${urls.length}`);
@@ -246,7 +304,9 @@ async function main() {
     while (fs.existsSync(path.join(DEST, name))) name = prettyName(`${base} (${n++})`);
     fs.writeFileSync(path.join(DEST, name), buf);
     have.set(md5, name);
-    records.push({ file: name, title: base, url, section: meta.section || null, pages: np, bytes: buf.length, summary: summarise(text) });
+    const rec = { file: name, title: base, url, section: meta.section || null, pages: np, bytes: buf.length, summary: summarise(text) };
+    records.push(rec);
+    attribution.set(name, { url, section: rec.section, pages: np, summary: rec.summary, title: base });
     stats.added++;
     await sleep(DELAY_MS);
   }
@@ -266,7 +326,7 @@ async function main() {
     const full = path.join(DEST, f);
     const { text, pages: np } = await readPdf(fs.readFileSync(full));
     const a = attribution.get(f) || {};
-    rows.push({ file: f, title: f.replace(/\.pdf$/, "").replace(new RegExp(`^${CFG.folder.split(" ")[0]} `), ""),
+    rows.push({ file: f, title: a.title || f.replace(/\.pdf$/, "").replace(new RegExp(`^${CFG.folder.split(" ")[0]} `), ""),
                 url: a.url || "", section: a.section || null, pages: a.pages || np,
                 bytes: fs.statSync(full).size, summary: a.summary || summarise(text) });
   }
@@ -309,6 +369,8 @@ async function main() {
       o.push("");
     }
   }
+  for (const r of rows) if (r.url) attribution.set(r.file, { url: r.url, section: r.section, pages: r.pages, summary: r.summary, title: r.title });
+  fs.writeFileSync(PROV, JSON.stringify(Object.fromEntries(attribution), null, 2));
   fs.writeFileSync(path.join(DEST, "INDEX.md"), o.join("\n"));
   console.log(`\n  INDEX.md — ${rows.length} documents, ${Object.keys(groups).length} groups, ${mb} MB`);
 }
