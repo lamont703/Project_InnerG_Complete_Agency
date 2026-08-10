@@ -84,7 +84,11 @@ const STATES = {
     folder: "Maryland Exam Prep Files",
     // labor.maryland.gov is the whole Department of Labor — 32,425 sitemap URLs
     // covering contractors, real estate, CPAs and more. Scope to the two boards.
-    inScope: (u) => /\/license\/(barbers|cos)(\/|$)/.test(u),
+    // The two board sections, PLUS their law pages, which live under
+    // /license/law/ and are linked from every page's section menu as "Laws &
+    // Regulations". A filter on /license/(barbers|cos)/ alone silently drops
+    // the statutory basis for both boards.
+    inScope: (u) => /\/license\/(barbers|cos)(\/|$)/.test(u) || /\/license\/law\/(barbers|cos)law\.shtml$/.test(u),
     exclude: () => false,
     robotsDisallow: [
       "/DLLR%20Forms/", "/DLLR/javascript/", "/DLLR/cfdocs/", "/DLLR/downfiles/",
@@ -489,6 +493,70 @@ async function main() {
       o.push("");
     }
   }
+  // ---- HTML page map ---------------------------------------------------
+  /**
+   * Not every board publishes its rules as PDFs. Maryland puts the training
+   * hours (1,200 for barber, 900 for barber-stylist limited), the whole fee
+   * schedule and the endorsement rules in plain HTML, so a PDF-only mirror
+   * captures none of it and looks complete while doing so.
+   *
+   * This map is the fallback and the freshness check. Every in-scope page gets
+   * an entry with its live URL, so when we hold no PDF for a question, or when
+   * the PDF we hold is older than the page, the map says where the current
+   * answer actually lives. HTML pages change silently and without a version;
+   * a dated pointer is worth more than a stale copy.
+   */
+  if (!SOURCES_ONLY && pages.length) {
+    const entries = [];
+    for (const u of pages) {
+      let html;
+      try { html = await get(u); } catch { continue; }
+      const main = (html.match(/<main[^>]*id="[^"]*[Mm]ain[^"]*"[^>]*>([\s\S]*?)<\/main>/i)
+                 || html.match(/<main[^>]*>([\s\S]*?)<\/main>/i) || [, html])[1];
+      const body = main.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<nav[\s\S]*?<\/nav>/gi, "");
+      const lines = body.replace(/<[^>]+>/g, "\n").replace(/&nbsp;/g, " ")
+        .split("\n").map((x) => clean(x)).filter((x) => x.length > 2);
+      const title = clean((html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || html.match(/<title>([\s\S]*?)<\/title>/i) || [, ""])[1])
+        .split(" - ")[0].slice(0, 80);
+      const words = lines.join(" ").split(/\s+/).length;
+      // What the page actually settles, judged by what it contains.
+      const flat = lines.join(" ");
+      const signals = [];
+      const fees = (flat.match(/\$\s?\d[\d,]*/g) || []).length;
+      const hrs = [...new Set((flat.match(/\b\d{3,4}\s*hours\b/gi) || []))];
+      if (fees >= 3) signals.push(`**${fees} fee amounts**`);
+      if (hrs.length) signals.push(`**training hours: ${hrs.slice(0, 4).join(", ")}**`);
+      if (/reciprocit|endorsement/i.test(flat)) signals.push("reciprocity/endorsement");
+      if (/renew/i.test(title)) signals.push("renewal");
+      if (/COMAR|Annotated Code|Title \d/i.test(flat)) signals.push("statute/regulation citations");
+      const pdfs = [...new Set([...main.matchAll(/href="([^"]+\.pdf)"/gi)].map((m) => {
+        try { return new URL(m[1], u).href; } catch { return null; } }).filter(Boolean))];
+      const summary = lines.slice(1).find((l) => l.length > 45 && !/^(Skip|Search|JavaScript|Main Navigation)/i.test(l)) || "";
+      entries.push({ url: u, title, words, signals, pdfs, summary: summary.slice(0, 190) });
+      await sleep(DELAY_MS);
+    }
+    const o2 = [`# ${CFG.label} — HTML page map\n`];
+    o2.push(`Checked **${new Date().toISOString().slice(0, 10)}**. ${entries.length} pages.\n`);
+    o2.push("**Why this exists.** Not everything a board publishes is a PDF. Maryland states its");
+    o2.push("training hours, its whole fee schedule and its endorsement rules in HTML only, so a");
+    o2.push("PDF mirror captures none of it — and looks complete while doing so.\n");
+    o2.push("**Use it two ways.** When no PDF answers a question, the map says which live page does.");
+    o2.push("And when a PDF we hold looks old, the map is where to check whether the board has since");
+    o2.push("changed the answer. These pages carry no version and change silently, so a dated");
+    o2.push("pointer to the live page beats a local copy that quietly went out of date.\n");
+    o2.push("Pages carrying figures worth citing are marked in bold.\n");
+    for (const e of entries.sort((a, b) => b.words - a.words)) {
+      o2.push(`\n### ${e.title}`);
+      o2.push(`<${e.url}>  ·  ${e.words} words${e.signals.length ? "  ·  " + e.signals.join(", ") : ""}`);
+      if (e.summary) o2.push(`\n> ${e.summary}`);
+      if (e.pdfs.length) o2.push(`\nLinks ${e.pdfs.length} PDF(s): ` + e.pdfs.map((x) => `\`${x.split("/").pop()}\``).join(", "));
+      o2.push("");
+    }
+    fs.writeFileSync(path.join(DEST, "HTML-PAGE-MAP.md"), o2.join("\n"));
+    console.log(`  HTML page map: ${entries.length} pages`);
+  }
+
   // ---- statute / regulation map ----------------------------------------
   if (CFG.lawIndex && !SOURCES_ONLY) {
     const out = [`# ${CFG.label} — statute & regulation index\n`];
