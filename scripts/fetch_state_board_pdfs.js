@@ -253,6 +253,30 @@ const titleFromText = (t) => {
     : line;
 };
 
+/**
+ * PSI stamps a version and effective date into the running header of every
+ * candidate bulletin: "COSMETOLOGY v1.1 EFF 7/8/26". Some boards link an older
+ * edition than the one PSI's own portal serves — Maryland's site was pointing
+ * at v1.0 (eff 2026-02-26) while the portal served v1.1 (eff 2026-07-08), which
+ * added an ESL-accommodations section and dropped a closed test site.
+ *
+ * Both editions are real and both are worth keeping, but only if you can tell
+ * them apart. Without the version in the filename, "Maryland Cosmetology Exam
+ * Guide.pdf" and "MD Cosmetologist Candidate Bulletin.pdf" look interchangeable
+ * and one of them is four months stale.
+ */
+const versionStamp = (t) => {
+  const s = (t || "").replace(/\s+/g, " ");
+  const m = s.match(/v(\d+\.\d+)\s+EFF\s+(\d{1,2})\/(\d{1,2})\/(\d{2,4})/i);
+  if (m) {
+    const y = m[4].length === 2 ? `20${m[4]}` : m[4];
+    return ` v${m[1]} eff ${y}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+  }
+  // Older bulletins carry a bare effective date instead of a version number.
+  const e = s.match(/Effective\s+(\d{1,2})\/(\d{1,2})\/(\d{4})/i);
+  return e ? ` eff ${e[3]}-${e[1].padStart(2, "0")}-${e[2].padStart(2, "0")}` : "";
+};
+
 const summarise = (t) => (t || "").split("\n").map((x) => x.trim())
   .filter((x) => x.length > 30 && !/^page \d|^\d+$|^www\.|^\(?\d{3}\)/i.test(x))
   .slice(0, 2).join(" ").replace(/\s+/g, " ").slice(0, 200);
@@ -436,7 +460,9 @@ async function main() {
     // A sitemap-only PDF has no link text, and the filename slug makes a poor
     // title ("cosdisc2022apr"). The document's own first heading is better.
     const base = meta.title || titleFromText(text) || url.split("/").pop().replace(/\.pdf$/i, "").replace(/[_-]+/g, " ");
-    let name = prettyName(base), n = 2;
+    // A bulletin's version belongs in its name; two editions of the same
+    // document are otherwise indistinguishable on disk.
+    let name = prettyName(base + (/bulletin/i.test(url) || /Candidate Bulletin/i.test(base) ? versionStamp(text) : "")), n = 2;
     while (fs.existsSync(path.join(DEST, name))) name = prettyName(`${base} (${n++})`);
     fs.writeFileSync(path.join(DEST, name), buf);
     have.set(md5, name);
