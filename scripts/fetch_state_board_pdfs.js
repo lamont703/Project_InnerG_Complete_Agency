@@ -100,7 +100,19 @@ const UA = "Mozilla/5.0 (compatible; ShearQuery-reference-archive/1.0; +https://
 const DELAY_MS = 300;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const abs = (h) => (h.startsWith("http") ? h : CFG.origin + (h.startsWith("/") ? h : "/" + h));
+/**
+ * Resolve an href against the page it appeared on, not against the site root.
+ *
+ * A link written "../consumers/x.pdf" on /licensees/index.shtml is
+ * /consumers/x.pdf. Treating every relative href as root-relative produced
+ * "/../consumers/x.pdf" — which the server happily served, so the download
+ * worked and only the recorded URL was wrong, splitting one directory into two
+ * groups in the index. new URL() collapses the dot segments correctly.
+ */
+const abs = (h, base) => {
+  try { return new URL(h, base || CFG.origin).href; }
+  catch { return h.startsWith("http") ? h : CFG.origin + (h.startsWith("/") ? h : "/" + h); }
+};
 
 /**
  * Hosts other than the board's own that we will fetch a linked PDF from.
@@ -208,7 +220,7 @@ async function main() {
     let section = null;
     for (const [, h, href, text] of html.matchAll(/<h[1234][^>]*>([\s\S]*?)<\/h[1234]>|<a[^>]+href="([^"]+\.pdf)"[^>]*>([\s\S]*?)<\/a>/gi)) {
       if (h) { section = clean(h) || section; continue; }
-      const t = clean(text), u = abs(href);
+      const t = clean(text), u = abs(href, page);
       // inScope constrains the BOARD's own paths. An allowlisted document host
       // is already scoped by the fact that an in-scope board page linked to it.
       const offsite = !u.startsWith(CFG.origin);
