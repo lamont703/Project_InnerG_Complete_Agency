@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileText, ClipboardCheck, RefreshCw, Wallet, ArrowLeftRight, Ban } from "lucide-react";
+import { FileText, ClipboardCheck, RefreshCw, Wallet } from "lucide-react";
 
 /**
  * The index of everything we've written about being licensed in California.
@@ -13,14 +13,19 @@ import { FileText, ClipboardCheck, RefreshCw, Wallet, ArrowLeftRight, Ban } from
  * beforeBackLink slot, below the directory. A visitor looking for a salon is
  * not made to scroll past a licensing index to find one.
  *
- * WHERE IT DEPARTS FROM THE TEXAS VERSION, and this is the part not to
- * "fix" by copying:
+ * EVERY LINK HERE GOES TO A CALIFORNIA PAGE. An earlier version carried two
+ * more groups — kit lists and cross-state hours — whose links were all Texas
+ * pages, on the grounds that the ABSENCE of a California practical exam was
+ * itself worth stating. It isn't worth stating here. Someone on the California
+ * hub is looking for California, and a card whose every row is labelled "Texas
+ * only" is a detour dressed as a resource. The practical-exam fact now sits in
+ * the "Passing the exam" blurb, where it belongs, in one clause and with no
+ * links out of state.
  *
- *   NO KIT LISTS. Texas has six, and they are the highest-performing page
- *   type on this site. California abolished the practical exam for every
- *   licence type on 1 January 2022 — there is no kit, so there is no kit
- *   list, and the group is replaced by one that says so. Silently omitting it
- *   would read as a gap in our coverage rather than a fact about California.
+ * If California resource pages are added later, add groups — do not reach back
+ * into the Texas set to fill a category out.
+ *
+ * WHAT STILL DIFFERS FROM THE TEXAS VERSION:
  *
  *   NO ESTABLISHMENT GUIDES YET. Texas has seven. California has none written,
  *   so nothing is listed rather than linking to a page that does not exist.
@@ -63,7 +68,7 @@ const GROUPS: ResourceGroup[] = [
   {
     title: "Passing the exam",
     blurb:
-      "PSI rewrote all five content outlines on 1 April 2026. The comparison is published nowhere else.",
+      "Written only — California dropped the practical for every licence type in 2022. PSI rewrote all five content outlines on 1 April 2026, and the comparison is published nowhere else.",
     icon: ClipboardCheck,
     links: [
       { href: "/california-exam-changes-2026", label: "What Changed in 2026", note: "all 5 licences" },
@@ -91,26 +96,6 @@ const GROUPS: ResourceGroup[] = [
     links: [
       { href: "/california-esthetician-salary", label: "Esthetician Earnings", note: "8.7% full-time" },
       { href: "/california-barber-salary", label: "Barber Earnings", note: "33.5% full-time" },
-    ],
-  },
-  {
-    title: "No practical exam",
-    blurb:
-      "California dropped the hands-on exam for every licence type on 1 January 2022, so there is no kit to pack and no kit list to write. Texas still has one, and six kit lists to go with it.",
-    icon: Ban,
-    links: [
-      { href: "/texas-barber-practical-exam-kit-list", label: "Texas Barber Kit List", note: "Texas only" },
-      { href: "/texas-cosmetology-practical-exam-kit-list", label: "Texas Cosmetology Kit List", note: "Texas only" },
-    ],
-  },
-  {
-    title: "Moving between states",
-    blurb: "Hours do not transfer on assumption. California requires 600 esthetician hours where Texas requires 750.",
-    icon: ArrowLeftRight,
-    links: [
-      { href: "/texas-california-license-reciprocity", label: "Texas ↔ California", note: "no reciprocity exists" },
-      { href: "/texas-esthetician-license-requirements-guide", label: "Texas Esthetician", note: "750 hrs" },
-      { href: "/texas-manicurist-license-requirements-guide", label: "Texas Manicurist", note: "600 hrs" },
     ],
   },
 ];
