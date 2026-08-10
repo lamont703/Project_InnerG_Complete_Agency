@@ -54,7 +54,7 @@ const GROUPS: ResourceGroup[] = [
   {
     title: "Getting licensed",
     blurb:
-      "Six licences from 400 to 1,000 hours — including two, hairstylist and electrologist, that most states do not issue at all.",
+      "Six licences from 400 to 1,000 hours — including two, hairstylist and electrologist, that most states do not issue at all — plus the paid route that skips tuition.",
     icon: FileText,
     links: [
       { href: "/california-cosmetology-license", label: "Cosmetologist", note: "1,000 hrs" },
@@ -63,6 +63,7 @@ const GROUPS: ResourceGroup[] = [
       { href: "/california-hairstylist-license", label: "Hairstylist", note: "600 hrs" },
       { href: "/california-electrologist-license", label: "Electrologist", note: "600 hrs" },
       { href: "/california-nail-technician-license", label: "Nail Technician", note: "400 hrs" },
+      { href: "/california-cosmetology-apprenticeship", label: "Apprenticeship", note: "paid, 3,420 hrs" },
     ],
   },
   {

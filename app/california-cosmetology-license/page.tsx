@@ -68,7 +68,7 @@ const ROUTES = [
   },
   {
     name: "An apprenticeship",
-    detail: "California runs a formal apprenticeship pathway under Article 4 of the Act. It is a real alternative to school rather than a formality, and it is the least-explained route of the four.",
+    detail: "California runs a formal apprenticeship pathway under Article 4 of the Act — paid, and open to barbering, cosmetology and electrology only. It is a real alternative to school, but not a shorter one: 3,200 on-the-job hours plus 220 in class.",
   },
 ];
 

@@ -136,6 +136,12 @@ are not for the establishment licence.
   [Barber Salary in California](/california-barber-salary): the board publishes no licensee
   earnings data. What it publishes is hours, and 8.7% of estheticians report a full-time week
   against 33.5% of barbers — which is the assumption every published salary figure rests on.
+- [California Cosmetology Apprenticeship](/california-cosmetology-apprenticeship): the paid route
+  to a barber, cosmetology or electrology licence — 3,200 on-the-job hours plus 220 in class
+  against 1,000 at a school, so it is longer rather than shorter. NOT available for manicurist or
+  esthetician licences. Includes the comparison nobody else publishes: pooled across the board's
+  own quarterly reports, apprentices pass the written exam at about 40% where school candidates
+  passed at 63-71% in Q1 2026.
 - [California School Leaderboard](/california-school-leaderboard): California schools ranked by
   state board written exam pass rates.
 
