@@ -126,6 +126,23 @@
     // still report the live URL, so filter state at click time is not lost.
     let viewUrl = currentUrl();
 
+    /**
+     * The title recorded for THIS pageview, frozen the same way viewUrl is.
+     *
+     * track() used to read document.title live, on the assumption that during
+     * a soft navigation the title still held the OUTGOING page's value. It
+     * does not — the framework has already swapped it by the time the handler
+     * runs, so every page_leave carried the title of the page being navigated
+     * TO. Real data showed the pair inverted: a /shop page_leave titled "Free
+     * Community Membership", and the /membership page_leave titled "HEADSCAPE
+     * Barbershop".
+     *
+     * page_url, durations and view_id were unaffected, so this only ever
+     * mislabelled reports grouped by title — but that is exactly how someone
+     * reads a funnel.
+     */
+    let viewTitle = document.title;
+
     // 3b. Core Web Vitals (LCP, CLS, a simplified INP proxy) — collected
     // continuously via PerformanceObserver and attached to the existing
     // page_leave event below rather than a new event type, since page_leave
@@ -231,7 +248,7 @@
             // left, but location has already moved by the time we observe it,
             // so that URL has to be passed in explicitly.
             url: overrides.url || currentUrl(),
-            title: document.title,
+            title: overrides.title || viewTitle,
             referrer: currentReferrer,
             metadata: metadata,
             timestamp: new Date().toISOString()
@@ -358,7 +375,7 @@
     // visibilitychange->visible, so returning to the tab still allows a
     // later, genuinely separate departure to track again (SPA feel).
     let pageLeaveTracked = false;
-    const handlePageLeave = (urlOverride) => {
+    const handlePageLeave = (urlOverride, titleOverride) => {
         if (!pageLeaveTracked) {
             pageLeaveTracked = true;
             const durationSeconds = Math.round((Date.now() - pageLoadTime) / 1000);
@@ -375,7 +392,10 @@
                     ? Math.round(clsValue * 1000) / 1000
                     : null,
                 inp_ms: navType === "hard" ? inpValue : null,
-            }, { url: typeof urlOverride === "string" ? urlOverride : viewUrl });
+            }, {
+                url: typeof urlOverride === "string" ? urlOverride : viewUrl,
+                title: typeof titleOverride === "string" ? titleOverride : viewTitle,
+            });
         }
     };
 
@@ -430,11 +450,12 @@
         // The departing page's frozen URL, captured before resetPageState()
         // overwrites it.
         const prevUrl = viewUrl;
+        const prevTitle = viewTitle;
         lastPath = nextPath;
 
         // Close out the departing page first, while navType and the Vitals
         // still describe it, then hand the new page a clean slate.
-        handlePageLeave(prevUrl);
+        handlePageLeave(prevUrl, prevTitle);
         resetPageState(prevUrl);
 
         // document.title still holds the previous page's value here. Wait for
@@ -442,6 +463,10 @@
         // before recording the view.
         setTimeout(() => {
             if (currentPath() !== nextPath) return;
+            // Adopted here, not in resetPageState: this is the first moment the
+            // framework has finished rendering and document.title is the new
+            // page's. That delay is why SOFT_NAV_TITLE_DELAY_MS exists.
+            viewTitle = document.title;
             track("page_view", { nav_type: "soft" }, { url: viewUrl });
         }, SOFT_NAV_TITLE_DELAY_MS);
     }

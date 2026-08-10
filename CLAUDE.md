@@ -233,6 +233,8 @@ fetching:
 
     https://test-takers.psiexams.com/api/content/bulletin/{id}
 
+**Texas** — verified 2026-08-05:
+
 | ID | Bulletin |
 |---|---|
 | 701 | Barber License Examination |
@@ -244,10 +246,56 @@ fetching:
 | 713 | Manicurist License Examination |
 | 715 | Esthetician License Examination |
 
-Verified 2026-08-05 — every ID returned a PDF and the title above was read from
-page 1 of each. **Re-check the mapping before relying on an ID.** These are
-numbers on a vendor's content API, not stable document names, and nothing
-guarantees 713 stays the manicurist bulletin.
+**California** — verified 2026-08-09. Note the shape is completely different:
+
+| ID | Bulletin |
+|---|---|
+| 916 | CA Barber Examination |
+| 930 | CA Cosmetologist Examination |
+| 940 | CA Electrology Examination |
+| 941 | CA Esthetician Examination |
+| 942 | CA Manicurist Examination |
+| 11070 | CA Hairstylist Theory Examination |
+
+**916, 930, 940, 941 and 942 are the same file, byte for byte** — one combined
+26-page bulletin covering five licences. Only 11070 is a distinct document.
+Texas issues eight separate bulletins; California issues two. Do not assume one
+bulletin per licence, and do not assume an ID range: Texas sits at 701–715,
+California at 916–942 with an outlier at 11070.
+
+Verified means every ID returned a PDF and the title was read from page 1.
+**Re-check the mapping before relying on an ID.** These are numbers on a
+vendor's content API, not stable document names, and nothing guarantees 713
+stays the manicurist bulletin.
+
+### Finding the IDs for a new state
+
+Nothing links these. The board site does not reference them, the portal's served
+HTML contains no PDF links, and probing `/api/` paths is actively misleading —
+every unknown path returns the JavaScript app's shell with **HTTP 200**, so a
+wrong guess looks like a hit. Three hops, from the board's PSI client code
+(`cabacos` for California):
+
+    /api/account/{client}/test         -> tests, each with a globalTestId
+    /api/account/{client}/test/{code}  -> mentions bulletin/{n}
+    /api/content/bulletin/{n}          -> the PDF
+
+`scripts/fetch_state_board_pdfs.js` does this automatically for any state whose
+config sets `psiPortal`. Found originally only by opening a test page in a
+browser and reading the rendered DOM.
+
+### Not every state has a practical exam — check before writing a kit list
+
+**California's bulletin contains the word "practical" zero times** across 26
+pages. No "hands-on", no "mannequin", no "model"; eleven mentions of "written
+examination". California licenses on a written exam alone, so there is no kit to
+bring and no kit list to write. Maryland is the opposite — 32 mentions of
+"practical" per bulletin and a dedicated published kit list.
+
+Kit lists are the highest-performing page type on this site by a wide margin, so
+this is the first thing to establish about a new state, ahead of licensee
+population. It is one word in one document and it decides whether the format
+applies at all.
 
 TDLR's own exam page — `/barbering-and-cosmetology/individuals/examinations/` —
 is the right place for the process (eligibility, order of written before

@@ -56,6 +56,15 @@ yarn-error.log*
 # catches nothing anywhere else. Narrow on purpose — this re-includes skill
 # definitions, not documentation generally.
 !.claude/skills/**/*.md
+# ...and research plans under docs/. These carry the reasoning behind what got
+# built and — more usefully — what got REJECTED and why, which is the part no
+# commit message captures. The California plan records that the exam-language
+# pass-rate gap has zero search demand; without that written down, the next
+# person re-derives it and builds the page anyway.
+# Named explicitly rather than !docs/*.md — that pattern would have swept in 17
+# pre-existing design docs that were deliberately untracked, as a side effect of
+# committing one research plan.
+!docs/california-content-plan.md
 
 
 
@@ -108,3 +117,12 @@ mcp-registry-auth
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Regulator reference libraries — mirrored PDFs from state licensing boards.
+# Deliberately NOT committed: the California set alone is several hundred MB of
+# third-party government documents that a script reproduces in minutes, and
+# fresher than any commit would hold. scripts/fetch_*_pdfs.js IS the archive.
+# They also must not sit under public/, where they would be served and crawled
+# as duplicates of the .gov originals.
+reference/
+.ca_bbc_added.json

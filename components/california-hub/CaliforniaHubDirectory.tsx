@@ -45,12 +45,21 @@ export function CaliforniaHubDirectory({
   subtitle,
   backHref,
   backLabel,
+  beforeBackLink,
 }: {
   data: CaliforniaHubData;
   title: string;
   subtitle: string;
   backHref: string;
   backLabel: string;
+  /**
+   * Rendered between the directory and the back link, inside this component's
+   * light-theme scope and container — the same slot TexasHubDirectory uses for
+   * TexasResourceIndex. Deliberately below the directory: someone who came
+   * looking for a salon should not have to scroll past a licensing index to
+   * find one.
+   */
+  beforeBackLink?: React.ReactNode;
 }) {
   const qualifyingCities = data.cities.filter((c) => c.qualifies);
   const otherCities = data.cities.filter((c) => !c.qualifies);
@@ -228,6 +237,8 @@ export function CaliforniaHubDirectory({
             ))}
           </div>
         </div>
+
+        {beforeBackLink}
 
         <div className="text-center mt-10">
           <Link href={backHref} className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors">
