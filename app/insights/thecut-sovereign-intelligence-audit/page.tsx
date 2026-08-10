@@ -5,7 +5,6 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import {
   ArrowLeft,
@@ -31,6 +30,11 @@ import {
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, stateNode,
+  topics, webPageNode,
+} from "@/lib/schema-graph";
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -48,35 +52,35 @@ export default function TheCutSovereignIntelligenceAudit() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            "mainEntityOfPage": {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/thecut-sovereign-intelligence-audit`
-            },
+            "@id": entityId("/insights/thecut-sovereign-intelligence-audit"),
+            "about": topics("barbering"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/thecut-sovereign-intelligence-audit")),
             "headline": "theCut's Intelligence Ceiling | Strategic View | Inner G Complete",
             "description": "An architectural review of theCut's platform dynamics and the necessity for sovereign AI layers for top grooming franchises.",
-            "author": {
-              "@type": "Person",
-              "name": "Lamont Evans",
-              "url": `${SITE_URL}/about`,
-                "jobTitle": "Senior Product Owner | Machine Learning Engineer",
-                "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
-            },
-            "publisher": {
-              "@type": "Organization",
-              "name": "Inner G Complete Agency",
-              "logo": {
-                "@type": "ImageObject",
-                "url": `${SITE_URL}/icon-dark-32x32.png`
-              }
-            },
+            author: authorSchema(),
+            publisher: ref(ORG_ID),
             "datePublished": "2026-04-12T08:00:00Z"
-          })
+          },
+            webPageNode({
+              path: "/insights/thecut-sovereign-intelligence-audit",
+              name: "theCut's Intelligence Ceiling | Strategic View | Inner G Complete",
+              primaryEntityId: entityId("/insights/thecut-sovereign-intelligence-audit"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/thecut-sovereign-intelligence-audit", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "theCut's Intelligence Ceiling | Strategic View | Inner G Complete", path: "/insights/thecut-sovereign-intelligence-audit" },
+            ]),
+          ))
         }}
       />
-      <BreadcrumbSchema slug="thecut-sovereign-intelligence-audit" title="theCut's Intelligence Ceiling | Strategic View | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">

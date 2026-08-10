@@ -5,7 +5,6 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import {
   ArrowLeft,
@@ -30,6 +29,10 @@ import {
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, webPageNode,
+} from "@/lib/schema-graph";
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -47,35 +50,34 @@ export default function MindbodySovereignIntelligenceAudit() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            "mainEntityOfPage": {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/mindbody-sovereign-intelligence-audit`
-            },
+            "@id": entityId("/insights/mindbody-sovereign-intelligence-audit"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/mindbody-sovereign-intelligence-audit")),
             "headline": "MindBody's Intelligence Ceiling | Strategic View | Inner G Complete",
             "description": "A strategic audit of MindBody's enterprise limits and why the top 1% of wellness brands must build intelligence layers on top of it.",
-            "author": {
-              "@type": "Person",
-              "name": "Lamont Evans",
-              "url": `${SITE_URL}/about`,
-                "jobTitle": "Senior Product Owner | Machine Learning Engineer",
-                "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
-            },
-            "publisher": {
-              "@type": "Organization",
-              "name": "Inner G Complete Agency",
-              "logo": {
-                "@type": "ImageObject",
-                "url": `${SITE_URL}/icon-dark-32x32.png`
-              }
-            },
+            author: authorSchema(),
+            publisher: ref(ORG_ID),
             "datePublished": "2026-04-12T08:00:00Z"
-          })
+          },
+            webPageNode({
+              path: "/insights/mindbody-sovereign-intelligence-audit",
+              name: "MindBody's Intelligence Ceiling | Strategic View | Inner G Complete",
+              primaryEntityId: entityId("/insights/mindbody-sovereign-intelligence-audit"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/mindbody-sovereign-intelligence-audit", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "MindBody's Intelligence Ceiling | Strategic View | Inner G Complete", path: "/insights/mindbody-sovereign-intelligence-audit" },
+            ]),
+          ))
         }}
       />
-      <BreadcrumbSchema slug="mindbody-sovereign-intelligence-audit" title="MindBody's Intelligence Ceiling | Strategic View | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">

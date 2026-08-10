@@ -6,7 +6,6 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { LicenceGuideLinks } from "@/components/insights/licence-guide-links"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { BoothRentCalculator } from "@/components/insights/booth-rent-calculator"
 import { Navbar } from "@/components/layout/navbar"
 import {
@@ -22,6 +21,10 @@ import Image from "next/image"
 import Link from "next/link"
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, stateNode,
+  topics, webPageNode,
+} from "@/lib/schema-graph";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -81,23 +84,37 @@ export default function BoothRentVsCommissionArticle() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            mainEntityOfPage: {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/booth-rent-vs-commission`,
-            },
+            "@id": entityId("/insights/booth-rent-vs-commission"),
+            "about": topics("barbering", "cosmetology"),
+            "spatialCoverage": stateNode("TX"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/booth-rent-vs-commission")),
             headline: "Booth Rent vs. Commission: What the Real Houston Numbers Say",
             description:
               "A real-data comparison of booth rent and commission pay structures for Texas barbers and cosmetologists, using live Houston barbershop data and an interactive breakeven calculator.",
             author: authorSchema(),
-            publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
+            publisher: ref(ORG_ID),
             datePublished: "2026-07-09T08:00:00Z",
-          }),
+          },
+            webPageNode({
+              path: "/insights/booth-rent-vs-commission",
+              name: "Booth Rent vs. Commission | Inner G Complete",
+              primaryEntityId: entityId("/insights/booth-rent-vs-commission"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/booth-rent-vs-commission", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "Booth Rent vs. Commission | Inner G Complete", path: "/insights/booth-rent-vs-commission" },
+            ]),
+          )),
         }}
       />
-      <BreadcrumbSchema slug="booth-rent-vs-commission" title="Booth Rent vs. Commission | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">

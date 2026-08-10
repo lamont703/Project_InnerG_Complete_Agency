@@ -6,7 +6,6 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { LicenceGuideLinks } from "@/components/insights/licence-guide-links"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import { getHoustonBoothRentStats } from "@/lib/houston-booth-rent"
 import {
@@ -32,6 +31,10 @@ import Link from "next/link"
 import Image from "next/image"
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, stateNode,
+  topics, webPageNode,
+} from "@/lib/schema-graph";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -144,21 +147,36 @@ export default async function OpeningYourOwnShopGuide() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            mainEntityOfPage: {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/opening-your-own-shop-in-texas`,
-            },
+            "@id": entityId("/insights/opening-your-own-shop-in-texas"),
+            "about": topics("barbering"),
+            "spatialCoverage": stateNode("TX"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/opening-your-own-shop-in-texas")),
             headline: "How to Open a Barbershop in Texas: Costs, Licenses & Profit",
             description:
               "What it costs to open a barbershop in Texas — full startup cost breakdown, licensing fees, and profit math grounded in real Houston booth-rent data, plus TDLR establishment license, premises, and inspection rules.",
             author: authorSchema(),
-            publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
+            publisher: ref(ORG_ID),
             datePublished: "2026-07-08T08:00:00Z",
             dateModified: "2026-07-26T08:00:00Z",
-          }),
+          },
+            webPageNode({
+              path: "/insights/opening-your-own-shop-in-texas",
+              name: "Opening Your Own Shop in Texas | Inner G Complete",
+              primaryEntityId: entityId("/insights/opening-your-own-shop-in-texas"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/opening-your-own-shop-in-texas", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "Opening Your Own Shop in Texas | Inner G Complete", path: "/insights/opening-your-own-shop-in-texas" },
+            ]),
+          )),
         }}
       />
       <script
@@ -184,7 +202,6 @@ export default async function OpeningYourOwnShopGuide() {
           }),
         }}
       />
-      <BreadcrumbSchema slug="opening-your-own-shop-in-texas" title="Opening Your Own Shop in Texas | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">

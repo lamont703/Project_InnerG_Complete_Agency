@@ -5,7 +5,6 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import {
   ArrowLeft,
@@ -29,6 +28,11 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, stateNode,
+  topics, webPageNode,
+} from "@/lib/schema-graph";
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -145,35 +149,35 @@ export default function BarberEducationADI() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            "mainEntityOfPage": {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/barber-education-intelligence-roi`
-            },
+            "@id": entityId("/insights/barber-education-intelligence-roi"),
+            "about": topics("barbering", "cosmetology"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/barber-education-intelligence-roi")),
             "headline": "Barber Education Intelligence | State Board ADI Solution",
             "description": "Architecting the State Board ADI: Eradicating the $16K Barber Education Bottleneck with Sovereign Intelligence.",
-            "author": {
-              "@type": "Person",
-              "name": "Lamont Evans",
-              "url": `${SITE_URL}/about`,
-                "jobTitle": "Senior Product Owner | Machine Learning Engineer",
-                "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
-            },
-            "publisher": {
-              "@type": "Organization",
-              "name": "Inner G Complete Agency",
-              "logo": {
-                "@type": "ImageObject",
-                "url": `${SITE_URL}/icon-dark-32x32.png`
-              }
-            },
+            author: authorSchema(),
+            publisher: ref(ORG_ID),
             "datePublished": "2026-04-19T08:00:00Z"
-          })
+          },
+            webPageNode({
+              path: "/insights/barber-education-intelligence-roi",
+              name: "Barber Education Intelligence | State Board ADI Solution",
+              primaryEntityId: entityId("/insights/barber-education-intelligence-roi"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/barber-education-intelligence-roi", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "Barber Education Intelligence | State Board ADI Solution", path: "/insights/barber-education-intelligence-roi" },
+            ]),
+          ))
         }}
       />
-      <BreadcrumbSchema slug="barber-education-intelligence-roi" title="Barber Education Intelligence | State Board ADI Solution" />
       <Navbar />
 
       <article className="relative flex-1">

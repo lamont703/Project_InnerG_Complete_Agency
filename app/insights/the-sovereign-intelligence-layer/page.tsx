@@ -5,7 +5,6 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
 
@@ -25,6 +24,10 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, webPageNode,
+} from "@/lib/schema-graph";
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -69,35 +72,34 @@ export default function SovereignIntelligenceLayer() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            "mainEntityOfPage": {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/the-sovereign-intelligence-layer`
-            },
+            "@id": entityId("/insights/the-sovereign-intelligence-layer"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/the-sovereign-intelligence-layer")),
             "headline": "The Sovereign Intelligence Layer | Core Vision",
             "description": "Why the enterprise that builds a proprietary Artificial Domain Intelligence creates an unassailable competitive moat.",
-            "author": {
-              "@type": "Person",
-              "name": "Lamont Evans",
-              "url": `${SITE_URL}/about`,
-                "jobTitle": "Senior Product Owner | Machine Learning Engineer",
-                "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
-            },
-            "publisher": {
-              "@type": "Organization",
-              "name": "Inner G Complete Agency",
-              "logo": {
-                "@type": "ImageObject",
-                "url": `${SITE_URL}/icon-dark-32x32.png`
-              }
-            },
+            author: authorSchema(),
+            publisher: ref(ORG_ID),
             "datePublished": "2026-04-13T08:00:00Z"
-          })
+          },
+            webPageNode({
+              path: "/insights/the-sovereign-intelligence-layer",
+              name: "The Sovereign Intelligence Layer | Core Vision",
+              primaryEntityId: entityId("/insights/the-sovereign-intelligence-layer"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/the-sovereign-intelligence-layer", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "The Sovereign Intelligence Layer | Core Vision", path: "/insights/the-sovereign-intelligence-layer" },
+            ]),
+          ))
         }}
       />
-      <BreadcrumbSchema slug="the-sovereign-intelligence-layer" title="The Sovereign Intelligence Layer | Core Vision" />
       <Navbar />
 
       <article className="relative flex-1">

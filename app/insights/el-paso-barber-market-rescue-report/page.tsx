@@ -5,7 +5,6 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import {
   ArrowLeft,
@@ -31,6 +30,11 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, stateNode,
+  topics, webPageNode,
+} from "@/lib/schema-graph";
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -124,31 +128,36 @@ export default function ElPasoRescueReport() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            "mainEntityOfPage": {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/el-paso-barber-market-rescue-report`
-            },
+            "@id": entityId("/insights/el-paso-barber-market-rescue-report"),
+            "about": topics("barbering"),
+            "spatialCoverage": stateNode("TX"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/el-paso-barber-market-rescue-report")),
             "headline": "El Paso Barber Market Rescue Report | Regional Failure Rate Analysis",
             "description": "An industry rescue report analyzing the critical 58.0% failure rates in the El Paso barber market and proposing the Pilot Scholarship solution.",
-            "author": {
-              "@type": "Person",
-              "name": "Lamont Evans",
-              "url": `${SITE_URL}/about`,
-                "jobTitle": "Senior Product Owner | Machine Learning Engineer",
-                "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
-            },
-            "publisher": {
-              "@type": "Organization",
-              "name": "Inner G Complete Agency"
-            },
+            author: authorSchema(),
+            publisher: ref(ORG_ID),
             "datePublished": "2026-04-28T08:00:00Z"
-          })
+          },
+            webPageNode({
+              path: "/insights/el-paso-barber-market-rescue-report",
+              name: "El Paso Barber Market Rescue Report | Inner G Complete",
+              primaryEntityId: entityId("/insights/el-paso-barber-market-rescue-report"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/el-paso-barber-market-rescue-report", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "El Paso Barber Market Rescue Report | Inner G Complete", path: "/insights/el-paso-barber-market-rescue-report" },
+            ]),
+          ))
         }}
       />
-      <BreadcrumbSchema slug="el-paso-barber-market-rescue-report" title="El Paso Barber Market Rescue Report | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">
