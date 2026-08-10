@@ -211,6 +211,50 @@ export default function CaliforniaCosmetologyRenewalPage() {
           </div>
         </section>
 
+        {/* The other three renewal pages. Same fee and cycle on all four — what
+            differs is the establishment licence for shop owners, the
+            manicurist naming trap, and the esthetician spelling. Sending
+            someone to the right one is the point of listing them. */}
+        <section className="mb-8">
+          <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-slate-400">
+            Renewing a different licence?
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              {
+                href: "/california-barber-license-renewal",
+                name: "Barber",
+                note: "Plus the separate barbershop establishment renewal.",
+                click: "ca_cos_renewal_to_barber",
+              },
+              {
+                href: "/california-nail-license-renewal",
+                name: "Nail technician",
+                note: "BreEZe files it under “manicurist”, not “nail”.",
+                click: "ca_cos_renewal_to_nail",
+              },
+              {
+                href: "/california-esthetician-license-renewal",
+                name: "Esthetician",
+                note: "One spelling works in the licence lookup; the other doesn’t.",
+                click: "ca_cos_renewal_to_esthetician",
+              },
+            ].map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                data-ig-click={l.click}
+                className="group rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition-colors hover:border-indigo-300"
+              >
+                <span className="block text-sm font-black text-slate-900 group-hover:text-indigo-700">
+                  {l.name}
+                </span>
+                <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">{l.note}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
         <section className="mb-8 grid gap-3 sm:grid-cols-2">
           <Link
             href="/california-cosmetology-exam-intelligence-prep"
