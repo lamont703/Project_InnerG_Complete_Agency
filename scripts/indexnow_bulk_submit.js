@@ -1,4 +1,26 @@
 /**
+ * RETIRED — DO NOT RUN. Kept for reference only; it exits immediately.
+ *
+ * Bulk submission has caused problems for this site and is no longer how we
+ * notify search engines. See the IndexNow section in CLAUDE.md for the rule
+ * and, more importantly, for what does NOT justify it: the IndexNow spec
+ * permits 10,000 URLs per POST, so anyone arguing from the spec will conclude
+ * this file should be used. The reason is Bing's behaviour, not the protocol's
+ * rules — Bing classifies a site's submission mode by request SHAPE, and
+ * repeated batches set that mode for the whole site.
+ *
+ * Use lib/indexnow.ts instead, ONE URL PER CALL. A single-element array sends
+ * a GET (streaming); two or more fall through to the POST urlList (batch).
+ *
+ * Second, independent reason not to resurrect it: HOST below was never updated
+ * for the domain migration and still names agency.innergcomplete.com, long
+ * after the site moved to shearquery.com. Every URL it built was for a host we
+ * no longer publish. Do not fix the host and run it — a stale script that
+ * still executes is worse than one that refuses.
+ *
+ * ---------------------------------------------------------------------------
+ * Original documentation, retained so the retired behaviour is legible:
+ *
  * Bulk-submit URLs to IndexNow (Bing / Yandex / Seznam share one network).
  * Pulls the live sitemap, optionally filters, and POSTs in batches of 10,000
  * (IndexNow's per-request cap). Dry run by default.
@@ -22,6 +44,31 @@
  * one page at a time by lib/indexnow.ts; use this only to backfill a large set
  * of pages that were never pinged (a new sitemap section, a bulk re-publish).
  */
+// Refuse to run. Placed above every constant so nothing here can be trusted or
+// reused by accident, and so the exit happens before any network call.
+console.error(
+  [
+    "",
+    "  indexnow_bulk_submit.js is RETIRED and will not run.",
+    "",
+    "  Bulk submission has caused problems for this site. Bing reads repeated",
+    "  batch POSTs as the site's submission mode, and this script is a batch",
+    "  POST by construction.",
+    "",
+    "  Instead: lib/indexnow.ts, ONE URL PER CALL —",
+    '    await pingIndexNow(["/some-route"])   // single element = GET = streaming',
+    "  Passing two or more URLs in one call falls through to the batch POST,",
+    "  so loop and call it once per URL rather than passing an array.",
+    "",
+    "  Note also that HOST in this file was never updated for the migration to",
+    "  shearquery.com, so its URLs were wrong regardless.",
+    "",
+    "  See the IndexNow section in CLAUDE.md before changing any of this.",
+    "",
+  ].join("\n"),
+);
+process.exit(1);
+
 const HOST = "agency.innergcomplete.com";
 const KEY = "e352d1c5dee74b9084f780187d522a3a"; // Bing-issued IndexNow key; keep in sync with lib/indexnow.ts + public/<key>.txt
 const KEY_LOCATION = `https://${HOST}/${KEY}.txt`;
