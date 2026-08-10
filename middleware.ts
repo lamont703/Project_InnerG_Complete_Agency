@@ -10,7 +10,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { isMarkdownEligible } from "@/lib/public-routes"
 import { ADMIN_EMAILS } from "@/lib/admin-allowlist"
-import { isIndexableHost } from "@/lib/site"
+import { SITE_URL, isIndexableHost } from "@/lib/site"
 
 /** Routes that require authentication */
 const PROTECTED_ROUTES = ["/select-portal", "/dashboard"]
@@ -90,14 +90,52 @@ export default async function proxy(request: NextRequest) {
     if (pathname.endsWith('.md')) {
         const basePath = pathname.slice(0, -3)
         const segments = basePath.split('/').filter(Boolean)
+
+        /**
+         * Every .md response declares the HTML page as its canonical.
+         *
+         * WHY THIS EXISTS, AND WHAT IT REPLACED. A .md URL is the same content
+         * as its HTML twin on a second URL, so robots.txt used to carry
+         * `Disallow: /*.md$` for everything except a hand-maintained list of AI
+         * crawlers. That solved duplicate content by making the Markdown
+         * unreachable to anyone not on the list — including every AI crawler
+         * that launches after the list was last edited.
+         *
+         * Google's own guidance rules out both of the obvious fixes:
+         *
+         *   "Don't use the robots.txt file for canonicalization purposes.
+         *    Google may still index URLs that are disallowed in robots.txt
+         *    without their content."
+         *
+         *   "We don't recommend using noindex to prevent selection of a
+         *    canonical page within a single site, because it will completely
+         *    block the page from Search. rel="canonical" link annotations are
+         *    the preferred solution."
+         *   — /search/docs/crawling-indexing/consolidate-duplicate-urls
+         *
+         * A rel=canonical Link header is the documented mechanism, it is
+         * explicitly supported for non-HTML documents, and unlike noindex it
+         * carries no "do not use this content" implication that an AI crawler
+         * might read as a refusal. So the Markdown is now open to everyone and
+         * search engines consolidate it onto the HTML page.
+         *
+         * This is the single choke point for .md — both rewrites go through
+         * it — which is the only reason it is safe to have dropped the
+         * robots.txt rule.
+         */
+        const canonical = <T extends NextResponse>(res: T): T => {
+            res.headers.set('Link', `<${SITE_URL}${basePath}>; rel="canonical"`)
+            return res
+        }
+
         // Entity profiles first — their Markdown is built from the source
         // record and is richer than anything derived from rendered HTML.
         if (segments.length === 2 && LLM_MARKDOWN_ENTITY_TYPES.has(segments[0])) {
             const [entityType, slug] = segments
-            return guard(NextResponse.rewrite(new URL(`/api/llm/${entityType}/${slug}`, request.url)))
+            return canonical(guard(NextResponse.rewrite(new URL(`/api/llm/${entityType}/${slug}`, request.url))))
         }
         if (segments.length > 0 && isMarkdownEligible(basePath)) {
-            return guard(NextResponse.rewrite(new URL(`/api/llm-page${basePath}`, request.url)))
+            return canonical(guard(NextResponse.rewrite(new URL(`/api/llm-page${basePath}`, request.url))))
         }
         // Not an eligible page — fall through so it 404s as a normal route
         // rather than leaking which private paths exist.

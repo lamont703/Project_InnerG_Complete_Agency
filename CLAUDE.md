@@ -374,6 +374,104 @@ transcript, and a signed dated reciprocity disclaimer in each student file.
 claim about NACCAS cannot be traced to a numbered policy or standard, it is not
 citable.
 
+## AI crawler claims — read the operator's doc, and know the two traps
+
+**Never add, remove or edit a user-agent token in `app/robots.ts` /
+`lib/robots-rules.ts` from memory or from a robots.txt someone posted online.**
+Fetch the operator's own documentation, then edit.
+
+This one has a nastier failure mode than the others in this file, because
+nothing ever tells you that you got it wrong. A misspelled, retired or invented
+user-agent token does not error. It produces a group that never matches any
+request, so the rule is inert — and the served `robots.txt` looks correct,
+every validator passes it, and the intent reads fine to a human.
+
+### The two traps, both of which this repo hit
+
+**1. Named groups do NOT inherit the `*` group.** Google states it directly:
+*"User agent specific groups and global groups (`*`) are not combined."* A
+crawler picks the single most specific group that matches and ignores every
+other one. So this:
+
+    User-agent: GPTBot
+    Allow: /*.md$
+
+does not mean "GPTBot may also read .md". It means GPTBot's entire rule set is
+that one line and everything else is permitted. Seven named AI crawlers were
+being handed `/admin/`, `/dashboard/`, `/login/`, `/select-portal/`, `/api/`
+and `/auth/` for exactly this reason. **Every group must repeat the private
+disallows** — `lib/robots-rules.ts` builds them from one shared array so they
+cannot drift, and `lib/robots-rules.test.ts` asserts no group can carry an
+allow with no disallow.
+
+**2. `GoogleOther-Extended` does not exist.** It is in widely-copied robots.txt
+snippets all over the web and in none of Google's documentation, which lists
+`GoogleOther`, `GoogleOther-Image`, `GoogleOther-Video` and `Google-Extended`
+and nothing combining them. Treat every pasted list as a set of claims to check.
+
+### Asymmetry worth internalising
+
+An unverified **Allow** is harmless — if the token matches nothing, the line
+does nothing. An unverified **Disallow** is dangerous, because you believe
+something is protected and it isn't. That is why `lib/robots-rules.ts` keeps
+`AI_CRAWLERS` (read from operator docs, with URLs) separate from
+`AI_CRAWLERS_UNVERIFIED` (allowed anyway, because permission costs nothing)
+rather than refusing the second group.
+
+### Operator documentation — verified 2026-08-10
+
+Every URL below returned the tokens listed. **Re-check before relying on one**;
+these lists change and several already have.
+
+| Operator | Documentation | Tokens |
+|---|---|---|
+| OpenAI | `https://developers.openai.com/api/docs/bots` | `GPTBot` (training), `OAI-SearchBot` (ChatGPT search), `ChatGPT-User` (user-triggered fetch), `OAI-AdsBot` (ad validation — not a discovery surface) |
+| Anthropic | `https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler` | `ClaudeBot` (training), `Claude-User` (user-triggered), `Claude-SearchBot` (search quality) |
+| Google — common crawlers | `https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers` | `Googlebot`, `Googlebot-Image/-Video/-News`, `GoogleOther`, `GoogleOther-Image/-Video`, `Storebot-Google`, `Google-InspectionTool`, `Google-CloudVertexBot`, `Google-Extended` |
+| Google — special-case | `https://developers.google.com/crawling/docs/crawlers-fetchers/google-special-case-crawlers` | `APIs-Google`, `AdsBot-Google`, `AdsBot-Google-Mobile`, `Mediapartners-Google`, `Google-Safety` |
+| Google — changelog | `https://developers.google.com/crawling/docs/changelog` | **read this first.** `Google-Agent` was added here on 2026-03-20 and is on neither reference page above. |
+| Google — robots spec | `https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt` | group precedence, and trap 1 |
+| Perplexity | `https://docs.perplexity.ai/guides/bots` | `PerplexityBot` (search index), `Perplexity-User` (user-triggered). Neither trains models. |
+| Apple | `https://support.apple.com/en-us/119829` | `Applebot` (crawls; feeds search AND Apple Intelligence), `Applebot-Extended` (**does not crawl** — a training-permission signal only) |
+| Meta | `https://developers.facebook.com/docs/sharing/webmasters/web-crawlers/` | `Meta-WebIndexer`, `Meta-ExternalAgent`, `Meta-ExternalFetcher`, `Meta-ExternalAds`, `facebookexternalhit`. Meta's own docs warn `Meta-ExternalFetcher` and `facebookexternalhit` may bypass robots.txt. |
+| Amazon | `https://developer.amazon.com/amazonbot` | `Amazonbot`, `Amzn-SearchBot`, `Amzn-User` |
+| DuckDuckGo | `https://duckduckgo.com/duckduckgo-help-pages/results/duckassistbot` | `DuckAssistBot` (AI answers; distinct from `DuckDuckBot`, ordinary search) |
+| Common Crawl | `https://commoncrawl.org/ccbot` | `CCBot` — not an answer engine, but the corpus a large share of open models train on |
+| Allen Institute | `https://allenai.org/crawler` | `AI2Bot` |
+
+**Searched and found nothing publishable:** ByteDance/`Bytespider` (no doc, and
+independently reported to crawl paths it was disallowed — so it is a permission
+statement here, not a control), Cohere/`cohere-ai`, You.com/`YouBot`,
+Mistral/`MistralAI-User`, xAI/Grok. Diffbot documents customer-configurable user
+agents, so it has no canonical token.
+
+**Microsoft has no separate AI token.** Copilot uses `bingbot`. Its docs note
+bingbot still honours directives written for the retired `msnbot`.
+
+### Why the `.md` layer is no longer gated by robots.txt
+
+It used to be: `Disallow: /*.md$` for `*`, with named AI crawlers allowed past
+it, to stop the Markdown twins being indexed as duplicates of the HTML pages.
+That made a hand-maintained list the gate on the entire `.md` layer — every AI
+crawler launched after the last edit was silently refused.
+
+Google rules out both obvious fixes:
+
+- *"Don't use the robots.txt file for canonicalization purposes. Google may
+  still index URLs that are disallowed in robots.txt without their content."*
+- *"We don't recommend using noindex to prevent selection of a canonical page
+  within a single site… `rel="canonical"` link annotations are the preferred
+  solution."*
+  — `/search/docs/crawling-indexing/consolidate-duplicate-urls`
+
+So `middleware.ts` sets a `Link: <...>; rel="canonical"` header on every `.md`
+response, pointing at the HTML page. It is explicitly supported for non-HTML
+documents, and unlike `noindex` it carries no "do not use this content" signal
+an AI crawler might read as a refusal. **`middleware.ts` is the single choke
+point for `.md`** — that is the only reason dropping the robots.txt rule is
+safe, so if `.md` ever gets served from somewhere else, the header goes there
+too.
+
 ## IndexNow — one URL at a time. Never bulk-submit.
 
 **Submit URLs to IndexNow one at a time, as they change. Do not batch-submit,

@@ -73,9 +73,22 @@ export const AI_CRAWLERS = [
   "Claude-SearchBot",
   "anthropic-ai",
 
-  // Google — Google-Extended controls Gemini/Vertex grounding and training. It
-  // is a permission signal and does not crawl; Googlebot does the fetching.
+  // Google — developers.google.com/crawling/docs/crawlers-fetchers/...
+  //   Google-Extended       controls Gemini/Vertex grounding and training. A
+  //                         permission signal; it does not crawl.
+  //   Google-Agent          "used by Google agents hosted on Google
+  //                         infrastructure to navigate the web and perform
+  //                         actions upon user request" — added to Google's
+  //                         crawling changelog on 2026-03-20.
+  //   Google-CloudVertexBot crawls a site at its OWNER's request when building
+  //                         a Vertex AI agent.
+  // Googlebot, GoogleOther and the rest of the search family are deliberately
+  // NOT listed: they already match `*`, and giving a crawler its own named
+  // group means it stops reading `*` entirely. Naming them would buy nothing
+  // and re-create the precedence hazard described at the top of this file.
   "Google-Extended",
+  "Google-Agent",
+  "Google-CloudVertexBot",
 
   // Perplexity — docs.perplexity.ai/guides/bots
   //   PerplexityBot   indexes for Perplexity's search results
@@ -89,20 +102,6 @@ export const AI_CRAWLERS = [
   //                     signal for Apple's foundation models. Listed so the
   //                     permission is stated rather than left to inference.
   //
-  // KNOWN ASYMMETRY, stated rather than hidden. Applebot is also Apple's
-  // ordinary search crawler, so allowing it on /*.md$ carries the same
-  // duplicate-content risk that keeps bingbot off the list below. It is here
-  // and bingbot is not for two reasons: Apple publishes no separate AI-fetch
-  // token, so this is the only route by which Apple Intelligence can reach the
-  // Markdown at all, and Apple's search surface is a fraction of Bing's. That
-  // is a judgement about scale, not a principle — if .md URLs start showing up
-  // in Apple search results, this is the line that caused it.
-  //
-  // The real fix for both is to stop using robots.txt for this and serve
-  // `X-Robots-Tag: noindex` on .md responses instead: every crawler could then
-  // fetch them and none could index them. Google's own guidance is that
-  // noindex requires the URL NOT be robots.txt-blocked, so the two mechanisms
-  // are mutually exclusive and switching is a deliberate change, not a tweak.
   "Applebot",
   "Applebot-Extended",
 
@@ -140,30 +139,66 @@ export const AI_CRAWLERS = [
 ];
 
 /**
- * Deliberately NOT listed, each for a stated reason. Recorded so nobody has to
- * redo the research to find out why a familiar name is missing.
+ * Tokens allowed WITHOUT operator documentation.
  *
- *   Bytespider (ByteDance) — no operator documentation exists, and multiple
- *     independent analyses report it crawling paths it was explicitly
- *     disallowed. An allow rule for a crawler that does not read robots.txt is
- *     theatre. Blocking it, if ever wanted, needs to happen at the edge.
- *   cohere-ai, YouBot, MistralAI-User — widely repeated in third-party bot
- *     lists; none appears in the operator's own documentation. Guessing a token
- *     produces a group that silently never matches.
- *   Grok / xAI — no published crawler documentation as of this date.
- *   Diffbot — scraping-as-a-service with customer-configurable user agents, so
- *     there is no single canonical token to allow, and it is not an answer
- *     engine surfacing our pages to readers.
- *   bingbot — Microsoft Copilot uses the ordinary search crawler rather than a
- *     separate AI token. Allowing it on /*.md$ would put the Markdown twins
- *     back into Bing's search index as duplicates of the HTML pages, which is
- *     the exact thing the wildcard Disallow exists to prevent. This one is a
- *     judgement call, not an oversight — reversible if we decide the Copilot
- *     citation is worth the duplicate-content risk.
+ * Everything in AI_CRAWLERS above was read from the operator's own docs. These
+ * were researched and no such doc could be found — they circulate in
+ * third-party bot lists and in the robots.txt files people copy from each
+ * other. They are allowed anyway, and the reasoning is worth stating because it
+ * is the opposite of the reasoning that governs the verified list.
+ *
+ * Allowing costs nothing when wrong. A token that is misspelled, retired or
+ * never existed simply never matches any request, so the line is inert. That is
+ * the exact property that makes an unverified DISALLOW dangerous and an
+ * unverified ALLOW harmless — a disallow you think is protecting something and
+ * isn't isstrictly worse than no rule, while an allow that matches nothing
+ * changes nothing.
+ *
+ * Since these grant no access the wildcard group doesn't already grant, each is
+ * really a statement of permission for an operator or auditor reading the file.
+ *
+ *   Bytespider (ByteDance)  no operator documentation; multiple independent
+ *                           analyses report it crawling paths it was explicitly
+ *                           disallowed. Listed as permission, NOT as a control
+ *                           — if we ever want it gone that has to happen at the
+ *                           edge, because it does not appear to read this file.
+ *   cohere-ai               widely cited, absent from Cohere's own docs.
+ *   YouBot (You.com)        no crawler documentation published.
+ *   MistralAI-User          Mistral's docs do not disclose a user agent.
+ *   Diffbot                 scraping-as-a-service with customer-configurable
+ *                           user agents, so there is no canonical token.
  */
-export const DELIBERATELY_EXCLUDED = [
-  "Bytespider", "cohere-ai", "YouBot", "MistralAI-User", "Grok", "Diffbot", "bingbot",
+export const AI_CRAWLERS_UNVERIFIED = [
+  "Bytespider",
+  "cohere-ai",
+  "YouBot",
+  "MistralAI-User",
+  "Diffbot",
 ];
+
+/**
+ * Tokens that are NOT here, and why — so nobody adds them back on faith.
+ *
+ *   GoogleOther-Extended  DOES NOT EXIST. It appears in widely-copied robots.txt
+ *                         snippets and is absent from Google's crawler
+ *                         documentation, which lists GoogleOther,
+ *                         GoogleOther-Image, GoogleOther-Video and
+ *                         Google-Extended but no such combination. A good
+ *                         illustration of why the copied lists are checked.
+ *   bingbot, msnbot-media, Googlebot, GoogleOther, Applebot's search role
+ *                         Search crawlers, which already match `*` and are
+ *                         granted everything including .md. Naming them would
+ *                         add no access AND would stop them reading `*`,
+ *                         re-creating the precedence hazard at the top of this
+ *                         file. Bing's own docs note bingbot still honours
+ *                         msnbot directives, so that token is doubly redundant.
+ *   OAI-AdsBot, Meta-ExternalAds, facebookexternalhit
+ *                         Advertising and link-preview crawlers. Not AI
+ *                         discovery, and covered by `*` regardless.
+ *   Grok / xAI            no published crawler documentation to name a token
+ *                         from. Nothing to add, not a decision against it.
+ */
+export const NOT_A_REAL_TOKEN = ["GoogleOther-Extended"];
 
 export interface RobotsRule {
   userAgent: string | string[];
@@ -172,22 +207,36 @@ export interface RobotsRule {
 }
 
 /**
- * Two groups, both carrying the private-path disallows.
+ * Two groups, both carrying the private-path disallows, and NEITHER refusing
+ * `/*.md$` any more.
  *
- * The wildcard group additionally refuses `/*.md$`: those URLs are Markdown
- * twins of real HTML pages, and letting a search engine index both is a
- * duplicate-content problem we created ourselves. Named AI crawlers are the
- * audience the `.md` layer was built for, so they get it.
+ * THE .md RULE WAS REMOVED ON PURPOSE. It used to sit in the wildcard group to
+ * stop the Markdown twins being indexed as duplicates of the HTML pages, with
+ * named AI crawlers allowed past it. That made a hand-maintained list the gate
+ * on the whole `.md` layer: every AI crawler launched after the list was last
+ * edited got a 
+ * `Disallow`, and we would never know.
+ *
+ * Google's guidance rules the approach out directly — "Don't use the robots.txt
+ * file for canonicalization purposes. Google may still index URLs that are
+ * disallowed in robots.txt without their content" — and names the alternative:
+ * a rel=canonical Link header, which middleware.ts now sets on every .md
+ * response. Duplicate content is handled where it should be, and the Markdown
+ * is open to every crawler, named or not, present or future.
+ *
+ * The named group therefore no longer grants access nobody else has. It is kept
+ * because it states the intent explicitly to operators who look for their own
+ * token, and because it is where a future per-crawler difference would go.
  */
 export function buildRobotsRules(): RobotsRule[] {
   return [
     {
       userAgent: "*",
       allow: ["/", "/insights"],
-      disallow: [...PRIVATE_PATHS, "/*.md$"],
+      disallow: PRIVATE_PATHS,
     },
     {
-      userAgent: AI_CRAWLERS,
+      userAgent: [...AI_CRAWLERS, ...AI_CRAWLERS_UNVERIFIED],
       allow: ["/", "/*.md$"],
       // Repeated, not inherited — see the note at the top of this file.
       disallow: PRIVATE_PATHS,

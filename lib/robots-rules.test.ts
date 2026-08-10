@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   AI_CRAWLERS,
-  DELIBERATELY_EXCLUDED,
+  AI_CRAWLERS_UNVERIFIED,
+  NOT_A_REAL_TOKEN,
   PRIVATE_PATHS,
   buildRobotsRules,
 } from "./robots-rules";
@@ -36,15 +37,18 @@ describe("the .md layer", () => {
   const wildcard = rules.find((r) => r.userAgent === "*")!;
   const ai = rules.find((r) => r.userAgent !== "*")!;
 
-  it("hides Markdown twins from general search engines", () => {
-    // They are duplicates of the HTML pages; indexing both is a
-    // duplicate-content problem of our own making.
-    expect(wildcard.disallow).toContain("/*.md$");
+  it("no longer uses robots.txt to solve duplicate content", () => {
+    // Google: "Don't use the robots.txt file for canonicalization purposes.
+    // Google may still index URLs that are disallowed in robots.txt without
+    // their content." A rel=canonical Link header on the .md response, set in
+    // middleware.ts, is the documented mechanism — and unlike a Disallow it
+    // does not make the Markdown layer's reach depend on a hand-kept list.
+    expect(wildcard.disallow).not.toContain("/*.md$");
+    expect(ai.disallow).not.toContain("/*.md$");
   });
 
-  it("serves Markdown to the named AI crawlers", () => {
+  it("still states the Markdown permission explicitly for named crawlers", () => {
     expect(ai.allow).toContain("/*.md$");
-    expect(ai.disallow).not.toContain("/*.md$");
   });
 });
 
@@ -53,12 +57,28 @@ describe("crawler list", () => {
     expect(new Set(AI_CRAWLERS).size).toBe(AI_CRAWLERS.length);
   });
 
-  it("never allows a token that was deliberately excluded", () => {
-    // Catches the case where someone adds a familiar name back without
-    // reading why it was left out.
-    for (const x of DELIBERATELY_EXCLUDED) {
-      expect(AI_CRAWLERS, `${x} is on the exclusion list`).not.toContain(x);
+  it("keeps unverified tokens out of the verified list", () => {
+    // The two lists carry different guarantees — one was read from operator
+    // docs, one was not — and collapsing them would erase that.
+    for (const x of AI_CRAWLERS_UNVERIFIED) {
+      expect(AI_CRAWLERS, `${x} has no operator documentation`).not.toContain(x);
     }
+  });
+
+  it("never allows a token confirmed not to exist", () => {
+    // GoogleOther-Extended is in widely-copied robots.txt snippets and in no
+    // Google documentation. Allowing it is inert, but listing it would imply
+    // it was checked.
+    const all = [...AI_CRAWLERS, ...AI_CRAWLERS_UNVERIFIED];
+    for (const x of NOT_A_REAL_TOKEN) expect(all).not.toContain(x);
+  });
+
+  it("grants the unverified tokens the same private-path protection", () => {
+    const ai = buildRobotsRules().find((r) => r.userAgent !== "*")!;
+    for (const x of AI_CRAWLERS_UNVERIFIED) {
+      expect(ai.userAgent).toContain(x);
+    }
+    expect(ai.disallow).toContain("/admin/");
   });
 
   it("includes the crawlers that fetch on a user's behalf, not only trainers", () => {
@@ -73,7 +93,7 @@ describe("crawler list", () => {
   it("uses no whitespace or wildcards in a token", () => {
     // robots.txt matches the user-agent token as a case-insensitive substring;
     // a stray space or slash makes a group that can never match.
-    for (const t of AI_CRAWLERS) {
+    for (const t of [...AI_CRAWLERS, ...AI_CRAWLERS_UNVERIFIED]) {
       expect(t, t).toMatch(/^[A-Za-z0-9._-]+$/);
     }
   });
