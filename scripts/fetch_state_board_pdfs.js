@@ -301,10 +301,13 @@ async function main() {
     for (const [, h, href, text] of html.matchAll(/<h[1234][^>]*>([\s\S]*?)<\/h[1234]>|<a[^>]+href="([^"]+\.pdf)"[^>]*>([\s\S]*?)<\/a>/gi)) {
       if (h) { section = clean(h) || section; continue; }
       const t = clean(text), u = abs(href, page);
-      // inScope constrains the BOARD's own paths. An allowlisted document host
-      // is already scoped by the fact that an in-scope board page linked to it.
-      const offsite = !u.startsWith(CFG.origin);
-      if (!allowed(u) || (!offsite && !CFG.inScope(u))) continue;
+      // SCOPE CONSTRAINS WHICH PAGES WE CRAWL, NOT WHICH DOCUMENTS WE ACCEPT.
+      // The page we are reading is already in scope; a PDF it links is on-topic
+      // by virtue of the board linking it, wherever the file happens to sit.
+      // Applying inScope to the document too dropped Maryland's combined
+      // barber/cosmetology sanitation guide and its complaint form, both linked
+      // from board pages but filed under /forms/ — and dropped them silently.
+      if (!allowed(u)) continue;
       if (LANG_BARE.test(t) || LANG_PAREN.test(t)) { translated.add(u); continue; }
       const cur = found.get(u) || { title: null, section: null };
       if (!cur.title && t) cur.title = t;
