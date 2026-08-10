@@ -290,6 +290,41 @@ export default function CaliforniaCosmetologyLicensePage() {
           </a>
         </div>
 
+        {/* All six licences, ordered by hours. Cosmetology is the widest and the
+            most searched, so this page is where someone comparing them lands —
+            the hours column is the comparison they actually came for. */}
+        <section className="mb-8">
+          <h2 className="mb-3 text-xl font-black text-slate-900">
+            The other five licences, by hours
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              { href: "/california-barber-license", name: "Barber", hours: "1,000 hrs", note: "Same hours, adds shaving, drops nails.", click: "ca_cos_license_to_barber" },
+              { href: "/california-esthetician-license", name: "Esthetician", hours: "600 hrs", note: "Skin only — and a hard statutory limit on lasers.", click: "ca_cos_license_to_esthy" },
+              { href: "/california-hairstylist-license", name: "Hairstylist", hours: "600 hrs", note: "Cut and style, no chemical services at all.", click: "ca_cos_license_to_hairstylist" },
+              { href: "/california-electrologist-license", name: "Electrologist", hours: "600 hrs", note: "The only one requiring the 12th grade.", click: "ca_cos_license_to_electrologist" },
+              { href: "/california-nail-technician-license", name: "Nail technician", hours: "400 hrs", note: "The shortest and cheapest route in.", click: "ca_cos_license_to_nail" },
+            ].map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                data-ig-click={l.click}
+                className="group rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition-colors hover:border-indigo-300"
+              >
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm font-black text-slate-900 group-hover:text-indigo-700">
+                    {l.name}
+                  </span>
+                  <span className="shrink-0 text-xs font-black tabular-nums text-slate-400">
+                    {l.hours}
+                  </span>
+                </span>
+                <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">{l.note}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
         <section className="mb-8 grid gap-3 sm:grid-cols-2">
           <Link
             href="/california-school-leaderboard"
