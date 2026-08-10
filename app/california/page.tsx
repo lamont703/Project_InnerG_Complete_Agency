@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getCaliforniaHubData } from "@/lib/california-hub-data";
 import { CaliforniaHubDirectory } from "@/components/california-hub/CaliforniaHubDirectory";
+import { CaliforniaResourceIndex } from "@/components/california-hub/CaliforniaResourceIndex";
 import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
@@ -37,6 +38,7 @@ export default async function CaliforniaHubPage() {
       subtitle={`${data.totalEntities.toLocaleString()} barbershops, hair salons, barbers, and licensed schools across California, with intelligence not available on Google.`}
       backHref="/tools/barbershop-search"
       backLabel="← Back to Search"
+      beforeBackLink={<CaliforniaResourceIndex />}
     />
   );
 }
