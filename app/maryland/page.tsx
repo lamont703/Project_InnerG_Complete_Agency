@@ -66,9 +66,26 @@ const PAGES = [
   },
   {
     href: "/maryland-barber-practical-exam-kit-list",
-    label: "Barber practical exam kit list",
+    label: "Barber & master barber kit list",
     why: "What PSI requires in the room, from a bulletin the board's own site does not link.",
   },
+];
+
+/**
+ * The PSI National Practical guides, kept in their own list.
+ *
+ * They are a different kind of page from the guides above: those answer "what
+ * does this licence take", these answer "what happens in the exam room". They
+ * also share a fact worth stating once, here — PSI publishes no supply list for
+ * any of them, which is the question most candidates arrive with.
+ */
+const PRACTICALS = [
+  { href: "/maryland-cosmetology-practical-exam", label: "Cosmetology practical", why: "11 topics, 235 minutes, 75% to pass." },
+  { href: "/maryland-hairstylist-practical-exam", label: "Hairstylist practical", why: "7 topics, 145 minutes." },
+  { href: "/maryland-nail-technician-practical-exam", label: "Nail technician practical", why: "5 topics, 90 minutes, low-odour monomer only." },
+  { href: "/maryland-esthetician-practical-exam", label: "Esthetician practical", why: "5 topics, 85 minutes, includes make-up application." },
+  { href: "/maryland-eyelash-extension-practical-exam", label: "Eyelash extension practical", why: "4 topics, 60 minutes, includes a blood exposure incident." },
+  { href: "/maryland-blow-dry-stylist-practical-exam", label: "Blow dry stylist practical", why: "3 topics — a licence most states do not have." },
 ];
 
 export default function MarylandHubPage() {
@@ -125,6 +142,32 @@ export default function MarylandHubPage() {
                   <span className="block text-sm font-black text-slate-900 group-hover:text-indigo-700">
                     {p.label}
                   </span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">{p.why}</span>
+                </span>
+                <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-indigo-600" />
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="mb-10">
+          <h2 className="mb-2 text-lg font-black text-slate-900">Practical exams</h2>
+          <p className="mb-4 max-w-3xl text-sm leading-relaxed text-slate-600">
+            Maryland runs two different practical systems. The barber exams are Maryland-specific and
+            come with an itemised kit. Everything under the Board of Cosmetologists uses the{" "}
+            <strong>PSI National Practical test</strong>, for which PSI states plainly that there are
+            no supply lists or suggested supplies — you bring what you would use at work. Each guide
+            below gives that licence&apos;s graded topics, timings and pass mark.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {PRACTICALS.map((p) => (
+              <Link
+                key={p.href}
+                href={p.href}
+                className="group flex items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition-colors hover:border-indigo-300"
+              >
+                <span className="min-w-0">
+                  <span className="block text-sm font-black text-slate-900 group-hover:text-indigo-700">{p.label}</span>
                   <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">{p.why}</span>
                 </span>
                 <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-indigo-600" />

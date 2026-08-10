@@ -83,6 +83,13 @@ export default function Page() {
           safety points. This is what PSI says to bring, taken from the candidate bulletin effective{" "}
           <strong>{BARBER_KIT.bulletinEffective}</strong>.
         </p>
+        <p className="mb-6 max-w-3xl text-base leading-relaxed text-slate-600 sm:text-lg">
+          <strong>This covers the Master Barber practical too.</strong> The two bulletins carry the
+          same kit, word for word, with one difference: the barber bulletin labels the disinfectant
+          &ldquo;EPA disinfectant &mdash; no aerosols allowed&rdquo;, the master barber one drops the
+          aerosol clause. Everything else is identical, so there is one list rather than two nearly
+          identical pages.
+        </p>
 
         {/* The source's own hedge, kept rather than dropped. */}
         <div className="mb-8 flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4">

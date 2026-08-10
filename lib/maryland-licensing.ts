@@ -231,3 +231,143 @@ export const BARBER_KIT = {
   mannequin:
     "All task lines associated with the practical must be performed on a mannequin to receive procedure and safety criteria points.",
 } as const;
+
+/**
+ * The PSI National Practical tests — Cosmetologist, Hairstylist, Esthetician,
+ * Nail Technician, Blow Dry Stylist and Eyelash Extension Technician.
+ *
+ * THERE IS NO KIT LIST FOR THESE, AND THAT IS DELIBERATE ON PSI'S PART. Its
+ * exact words: "There are no supply lists or suggested supplies for the PSI
+ * Practical National Tests." Test takers bring what they would use in their own
+ * work environment, and "there are no right or wrong supplies". Publishing a
+ * "Maryland cosmetology kit list" would be inventing a document PSI declines to
+ * write. Only the Maryland-specific barber practical has an itemised kit.
+ *
+ * What IS prescribed is the container, the topic order, the timings and the
+ * pass mark — all below, read from each licence's own bulletin.
+ *
+ * Timings reconcile against each bulletin's stated total for five of the six.
+ * Blow Dry Stylist is the exception and the discrepancy is the source's, not
+ * ours: its topics sum to 45 minutes against a stated "approximately 60
+ * minutes (1 hour)". Its rating line also says candidates must pass "the PSI
+ * National Nail Technician" test — a copy-paste error in PSI's own bulletin.
+ */
+export interface PracticalTopic { topic: string; minutes: number }
+export interface PsiPractical {
+  slug: string;
+  license: string;
+  board: "Board of Barbers" | "Board of Cosmetologists";
+  bulletin: string;
+  totalMinutesStated: number;
+  passPct: number;
+  topics: PracticalTopic[];
+  /** Set where the bulletin contradicts itself; surfaced on the page. */
+  sourceNote?: string;
+}
+
+export const PSI_CONTAINER =
+  'An unmarked closable container — a "supply kit" — no larger than 24" wide, 24" long and 24" high, so it fits under the table when not in use.';
+export const PSI_MONOMER =
+  'Any monomer must be a low-odour or odourless product. Product that does not meet this requirement will not be allowed into the testing room.';
+export const PSI_NO_SUPPLY_LIST =
+  'PSI states there are no supply lists or suggested supplies for its National Practical tests. Bring the equipment and supplies you would use for that topic in your own work environment — PSI says there is no right or wrong supply and no right or wrong technique.';
+
+export const PSI_PRACTICALS: PsiPractical[] = [
+  {
+    slug: "maryland-cosmetology-practical-exam",
+    license: "Cosmetologist",
+    board: "Board of Cosmetologists",
+    bulletin: "Cosmetology v1.1, effective 2026-07-08",
+    totalMinutesStated: 235,
+    passPct: 75,
+    topics: [
+      { topic: "Workstation preparation", minutes: 10 },
+      { topic: "Basic manicure", minutes: 20 },
+      { topic: "Nail enhancement using a form", minutes: 20 },
+      { topic: "Basic facial", minutes: 20 },
+      { topic: "Eyebrow waxing and tweezing", minutes: 10 },
+      { topic: "Haircutting", minutes: 20 },
+      { topic: "Chemical wave", minutes: 30 },
+      { topic: "Sodium hydroxide relaxer (straightener) application", minutes: 20 },
+      { topic: "Color lift", minutes: 20 },
+      { topic: "Permanent hair color deposit", minutes: 20 },
+      { topic: "Workstation preparation for next client", minutes: 45 },
+    ],
+  },
+  {
+    slug: "maryland-hairstylist-practical-exam",
+    license: "Limited Hairstylist",
+    board: "Board of Cosmetologists",
+    bulletin: "Hairstylist v1.1, effective 2026-07-08",
+    totalMinutesStated: 145,
+    passPct: 75,
+    topics: [
+      { topic: "Workstation preparation", minutes: 10 },
+      { topic: "Haircutting", minutes: 20 },
+      { topic: "Chemical wave", minutes: 45 },
+      { topic: "Sodium hydroxide relaxer (straightener) application", minutes: 20 },
+      { topic: "Color lift", minutes: 20 },
+      { topic: "Permanent hair color deposit", minutes: 20 },
+      { topic: "Workstation preparation for next client", minutes: 10 },
+    ],
+  },
+  {
+    slug: "maryland-esthetician-practical-exam",
+    license: "Limited Esthetician",
+    board: "Board of Cosmetologists",
+    bulletin: "Esthetician v1.1, effective 2026-07-08",
+    totalMinutesStated: 85,
+    passPct: 75,
+    topics: [
+      { topic: "Workstation preparation", minutes: 10 },
+      { topic: "Basic facial", minutes: 20 },
+      { topic: "Eyebrow waxing and tweezing", minutes: 20 },
+      { topic: "Make up application", minutes: 25 },
+      { topic: "Workstation preparation for next client", minutes: 10 },
+    ],
+  },
+  {
+    slug: "maryland-nail-technician-practical-exam",
+    license: "Limited Nail Technician",
+    board: "Board of Cosmetologists",
+    bulletin: "Nail Technician v1.1, effective 2026-07-08",
+    totalMinutesStated: 90,
+    passPct: 75,
+    topics: [
+      { topic: "Workstation preparation", minutes: 10 },
+      { topic: "Basic manicure", minutes: 20 },
+      { topic: "Nail tip application", minutes: 20 },
+      { topic: "Nail enhancement using a form", minutes: 30 },
+      { topic: "Workstation preparation for next client", minutes: 10 },
+    ],
+  },
+  {
+    slug: "maryland-blow-dry-stylist-practical-exam",
+    license: "Limited Blow Dry Stylist",
+    board: "Board of Cosmetologists",
+    bulletin: "Blow Dry Stylist v2.5, effective 2026-07-08",
+    totalMinutesStated: 60,
+    passPct: 75,
+    topics: [
+      { topic: "Workstation preparation", minutes: 10 },
+      { topic: "Blow dry and thermal curling", minutes: 25 },
+      { topic: "End of day clean up", minutes: 10 },
+    ],
+    sourceNote:
+      'Two inconsistencies in PSI\'s own bulletin, reproduced rather than tidied: the three topics sum to 45 minutes against a stated "approximately 60 minutes (1 hour)", and the rating line says candidates must pass "the PSI National Nail Technician" test rather than the blow dry one.',
+  },
+  {
+    slug: "maryland-eyelash-extension-practical-exam",
+    license: "Eyelash Extension Technician",
+    board: "Board of Cosmetologists",
+    bulletin: "Eyelash Extension Technician v1.3, effective 2026-07-08",
+    totalMinutesStated: 60,
+    passPct: 75,
+    topics: [
+      { topic: "Daily workstation preparation", minutes: 10 },
+      { topic: "Eyelash extension application", minutes: 25 },
+      { topic: "Blood exposure incident", minutes: 15 },
+      { topic: "Workstation preparation for next client", minutes: 10 },
+    ],
+  },
+];
