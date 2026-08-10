@@ -18,10 +18,19 @@
  * the HTML pages it names), which terminates by construction rather than by a
  * depth limit, and is re-runnable without surprises.
  *
- * EXPECT DEAD LINKS. 607 of California's listed PDFs return 404 — the board's
- * own sitemap is substantially stale. Verified as genuine 404s, not throttling,
- * by re-requesting them spaced out while known-good URLs still returned 200.
- * A 404 here is the source being wrong, not this script failing.
+ * A NOTE ON DEAD LINKS, AND ON BLAMING THE SOURCE. This header used to claim
+ * "607 of California's PDFs return 404 — the board's sitemap is stale". That was
+ * wrong, and wrong in the most embarrassing direction: 598 of those 404s were
+ * this script requesting URLs it had built incorrectly. Links on
+ * /laws_regs/index.shtml are written relative ("fsor_disciplinary_guidelines.pdf")
+ * and were being resolved against the site root instead of the page. Fixing
+ * resolution took candidates from 873 to 317, dead links from 607 to 9, and
+ * recovered 42 real documents including a complete rulemaking package.
+ *
+ * Six of the original 404s were spot-checked and were genuine, which is exactly
+ * how the wrong conclusion survived: a real sample, drawn from the wrong subset.
+ * Nine dead links remain and those are the board's. When discovery code reports
+ * that a source is broken, suspect the code first.
  */
 
 const fs = require("fs");
@@ -52,6 +61,16 @@ const STATES = {
     // Bulletins, which are the single most valuable documents here and are NOT
     // reachable from the board site or from any page's HTML — see psiBulletins().
     psiPortal: "cabacos",
+    // The Act and the regulations are HTML on external legal sites, not PDFs.
+    // These two pages are complete section indexes — 145 B&P Code sections and
+    // 80 of 16 CCR Division 9 — so we capture the MAP (number, title, url) and
+    // deliberately not the text. leginfo and Westlaw are authoritative and
+    // amended without notice; a local copy would be a stale duplicate of the
+    // one thing that must never be stale. This is California's lib/tdlr-sources.
+    lawIndex: [
+      { page: "/laws_regs/laws.shtml", host: "leginfo", heading: "Act — Business & Professions Code" },
+      { page: "/laws_regs/act_regs.shtml", host: "westlaw", heading: "Regulations — 16 CCR Division 9" },
+    ],
     notes: null,
   },
   maryland: {
@@ -417,6 +436,37 @@ async function main() {
       o.push("");
     }
   }
+  // ---- statute / regulation map ----------------------------------------
+  if (CFG.lawIndex && !SOURCES_ONLY) {
+    const out = [`# ${CFG.label} — statute & regulation index\n`];
+    out.push(`Captured **${new Date().toISOString().slice(0, 10)}**.\n`);
+    out.push("**A map, not a mirror.** The law lives on the sites linked below; they are");
+    out.push("authoritative and are amended without notice. A section number, its title and");
+    out.push("its URL are the citable unit — copying the text here would create exactly the");
+    out.push("stale duplicate this repo refuses to keep of the Google and MCP docs.\n");
+    for (const spec of CFG.lawIndex) {
+      try {
+        const html = await get(CFG.origin + spec.page);
+        const seen = new Set(), rowsL = [];
+        for (const [, href, text] of html.matchAll(/<a[^>]+href="(https?:\/\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)) {
+          if (!href.includes(spec.host)) continue;
+          const label = clean(text);
+          if (!label || seen.has(href)) continue;
+          seen.add(href); rowsL.push([label, href.replace(/&amp;/g, "&")]);
+        }
+        out.push(`\n## ${spec.heading} — ${rowsL.length} sections\n`);
+        out.push("| Section | Title | Source |", "|---|---|---|");
+        for (const [label, href] of rowsL) {
+          const m = label.match(/^§?\s*([\d.]+)\.?\s*(.*)$/);
+          out.push(`| ${m ? m[1] : ""} | ${m ? m[2] : label} | [source](${href}) |`);
+        }
+        console.log(`  law index ${spec.page}: ${rowsL.length} sections`);
+      } catch (e) { console.log(`  law index ${spec.page}: FAILED (${e.message})`); }
+      await sleep(DELAY_MS);
+    }
+    fs.writeFileSync(path.join(DEST, "STATUTES-AND-REGULATIONS.md"), out.join("\n"));
+  }
+
   for (const r of rows) if (r.url) attribution.set(r.file, { url: r.url, section: r.section, pages: r.pages, summary: r.summary, title: r.title });
   fs.writeFileSync(PROV, JSON.stringify(Object.fromEntries(attribution), null, 2));
   fs.writeFileSync(path.join(DEST, "INDEX.md"), o.join("\n"));
