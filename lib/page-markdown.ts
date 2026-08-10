@@ -325,13 +325,31 @@ export async function renderPageMarkdown(
   const body = deduped.join("\n\n").trim();
   if (!body) return null;
 
+  // Only append FAQs the page does NOT already render.
+  //
+  // The FAQ block is lifted from FAQPage JSON-LD, and most pages carry that
+  // markup ALONGSIDE a visible "Common questions" section built from the same
+  // array — so appending unconditionally printed every question twice. On the
+  // California pages that was 5-7 questions repeated verbatim a few lines
+  // apart, in a document whose entire audience is models reading it as
+  // context.
+  //
+  // The block still earns its place when the JSON-LD carries answers the page
+  // does not show, so this filters rather than removing the feature. Matching
+  // is on a normalised question — punctuation and case stripped — because the
+  // rendered DOM and the JSON-LD string routinely differ on curly quotes and
+  // entities for what is the same sentence.
+  const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const bodyNorm = normalise(body);
+  const unrendered = faqs.filter((f) => !bodyNorm.includes(normalise(f.q)));
+
   const parts = [
     `# ${title}`,
     `Source: ${origin}${routePath}`,
     description && `> ${description}`,
     body,
-    faqs.length &&
-      ["## Frequently asked questions", ...faqs.map((f) => `### ${f.q}\n\n${f.a}`)].join("\n\n"),
+    unrendered.length &&
+      ["## Frequently asked questions", ...unrendered.map((f) => `### ${f.q}\n\n${f.a}`)].join("\n\n"),
   ].filter(Boolean) as string[];
 
   return { markdown: parts.join("\n\n") + "\n", title };

@@ -342,3 +342,66 @@ transcript, and a signed dated reciprocity disclaimer in each student file.
 **The lesson is the general one: a summary of a policy is not the policy.** If a
 claim about NACCAS cannot be traced to a numbered policy or standard, it is not
 citable.
+
+## IndexNow — one URL at a time. Never bulk-submit.
+
+**Submit URLs to IndexNow one at a time, as they change. Do not batch-submit,
+and do not run `scripts/indexnow_bulk_submit.js`.** Bulk submission has caused
+problems for this site and is no longer how we notify search engines.
+
+### Where the rule comes from, and what it is NOT
+
+This one deserves care, because the obvious citation does not support it. The
+IndexNow protocol explicitly permits bulk: "You can submit up to 10,000 URLs
+per post." So **do not justify this rule from the spec** — anyone who checks
+will find the spec allows exactly what we are refusing to do, and the rule will
+get overturned by someone reading the docs and concluding we were confused.
+
+The rule rests on two things instead:
+
+1. **Operational experience with this site**, reported by the site owner.
+2. **A finding already recorded in `lib/indexnow.ts`**, which is the part that
+   explains the mechanism: *Bing classifies a site's submission mode by the
+   SHAPE of the request, not by how many URLs it carries.* Posting a `urlList`
+   of ONE was enough to make every ordinary publish look like a batch
+   submission and got the site flagged as batch mode in Webmaster Tools, even
+   though pings were already going out one page at a time.
+
+What the published guidance does support is the direction of travel: the
+recommended approach is to "automate submission of URLs as soon as the content
+is added, updated, or deleted", and a 429 exists for submitting too much. That
+is an argument for streaming, not an argument against batching. The argument
+against batching is ours.
+
+### What to do instead
+
+`lib/indexnow.ts` already implements this correctly and is the only path that
+should be used:
+
+- `pingIndexNow(["/some-route"])` with a **single** URL sends a GET with query
+  parameters — `mode: "streaming"`.
+- Two or more URLs fall through to the POST `urlList` — `mode: "batch"`.
+  **Call it once per URL rather than passing an array.**
+
+`buildIndexNowRequest` is separated from the network call precisely so the
+request shape can be asserted in tests; `lib/indexnow.test.ts` covers it. If
+you change how pings are sent, that test is the thing that must still pass.
+
+For a large set of new pages, ping them individually and spread them out.
+There is no approved fast path for backfilling hundreds of URLs — if that need
+arises, raise it rather than reaching for the bulk script.
+
+### `scripts/indexnow_bulk_submit.js` is retired
+
+It is kept for reference, not for running, and it now refuses to execute. Two
+reasons beyond the rule above:
+
+- Every run is a batch submission by construction, which is the behaviour we
+  are trying to stop.
+- **Its `HOST` was never updated for the domain migration** — it still said
+  `agency.innergcomplete.com` after the site moved to `shearquery.com`. A run
+  would have submitted URLs on a host we no longer publish, against a key file
+  served somewhere else. That is a good illustration of why a script nobody
+  runs is a liability: it rots silently and then someone trusts it.
+
+Do not "fix" the host and run it. Do not copy its POST logic into a new script.
