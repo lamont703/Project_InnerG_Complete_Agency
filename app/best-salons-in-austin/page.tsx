@@ -1,5 +1,6 @@
 import { BestOfDirectory, type BestOfEntry } from "@/components/best-of/BestOfDirectory";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const metadata = {
   title: "Best-Rated Salons in Austin (2026) — Top Rated, Real Reviews",
@@ -53,23 +54,26 @@ export default function BestSalonsAustin() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "BreadcrumbList",
+            "@id": `${SITE_URL}/best-salons-in-austin#breadcrumblist`,
             itemListElement: [
               { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
               { "@type": "ListItem", position: 2, name: "Austin", item: `${SITE_URL}/texas/austin` },
               { "@type": "ListItem", position: 3, name: "Best-Rated Salons in Austin", item: `${SITE_URL}/best-salons-in-austin` },
             ],
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "ItemList",
+            "@id": `${SITE_URL}/best-salons-in-austin#itemlist`,
             name: "Best-Rated Salons in Austin",
             itemListOrder: "https://schema.org/ItemListOrderDescending",
             numberOfItems: topRated.length,
@@ -84,7 +88,8 @@ export default function BestSalonsAustin() {
                 url: `${SITE_URL}/salons/${s.slug}`,
               },
             })),
-          }),
+          },
+          )),
         }}
       />
       <BestOfDirectory

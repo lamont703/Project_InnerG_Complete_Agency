@@ -5,6 +5,7 @@ import { CompareShopsClient } from "./compare-client";
 import { getVenueIndex, queryVenues } from "@/lib/compare-shops-data";
 import { getShopCompareContent } from "@/lib/compare-content";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const revalidate = 3600;
 
@@ -50,49 +51,63 @@ export default async function CompareShopsPage() {
     getShopCompareContent(),
   ]);
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
+  const jsonLd = graph(
+            {
+            "@type": "WebApplication",
+            "@id": `${SITE_URL}/compare-shops#webapplication`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
     name: "Barbershop & Salon Comparison Tool",
     applicationCategory: "BusinessApplication",
     url: `${SITE}/compare-shops`,
     description:
       "Compare barbershops and salons on booth rent, chairs available, ratings and hiring status, city by city.",
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-  };
+  },
+          );
 
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
+  const faqJsonLd = graph(
+            {
+            "@type": "FAQPage",
+            "@id": `${SITE_URL}/compare-shops#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
     name: "Booth Rent & Choosing a Barbershop or Salon — FAQ",
     mainEntity: faqs.map((f) => ({
       "@type": "Question",
       name: f.q,
       acceptedAnswer: { "@type": "Answer", text: f.a },
     })),
-  };
+  },
+          );
 
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
+  const breadcrumbJsonLd = graph(
+            {
+            "@type": "BreadcrumbList",
+            "@id": `${SITE_URL}/compare-shops#breadcrumblist`,
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: SITE },
       { "@type": "ListItem", position: 2, name: "Compare Barbershops & Salons", item: `${SITE}/compare-shops` },
     ],
-  };
+  },
+          );
 
   // Declares the actual price signal — this is the page's differentiating
   // asset and the fact most likely to be quoted by an AI assistant.
-  const datasetJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
+  const datasetJsonLd = graph(
+            {
+            "@type": "Dataset",
+            "@id": `${SITE_URL}/compare-shops#dataset`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
     name: "Barbershop & Salon Booth Rent and Chair Availability",
     description: `Booth rent rates, chair availability, ratings and hiring status for ${bench.venueCount.toLocaleString()} barbershops and salons across ${bench.cityCount.toLocaleString()} US cities. Median quoted booth rent ${money(bench.medianWeekly)} per week.`,
     url: `${SITE}/compare-shops`,
     creator: { "@type": "Organization", name: "Inner G Complete", url: SITE },
     variableMeasured: ["Weekly booth rent", "Chairs available", "Google rating", "Review count", "Hiring status"],
     isAccessibleForFree: true,
-  };
+  },
+          );
 
   return (
     <div className="min-h-screen light bg-slate-50">

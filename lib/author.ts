@@ -37,10 +37,25 @@ export const AUTHOR = {
  * reading the .md layer that the byline on this research and that LinkedIn
  * profile are the same entity — which is the entire mechanism by which
  * expertise on the site accrues to a person rather than to an anonymous domain.
+ *
+ * `@id` is the second load-bearing field, added later and for a related reason.
+ * This function is embedded in full on ~22 article pages plus the sitewide
+ * Organization. Without an `@id` those are twenty-three anonymous Person nodes,
+ * and a parser has no licence to merge them — same name is a hint, not an
+ * identity. With a fixed `@id` they are one entity referenced twenty-three
+ * times, which is what lets authority accumulate instead of being divided by
+ * twenty-three.
+ *
+ * The constant is defined here rather than imported from lib/schema-graph.ts so
+ * that file can import this one without a cycle; schema-graph re-exports it as
+ * AUTHOR_ID and the two are asserted equal in lib/schema-graph.test.ts.
  */
+export const AUTHOR_NODE_ID = `${SITE_URL}/#author`;
+
 export function authorSchema() {
   return {
     "@type": "Person",
+    "@id": AUTHOR_NODE_ID,
     name: AUTHOR.name,
     jobTitle: AUTHOR.jobTitle,
     url: AUTHOR.url,

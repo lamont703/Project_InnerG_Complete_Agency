@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const metadata: Metadata = {
   title: "El Paso Barber Exam Intelligence Prep™ | Inner G Complete",
@@ -45,9 +46,12 @@ export const metadata: Metadata = {
   },
 }
 
-const courseJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Course",
+const courseJsonLd = graph(
+            {
+            "@type": "Course",
+            "@id": `${SITE_URL}/el-paso-barber-exam-intelligence-prep#course`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
   name: "El Paso Barber Exam Intelligence Prep™",
   description:
     "ADI-powered barber board exam preparation targeting El Paso's 58% failure rate. Covers PSI syntax decoding, NACCAS compliance, and domain-specific mastery across all 75 written exam categories for Texas TDLR licensure.",
@@ -83,21 +87,27 @@ const courseJsonLd = {
       validThrough: "2026-12-31",
     },
   },
-}
+},
+          )
 
-const breadcrumbJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
+const breadcrumbJsonLd = graph(
+            {
+            "@type": "BreadcrumbList",
+            "@id": `${SITE_URL}/el-paso-barber-exam-intelligence-prep#breadcrumblist`,
   itemListElement: [
     { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
     { "@type": "ListItem", position: 2, name: "Solutions", item: `${SITE_URL}/solutions` },
     { "@type": "ListItem", position: 3, name: "El Paso Barber Exam Intelligence Prep", item: `${SITE_URL}/el-paso-barber-exam-intelligence-prep` },
   ],
-}
+},
+          )
 
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
+const faqJsonLd = graph(
+            {
+            "@type": "FAQPage",
+            "@id": `${SITE_URL}/el-paso-barber-exam-intelligence-prep#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
   mainEntity: [
     {
       "@type": "Question",
@@ -140,7 +150,8 @@ const faqJsonLd = {
       },
     },
   ],
-}
+},
+          )
 
 export default function ElPasoExamPrepLayout({ children }: { children: React.ReactNode }) {
   return (

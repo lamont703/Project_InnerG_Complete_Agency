@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const metadata: Metadata = {
   title: 'Barber School Pilot Scholarship Fund | Free Board Exam Prep | Inner G Complete',
@@ -51,9 +52,10 @@ export default function ScholarshipFundLayout({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "EducationalOccupationalProgram",
+            "@id": `${SITE_URL}/barber-school-pilot-scholarship-fund#educationaloccupationalprogram`,
             "name": "Barber Exam Prep Pilot Scholarship Fund",
             "description": "A sponsored pilot program providing Texas barber students with free AI-enhanced written board exam preparation to close the 58% statewide failure rate.",
             "url": `${SITE_URL}/barber-school-pilot-scholarship-fund`,
@@ -85,7 +87,8 @@ export default function ScholarshipFundLayout({
                 { "@type": "ListItem", "position": 2, "name": "Barber School Pilot Scholarship Fund", "item": `${SITE_URL}/barber-school-pilot-scholarship-fund` }
               ]
             }
-          })
+          },
+          ))
         }}
       />
       {children}

@@ -10,6 +10,7 @@ import {
 } from "@/lib/license-reciprocity";
 import { ResearchByline } from "@/components/research-byline";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * Texas ↔ California only, deliberately.
@@ -234,8 +235,18 @@ export default function TexasCaliforniaReciprocityPage() {
         </div>
       </main>
 
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "Table", about: "Texas and California barbering and cosmetology licence training hours compared", name: "Texas vs California licence hour requirements (2026)" }) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
+            {
+            "@type": "FAQPage",
+            "@id": `${SITE_URL}/texas-california-license-reciprocity#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID), mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) },
+          )) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
+            {
+            "@type": "Table",
+            "@id": `${SITE_URL}/texas-california-license-reciprocity#table`, about: "Texas and California barbering and cosmetology licence training hours compared", name: "Texas vs California licence hour requirements (2026)" },
+          )) }} />
     </div>
   );
 }

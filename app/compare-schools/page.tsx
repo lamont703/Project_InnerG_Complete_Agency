@@ -5,6 +5,7 @@ import { CompareSchoolsClient } from "./compare-client";
 import { getSchoolIndex, MIN_SAMPLE } from "@/lib/compare-schools-data";
 import { getSchoolCompareContent } from "@/lib/compare-content";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const revalidate = 3600;
 
@@ -48,9 +49,10 @@ export default async function CompareSchoolsPage() {
     getSchoolCompareContent(),
   ]);
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
+  const jsonLd = graph(
+            {
+            "@type": "ItemList",
+            "@id": `${SITE_URL}/compare-schools#itemlist`,
     name: "Barber & Cosmetology School Comparison",
     itemListElement: bench.topSchools.slice(0, 10).map((s, i) => ({
       "@type": "ListItem",
@@ -64,33 +66,43 @@ export default async function CompareSchoolsPage() {
           : {}),
       },
     })),
-  };
+  },
+          );
 
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
+  const faqJsonLd = graph(
+            {
+            "@type": "FAQPage",
+            "@id": `${SITE_URL}/compare-schools#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
     name: "Choosing a Barber or Cosmetology School — FAQ",
     mainEntity: faqs.map((f) => ({
       "@type": "Question",
       name: f.q,
       acceptedAnswer: { "@type": "Answer", text: f.a },
     })),
-  };
+  },
+          );
 
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
+  const breadcrumbJsonLd = graph(
+            {
+            "@type": "BreadcrumbList",
+            "@id": `${SITE_URL}/compare-schools#breadcrumblist`,
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: SITE },
       { "@type": "ListItem", position: 2, name: "Compare Barber & Cosmetology Schools", item: `${SITE}/compare-schools` },
     ],
-  };
+  },
+          );
 
   // The exam-outcome data is this page's differentiating asset and the fact
   // most likely to be quoted by an AI assistant — declare it explicitly.
-  const datasetJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
+  const datasetJsonLd = graph(
+            {
+            "@type": "Dataset",
+            "@id": `${SITE_URL}/compare-schools#dataset`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
     name: "Barber & Cosmetology School Licensing Exam Outcomes (2026)",
     description: `Written and practical licensing exam pass rates, first-attempt success rates and average attempts for ${bench.barberCount.toLocaleString()} barber and ${bench.cosmetologyCount.toLocaleString()} cosmetology school programs across ${bench.cityCount.toLocaleString()} US cities. Median written pass rate ${bench.medianWritten ?? "—"}%.`,
     url: `${SITE}/compare-schools`,
@@ -104,7 +116,8 @@ export default async function CompareSchoolsPage() {
       "Annual tuition",
     ],
     isAccessibleForFree: true,
-  };
+  },
+          );
 
   return (
     <div className="min-h-screen light bg-slate-50">

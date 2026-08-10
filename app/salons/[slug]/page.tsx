@@ -16,6 +16,10 @@ import { SalonSponsoredAd } from "@/components/ads/SalonSponsoredAd";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
+import {
+  WIKIDATA, cityNode, entityId, faqId, faqNode, graphJson, identifiers,
+  pageId, ref, regulatorFor, topics, webPageNode,
+} from "@/lib/schema-graph";
 import { computeShopEcosystemReport } from "@/lib/shop-ecosystem";
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { SALON_PUBLIC_COLUMNS } from "@/lib/public-columns";
@@ -128,10 +132,16 @@ const TODAY_INDEX = (new Date().getDay() + 6) % 7; // 0 = Monday, matches Google
 // LocalBusiness — a salon is a physical business, distinct from the
 // individual-professional Person schema used on barber/cosmetologist pages.
 function buildSalonJsonLd(salon: any, websiteHref: string | null) {
+  const path = `/salons/${salon.slug}`;
   const ld: Record<string, any> = {
-    "@context": "https://schema.org",
     "@type": "HairSalon",
+    "@id": entityId(path),
+    // HairSalon is a real schema.org type, so unlike the barbershop page this
+    // one does not need a concept to stand in for a missing type — the Wikidata
+    // anchor is here to reconcile with outside indexes, not to compensate.
+    additionalType: WIKIDATA.beautySalon,
     name: salon.shop_name,
+    mainEntityOfPage: ref(pageId(path)),
   };
   // Claimed salons have real structured address fields (see the
   // 20260721000000 migration) — same split-PostalAddress precedence as
@@ -166,7 +176,17 @@ function buildSalonJsonLd(salon: any, websiteHref: string | null) {
   // area — a well-known nearby neighborhood within ~2.5mi, e.g. a real
   // Drybar in Uptown Park legitimately serving River Oaks searches
   // without being physically located there.
-  if (Array.isArray(salon.nearby_areas) && salon.nearby_areas.length > 0) ld.areaServed = salon.nearby_areas;
+  //
+  // Typed as Place nodes rather than bare strings, same reasoning as the shop
+  // page: several of these are neighbourhoods, so Place is the honest type.
+  if (Array.isArray(salon.nearby_areas) && salon.nearby_areas.length > 0) {
+    ld.areaServed = salon.nearby_areas.map((a: string) => ({ "@type": "Place", name: a }));
+  }
+  const place = cityNode(salon.address_city || salon.city, salon.address_state || "TX");
+  if (place) ld.containedInPlace = place;
+  const ids = identifiers({ googlePlaceId: salon.place_id });
+  if (ids) ld.identifier = ids;
+  ld.knowsAbout = topics("cosmetology", "esthetics");
   return ld;
 }
 
@@ -263,21 +283,28 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
       a: `${salon.shop_name} is rated ${Number(salon.rating).toFixed(1)} stars based on ${salon.total_reviews} reviews.`,
     });
   }
-  const salonFaqJsonLd = salonFaqEntries.length > 0 ? {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: salonFaqEntries.map(({ q, a }) => ({
-      "@type": "Question",
-      name: q,
-      acceptedAnswer: { "@type": "Answer", text: a },
-    })),
-  } : null;
+  const salonPath = `/salons/${salon.slug}`;
+  const salonFaqJsonLd = faqNode(salonPath, salonFaqEntries, entityId(salonPath));
+  if (salonFaqJsonLd) salonJsonLd.subjectOf = ref(faqId(salonPath));
+
+  const salonGraph = graphJson(
+    webPageNode({
+      path: salonPath,
+      type: "ProfilePage",
+      name: salon.shop_name,
+      primaryEntityId: entityId(salonPath),
+      breadcrumb: true,
+      about: topics("cosmetology", "salon"),
+    }),
+    buildEntityBreadcrumbJsonLd("Salons", "/salons", salon.shop_name, salon.slug),
+    salonJsonLd,
+    salonFaqJsonLd,
+    regulatorFor(salon.address_state || "TX"),
+  );
 
   return (
     <div className="min-h-screen light bg-white text-slate-900 selection:bg-blue-500/20 flex flex-col overflow-x-hidden">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(salonJsonLd) }} />
-      {salonFaqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(salonFaqJsonLd) }} />}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildEntityBreadcrumbJsonLd("Salons", "/salons", salon.shop_name, salon.slug)) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: salonGraph }} />
 
       <Navbar />
 

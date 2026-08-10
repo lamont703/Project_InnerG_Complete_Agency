@@ -4,6 +4,8 @@ import { LeaderboardTable } from "@/app/texas-school-leaderboard/leaderboard-tab
 import type { LeaderboardSchool } from "@/app/texas-school-leaderboard/page";
 import { Navbar } from "@/components/layout/navbar";
 import { ExamPrepCTA } from "@/components/shared/exam-prep-cta";
+import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const revalidate = 3600;
 
@@ -129,15 +131,19 @@ export default async function CosmetologySchoolsHoustonPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "FAQPage",
+            "@id": `${SITE_URL}/cosmetology-schools-houston#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             mainEntity: faqs.map((faq) => ({
               "@type": "Question",
               name: faq.q,
               acceptedAnswer: { "@type": "Answer", text: faq.a },
             })),
-          }),
+          },
+          )),
         }}
       />
       <Navbar />

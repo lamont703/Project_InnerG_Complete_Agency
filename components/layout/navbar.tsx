@@ -24,6 +24,7 @@ const navLinks = [
 const stateHubLinks = [
   { label: "Texas Hub", href: "/texas" },
   { label: "California Hub", href: "/california" },
+  { label: "Maryland Hub", href: "/maryland" },
 ]
 
 interface AccountProject {

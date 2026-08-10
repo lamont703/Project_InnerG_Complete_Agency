@@ -6,7 +6,6 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { LicenceGuideLinks } from "@/components/insights/licence-guide-links"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import {
   ArrowLeft,
@@ -22,6 +21,10 @@ import Image from "next/image"
 import Link from "next/link"
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, stateNode,
+  topics, webPageNode,
+} from "@/lib/schema-graph";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -83,25 +86,36 @@ export default function BoothRentalRequirementsGuide() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            mainEntityOfPage: {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/booth-rental-contract-requirements-texas`,
-            },
+            "@id": entityId("/insights/booth-rental-contract-requirements-texas"),
+            "about": topics("barbering"),
+            "spatialCoverage": stateNode("TX"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/booth-rental-contract-requirements-texas")),
             headline: "Booth Rental Requirements in Texas: Mini-Establishment License, Contract & Insurance",
             description:
               "What Texas requires for booth rental — the TDLR Mini-Establishment license, contract terms, and insurance every booth renter should know before signing.",
             author: authorSchema(),
-            publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
+            publisher: ref(ORG_ID),
             datePublished: "2026-07-09T08:00:00Z",
-          }),
+          },
+            webPageNode({
+              path: "/insights/booth-rental-contract-requirements-texas",
+              name: "Booth Rental Requirements in Texas | Inner G Complete",
+              primaryEntityId: entityId("/insights/booth-rental-contract-requirements-texas"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/booth-rental-contract-requirements-texas", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "Booth Rental Requirements in Texas | Inner G Complete", path: "/insights/booth-rental-contract-requirements-texas" },
+            ]),
+          )),
         }}
-      />
-      <BreadcrumbSchema
-        slug="booth-rental-contract-requirements-texas"
-        title="Booth Rental Requirements in Texas | Inner G Complete"
       />
       <Navbar />
 
@@ -360,7 +374,7 @@ export default function BoothRentalRequirementsGuide() {
           </div>
 
           {/* FAQ */}
-          <FAQSection
+          <FAQSection path="/insights/booth-rental-contract-requirements-texas"
             faqs={[
               {
                 question: "Do I need a special license to rent a booth in Texas?",

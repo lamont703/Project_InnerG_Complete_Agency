@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { TrendingUp, CheckCircle2, RefreshCw, MapPin } from "lucide-react";
+import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const revalidate = 3600;
 
@@ -91,14 +93,18 @@ export default async function CaliforniaSchoolLeaderboardPage() {
 
   const totalTakers = rows.reduce((s, r) => s + (r.test_takers ?? 0), 0);
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
+  const jsonLd = graph(
+            {
+            "@type": "Dataset",
+            "@id": `${SITE_URL}/california-school-leaderboard#dataset`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
     name: "California Cosmetology & Barber School Pass Rates (2026 State Board)",
     description:
       "First-time written state board exam pass rates by California school, from the California Board of Barbering & Cosmetology, Q1 2026.",
     creator: { "@type": "Organization", name: "California Board of Barbering & Cosmetology" },
-  };
+  },
+          );
 
   return (
     <div className="min-h-screen light bg-slate-50">

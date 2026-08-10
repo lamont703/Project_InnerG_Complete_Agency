@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 import { headers } from 'next/headers'
 import { SITE_HOST, isIndexableHost } from '@/lib/site'
+import { buildRobotsRules } from '@/lib/robots-rules'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,30 +22,13 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   // hand a crawler that list when the answer to each entry is "don't index me".
   const advertiseSitemap = isIndexableHost(host)
 
+  // The rules themselves live in lib/robots-rules.ts so they can be unit
+  // tested without mocking next/headers — and because the invariant that
+  // matters (every group repeats the private-path disallows, since robots.txt
+  // does NOT merge a named group with the `*` group) is the kind of thing that
+  // breaks silently and looks fine in the served file.
   return {
-    rules: [
-      {
-        // .md is disallowed for general search engines — those URLs would
-        // otherwise be indexable duplicate content sitting alongside the
-        // real HTML profile pages. Named AI crawlers get an explicit
-        // override below since that's exactly who this endpoint is for.
-        userAgent: '*',
-        allow: ['/', '/insights'],
-        disallow: [
-          '/login/',
-          '/select-portal/',
-          '/api/',
-          '/auth/',
-          '/admin/',
-          '/dashboard/',
-          '/*.md$',
-        ],
-      },
-      {
-        userAgent: ['GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'anthropic-ai', 'PerplexityBot', 'Google-Extended'],
-        allow: ['/*.md$'],
-      },
-    ],
+    rules: buildRobotsRules(),
     ...(advertiseSitemap ? { sitemap: `${protocol}://${domain}/sitemap.xml` } : {}),
   }
 }

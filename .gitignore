@@ -30,8 +30,20 @@ next-env.d.ts
 tsconfig.tsbuildinfo
 
 # Environment files
+#
+# NOTE the backup patterns below. `.env*.local` matches `.env.local` but NOT
+# `.env.local.bak`, `.env.local.2026-08-10` or anything else appended AFTER
+# the `.local` suffix — and making a timestamped copy before editing an env
+# file is exactly what anyone does when they are being careful. That copy
+# carries every secret in the original and lands in `git status` as untracked,
+# one `git add -A` away from being committed. It has already happened once in
+# this repo, caught only because someone ran `git check-ignore` on it.
 .env
 .env.local
+.env*.bak
+.env*.bak-*
+.env.local.*
+*.env.backup
 .env.development.local
 .env.test.local
 .env.production.local

@@ -10,6 +10,9 @@ import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
+import {
+  cityNode, entityId, graphJson, identifiers, pageId, ref, topics, webPageNode,
+} from "@/lib/schema-graph";
 import { STORE_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import { StoreSponsoredAd } from "@/components/ads/StoreSponsoredAd";
@@ -113,10 +116,12 @@ const TODAY_INDEX = (new Date().getDay() + 6) % 7; // 0 = Monday, matches Google
 
 // Store — both barber-supply and beauty-supply are retail businesses.
 function buildStoreJsonLd(store: any, websiteHref: string | null) {
+  const path = `/stores/${store.slug}`;
   const ld: Record<string, any> = {
-    "@context": "https://schema.org",
     "@type": "Store",
+    "@id": entityId(path),
     name: store.name,
+    mainEntityOfPage: ref(pageId(path)),
   };
   if (store.formatted_address) ld.address = { "@type": "PostalAddress", streetAddress: store.formatted_address, addressRegion: "TX", addressCountry: "US" };
   if (store.latitude && store.longitude) ld.geo = { "@type": "GeoCoordinates", latitude: store.latitude, longitude: store.longitude };
@@ -133,6 +138,20 @@ function buildStoreJsonLd(store: any, websiteHref: string | null) {
   }
   const heroImg = Array.isArray(store.google_images) ? store.google_images[0] : null;
   if (heroImg) ld.image = heroImg;
+  const place = cityNode(store.city, "TX");
+  if (place) ld.containedInPlace = place;
+  const ids = identifiers({ googlePlaceId: store.place_id });
+  if (ids) ld.identifier = ids;
+  /**
+   * A supply store's whole reason for being in this directory is who it sells
+   * to. `audience` states that in the graph rather than leaving it implied by
+   * the fact that the store sits on a barbering site.
+   */
+  ld.audience = [
+    { "@type": "Audience", audienceType: "Licensed barbers and cosmetologists" },
+    { "@type": "Audience", audienceType: "Barber and cosmetology students" },
+  ];
+  ld.knowsAbout = topics("barbering", "cosmetology");
   return ld;
 }
 
@@ -203,8 +222,23 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
 
   return (
     <div className="min-h-screen light bg-slate-50">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(storeJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildEntityBreadcrumbJsonLd("Stores", "/stores", store.name, store.slug)) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: graphJson(
+            webPageNode({
+              path: `/stores/${store.slug}`,
+              type: "ProfilePage",
+              name: store.name,
+              primaryEntityId: entityId(`/stores/${store.slug}`),
+              breadcrumb: true,
+              about: topics("barbering", "cosmetology"),
+            }),
+            buildEntityBreadcrumbJsonLd("Stores", "/stores", store.name, store.slug),
+            storeJsonLd,
+          ),
+        }}
+      />
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-6">
         <DynamicBackButton fallbackHref="/tools/barbershop-search?tab=Stores" />

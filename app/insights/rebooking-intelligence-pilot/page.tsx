@@ -5,7 +5,6 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
 
@@ -19,6 +18,11 @@ import {
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, stateNode,
+  topics, webPageNode,
+} from "@/lib/schema-graph";
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -200,35 +204,35 @@ export default function RebookingIntelligencePilot() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            "mainEntityOfPage": {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/rebooking-intelligence-pilot`
-            },
+            "@id": entityId("/insights/rebooking-intelligence-pilot"),
+            "about": topics("barbering", "cosmetology"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/rebooking-intelligence-pilot")),
             "headline": "Rebooking Intelligence Pilot | Barber Grooming ADI Architecture",
             "description": "A CPMAI-governed pilot architecture for deploying an ADI model that autonomously triggers client rebooking, eliminates no-shows, and maintains floor revenue.",
-            "author": {
-              "@type": "Person",
-              "name": "Lamont Evans",
-              "url": `${SITE_URL}/about`,
-                "jobTitle": "Senior Product Owner | Machine Learning Engineer",
-                "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
-            },
-            "publisher": {
-              "@type": "Organization",
-              "name": "Inner G Complete Agency",
-              "logo": {
-                "@type": "ImageObject",
-                "url": `${SITE_URL}/icon-dark-32x32.png`
-              }
-            },
+            author: authorSchema(),
+            publisher: ref(ORG_ID),
             "datePublished": "2026-04-14T08:00:00Z"
-          })
+          },
+            webPageNode({
+              path: "/insights/rebooking-intelligence-pilot",
+              name: "Rebooking Intelligence Pilot | Barber Grooming ADI Architecture",
+              primaryEntityId: entityId("/insights/rebooking-intelligence-pilot"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/rebooking-intelligence-pilot", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "Rebooking Intelligence Pilot | Barber Grooming ADI Architecture", path: "/insights/rebooking-intelligence-pilot" },
+            ]),
+          ))
         }}
       />
-      <BreadcrumbSchema slug="rebooking-intelligence-pilot" title="Rebooking Intelligence Pilot | Barber Grooming ADI Architecture" />
       <Navbar />
       <article className="relative flex-1">
         <div className="fixed top-20 left-0 w-full h-1 bg-secondary z-50">
@@ -686,7 +690,7 @@ export default function RebookingIntelligencePilot() {
       </article>
       <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
 
-          <FAQSection faqs={[{"question":"How does the rebooking ADI model work?","answer":"The model identifies the exact 'behavioral fingerprint' of a client likely to churn and triggers an autonomous invitation to rebook at the precise moment their interest is highest, maintaining a full book of business without manual outreach."}]} />
+          <FAQSection path="/insights/rebooking-intelligence-pilot" faqs={[{"question":"How does the rebooking ADI model work?","answer":"The model identifies the exact 'behavioral fingerprint' of a client likely to churn and triggers an autonomous invitation to rebook at the precise moment their interest is highest, maintaining a full book of business without manual outreach."}]} />
       <AuthorBio />
 
           <RelatedArticles currentSlug="rebooking-intelligence-pilot" />

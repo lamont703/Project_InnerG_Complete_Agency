@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { LeaderboardTable } from "./leaderboard-table";
 import { Navbar } from "@/components/layout/navbar";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const revalidate = 3600;
 
@@ -133,9 +134,10 @@ export default async function SchoolLeaderboardPage() {
     .filter((s) => s.school_leaderboard_score_2026 != null)
     .sort((a, b) => (b.school_leaderboard_score_2026 || 0) - (a.school_leaderboard_score_2026 || 0))
     .slice(0, 10);
-  const leaderboardJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
+  const leaderboardJsonLd = graph(
+            {
+            "@type": "ItemList",
+            "@id": `${SITE_URL}/texas-school-leaderboard#itemlist`,
     name: "Texas Barber & Cosmetology School Leaderboard",
     itemListElement: topRanked.map((s, i) => ({
       "@type": "ListItem",
@@ -147,7 +149,8 @@ export default async function SchoolLeaderboardPage() {
         ...(s.city ? { address: { "@type": "PostalAddress", addressLocality: s.city, addressRegion: "TX" } } : {}),
       },
     })),
-  };
+  },
+          );
 
   return (
     <div className="min-h-screen light bg-slate-50">

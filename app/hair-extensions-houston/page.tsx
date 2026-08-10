@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Star, Loader2, Layers, DollarSign, MapPin, ArrowRight } from "lucide-react";
 import { fetchExtensionProfessionals, type ExtensionProfessionalListing } from "./actions";
 import { Navbar } from "@/components/layout/navbar";
+import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 const FAQS_STATIC = [
   {
@@ -143,15 +145,19 @@ export default function HairExtensionsHoustonPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "FAQPage",
+            "@id": `${SITE_URL}/hair-extensions-houston#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             mainEntity: faqs.map((faq) => ({
               "@type": "Question",
               name: faq.q,
               acceptedAnswer: { "@type": "Answer", text: faq.a },
             })),
-          }),
+          },
+          )),
         }}
       />
     </div>

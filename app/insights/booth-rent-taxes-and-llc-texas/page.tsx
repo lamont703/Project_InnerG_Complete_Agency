@@ -6,7 +6,6 @@ import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
 import { LicenceGuideLinks } from "@/components/insights/licence-guide-links"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { LLCDecisionTool } from "@/components/insights/llc-decision-tool"
 import { Navbar } from "@/components/layout/navbar"
 import {
@@ -22,6 +21,10 @@ import Link from "next/link"
 import Image from "next/image"
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, stateNode,
+  topics, webPageNode,
+} from "@/lib/schema-graph";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -73,23 +76,37 @@ export default function BoothRentTaxesArticle() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            mainEntityOfPage: {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/booth-rent-taxes-and-llc-texas`,
-            },
+            "@id": entityId("/insights/booth-rent-taxes-and-llc-texas"),
+            "about": topics("barbering"),
+            "spatialCoverage": stateNode("TX"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/booth-rent-taxes-and-llc-texas")),
             headline: "Booth Rent Taxes & Do You Need an LLC in Texas?",
             description:
               "Booth renters are independent contractors, not employees — what that means for deductions, 1099s, self-employment tax, and whether an LLC is actually required in Texas.",
             author: authorSchema(),
-            publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
+            publisher: ref(ORG_ID),
             datePublished: "2026-07-10T08:00:00Z",
-          }),
+          },
+            webPageNode({
+              path: "/insights/booth-rent-taxes-and-llc-texas",
+              name: "Booth Rent Taxes & LLC in Texas | Inner G Complete",
+              primaryEntityId: entityId("/insights/booth-rent-taxes-and-llc-texas"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/booth-rent-taxes-and-llc-texas", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "Booth Rent Taxes & LLC in Texas | Inner G Complete", path: "/insights/booth-rent-taxes-and-llc-texas" },
+            ]),
+          )),
         }}
       />
-      <BreadcrumbSchema slug="booth-rent-taxes-and-llc-texas" title="Booth Rent Taxes & LLC in Texas | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">
@@ -316,7 +333,7 @@ export default function BoothRentTaxesArticle() {
           </div>
 
           {/* FAQ */}
-          <FAQSection
+          <FAQSection path="/insights/booth-rent-taxes-and-llc-texas"
             faqs={[
               {
                 question: "Am I an employee or an independent contractor as a booth renter?",

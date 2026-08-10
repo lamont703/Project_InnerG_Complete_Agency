@@ -139,8 +139,8 @@ import { FacebookSDK } from "@/components/providers/facebook-sdk"
 import { SiteNavigationTracker } from "@/components/layout/site-navigation-tracker"
 import { ScrollCTA } from "@/components/shared/scroll-cta"
 import { ViewAsBar } from "@/components/layout/view-as"
-import { authorSchema } from "@/lib/author"
 import { SITE_HOST, SITE_URL } from "@/lib/site";
+import { authorNode, graphJson, organizationNode, websiteNode } from "@/lib/schema-graph";
 
 export default async function RootLayout({
   children,
@@ -225,34 +225,39 @@ export default async function RootLayout({
           />
         </noscript>
         {/* End Meta Pixel Code */}
+        {/*
+          THE ROOT GRAPH. Every page on the site inherits these three nodes, so
+          every page-level graph can reference the publisher, the site and the
+          author by `@id` instead of restating them.
+
+          It replaced a lone Organization object that embedded the founder
+          inline. That version was correct as far as it went, but it defined
+          nothing a page could point AT: no WebSite node, no stable id, and a
+          fresh anonymous copy of the same person on all ~22 article pages.
+
+          `founder` is now an edge to the Person defined below it rather than an
+          embedded blob — same information, one entity instead of two.
+        */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              "name": tenantName,
-              "url": domainUrl,
-              "logo": `${domainUrl}/icon-dark-32x32.png`,
-              "sameAs": [
-                "https://www.linkedin.com/company/inner-g-complete-agency/"
-              ],
-              // sameAs (carried by authorSchema) is what ties the founder to a
-              // real person. Before this the Organization pointed only at the
-              // company page and the founder pointed nowhere, so nothing
-              // connected the research on this site to anyone identifiable.
-              // Sourced from lib/author.ts so the job title cannot drift again.
-              "founder": authorSchema(),
-              "description": isTexasBarbering
-                ? "Institutional-grade licensure prep for Texas Barber students using AI-enhanced pathways."
-                : "Inner G Complete Agency operates ShearQuery, a directory and market-intelligence platform for the barber, beauty, and wellness industry, and architects the Artificial Domain Intelligence behind it.",
-              "address": {
-                "@type": "PostalAddress",
-                "addressLocality": "Atlanta",
-                "addressRegion": "GA",
-                "addressCountry": "US"
-              }
-            })
+            __html: graphJson(
+              organizationNode({
+                origin: domainUrl,
+                name: tenantName,
+                description: isTexasBarbering
+                  ? "Institutional-grade licensure prep for Texas Barber students using AI-enhanced pathways."
+                  : "Inner G Complete Agency operates ShearQuery, a directory and market-intelligence platform for the barber, beauty, and wellness industry, and architects the Artificial Domain Intelligence behind it.",
+              }),
+              websiteNode({
+                origin: domainUrl,
+                name: isTexasBarbering ? "Texas Barbering Intelligence" : "ShearQuery",
+                alternateName: isTexasBarbering
+                  ? "Texas Barber Exam Intelligence"
+                  : "ShearQuery by Inner G Complete Agency",
+              }),
+              authorNode(),
+            ),
           }}
         />
       </head>

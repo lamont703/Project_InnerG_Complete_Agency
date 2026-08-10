@@ -12,6 +12,7 @@ import {
 import { Navbar } from "@/components/layout/navbar";
 import { KitChecklist, type KitGroup } from "@/components/tools/kit-checklist";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const metadata = {
   title: "Texas Cosmetology Practical Exam Kit List & Checklist (2026)",
@@ -369,23 +370,30 @@ export default function CosmetologyPracticalExamKitListPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "FAQPage",
+            "@id": `${SITE_URL}/texas-cosmetology-practical-exam-kit-list#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             mainEntity: FAQS.map((faq) => ({
               "@type": "Question",
               name: faq.q,
               acceptedAnswer: { "@type": "Answer", text: faq.a },
             })),
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "HowTo",
+            "@id": `${SITE_URL}/texas-cosmetology-practical-exam-kit-list#howto`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             name: "Texas Cosmetology Operator Practical Exam — Station Order",
             description:
               "The 13 timed sections of the Texas Cosmetology Operator practical exam in order, per the PSI/TDLR Candidate Information Bulletin effective January 1, 2026.",
@@ -396,22 +404,25 @@ export default function CosmetologyPracticalExamKitListPage() {
               name: s.name,
               text: s.notes.join(" "),
             })),
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "ItemList",
+            "@id": `${SITE_URL}/texas-cosmetology-practical-exam-kit-list#itemlist`,
             name: "Texas Cosmetology Practical Exam Kit List (2026)",
             itemListElement: KIT_GROUPS.flatMap((g) => g.items).map((item, i) => ({
               "@type": "ListItem",
               position: i + 1,
               name: item.label,
             })),
-          }),
+          },
+          )),
         }}
       />
     </div>

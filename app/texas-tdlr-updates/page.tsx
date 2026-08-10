@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { CalendarClock, ExternalLink, Info, Scale } from "lucide-react";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const revalidate = 900;
 
@@ -74,9 +75,10 @@ export default async function TdlrUpdatesPage() {
   const updates = await getUpdates();
   const latest = updates[0];
 
-  const itemListJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
+  const itemListJsonLd = graph(
+            {
+            "@type": "ItemList",
+            "@id": `${SITE_URL}/texas-tdlr-updates#itemlist`,
     name: "Texas TDLR Barber & Cosmetology Regulatory Updates",
     itemListElement: updates.slice(0, 25).map((u, i) => ({
       "@type": "ListItem",
@@ -92,16 +94,19 @@ export default async function TdlrUpdatesPage() {
         ...(u.source_urls?.length ? { isBasedOn: u.source_urls } : {}),
       },
     })),
-  };
+  },
+          );
 
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
+  const breadcrumbJsonLd = graph(
+            {
+            "@type": "BreadcrumbList",
+            "@id": `${SITE_URL}/texas-tdlr-updates#breadcrumblist`,
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: SITE },
       { "@type": "ListItem", position: 2, name: "Texas TDLR Rule Changes", item: `${SITE}/texas-tdlr-updates` },
     ],
-  };
+  },
+          );
 
   return (
     <div className="min-h-screen light bg-slate-50">

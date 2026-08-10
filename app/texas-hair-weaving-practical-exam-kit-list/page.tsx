@@ -13,6 +13,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { KitChecklist, type KitGroup } from "@/components/tools/kit-checklist";
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * Sourced from public/TexasHairWeavingCIB2026.pdf — the PSI Hair Weaving
@@ -338,9 +339,25 @@ export default function HairWeavingPracticalExamKitListPage() {
         </div>
       </main>
 
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQS.map((faq) => ({ "@type": "Question", name: faq.q, acceptedAnswer: { "@type": "Answer", text: faq.a } })) }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", author: authorSchema(), name: "Texas Hair Weaving Practical Exam — Station Order", description: "The 6 timed sections of the Texas hair weaving practical exam in order, per the PSI/TDLR Candidate Information Bulletin effective January 1, 2026.", totalTime: "PT1H16M", step: SECTIONS.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.name, text: s.notes.join(" ") })) }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "ItemList", name: "Texas Hair Weaving Practical Exam Kit List (2026)", itemListElement: KIT_GROUPS.flatMap((g) => g.items).map((item, i) => ({ "@type": "ListItem", position: i + 1, name: item.label })) }) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
+            {
+            "@type": "FAQPage",
+            "@id": `${SITE_URL}/texas-hair-weaving-practical-exam-kit-list#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID), mainEntity: FAQS.map((faq) => ({ "@type": "Question", name: faq.q, acceptedAnswer: { "@type": "Answer", text: faq.a } })) },
+          )) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
+            {
+            "@type": "HowTo",
+            "@id": `${SITE_URL}/texas-hair-weaving-practical-exam-kit-list#howto`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID), author: authorSchema(), name: "Texas Hair Weaving Practical Exam — Station Order", description: "The 6 timed sections of the Texas hair weaving practical exam in order, per the PSI/TDLR Candidate Information Bulletin effective January 1, 2026.", totalTime: "PT1H16M", step: SECTIONS.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.name, text: s.notes.join(" ") })) },
+          )) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
+            {
+            "@type": "ItemList",
+            "@id": `${SITE_URL}/texas-hair-weaving-practical-exam-kit-list#itemlist`, name: "Texas Hair Weaving Practical Exam Kit List (2026)", itemListElement: KIT_GROUPS.flatMap((g) => g.items).map((item, i) => ({ "@type": "ListItem", position: i + 1, name: item.label })) },
+          )) }} />
     </div>
   );
 }

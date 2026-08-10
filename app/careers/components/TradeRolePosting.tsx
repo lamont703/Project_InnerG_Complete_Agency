@@ -43,25 +43,26 @@ export interface TradeRole {
   occupationalCategory: string;
 }
 
+import { ORG_ID, graph, ref } from "@/lib/schema-graph";
+
 const SITE = SITE_URL;
 
 export function TradeRolePosting({ role }: { role: TradeRole }) {
   // Google for Jobs. hiringOrganization is us because we do the recruiting and
   // the placement; the actual chair or booth belongs to a shop on the platform,
   // which the description states plainly rather than implying we're the employer.
-  const jobPostingJsonLd = {
-    "@context": "https://schema.org",
+  const jobPostingJsonLd = graph({
     "@type": "JobPosting",
+    // JobPosting is an Intangible, so it takes no `isPartOf` — but it can and
+    // should name the hiring organization as the site's own Organization node
+    // rather than a look-alike copy, which is what it carried before.
+    "@id": `${SITE}/careers/${role.slug}#job`,
     title: role.jobTitle,
     description: role.jobDescription,
     datePosted: "2026-07-29",
     validThrough: "2027-01-31",
     employmentType: ["FULL_TIME", "PART_TIME", "CONTRACTOR"],
-    hiringOrganization: {
-      "@type": "Organization",
-      name: "ShearQuery by Inner G Complete Agency",
-      sameAs: SITE,
-    },
+    hiringOrganization: ref(ORG_ID),
     jobLocation: {
       "@type": "Place",
       address: {
@@ -74,7 +75,7 @@ export function TradeRolePosting({ role }: { role: TradeRole }) {
     occupationalCategory: role.occupationalCategory,
     directApply: false,
     url: `${SITE}/careers/${role.slug}`,
-  };
+  });
 
   return (
     // The navbar renders inside this wrapper, not beside it, so the brand

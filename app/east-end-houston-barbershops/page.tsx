@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Star, Loader2, MapPin, ArrowRight, Scissors } from "lucide-react";
 import { fetchEastEndShops, type EastEndShopListing } from "./actions";
 import { Navbar } from "@/components/layout/navbar";
+import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 const FAQS = [
   {
@@ -119,15 +121,19 @@ export default function EastEndHoustonBarbershopsPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "FAQPage",
+            "@id": `${SITE_URL}/east-end-houston-barbershops#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             mainEntity: FAQS.map((faq) => ({
               "@type": "Question",
               name: faq.q,
               acceptedAnswer: { "@type": "Answer", text: faq.a },
             })),
-          }),
+          },
+          )),
         }}
       />
     </div>

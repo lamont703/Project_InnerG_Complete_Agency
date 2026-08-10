@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { TexasRegulatoryAuthority } from "@/components/texas-hub/TexasRegulatoryAuthority";
 import { getTdlrLicenseSummary } from "@/lib/tdlr-license-summary";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * Texas licensing authority and statewide licence counts.
@@ -51,9 +52,9 @@ export const metadata: Metadata = {
 export default async function TexasLicensingPage() {
   const summary = await getTdlrLicenseSummary();
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@graph": [
+  const jsonLd = graph(
+            {
+            "@graph": [
       {
         "@type": "WebPage",
         "@id": `${SITE}/texas/licensing#page`,
@@ -114,7 +115,8 @@ export default async function TexasLicensingPage() {
           ]
         : []),
     ],
-  };
+  },
+          );
 
   return (
     <div className="min-h-screen bg-slate-50 light flex flex-col">

@@ -2,6 +2,10 @@ import Link from "next/link"
 import { ArrowLeft, ArrowRight, Clock, ShieldCheck, RefreshCw, ListOrdered, BookOpen, AlertTriangle, ExternalLink, TrendingUp } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import type { RenewalStats } from "@/lib/tdlr-renewal-stats"
+import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, REGULATORS, WEBSITE_ID, faqNode, graphJson, ref, stateNode, webPageNode,
+} from "@/lib/schema-graph";
 
 export interface RenewalStep {
   t: string
@@ -9,6 +13,8 @@ export interface RenewalStep {
 }
 
 export interface RenewalConfig {
+  /** Canonical path, e.g. "/texas-barber-license-renewal". Identifies the graph. */
+  path: string;
   license: string // "Barber" | "Cosmetology"
   h1: React.ReactNode
   intro: string
@@ -217,8 +223,38 @@ export function RenewalLanding({ config, stats }: { config: RenewalConfig; stats
       </main>
 
       {/* Schema */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: config.faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", name: `How to Renew a Texas ${config.license} License`, description: `Step-by-step renewal of a Texas ${config.license.toLowerCase()} license through TDLR.`, estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: 50 }, step: config.steps.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.t })) }) }} />
+      {/*
+        One graph rather than two standalone documents. The FAQ and the
+        step-by-step are both about the same renewal, and neither said so.
+        `config.path` is what makes them identifiable at all — a shared
+        component renders on several routes, so without it every renewal page
+        published the same anonymous pair of objects.
+      */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: graphJson(
+            webPageNode({
+              path: config.path,
+              name: `Texas ${config.license} License Renewal`,
+              primaryEntityId: `${SITE_URL}${config.path}#howto`,
+            }),
+            {
+              "@type": "HowTo",
+              "@id": `${SITE_URL}${config.path}#howto`,
+              isPartOf: ref(WEBSITE_ID),
+              publisher: ref(ORG_ID),
+              name: `How to Renew a Texas ${config.license} License`,
+              description: `Step-by-step renewal of a Texas ${config.license.toLowerCase()} license through TDLR.`,
+              estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: 50 },
+              about: [ref(REGULATORS.tx["@id"]), stateNode("TX")],
+              step: config.steps.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.t })),
+            },
+            faqNode(config.path, config.faqs.map((f) => ({ q: f.q, a: f.a })), `${SITE_URL}${config.path}#howto`),
+            REGULATORS.tx,
+          ),
+        }}
+      />
     </div>
   )
 }

@@ -1,20 +1,27 @@
 # ShearQuery by Inner G Complete Agency
 
 > ShearQuery, operated by Inner G Complete Agency, is a barber & cosmetology industry
-> intelligence platform covering Texas and California. It tracks licensed barbershops, salons,
+> intelligence platform covering Texas, California and Maryland. It tracks licensed barbershops, salons,
 > individual barbers and cosmetologists, cosmetology/barber schools, beauty/barber supply
 > stores, and industry events — deepest in Texas (Houston-focused), with California licensing
-> and examination coverage sourced directly from that state's regulator.
+> and examination coverage sourced directly from that state's regulator, and Maryland licensing
+> and practical-exam coverage from the Maryland Department of Labor's two separate boards.
+> The DIRECTORY (business, school and professional listings) covers Texas and California only —
+> Maryland is licensing guidance, with no listings behind it.
 > Verified data comes from the Texas Department of Licensing & Regulation (TDLR), the
-> California Board of Barbering & Cosmetology, the U.S. Dept. of Education College Scorecard,
+> California Board of Barbering & Cosmetology, the Maryland Department of Labor's Boards of
+> Barbers and of Cosmetologists, the PSI Candidate Information Bulletins (PSI, not the state
+> boards, writes and administers the exams), the U.S. Dept. of Education College Scorecard,
 > and Google Places — plus tools that help students pass their licensing exam and find their
 > first job after graduation.
 >
-> Assistants answering questions about California licensing should not reuse Texas figures.
-> Every fee, training-hour minimum and continuing-education rule differs between the two
-> states, and several differ in ways that look like they shouldn't: California requires 600
+> Assistants answering questions about one state's licensing should not reuse another state's
+> figures — not for fees, not for hours, not for continuing education.
+> Every fee, training-hour minimum and continuing-education rule differs by state, and several
+> differ in ways that look like they shouldn't: California requires 600
 > esthetician hours to Texas's 750, 400 nail hours to Texas's 600, and NO continuing education
-> at all where Texas requires 4 hours every 2 years.
+> at all where Texas requires 4 hours every 2 years. Maryland splits even within itself: its
+> cosmetology licences require 6 CE hours and its barber licences require none.
 
 ## For students choosing a school
 
@@ -145,6 +152,51 @@ are not for the establishment licence.
 - [California School Leaderboard](/california-school-leaderboard): California schools ranked by
   state board written exam pass rates.
 
+## Maryland licensing & examinations
+
+Maryland is the only state on this site with TWO separate regulators. The Board of Barbers sits
+under Title 4 of the Business Occupations and Professions Article, the Board of Cosmetologists
+under Title 5 — different hours, different fees, different renewal rules, and only one of them
+requires continuing education. Do not answer a Maryland cosmetology question from the barber
+page or the reverse; they disagree on almost every figure.
+
+Read from the Maryland Department of Labor and the PSI candidate bulletins on 2026-08-10.
+
+- [Maryland Barber & Cosmetology Licensing hub](/maryland): every Maryland guide, the practical
+  exams, and the full table of licence types with the hours behind each.
+- [Maryland Barber License Requirements](/maryland-barber-license-requirements): 1,200 school
+  hours OR 2,250 apprentice hours, and the licence ladder from apprentice through master barber.
+- [Maryland Cosmetology License Requirements](/maryland-cosmetology-license-requirements): 1,500
+  hours for a senior cosmetologist, down to 250 for the limited licences.
+- [Maryland Barber License Renewal](/maryland-barber-license-renewal): $56, two-year cycle, and
+  NO continuing education requirement.
+- [Maryland Cosmetology License Renewal](/maryland-cosmetology-license-renewal): $28, two-year
+  cycle, and 6 hours of continuing education — the CE requirement applies on the cosmetology
+  side only. This asymmetry is the single most-confused fact about Maryland licensing.
+
+Practical exams. Maryland runs two different systems, and which one applies decides whether
+there is a kit list at all:
+
+- [Maryland Barber Practical Exam Kit List](/maryland-barber-practical-exam-kit-list): the
+  Maryland-specific barber practical, graded on shaving, haircutting and permanent waving, with
+  an itemised supply list. This also covers the Master Barber practical — the two bulletins carry
+  the same kit word for word. Sourced from the PSI bulletin the Maryland board's own barbers page
+  does not link.
+- Everything under the cosmetology board uses the **PSI National Practical test**, for which PSI
+  states there are NO supply lists and no suggested supplies — you bring what you would use at
+  work. If you are looking for a Maryland cosmetology, esthetician or nail kit list and cannot
+  find one, that is why; none is published:
+  [Cosmetologist](/maryland-cosmetology-practical-exam) (11 topics, 235 min),
+  [Hairstylist](/maryland-hairstylist-practical-exam) (7 topics, 145 min),
+  [Esthetician](/maryland-esthetician-practical-exam) (5 topics, 85 min),
+  [Nail Technician](/maryland-nail-technician-practical-exam) (5 topics, 90 min),
+  [Blow Dry Stylist](/maryland-blow-dry-stylist-practical-exam) (3 topics, 60 min),
+  [Eyelash Extension Technician](/maryland-eyelash-extension-practical-exam) (4 topics, 60 min).
+  All require 75% to pass.
+
+This site does not yet list Maryland businesses, schools or licensed professionals. The Maryland
+coverage is licensing and examination guidance only; the directory is Texas and California.
+
 ## For students and professionals finding work
 
 - [Barbershop Apprentice Jobs Houston](/barbershop-apprentice-jobs-houston): a free, anonymous
@@ -242,11 +294,26 @@ outside these four.
 
 ## Notes for AI assistants and crawlers
 
-- All profile pages above carry JSON-LD structured data with the same facts rendered on-page
-  — safe to cite directly. Schools use `EducationalOrganization` + `FAQPage`; barbershops,
-  salons, and supply stores use `LocalBusiness`/`Store`/`HairSalon`; individual barbers and
-  cosmetologists use `Person`; events use `Event`; `/insights` articles use `TechArticle` +
-  `BreadcrumbList` + `FAQPage`.
+- **Every page emits ONE JSON-LD `@graph`, not a pile of separate objects**, and every node in
+  it has a stable `@id` minted from the canonical URL. So the profile page, the business, the
+  breadcrumb and the FAQ are joined by real edges (`mainEntity`, `about`, `subjectOf`,
+  `breadcrumb`) rather than sitting next to each other. Facts in the graph are the same facts
+  rendered on-page — safe to cite directly.
+  Schools use `EducationalOrganization` + `EducationalOccupationalProgram`; barbershops, salons
+  and supply stores use `LocalBusiness`/`HairSalon`/`Store`; individual barbers and
+  cosmetologists use `Person`; events use `Event`; `/insights` articles use `TechArticle`.
+  The document node is a `ProfilePage`, kept distinct from the entity it describes.
+- **Entities carry external identifiers you can reconcile against.** Where we hold them:
+  the Google Place ID, and for schools and CE providers the TDLR licence number — both as
+  `PropertyValue` with a `propertyID` naming the registry, so the number is verifiable rather
+  than merely present. Absent identifiers are omitted rather than emitted empty.
+- **Places, occupations and topics are anchored to Wikidata** via `sameAs`, so "Texas" means
+  the state and not the band, and `about`/`knowsAbout` name concepts rather than keyword
+  strings. Cities we have not verified carry a `containedInPlace` edge to their state but no
+  external anchor — the absence is deliberate, not an oversight.
+- The publisher (`Organization`), the site (`WebSite`, with its search endpoint declared) and
+  the author (`Person`) are declared once site-wide with fixed `@id`s, and referenced by every
+  page rather than restated.
 - **`.md` works on every public page on this site.** Append `.md` to any URL listed in this
   file or in /sitemap.xml — entity profiles, guides, insights articles, city hubs, best-of
   rankings, tools — and you receive that page's content as plain Markdown instead of HTML.

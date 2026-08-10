@@ -14,6 +14,7 @@ import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
 import { DistanceEducationCta } from "@/components/distance-education-cta";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * The state-by-state matrix — the hub of the distance-education cluster.
@@ -346,23 +347,30 @@ export default function StatesOnlineCosmetologySchoolPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "FAQPage",
+            "@id": `${SITE_URL}/states-that-allow-online-cosmetology-school#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             mainEntity: FAQS.map((f) => ({
               "@type": "Question",
               name: f.q,
               acceptedAnswer: { "@type": "Answer", text: f.a },
             })),
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "Article",
+            "@id": `${SITE_URL}/states-that-allow-online-cosmetology-school#article`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             author: authorSchema(),
             headline: TITLE,
             description: DESCRIPTION,
@@ -376,7 +384,8 @@ export default function StatesOnlineCosmetologySchoolPage() {
               name: `${s.name} — ${s.sourceLabel}`,
               url: s.sourceUrl,
             })),
-          }),
+          },
+          )),
         }}
       />
     </div>

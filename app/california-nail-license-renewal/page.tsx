@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 import { CA_FEES } from "@/lib/ca-sources";
 import { caExam } from "@/lib/ca-exam-2026";
 
@@ -345,43 +346,53 @@ export default function CaliforniaNailRenewalPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "FAQPage",
+            "@id": `${SITE_URL}/california-nail-license-renewal#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             mainEntity: FAQS.map((f) => ({
               "@type": "Question",
               name: f.q,
               acceptedAnswer: { "@type": "Answer", text: f.a },
             })),
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "Article",
+            "@id": `${SITE_URL}/california-nail-license-renewal#article`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             author: authorSchema(),
             headline: TITLE,
             description: DESCRIPTION,
             dateModified: VERIFIED_ON,
             mainEntityOfPage: PAGE,
             about: { "@type": "Thing", name: "California manicurist license renewal" },
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "BreadcrumbList",
+            "@id": `${SITE_URL}/california-nail-license-renewal#breadcrumblist`,
             itemListElement: [
               { "@type": "ListItem", position: 1, name: "California", item: `${SITE_URL}/california` },
               { "@type": "ListItem", position: 2, name: "Nail technician license renewal", item: PAGE },
             ],
-          }),
+          },
+          )),
         }}
       />
     </div>

@@ -5,7 +5,6 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
 
@@ -34,6 +33,10 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, webPageNode,
+} from "@/lib/schema-graph";
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -176,35 +179,34 @@ export default function CognitiveArchitectureBlueprint() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            "mainEntityOfPage": {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/cognitive-architecture-blueprint`
-            },
+            "@id": entityId("/insights/cognitive-architecture-blueprint"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/cognitive-architecture-blueprint")),
             "headline": "Cognitive Architecture Blueprint | Technical View | Inner G Complete",
             "description": "The fundamental engineering blueprint for transitioning a wellness enterprise from traditional systems to advanced sovereign AI.",
-            "author": {
-              "@type": "Person",
-              "name": "Lamont Evans",
-              "url": `${SITE_URL}/about`,
-                "jobTitle": "Senior Product Owner | Machine Learning Engineer",
-                "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
-            },
-            "publisher": {
-              "@type": "Organization",
-              "name": "Inner G Complete Agency",
-              "logo": {
-                "@type": "ImageObject",
-                "url": `${SITE_URL}/icon-dark-32x32.png`
-              }
-            },
+            author: authorSchema(),
+            publisher: ref(ORG_ID),
             "datePublished": "2026-04-12T08:00:00Z"
-          })
+          },
+            webPageNode({
+              path: "/insights/cognitive-architecture-blueprint",
+              name: "Cognitive Architecture Blueprint | Technical View | Inner G Complete",
+              primaryEntityId: entityId("/insights/cognitive-architecture-blueprint"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/cognitive-architecture-blueprint", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "Cognitive Architecture Blueprint | Technical View | Inner G Complete", path: "/insights/cognitive-architecture-blueprint" },
+            ]),
+          ))
         }}
       />
-      <BreadcrumbSchema slug="cognitive-architecture-blueprint" title="Cognitive Architecture Blueprint | Technical View | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">
@@ -544,7 +546,7 @@ export default function CognitiveArchitectureBlueprint() {
 
       <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
 
-          <FAQSection faqs={[{"question":"What are the three tiers of the ADI architecture?","answer":"Tier 1 is the Operational Foundation (raw booking data); Tier 2 is the Signal Layer (behavioral and sentiment fingerprints); Tier 3 is the Intelligence Layer (autonomous decision-making and execution)."},{"question":"Is this architecture HIPAA compliant?","answer":"Yes. By following CPMAI governance, we architect PHI isolation protocols that ensure sensitive data is protected while still fueling the intelligence model."}]} />
+          <FAQSection path="/insights/cognitive-architecture-blueprint" faqs={[{"question":"What are the three tiers of the ADI architecture?","answer":"Tier 1 is the Operational Foundation (raw booking data); Tier 2 is the Signal Layer (behavioral and sentiment fingerprints); Tier 3 is the Intelligence Layer (autonomous decision-making and execution)."},{"question":"Is this architecture HIPAA compliant?","answer":"Yes. By following CPMAI governance, we architect PHI isolation protocols that ensure sensitive data is protected while still fueling the intelligence model."}]} />
       <AuthorBio />
 
           <RelatedArticles currentSlug="cognitive-architecture-blueprint" />

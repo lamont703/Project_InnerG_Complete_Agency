@@ -5,7 +5,6 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 
 
 
@@ -31,6 +30,10 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, webPageNode,
+} from "@/lib/schema-graph";
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -233,35 +236,34 @@ export default function DataSourcesBrief() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            "mainEntityOfPage": {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/cognitive-feedstock-15-data-sources`
-            },
+            "@id": entityId("/insights/cognitive-feedstock-15-data-sources"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/cognitive-feedstock-15-data-sources")),
             "headline": "Cognitive Feedstock: The 15 Enterprise Data Sources | Inner G Complete",
             "description": "A breakdown of the 15 critical data streams that fuel an enterprise Artificial Domain Intelligence model.",
-            "author": {
-              "@type": "Person",
-              "name": "Lamont Evans",
-              "url": `${SITE_URL}/about`,
-                "jobTitle": "Senior Product Owner | Machine Learning Engineer",
-                "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
-            },
-            "publisher": {
-              "@type": "Organization",
-              "name": "Inner G Complete Agency",
-              "logo": {
-                "@type": "ImageObject",
-                "url": `${SITE_URL}/icon-dark-32x32.png`
-              }
-            },
+            author: authorSchema(),
+            publisher: ref(ORG_ID),
             "datePublished": "2026-04-12T08:00:00Z"
-          })
+          },
+            webPageNode({
+              path: "/insights/cognitive-feedstock-15-data-sources",
+              name: "Cognitive Feedstock: The 15 Enterprise Data Sources | Inner G Complete",
+              primaryEntityId: entityId("/insights/cognitive-feedstock-15-data-sources"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/cognitive-feedstock-15-data-sources", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "Cognitive Feedstock: The 15 Enterprise Data Sources | Inner G Complete", path: "/insights/cognitive-feedstock-15-data-sources" },
+            ]),
+          ))
         }}
       />
-      <BreadcrumbSchema slug="cognitive-feedstock-15-data-sources" title="Cognitive Feedstock: The 15 Enterprise Data Sources | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">
@@ -634,7 +636,7 @@ export default function DataSourcesBrief() {
 
       <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
 
-          <FAQSection faqs={[{"question":"What is 'Cognitive Feedstock'?","answer":"Feedstock consists of the 15+ specialized data streams (booking cycles, intake summaries, technical formulas, etc.) required to train a model that performs with domain competence in wellness."}]} />
+          <FAQSection path="/insights/cognitive-feedstock-15-data-sources" faqs={[{"question":"What is 'Cognitive Feedstock'?","answer":"Feedstock consists of the 15+ specialized data streams (booking cycles, intake summaries, technical formulas, etc.) required to train a model that performs with domain competence in wellness."}]} />
       <AuthorBio />
 
           <RelatedArticles currentSlug="cognitive-feedstock-15-data-sources" />

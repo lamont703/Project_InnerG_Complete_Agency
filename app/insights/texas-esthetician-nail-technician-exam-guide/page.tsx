@@ -5,7 +5,6 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { ExamPrepCTA } from "@/components/shared/exam-prep-cta"
 import { MiniExamQuiz } from "@/components/insights/mini-exam-quiz"
 import { Navbar } from "@/components/layout/navbar"
@@ -28,6 +27,10 @@ import Link from "next/link"
 import Image from "next/image"
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, stateNode,
+  topics, webPageNode,
+} from "@/lib/schema-graph";
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
 }
@@ -116,25 +119,36 @@ export default function EstheticianNailTechExamGuide() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            mainEntityOfPage: {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/texas-esthetician-nail-technician-exam-guide`,
-            },
+            "@id": entityId("/insights/texas-esthetician-nail-technician-exam-guide"),
+            "about": topics("esthetics", "nails"),
+            "spatialCoverage": stateNode("TX"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/texas-esthetician-nail-technician-exam-guide")),
             headline: "Texas Esthetician & Nail Technician Exam Guide: Written + Practical Format",
             description:
               "How the Texas esthetician and manicurist licensing exams actually work, sourced directly from TDLR — exam format, what's tested, and how these licenses differ from cosmetology.",
             author: authorSchema(),
-            publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
+            publisher: ref(ORG_ID),
             datePublished: "2026-07-19T08:00:00Z",
-          }),
+          },
+            webPageNode({
+              path: "/insights/texas-esthetician-nail-technician-exam-guide",
+              name: "Texas Esthetician & Nail Technician Exam Guide | Inner G Complete",
+              primaryEntityId: entityId("/insights/texas-esthetician-nail-technician-exam-guide"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/texas-esthetician-nail-technician-exam-guide", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "Texas Esthetician & Nail Technician Exam Guide | Inner G Complete", path: "/insights/texas-esthetician-nail-technician-exam-guide" },
+            ]),
+          )),
         }}
-      />
-      <BreadcrumbSchema
-        slug="texas-esthetician-nail-technician-exam-guide"
-        title="Texas Esthetician & Nail Technician Exam Guide | Inner G Complete"
       />
       <Navbar />
 
@@ -682,7 +696,7 @@ export default function EstheticianNailTechExamGuide() {
           </div>
 
           {/* FAQ */}
-          <FAQSection
+          <FAQSection path="/insights/texas-esthetician-nail-technician-exam-guide"
             faqs={[
               {
                 question: "What's tested on the Texas esthetician written exam?",

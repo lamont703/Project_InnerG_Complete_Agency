@@ -5,6 +5,7 @@ import { findRequirement } from "@/lib/texas-license-requirements";
 import { TDLR_SOURCES } from "@/lib/tdlr-sources";
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * Every figure comes from lib/texas-license-requirements.ts, read in turn from
@@ -143,8 +144,20 @@ export default function TexasEyelashExtensionSpecialistRequirementsPage() {
         </div>
       </main>
 
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", author: authorSchema(), name: 'Texas Eyelash Extension Specialist License Requirements (2026)', description: "What a Texas eyelash extension specialist licence requires — 320 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.", estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: REQ.feeUsd }, step: REQ.conditions.map((c, i) => ({ "@type": "HowToStep", position: i + 1, text: c })) }) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
+            {
+            "@type": "FAQPage",
+            "@id": `${SITE_URL}/texas-eyelash-extension-license-requirements-guide#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID), mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) },
+          )) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
+            {
+            "@type": "HowTo",
+            "@id": `${SITE_URL}/texas-eyelash-extension-license-requirements-guide#howto`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID), author: authorSchema(), name: 'Texas Eyelash Extension Specialist License Requirements (2026)', description: "What a Texas eyelash extension specialist licence requires — 320 hours, $50 fee, 2-year term — and the exact TDLR process, sourced from the Department's own application pages.", estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: REQ.feeUsd }, step: REQ.conditions.map((c, i) => ({ "@type": "HowToStep", position: i + 1, text: c })) },
+          )) }} />
     </div>
   );
 }

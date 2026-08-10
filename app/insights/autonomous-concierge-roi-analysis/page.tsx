@@ -5,7 +5,6 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import {
   ArrowLeft,
@@ -28,6 +27,10 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, webPageNode,
+} from "@/lib/schema-graph";
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -126,35 +129,34 @@ export default function AutonomousConciergeROI() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            "mainEntityOfPage": {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/autonomous-concierge-roi-analysis`
-            },
+            "@id": entityId("/insights/autonomous-concierge-roi-analysis"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/autonomous-concierge-roi-analysis")),
             "headline": "Autonomous Concierge ROI Analysis | Inner G Complete",
             "description": "A quantitative breakdown of the revenue recovered through ADI-driven scheduling automations.",
-            "author": {
-              "@type": "Person",
-              "name": "Lamont Evans",
-              "url": `${SITE_URL}/about`,
-                "jobTitle": "Senior Product Owner | Machine Learning Engineer",
-                "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
-            },
-            "publisher": {
-              "@type": "Organization",
-              "name": "Inner G Complete Agency",
-              "logo": {
-                "@type": "ImageObject",
-                "url": `${SITE_URL}/icon-dark-32x32.png`
-              }
-            },
+            author: authorSchema(),
+            publisher: ref(ORG_ID),
             "datePublished": "2026-04-12T08:00:00Z"
-          })
+          },
+            webPageNode({
+              path: "/insights/autonomous-concierge-roi-analysis",
+              name: "Autonomous Concierge ROI Analysis | Inner G Complete",
+              primaryEntityId: entityId("/insights/autonomous-concierge-roi-analysis"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/autonomous-concierge-roi-analysis", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "Autonomous Concierge ROI Analysis | Inner G Complete", path: "/insights/autonomous-concierge-roi-analysis" },
+            ]),
+          ))
         }}
       />
-      <BreadcrumbSchema slug="autonomous-concierge-roi-analysis" title="Autonomous Concierge ROI Analysis | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">
@@ -568,7 +570,7 @@ export default function AutonomousConciergeROI() {
 
       <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"},{"source":"HHS","label":"HIPAA Security Rule & HITECH Act Compliance","url":"https://www.hhs.gov/hipaa"}]} />
 
-          <FAQSection faqs={[{"question":"How does an AI Concierge provide a measurable ROI?","answer":"The ROI is calculated by measuring the recovery of revenue formerly lost to un-captured no-shows and silent churn. Our analysis shows ADI-driven concierges can recover 14-22% of previously lost floor revenue."},{"question":"What is the primary difference between a chatbot and an AI Concierge?","answer":"A chatbot responds to queries; an ADI Concierge proactively predicts needs using the full clinical and operational feedstock of the enterprise to trigger high-probability rebookings."}]} />
+          <FAQSection path="/insights/autonomous-concierge-roi-analysis" faqs={[{"question":"How does an AI Concierge provide a measurable ROI?","answer":"The ROI is calculated by measuring the recovery of revenue formerly lost to un-captured no-shows and silent churn. Our analysis shows ADI-driven concierges can recover 14-22% of previously lost floor revenue."},{"question":"What is the primary difference between a chatbot and an AI Concierge?","answer":"A chatbot responds to queries; an ADI Concierge proactively predicts needs using the full clinical and operational feedstock of the enterprise to trigger high-probability rebookings."}]} />
       <AuthorBio />
 
           <RelatedArticles currentSlug="autonomous-concierge-roi-analysis" />

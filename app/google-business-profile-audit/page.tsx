@@ -4,6 +4,7 @@ import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { PublicAuditTool } from "@/components/tools/public-audit-tool";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * The free audit tool — the destination the money page's CTAs point at.
@@ -45,9 +46,12 @@ export const metadata: Metadata = {
 };
 
 export default function PublicAuditPage() {
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
+  const jsonLd = graph(
+            {
+            "@type": "WebApplication",
+            "@id": `${SITE_URL}/google-business-profile-audit#webapplication`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
     name: "Free Google Business Profile Audit",
     applicationCategory: "BusinessApplication",
     operatingSystem: "Any",
@@ -56,7 +60,8 @@ export default function PublicAuditPage() {
       "Scores a barbershop, salon, school or beauty supply store's public Google listing on photos, reviews, hours, website and phone, benchmarked against other listings in the same city.",
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     provider: { "@type": "Organization", name: "ShearQuery by Inner G Complete Agency", url: SITE },
-  };
+  },
+          );
 
   return (
     <div className="min-h-screen light bg-slate-50 text-slate-900">

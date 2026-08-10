@@ -9,6 +9,9 @@ import { EntityPhotoGallery } from "@/components/shared/entity-photo-gallery";
 import { NearbyEntitiesSection } from "@/components/shared/nearby-entities-section";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
+import {
+  REGULATORS, WIKIDATA, entityId, graphJson, pageId, ref, topics, webPageNode,
+} from "@/lib/schema-graph";
 import { COSMETOLOGIST_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import Image from "next/image";
@@ -132,11 +135,13 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
 // Person schema — mirrors the barber profile's treatment; a cosmetologist is
 // an individual professional, not a business entity.
 function buildCosmetologistJsonLd(person: any) {
+  const path = `/cosmetologists/${person.slug}`;
   const ld: Record<string, any> = {
-    "@context": "https://schema.org",
     "@type": "Person",
+    "@id": entityId(path),
     name: person.name,
     jobTitle: person.specialty_type || extractRoleFromName(person.name) || "Cosmetologist",
+    mainEntityOfPage: ref(pageId(path)),
   };
   if (person.address) ld.address = { "@type": "PostalAddress", streetAddress: person.address, addressRegion: "TX", addressCountry: "US" };
   if (person.metro_area) ld.homeLocation = { "@type": "Place", name: person.metro_area };
@@ -154,6 +159,29 @@ function buildCosmetologistJsonLd(person: any) {
     person.youtube_channel && `https://youtube.com/@${person.youtube_channel.replace("@", "")}`,
   ].filter(Boolean);
   if (sameAs.length > 0) ld.sameAs = sameAs;
+
+  /* Same edges as the barber profile, and the same restraint about which of
+     them the data actually supports — see app/barbers/[slug]/page.tsx. */
+  if (person.school_name) {
+    ld.alumniOf = { "@type": "EducationalOrganization", name: person.school_name };
+  }
+  ld.hasOccupation = {
+    "@type": "Occupation",
+    name: person.specialty_type || "Cosmetologist",
+    occupationalCategory: "39-5012.00", // O*NET-SOC: Hairdressers, Hairstylists and Cosmetologists
+    sameAs: WIKIDATA.cosmetology,
+  };
+  ld.knowsAbout = topics("cosmetology");
+  if (person.metro_area) ld.workLocation = { "@type": "Place", name: person.metro_area };
+  if (typeof person.licensure_status === "string" && /licen[cs]ed/i.test(person.licensure_status)
+      && !/not|un|pending|student/i.test(person.licensure_status)) {
+    ld.hasCredential = {
+      "@type": "EducationalOccupationalCredential",
+      credentialCategory: "license",
+      name: `${person.specialty_type || "Cosmetology"} license`,
+      recognizedBy: ref(REGULATORS.tx["@id"]),
+    };
+  }
 
   return ld;
 }
@@ -241,8 +269,24 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
 
   return (
     <div className="min-h-screen light bg-slate-50">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(cosmetologistJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildEntityBreadcrumbJsonLd("Cosmetologists", "/cosmetologists", person.name, person.slug)) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: graphJson(
+            webPageNode({
+              path: `/cosmetologists/${person.slug}`,
+              type: "ProfilePage",
+              name: person.name,
+              primaryEntityId: entityId(`/cosmetologists/${person.slug}`),
+              breadcrumb: true,
+              about: topics("cosmetology"),
+            }),
+            buildEntityBreadcrumbJsonLd("Cosmetologists", "/cosmetologists", person.name, person.slug),
+            cosmetologistJsonLd,
+            REGULATORS.tx,
+          ),
+        }}
+      />
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-6">
         <DynamicBackButton fallbackHref="/tools/barbershop-search?tab=Cosmetologist" />

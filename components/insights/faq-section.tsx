@@ -2,6 +2,7 @@
 
 import React from "react"
 import { Plus, Minus } from "lucide-react"
+import { WEBSITE_ID, entityId, faqId, graph, ref } from "@/lib/schema-graph"
 
 interface FAQItem {
   question: string
@@ -10,14 +11,24 @@ interface FAQItem {
 
 interface FAQSectionProps {
   faqs: FAQItem[]
+  /**
+   * Canonical path of the page this FAQ belongs to, e.g. "/insights/foo".
+   *
+   * Optional because 23 pages already render this component and a required prop
+   * would break all of them at once. When it is supplied the FAQ gets a stable
+   * `@id` and an `about` edge to the page's main entity, which is what lets a
+   * consumer tell WHICH page's questions these are. Without it the block is
+   * still a well-formed graph, just an anonymous one.
+   */
+  path?: string
 }
 
-export function FAQSection({ faqs }: FAQSectionProps) {
+export function FAQSection({ faqs, path }: FAQSectionProps) {
   const [openIndex, setOpenIndex] = React.useState<number | null>(null)
 
-  const faqSchema = {
-    "@context": "https://schema.org",
+  const faqSchema = graph({
     "@type": "FAQPage",
+    ...(path ? { "@id": faqId(path), isPartOf: ref(WEBSITE_ID), about: ref(entityId(path)) } : {}),
     "mainEntity": faqs.map((f) => ({
       "@type": "Question",
       "name": f.question,
@@ -26,7 +37,7 @@ export function FAQSection({ faqs }: FAQSectionProps) {
         "text": f.answer
       }
     }))
-  }
+  })
 
   return (
     <section className="mt-24 py-16 border-t border-border/50">

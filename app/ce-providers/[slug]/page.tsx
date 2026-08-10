@@ -8,6 +8,11 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { SITE_URL } from "@/lib/site";
+import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
+import {
+  REGULATORS, cityNode, entityId, graphJson, identifiers, pageId, ref, topics,
+  webPageNode,
+} from "@/lib/schema-graph";
 
 /**
  * A Texas continuing-education provider.
@@ -320,27 +325,50 @@ export default async function CeProviderPage(props: { params: Promise<{ slug: st
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "EducationalOrganization",
-            name: p.name,
-            url: `${SITE_URL}/ce-providers/${p.slug}`,
-            ...(p.website ? { sameAs: [p.website] } : {}),
-            ...(p.phone ? { telephone: p.phone } : {}),
-            address: {
-              "@type": "PostalAddress",
-              streetAddress: [p.street_address, p.address_unit].filter(Boolean).join(", ") || undefined,
-              addressLocality: p.city || undefined,
-              addressRegion: p.state || "TX",
-              postalCode: p.zip || undefined,
-              addressCountry: "US",
+          __html: graphJson(
+            webPageNode({
+              path: `/ce-providers/${p.slug}`,
+              type: "ProfilePage",
+              name: p.name,
+              primaryEntityId: entityId(`/ce-providers/${p.slug}`),
+              breadcrumb: true,
+              about: topics("barbering", "cosmetology"),
+            }),
+            buildEntityBreadcrumbJsonLd("CE Providers", "/ce-providers", p.name, p.slug),
+            {
+              "@type": "EducationalOrganization",
+              "@id": entityId(`/ce-providers/${p.slug}`),
+              name: p.name,
+              url: `${SITE_URL}/ce-providers/${p.slug}`,
+              mainEntityOfPage: ref(pageId(`/ce-providers/${p.slug}`)),
+              ...(p.website ? { sameAs: [p.website] } : {}),
+              ...(p.phone ? { telephone: p.phone } : {}),
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: [p.street_address, p.address_unit].filter(Boolean).join(", ") || undefined,
+                addressLocality: p.city || undefined,
+                addressRegion: p.state || "TX",
+                postalCode: p.zip || undefined,
+                addressCountry: "US",
+              },
+              // Was a bare PropertyValue with `name`. `propertyID` is the field
+              // a consumer keys on to know WHICH registry the number belongs
+              // to, which is the difference between a verifiable licence and a
+              // number with a label next to it.
+              identifier: identifiers({
+                licenseNumber: p.license_number,
+                licenseAuthority: "TDLR",
+                googlePlaceId: p.place_id,
+              }),
+              ...(cityNode(p.city, p.state || "TX") ? { containedInPlace: cityNode(p.city, p.state || "TX") } : {}),
+              // A CE provider exists to satisfy a state requirement, so the
+              // relationship to the regulator is the entity's whole meaning.
+              accreditedBy: ref(REGULATORS.tx["@id"]),
+              audience: { "@type": "EducationalAudience", educationalRole: "Licensed barbers and cosmetologists" },
+              knowsAbout: topics("barbering", "cosmetology"),
             },
-            identifier: {
-              "@type": "PropertyValue",
-              name: "TDLR continuing education provider licence",
-              value: p.license_number,
-            },
-          }),
+            REGULATORS.tx,
+          ),
         }}
       />
     </div>

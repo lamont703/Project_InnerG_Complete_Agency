@@ -5,7 +5,6 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { Navbar } from "@/components/layout/navbar"
 import {
   ArrowLeft,
@@ -33,6 +32,10 @@ import {
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, webPageNode,
+} from "@/lib/schema-graph";
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -50,35 +53,34 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            "mainEntityOfPage": {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/abc-fitness-sovereign-intelligence-audit`
-            },
+            "@id": entityId("/insights/abc-fitness-sovereign-intelligence-audit"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/abc-fitness-sovereign-intelligence-audit")),
             "headline": "ABC Fitness's Intelligence Ceiling | Strategic View | Inner G Complete",
             "description": "A strategic audit of the intelligence gap at the heart of the world's largest fitness platform and how ADI bridges it.",
-            "author": {
-              "@type": "Person",
-              "name": "Lamont Evans",
-              "url": `${SITE_URL}/about`,
-                "jobTitle": "Senior Product Owner | Machine Learning Engineer",
-                "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
-            },
-            "publisher": {
-              "@type": "Organization",
-              "name": "Inner G Complete Agency",
-              "logo": {
-                "@type": "ImageObject",
-                "url": `${SITE_URL}/icon-dark-32x32.png`
-              }
-            },
+            author: authorSchema(),
+            publisher: ref(ORG_ID),
             "datePublished": "2026-04-12T08:00:00Z"
-          })
+          },
+            webPageNode({
+              path: "/insights/abc-fitness-sovereign-intelligence-audit",
+              name: "ABC Fitness's Intelligence Ceiling | Strategic View | Inner G Complete",
+              primaryEntityId: entityId("/insights/abc-fitness-sovereign-intelligence-audit"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/abc-fitness-sovereign-intelligence-audit", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "ABC Fitness's Intelligence Ceiling | Strategic View | Inner G Complete", path: "/insights/abc-fitness-sovereign-intelligence-audit" },
+            ]),
+          ))
         }}
       />
-      <BreadcrumbSchema slug="abc-fitness-sovereign-intelligence-audit" title="ABC Fitness's Intelligence Ceiling | Strategic View | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">
@@ -588,7 +590,7 @@ export default function AbcFitnessSovereignIntelligenceAudit() {
 
       <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
 
-          <FAQSection faqs={[{"question":"What is the Intelligence Ceiling at ABC Fitness?","answer":"The intelligence ceiling refers to the structural point where a generic fitness management platform can no longer optimize for high-fidelity client retention without a custom domain-specific intelligence layer. ADI bridges this by creating a sovereign layer that interprets behavioral data ABC Fitness ignores."},{"question":"How does ADI integrate with ABC Fitness?","answer":"ADI acts as a 'Sovereign Intelligence Layer' that sits on top of existing ABC Fitness data streams, consuming operational feedstock to drive autonomous rebooking and no-show prediction without disrupting existing workflows."}]} />
+          <FAQSection path="/insights/abc-fitness-sovereign-intelligence-audit" faqs={[{"question":"What is the Intelligence Ceiling at ABC Fitness?","answer":"The intelligence ceiling refers to the structural point where a generic fitness management platform can no longer optimize for high-fidelity client retention without a custom domain-specific intelligence layer. ADI bridges this by creating a sovereign layer that interprets behavioral data ABC Fitness ignores."},{"question":"How does ADI integrate with ABC Fitness?","answer":"ADI acts as a 'Sovereign Intelligence Layer' that sits on top of existing ABC Fitness data streams, consuming operational feedstock to drive autonomous rebooking and no-show prediction without disrupting existing workflows."}]} />
       <AuthorBio />
 
           <RelatedArticles currentSlug="abc-fitness-sovereign-intelligence-audit" />

@@ -109,6 +109,11 @@ export const SALON_PUBLIC_COLUMNS = [
   "school_district_name",
   "claimed_at",
   "nearby_areas",
+  // Google Place ID. Public by construction — it is the identifier in every
+  // Google Maps share URL — and it is the anchor that lets an outside index
+  // reconcile this row with its own record for the same business, which is why
+  // it is published in the entity graph as a typed `identifier`.
+  "place_id",
 ];
 
 export const STORE_PUBLIC_COLUMNS = [
@@ -128,6 +133,11 @@ export const STORE_PUBLIC_COLUMNS = [
   "price_level",
   "google_images",
   "hours",
+  // Google Place ID. Public by construction — it is the identifier in every
+  // Google Maps share URL — and it is the anchor that lets an outside index
+  // reconcile this row with its own record for the same business, which is why
+  // it is published in the entity graph as a typed `identifier`.
+  "place_id",
 ];
 
 export const SCHOOL_PUBLIC_COLUMNS = [
@@ -164,6 +174,18 @@ export const SCHOOL_PUBLIC_COLUMNS = [
   "cosmetology_written_test_takers_2026",
   "cosmetology_practical_pass_rate_2026",
   "cosmetology_practical_test_takers_2026",
+  // Google Place ID. Public by construction — it is the identifier in every
+  // Google Maps share URL — and it is the anchor that lets an outside index
+  // reconcile this row with its own record for the same business, which is why
+  // it is published in the entity graph as a typed `identifier`.
+  "place_id",
+  // TDLR licence facts. Public record, and the strongest identifier a school
+  // has: it survives a rename and a relocation, neither of which the name or
+  // the address does. NULL on every barber-school row on purpose — see
+  // migration 20260804140000, which excludes those because all 132 Barber
+  // School licences are expired and would fail the moment anyone checked one.
+  "license_number",
+  "license_state",
 ];
 
 // agent_cosmetology_school_leads carries one extra column (license_type,
@@ -237,4 +259,9 @@ export const SHOP_PUBLIC_COLUMNS = [
   "school_district_name",
   "claimed_at",
   "nearby_areas",
+  // Google Place ID — see the note on SALON_PUBLIC_COLUMNS. Added here too so
+  // the .md endpoint carries the same reconciliation anchor the HTML page's
+  // JSON-LD now publishes; the two surfaces describing the same shop
+  // differently is the drift this file exists to prevent.
+  "place_id",
 ];

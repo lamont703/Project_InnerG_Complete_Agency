@@ -5,7 +5,6 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { MiniExamQuiz } from "@/components/insights/mini-exam-quiz"
 import { ExamPrepCTA } from "@/components/shared/exam-prep-cta"
 import { Navbar } from "@/components/layout/navbar"
@@ -32,6 +31,10 @@ import Link from "next/link"
 import Image from "next/image"
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, REGULATORS, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref,
+  stateNode, topics, webPageNode,
+} from "@/lib/schema-graph";
 
 function GlowOrb({ className }: { className: string }) {
   return <div className={`absolute rounded-full blur-3xl pointer-events-none ${className}`} aria-hidden="true" />
@@ -143,29 +146,48 @@ export default function LicenseRequirementsGuide() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            mainEntityOfPage: {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/texas-barber-cosmetology-license-requirements`,
-            },
+            "@id": entityId("/insights/texas-barber-cosmetology-license-requirements"),
+            "about": topics("barbering", "cosmetology"),
+            "spatialCoverage": stateNode("TX"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/texas-barber-cosmetology-license-requirements")),
             headline: "Texas Cosmetology & Barber License Renewal: Fees, CE Hours, Application, Reciprocity",
             description:
               "The real Texas cosmetology and barber license renewal costs, CE hours, and 2-year cycle, sourced directly from TDLR — plus application steps for those just getting licensed and reciprocity from other states.",
             author: authorSchema(),
-            publisher: { "@type": "Organization", name: "Inner G Complete Agency" },
+            publisher: ref(ORG_ID),
             datePublished: "2026-07-08T08:00:00Z",
             dateModified: "2026-07-27T08:00:00Z",
-          }),
+          },
+            webPageNode({
+              path: "/insights/texas-barber-cosmetology-license-requirements",
+              name: "Texas Cosmetology & Barber License Renewal | Inner G Complete",
+              primaryEntityId: entityId("/insights/texas-barber-cosmetology-license-requirements"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/texas-barber-cosmetology-license-requirements", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "Texas Cosmetology & Barber License Renewal | Inner G Complete", path: "/insights/texas-barber-cosmetology-license-requirements" },
+            ]),
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "HowTo",
+            "@id": `${SITE_URL}/insights/texas-barber-cosmetology-license-requirements#howto`,
+            "isPartOf": ref(entityId("/insights/texas-barber-cosmetology-license-requirements")),
+            "publisher": ref(ORG_ID),
+            "about": [ref(REGULATORS.tx["@id"]), stateNode("TX")],
             name: "How to Renew a Texas Barber or Cosmetology License",
             description:
               "Step-by-step renewal of a Texas barber or cosmetology license through TDLR, per the TDLR renewal, fee, and continuing-education rules.",
@@ -177,12 +199,9 @@ export default function LicenseRequirementsGuide() {
               { "@type": "HowToStep", position: 4, name: "Provide lawful-presence documents and pay", text: "From May 1, 2026, upload proof of lawful presence, then pay the renewal fee ($50 on time for practitioners)." },
               { "@type": "HowToStep", position: 5, name: "Submit and save your license", text: "Submit the application and download your updated license once issued. Online renewals process in about 7-10 business days." },
             ],
-          }),
+          },
+          )),
         }}
-      />
-      <BreadcrumbSchema
-        slug="texas-barber-cosmetology-license-requirements"
-        title="Texas Cosmetology & Barber License Renewal | Inner G Complete"
       />
       <Navbar />
 
@@ -768,7 +787,7 @@ export default function LicenseRequirementsGuide() {
           </div>
 
           {/* FAQ */}
-          <FAQSection
+          <FAQSection path="/insights/texas-barber-cosmetology-license-requirements"
             faqs={[
               {
                 question: "How often do I need to renew my Texas barber or cosmetology license?",

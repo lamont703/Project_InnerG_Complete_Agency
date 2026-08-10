@@ -5,7 +5,6 @@ import { ExecutiveSummary } from "@/components/insights/executive-summary"
 import { FAQSection } from "@/components/insights/faq-section"
 import { AuthorBio } from "@/components/insights/author-bio"
 import { RelatedArticles } from "@/components/insights/related-articles"
-import { BreadcrumbSchema } from "@/components/insights/breadcrumb-schema"
 import { ExamPrepCTA } from "@/components/shared/exam-prep-cta"
 import { Navbar } from "@/components/layout/navbar"
 import {
@@ -32,6 +31,11 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import { SITE_URL } from "@/lib/site";
+import {
+  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, stateNode,
+  topics, webPageNode,
+} from "@/lib/schema-graph";
+import { authorSchema } from "@/lib/author";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -139,31 +143,36 @@ export default function TexasBarberCrisis() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "TechArticle",
-            "mainEntityOfPage": {
-              "@type": "WebPage",
-              "@id": `${SITE_URL}/insights/texas-barber-licensure-crisis`
-            },
+            "@id": entityId("/insights/texas-barber-licensure-crisis"),
+            "about": topics("barbering"),
+            "spatialCoverage": stateNode("TX"),
+            "isPartOf": ref(WEBSITE_ID),
+            "inLanguage": "en-US",
+            mainEntityOfPage: ref(pageId("/insights/texas-barber-licensure-crisis")),
             "headline": "The Texas Barber Licensure Crisis | Institutional Pass Rate Analysis",
             "description": "An analysis of the critical 37.25% written pass rates in the Texas barber market (FY 2025) and the 89.8% practical gap.",
-            "author": {
-              "@type": "Person",
-              "name": "Lamont Evans",
-              "url": `${SITE_URL}/about`,
-                "jobTitle": "Senior Product Owner | Machine Learning Engineer",
-                "sameAs": ["https://www.linkedin.com/in/lamont-evans-57ab4922a/"]
-            },
-            "publisher": {
-              "@type": "Organization",
-              "name": "Inner G Complete Agency"
-            },
+            author: authorSchema(),
+            publisher: ref(ORG_ID),
             "datePublished": "2026-04-20T08:00:00Z"
-          })
+          },
+            webPageNode({
+              path: "/insights/texas-barber-licensure-crisis",
+              name: "Texas Barber Licensure Crisis | Inner G Complete",
+              primaryEntityId: entityId("/insights/texas-barber-licensure-crisis"),
+              breadcrumb: true,
+              type: "WebPage",
+            }),
+            breadcrumbNode("/insights/texas-barber-licensure-crisis", [
+              { name: "Home", path: "" },
+              { name: "Insights", path: "/insights" },
+              { name: "Texas Barber Licensure Crisis | Inner G Complete", path: "/insights/texas-barber-licensure-crisis" },
+            ]),
+          ))
         }}
       />
-      <BreadcrumbSchema slug="texas-barber-licensure-crisis" title="Texas Barber Licensure Crisis | Inner G Complete" />
       <Navbar />
 
       <article className="relative flex-1">
@@ -516,7 +525,7 @@ export default function TexasBarberCrisis() {
           </div>
 
           {/* FAQ Section */}
-          <FAQSection faqs={[
+          <FAQSection path="/insights/texas-barber-licensure-crisis" faqs={[
             {
               question: "Why focus exclusively on the Texas Market first?",
               answer: "The Texas Department of Licensing and Regulation (TDLR) has some of the most detailed reporting and, simultaneously, some of the most acute licensure backlogs in the country. Solving for Texas establishes the 'Texas-Hardened' standard for the rest of the US."

@@ -84,13 +84,26 @@ const STATES = {
     folder: "Maryland Exam Prep Files",
     // labor.maryland.gov is the whole Department of Labor — 32,425 sitemap URLs
     // covering contractors, real estate, CPAs and more. Scope to the two boards.
-    inScope: (u) => /\/license\/(barbers|cos)(\/|$)/.test(u),
+    // The two board sections, PLUS their law pages, which live under
+    // /license/law/ and are linked from every page's section menu as "Laws &
+    // Regulations". A filter on /license/(barbers|cos)/ alone silently drops
+    // the statutory basis for both boards.
+    inScope: (u) => /\/license\/(barbers|cos)(\/|$)/.test(u) || /\/license\/law\/(barbers|cos)law\.shtml$/.test(u),
     exclude: () => false,
     robotsDisallow: [
       "/DLLR%20Forms/", "/DLLR/javascript/", "/DLLR/cfdocs/", "/DLLR/downfiles/",
       "/DLLR/secdocs/", "/ELS_applications/cgi-bin/", "/ELS_applications_Docs/",
       "/GWIB/javascript/", "/WiaWeb/",
     ],
+    // PSI's client code for BOTH Maryland boards. The account is named
+    // "Maryland Cosmetology" but carries the barber exams too — MD Barber,
+    // MD Barber Stylist and MD Master Barber Theory all live under it. The
+    // board's own barbers exam page links no barber bulletin at all, only
+    // cosmetology documents, so this portal is the ONLY route to them.
+    // Found by probing candidate codes: a real one returns application/json,
+    // a wrong one returns application/problem+json, which is easy to misread
+    // as a hit because the word "json" appears in both.
+    psiPortal: "mdcos",
     // Recorded because it should travel with the documents, not be rediscovered.
     notes:
       "labor.maryland.gov's robots.txt carries `Content-Signal: ai-train=no, " +
@@ -240,6 +253,30 @@ const titleFromText = (t) => {
     : line;
 };
 
+/**
+ * PSI stamps a version and effective date into the running header of every
+ * candidate bulletin: "COSMETOLOGY v1.1 EFF 7/8/26". Some boards link an older
+ * edition than the one PSI's own portal serves — Maryland's site was pointing
+ * at v1.0 (eff 2026-02-26) while the portal served v1.1 (eff 2026-07-08), which
+ * added an ESL-accommodations section and dropped a closed test site.
+ *
+ * Both editions are real and both are worth keeping, but only if you can tell
+ * them apart. Without the version in the filename, "Maryland Cosmetology Exam
+ * Guide.pdf" and "MD Cosmetologist Candidate Bulletin.pdf" look interchangeable
+ * and one of them is four months stale.
+ */
+const versionStamp = (t) => {
+  const s = (t || "").replace(/\s+/g, " ");
+  const m = s.match(/v(\d+\.\d+)\s+EFF\s+(\d{1,2})\/(\d{1,2})\/(\d{2,4})/i);
+  if (m) {
+    const y = m[4].length === 2 ? `20${m[4]}` : m[4];
+    return ` v${m[1]} eff ${y}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+  }
+  // Older bulletins carry a bare effective date instead of a version number.
+  const e = s.match(/Effective\s+(\d{1,2})\/(\d{1,2})\/(\d{4})/i);
+  return e ? ` eff ${e[3]}-${e[1].padStart(2, "0")}-${e[2].padStart(2, "0")}` : "";
+};
+
 const summarise = (t) => (t || "").split("\n").map((x) => x.trim())
   .filter((x) => x.length > 30 && !/^page \d|^\d+$|^www\.|^\(?\d{3}\)/i.test(x))
   .slice(0, 2).join(" ").replace(/\s+/g, " ").slice(0, 200);
@@ -297,10 +334,13 @@ async function main() {
     for (const [, h, href, text] of html.matchAll(/<h[1234][^>]*>([\s\S]*?)<\/h[1234]>|<a[^>]+href="([^"]+\.pdf)"[^>]*>([\s\S]*?)<\/a>/gi)) {
       if (h) { section = clean(h) || section; continue; }
       const t = clean(text), u = abs(href, page);
-      // inScope constrains the BOARD's own paths. An allowlisted document host
-      // is already scoped by the fact that an in-scope board page linked to it.
-      const offsite = !u.startsWith(CFG.origin);
-      if (!allowed(u) || (!offsite && !CFG.inScope(u))) continue;
+      // SCOPE CONSTRAINS WHICH PAGES WE CRAWL, NOT WHICH DOCUMENTS WE ACCEPT.
+      // The page we are reading is already in scope; a PDF it links is on-topic
+      // by virtue of the board linking it, wherever the file happens to sit.
+      // Applying inScope to the document too dropped Maryland's combined
+      // barber/cosmetology sanitation guide and its complaint form, both linked
+      // from board pages but filed under /forms/ — and dropped them silently.
+      if (!allowed(u)) continue;
       if (LANG_BARE.test(t) || LANG_PAREN.test(t)) { translated.add(u); continue; }
       const cur = found.get(u) || { title: null, section: null };
       if (!cur.title && t) cur.title = t;
@@ -420,7 +460,9 @@ async function main() {
     // A sitemap-only PDF has no link text, and the filename slug makes a poor
     // title ("cosdisc2022apr"). The document's own first heading is better.
     const base = meta.title || titleFromText(text) || url.split("/").pop().replace(/\.pdf$/i, "").replace(/[_-]+/g, " ");
-    let name = prettyName(base), n = 2;
+    // A bulletin's version belongs in its name; two editions of the same
+    // document are otherwise indistinguishable on disk.
+    let name = prettyName(base + (/bulletin/i.test(url) || /Candidate Bulletin/i.test(base) ? versionStamp(text) : "")), n = 2;
     while (fs.existsSync(path.join(DEST, name))) name = prettyName(`${base} (${n++})`);
     fs.writeFileSync(path.join(DEST, name), buf);
     have.set(md5, name);
@@ -489,6 +531,70 @@ async function main() {
       o.push("");
     }
   }
+  // ---- HTML page map ---------------------------------------------------
+  /**
+   * Not every board publishes its rules as PDFs. Maryland puts the training
+   * hours (1,200 for barber, 900 for barber-stylist limited), the whole fee
+   * schedule and the endorsement rules in plain HTML, so a PDF-only mirror
+   * captures none of it and looks complete while doing so.
+   *
+   * This map is the fallback and the freshness check. Every in-scope page gets
+   * an entry with its live URL, so when we hold no PDF for a question, or when
+   * the PDF we hold is older than the page, the map says where the current
+   * answer actually lives. HTML pages change silently and without a version;
+   * a dated pointer is worth more than a stale copy.
+   */
+  if (!SOURCES_ONLY && pages.length) {
+    const entries = [];
+    for (const u of pages) {
+      let html;
+      try { html = await get(u); } catch { continue; }
+      const main = (html.match(/<main[^>]*id="[^"]*[Mm]ain[^"]*"[^>]*>([\s\S]*?)<\/main>/i)
+                 || html.match(/<main[^>]*>([\s\S]*?)<\/main>/i) || [, html])[1];
+      const body = main.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<nav[\s\S]*?<\/nav>/gi, "");
+      const lines = body.replace(/<[^>]+>/g, "\n").replace(/&nbsp;/g, " ")
+        .split("\n").map((x) => clean(x)).filter((x) => x.length > 2);
+      const title = clean((html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || html.match(/<title>([\s\S]*?)<\/title>/i) || [, ""])[1])
+        .split(" - ")[0].slice(0, 80);
+      const words = lines.join(" ").split(/\s+/).length;
+      // What the page actually settles, judged by what it contains.
+      const flat = lines.join(" ");
+      const signals = [];
+      const fees = (flat.match(/\$\s?\d[\d,]*/g) || []).length;
+      const hrs = [...new Set((flat.match(/\b\d{3,4}\s*hours\b/gi) || []))];
+      if (fees >= 3) signals.push(`**${fees} fee amounts**`);
+      if (hrs.length) signals.push(`**training hours: ${hrs.slice(0, 4).join(", ")}**`);
+      if (/reciprocit|endorsement/i.test(flat)) signals.push("reciprocity/endorsement");
+      if (/renew/i.test(title)) signals.push("renewal");
+      if (/COMAR|Annotated Code|Title \d/i.test(flat)) signals.push("statute/regulation citations");
+      const pdfs = [...new Set([...main.matchAll(/href="([^"]+\.pdf)"/gi)].map((m) => {
+        try { return new URL(m[1], u).href; } catch { return null; } }).filter(Boolean))];
+      const summary = lines.slice(1).find((l) => l.length > 45 && !/^(Skip|Search|JavaScript|Main Navigation)/i.test(l)) || "";
+      entries.push({ url: u, title, words, signals, pdfs, summary: summary.slice(0, 190) });
+      await sleep(DELAY_MS);
+    }
+    const o2 = [`# ${CFG.label} — HTML page map\n`];
+    o2.push(`Checked **${new Date().toISOString().slice(0, 10)}**. ${entries.length} pages.\n`);
+    o2.push("**Why this exists.** Not everything a board publishes is a PDF. Maryland states its");
+    o2.push("training hours, its whole fee schedule and its endorsement rules in HTML only, so a");
+    o2.push("PDF mirror captures none of it — and looks complete while doing so.\n");
+    o2.push("**Use it two ways.** When no PDF answers a question, the map says which live page does.");
+    o2.push("And when a PDF we hold looks old, the map is where to check whether the board has since");
+    o2.push("changed the answer. These pages carry no version and change silently, so a dated");
+    o2.push("pointer to the live page beats a local copy that quietly went out of date.\n");
+    o2.push("Pages carrying figures worth citing are marked in bold.\n");
+    for (const e of entries.sort((a, b) => b.words - a.words)) {
+      o2.push(`\n### ${e.title}`);
+      o2.push(`<${e.url}>  ·  ${e.words} words${e.signals.length ? "  ·  " + e.signals.join(", ") : ""}`);
+      if (e.summary) o2.push(`\n> ${e.summary}`);
+      if (e.pdfs.length) o2.push(`\nLinks ${e.pdfs.length} PDF(s): ` + e.pdfs.map((x) => `\`${x.split("/").pop()}\``).join(", "));
+      o2.push("");
+    }
+    fs.writeFileSync(path.join(DEST, "HTML-PAGE-MAP.md"), o2.join("\n"));
+    console.log(`  HTML page map: ${entries.length} pages`);
+  }
+
   // ---- statute / regulation map ----------------------------------------
   if (CFG.lawIndex && !SOURCES_ONLY) {
     const out = [`# ${CFG.label} — statute & regulation index\n`];

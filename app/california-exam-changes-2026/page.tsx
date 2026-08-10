@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 import {
   CA_EXAMS_2026,
   CA_EXAM_EFFECTIVE_DATE,
@@ -379,30 +380,38 @@ export default function CaliforniaExamChanges2026Page() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "FAQPage",
+            "@id": `${SITE_URL}/california-exam-changes-2026#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             mainEntity: FAQS.map((f) => ({
               "@type": "Question",
               name: f.q,
               acceptedAnswer: { "@type": "Answer", text: f.a },
             })),
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "Article",
+            "@id": `${SITE_URL}/california-exam-changes-2026#article`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             author: authorSchema(),
             headline: TITLE,
             description: DESCRIPTION,
             dateModified: VERIFIED_ON,
             mainEntityOfPage: PAGE,
             about: { "@type": "Thing", name: "California barbering and cosmetology licensing examinations" },
-          }),
+          },
+          )),
         }}
       />
       {/* Dataset, per the plan's note that it is worth testing where a page IS
@@ -412,9 +421,12 @@ export default function CaliforniaExamChanges2026Page() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "Dataset",
+            "@id": `${SITE_URL}/california-exam-changes-2026#dataset`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             name: "California licensing exam content outline weightings, 2020 vs 2025",
             description:
               "Topic weightings for the California barber, cosmetologist, esthetician, nail technician/manicurist and electrologist written examinations, comparing the 2020 content outlines with the 2025 outlines effective 1 April 2026.",
@@ -425,20 +437,23 @@ export default function CaliforniaExamChanges2026Page() {
             dateModified: VERIFIED_ON,
             isAccessibleForFree: true,
             variableMeasured: CA_EXAMS_2026.map((e) => `${e.license} topic weighting`),
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "BreadcrumbList",
+            "@id": `${SITE_URL}/california-exam-changes-2026#breadcrumblist`,
             itemListElement: [
               { "@type": "ListItem", position: 1, name: "California", item: `${SITE_URL}/california` },
               { "@type": "ListItem", position: 2, name: "2026 exam changes", item: PAGE },
             ],
-          }),
+          },
+          )),
         }}
       />
     </div>

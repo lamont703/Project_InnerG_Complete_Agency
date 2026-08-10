@@ -4,6 +4,7 @@ import path from 'path';
 import type { Metadata } from 'next';
 import ContinuingEducationClient from './ContinuingEducationClient';
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const dynamic = 'force-dynamic';
 
@@ -58,9 +59,10 @@ export default async function BarberCosContinuingEducationPage() {
     errorMsg = `Failed to load school registers: ${err.message}`;
   }
 
-  const courseListJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
+  const courseListJsonLd = graph(
+            {
+            "@type": "ItemList",
+            "@id": `${SITE_URL}/barber-cos-continuing-education#itemlist`,
     name: "Texas Barber & Cosmetology Continuing Education Course Catalog",
     itemListElement: [
       {
@@ -106,7 +108,8 @@ export default async function BarberCosContinuingEducationPage() {
         provider: { "@type": "Organization", name: "Inner G Complete Agency" },
       },
     ],
-  };
+  },
+          );
 
   return (
     <>
