@@ -48,6 +48,10 @@ const STATES = {
     // translations) but it is the only place the board's ID-requirements and
     // reciprocity notices are published.
     jsonSources: ["https://test-takers.psiexams.com/api/account/cabacos/content"],
+    // PSI's client code for this board. Unlocks the Candidate Information
+    // Bulletins, which are the single most valuable documents here and are NOT
+    // reachable from the board site or from any page's HTML — see psiBulletins().
+    psiPortal: "cabacos",
     notes: null,
   },
   maryland: {
@@ -255,6 +259,38 @@ async function main() {
       console.log(`  ${api.split("/").slice(2, 3)}: ${urls.length} PDFs, ${kept} new`);
     } catch (e) {
       console.log(`  ${api}: FAILED (${e.message})`);
+    }
+  }
+
+  // ---- PSI candidate bulletins -----------------------------------------
+  // Three hops, none of them guessable, and the first two return JSON that
+  // mentions no PDF at all:
+  //   /api/account/{client}/test            -> tests, each with a globalTestId
+  //   /api/account/{client}/test/{id}       -> mentions bulletin/{n}
+  //   /api/content/bulletin/{n}             -> the PDF
+  // Nothing links these from the board site, the portal's served HTML contains
+  // no PDF links, and every unknown /api/ path returns the SPA shell with a 200
+  // so probing tells you nothing. Found only by opening a test page in a browser
+  // and reading the rendered DOM. Recorded here so it never has to be
+  // rediscovered — CLAUDE.md already notes the equivalent Texas ids (701-715),
+  // and California's are entirely different (916, 930, 940-942, 11070).
+  if (CFG.psiPortal && !DRY) {
+    try {
+      const base = `https://test-takers.psiexams.com/api/account/${CFG.psiPortal}`;
+      const tests = JSON.parse(await get(`${base}/test`));
+      const english = tests.filter((t) => !LANG_BARE.test(t.name) && !/\b(korean|spanish|vietnamese|simplified chinese|chinese)\b/i.test(t.name));
+      let n = 0;
+      for (const t of english) {
+        const detail = await get(`${base}/test/${t.globalTestId}`);
+        for (const id of new Set([...detail.matchAll(/bulletin\/(\d+)/g)].map((m) => m[1]))) {
+          const u = `https://test-takers.psiexams.com/api/content/bulletin/${id}`;
+          if (!found.has(u)) { found.set(u, { title: `${t.name} Candidate Bulletin`, section: "PSI Candidate Information Bulletin" }); n++; }
+        }
+        await sleep(DELAY_MS);
+      }
+      console.log(`  PSI portal (${CFG.psiPortal}): ${tests.length} tests, ${english.length} English, ${n} bulletins`);
+    } catch (e) {
+      console.log(`  PSI portal (${CFG.psiPortal}): FAILED (${e.message})`);
     }
   }
 
