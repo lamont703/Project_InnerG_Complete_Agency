@@ -195,6 +195,19 @@ export const STATE_EXAM_VENDORS: StateExamVendor[] = [
     notes: "Bulletin states the Board contracted with Professional Credential Services.",
   },
 
+  {
+    state: "NY",
+    written: "state-administered",
+    practical: "state-administered",
+    boardUrl: "https://dos.ny.gov/appearance-enhancement-written-examination-procedures",
+    quote:
+      "Any decisions regarding disciplinary measures will be made by the Examination Unit Supervisor at the Department of State.",
+    confidence: "vendor-only",
+    checked: "2026-08-09",
+    notes:
+      "Strongly implies the Department of State runs its own exam — it has an Examination Unit — but the page never names an administrator, so this is NOT confirmed to the standard of the entries above. Secondary sources claim NY self-administers in 14+ languages; unverified. Needs a page that says so outright.",
+  },
+
   // ---- Contested — do not publish until the board settles it ---------------
   {
     state: "AZ",
@@ -219,7 +232,7 @@ export const STATE_EXAM_VENDORS: StateExamVendor[] = [
 /** Jurisdictions with no entry above. 31 of 51 outstanding. */
 export const UNCHECKED_STATES = [
   "AK", "AR", "CT", "DC", "IA", "ID", "IL", "IN", "KS", "LA", "ME", "MO",
-  "MS", "MT", "NC", "ND", "NE", "NH", "NY", "OH", "OK", "OR", "RI", "SC",
+  "MS", "MT", "NC", "ND", "NE", "NH", "OH", "OK", "OR", "RI", "SC",
   "SD", "UT", "VT", "WA", "WI", "WV", "WY",
 ] as const;
 
