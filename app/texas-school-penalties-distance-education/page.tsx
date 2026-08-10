@@ -13,6 +13,7 @@ import {
   VERIFIED_ON,
 } from "@/lib/tdlr-school-penalties";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * What non-compliance actually costs, from TDLR's own published schedule.
@@ -277,26 +278,34 @@ export default function TexasSchoolPenaltiesPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "FAQPage",
+            "@id": `${SITE_URL}/texas-school-penalties-distance-education#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "Article",
+            "@id": `${SITE_URL}/texas-school-penalties-distance-education#article`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             author: authorSchema(),
             headline: TITLE,
             description: DESCRIPTION,
             dateModified: VERIFIED_ON,
             about: { "@type": "Thing", name: "TDLR administrative penalties for Texas barbering and cosmetology schools" },
             citation: [{ "@type": "CreativeWork", name: "TDLR penalty schedule — schools, instructors and CE providers", url: SOURCE_URL }],
-          }),
+          },
+          )),
         }}
       />
     </div>

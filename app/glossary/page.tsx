@@ -13,6 +13,7 @@ import {
   FileText 
 } from "lucide-react"
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 const terms = [
   {
@@ -76,9 +77,12 @@ export const metadata: Metadata = {
 }
 
 export default function GlossaryPage() {
-  const glossarySchema = {
-    "@context": "https://schema.org",
-    "@type": "DefinedTermSet",
+  const glossarySchema = graph(
+            {
+            "@type": "DefinedTermSet",
+            "@id": `${SITE_URL}/glossary#definedtermset`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
     "name": "ADI & CPMAI Technical Glossary",
     "description": "Definitions for sovereign intelligence entities in the wellness and grooming sectors.",
     "hasDefinedTerm": terms.map((t) => ({
@@ -86,7 +90,8 @@ export default function GlossaryPage() {
       "name": t.term,
       "description": t.definition
     }))
-  }
+  },
+          )
 
   return (
     <main className="min-h-screen bg-background light text-foreground flex flex-col pt-20">

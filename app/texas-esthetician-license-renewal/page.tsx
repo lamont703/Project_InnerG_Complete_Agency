@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { SPECIALTY_RENEWAL, TDLR_RENEW_URL, TDLR_OAG_URL } from "@/lib/tdlr-sources";
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * Figures come from lib/tdlr-sources.ts, which records which TDLR page settles
@@ -186,8 +187,20 @@ export default function TexasEstheticianLicenseRenewalPage() {
         </div>
       </main>
 
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", author: authorSchema(), name: "Renew a Texas Esthetician License", description: 'Renew your Texas esthetician license: the $50 fee, 2-year cycle, late-renewal bands and the exact TDLR process — with what TDLR has not published about CE.', estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: SPECIALTY_RENEWAL.feeUsd }, step: STEPS.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.t, text: s.d })) }) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
+            {
+            "@type": "FAQPage",
+            "@id": `${SITE_URL}/texas-esthetician-license-renewal#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID), mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) },
+          )) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
+            {
+            "@type": "HowTo",
+            "@id": `${SITE_URL}/texas-esthetician-license-renewal#howto`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID), author: authorSchema(), name: "Renew a Texas Esthetician License", description: 'Renew your Texas esthetician license: the $50 fee, 2-year cycle, late-renewal bands and the exact TDLR process — with what TDLR has not published about CE.', estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: SPECIALTY_RENEWAL.feeUsd }, step: STEPS.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.t, text: s.d })) },
+          )) }} />
     </div>
   );
 }

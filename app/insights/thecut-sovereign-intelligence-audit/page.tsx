@@ -603,7 +603,7 @@ export default function TheCutSovereignIntelligenceAudit() {
 
       <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
 
-          <FAQSection faqs={[{"question":"How does ADI help barbershops on theCut?","answer":"It transforms the platform from a simple booking drawer into a retention engine, using ADI to handle client re-engagement and no-show mitigation autonomously for high-volume franchises."}]} />
+          <FAQSection path="/insights/thecut-sovereign-intelligence-audit" faqs={[{"question":"How does ADI help barbershops on theCut?","answer":"It transforms the platform from a simple booking drawer into a retention engine, using ADI to handle client re-engagement and no-show mitigation autonomously for high-volume franchises."}]} />
       <AuthorBio />
 
           <RelatedArticles currentSlug="thecut-sovereign-intelligence-audit" />

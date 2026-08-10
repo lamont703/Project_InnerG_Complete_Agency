@@ -32,8 +32,8 @@ import Image from "next/image"
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
 import {
-  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, stateNode,
-  topics, webPageNode,
+  ORG_ID, REGULATORS, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref,
+  stateNode, topics, webPageNode,
 } from "@/lib/schema-graph";
 
 function GlowOrb({ className }: { className: string }) {
@@ -182,9 +182,13 @@ export default async function OpeningYourOwnShopGuide() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "HowTo",
+            "@id": `${SITE_URL}/insights/opening-your-own-shop-in-texas#howto`,
+            "isPartOf": ref(entityId("/insights/opening-your-own-shop-in-texas")),
+            "publisher": ref(ORG_ID),
+            "about": [ref(REGULATORS.tx["@id"]), stateNode("TX")],
             name: "How to Open a Barbershop in Texas",
             description:
               "The step-by-step path to opening a licensed barbershop in Texas, from your individual license through the TDLR establishment license and first inspection.",
@@ -199,7 +203,8 @@ export default async function OpeningYourOwnShopGuide() {
               { "@type": "HowToStep", name: "Post required signage", text: "Display the establishment license, consumer complaint sign, human trafficking awareness sign, inspection-report notice, sanitation rules, and each practitioner's license." },
               { "@type": "HowToStep", name: "Pass inspection and open", text: "TDLR inspections are unannounced and risk-based — stay compliant on ordinary days, not just when you expect a visit." },
             ],
-          }),
+          },
+          )),
         }}
       />
       <Navbar />
@@ -784,7 +789,7 @@ export default async function OpeningYourOwnShopGuide() {
           </div>
 
           {/* FAQ */}
-          <FAQSection
+          <FAQSection path="/insights/opening-your-own-shop-in-texas"
             faqs={[
               {
                 question: "Do I need a separate license to open a barbershop or salon in Texas?",

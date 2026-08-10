@@ -690,7 +690,7 @@ export default function RebookingIntelligencePilot() {
       </article>
       <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
 
-          <FAQSection faqs={[{"question":"How does the rebooking ADI model work?","answer":"The model identifies the exact 'behavioral fingerprint' of a client likely to churn and triggers an autonomous invitation to rebook at the precise moment their interest is highest, maintaining a full book of business without manual outreach."}]} />
+          <FAQSection path="/insights/rebooking-intelligence-pilot" faqs={[{"question":"How does the rebooking ADI model work?","answer":"The model identifies the exact 'behavioral fingerprint' of a client likely to churn and triggers an autonomous invitation to rebook at the precise moment their interest is highest, maintaining a full book of business without manual outreach."}]} />
       <AuthorBio />
 
           <RelatedArticles currentSlug="rebooking-intelligence-pilot" />

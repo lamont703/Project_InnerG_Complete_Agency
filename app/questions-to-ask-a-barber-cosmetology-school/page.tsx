@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * The three questions the school pass-rate panel promises.
@@ -207,9 +208,12 @@ export default function QuestionsToAskPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "FAQPage",
+            "@id": `${SITE_URL}/questions-to-ask-a-barber-cosmetology-school#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             mainEntity: QUESTIONS.map((item) => ({
               "@type": "Question",
               name: item.q,
@@ -218,21 +222,26 @@ export default function QuestionsToAskPage() {
                 text: `${item.why} A good answer: ${item.good} A warning sign: ${item.bad}`,
               },
             })),
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "Article",
+            "@id": `${SITE_URL}/questions-to-ask-a-barber-cosmetology-school#article`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             author: authorSchema(),
             headline: TITLE,
             description: DESCRIPTION,
             dateModified: VERIFIED_ON,
             mainEntityOfPage: `${SITE_URL}/questions-to-ask-a-barber-cosmetology-school`,
-          }),
+          },
+          )),
         }}
       />
     </div>

@@ -6,6 +6,7 @@ import { authorSchema } from "@/lib/author";
 import { SHEARS, SHEARS_RULES, COURSE_CAPS, OBLIGATIONS, VERIFIED_ON } from "@/lib/tdlr-shears";
 import { DistanceEducationCta } from "@/components/distance-education-cta";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * What distance education requires that in-person compliance software does not
@@ -309,19 +310,26 @@ export default function TexasDistanceEducationCompliancePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "FAQPage",
+            "@id": `${SITE_URL}/texas-distance-education-compliance#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "Article",
+            "@id": `${SITE_URL}/texas-distance-education-compliance#article`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             author: authorSchema(),
             headline: TITLE,
             description: DESCRIPTION,
@@ -331,7 +339,8 @@ export default function TexasDistanceEducationCompliancePage() {
               { "@type": "CreativeWork", name: `${SHEARS.manualVersion} SHEARS Operations Manual`, url: SHEARS.manualUrl },
               { "@type": "CreativeWork", name: "NACCAS Policy VI.02", url: "http://elibrary.naccas.org/InfoRouter/docs/Public/NACCAS%20Handbook/Policies%20III.01-IX.02/Policy%20VI.02.pdf" },
             ],
-          }),
+          },
+          )),
         }}
       />
     </div>

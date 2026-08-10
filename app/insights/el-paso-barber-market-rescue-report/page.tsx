@@ -517,7 +517,7 @@ export default function ElPasoRescueReport() {
           </div>
 
           {/* FAQ Section */}
-          <FAQSection faqs={[
+          <FAQSection path="/insights/el-paso-barber-market-rescue-report" faqs={[
             {
               question: "Is this report meant to criticize El Paso barber schools?",
               answer: "Absolutely not. This is an industry rescue report. The data reveals a failure of informational alignment — the PSI exam tests specific cognitive patterns that standard curricula don't explicitly address. Our goal is to provide the scholarship solution to repair these metrics and protect every institution."

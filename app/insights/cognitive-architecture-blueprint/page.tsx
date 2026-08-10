@@ -546,7 +546,7 @@ export default function CognitiveArchitectureBlueprint() {
 
       <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
 
-          <FAQSection faqs={[{"question":"What are the three tiers of the ADI architecture?","answer":"Tier 1 is the Operational Foundation (raw booking data); Tier 2 is the Signal Layer (behavioral and sentiment fingerprints); Tier 3 is the Intelligence Layer (autonomous decision-making and execution)."},{"question":"Is this architecture HIPAA compliant?","answer":"Yes. By following CPMAI governance, we architect PHI isolation protocols that ensure sensitive data is protected while still fueling the intelligence model."}]} />
+          <FAQSection path="/insights/cognitive-architecture-blueprint" faqs={[{"question":"What are the three tiers of the ADI architecture?","answer":"Tier 1 is the Operational Foundation (raw booking data); Tier 2 is the Signal Layer (behavioral and sentiment fingerprints); Tier 3 is the Intelligence Layer (autonomous decision-making and execution)."},{"question":"Is this architecture HIPAA compliant?","answer":"Yes. By following CPMAI governance, we architect PHI isolation protocols that ensure sensitive data is protected while still fueling the intelligence model."}]} />
       <AuthorBio />
 
           <RelatedArticles currentSlug="cognitive-architecture-blueprint" />

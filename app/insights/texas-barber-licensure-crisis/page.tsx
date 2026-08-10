@@ -525,7 +525,7 @@ export default function TexasBarberCrisis() {
           </div>
 
           {/* FAQ Section */}
-          <FAQSection faqs={[
+          <FAQSection path="/insights/texas-barber-licensure-crisis" faqs={[
             {
               question: "Why focus exclusively on the Texas Market first?",
               answer: "The Texas Department of Licensing and Regulation (TDLR) has some of the most detailed reporting and, simultaneously, some of the most acute licensure backlogs in the country. Solving for Texas establishes the 'Texas-Hardened' standard for the rest of the US."

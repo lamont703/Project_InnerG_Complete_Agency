@@ -361,7 +361,7 @@ export default function BarberSchoolLengthArticle() {
           </div>
 
           {/* FAQ */}
-          <FAQSection
+          <FAQSection path="/insights/texas-barber-school-length-vs-apprenticeship"
             faqs={[
               {
                 question: "How long does barber school take in Texas?",

@@ -696,7 +696,7 @@ export default function EstheticianNailTechExamGuide() {
           </div>
 
           {/* FAQ */}
-          <FAQSection
+          <FAQSection path="/insights/texas-esthetician-nail-technician-exam-guide"
             faqs={[
               {
                 question: "What's tested on the Texas esthetician written exam?",

@@ -5,6 +5,7 @@ import { NACCAS_POLICY, STATE_RULES, VERIFIED_ON } from "@/lib/distance-educatio
 import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * The school-operator layer of the distance-education cluster.
@@ -262,30 +263,38 @@ export default function NaccasDistanceEducationPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "FAQPage",
+            "@id": `${SITE_URL}/naccas-distance-education-requirements#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             mainEntity: FAQS.map((f) => ({
               "@type": "Question",
               name: f.q,
               acceptedAnswer: { "@type": "Answer", text: f.a },
             })),
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "Article",
+            "@id": `${SITE_URL}/naccas-distance-education-requirements#article`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             author: authorSchema(),
             headline: TITLE,
             description: DESCRIPTION,
             dateModified: VERIFIED_ON,
             about: { "@type": "Thing", name: `NACCAS ${NACCAS_POLICY.id} distance education requirements` },
             citation: [{ "@type": "CreativeWork", name: `NACCAS ${NACCAS_POLICY.id} (${NACCAS_POLICY.version})`, url: NACCAS_POLICY.url }],
-          }),
+          },
+          )),
         }}
       />
     </div>

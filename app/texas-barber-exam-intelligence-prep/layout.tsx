@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const metadata: Metadata = {
   title: "Texas Barber Exam Prep (2026): Pass Rates & Practice Test",
@@ -50,9 +51,12 @@ export const metadata: Metadata = {
   },
 }
 
-const courseJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Course",
+const courseJsonLd = graph(
+            {
+            "@type": "Course",
+            "@id": `${SITE_URL}/texas-barber-exam-intelligence-prep#course`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
   name: "Texas Barber Exam Intelligence Prep™",
   description:
     "ADI-powered barber board exam preparation targeting Texas's 56.98% first-attempt written pass rate. Covers PSI syntax decoding, NACCAS compliance, and domain-specific mastery across all 85 scored written exam items for TDLR licensure.",
@@ -89,11 +93,13 @@ const courseJsonLd = {
       validThrough: "2026-12-31",
     },
   },
-}
+},
+          )
 
-const breadcrumbJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
+const breadcrumbJsonLd = graph(
+            {
+            "@type": "BreadcrumbList",
+            "@id": `${SITE_URL}/texas-barber-exam-intelligence-prep#breadcrumblist`,
   itemListElement: [
     { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
     { "@type": "ListItem", position: 2, name: "Solutions", item: `${SITE_URL}/solutions` },
@@ -104,11 +110,15 @@ const breadcrumbJsonLd = {
       item: `${SITE_URL}/texas-barber-exam-intelligence-prep`,
     },
   ],
-}
+},
+          )
 
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
+const faqJsonLd = graph(
+            {
+            "@type": "FAQPage",
+            "@id": `${SITE_URL}/texas-barber-exam-intelligence-prep#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
   mainEntity: [
     {
       "@type": "Question",
@@ -159,7 +169,8 @@ const faqJsonLd = {
       },
     },
   ],
-}
+},
+          )
 
 export default function TexasBarberExamPrepLayout({ children }: { children: React.ReactNode }) {
   return (

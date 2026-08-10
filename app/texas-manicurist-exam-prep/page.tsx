@@ -6,6 +6,7 @@ import { TdlrExamProcess } from "@/components/tools/tdlr-exam-process";
 import { SPECIALTY_EXAMS, countCriteria, formatDuration } from "@/lib/texas-specialty-exams";
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * Built entirely from TexasManicuristCIB2026.pdf and the TDLR Barber & Cosmetology Exam
@@ -154,9 +155,27 @@ export default function TexasManicuristExamPrepPage() {
         </div>
       </main>
 
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "HowTo", author: authorSchema(), name: "Texas Manicurist Practical Exam — Section Order", description: "The 6 timed sections of the Texas manicurist practical exam in order, per the PSI/TDLR Candidate Information Bulletin effective January 1, 2026.", totalTime: "PT1H21M", step: EXAM.sections.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.name, text: [...s.procedure, ...s.safety].join("; ") })) }) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "Course", name: "Texas Manicurist Exam Prep", description: 'Every scored criterion on the Texas manicurist practical exam, the 6 timed sections, and the written exam format — from the Jan 1, 2026 PSI/TDLR bulletin.', url: `${SITE_URL}/texas-manicurist-exam-prep`, provider: { "@type": "Organization", name: "Inner G Complete Agency", url: SITE_URL }, teaches: "Texas manicurist practical exam scored criteria, section order and written exam format", offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } }) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
+            {
+            "@type": "FAQPage",
+            "@id": `${SITE_URL}/texas-manicurist-exam-prep#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID), mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) },
+          )) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
+            {
+            "@type": "HowTo",
+            "@id": `${SITE_URL}/texas-manicurist-exam-prep#howto`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID), author: authorSchema(), name: "Texas Manicurist Practical Exam — Section Order", description: "The 6 timed sections of the Texas manicurist practical exam in order, per the PSI/TDLR Candidate Information Bulletin effective January 1, 2026.", totalTime: "PT1H21M", step: EXAM.sections.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.name, text: [...s.procedure, ...s.safety].join("; ") })) },
+          )) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
+            {
+            "@type": "Course",
+            "@id": `${SITE_URL}/texas-manicurist-exam-prep#course`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID), name: "Texas Manicurist Exam Prep", description: 'Every scored criterion on the Texas manicurist practical exam, the 6 timed sections, and the written exam format — from the Jan 1, 2026 PSI/TDLR bulletin.', url: `${SITE_URL}/texas-manicurist-exam-prep`, provider: { "@type": "Organization", name: "Inner G Complete Agency", url: SITE_URL }, teaches: "Texas manicurist practical exam scored criteria, section order and written exam format", offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } },
+          )) }} />
     </div>
   );
 }

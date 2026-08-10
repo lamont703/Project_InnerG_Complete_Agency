@@ -5,6 +5,7 @@ import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
 import { BinderClient, BinderLegend } from "./binder-client";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * The audit binder, demonstrated.
@@ -167,16 +168,20 @@ export default function AuditBinderPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "SoftwareApplication",
+            "@id": `${SITE_URL}/tools/distance-education-audit-binder#softwareapplication`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             name: "Distance Education Audit Binder",
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
             description: DESCRIPTION,
             author: authorSchema(),
             offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-          }),
+          },
+          )),
         }}
       />
     </div>

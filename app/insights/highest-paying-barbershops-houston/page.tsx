@@ -330,7 +330,7 @@ export default function HighestPayingBarbershopsArticle() {
           </div>
 
           {/* FAQ */}
-          <FAQSection
+          <FAQSection path="/insights/highest-paying-barbershops-houston"
             faqs={[
               {
                 question: "What are the highest paying barbershops in Houston?",

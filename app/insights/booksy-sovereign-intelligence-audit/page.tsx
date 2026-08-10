@@ -603,7 +603,7 @@ export default function BookSySovereignIntelligenceAudit() {
 
       <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
 
-          <FAQSection faqs={[{"question":"Why should large Booksy franchises build a sovereign layer?","answer":"To avoid platform lock-in and ensure that the intelligence gathered about their personal clients is owned by the franchise, not the platform. This increases the institutional value of the company and protects its primary revenue streams."}]} />
+          <FAQSection path="/insights/booksy-sovereign-intelligence-audit" faqs={[{"question":"Why should large Booksy franchises build a sovereign layer?","answer":"To avoid platform lock-in and ensure that the intelligence gathered about their personal clients is owned by the franchise, not the platform. This increases the institutional value of the company and protects its primary revenue streams."}]} />
       <AuthorBio />
 
           <RelatedArticles currentSlug="booksy-sovereign-intelligence-audit" />

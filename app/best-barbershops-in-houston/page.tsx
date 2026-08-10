@@ -1,5 +1,6 @@
 import { BestOfDirectory, type BestOfEntry } from "@/components/best-of/BestOfDirectory";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const metadata = {
   title: "Best Barbershops in Houston (2026) — Top Rated, Real Reviews",
@@ -54,23 +55,26 @@ export default function BestBarbershopsHouston() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "BreadcrumbList",
+            "@id": `${SITE_URL}/best-barbershops-in-houston#breadcrumblist`,
             itemListElement: [
               { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
               { "@type": "ListItem", position: 2, name: "Houston", item: `${SITE_URL}/texas/houston` },
               { "@type": "ListItem", position: 3, name: "Best Barbershops in Houston", item: `${SITE_URL}/best-barbershops-in-houston` },
             ],
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "ItemList",
+            "@id": `${SITE_URL}/best-barbershops-in-houston#itemlist`,
             name: "Best Barbershops in Houston",
             itemListOrder: "https://schema.org/ItemListOrderDescending",
             numberOfItems: topRated.length,
@@ -85,7 +89,8 @@ export default function BestBarbershopsHouston() {
                 url: `${SITE_URL}/shop/${s.slug}`,
               },
             })),
-          }),
+          },
+          )),
         }}
       />
       <BestOfDirectory

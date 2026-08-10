@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { TrendingUp, CheckCircle2, GraduationCap, ArrowRight, MapPin, BookOpen } from "lucide-react";
+import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, ref, webPageNode } from "@/lib/schema-graph";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -90,17 +92,32 @@ export async function CaliforniaExamPrep({ variant }: { variant: Variant }) {
     },
   ];
 
+  // The route this variant renders on. Passed nowhere — it is derivable from
+  // the variant, and the two call sites are the only two that exist.
+  const path = `/california-${variant}-exam-intelligence-prep`;
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
+      webPageNode({
+        path,
+        name: `California ${licenseLabel} Exam Intelligence Prep`,
+        primaryEntityId: `${SITE_URL}${path}#dataset`,
+      }),
       {
         "@type": "Dataset",
+        "@id": `${SITE_URL}${path}#dataset`,
+        isPartOf: ref(WEBSITE_ID),
+        publisher: ref(ORG_ID),
         name: `California ${licenseLabel} School First-Time Written Pass Rates (${PERIOD})`,
         description: `First-time written state board pass rates for California ${examWord} schools, from the ${AUTHORITY}.`,
         creator: { "@type": "Organization", name: AUTHORITY },
       },
       {
         "@type": "FAQPage",
+        "@id": `${SITE_URL}${path}#faq`,
+        isPartOf: ref(WEBSITE_ID),
+        about: { "@id": `${SITE_URL}${path}#dataset` },
         mainEntity: faqs.map((f) => ({
           "@type": "Question",
           name: f.q,

@@ -32,8 +32,8 @@ import Image from "next/image"
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
 import {
-  ORG_ID, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref, stateNode,
-  topics, webPageNode,
+  ORG_ID, REGULATORS, WEBSITE_ID, breadcrumbNode, entityId, graph, pageId, ref,
+  stateNode, topics, webPageNode,
 } from "@/lib/schema-graph";
 
 function GlowOrb({ className }: { className: string }) {
@@ -181,9 +181,13 @@ export default function LicenseRequirementsGuide() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "HowTo",
+            "@id": `${SITE_URL}/insights/texas-barber-cosmetology-license-requirements#howto`,
+            "isPartOf": ref(entityId("/insights/texas-barber-cosmetology-license-requirements")),
+            "publisher": ref(ORG_ID),
+            "about": [ref(REGULATORS.tx["@id"]), stateNode("TX")],
             name: "How to Renew a Texas Barber or Cosmetology License",
             description:
               "Step-by-step renewal of a Texas barber or cosmetology license through TDLR, per the TDLR renewal, fee, and continuing-education rules.",
@@ -195,7 +199,8 @@ export default function LicenseRequirementsGuide() {
               { "@type": "HowToStep", position: 4, name: "Provide lawful-presence documents and pay", text: "From May 1, 2026, upload proof of lawful presence, then pay the renewal fee ($50 on time for practitioners)." },
               { "@type": "HowToStep", position: 5, name: "Submit and save your license", text: "Submit the application and download your updated license once issued. Online renewals process in about 7-10 business days." },
             ],
-          }),
+          },
+          )),
         }}
       />
       <Navbar />
@@ -782,7 +787,7 @@ export default function LicenseRequirementsGuide() {
           </div>
 
           {/* FAQ */}
-          <FAQSection
+          <FAQSection path="/insights/texas-barber-cosmetology-license-requirements"
             faqs={[
               {
                 question: "How often do I need to renew my Texas barber or cosmetology license?",

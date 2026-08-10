@@ -41,11 +41,38 @@ const BASE = process.argv[2] || "http://localhost:3000";
  * script reports a 404 as if it were a graph failure.
  */
 const STATIC_PAGES = [
-  "/", "/texas", "/maryland",
+  "/", "/texas", "/texas/licensing", "/maryland", "/glossary", "/careers",
+  // Maryland
   "/maryland-barber-license-requirements",
   "/maryland-cosmetology-license-renewal",
   "/maryland-barber-practical-exam-kit-list",
   "/maryland-nail-technician-practical-exam",
+  // Insights — the two HowTo pages plus a plain one and an AI essay
+  "/insights/opening-your-own-shop-in-texas",
+  "/insights/texas-barber-cosmetology-license-requirements",
+  "/insights/booth-rent-vs-commission",
+  "/insights/the-feasibility-premium",
+  // Texas guides, renewals, kit lists, exam prep
+  "/texas-barber-license-renewal",
+  "/texas-cosmetology-license-renewal",
+  "/texas-barber-license-requirements-guide",
+  "/texas-esthetician-practical-exam-kit-list",
+  "/texas-hair-weaving-exam-prep",
+  "/texas-barber-establishment-license-requirements-guide",
+  "/texas-school-leaderboard",
+  "/texas-distance-education-compliance",
+  // California
+  "/california-cosmetology-license",
+  "/california-barber-license-renewal",
+  "/california-barber-exam-intelligence-prep",
+  "/california-school-leaderboard",
+  // Tools and comparison surfaces
+  "/tools/texas-barber-exam-practice-deck",
+  "/compare-schools",
+  "/compare-shops",
+  // Best-of and city pages
+  "/best-barbershops-in-houston",
+  "/cosmetology-schools-houston",
 ];
 const ENTITY_PREFIXES = [
   "/shop/", "/salons/", "/schools/", "/stores/",

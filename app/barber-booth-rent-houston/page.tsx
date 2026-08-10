@@ -6,6 +6,7 @@ import { MapPin, DollarSign, Star, Loader2, Users, Search, Scissors, ArrowRight 
 import { fetchBoothRentListings, fetchNeighborhoodRentSummary, type BoothRentListing, type ZipRentSummary } from "./actions";
 import { Navbar } from "@/components/layout/navbar";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 const FAQS = [
   {
@@ -222,24 +223,29 @@ export default function BarberBoothRentHoustonPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "FAQPage",
+            "@id": `${SITE_URL}/barber-booth-rent-houston#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             name: "Barber Booth Rental in Houston — Rent Cost & Availability FAQ",
             mainEntity: FAQS.map((faq) => ({
               "@type": "Question",
               name: faq.q,
               acceptedAnswer: { "@type": "Answer", text: faq.a },
             })),
-          }),
+          },
+          )),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "Service",
+            "@id": `${SITE_URL}/barber-booth-rent-houston#service`,
             name: "Barber Booth Rental in Houston",
             serviceType: "Barber booth / chair rental",
             description:
@@ -257,7 +263,8 @@ export default function BarberBoothRentHoustonPage() {
               highPrice: "300",
               offerCount: listings.length || undefined,
             },
-          }),
+          },
+          )),
         }}
       />
     </div>

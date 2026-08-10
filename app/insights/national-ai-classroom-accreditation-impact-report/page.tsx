@@ -534,7 +534,7 @@ export default function NationalAccreditationReport() {
           </div>
 
           {/* FAQ Section */}
-          <FAQSection faqs={[
+          <FAQSection path="/insights/national-ai-classroom-accreditation-impact-report" faqs={[
             {
               question: "Why does generic AI (like ChatGPT) cause classroom pass rates to drop?",
               answer: "Generic models are trained on the open internet, which lacks specific state board psychometric standards. They often hallucinate answers or explain concepts in phrasing that doesn't match the PSI/NIC exam structure, leading students to memorize incorrect terminology."

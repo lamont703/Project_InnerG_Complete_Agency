@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const metadata: Metadata = {
   title: "Texas Cosmetology Exam Prep (2026): Pass Rates & Study Guide",
@@ -41,9 +42,12 @@ export const metadata: Metadata = {
   },
 }
 
-const courseJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Course",
+const courseJsonLd = graph(
+            {
+            "@type": "Course",
+            "@id": `${SITE_URL}/texas-cosmetology-exam-intelligence-prep#course`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
   name: "Texas Cosmetology Exam Intelligence Prep™",
   description:
     "ADI-powered cosmetology board exam preparation targeting the 41% first-attempt failure rate on Texas's PSI written exam. Covers PSI syntax decoding, NACCAS compliance, and domain-specific mastery for TDLR Cosmetology Operator licensure.",
@@ -78,11 +82,13 @@ const courseJsonLd = {
       availability: "https://schema.org/InStock",
     },
   },
-}
+},
+          )
 
-const breadcrumbJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
+const breadcrumbJsonLd = graph(
+            {
+            "@type": "BreadcrumbList",
+            "@id": `${SITE_URL}/texas-cosmetology-exam-intelligence-prep#breadcrumblist`,
   itemListElement: [
     { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
     { "@type": "ListItem", position: 2, name: "Solutions", item: `${SITE_URL}/solutions` },
@@ -93,11 +99,15 @@ const breadcrumbJsonLd = {
       item: `${SITE_URL}/texas-cosmetology-exam-intelligence-prep`,
     },
   ],
-}
+},
+          )
 
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
+const faqJsonLd = graph(
+            {
+            "@type": "FAQPage",
+            "@id": `${SITE_URL}/texas-cosmetology-exam-intelligence-prep#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
   mainEntity: [
     {
       "@type": "Question",
@@ -148,7 +158,8 @@ const faqJsonLd = {
       },
     },
   ],
-}
+},
+          )
 
 export default function TexasCosmetologyExamPrepLayout({ children }: { children: React.ReactNode }) {
   return (

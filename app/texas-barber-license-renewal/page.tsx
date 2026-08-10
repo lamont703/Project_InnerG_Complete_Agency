@@ -27,6 +27,7 @@ export const metadata = {
 }
 
 const config: RenewalConfig = {
+  path: "/texas-barber-license-renewal",
   license: "Barber",
   h1: "Texas Barber License Renewal",
   intro:

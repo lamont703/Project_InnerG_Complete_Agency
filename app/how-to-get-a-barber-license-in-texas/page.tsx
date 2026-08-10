@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { CheckCircle2, GraduationCap, FileText, RefreshCw, ArrowRight, Star, TrendingUp } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
+import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const revalidate = 3600;
 
@@ -103,9 +105,12 @@ const FAQS = [
 export default async function HowToGetBarberLicenseTexasPage() {
   const topSchools = await getTopBarberSchools();
 
-  const howToJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
+  const howToJsonLd = graph(
+            {
+            "@type": "HowTo",
+            "@id": `${SITE_URL}/how-to-get-a-barber-license-in-texas#howto`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
     name: "How to Get a Barber License in Texas",
     description:
       "The real steps to getting a Texas barber license (barber certification): TDLR-approved training, the Class A written and practical exam, application, and renewal.",
@@ -115,18 +120,23 @@ export default async function HowToGetBarberLicenseTexasPage() {
       name: s.title,
       text: s.text,
     })),
-  };
+  },
+          );
 
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
+  const faqJsonLd = graph(
+            {
+            "@type": "FAQPage",
+            "@id": `${SITE_URL}/how-to-get-a-barber-license-in-texas#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
     name: "How to Get a Barber License in Texas — FAQ",
     mainEntity: FAQS.map((faq) => ({
       "@type": "Question",
       name: faq.q,
       acceptedAnswer: { "@type": "Answer", text: faq.a },
     })),
-  };
+  },
+          );
 
   return (
     <div className="min-h-screen light bg-slate-50">

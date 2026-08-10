@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 /**
  * Money page for the local-SEO service.
@@ -181,11 +182,12 @@ const FAQS = [
 ];
 
 export default function GbpOptimizationPage() {
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@graph": [
+  const jsonLd = graph(
+            {
+            "@graph": [
       {
         "@type": "Service",
+            "@id": `${SITE_URL}/google-business-profile-optimization#service`,
         name: "Google Business Profile Optimization for Barbershops and Salons",
         serviceType: "Local SEO",
         provider: {
@@ -234,7 +236,8 @@ export default function GbpOptimizationPage() {
         })),
       },
     ],
-  };
+  },
+          );
 
   return (
     <div className="min-h-screen light bg-slate-50 text-slate-900">

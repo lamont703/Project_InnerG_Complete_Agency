@@ -353,7 +353,7 @@ export default function BoothRentVsCommissionArticle() {
           </div>
 
           {/* FAQ */}
-          <FAQSection
+          <FAQSection path="/insights/booth-rent-vs-commission"
             faqs={[
               {
                 question: "Is booth rent or commission better for a new barber or cosmetologist?",

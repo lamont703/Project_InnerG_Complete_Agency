@@ -333,7 +333,7 @@ export default function BoothRentTaxesArticle() {
           </div>
 
           {/* FAQ */}
-          <FAQSection
+          <FAQSection path="/insights/booth-rent-taxes-and-llc-texas"
             faqs={[
               {
                 question: "Am I an employee or an independent contractor as a booth renter?",

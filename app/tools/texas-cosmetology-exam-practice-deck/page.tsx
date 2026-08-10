@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { ORG_ID, WEBSITE_ID, faqId, graph, ref, topics } from "@/lib/schema-graph"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   CheckCircle2,
@@ -628,15 +629,18 @@ export default function CosmetologyPracticeDeckPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph({
             "@type": "FAQPage",
+            "@id": faqId("/tools/texas-cosmetology-exam-practice-deck"),
+            isPartOf: ref(WEBSITE_ID),
+            publisher: ref(ORG_ID),
+            about: topics("barbering", "cosmetology"),
             mainEntity: PRACTICE_DECK_FAQS.map((faq) => ({
               "@type": "Question",
               name: faq.q,
               acceptedAnswer: { "@type": "Answer", text: faq.a },
             })),
-          }),
+          })),
         }}
       />
     </main>

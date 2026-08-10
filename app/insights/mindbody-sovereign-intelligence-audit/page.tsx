@@ -565,7 +565,7 @@ export default function MindbodySovereignIntelligenceAudit() {
 
       <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"},{"source":"HHS","label":"HIPAA Security Rule & HITECH Act Compliance","url":"https://www.hhs.gov/hipaa"}]} />
 
-          <FAQSection faqs={[{"question":"Why is a sovereign intelligence layer necessary for MindBody users?","answer":"Because enterprise-scale wellness brands require deep-domain logic that generic tools cannot provide. A sovereign layer allows a brand to own its data intelligence while using MindBody purely for operational plumbing."}]} />
+          <FAQSection path="/insights/mindbody-sovereign-intelligence-audit" faqs={[{"question":"Why is a sovereign intelligence layer necessary for MindBody users?","answer":"Because enterprise-scale wellness brands require deep-domain logic that generic tools cannot provide. A sovereign layer allows a brand to own its data intelligence while using MindBody purely for operational plumbing."}]} />
       <AuthorBio />
 
           <RelatedArticles currentSlug="mindbody-sovereign-intelligence-audit" />

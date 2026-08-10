@@ -439,7 +439,7 @@ export default function FeasibilityPremiumArticle() {
 
       <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
 
-          <FAQSection faqs={[{"question":"What is the risk of skipping an AI feasibility audit?","answer":"Skipping the audit leads to the 85% industry failure rate for AI projects. The 'Feasibility Premium' is the certainty and capital preservation achieved by identifying data gaps before development begins."}]} />
+          <FAQSection path="/insights/the-feasibility-premium" faqs={[{"question":"What is the risk of skipping an AI feasibility audit?","answer":"Skipping the audit leads to the 85% industry failure rate for AI projects. The 'Feasibility Premium' is the certainty and capital preservation achieved by identifying data gaps before development begins."}]} />
       <AuthorBio />
 
           <RelatedArticles currentSlug="the-feasibility-premium" />

@@ -320,7 +320,7 @@ export default function SovereignIntelligenceLayer() {
 
       <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"},{"source":"ISO/IEC","label":"42001:2023 AI Management Systems","url":"https://www.iso.org/standard/81230.html"},{"source":"Google Research","label":"Monk Skin Tone Scale (MST) Standards","url":"https://skintone.google"}]} />
 
-          <FAQSection faqs={[{"question":"What defines a 'Sovereign' AI layer?","answer":"Sovereignty is defined by data ownership, model portability, and the ability to operate across different booking platforms without losing institutional intelligence."}]} />
+          <FAQSection path="/insights/the-sovereign-intelligence-layer" faqs={[{"question":"What defines a 'Sovereign' AI layer?","answer":"Sovereignty is defined by data ownership, model portability, and the ability to operate across different booking platforms without losing institutional intelligence."}]} />
       <AuthorBio />
 
           <RelatedArticles currentSlug="the-sovereign-intelligence-layer" />

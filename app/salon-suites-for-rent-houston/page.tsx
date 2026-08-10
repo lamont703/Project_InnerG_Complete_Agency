@@ -6,6 +6,8 @@ import { MapPin, DollarSign, Star, Loader2, CheckCircle2, Users, Clock, Sparkles
 import { fetchSalonSuiteListings, type SalonSuiteListing } from "./actions";
 import { submitSalonWaitlist } from "@/app/barbershop-apprentice-jobs-houston/actions";
 import { Navbar } from "@/components/layout/navbar";
+import { SITE_URL } from "@/lib/site";
+import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 const FAQS = [
   {
@@ -218,15 +220,19 @@ export default function SalonSuitesForRentHoustonPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
+          __html: JSON.stringify(graph(
+            {
             "@type": "FAQPage",
+            "@id": `${SITE_URL}/salon-suites-for-rent-houston#faqpage`,
+            "isPartOf": ref(WEBSITE_ID),
+            "publisher": ref(ORG_ID),
             mainEntity: FAQS.map((faq) => ({
               "@type": "Question",
               name: faq.q,
               acceptedAnswer: { "@type": "Answer", text: faq.a },
             })),
-          }),
+          },
+          )),
         }}
       />
     </div>

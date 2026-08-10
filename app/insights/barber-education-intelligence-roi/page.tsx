@@ -559,7 +559,7 @@ export default function BarberEducationADI() {
 
       <TechnicalCitations citations={[{"source":"PMI","label":"Cognitive Project Management for AI (CPMAI)","url":"https://www.pmi.org"},{"source":"NIST","label":"AI Risk Management Framework (RMF 1.0)","url":"https://www.nist.gov/itl/ai-risk-management-framework"}]} />
 
-      <FAQSection faqs={[
+      <FAQSection path="/insights/barber-education-intelligence-roi" faqs={[
         {"question":"Why do we explicitly map to the CIB?","answer":"The CIB (Candidate Information Bulletin) gives the exact weighting formulas behind the written test. Teaching without referencing the CIB is preparing a student blindly."},
         {"question":"How exactly does the Generative Exam Engine work?","answer":"By ingesting state laws and textbook fundamentals, the ADI dynamically generates synthetic mock tests mimicking the syntax and double-negatives inherent to state board evaluations."}
       ]} />

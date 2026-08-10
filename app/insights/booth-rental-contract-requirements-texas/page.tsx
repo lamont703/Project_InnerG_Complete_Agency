@@ -374,7 +374,7 @@ export default function BoothRentalRequirementsGuide() {
           </div>
 
           {/* FAQ */}
-          <FAQSection
+          <FAQSection path="/insights/booth-rental-contract-requirements-texas"
             faqs={[
               {
                 question: "Do I need a special license to rent a booth in Texas?",
