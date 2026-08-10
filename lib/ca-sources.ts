@@ -167,6 +167,45 @@ export const CA_SOURCES: CaSource[] = [
     checked: "2026-08-10",
   },
   {
+    id: "bpc-7321-7330",
+    url: "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=BPC&sectionNum=7321.",
+    title: "BPC 7321, 7321.5, 7322, 7324, 7326, 7330 — Qualifications for Admittance to Examination",
+    settles: [
+      "Minimum age 17 for every licence type",
+      "10th grade or equivalent for cosmetology, barbering, hairstylist, esthetician and manicurist",
+      "ELECTROLOGIST IS 12th GRADE — the only licence with a different education bar, in 7330(b)",
+      "The four routes to the exam: approved-school course, out-of-state practice, crossover, apprenticeship",
+      "Out-of-state practice converts at three months = 100 hours of training",
+      "Cosmetology and barbering have a crossover course between them; the specialty licences do not",
+      "Electrology additionally requires 18 months of out-of-state practice to use that route (7330(d)(2))",
+    ],
+    checked: "2026-08-10",
+  },
+  {
+    id: "bpc-7316-7320-5",
+    url: "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=BPC&sectionNum=7316.",
+    title: "BPC 7316 — Scope of Practice; and BPC 7320.5 — Laser Treatment a Misdemeanor",
+    settles: [
+      "What skin care legally is: improving the appearance of the skin by means 'that do not result in the ablation or destruction of the live tissue' (7316(c)(1))",
+      "Hair removal is permitted by depilatory, tweezers, sugaring, nonprescription chemical, waxing or devices — 'except by the use of lasers or light waves, which are commonly known as rays' (7316(c)(3))",
+      "BPC 7320.5 in full: 'Any licensee who uses a laser in the treatment of any human being is guilty of a misdemeanor.' Note LICENSEE — it binds every licence type, not just estheticians",
+      "Nail care scope runs elbow-to-fingertips and knee-to-toes (7316(d))",
+      "Eyelash and brow tinting, perming and application sit in BOTH the cosmetology and skin care scopes",
+    ],
+    checked: "2026-08-10",
+  },
+  {
+    id: "license-applications",
+    url: "https://www.barbercosmo.ca.gov/applicants/",
+    title: "Board licence applications (one per licence type)",
+    settles: [
+      "The forms confirm the statutory bars: 'Must be at least 17 years old' on all six",
+      "The electrologist form asks about the 12th grade where the other five ask about the 10th — corroborating BPC 7330 rather than being a form quirk",
+      "Proof of Training document is what an approved-school graduate files",
+    ],
+    checked: "2026-08-10",
+  },
+  {
     id: "breeze",
     url: "https://www.breeze.ca.gov",
     title: "BreEZe — DCA online licensing system",
@@ -189,6 +228,38 @@ export const CA_TRAINING_HOURS = [
   { license: "Manicurist (Nail Care)", hours: 400, source: "bpc-7365" },
   { license: "Electrologist", hours: 600, source: "bpc-7366" },
 ] as const;
+
+/**
+ * Who may sit each exam, from BPC 7321 / 7321.5 / 7322 / 7324 / 7326 / 7330.
+ *
+ * ELECTROLOGY IS THE OUTLIER AND IT IS EASY TO MISS. Five licences ask for the
+ * 10th grade; electrology asks for the 12th. It was noticed because the
+ * electrologist application form asks a different question from the other
+ * five, and confirmed in 7330(b) — so it is law, not a form quirk. Publishing
+ * "17 and 10th grade" as California's requirement, which is how every summary
+ * on the web puts it, is wrong for one licence in six.
+ *
+ * THE FOUR ROUTES ARE THE OTHER UNDER-REPORTED PART. Everyone writes up the
+ * approved-school route. The statute lists three more, including one that
+ * converts prior out-of-state work into hours at a fixed rate: "Each three
+ * months of practice shall be deemed the equivalent of 100 hours of training."
+ * That is 400 hours a year of credit for someone who has been working, which
+ * changes the arithmetic completely for an experienced practitioner moving to
+ * California — and it is not on the board's own summary pages.
+ */
+export const CA_ELIGIBILITY = {
+  minimumAge: 17,
+  /** Grade completed, or equivalent. Electrology is the exception. */
+  grade: { default: 10, electrologist: 12 },
+  /** Out-of-state practice credited toward the school-hours route. */
+  practiceCredit: { months: 3, hours: 100 },
+  /**
+   * Electrology alone puts a floor on the out-of-state route: 18 months of
+   * practice, per 7330(d)(2). The other five sections state no minimum period.
+   */
+  electrologyPracticeMinimumMonths: 18,
+  source: "bpc-7321-7330",
+} as const;
 
 /**
  * Fees actually charged, from Sunset Review Tables 3-4 — NOT the BPC 7423 caps.
@@ -236,10 +307,26 @@ export const CA_FEES = {
  *   Fee Amount" beside "Statutory Limit". It was never on a board web page;
  *   it was on page 21 of a 517-page report to the Legislature. See CA_FEES.
  *
- * NOT SETTLED — whether the hour minimums above have been amended.
- *   `California Notice of Approval (Effective July 1, 2026).pdf` and the
- *   proposed-language documents in the reference set indicate active
- *   rulemaking. The BPC sections were read 2026-08-10 and are current as of
- *   then, but check the Notice of Approval before treating any of this as
- *   stable.
+ * SETTLED SINCE — the hour minimums are NOT affected by the 2026 rulemaking.
+ *   This was recorded as unsettled on the strength of a filename: "California
+ *   Notice of Approval (Effective July 1, 2026).pdf" alongside a Notice of
+ *   Proposed Action and a Notice of Modified Text certainly looks like active
+ *   rulemaking over the training requirements. It is not. All three documents
+ *   concern one section:
+ *
+ *     16 CCR 972 — Disciplinary Guidelines
+ *     OAL Matter 2026-0324-03, approved 6 May 2026, effective 1 July 2026
+ *
+ *   The hour minimums are in the Business and Professions Code — 7362.5 and
+ *   7363 through 7366 — and OAL rulemaking amends the California Code of
+ *   Regulations, not statute. Only the Legislature moves those sections, and
+ *   they were read directly on 2026-08-10 and are current as of then.
+ *
+ *   The lesson is the one this file already teaches about fees: a document's
+ *   title is not its scope. Three documents were nearly allowed to block the
+ *   licence guides over a subject none of them mentions.
+ *
+ *   Worth knowing separately: the disciplinary guidelines DID change on
+ *   1 July 2026. Nothing on the licensing pages depends on it, but anything
+ *   written about enforcement or discipline does.
  */
