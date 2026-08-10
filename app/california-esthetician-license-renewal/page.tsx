@@ -222,7 +222,15 @@ export default function CaliforniaEstheticianRenewalPage() {
             Infection Control rose to {SAFETY.pct2025}% &mdash; two of every five questions. Eyelash
             and Eyebrow appears for the first time at 6%, having had no weighting at all in the 2020
             outline. The exam is {EST_EXAM.questions} questions ({EST_EXAM.scored} scored) in{" "}
-            {EST_EXAM.minutes} minutes, written only.
+            {EST_EXAM.minutes} minutes, written only.{" "}
+            <Link
+              href="/california-exam-changes-2026"
+              data-ig-click="ca_esthy_renewal_to_exam_changes"
+              className="font-bold text-indigo-600 hover:underline"
+            >
+              All five licences, 2020 against 2025
+            </Link>
+            .
           </p>
         </section>
 

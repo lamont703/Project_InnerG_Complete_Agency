@@ -243,7 +243,15 @@ export default function CaliforniaNailRenewalPage() {
             named after &mdash; is under a quarter of it. Anyone revising from pre-2026 material is
             revising the old proportions. The exam is {NAIL_EXAM.questions} questions (
             {NAIL_EXAM.scored} scored) in {NAIL_EXAM.minutes} minutes, written only; California
-            dropped the practical entirely on 1 January 2022.
+            dropped the practical entirely on 1 January 2022.{" "}
+            <Link
+              href="/california-exam-changes-2026"
+              data-ig-click="ca_nail_renewal_to_exam_changes"
+              className="font-bold text-indigo-600 hover:underline"
+            >
+              All five licences, 2020 against 2025
+            </Link>
+            .
           </p>
         </section>
 
