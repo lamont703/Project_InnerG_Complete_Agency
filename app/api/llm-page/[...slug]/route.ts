@@ -34,7 +34,34 @@ function markdownResponse(body: string) {
     headers: {
       "Content-Type": "text/markdown; charset=utf-8",
       "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
-      "X-Robots-Tag": "noindex, follow",
+      /*
+       * NO X-Robots-Tag HERE, and its removal was deliberate.
+       *
+       * This route used to send `noindex, follow` to keep the Markdown twin out
+       * of search as a duplicate of its HTML page. Two things were wrong with
+       * that. It disagreed with the entity route next door, which sent no
+       * indexing header at all — one convention, two opposite instructions. And
+       * `noindex` is not what Google recommends for this:
+       *
+       *   "We don't recommend using noindex to prevent selection of a canonical
+       *    page within a single site, because it will completely block the page
+       *    from Search. rel=canonical link annotations are the preferred
+       *    solution."
+       *   — /search/docs/crawling-indexing/consolidate-duplicate-urls
+       *
+       * middleware.ts sets `Link: <html-url>; rel="canonical"` on every .md
+       * response, which is the documented mechanism and applies to both tiers.
+       *
+       * The reason it matters beyond correctness: `noindex` is the signal most
+       * likely to be read by an AI crawler as "do not use this content", and
+       * this endpoint exists to be used by AI crawlers. Suppressing the whole
+       * .md layer to solve a duplicate-content problem that a canonical already
+       * solves is the wrong trade.
+       *
+       * KNOWN TRADE-OFF: rel=canonical is a hint, not a directive, so a .md URL
+       * could still surface in search where noindex guaranteed it would not.
+       * If any do, re-adding the header here and in the entity route is the fix.
+       */
     },
   });
 }

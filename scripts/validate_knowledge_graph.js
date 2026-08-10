@@ -28,6 +28,9 @@
  */
 
 const BASE = process.argv[2] || "http://localhost:3000";
+// staging stamps noindex on everything via the host guard, correctly — so the
+// "no noindex on .md" assertion only applies where content is meant to index.
+const IS_PRODUCTION_HOST = /shearquery\.com/.test(BASE) && !/staging\./.test(BASE);
 
 /**
  * One page per shape, not one page per route. The graph is built by shared
@@ -199,7 +202,49 @@ async function checkPage(path) {
     }
   }
 
+  failures.push(...(await checkMarkdownTwin(path)));
+
   return { path, failures, nodes: nodeCount, graphs: graphs.length };
+}
+
+/**
+ * The .md twin's headers.
+ *
+ * Two things must hold, and both were briefly wrong at once. Every .md response
+ * must carry a rel=canonical Link header pointing at its HTML page — that is
+ * what stops it being treated as duplicate content now that robots.txt no
+ * longer disallows it. And it must NOT carry `noindex`, which is the signal an
+ * AI crawler is most likely to read as "do not use this content" on an endpoint
+ * that exists to be used by AI crawlers.
+ *
+ * The noindex check is skipped on a non-production host, where middleware's
+ * host guard legitimately stamps `noindex, nofollow` on everything so staging
+ * can never enter an index. Asserting it there would fail for the right reason.
+ */
+async function checkMarkdownTwin(path) {
+  if (path === "/") return [];                 // the homepage has no .md twin
+  const out = [];
+  let res;
+  try {
+    res = await fetch(`${BASE}${path}.md`, { headers: { "user-agent": "shearquery-graph-validator" } });
+  } catch (e) {
+    return [`.md fetch failed: ${e.message}`];
+  }
+  if (res.status === 404) return [];           // not every route is md-eligible
+  if (!res.ok) return [`.md returned HTTP ${res.status}`];
+
+  const link = res.headers.get("link") || "";
+  if (!/rel="?canonical"?/.test(link)) {
+    out.push(".md is missing its rel=canonical Link header — without it the Markdown twin is duplicate content");
+  } else if (!link.includes(`${path}>`)) {
+    out.push(`.md canonical points somewhere unexpected: ${link}`);
+  }
+
+  const robots = res.headers.get("x-robots-tag") || "";
+  if (IS_PRODUCTION_HOST && /noindex/i.test(robots)) {
+    out.push(`.md sends "${robots}" — noindex suppresses the layer AI crawlers are meant to read; the canonical handles duplication`);
+  }
+  return out;
 }
 
 async function resolveEntityPages() {
