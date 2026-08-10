@@ -95,6 +95,15 @@ const STATES = {
       "/DLLR/secdocs/", "/ELS_applications/cgi-bin/", "/ELS_applications_Docs/",
       "/GWIB/javascript/", "/WiaWeb/",
     ],
+    // PSI's client code for BOTH Maryland boards. The account is named
+    // "Maryland Cosmetology" but carries the barber exams too — MD Barber,
+    // MD Barber Stylist and MD Master Barber Theory all live under it. The
+    // board's own barbers exam page links no barber bulletin at all, only
+    // cosmetology documents, so this portal is the ONLY route to them.
+    // Found by probing candidate codes: a real one returns application/json,
+    // a wrong one returns application/problem+json, which is easy to misread
+    // as a hit because the word "json" appears in both.
+    psiPortal: "mdcos",
     // Recorded because it should travel with the documents, not be rediscovered.
     notes:
       "labor.maryland.gov's robots.txt carries `Content-Signal: ai-train=no, " +

@@ -263,6 +263,32 @@ Texas issues eight separate bulletins; California issues two. Do not assume one
 bulletin per licence, and do not assume an ID range: Texas sits at 701–715,
 California at 916–942 with an outlier at 11070.
 
+**Maryland** — verified 2026-08-10. PSI client code `mdcos`:
+
+| ID | Bulletin |
+|---|---|
+| 4163 | MD Master Barber Theory |
+| 4168 | MD Senior Cosmetologist Theory |
+| 4175 | MD Barber |
+| 4176 | MD Cosmetologist |
+| 4179 | MD Esthetician |
+| 4182 | MD Hairstylist |
+| 4185 | MD Nail Technician |
+| 5548 | MD Barber Stylist — **byte-identical to 4175** |
+| 5549 | MD Blow Dry Stylist |
+| 12375 | MD Eyelash Extension Technician |
+
+Three states, three different shapes. Texas issues one bulletin per licence.
+California issues one document for five licences and a second for the sixth.
+Maryland issues nine for ten exams, with barber and barber-stylist sharing one.
+There is no rule to infer here; check each state and dedupe on content.
+
+**The account is named "Maryland Cosmetology" but carries the barber exams too.**
+Maryland's own barbers exam page links no barber bulletin — only cosmetology
+documents — so this portal is the only route to MD Barber, MD Barber Stylist and
+MD Master Barber Theory. A state having two separate boards does not mean it has
+two PSI accounts.
+
 Verified means every ID returned a PDF and the title was read from page 1.
 **Re-check the mapping before relying on an ID.** These are numbers on a
 vendor's content API, not stable document names, and nothing guarantees 713
@@ -283,6 +309,11 @@ wrong guess looks like a hit. Three hops, from the board's PSI client code
 `scripts/fetch_state_board_pdfs.js` does this automatically for any state whose
 config sets `psiPortal`. Found originally only by opening a test page in a
 browser and reading the rendered DOM.
+
+To find an unknown state's client code, probe `/api/account/{code}`: a real code
+returns `application/json`, a wrong one returns `application/problem+json`. Read
+that carefully — both contain the word "json", and a naive check treats every
+guess as a hit.
 
 ### Not every state has a practical exam — check before writing a kit list
 
