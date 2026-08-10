@@ -6,6 +6,9 @@ import { getTdlrLicenseSummary } from "@/lib/tdlr-license-summary";
 import Link from "next/link";
 import { BadgeCheck } from "lucide-react";
 import { SITE_URL } from "@/lib/site";
+import {
+  REGULATORS, breadcrumbNode, graph, ref, stateNode, topics, webPageNode,
+} from "@/lib/schema-graph";
 
 export const revalidate = 3600;
 
@@ -53,36 +56,34 @@ export default async function TexasHubPage() {
    * the figures themselves. Declaring a dataset here, where the numbers are no
    * longer shown, would describe a page that doesn't contain what it claims.
    */
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "CollectionPage",
-        "@id": `${SITE}/texas#page`,
+  const jsonLd = graph(
+    {
+      ...webPageNode({
+        path: "/texas",
+        type: "CollectionPage",
         name: "Texas Barbershops, Hair Salons & Barber Schools Directory",
-        url: `${SITE}/texas`,
-        about: [
-          {
-            "@type": "GovernmentOrganization",
-            name: "Texas Department of Licensing and Regulation",
-            alternateName: "TDLR",
-            url: "https://www.tdlr.texas.gov/",
-            sameAs: [TDLR_URL],
-          },
-          { "@type": "State", name: "Texas" },
-        ],
-        citation: [
-          { "@type": "WebPage", name: "TDLR — Barbering and Cosmetology", url: TDLR_URL },
-          {
-            "@type": "Legislation",
-            name: "Texas Occupations Code Title 9, Chapter 1603 — Regulation of Barbering and Cosmetology",
-            url: OC_1603,
-          },
-        ],
-        isPartOf: { "@type": "WebSite", name: "ShearQuery", url: SITE },
-      },
-    ],
-  };
+        breadcrumb: true,
+      }),
+      // The regulator is REFERENCED here and DEFINED once below, rather than
+      // restated inline as it was. Three pages used to describe TDLR in three
+      // slightly different ways, which is three entities to a parser.
+      about: [ref(REGULATORS.tx["@id"]), stateNode("TX"), ...topics("barbering", "cosmetology")],
+      citation: [
+        { "@type": "WebPage", name: "TDLR — Barbering and Cosmetology", url: TDLR_URL },
+        {
+          "@type": "Legislation",
+          name: "Texas Occupations Code Title 9, Chapter 1603 — Regulation of Barbering and Cosmetology",
+          url: OC_1603,
+          legislationJurisdiction: stateNode("TX"),
+        },
+      ],
+    },
+    breadcrumbNode("/texas", [
+      { name: "Home", path: "" },
+      { name: "Texas", path: "/texas" },
+    ]),
+    REGULATORS.tx,
+  );
 
   /**
    * The licence data used to sit in a slab at the bottom of this page. It's

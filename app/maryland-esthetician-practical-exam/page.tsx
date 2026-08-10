@@ -1,7 +1,10 @@
 import { MdPractical } from "@/components/maryland/md-practical";
 import { SITE_URL } from "@/lib/site";
 import { authorSchema } from "@/lib/author";
-import { PSI_PRACTICALS } from "@/lib/maryland-licensing";
+import {
+  REGULATORS, articleGraph, ref, stateNode, topics,
+} from "@/lib/schema-graph";
+import { PSI_PRACTICALS, CHECKED} from "@/lib/maryland-licensing";
 
 const P = PSI_PRACTICALS.find((x) => x.slug === "maryland-esthetician-practical-exam")!;
 
@@ -36,15 +39,19 @@ export default function Page() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Article",
-            headline: TITLE,
-            description: DESCRIPTION,
-            url: `${SITE_URL}/maryland-esthetician-practical-exam`,
-            author: authorSchema(),
-            isPartOf: { "@type": "CollectionPage", name: "Maryland Barber & Cosmetology Licensing", url: `${SITE_URL}/maryland` },
-          }),
+          __html: JSON.stringify(
+            articleGraph({
+              path: "/maryland-esthetician-practical-exam",
+              headline: TITLE,
+              description: DESCRIPTION,
+              parentPath: "/maryland",
+              parentName: "Maryland Barber & Cosmetology Licensing",
+              author: authorSchema(),
+              dateModified: CHECKED,
+              about: [ref(REGULATORS.md["@id"]), stateNode("MD"), ...topics("esthetics")],
+              extra: [REGULATORS.md],
+            })
+          ),
         }}
       />
     </>

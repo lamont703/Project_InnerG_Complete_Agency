@@ -21,6 +21,10 @@ import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { composeDescription, ratingClause, streetClause } from "@/lib/seo-description";
 import { SITE_URL } from "@/lib/site";
+import {
+  WIKIDATA, cityNode, entityId, faqId, faqNode, graphJson, identifiers,
+  pageId, ref, regulatorFor, topics, webPageNode,
+} from "@/lib/schema-graph";
 
 /**
  * Cached and regenerated hourly, matching /salons/[slug] and /schools/[slug].
@@ -265,11 +269,31 @@ export default async function ShopProfilePage({ params }: Props) {
     ? shop.google_images
     : [shop.shop_image_url || "/images/default_shop_image.png"];
 
-  // LocalBusiness — a barbershop is a physical business entity.
+  /**
+   * The knowledge-graph node for this barbershop.
+   *
+   * `@id` is the important addition. Without it this was an anonymous
+   * LocalBusiness that nothing could reference — not the FAQ that answers
+   * questions about it, not the page that profiles it, not a city listing that
+   * includes it. Minted from the canonical path, so it is unique by
+   * construction and survives a domain move.
+   *
+   * `additionalType` carries the Wikidata concept for a barbershop. schema.org
+   * has HairSalon and BeautySalon but no BarberShop, and typing a barbershop as
+   * a HairSalon would be a small lie repeated across thousands of pages —
+   * LocalBusiness plus the external concept says the true thing.
+   */
+  const shopPath = `/shop/${shop.slug}`;
+  const shopNodeId = entityId(shopPath);
+  const shopCity = shop.address_city || shop.city || null;
+  const shopState = shop.address_state || "TX";
+
   const shopJsonLd: Record<string, any> = {
-    "@context": "https://schema.org",
     "@type": "LocalBusiness",
+    "@id": shopNodeId,
+    additionalType: WIKIDATA.barbershop,
     name: shop.shop_name,
+    mainEntityOfPage: ref(pageId(shopPath)),
   };
   // Claimed shops have real structured address fields (see the
   // 20260721000000 migration) — a properly split PostalAddress is
@@ -302,7 +326,65 @@ export default async function ShopProfilePage({ params }: Props) {
   if (images[0]) shopJsonLd.image = images[0];
   // Real, computed proximity (lib/nearby-areas.ts), not a claimed service
   // area — see app/salons/[slug]/page.tsx for the reasoning.
-  if (Array.isArray(shop.nearby_areas) && shop.nearby_areas.length > 0) shopJsonLd.areaServed = shop.nearby_areas;
+  //
+  // Typed as Place nodes rather than left as bare strings. "Spring Branch" as a
+  // string is a token a consumer has to guess at; as a Place it is somewhere.
+  // Place rather than City deliberately: several of these are neighbourhoods,
+  // and calling a neighbourhood a city would be wrong in a way nothing catches.
+  if (Array.isArray(shop.nearby_areas) && shop.nearby_areas.length > 0) {
+    shopJsonLd.areaServed = shop.nearby_areas.map((a: string) => ({ "@type": "Place", name: a }));
+  }
+
+  /* The edges. Each one is a fact we already hold and previously threw away at
+     the markup boundary. */
+
+  // Where it sits, joined up to the state and (where verified) to Wikidata, so
+  // this shop and the Houston city page agree on what Houston is.
+  const shopPlace = cityNode(shopCity, shopState);
+  if (shopPlace) shopJsonLd.containedInPlace = shopPlace;
+
+  // The Google Place ID is the one identifier that survives a rename or a move,
+  // which is exactly what makes it worth publishing for reconciliation.
+  const shopIds = identifiers({ googlePlaceId: shop.place_id });
+  if (shopIds) shopJsonLd.identifier = shopIds;
+
+  // Booth rent is a real offer this business makes, and it is the single most
+  // asked question on these pages. It was previously stated only in prose.
+  //
+  // `rent_type` is NOT reliably null when unknown — a large share of rows carry
+  // the literal string "Unknown", which produced `"Unknown chair rental"` in the
+  // first version of this markup. A placeholder that reads as a real value is
+  // the failure mode a null check does not catch, so the string is filtered by
+  // value, not by presence.
+  const rentType = typeof shop.rent_type === "string"
+    && !/^(unknown|n\/?a|none|tbd)$/i.test(shop.rent_type.trim())
+    ? shop.rent_type.trim()
+    : null;
+  if (shop.rent_rate || shop.booth_count_available != null) {
+    const offer: Record<string, any> = {
+      "@type": "Offer",
+      name: rentType ? `${rentType} chair rental` : "Barber chair rental",
+      category: "Booth rental",
+      availability: shop.booth_count_available && shop.booth_count_available > 0
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      seller: ref(shopNodeId),
+    };
+    if (shop.rent_rate) {
+      offer.priceSpecification = {
+        "@type": "UnitPriceSpecification",
+        price: Number(shop.rent_rate),
+        priceCurrency: "USD",
+        unitCode: "WEE", // UN/CEFACT code for week — booth rent here is weekly.
+      };
+    }
+    shopJsonLd.makesOffer = offer;
+  }
+
+  // Subject scope, as resolvable concepts rather than keyword strings.
+  shopJsonLd.knowsAbout = topics("barbering");
+
+  const shopRegulator = regulatorFor(shopState);
 
   // FAQPage — answers the exact questions searchers ask at this decision point.
   const shopFaqEntries: { q: string; a: string }[] = [];
@@ -326,21 +408,38 @@ export default async function ShopProfilePage({ params }: Props) {
       a: `${shop.shop_name} is rated ${shop.rating} stars based on ${shop.total_reviews} reviews.`,
     });
   }
-  const shopFaqJsonLd = shopFaqEntries.length > 0 ? {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: shopFaqEntries.map(({ q, a }) => ({
-      "@type": "Question",
-      name: q,
-      acceptedAnswer: { "@type": "Answer", text: a },
-    })),
-  } : null;
+  const shopFaqJsonLd = faqNode(shopPath, shopFaqEntries, shopNodeId);
+  if (shopFaqJsonLd) shopJsonLd.subjectOf = ref(faqId(shopPath));
+
+  /**
+   * ONE graph instead of three documents.
+   *
+   * These were three sibling <script> tags: a LocalBusiness, an FAQPage and a
+   * BreadcrumbList, none of which mentioned the others. A parser got three
+   * unrelated facts. Now the ProfilePage says it is about the shop, the shop
+   * says the FAQ is about it, the breadcrumb belongs to the page, and all three
+   * hang off the WebSite and Organization declared in the root layout.
+   */
+  const shopGraph = graphJson(
+    webPageNode({
+      path: shopPath,
+      type: "ProfilePage",
+      name: shop.shop_name,
+      primaryEntityId: shopNodeId,
+      breadcrumb: true,
+      about: topics("barbering", "barbershop"),
+    }),
+    buildEntityBreadcrumbJsonLd("Barbershops", "/shop", shop.shop_name, shop.slug),
+    shopJsonLd,
+    shopFaqJsonLd,
+    // Named so the licensing authority behind this shop's state is part of the
+    // page's graph rather than something a reader has to already know.
+    shopRegulator,
+  );
 
   return (
     <div className="min-h-screen light bg-white text-slate-900 selection:bg-blue-500/20 flex flex-col overflow-x-hidden">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(shopJsonLd) }} />
-      {shopFaqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(shopFaqJsonLd) }} />}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildEntityBreadcrumbJsonLd("Barbershops", "/shop", shop.shop_name, shop.slug)) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: shopGraph }} />
 
       <Navbar />
 

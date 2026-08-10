@@ -24,6 +24,10 @@ import {
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { isEntityClaimed } from "@/lib/entity-claim";
 import { SITE_URL } from "@/lib/site";
+import {
+  breadcrumbNode, cityNode, entityId, faqId, faqNode, graphJson, pageId, ref,
+  topics, webPageNode,
+} from "@/lib/schema-graph";
 
 export const revalidate = 3600;
 
@@ -135,9 +139,11 @@ function isThirdPartyTicketingUrl(url: string | null | undefined): boolean {
 // touched for the slug rename, so this ships correct from day one rather
 // than needing a second pass once the events table grows.
 function buildEventJsonLd(event: any, isPast: boolean) {
+  const path = `/events/${event.slug}`;
   const ld: Record<string, any> = {
-    "@context": "https://schema.org",
     "@type": "Event",
+    "@id": entityId(path),
+    mainEntityOfPage: ref(pageId(path)),
     name: event.title,
     startDate: event.start_time ? `${event.event_date}T${event.start_time}` : event.event_date,
     eventStatus: "https://schema.org/EventScheduled",
@@ -173,6 +179,14 @@ function buildEventJsonLd(event: any, isPast: boolean) {
   if (event.image_url) ld.image = event.image_url;
   if (event.ticket_url || event.source_url) ld.url = event.ticket_url || event.source_url;
 
+  /* Who this event is for, and what it is about, as graph edges. An industry
+     event's audience is the fact that decides whether it is worth attending,
+     and it was previously only inferable from the category string. */
+  ld.audience = { "@type": "Audience", audienceType: "Barbers, cosmetologists and beauty professionals" };
+  ld.about = topics("barbering", "cosmetology");
+  const eventPlace = cityNode(event.city, "TX");
+  if (eventPlace && ld.location) ld.location.containedInPlace = eventPlace;
+
   // Google's Event guidelines say to omit "offers" entirely when the real
   // price isn't known, rather than publish an incomplete Offer — the ticket
   // link is still shown to visitors on the page regardless of this markup.
@@ -190,15 +204,11 @@ function buildEventJsonLd(event: any, isPast: boolean) {
 }
 
 function buildEventBreadcrumbJsonLd(event: any) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
-      { "@type": "ListItem", position: 2, name: "Events", item: `${SITE_URL}/events` },
-      { "@type": "ListItem", position: 3, name: event.title, item: `${SITE_URL}/events/${event.slug}` },
-    ],
-  };
+  return breadcrumbNode(`/events/${event.slug}`, [
+    { name: "Home", path: "" },
+    { name: "Events", path: "/events" },
+    { name: event.title, path: `/events/${event.slug}` },
+  ]);
 }
 
 // Only asks questions the real submitted data can actually answer — no
@@ -280,15 +290,13 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
   const eventJsonLd = buildEventJsonLd(event, isPast);
   const breadcrumbJsonLd = buildEventBreadcrumbJsonLd(event);
   const faqs = buildEventFaqs(event, dateLabel, startTimeLabel);
-  const faqJsonLd = faqs.length > 0 ? {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((faq) => ({
-      "@type": "Question",
-      name: faq.question,
-      acceptedAnswer: { "@type": "Answer", text: faq.answer },
-    })),
-  } : null;
+  const eventPath = `/events/${event.slug}`;
+  const faqJsonLd = faqNode(
+    eventPath,
+    faqs.map((faq) => ({ q: faq.question, a: faq.answer })),
+    entityId(eventPath),
+  );
+  if (faqJsonLd) eventJsonLd.subjectOf = ref(faqId(eventPath));
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: searchPerfRows } = await supabase.rpc('get_search_performance_by_entity', {
@@ -300,9 +308,24 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
 
   return (
     <div className="min-h-screen light bg-slate-50">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      {faqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: graphJson(
+            webPageNode({
+              path: eventPath,
+              type: "ItemPage",
+              name: event.title,
+              primaryEntityId: entityId(eventPath),
+              breadcrumb: true,
+              about: topics("barbering", "cosmetology"),
+            }),
+            breadcrumbJsonLd,
+            eventJsonLd,
+            faqJsonLd,
+          ),
+        }}
+      />
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-6">
         <DynamicBackButton fallbackHref="/events" />

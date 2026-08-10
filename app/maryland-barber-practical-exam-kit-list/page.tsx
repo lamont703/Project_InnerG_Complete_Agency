@@ -4,6 +4,9 @@ import { Navbar } from "@/components/layout/navbar";
 import { KitChecklist, type KitGroup } from "@/components/tools/kit-checklist";
 import { SITE_URL } from "@/lib/site";
 import { authorSchema } from "@/lib/author";
+import {
+  REGULATORS, articleGraph, entityId, ref, stateNode, topics,
+} from "@/lib/schema-graph";
 import { BARBER_KIT, MD_SOURCES, CHECKED } from "@/lib/maryland-licensing";
 
 /**
@@ -195,20 +198,44 @@ export default function Page() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "ItemList",
-            name: TITLE,
-            description: DESCRIPTION,
-            url: `${SITE_URL}/maryland-barber-practical-exam-kit-list`,
-            author: authorSchema(),
-            numberOfItems: KIT_GROUPS.reduce((n, g) => n + g.items.length, 0),
-            itemListElement: KIT_GROUPS.flatMap((g) => g.items).map((i, n) => ({
-              "@type": "ListItem",
-              position: n + 1,
-              name: i.label,
-            })),
-          }),
+          __html: JSON.stringify(
+            articleGraph({
+              path: "/maryland-barber-practical-exam-kit-list",
+              headline: TITLE,
+              description: DESCRIPTION,
+              parentPath: "/maryland",
+              parentName: "Maryland Barber & Cosmetology Licensing",
+              author: authorSchema(),
+              dateModified: CHECKED,
+              about: [ref(REGULATORS.md["@id"]), stateNode("MD"), ...topics("barbering")],
+              citation: [
+                {
+                  "@type": "WebPage",
+                  name: `PSI Candidate Information Bulletin — MD Barber, effective ${BARBER_KIT.bulletinEffective}`,
+                  url: MD_SOURCES.psiPortal,
+                },
+              ],
+              extra: [
+                REGULATORS.md,
+                // The kit itself keeps its own node and its own id. It is a
+                // list of objects, not the prose about the list, and the two
+                // being separable is what lets something cite the kit alone.
+                {
+                  "@type": "ItemList",
+                  "@id": `${SITE_URL}/maryland-barber-practical-exam-kit-list#kit`,
+                  name: TITLE,
+                  description: DESCRIPTION,
+                  numberOfItems: KIT_GROUPS.reduce((n, g) => n + g.items.length, 0),
+                  itemListElement: KIT_GROUPS.flatMap((g) => g.items).map((i, n) => ({
+                    "@type": "ListItem",
+                    position: n + 1,
+                    name: i.label,
+                  })),
+                  isPartOf: ref(entityId("/maryland-barber-practical-exam-kit-list")),
+                },
+              ],
+            })
+          ),
         }}
       />
     </div>

@@ -12,6 +12,10 @@ import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { isEntityClaimed } from "@/lib/entity-claim";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
+import {
+  REGULATORS, WIKIDATA, entityId, faqId, faqNode, graphJson, pageId, ref, topics,
+  webPageNode,
+} from "@/lib/schema-graph";
 import { BARBER_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import Image from "next/image";
 import {
@@ -135,11 +139,13 @@ function formatPrice(price: number, currency: string) {
 // entity, so LocalBusiness would misrepresent the data. Every field is
 // conditional on real data; nothing here is guessed.
 function buildBarberJsonLd(barber: any) {
+  const path = `/barbers/${barber.slug}`;
   const person: Record<string, any> = {
-    "@context": "https://schema.org",
     "@type": "Person",
+    "@id": entityId(path),
     name: barber.name,
     jobTitle: barber.specialty_type || "Barber",
+    mainEntityOfPage: ref(pageId(path)),
   };
   if (barber.address) person.address = { "@type": "PostalAddress", streetAddress: barber.address, addressRegion: "TX", addressCountry: "US" };
   if (barber.metro_area) person.homeLocation = { "@type": "Place", name: barber.metro_area };
@@ -157,6 +163,54 @@ function buildBarberJsonLd(barber: any) {
     barber.youtube_channel && `https://youtube.com/@${barber.youtube_channel.replace("@", "")}`,
   ].filter(Boolean);
   if (sameAs.length > 0) person.sameAs = sameAs;
+
+  /**
+   * The edges that make a barber page part of the graph instead of a card.
+   *
+   * `alumniOf` is the one that matters most here. The school name has sat in
+   * this row all along and been rendered as text; as an edge it becomes the
+   * link between a school's outcomes page and the people who came out of it,
+   * which is the question this directory exists to answer and the one no
+   * amount of prose markup could express.
+   *
+   * The school node is named, not `@id`-referenced, on purpose. `school_name`
+   * is a free-text string that may or may not match a row in the school tables,
+   * and minting an `@id` from an unmatched name would fabricate a reference to
+   * an entity that does not exist. A named node is the honest shape for a
+   * string we have not resolved.
+   */
+  if (barber.school_name) {
+    person.alumniOf = { "@type": "EducationalOrganization", name: barber.school_name };
+  }
+  // Occupation as a resolvable concept rather than only the free-text jobTitle,
+  // so "who are the barbers" has an answer that does not depend on string
+  // matching against a field where "Barber", "barber" and "Master Barber" all
+  // appear.
+  person.hasOccupation = {
+    "@type": "Occupation",
+    name: barber.specialty_type || "Barber",
+    occupationalCategory: "39-5011.00", // O*NET-SOC: Barbers
+    sameAs: WIKIDATA.hairdresser,
+  };
+  person.knowsAbout = topics("barbering");
+  if (barber.metro_area) {
+    person.workLocation = { "@type": "Place", name: barber.metro_area };
+  }
+  /**
+   * `hasCredential` only when the row actually says the person is licensed.
+   * `licensure_status` also carries in-school and unlicensed values, and
+   * asserting a credential for those would be a false claim about a real named
+   * individual — the most damaging kind of error this markup could make.
+   */
+  if (typeof barber.licensure_status === "string" && /licen[cs]ed/i.test(barber.licensure_status)
+      && !/not|un|pending|student/i.test(barber.licensure_status)) {
+    person.hasCredential = {
+      "@type": "EducationalOccupationalCredential",
+      credentialCategory: "license",
+      name: `${barber.specialty_type || "Barber"} license`,
+      recognizedBy: ref(REGULATORS.tx["@id"]),
+    };
+  }
 
   return person;
 }
@@ -183,16 +237,8 @@ function buildBarberFaqJsonLd(barber: any, services: { name: string; price: numb
       });
     }
   }
-  if (faqEntries.length === 0) return null;
-  return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqEntries.map(({ q, a }) => ({
-      "@type": "Question",
-      name: q,
-      acceptedAnswer: { "@type": "Answer", text: a },
-    })),
-  };
+  const path = `/barbers/${barber.slug}`;
+  return faqNode(path, faqEntries, entityId(path));
 }
 
 const TODAY_INDEX = (new Date().getDay() + 6) % 7; // 0 = Monday, matches DAY_ORDER
@@ -267,6 +313,7 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
   const barberJsonLd = buildBarberJsonLd(barber);
   const barberFaqJsonLd = buildBarberFaqJsonLd(barber, services);
   const barberBreadcrumbJsonLd = buildEntityBreadcrumbJsonLd("Barbers", "/barbers", barber.name, barber.slug);
+  if (barberFaqJsonLd) barberJsonLd.subjectOf = ref(faqId(`/barbers/${barber.slug}`));
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: searchPerfRows } = await supabase.rpc('get_search_performance_by_entity', {
@@ -278,9 +325,26 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
 
   return (
     <div className="min-h-screen light bg-slate-50">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(barberJsonLd) }} />
-      {barberFaqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(barberFaqJsonLd) }} />}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(barberBreadcrumbJsonLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: graphJson(
+            webPageNode({
+              path: `/barbers/${barber.slug}`,
+              type: "ProfilePage",
+              name: barber.name,
+              primaryEntityId: entityId(`/barbers/${barber.slug}`),
+              breadcrumb: true,
+              about: topics("barbering"),
+            }),
+            barberBreadcrumbJsonLd,
+            barberJsonLd,
+            barberFaqJsonLd,
+            // The regulator behind the licence this barber's page references.
+            REGULATORS.tx,
+          ),
+        }}
+      />
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-6">
         <DynamicBackButton fallbackHref="/tools/barbershop-search" />

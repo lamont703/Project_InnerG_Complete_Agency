@@ -1,6 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
+import {
+  cityNode, entityId, faqId, faqNode, graphJson, identifiers, pageId, ref,
+  regulatorFor, topics, webPageNode,
+} from "@/lib/schema-graph";
+import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import Link from "next/link";
 import {
   MapPin,
@@ -185,9 +190,11 @@ function buildSchoolJsonLd(school: any, websiteHref: string | null) {
     ? { "@type": "PostalAddress", streetAddress: school.formatted_address, addressRegion: examState, addressCountry: "US" }
     : undefined;
 
+  const path = `/schools/${school.slug}`;
   const org: Record<string, any> = {
-    "@context": "https://schema.org",
     "@type": "EducationalOrganization",
+    "@id": entityId(path),
+    mainEntityOfPage: ref(pageId(path)),
     name: school.school_name,
     description: `${school.school_category}${school._matchType === "cosmetology" ? " / beauty school / hair school" : ""}${
       school.city ? ` in ${school.city}, ${stateName}` : ""
@@ -217,6 +224,78 @@ function buildSchoolJsonLd(school: any, websiteHref: string | null) {
   if (school.written_pass_rate_2026 != null) additionalProperty.push({ "@type": "PropertyValue", name: "2026 Written Exam Pass Rate", value: `${Math.round(school.written_pass_rate_2026 * 100)}%` });
   if (school.practical_pass_rate_2026 != null) additionalProperty.push({ "@type": "PropertyValue", name: "2026 Practical Exam Pass Rate", value: `${Math.round(school.practical_pass_rate_2026 * 100)}%` });
   if (additionalProperty.length > 0) org.additionalProperty = additionalProperty;
+
+  /**
+   * The identifiers, and why a school gets two where a shop gets one.
+   *
+   * The TDLR licence number is the strongest handle a school has: it survives a
+   * rename and a relocation, neither of which the name or the address does. It
+   * is NULL on every barber-school row by design — migration 20260804140000
+   * excludes those because all 132 Barber School licences are expired and would
+   * fail the moment anyone checked one — and `identifiers()` drops what is
+   * absent, so those rows simply carry the Place ID alone.
+   */
+  const ids = identifiers({
+    licenseNumber: school.license_number,
+    licenseAuthority: "TDLR",
+    googlePlaceId: school.place_id,
+  });
+  if (ids) org.identifier = ids;
+
+  const place = cityNode(school.city, examState);
+  if (place) org.containedInPlace = place;
+
+  /**
+   * Accreditation as an edge rather than a sentence.
+   *
+   * `accreditor_name` has been rendered as prose on these pages all along. As
+   * an `accreditationStatus` + named organization it becomes answerable: "which
+   * schools does NACCAS accredit" is a graph query, not a text search.
+   */
+  if (school.accreditation_status) {
+    org.accreditationStatus = school.accreditation_status;
+    if (school.accreditor_name) {
+      org.accreditedBy = { "@type": "Organization", name: school.accreditor_name };
+    }
+  }
+
+  /**
+   * What the school actually teaches, as its own nodes tied to the credential
+   * each programme leads to. This is the edge a prospective student's question
+   * runs along — "which schools near me run a barber program" — and it
+   * previously existed only inside the free-text school_category string.
+   *
+   * TOP-LEVEL NODES, joined to the school by `provider`, rather than nested
+   * under a property of the school. schema.org gives EducationalOccupationalProgram
+   * a documented `provider`; it does not give EducationalOrganization a
+   * documented inverse, and inventing one would produce markup that validates
+   * as JSON and means nothing.
+   *
+   * Emitted only where the pass-rate columns prove the programme is real: a row
+   * with cosmetology test-takers ran a cosmetology programme. Inferring from
+   * the school's name would put programmes on schools that do not offer them.
+   */
+  const programs: Record<string, any>[] = [];
+  const addProgram = (key: string, name: string, credential: string) => {
+    programs.push({
+      "@type": "EducationalOccupationalProgram",
+      "@id": `${SITE_URL}${path}#${key}-program`,
+      name,
+      programType: "Vocational",
+      provider: ref(entityId(path)),
+      occupationalCredentialAwarded: credential,
+      educationalCredentialAwarded: credential,
+    });
+  };
+  if (school.written_test_takers_2026 || school.practical_test_takers_2026) {
+    addProgram("barber", "Barber program", `${stateName} barber license`);
+  }
+  if (school.cosmetology_written_test_takers_2026 || school.cosmetology_practical_test_takers_2026) {
+    addProgram("cosmetology", "Cosmetology program", `${stateName} cosmetology operator license`);
+  }
+
+  org.knowsAbout = topics("barbering", "cosmetology");
+  org.audience = { "@type": "EducationalAudience", educationalRole: "student" };
 
   const faqEntries: { q: string; a: string }[] = [];
   if (school.pell_grant_rate != null || school.federal_loan_rate != null) {
@@ -252,20 +331,10 @@ function buildSchoolJsonLd(school: any, websiteHref: string | null) {
     });
   }
 
-  const faqPage =
-    faqEntries.length > 0
-      ? {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: faqEntries.map(({ q, a }) => ({
-            "@type": "Question",
-            name: q,
-            acceptedAnswer: { "@type": "Answer", text: a },
-          })),
-        }
-      : null;
+  const faqPage = faqNode(path, faqEntries, entityId(path));
+  if (faqPage) org.subjectOf = ref(faqId(path));
 
-  return { org, faqPage };
+  return { org, faqPage, programs, path, examState };
 }
 
 function formatPercent(val: number | null) {
@@ -321,7 +390,7 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
       : `https://${school.website}`
     : null;
 
-  const { org: schoolJsonLd, faqPage: faqJsonLd } = buildSchoolJsonLd(school, websiteHref);
+  const { org: schoolJsonLd, faqPage: faqJsonLd, programs: schoolPrograms, path: schoolPath, examState: schoolExamState } = buildSchoolJsonLd(school, websiteHref);
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: searchPerfRows } = await supabase.rpc('get_search_performance_by_entity', {
@@ -406,8 +475,26 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
           both search engines (rich results) and LLM/AI-answer crawlers
           (direct fact extraction) — every value here also renders visibly
           in the page below, this just makes it machine-parseable too. */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schoolJsonLd) }} />
-      {faqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: graphJson(
+            webPageNode({
+              path: schoolPath,
+              type: "ProfilePage",
+              name: school.school_name,
+              primaryEntityId: entityId(schoolPath),
+              breadcrumb: true,
+              about: topics("barbering", "cosmetology"),
+            }),
+            buildEntityBreadcrumbJsonLd("Schools", "/schools", school.school_name, school.slug),
+            schoolJsonLd,
+            faqJsonLd,
+            regulatorFor(schoolExamState),
+            ...schoolPrograms,
+          ),
+        }}
+      />
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-6">
         <DynamicBackButton fallbackHref="/tools/barbershop-search" />

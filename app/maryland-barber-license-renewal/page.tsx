@@ -1,7 +1,10 @@
 import { MdGuide } from "@/components/maryland/md-guide";
 import { SITE_URL } from "@/lib/site";
 import { authorSchema } from "@/lib/author";
-import { MD_SOURCES, BARBER_FEES, COSMETOLOGY_FEES, RENEWAL } from "@/lib/maryland-licensing";
+import {
+  REGULATORS, articleGraph, ref, stateNode, topics,
+} from "@/lib/schema-graph";
+import { MD_SOURCES, BARBER_FEES, COSMETOLOGY_FEES, RENEWAL, CHECKED} from "@/lib/maryland-licensing";
 
 const TITLE = "Maryland Barber License Renewal (2026): Fee, Cycle & Steps";
 const DESCRIPTION =
@@ -78,15 +81,19 @@ export default function Page() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Article",
-            headline: TITLE,
-            description: DESCRIPTION,
-            url: `${SITE_URL}/maryland-barber-license-renewal`,
-            author: authorSchema(),
-            isPartOf: { "@type": "CollectionPage", name: "Maryland Barber & Cosmetology Licensing", url: `${SITE_URL}/maryland` },
-          }),
+          __html: JSON.stringify(
+            articleGraph({
+              path: "/maryland-barber-license-renewal",
+              headline: TITLE,
+              description: DESCRIPTION,
+              parentPath: "/maryland",
+              parentName: "Maryland Barber & Cosmetology Licensing",
+              author: authorSchema(),
+              dateModified: CHECKED,
+              about: [ref(REGULATORS.md["@id"]), stateNode("MD"), ...topics("barbering")],
+              extra: [REGULATORS.md],
+            })
+          ),
         }}
       />
     </>

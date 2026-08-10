@@ -5,6 +5,9 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { SITE_URL } from "@/lib/site";
+import {
+  REGULATORS, breadcrumbNode, graph, ref, stateNode, topics, webPageNode,
+} from "@/lib/schema-graph";
 import { authorSchema } from "@/lib/author";
 import {
   CHECKED, MD_SOURCES, BARBER_REQUIREMENTS, COSMETOLOGY_REQUIREMENTS, PSI_PRACTICALS,
@@ -78,35 +81,60 @@ const BOARD_LINKS = [
 const MD_LABOR = "https://labor.maryland.gov/license/barbers/";
 
 export default function MarylandHubPage() {
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "CollectionPage",
-        "@id": `${SITE_URL}/maryland#page`,
+  /**
+   * Maryland's two boards are modelled as two nodes under one department,
+   * because that is what they are. Collapsing them into "the Maryland
+   * regulator" would erase the distinction this entire hub exists to teach —
+   * different titles of the statute, different hours, and CE on one side only.
+   */
+  const boards = [
+    {
+      "@type": "GovernmentOrganization",
+      "@id": `${SITE_URL}/maryland#board-of-barbers`,
+      name: "Maryland Board of Barbers",
+      url: MD_SOURCES.barberRequirements,
+      parentOrganization: ref(REGULATORS.md["@id"]),
+    },
+    {
+      "@type": "GovernmentOrganization",
+      "@id": `${SITE_URL}/maryland#board-of-cosmetologists`,
+      name: "Maryland Board of Cosmetologists",
+      url: MD_SOURCES.cosRequirements,
+      parentOrganization: ref(REGULATORS.md["@id"]),
+    },
+  ];
+
+  const jsonLd = graph(
+    {
+      ...webPageNode({
+        path: "/maryland",
+        type: "CollectionPage",
         name: TITLE,
-        url: `${SITE_URL}/maryland`,
         description: DESCRIPTION,
-        author: authorSchema(),
-        about: [
-          {
-            "@type": "GovernmentOrganization",
-            name: "Maryland Department of Labor, Division of Occupational and Professional Licensing",
-            url: "https://labor.maryland.gov/license/",
-            sameAs: [MD_LABOR],
-          },
-          { "@type": "State", name: "Maryland" },
-        ],
-        citation: [
-          { "@type": "WebPage", name: "Maryland Board of Barbers", url: MD_SOURCES.barberRequirements },
-          { "@type": "WebPage", name: "Maryland Board of Cosmetologists", url: MD_SOURCES.cosRequirements },
-          { "@type": "Legislation", name: "Business Occupations and Professions Article, Title 4 (Barbers)", url: MD_SOURCES.barberLaw },
-          { "@type": "Legislation", name: "Business Occupations and Professions Article, Title 5 (Cosmetologists)", url: MD_SOURCES.cosLaw },
-        ],
-        isPartOf: { "@type": "WebSite", name: "ShearQuery", url: SITE_URL },
-      },
-    ],
-  };
+        breadcrumb: true,
+      }),
+      author: authorSchema(),
+      about: [
+        ref(REGULATORS.md["@id"]),
+        ref(boards[0]["@id"]),
+        ref(boards[1]["@id"]),
+        stateNode("MD"),
+        ...topics("barbering", "cosmetology", "esthetics", "nails"),
+      ],
+      citation: [
+        { "@type": "WebPage", name: "Maryland Board of Barbers", url: MD_SOURCES.barberRequirements },
+        { "@type": "WebPage", name: "Maryland Board of Cosmetologists", url: MD_SOURCES.cosRequirements },
+        { "@type": "Legislation", name: "Business Occupations and Professions Article, Title 4 (Barbers)", url: MD_SOURCES.barberLaw, legislationJurisdiction: stateNode("MD") },
+        { "@type": "Legislation", name: "Business Occupations and Professions Article, Title 5 (Cosmetologists)", url: MD_SOURCES.cosLaw, legislationJurisdiction: stateNode("MD") },
+      ],
+    },
+    breadcrumbNode("/maryland", [
+      { name: "Home", path: "" },
+      { name: "Maryland", path: "/maryland" },
+    ]),
+    REGULATORS.md,
+    ...boards,
+  );
 
   return (
     <>
