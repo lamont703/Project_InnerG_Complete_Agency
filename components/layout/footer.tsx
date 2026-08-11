@@ -48,7 +48,7 @@ const footerLinks = {
     { label: "Careers", href: "/careers" },
     { label: "Contact", href: "/contact" },
     { label: "Sitemap", href: "/sitemap.xml" },
-    { label: "LinkedIn", href: "https://www.linkedin.com/company/inner-g-complete-agency/" },
+    { label: "LinkedIn", href: "https://www.linkedin.com/company/shearquery/" },
   ],
 }
 

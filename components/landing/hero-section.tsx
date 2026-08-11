@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ArrowRight, Sparkles, Shield, Search } from "lucide-react"
+import { Shield, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
@@ -85,18 +85,30 @@ export function HeroSection() {
 
 
       <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
-        {/* Badge */}
-        <div className="mb-8 inline-flex items-center gap-2 rounded-full glass-panel px-5 py-2.5">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium text-primary">Inner G Complete Agency</span>
-        </div>
-
         {/* Headline */}
         <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
           <span className="text-balance block text-foreground">
             Shear<span className="text-primary">Query</span>
           </span>
         </h1>
+
+        {/*
+          The attribution moved here from a pill ABOVE the headline, where it
+          was the first thing on the page and read as the brand — which it is
+          not; ShearQuery is. Underneath and small, it does what an attribution
+          should: present, secondary, not competing with the product name.
+
+          KEEP THE EXACT STRING. "ShearQuery by Inner G Complete Agency" is the
+          name on the Google OAuth consent screen, and Google rejected the app
+          once for a homepage that did not explain itself. Reading the H1 and
+          this line together now produces that name verbatim, which is stronger
+          than the badge was — the badge said "Inner G Complete Agency" alone,
+          never joined to the product. The footer blurb carries it too; do not
+          remove both.
+        */}
+        <p className="mt-2 text-xs font-normal tracking-wide text-muted-foreground sm:text-sm">
+          by Inner G Complete Agency
+        </p>
 
         {/* The most-read line on the site, and the one a Google OAuth reviewer
             reads first — it has to say what the app DOES. The previous version
@@ -119,7 +131,7 @@ export function HeroSection() {
           >
             <Link href="/tools/barbershop-search">
               <Search className="h-4 w-4" />
-              Launch ShearQuery
+              Search ShearQuery
             </Link>
           </Button>
         </div>

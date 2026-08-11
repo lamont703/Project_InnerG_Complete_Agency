@@ -472,6 +472,72 @@ point for `.md`** — that is the only reason dropping the robots.txt rule is
 safe, so if `.md` ever gets served from somewhere else, the header goes there
 too.
 
+## Search Console platform properties — social data, and it postdates your cutoff
+
+**Search Console now has PLATFORM PROPERTIES: Instagram, TikTok, X and YouTube
+accounts added as first-class properties, reporting how that content performs
+in Google Search.** This project has them connected.
+
+### Why this needs writing down
+
+The feature was announced December 2025 and rolled out globally with its own
+guide in July 2026. **That is after the assistant knowledge cutoff.** An
+assistant asked about it will not know it exists, and the failure mode is not
+"I'm not sure" — it is confidently explaining that Search Console has no social
+integration and that the user must mean Google Business Profile. That answer is
+wrong and sounds authoritative, which is the exact pattern the SEO section of
+this file exists to prevent. Look it up; do not reason from memory.
+
+- <https://developers.google.com/search/docs/monitor-debug/analyze-social-video-content>
+- <https://support.google.com/webmasters/answer/17148418> — about platform properties
+- <https://developers.google.com/search/blog/2026/07/platform-properties-social-video-guide>
+
+### What it is, as of 2026-08-11
+
+- **Four platforms only**: Instagram, TikTok, X, YouTube.
+- **Added like any other property** — property selector, Add, authenticate,
+  verify ownership. Data appears within a few days. Google periodically
+  re-verifies; if credentials lapse, reconnecting restores access without
+  losing collected data.
+- **Performance report**: clicks, impressions, CTR and position, filterable
+  across Google Search, Discover and News. Plus an Insights report and
+  "Achievements". Default range 28 days.
+
+### The limitation that decides how to read it
+
+**It only shows how the content performs ON GOOGLE SEARCH.** It is not
+analytics for the platform itself — TikTok views on TikTok are not in here.
+Anyone treating these numbers as social engagement is misreading them by an
+order of magnitude.
+
+### THE API DOES NOT EXPOSE THEM — verified, don't waste time
+
+`webmasters.sites.list` returns only the five web properties on this account.
+Platform properties do not appear, so the Search Console API cannot query them
+and an assistant cannot analyse this data. It is UI-only for now. Checked
+2026-08-11 with `scripts/gsc_list_sites.js`; re-test before assuming it is
+still true, because this feature is moving quickly.
+
+### Do not conflate this with `sameAs` schema
+
+Two different mechanisms, both worth having, neither substituting for the
+other:
+
+| | What it is | Where it lives |
+|---|---|---|
+| Platform property | Reporting. Shows how social content does in Google Search. | Search Console UI |
+| `sameAs` on Organization | An identity assertion linking the org to its profiles. | `lib/schema-graph.ts` |
+
+Adding a platform property does not put anything in the structured data, and
+adding `sameAs` does not produce any report. The Organization node currently
+carries a single `sameAs` (the LinkedIn company page) and is emitted site-wide
+from the root layout, so extending it is a one-line change.
+
+**Related and unresolved:** whether the social profiles' own bios still link to
+`agency.innergcomplete.com`. If they do, they are anchoring the brand to the
+domain being migrated away from — a contradictory signal that no amount of
+schema fixes.
+
 ## Domain migration — the Change of Address IS filed. Don't re-diagnose it.
 
 **`agency.innergcomplete.com` → `shearquery.com`. The Change of Address has

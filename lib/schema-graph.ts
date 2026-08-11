@@ -336,7 +336,50 @@ export function organizationNode(opts?: { name?: string; description?: string; o
       url: `${origin}/icon-dark-32x32.png`,
     },
     image: ref(`${origin}/#logo`),
-    sameAs: ["https://www.linkedin.com/company/inner-g-complete-agency/"],
+    /**
+     * GATED ON TENANT ON PURPOSE — this is the one field in the node where
+     * getting it wrong asserts something false rather than merely unhelpful.
+     *
+     * `sameAs` says "this is the same entity". All five ShearQuery profiles
+     * belong to the organization publishing shearquery.com. The texasbarbering
+     * tenant renders through this same function with its own name and its own
+     * `@id`, so adding them unconditionally would have "Texas Barbering
+     * Intelligence" claim ShearQuery's Instagram — a different entity
+     * announcing ownership of accounts that are not its own. It gets no
+     * `sameAs` rather than a plausible-looking one, because we hold no profile
+     * that unambiguously identifies it.
+     *
+     * Google documents the field as "a URL to your organization's profile page
+     * on a social media or review site", and describes this class of property
+     * as working behind the scenes to DISAMBIGUATE one organization from
+     * another. That is the whole value here — it is an identity anchor, not a
+     * ranking lever, and nothing in the docs claims otherwise.
+     *
+     * SEPARATE FROM the Search Console platform properties for the same four
+     * accounts. Those are reporting and live in Google's UI; this is an
+     * assertion and lives in the markup. Neither substitutes for the other —
+     * see the platform-properties section in CLAUDE.md.
+     *
+     * THE TEST EXCLUDES THE TENANT, NOT "ANYTHING THAT ISN'T PRODUCTION".
+     * The first version compared `origin === SITE_URL`, which is true only on
+     * https://shearquery.com — so localhost and every Vercel preview silently
+     * dropped the field. That is worse than the bug it guards against: markup
+     * that differs between preview and production cannot be verified before
+     * deploy, and the absence looks like a rendering fault rather than a
+     * deliberate gate. Naming the tenant we are excluding keeps dev, preview
+     * and production identical and still refuses the false claim.
+     */
+    ...(!origin.includes("texasbarbering")
+      ? {
+          sameAs: [
+            "https://www.linkedin.com/company/shearquery/",
+            "https://www.instagram.com/shearquery/",
+            "https://x.com/ShearQuery",
+            "https://www.youtube.com/@shearquery",
+            "https://www.tiktok.com/@shearquery",
+          ],
+        }
+      : {}),
     founder: ref(AUTHOR_ID),
     description:
       opts?.description ??
