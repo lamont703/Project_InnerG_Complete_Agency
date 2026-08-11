@@ -4,14 +4,6 @@ import React, { useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { Navbar } from "@/components/layout/navbar"
 import { HeroSection } from "@/components/landing/hero-section"
-import { ServicesSection } from "@/components/landing/services-section"
-import { ProcessSection } from "@/components/landing/process-section"
-import { FeatureHighlight } from "@/components/landing/feature-highlight"
-import { FoundersVision } from "@/components/landing/founders-vision"
-import { SolutionsSection } from "@/components/landing/solutions-section"
-import { PlatformResourcesSection } from "@/components/landing/platform-resources-section"
-import { ResultsSection } from "@/components/landing/results-section"
-import { TestimonialsSection } from "@/components/landing/testimonials-section"
 import { Footer } from "@/components/layout/footer"
 
 export default function Home() {
@@ -25,16 +17,6 @@ export default function Home() {
     <main className="min-h-screen light bg-slate-50 text-slate-900">
       <Navbar />
       <HeroSection />
-      {/* 
-      <ServicesSection />
-      <ProcessSection />
-      <FeatureHighlight />
-      <FoundersVision />
-      <SolutionsSection />
-      <PlatformResourcesSection />
-      <ResultsSection />
-      <TestimonialsSection />
-      */}
       <Footer />
     </main>
   )
