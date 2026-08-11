@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { Navbar } from "@/components/layout/navbar";
 import { CompareTable } from "@/components/shortlist/compare-table";
-import { hydrateShortlist, type ShortlistItem } from "@/lib/shortlist";
+import { KeepLooking } from "@/components/shortlist/keep-looking";
+import { deriveContext, fetchComparables, hydrateShortlist, type ShortlistItem } from "@/lib/shortlist";
 
 /**
  * A saved shortlist, by its share token.
@@ -37,6 +38,16 @@ export default async function SharedShortlist(props: { params: Promise<{ token: 
 
   const rows = await hydrateShortlist(supabase, (data.items || []) as ShortlistItem[]);
 
+  // Whoever opened this link is mid-decision too, and this is somebody else's
+  // list — they are the MOST likely person to want a fourth option.
+  const { entityType } = deriveContext(rows);
+  const anchor = rows.find((r) => r.entityType === entityType && r.lat != null && r.lng != null);
+  const saved = new Set(rows.map((r) => `${r.entityType}:${r.slug}`));
+  const suggestions = anchor
+    ? (await fetchComparables(supabase, entityType, { id: "", lat: anchor.lat!, lng: anchor.lng!, category: anchor.category }, 8))
+        .filter((r) => !saved.has(`${r.entityType}:${r.slug}`)).slice(0, 3)
+    : [];
+
   return (
     <div className="min-h-screen bg-slate-50 light">
       <Navbar />
@@ -49,6 +60,7 @@ export default async function SharedShortlist(props: { params: Promise<{ token: 
         </p>
         {/* Not removable — this is somebody else's list. */}
         <CompareTable rows={rows} removable={false} />
+        <KeepLooking rows={rows} suggestions={suggestions} />
       </main>
     </div>
   );

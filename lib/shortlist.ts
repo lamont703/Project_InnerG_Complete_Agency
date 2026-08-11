@@ -181,6 +181,37 @@ export type SortKey = "added" | "rating" | "reviews" | "distance";
  */
 export const MIN_REVIEWS_FOR_RATING_SORT = 10;
 
+/**
+ * Confidence-adjusted rating, for RANKING suggestions.
+ *
+ * THE FLOOR ALONE WAS NOT ENOUGH, and the live output proved it. Someone
+ * comparing Salon Rose — 4.8 from 1,120 reviews — was offered three salons
+ * rated 5.0 from 14, 26 and 56. Every one cleared the 10-review floor, and
+ * sorting on raw rating then put them all above the thing being compared
+ * against. A suggestion block that systematically surfaces the least-established
+ * businesses is worse than no suggestion block: it is exactly the comparison the
+ * visitor is trying to avoid making.
+ *
+ * Shrinkage fixes it. Each rating is pulled toward the pool mean in proportion
+ * to how little evidence stands behind it:
+ *
+ *     score = (v / (v + m)) * R  +  (m / (v + m)) * C
+ *
+ * R is the rating, v its review count, C the mean across the candidates, and m
+ * the weight of that prior. At m = 50 a 5.0 from 14 reviews scores below a 4.8
+ * from 1,120, while a 5.0 from 900 still wins — which is the ordering a person
+ * would give if you asked them.
+ *
+ * This is for ORDERING ONLY. The rating shown on screen is always the real one;
+ * displaying a shrunk number would be inventing a rating nobody gave.
+ */
+export const RATING_PRIOR_WEIGHT = 50;
+
+export function confidenceScore(rating: number, reviewCount: number, poolMean: number): number {
+  const v = Math.max(0, reviewCount);
+  return (v / (v + RATING_PRIOR_WEIGHT)) * rating + (RATING_PRIOR_WEIGHT / (v + RATING_PRIOR_WEIGHT)) * poolMean;
+}
+
 export function sortRows(rows: ComparisonRow[], key: SortKey): ComparisonRow[] {
   const out = [...rows];
   if (key === "rating") {
@@ -207,7 +238,16 @@ export function sortRows(rows: ComparisonRow[], key: SortKey): ComparisonRow[] {
 export async function fetchComparables(
   supabase: SupabaseClient,
   entityType: ShortlistEntityType,
-  origin: { id: string; lat: number; lng: number; category: string | null },
+  /**
+   * `id` is optional because two callers have no origin ROW to exclude: the
+   * shortlist page anchors on a saved business and wants more like it, and the
+   * shared-link page does the same. Passing an empty string here used to be the
+   * workaround and it silently broke the feature — `.neq("id", "")` against a
+   * uuid column errors with "invalid input syntax for type uuid", Supabase
+   * returns no rows and no exception, and the suggestions block simply rendered
+   * empty. Excluding by slug at the call site is the caller's job.
+   */
+  origin: { id?: string | null; lat: number; lng: number; category: string | null },
   limit = 3,
 ): Promise<ComparisonRow[]> {
   // A bounding box first so the query does not scan the table; ~0.25 degrees of
@@ -216,7 +256,6 @@ export async function fetchComparables(
   let q = supabase
     .from(TABLE[entityType])
     .select(SELECT)
-    .neq("id", origin.id)
     .not("latitude", "is", null)
     .not("rating", "is", null)
     .gte("latitude", origin.lat - d).lte("latitude", origin.lat + d)
@@ -224,7 +263,12 @@ export async function fetchComparables(
     .limit(80);
   if (origin.category) q = q.eq("google_category", origin.category);
 
-  const { data } = await q;
+  if (origin.id) q = q.neq("id", origin.id);
+
+  const { data, error } = await q;
+  // Surfaced rather than swallowed: the bug above produced an empty list that
+  // looked like "nothing nearby" for weeks of nothing-nearby-looking output.
+  if (error) console.error("fetchComparables:", error.message);
   const rows: ComparisonRow[] = [];
   for (const r of (data as Record<string, unknown>[]) || []) {
     const lat = r.latitude != null ? Number(r.latitude) : null;
@@ -248,11 +292,111 @@ export async function fetchComparables(
     });
   }
 
-  // Rated by enough people to mean something, nearest-and-best first. Without
-  // the review floor this strip fills with 5.0-from-two-people listings, which
-  // is exactly the comparison someone is trying to avoid making.
-  return rows
-    .filter((r) => (r.reviewCount ?? 0) >= MIN_REVIEWS_FOR_RATING_SORT && (r.distanceMiles ?? 99) <= 15)
-    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+  // Rated by enough people to mean something, and close enough to be a real
+  // alternative. The floor is a hard gate; the ordering is the confidence-
+  // adjusted score, because the floor alone let 5.0-from-14 outrank
+  // 4.8-from-1,120 — see confidenceScore.
+  const eligible = rows.filter(
+    (r) => (r.reviewCount ?? 0) >= MIN_REVIEWS_FOR_RATING_SORT && (r.distanceMiles ?? 99) <= 15,
+  );
+  if (eligible.length === 0) return [];
+  /*
+   * The prior is the average of EVERY business in the box, not of the ones that
+   * cleared the floor.
+   *
+   * Computing it from the eligible set was self-defeating and the first version
+   * did exactly that: the survivors are all highly rated, so the mean came out
+   * at 4.9, and shrinking a 5.0-from-14 toward 4.9 barely moved it. The prior
+   * has to represent "what a salon around here is normally rated", which means
+   * including the 3.8s and the 4.2s that the floor filters out.
+   */
+  const rated = rows.filter((r) => r.rating != null);
+  const poolMean = rated.length
+    ? rated.reduce((a, r) => a + (r.rating ?? 0), 0) / rated.length
+    : 4.5;
+  return eligible
+    .sort(
+      (a, b) =>
+        confidenceScore(b.rating ?? 0, b.reviewCount ?? 0, poolMean) -
+        confidenceScore(a.rating ?? 0, a.reviewCount ?? 0, poolMean),
+    )
     .slice(0, limit);
+}
+
+/* ------------------------------------------------------------------ *
+ * Keeping the search going
+ * ------------------------------------------------------------------ */
+
+/**
+ * Cities with a hand-built "best of" page.
+ *
+ * A LITERAL LIST, CHECKED AGAINST THE ROUTES, because the alternative is
+ * generating `/best-salons-in-${city}` from a database value and linking
+ * confidently to a 404. Only four cities have these pages; every other city
+ * falls through to search, which works everywhere.
+ */
+const BEST_OF_CITIES = ["houston", "austin", "dallas", "san antonio"];
+
+const citySlug = (city: string) => city.trim().toLowerCase().replace(/\s+/g, "-");
+
+export interface BrowseLink {
+  href: string;
+  label: string;
+  why: string;
+}
+
+/**
+ * Where someone goes to keep looking, derived from what they already saved.
+ *
+ * The shortlist already says what they are shopping for — the kind of business
+ * and the city — so "keep looking" should not drop them on a blank search box
+ * and make them type it again. Every link here is pre-filtered to the search
+ * they are already doing.
+ */
+export function browseLinksFor(entityType: ShortlistEntityType, city: string | null): BrowseLink[] {
+  const kind = entityType === "shop" ? "barbershops" : "salons";
+  const links: BrowseLink[] = [];
+
+  if (city) {
+    const slug = citySlug(city);
+    if (BEST_OF_CITIES.includes(city.trim().toLowerCase())) {
+      links.push({
+        href: `/best-${kind}-in-${slug}`,
+        label: `Best ${kind} in ${city}`,
+        why: "Ranked, with what each one is known for.",
+      });
+    }
+    links.push({
+      href: `/tools/barbershop-search?q=${encodeURIComponent(city)}&tab=${entityType === "shop" ? "Barbershops" : "Salons"}`,
+      label: `Every ${kind.slice(0, -1)} in ${city}`,
+      why: "The full list, filterable.",
+    });
+  }
+
+  links.push({
+    href: `/tools/barbershop-search?tab=${entityType === "shop" ? "Barbershops" : "Salons"}`,
+    label: `Search ${kind} anywhere`,
+    why: "Somewhere else entirely.",
+  });
+  return links;
+}
+
+/**
+ * What this shortlist is about: the dominant business type and city.
+ *
+ * Dominant rather than first, because someone comparing four Houston salons and
+ * one barbershop is shopping for a salon in Houston, and the continuation should
+ * follow the weight of the list rather than whichever row happened to be added
+ * first.
+ */
+export function deriveContext(rows: ComparisonRow[]): { entityType: ShortlistEntityType; city: string | null } {
+  const typeCount = { shop: 0, salon: 0 };
+  const cityCount = new Map<string, number>();
+  for (const r of rows) {
+    typeCount[r.entityType]++;
+    if (r.city) cityCount.set(r.city, (cityCount.get(r.city) || 0) + 1);
+  }
+  const entityType: ShortlistEntityType = typeCount.shop > typeCount.salon ? "shop" : "salon";
+  const city = [...cityCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  return { entityType, city };
 }

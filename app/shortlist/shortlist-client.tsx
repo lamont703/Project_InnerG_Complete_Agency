@@ -6,6 +6,7 @@ import { Check, Link2, Loader2, Scale } from "lucide-react";
 import type { ComparisonRow, ShortlistItem } from "@/lib/shortlist";
 import { clearShortlist, onShortlistChange, readShortlist } from "@/lib/shortlist-store";
 import { CompareTable } from "@/components/shortlist/compare-table";
+import { KeepLooking } from "@/components/shortlist/keep-looking";
 
 /**
  * The compare page, driven by localStorage.
@@ -19,10 +20,11 @@ import { CompareTable } from "@/components/shortlist/compare-table";
 export function ShortlistClient() {
   const [items, setItems] = useState<ShortlistItem[] | null>(null);
   const [rows, setRows] = useState<ComparisonRow[]>([]);
+  const [suggestions, setSuggestions] = useState<ComparisonRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const hydrate = useCallback(async (list: ShortlistItem[]) => {
-    if (list.length === 0) { setRows([]); setLoading(false); return; }
+    if (list.length === 0) { setRows([]); setSuggestions([]); setLoading(false); return; }
     setLoading(true);
     try {
       const res = await fetch("/api/shortlist/hydrate", {
@@ -32,8 +34,10 @@ export function ShortlistClient() {
       });
       const json = await res.json();
       setRows(json.rows || []);
+      setSuggestions(json.suggestions || []);
     } catch {
       setRows([]);
+      setSuggestions([]);
     }
     setLoading(false);
   }, []);
@@ -58,9 +62,16 @@ export function ShortlistClient() {
           Open any barbershop or salon and hit <strong>Add to shortlist</strong>. Once two are
           saved you can see them side by side — rating, review count and how far apart they are.
         </p>
-        <Link href="/tools/barbershop-search" className="mt-5 inline-block rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-black text-white hover:bg-slate-800">
-          Find a shop or salon
-        </Link>
+        {/* Two doors rather than one generic button — an empty shortlist tells
+            us nothing about what they want, so ask instead of guessing. */}
+        <div className="mt-5 flex flex-wrap justify-center gap-2.5">
+          <Link href="/tools/barbershop-search?tab=Salons" className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-black text-white hover:bg-slate-800">
+            Browse salons
+          </Link>
+          <Link href="/tools/barbershop-search?tab=Barbershops" className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-black text-slate-800 hover:border-indigo-400">
+            Browse barbershops
+          </Link>
+        </div>
       </div>
     );
   }
@@ -69,6 +80,9 @@ export function ShortlistClient() {
     <>
       <CompareTable rows={rows} />
       <SaveBox items={items} onCleared={() => clearShortlist()} />
+      {/* The way out. Without this the page is a dead end for anyone who
+          compared three and liked none of them. */}
+      <KeepLooking rows={rows} suggestions={suggestions} />
     </>
   );
 }

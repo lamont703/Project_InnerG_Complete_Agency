@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { hydrateShortlist, MAX_ITEMS, type ShortlistItem } from "@/lib/shortlist";
+import {
+  deriveContext, fetchComparables, hydrateShortlist, MAX_ITEMS, type ShortlistItem,
+} from "@/lib/shortlist";
 
 /**
  * Turn the slugs a browser is holding into comparable rows.
@@ -26,5 +28,29 @@ export async function POST(req: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
-  return NextResponse.json({ rows: await hydrateShortlist(supabase, items) });
+  const rows = await hydrateShortlist(supabase, items);
+
+  /*
+   * Suggestions for "keep looking", computed here so the page needs one round
+   * trip rather than two.
+   *
+   * Anchored on the first saved row that has coordinates and filtered to the
+   * dominant type — the continuation should follow the weight of the list, not
+   * whichever row happened to be added first. Anything already saved is excluded;
+   * offering someone a business they have already got is the fastest way to make
+   * a suggestion block look broken.
+   */
+  const { entityType } = deriveContext(rows);
+  const anchor = rows.find((r) => r.entityType === entityType && r.lat != null && r.lng != null) ?? null;
+  const saved = new Set(rows.map((r) => `${r.entityType}:${r.slug}`));
+  const suggestions = anchor
+    ? (await fetchComparables(
+        supabase,
+        entityType,
+        { id: "", lat: anchor.lat!, lng: anchor.lng!, category: anchor.category },
+        8,
+      )).filter((r) => !saved.has(`${r.entityType}:${r.slug}`)).slice(0, 3)
+    : [];
+
+  return NextResponse.json({ rows, suggestions });
 }
