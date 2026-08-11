@@ -340,7 +340,7 @@ export function organizationNode(opts?: { name?: string; description?: string; o
      * GATED ON TENANT ON PURPOSE — this is the one field in the node where
      * getting it wrong asserts something false rather than merely unhelpful.
      *
-     * `sameAs` says "this is the same entity". The four ShearQuery profiles
+     * `sameAs` says "this is the same entity". All five ShearQuery profiles
      * belong to the organization publishing shearquery.com. The texasbarbering
      * tenant renders through this same function with its own name and its own
      * `@id`, so adding them unconditionally would have "Texas Barbering
@@ -372,7 +372,7 @@ export function organizationNode(opts?: { name?: string; description?: string; o
     ...(!origin.includes("texasbarbering")
       ? {
           sameAs: [
-            "https://www.linkedin.com/company/inner-g-complete-agency/",
+            "https://www.linkedin.com/company/shearquery/",
             "https://www.instagram.com/shearquery/",
             "https://x.com/ShearQuery",
             "https://www.youtube.com/@shearquery",
