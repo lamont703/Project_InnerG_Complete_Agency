@@ -472,6 +472,61 @@ point for `.md`** — that is the only reason dropping the robots.txt rule is
 safe, so if `.md` ever gets served from somewhere else, the header goes there
 too.
 
+## Domain migration — the Change of Address IS filed. Don't re-diagnose it.
+
+**`agency.innergcomplete.com` → `shearquery.com`. The Change of Address has
+been submitted. The lag is expected. Do not conclude from bad Search Console
+numbers that nobody filed it.**
+
+This needs writing down because the evidence looks alarming on every fresh
+look, and re-deriving it costs an hour each time. As of 2026-08-11:
+
+| Property | 28-day impressions |
+|---|---|
+| `agency.innergcomplete.com` | ~362,000 |
+| `sc-domain:shearquery.com` | ~1,200 |
+
+And URL Inspection on the highest-traffic entity pages returns, for their
+shearquery.com twins, **"URL is unknown to Google — never crawled."** Roughly
+8,200 entity pages carrying 96% of impressions are simply not crawled on the
+destination domain yet.
+
+That is what an in-progress migration of this size looks like. The redirects
+are correct (308, path-preserving, verified). Google forwards signals for 180
+days from filing. It takes as long as it takes.
+
+### What to check instead of re-litigating whether it was filed
+
+URL Inspection is the instrument, and the sequence is legible:
+
+    URL is unknown to Google  ->  Discovered - currently not indexed
+                              ->  Crawled - currently not indexed
+                              ->  Submitted and indexed
+
+Re-inspect a known-stranded page — `/shop/aliana-barbershop-sugar-land-77e23edc`
+was "unknown to Google" on 2026-08-11 — and watch it move. Movement means it is
+working. No movement over several weeks is the only thing that warrants
+reopening the question.
+
+### Two things that are NOT symptoms of the migration
+
+- **New content indexes fine.** `/california-exam-changes-2026` and
+  `/california-cosmetology-license` were both PASS/indexed within a day of
+  publishing. Publishing is not blocked; don't wait on the migration to ship.
+- **Pages that earn nothing while indexed are a CONTENT problem, not a
+  crawl problem.** `/texas-school-leaderboard` and `/compare-schools` are
+  indexed on shearquery.com and earned zero impressions on the OLD domain too,
+  where everything else ranks. That is demand and naming — see the section
+  below on regulator vocabulary.
+
+### One page really is canonical-stuck, and only one
+
+`/texas-barber-practical-exam-kit-list` inspects as "Duplicate, Google chose
+different canonical than user", with Google preferring the old domain. It is
+the site's best-performing content page, and the equity that makes it good is
+what anchors the canonical. 0 of the 12 highest-impression pages showed this,
+so it is an exception rather than the pattern — do not generalise it.
+
 ## IndexNow — one URL at a time. Never bulk-submit.
 
 **Submit URLs to IndexNow one at a time, as they change. Do not batch-submit,

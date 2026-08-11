@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/member-lifecycle",
       "schedule": "0 15 * * 2"
+    },
+    {
+      "path": "/api/cron/shortlist-followup",
+      "schedule": "0 16 * * *"
     }
   ]
 }

@@ -59,6 +59,7 @@ const GROUPS: ResourceGroup[] = [
       { href: "/texas-manicurist-exam-prep", label: "Manicurist Exam Prep" },
       { href: "/texas-eyelash-extension-exam-prep", label: "Eyelash Exam Prep" },
       { href: "/texas-hair-weaving-exam-prep", label: "Hair Weaving Exam Prep" },
+      { href: "/psi-candidate-information-bulletin", label: "PSI Bulletins", note: "all 8 Texas IDs" },
     ],
   },
   {

@@ -48,6 +48,12 @@ import {
   Info,
 } from "lucide-react";
 import { SITE_URL } from "@/lib/site";
+import { AddToShortlist } from "@/components/shortlist/add-to-shortlist";
+import { OwnerGbpStrip } from "@/components/shortlist/owner-gbp-strip";
+import { CompareNearby } from "@/components/shortlist/compare-nearby";
+import { ServiceIntent } from "@/components/shortlist/service-intent";
+import { fetchComparables } from "@/lib/shortlist";
+import { cleanBusinessName, entityTitle } from "@/lib/entity-title";
 
 export const revalidate = 3600;
 
@@ -87,9 +93,17 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   // "hiring" when a salon actually has a real signal, instead of every
   // page carrying the same near-duplicate low-quality title.
   const isHiring = !!(salon.hiring_need || (salon.booth_count_available && salon.booth_count_available >= 1));
-  const title = isHiring
-    ? `${salon.shop_name} is Hiring on Shop Day Network`
-    : `${salon.shop_name} — Hair & Beauty Salon${salon.city ? ` in ${salon.city}` : ""}`;
+  // Salons are 55% of the "<business> reviews" impressions — the largest single
+  // slice of the cluster. See lib/entity-title.ts.
+  const title = entityTitle({
+    name: salon.shop_name,
+    city: salon.city,
+    rating: salon.rating,
+    reviewCount: salon.total_reviews,
+    kind: "Hair & Beauty Salon",
+    isHiring,
+    hiringTitle: `${cleanBusinessName(salon.shop_name)} is Hiring on Shop Day Network`,
+  });
   const nearbyAreas: string[] = Array.isArray(salon.nearby_areas) ? salon.nearby_areas : [];
 
   // Mirrors app/shop/[slug]/page.tsx — same clause order, same fallbacks. Salon
@@ -302,6 +316,19 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
     regulatorFor(salon.address_state || "TX"),
   );
 
+  // Same-category businesses near this one, for "Good compared to what?".
+  // Guarded on coordinates: 5-6% of rows have none, and a comparison
+  // anchored nowhere would list businesses at unknown distances.
+  const comparables =
+    salon.latitude != null && salon.longitude != null
+      ? await fetchComparables(supabase, "salon", {
+          id: salon.id,
+          lat: Number(salon.latitude),
+          lng: Number(salon.longitude),
+          category: salon.google_category ?? null,
+        })
+      : [];
+
   return (
     <div className="min-h-screen light bg-white text-slate-900 selection:bg-blue-500/20 flex flex-col overflow-x-hidden">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: salonGraph }} />
@@ -468,6 +495,15 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
 
               {/* Sponsored ad spot — demo placement promoting a real DB salon
                   (Expert Hair Salon); click opens an advertising inquiry email. */}
+              {/* The comparison strip and the shortlist button — see
+                  components/shortlist/compare-nearby.tsx for why this is the one
+                  thing a directory can do that the business's own listing cannot. */}
+              <div className="mb-4 space-y-4">
+                <AddToShortlist entityType="salon" slug={salon.slug} name={salon.shop_name} />
+                <CompareNearby rows={comparables} originName={salon.shop_name} originRating={salon.rating != null ? Number(salon.rating) : null} />
+                <ServiceIntent entityType="salon" entitySlug={salon.slug} city={salon.city} />
+                <OwnerGbpStrip isClaimed={isClaimed} businessName={salon.shop_name} />
+              </div>
               <SalonSponsoredAd currentSlug={salon.slug} city={salon.city} address={salon.formatted_address} />
 
               {isHiring && (

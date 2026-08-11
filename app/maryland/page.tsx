@@ -4,6 +4,7 @@ import {
   ArrowRight, ExternalLink, Info,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
+import { MarylandResourceIndex } from "@/components/maryland/MarylandResourceIndex";
 import { SITE_URL } from "@/lib/site";
 import {
   REGULATORS, breadcrumbNode, graph, ref, stateNode, topics, webPageNode,
@@ -308,6 +309,8 @@ export default function MarylandHubPage() {
               ))}
             </div>
           </div>
+
+          <MarylandResourceIndex />
 
           {/* ---- what this hub is not ------------------------------------- */}
           <div className="bg-white border border-amber-300 rounded-2xl shadow-sm px-6 py-5 mb-8">
