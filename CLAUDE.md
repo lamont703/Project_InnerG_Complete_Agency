@@ -77,13 +77,31 @@ repeated, and not what the docs actually say.
 
 ### How to reach the docs
 
-There is no URL list to maintain, and don't try to build one — the
-`developers.google.com` sitemap index advertises 40 child sitemaps and every one
-returns HTTP 500. Two steps instead:
+**`lib/google-search-docs.ts` maps all 153 pages in the Search Central
+documentation navigation** — path and label, every one verified HTTP 200 on
+2026-08-11. Use it to find the right page, then FETCH THAT PAGE. It is an index,
+not a source: no claim about Google's behaviour may be sourced from it, because
+it holds no claims.
 
-1. **Search the domain**: web search restricted to `developers.google.com`.
-   Finds the right page without anyone knowing the URL in advance.
-2. **Fetch that page** and read it before making the claim.
+This does not contradict the "don't vendor the docs" rule below. That rule is
+about CONTENT, which goes stale silently. A path list carries nothing to go
+stale — a moved page shows up as a 404 at the moment you fetch it, loudly.
+
+The sitemap route is still dead, which is why the map was built by hand: the
+index now returns 200 and advertises 40 children, and every child still returns
+HTTP 500 with an empty body. Re-tested 2026-08-11.
+
+Three steps:
+
+1. **Look up the path** in `lib/google-search-docs.ts` (`findDocs("canonical")`,
+   or the `SETTLES` map for the questions this repo keeps raising).
+2. **Search the domain** if it isn't there — web search restricted to
+   `developers.google.com`. Also the fallback when the map has drifted.
+3. **Fetch that page** and read it before making the claim.
+
+**Search Console REPORT documentation is on `support.google.com`, not
+`developers.google.com`**, so it is outside that map — Page Indexing, the
+Performance report and platform properties are Help articles on another host.
 
 Do not vendor a copy of the docs into this repo. A snapshot goes stale, and a
 stale local copy is worse than none — it gets trusted without a second look,
