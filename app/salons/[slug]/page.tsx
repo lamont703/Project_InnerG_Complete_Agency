@@ -48,6 +48,7 @@ import {
   Info,
 } from "lucide-react";
 import { SITE_URL } from "@/lib/site";
+import { cleanBusinessName, entityTitle } from "@/lib/entity-title";
 
 export const revalidate = 3600;
 
@@ -87,9 +88,17 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   // "hiring" when a salon actually has a real signal, instead of every
   // page carrying the same near-duplicate low-quality title.
   const isHiring = !!(salon.hiring_need || (salon.booth_count_available && salon.booth_count_available >= 1));
-  const title = isHiring
-    ? `${salon.shop_name} is Hiring on Shop Day Network`
-    : `${salon.shop_name} — Hair & Beauty Salon${salon.city ? ` in ${salon.city}` : ""}`;
+  // Salons are 55% of the "<business> reviews" impressions — the largest single
+  // slice of the cluster. See lib/entity-title.ts.
+  const title = entityTitle({
+    name: salon.shop_name,
+    city: salon.city,
+    rating: salon.rating,
+    reviewCount: salon.total_reviews,
+    kind: "Hair & Beauty Salon",
+    isHiring,
+    hiringTitle: `${cleanBusinessName(salon.shop_name)} is Hiring on Shop Day Network`,
+  });
   const nearbyAreas: string[] = Array.isArray(salon.nearby_areas) ? salon.nearby_areas : [];
 
   // Mirrors app/shop/[slug]/page.tsx — same clause order, same fallbacks. Salon
