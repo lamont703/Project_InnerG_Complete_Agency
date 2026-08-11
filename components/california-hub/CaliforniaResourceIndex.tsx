@@ -64,6 +64,7 @@ const GROUPS: ResourceGroup[] = [
       { href: "/california-electrologist-license", label: "Electrologist", note: "600 hrs" },
       { href: "/california-nail-technician-license", label: "Nail Technician", note: "400 hrs" },
       { href: "/california-cosmetology-apprenticeship", label: "Apprenticeship", note: "paid, 3,420 hrs" },
+      { href: "/california-scope-of-practice", label: "Scope of Practice", note: "what each allows" },
     ],
   },
   {
@@ -76,6 +77,7 @@ const GROUPS: ResourceGroup[] = [
       { href: "/california-cosmetology-exam-intelligence-prep", label: "Cosmetology Exam Prep", note: "with pass rates" },
       { href: "/california-barber-exam-intelligence-prep", label: "Barber Exam Prep", note: "with pass rates" },
       { href: "/california-school-leaderboard", label: "School Pass Rates", note: "ranked" },
+      { href: "/psi-candidate-information-bulletin", label: "PSI Bulletins", note: "which one is yours" },
     ],
   },
   {
