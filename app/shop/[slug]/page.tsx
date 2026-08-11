@@ -21,6 +21,11 @@ import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { composeDescription, ratingClause, streetClause } from "@/lib/seo-description";
 import { SITE_URL } from "@/lib/site";
+import { AddToShortlist } from "@/components/shortlist/add-to-shortlist";
+import { OwnerGbpStrip } from "@/components/shortlist/owner-gbp-strip";
+import { CompareNearby } from "@/components/shortlist/compare-nearby";
+import { ServiceIntent } from "@/components/shortlist/service-intent";
+import { fetchComparables } from "@/lib/shortlist";
 import { cleanBusinessName, entityTitle } from "@/lib/entity-title";
 import {
   WIKIDATA, cityNode, entityId, faqId, faqNode, graphJson, identifiers,
@@ -470,6 +475,19 @@ export default async function ShopProfilePage({ params }: Props) {
     shopRegulator,
   );
 
+  // Same-category businesses near this one, for "Good compared to what?".
+  // Guarded on coordinates: 5-6% of rows have none, and a comparison
+  // anchored nowhere would list businesses at unknown distances.
+  const comparables =
+    shop.latitude != null && shop.longitude != null
+      ? await fetchComparables(supabase, "shop", {
+          id: shop.id,
+          lat: Number(shop.latitude),
+          lng: Number(shop.longitude),
+          category: shop.google_category ?? null,
+        })
+      : [];
+
   return (
     <div className="min-h-screen light bg-white text-slate-900 selection:bg-blue-500/20 flex flex-col overflow-x-hidden">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: shopGraph }} />
@@ -642,6 +660,15 @@ export default async function ShopProfilePage({ params }: Props) {
 
               {/* Sponsored ad spot — demo placement promoting a real DB shop
                   (Sauccy Fades); click opens an advertising inquiry email. */}
+              {/* The comparison strip and the shortlist button — see
+                  components/shortlist/compare-nearby.tsx for why this is the one
+                  thing a directory can do that the business's own listing cannot. */}
+              <div className="mb-4 space-y-4">
+                <AddToShortlist entityType="shop" slug={shop.slug} name={shop.shop_name} />
+                <CompareNearby rows={comparables} originName={shop.shop_name} originRating={shop.rating != null ? Number(shop.rating) : null} />
+                <ServiceIntent entityType="shop" entitySlug={shop.slug} city={shop.city} />
+                <OwnerGbpStrip isClaimed={isClaimed} businessName={shop.shop_name} />
+              </div>
               <ShopSponsoredAd currentSlug={shop.slug} city={shop.city} address={shop.formatted_address} />
 
               {isHiring && (

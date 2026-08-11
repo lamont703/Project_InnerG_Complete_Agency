@@ -138,6 +138,7 @@ import { createServerClient } from "@/lib/supabase/server"
 import { FacebookSDK } from "@/components/providers/facebook-sdk"
 import { SiteNavigationTracker } from "@/components/layout/site-navigation-tracker"
 import { ScrollCTA } from "@/components/shared/scroll-cta"
+import { ShortlistBar } from "@/components/shortlist/shortlist-bar"
 import { ViewAsBar } from "@/components/layout/view-as"
 import { SITE_HOST, SITE_URL } from "@/lib/site";
 import { authorNode, graphJson, organizationNode, websiteNode } from "@/lib/schema-graph";
@@ -278,6 +279,8 @@ export default async function RootLayout({
                 }}
               />
               {children}
+              {/* Renders nothing until something is saved — see the component. */}
+              <ShortlistBar />
             </FacebookSDK>
           </AnalyticsProvider>
 
