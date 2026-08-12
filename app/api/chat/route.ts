@@ -723,20 +723,65 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
     return res;
 
   } catch (error: any) {
-    console.error('AI Chat Error:', error);
-    // Gemini occasionally returns a transient 503 when the model is under
-    // heavy load — this isn't the user's daily rate limit, so say so
-    // clearly rather than showing a generic failure (a failed attempt like
-    // this doesn't consume any of their 5 daily searches either, since the
-    // usage cookie is only updated after a successful response above).
-    const isTransientOverload = error?.status === 503 || /UNAVAILABLE|overloaded|high demand/i.test(error?.message || '');
+    // WHY THIS BLOCK IS NOT JUST console.error + "something went wrong".
+    //
+    // It used to be, and it cost a full afternoon. A 500 on staging was
+    // indistinguishable from a Gemini quota block, a missing environment
+    // variable, and a malformed request — the response said "Failed to process
+    // AI request" for all of them, and the browser console said 500. Three
+    // rounds of hypotheses were needed to rule out a free-tier quota that had
+    // never been the cause, because nothing anywhere named the actual error.
+    //
+    // The failure mode worth naming: a 429 from Gemini (RESOURCE_EXHAUSTED —
+    // the real quota block) was being flattened into the same generic 500 as
+    // everything else, so an upstream rate limit was invisible while a user's
+    // OWN daily limit got a clear, friendly message.
+    const status = error?.status ?? error?.response?.status;
+    const message = String(error?.message || '');
+
+    const kind =
+      status === 503 || /UNAVAILABLE|overloaded|high demand/i.test(message)
+        ? 'upstream_overloaded'
+        : status === 429 || /RESOURCE_EXHAUSTED|quota|rate limit/i.test(message)
+        ? 'upstream_quota'
+        : /is not set|API_KEY_INVALID|API key not valid|PERMISSION_DENIED|invalid authentication/i.test(message)
+        ? 'misconfigured'
+        : 'unknown';
+
+    // One structured line, so a log search finds the classification rather than
+    // a stack trace that has to be read.
+    console.error(`[AI Chat Error] kind=${kind} status=${status ?? 'none'} name=${error?.name || 'Error'}: ${message}`);
+
+    const userMessage =
+      kind === 'upstream_overloaded'
+        ? "Our AI is experiencing high demand right now. This didn't count against your daily searches — please try again in a moment."
+        : kind === 'upstream_quota'
+        ? "Our AI has hit its usage cap for now — that's on us, not your account, and it didn't count against your daily searches. Please try again a little later."
+        : kind === 'misconfigured'
+        ? "The AI isn't configured correctly on this environment. This has been logged — it's not something you did."
+        : 'Failed to process AI request.';
+
     return NextResponse.json(
       {
-        error: isTransientOverload
-          ? "Our AI is experiencing high demand right now. This didn't count against your daily searches — please try again in a moment."
-          : 'Failed to process AI request.',
+        error: userMessage,
+        // A stable machine-readable code, safe to expose: it names the class of
+        // failure without revealing anything about the internals.
+        code: kind,
+        // The raw message, on non-production deployments ONLY.
+        //
+        // This is what makes a preview or staging deployment diagnose itself
+        // instead of requiring log access that, as it turns out, isn't reliably
+        // available. It is gated on VERCEL_ENV so production never leaks an
+        // upstream error string — those routinely carry internal endpoints,
+        // project identifiers and occasionally partial keys.
+        ...(process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production'
+          ? { detail: `${error?.name || 'Error'}${status ? ` [${status}]` : ''}: ${message}`.slice(0, 500) }
+          : {}),
       },
-      { status: 500 }
+      // A quota block upstream is our capacity problem, not a bug in the
+      // request — 503 says "try later", which is both true and the correct
+      // signal for anything watching status codes.
+      { status: kind === 'upstream_overloaded' || kind === 'upstream_quota' ? 503 : 500 }
     );
   }
 }

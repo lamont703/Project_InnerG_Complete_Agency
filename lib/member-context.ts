@@ -81,11 +81,29 @@ export async function currentMember(): Promise<CurrentMember | null> {
       email: data.email ?? null,
       audience: storedAudience(data.audience),
     };
-  } catch (err) {
+  } catch (err: any) {
     // A failure to identify the visitor must degrade to "anonymous", never to
     // a 500 — every caller has a working anonymous path, and the chat route in
     // particular has to keep answering.
-    console.error("[member-context] currentMember failed:", err);
+    //
+    // BUT IT MUST NOT DEGRADE QUIETLY. This catch returns exactly what "not
+    // signed in" returns, so a broken environment looks identical to an empty
+    // one: every member silently resolves to anonymous, personalization is
+    // simply absent, and nothing anywhere says why. That is indistinguishable
+    // from the feature not working — which is the worst way for a feature to
+    // fail, because it produces no evidence.
+    //
+    // So the config-level causes are called out by name. A missing service-role
+    // key is not a transient blip; it means this deployment cannot resolve any
+    // member at all, and that deserves to be obvious in the first log line
+    // somebody reads.
+    const message = String(err?.message || err);
+    const isConfig = /is not set|Invalid API key|placeholder/i.test(message);
+    console.error(
+      isConfig
+        ? `[member-context] CANNOT RESOLVE MEMBERS ON THIS DEPLOYMENT — every visitor will be treated as anonymous. ${message}`
+        : `[member-context] currentMember failed (treating visitor as anonymous): ${message}`
+    );
     return null;
   }
 }
