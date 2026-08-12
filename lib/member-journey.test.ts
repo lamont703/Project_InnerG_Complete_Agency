@@ -10,6 +10,7 @@ import {
   hasPracticalExam,
   isJourneyStarted,
   journeyHeadline,
+  chatBannerLine,
   kitListRoute,
   milestones,
   missingJourneyFields,
@@ -205,6 +206,34 @@ describe("journeyHeadline", () => {
 
   it("says nothing it wasn't told", () => {
     expect(journeyHeadline({ state: null, track: null }, TODAY)).toBe("Let's work out where you're going.");
+  });
+});
+
+describe("chatBannerLine", () => {
+  // This banner sits above every conversation uninvited, so it has to earn the
+  // space each time. journeyHeadline() always returns something because it
+  // heads a page you chose to open; this one is allowed to say nothing.
+  it("earns its space with a countdown", () => {
+    expect(chatBannerLine(facts({ examDate: "2026-08-22" }), TODAY)).toBe("10 days until your barber exam.");
+  });
+
+  it("says nothing when there is nothing to count down to", () => {
+    expect(chatBannerLine(facts(), TODAY)).toBeNull();
+    // The exact string that was appearing on every chat and saying less than
+    // the empty state it replaced.
+    expect(journeyHeadline(facts(), TODAY)).toBe("Let's work out where you're going.");
+  });
+
+  it("will not recite a school back at someone who typed it in", () => {
+    expect(chatBannerLine(facts({ schoolName: "Bladesmith Barber College" }), TODAY)).toBeNull();
+  });
+
+  it("drops a stale countdown rather than showing a negative one", () => {
+    expect(chatBannerLine(facts({ examDate: "2026-08-05" }), TODAY)).toBeNull();
+  });
+
+  it("still speaks up once they are licensed", () => {
+    expect(chatBannerLine(facts({ licensedAt: "2026-08-01" }), TODAY)).toBe("You're licensed — here's what's next.");
   });
 });
 

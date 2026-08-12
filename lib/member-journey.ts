@@ -585,6 +585,36 @@ export function agentJourneyContext(
   };
 }
 
+/**
+ * The line for the AI Mode banner — or null when there is nothing worth saying.
+ *
+ * DELIBERATELY STRICTER THAN journeyHeadline(). That function always returns
+ * something, because it heads a page the member navigated to on purpose and a
+ * blank header would look broken. A banner sitting above every conversation is
+ * the opposite situation: it is uninvited, so it has to earn the space every
+ * single time, and "Let's work out where you're going" earns nothing. It was
+ * appearing on every chat a member opened, saying less than the empty state
+ * it replaced.
+ *
+ * The bar: a countdown, or the fact they're licensed. Both tell the member
+ * something they did not already have on screen.
+ *
+ * "In school at X" is deliberately NOT enough. It only recites back what they
+ * typed into a form — the same failure the agent's own prompt rules forbid
+ * ("do not recite their profile back at them"), and a rule the UI should not
+ * get to break just because it isn't the model saying it.
+ */
+export function chatBannerLine(facts: JourneyFacts, today: string): string | null {
+  if (currentPhase(facts, today) === "licensed") return journeyHeadline(facts, today);
+
+  const days = daysUntilExam(facts, today);
+  // No date, or a date already gone by: nothing to count down to. A past date
+  // needs a different conversation ("how did it go?"), not a stale countdown.
+  if (days === null || days < 0) return null;
+
+  return journeyHeadline(facts, today);
+}
+
 /** One line for the console header. Never guesses a fact it wasn't given. */
 export function journeyHeadline(facts: JourneyFacts, today: string): string {
   const phase = currentPhase(facts, today);

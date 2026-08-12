@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, useRef, Suspense } from "react";
-import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight, Send, CheckCircle2, Loader2, CalendarDays, BadgeCheck } from "lucide-react";
+import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight, Send, CheckCircle2, Loader2, CalendarDays, BadgeCheck, X } from "lucide-react";
 import { searchBarbershops, getSponsoredSearchEntities, getAiModeMemberContext, type SponsoredSearchEntity } from "./actions";
 import { requestEmploymentVerification } from "@/app/tools/employment-match-review/actions";
 import Link from "next/link";
@@ -21,6 +21,13 @@ interface EmploymentMatchForVerification {
   confidenceScore: number;
   verificationRequestedAt: string | null;
 }
+
+// The "finish your journey setup" nudge in AI Mode: shown at most twice, and
+// dismissible. Two, not one, because the first sighting is usually while
+// someone is mid-question and not looking for a form — and not more, because
+// the persistent ask already exists as the student_setup lifecycle email.
+const SETUP_NUDGE_KEY = "shearquery.journeySetupNudge.v1";
+const MAX_SETUP_NUDGES = 2;
 
 const ALL_TABS = ['AI Mode', 'All', 'Schools', 'Salons', 'Barbershops', 'Barbers', 'Cosmetologist', 'Members', 'Events', 'Stores', 'Articles', 'Videos', 'Images', 'Tools'];
 const PRIMARY_MOBILE_TABS = ['AI Mode', 'All'];
@@ -151,6 +158,15 @@ function SearchContent() {
     journeyLine: string | null;
     setupHref: string | null;
   } | null>(null);
+  // How many times this person has dismissed the "finish your setup" nudge.
+  //
+  // It used to have no dismissal and no cap, so a member who didn't want to
+  // fill in the form saw the same prompt above every conversation forever.
+  // That is nagging, and it contradicts the discipline the lifecycle emails
+  // already hold themselves to — one stage ever, and the sequence ends. The
+  // persistent ask is the student_setup email, which fires exactly once; this
+  // banner is the in-context reminder and gets two showings at most.
+  const [setupDismissals, setSetupDismissals] = useState(0);
   // Verification-request state lives here, not per-message — a match can
   // appear in more than one message (e.g. asked about twice), and the
   // button should reflect ONE shared "already requested" state across
@@ -405,6 +421,13 @@ function SearchContent() {
   //     closing the tab, which is the whole point of having an account.
   useEffect(() => {
     let cancelled = false;
+
+    try {
+      const raw = localStorage.getItem(SETUP_NUDGE_KEY);
+      if (raw) setSetupDismissals(parseInt(raw, 10) || 0);
+    } catch {
+      /* private mode — the nudge just shows, which is the old behaviour */
+    }
 
     const askParam = searchParams.get("ask");
     const hasLocalChat = (() => {
@@ -948,25 +971,51 @@ function SearchContent() {
                   Renders nothing at all for anonymous visitors — an empty
                   banner promising personalization to someone who has none is
                   worse than no banner. */}
-              {memberCtx?.isMember && (memberCtx.journeyLine || memberCtx.setupHref) && (
+              {/* The countdown. Not dismissible and not capped, because unlike
+                  the nudge below it tells the member something they don't
+                  already have on screen — and it only renders at all when
+                  chatBannerLine() decides there's a real countdown to show. */}
+              {memberCtx?.isMember && memberCtx.journeyLine && (
                 <div className="mx-4 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-2">
                   <BadgeCheck className="w-4 h-4 text-blue-600 shrink-0" />
-                  {memberCtx.journeyLine ? (
-                    <>
-                      <span className="text-xs font-bold text-blue-900">{memberCtx.journeyLine}</span>
-                      <Link href="/account/journey" className="text-xs font-bold text-blue-700 underline underline-offset-2">
-                        Your journey
-                      </Link>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-xs font-bold text-blue-900">Tell me your state, licence and exam date once —</span>
-                      <Link href={memberCtx.setupHref!} className="text-xs font-bold text-blue-700 underline underline-offset-2">
-                        set that up
-                      </Link>
-                      <span className="text-xs text-blue-800">and every answer after this is about your exam.</span>
-                    </>
-                  )}
+                  <span className="text-xs font-bold text-blue-900">{memberCtx.journeyLine}</span>
+                  <Link href="/account/journey" className="text-xs font-bold text-blue-700 underline underline-offset-2">
+                    Your journey
+                  </Link>
+                </div>
+              )}
+
+              {/* The setup nudge. Students only (gated server-side), twice at
+                  most, and dismissible. */}
+              {memberCtx?.isMember && !memberCtx.journeyLine && memberCtx.setupHref &&
+                setupDismissals < MAX_SETUP_NUDGES && (
+                <div className="mx-4 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-2">
+                  <BadgeCheck className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span className="text-xs font-bold text-blue-900">Tell me your state, licence and exam date once —</span>
+                  <Link
+                    href={memberCtx.setupHref}
+                    className="text-xs font-bold text-blue-700 underline underline-offset-2"
+                  >
+                    set that up
+                  </Link>
+                  <span className="text-xs text-blue-800">and every answer after this is about your exam.</span>
+                  <button
+                    type="button"
+                    aria-label="Dismiss"
+                    onClick={() => {
+                      const next = setupDismissals + 1;
+                      setSetupDismissals(next);
+                      try {
+                        localStorage.setItem(SETUP_NUDGE_KEY, String(next));
+                      } catch {
+                        /* nothing to do — it just shows again next time */
+                      }
+                      (window as any).innerG?.track?.("journey_setup_nudge_dismissed", { times: next });
+                    }}
+                    className="ml-auto rounded p-0.5 text-blue-400 hover:text-blue-700 hover:bg-blue-100 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               )}
 
