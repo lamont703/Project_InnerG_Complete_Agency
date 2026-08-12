@@ -687,10 +687,46 @@ ${JSON.stringify(slimmedContext).substring(0, 120000)}
     const employmentMatches: any[] = [];
     if (response.functionCalls && response.functionCalls.length > 0) {
       toolCallCount = response.functionCalls.length;
-      contents.push({
-        role: 'model',
-        parts: response.functionCalls.map((fc) => ({ functionCall: fc })),
-      });
+
+      // SEND BACK THE MODEL'S OWN TURN, VERBATIM. Do not rebuild it.
+      //
+      // This used to be `response.functionCalls.map(fc => ({ functionCall: fc }))`,
+      // which looks equivalent and is not. `functionCalls` is a convenience
+      // accessor returning the PARSED calls; the parts it hands back have lost
+      // the `thoughtSignature` that Gemini attached to the originals. Sending
+      // the reconstructed turn therefore drops the signature, and the second
+      // generation fails:
+      //
+      //   400 INVALID_ARGUMENT — "Function call is missing a thought_signature
+      //   in functionCall parts. This is required for tools to work correctly."
+      //
+      // Google's thinking guide is explicit that when you manage history
+      // yourself you "MUST always resend all thought blocks exactly as they
+      // were received from the model", and that for generateContent those
+      // signatures ride on the functionCall parts themselves.
+      //
+      // THIS BUG WAS LATENT, NOT NEW. gemini-2.5-flash did not enforce the
+      // requirement, so the reconstruction worked by luck for as long as we
+      // were on it. Moving to gemini-3.1-flash-lite (forced — 2.5-flash is
+      // closed to new Cloud projects) is what made it fire, and it broke every
+      // one of the 15 tools at once while plain answers kept working, which is
+      // why it read as "worked at first, then stopped".
+      //
+      // Note that thinkingBudget: 0 does NOT exempt us: the docs state that
+      // reducing thinking does not remove the signature requirement.
+      const modelTurn = response.candidates?.[0]?.content;
+      if (modelTurn && Array.isArray(modelTurn.parts) && modelTurn.parts.length > 0) {
+        contents.push({ ...modelTurn, role: modelTurn.role || 'model' });
+      } else {
+        // Only if the response shape is not what we expect. Reconstructing is
+        // better than pushing nothing — a turn with no model reply at all is a
+        // guaranteed failure, where this is merely the old broken behaviour.
+        console.warn('[AI Chat] no candidate content on a tool-calling turn — falling back to reconstruction');
+        contents.push({
+          role: 'model',
+          parts: response.functionCalls.map((fc) => ({ functionCall: fc })),
+        });
+      }
 
       const functionResponseParts = await Promise.all(
         response.functionCalls.map(async (fc) => {
