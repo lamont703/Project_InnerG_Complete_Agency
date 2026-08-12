@@ -7,6 +7,9 @@ import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployme
 import { currentMember, getJourney, appendToThread } from '@/lib/member-context';
 import { agentJourneyContext } from '@/lib/member-journey';
 import { AUDIENCES } from '@/lib/audiences';
+import { slimContext, contextChars } from '@/lib/chat-context-slim';
+import { extractUsage, sumUsage, EMPTY_USAGE, type TokenUsage } from '@/lib/ai-usage';
+import { recordAiUsage } from '@/lib/ai-usage-record';
 
 // Next.js patches the global fetch() to cache responses by default, which
 // can end up caching the Gemini SDK's own internal fetch calls (identical
@@ -63,7 +66,20 @@ function sanitizeMarkdownLinks(text: string, validLinks: Set<string>): string {
   return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => (validLinks.has(url) ? match : label));
 }
 
+const CHAT_MODEL = 'gemini-2.5-flash';
+
 export async function POST(req: Request) {
+  // Declared outside the try so the catch can still record a failed attempt.
+  // A quota block consumes no tokens and is the most costly kind of event in
+  // business terms — a ledger that logged only successes would fall silent at
+  // exactly the moment something was wrong.
+  const startedAt = Date.now();
+  const usageParts: TokenUsage[] = [];
+  let contextSize: number | null = null;
+  let memberIdForUsage: string | null = null;
+  let generations = 0;
+  let toolCallCount = 0;
+
   try {
     const cookieStore = await cookies();
     let usageCount = parseInt(cookieStore.get('ai_chat_count')?.value || '0', 10);
@@ -78,6 +94,7 @@ export async function POST(req: Request) {
     // anything in the request body — and null for the anonymous majority.
     // Everything downstream treats a null member as the existing behaviour.
     const member = await currentMember();
+    memberIdForUsage = member?.id ?? null;
     const limit = member ? MAX_REQUESTS_MEMBER : MAX_REQUESTS;
 
     if (usageCount >= limit) {
@@ -341,8 +358,19 @@ export async function POST(req: Request) {
       software_tools: platformTools,
     };
 
+    // TRIM BEFORE ANYTHING ELSE READS IT.
+    //
+    // slimContext drops ranking internals, nulls and image URLs, and caps the
+    // scraped article bodies that measurement showed to be 43% of the entire
+    // payload. Applied here, before validLinks is collected, so the two can
+    // never disagree about what the model was actually shown — and so an image
+    // URL that is no longer in the context is no longer a legal link target
+    // either, which is what the prompt has always said and could not enforce.
+    const slimmedContext = slimContext(mergedContext);
+    contextSize = contextChars(slimmedContext);
+
     const validLinks = new Set<string>();
-    collectValidLinks(mergedContext, validLinks);
+    collectValidLinks(slimmedContext, validLinks);
 
     // 4. Construct System Prompt
     // Today's date, so relative time language ("this year," "currently,"
@@ -421,7 +449,7 @@ GET_UPCOMING_EVENTS TOOL RULE: For any question about barber/beauty/wellness ind
 ENTITY LINKING IS NOT OPTIONAL: AI Mode doubles as navigation into the rest of the site, not just an answer — so the LINKING RULE above applies every single time you mention a specific barbershop/barber/school/salon/cosmetologist/store/tool that has a profile_url (or an equivalent href from a tool result like find_professional_employment), with no exceptions. Don't drop a link just because you've already mentioned that entity earlier in the conversation — link it again each time.
 
 Context Data (JSON):
-${JSON.stringify(mergedContext).substring(0, 120000)}
+${JSON.stringify(slimmedContext).substring(0, 120000)}
 `;
 
     // 5. Generate Response (Limit output tokens to keep costs cheap!)
@@ -601,10 +629,12 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
     };
 
     let response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: CHAT_MODEL,
       contents,
       config: { ...generationConfig, tools: [RENT_STATS_TOOL] },
     });
+    generations += 1;
+    usageParts.push(extractUsage(response));
 
     // Single round of tool-calling: if the model asked for rent data,
     // execute it, hand the result back, and let it produce the real
@@ -621,6 +651,7 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
     // unauthenticated chat surface can be talked into doing.
     const employmentMatches: any[] = [];
     if (response.functionCalls && response.functionCalls.length > 0) {
+      toolCallCount = response.functionCalls.length;
       contents.push({
         role: 'model',
         parts: response.functionCalls.map((fc) => ({ functionCall: fc })),
@@ -690,11 +721,17 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
       // static context.
       collectValidLinks(functionResponseParts, validLinks);
 
+      // The second generation re-sends the ENTIRE context along with the tool
+      // result, so a tool-calling turn costs roughly double. Counted as its
+      // own generation rather than folded in, because "why was that message
+      // twice the price" is a question the dashboard should answer.
       response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: CHAT_MODEL,
         contents,
         config: generationConfig,
       });
+      generations += 1;
+      usageParts.push(extractUsage(response));
     }
 
     // Update rate limit cookies
@@ -715,6 +752,22 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
     if (member && finalText) {
       await appendToThread(member.id, latestMessage, finalText);
     }
+
+    // Awaited, not fired and forgotten: this is a serverless function and work
+    // still in flight when the response returns may simply be killed, which
+    // would make the ledger quietly lossy — and a ledger you cannot trust to
+    // be complete is worse than none, because it still gets used.
+    await recordAiUsage({
+      route: '/api/chat',
+      model: CHAT_MODEL,
+      usage: sumUsage(usageParts),
+      contextChars: contextSize,
+      generations,
+      toolCalls: toolCallCount,
+      latencyMs: Date.now() - startedAt,
+      status: 'ok',
+      communityMemberId: memberIdForUsage,
+    });
 
     const res = NextResponse.json({ text: finalText, employmentMatches });
     res.cookies.set('ai_chat_count', newCount.toString(), { path: '/' });
@@ -751,6 +804,22 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
     // One structured line, so a log search finds the classification rather than
     // a stack trace that has to be read.
     console.error(`[AI Chat Error] kind=${kind} status=${status ?? 'none'} name=${error?.name || 'Error'}: ${message}`);
+
+    // Failures are recorded too. A quota block burns no tokens, so a ledger
+    // that only logged successes would go silent exactly when something was
+    // wrong — and silence reads as "nothing happening" rather than "blocked".
+    await recordAiUsage({
+      route: '/api/chat',
+      model: CHAT_MODEL,
+      usage: usageParts.length ? sumUsage(usageParts) : EMPTY_USAGE,
+      contextChars: contextSize,
+      generations,
+      toolCalls: toolCallCount,
+      latencyMs: Date.now() - startedAt,
+      status: 'error',
+      errorKind: kind,
+      communityMemberId: memberIdForUsage,
+    });
 
     const userMessage =
       kind === 'upstream_overloaded'

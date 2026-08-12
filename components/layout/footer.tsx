@@ -26,6 +26,7 @@ const footerLinks = {
   ],
   "Internal Tools": [
     { label: "Submit Your Event", href: "/tools/event-submission" },
+    { label: "AI Usage & Cost", href: "/admin/ai-usage" },
     { label: "Agent Directives", href: "/admin/agent-directives" },
     { label: "Keyword Intelligence", href: "/admin/keyword-intelligence" },
     { label: "SEO Keyword Tracker", href: "/tools/seo-keyword-tracker" },
