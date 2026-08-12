@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef, Suspense } from "react";
 import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight, Send, CheckCircle2, Loader2, CalendarDays, BadgeCheck } from "lucide-react";
-import { searchBarbershops, getSponsoredSearchEntities, type SponsoredSearchEntity } from "./actions";
+import { searchBarbershops, getSponsoredSearchEntities, getAiModeMemberContext, type SponsoredSearchEntity } from "./actions";
 import { requestEmploymentVerification } from "@/app/tools/employment-match-review/actions";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -10,6 +10,7 @@ import { useSearchParams } from "next/navigation";
 import { AiOverviewSnippet } from "@/components/shared/ai-overview-snippet";
 import { AdTracker } from "@/components/ads/AdTracker";
 import { Navbar } from "@/components/layout/navbar";
+import { createBrowserClient } from "@/lib/supabase/browser";
 import { toast } from "sonner";
 
 interface EmploymentMatchForVerification {
@@ -136,6 +137,20 @@ function SearchContent() {
   // a real answer, and (2) a later successful retry doesn't leave a stray
   // fake error "turn" permanently baked into the transcript.
   const [chatError, setChatError] = useState<string | null>(null);
+  // Set when the server says the daily cap is hit AND there's a real account
+  // path out of it. Held separately from chatError so an ordinary failure
+  // (Gemini overloaded) never renders a signup pitch — being sold to at the
+  // moment something breaks is how you lose someone who was mid-question.
+  const [upgradeHref, setUpgradeHref] = useState<string | null>(null);
+  // Who's using AI Mode. Null until the mount effect answers; `isMember:
+  // false` is the normal case and everything below must render identically
+  // to how it did before any of this existed.
+  const [memberCtx, setMemberCtx] = useState<{
+    isMember: boolean;
+    firstName: string | null;
+    journeyLine: string | null;
+    setupHref: string | null;
+  } | null>(null);
   // Verification-request state lives here, not per-message — a match can
   // appear in more than one message (e.g. asked about twice), and the
   // button should reflect ONE shared "already requested" state across
@@ -226,8 +241,9 @@ function SearchContent() {
 
       if (!res.ok) {
         setChatError(data.error || 'Failed to connect.');
+        setUpgradeHref(res.status === 429 ? data.upgradeHref || null : null);
         if (res.status === 429 && (window as any).innerG?.track) {
-          (window as any).innerG.track('ai_rate_limit_hit', { limit: 5 });
+          (window as any).innerG.track('ai_rate_limit_hit', { is_member: !!memberCtx?.isMember });
         }
       } else {
         setChatMessages([...newHistory, { role: 'model', content: data.text, employmentMatches: data.employmentMatches }]);
@@ -373,6 +389,80 @@ function SearchContent() {
       const shopLabel = ecosystemShopName || "my shop";
       sendChatMessage(`Tell me about the market ecosystem around ${shopLabel} — talent pipeline, labor supply, competition, and rent.`, ecosystemShopId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // TWO THINGS ON MOUNT, both about arriving with intent rather than at a
+  // blank box.
+  //
+  // (1) ?ask= — a guide or kit-list page hands over a question already
+  //     formed ("what's on the Texas barber practical?"). Those pages are
+  //     where the licence-track traffic actually lands, and until now they
+  //     had no route into the agent at all.
+  // (2) The member's saved conversation. sessionStorage wins when it has
+  //     anything, because that's the live conversation in this tab and the
+  //     server copy is by definition older; the server copy is what survives
+  //     closing the tab, which is the whole point of having an account.
+  useEffect(() => {
+    let cancelled = false;
+
+    const askParam = searchParams.get("ask");
+    const hasLocalChat = (() => {
+      try {
+        const raw = sessionStorage.getItem('aiModeChatMessages');
+        return !!raw && JSON.parse(raw)?.length > 0;
+      } catch {
+        return false;
+      }
+    })();
+
+    if (askParam && !hasLocalChat) {
+      const text = askParam.slice(0, 300);
+      setFilterTab("AI Mode");
+      setQuery(text);
+      if ((window as any).innerG?.track) {
+        (window as any).innerG.track('ai_mode_deep_link', { from: document.referrer || null });
+      }
+      sendChatMessage(text);
+    }
+
+    (async () => {
+      try {
+        // Same guard as the kit checklist: getSession() reads the local cookie
+        // with no network call, so the anonymous majority never pays for a
+        // server round-trip that can only tell them they're anonymous.
+        const supabase = createBrowserClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (!session) {
+          setMemberCtx({ isMember: false, firstName: null, journeyLine: null, setupHref: null });
+          return;
+        }
+
+        const ctx = await getAiModeMemberContext();
+        if (cancelled) return;
+        setMemberCtx({
+          isMember: ctx.isMember,
+          firstName: ctx.firstName,
+          journeyLine: ctx.journeyLine,
+          setupHref: ctx.setupHref,
+        });
+        // Only restore server history into an empty panel. Dropping it on top
+        // of a conversation already in progress would reorder someone's own
+        // chat under them mid-thought.
+        if (ctx.isMember && ctx.messages.length > 0 && !hasLocalChat && !askParam) {
+          setChatMessages(ctx.messages as typeof chatMessages);
+        }
+      } catch {
+        // An unreachable session service must not break AI Mode — it falls
+        // back to behaving exactly like the anonymous experience.
+        if (!cancelled) setMemberCtx({ isMember: false, firstName: null, journeyLine: null, setupHref: null });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -853,17 +943,46 @@ function SearchContent() {
           {filterTab === 'AI Mode' ? (
             <div className="flex flex-col w-full" style={{ height: 'calc(100dvh - 170px)', maxHeight: '850px' }}>
               
+              {/* The one visible difference an account makes, sitting where
+                  you can't miss it: the agent opens knowing where you are.
+                  Renders nothing at all for anonymous visitors — an empty
+                  banner promising personalization to someone who has none is
+                  worse than no banner. */}
+              {memberCtx?.isMember && (memberCtx.journeyLine || memberCtx.setupHref) && (
+                <div className="mx-4 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-2">
+                  <BadgeCheck className="w-4 h-4 text-blue-600 shrink-0" />
+                  {memberCtx.journeyLine ? (
+                    <>
+                      <span className="text-xs font-bold text-blue-900">{memberCtx.journeyLine}</span>
+                      <Link href="/account/journey" className="text-xs font-bold text-blue-700 underline underline-offset-2">
+                        Your journey
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xs font-bold text-blue-900">Tell me your state, licence and exam date once —</span>
+                      <Link href={memberCtx.setupHref!} className="text-xs font-bold text-blue-700 underline underline-offset-2">
+                        set that up
+                      </Link>
+                      <span className="text-xs text-blue-800">and every answer after this is about your exam.</span>
+                    </>
+                  )}
+                </div>
+              )}
+
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {chatMessages.length === 0 && (
                   <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
                       <span className="text-2xl">✨</span>
                     </div>
-                    <p className="font-medium text-slate-700">How can I help you today?</p>
+                    <p className="font-medium text-slate-700">
+                      {memberCtx?.firstName ? `How can I help, ${memberCtx.firstName}?` : "How can I help you today?"}
+                    </p>
                     <p className="text-sm text-slate-500 max-w-sm mt-2">I am grounded in your proprietary search data. Ask me to summarize or find specific insights.</p>
                   </div>
                 )}
-                
+
                 {chatMessages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[85%] rounded-2xl px-4 py-3 whitespace-pre-wrap ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-800 shadow-sm rounded-tl-sm'}`}>
@@ -916,7 +1035,44 @@ function SearchContent() {
                   <div className="flex justify-start">
                     <div className="max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-3 bg-amber-50 border border-amber-200 text-amber-800 text-sm">
                       {chatError}
+                      {upgradeHref && (
+                        <Link
+                          href={upgradeHref}
+                          className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-black text-white hover:bg-blue-700 transition-colors"
+                        >
+                          Create a free account
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </Link>
+                      )}
                     </div>
+                  </div>
+                )}
+
+                {/* THE ASK, AT THE POINT OF LOSS. Not on arrival and not
+                    behind a gate — the first answers are free and always
+                    will be. It appears once the agent has actually produced
+                    something worth keeping, because that's the first moment
+                    "this disappears when you close the tab" means anything
+                    to the person reading it.
+
+                    Two model replies, not one: after a single answer the
+                    conversation isn't yet a thing you'd be sorry to lose. */}
+                {memberCtx && !memberCtx.isMember && !isAiLoading && !chatError &&
+                  chatMessages.filter((m) => m.role === 'model').length >= 2 && (
+                  <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 px-4 py-3.5">
+                    <p className="text-sm font-black text-slate-900">This conversation disappears when you close the tab.</p>
+                    <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                      A free account keeps it — and once it knows your state, licence track and exam date, it stops
+                      answering in general and starts answering about your exam.
+                    </p>
+                    <Link
+                      href="/membership?for=student"
+                      onClick={() => (window as any).innerG?.track?.('ai_chat_signup_invite_clicked')}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-black text-white hover:bg-blue-700 transition-colors"
+                    >
+                      Keep this conversation — free
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
                 )}
               </div>

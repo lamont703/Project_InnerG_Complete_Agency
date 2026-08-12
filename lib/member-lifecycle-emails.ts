@@ -1,4 +1,4 @@
-import type { LifecycleStage } from "@/lib/member-lifecycle";
+import type { LifecycleStage, StudentStage } from "@/lib/member-lifecycle";
 import type { PublicAuditResult } from "@/lib/gbp-audit-public";
 import { SITE_URL } from "./site";
 
@@ -164,6 +164,153 @@ export function buildLifecycleEmail(
             para("This is the last time we'll bring it up."),
           { href: `${SITE}/account/gbp-audit`, label: "See where things stand" },
           "You have a ShearQuery membership."
+        ),
+      };
+
+    default:
+      return null;
+  }
+}
+
+/**
+ * THE STUDENT EMAILS.
+ *
+ * Same standard as their siblings: lead with something true about THEM, not
+ * with what we'd like them to do. The difference is what "true about them"
+ * means here — a student has no listing to audit, so the specific thing we
+ * know is where they are relative to their exam, which is exactly what they
+ * told us and exactly what nobody else is tracking for them.
+ *
+ * EVERY LINK IS RESOLVED FROM THEIR OWN JOURNEY, never assumed. The kit email
+ * goes to the kit list for THEIR licence in THEIR state, and the caller does
+ * not send it at all when their state has no practical exam — see
+ * currentStudentStage(). A student who gets a link to the wrong licence's kit
+ * list learns, correctly, that this was a mass mailing.
+ *
+ * Pure, like the rest of this file.
+ */
+export interface StudentEmailInput {
+  firstName?: string | null;
+  /** Days until the exam, already computed. Null when no date is on file. */
+  daysUntilExam?: number | null;
+  /** Their kit list, when their state and licence have one. */
+  kitListHref?: string | null;
+  /** Their written-exam prep page, when we have one. */
+  examPrepHref?: string | null;
+  /** Their licence requirements page. */
+  requirementsHref?: string | null;
+  schoolName?: string | null;
+  zip?: string | null;
+}
+
+export function buildStudentLifecycleEmail(
+  stage: StudentStage,
+  input: StudentEmailInput
+): { subject: string; html: string } | null {
+  const name = (input.firstName || "").trim();
+  const hi = name ? `${esc(name)},` : "Hello,";
+  const days = input.daysUntilExam;
+  const why = "You created a ShearQuery membership and told us about your licence journey.";
+
+  switch (stage) {
+    case "student_setup":
+      return {
+        subject: "Your agent doesn't know anything about you yet",
+        html: shell(
+          "One minute, and it stops guessing",
+          para(`${hi} your account is live, but you haven't told it where you are yet — so it's still answering like it would for anybody.`) +
+            para(
+              "Three things change that: your state, which licence you're going for, and roughly when you test. From those it knows which kit list applies to you, what your school's real first-attempt pass rate is, and what a chair rents for where you want to work."
+            ) +
+            para("You can change any of it later, and leave blank anything you don't know yet."),
+          { href: `${SITE}/account/journey`, label: "Tell it where you are" },
+          why
+        ),
+      };
+
+    case "student_kit":
+      return {
+        subject: days != null ? `${days} days out — start on your kit` : "Time to start on your kit",
+        html: shell(
+          "Buy what's missing now, not the week before",
+          para(
+            `${hi} you're ${days != null ? `about ${days} days` : "getting close"} from your practical, which is the point where the kit stops being something to think about later.`
+          ) +
+            para(
+              "Two reasons to start now rather than the week before: some of it is genuinely hard to get at short notice, and the labelling rules catch people out — some items must carry a label, some must not, and getting that backwards is a fail on the day rather than a warning."
+            ) +
+            para("The checklist saves as you tick, so you can pack over several evenings instead of one panicked one."),
+          { href: `${SITE}${input.kitListHref || "/tools/barbershop-search"}`, label: "Open your kit list" },
+          why
+        ),
+      };
+
+    case "student_written":
+      return {
+        subject: days != null ? `${days} days out — the written exam is the one that fails people` : "The written exam is the one that fails people",
+        html: shell(
+          "Work the written test",
+          para(`${hi} you're ${days != null ? `${days} days` : "close to"} out.`) +
+            para(
+              "Worth knowing where the risk actually is: across Texas, first-attempt pass rates on the written exam sit far below the practical. Most people prepare for the exam they can picture — the hands-on one — and are surprised by the other."
+            ) +
+            (input.schoolName
+              ? para(`Ask the AI how ${esc(input.schoolName)} does on first-attempt written pass rate against the state. It's a real number and your school may not have mentioned it.`)
+              : ""),
+          {
+            href: `${SITE}${input.examPrepHref || input.requirementsHref || "/tools/barbershop-search"}`,
+            label: "Work the written exam",
+          },
+          why
+        ),
+      };
+
+    case "student_pack":
+      return {
+        subject: days != null && days <= 1 ? "Tomorrow — pack and label tonight" : "This week — pack and label",
+        html: shell(
+          "Pack it item by item",
+          para(`${hi} it's ${days != null && days <= 1 ? "tomorrow" : "this week"}.`) +
+            para(
+              "Work down the checklist physically, one item at a time, rather than glancing at the bag and deciding it looks about right. Label what has to be labelled and take the labels off what mustn't be."
+            ) +
+            para("Tick as you go — the list is saved to your account, so it's the same one on your phone in the morning."),
+          { href: `${SITE}${input.kitListHref || "/tools/barbershop-search"}`, label: "Open your checklist" },
+          why
+        ),
+      };
+
+    case "student_market":
+      return {
+        subject: "So — how did it go?",
+        html: shell(
+          "The next question is where you work",
+          para(`${hi} your exam date has been and gone. However it went, this is the part nobody preps you for.`) +
+            para(
+              input.zip
+                ? `We track booth rent and open chairs around ${esc(input.zip)} from real shop listings — what a chair actually costs there, and which shops have one free.`
+                : "We track booth rent and open chairs by ZIP from real shop listings — what a chair actually costs, and which shops have one free."
+            ) +
+            para(
+              "If you passed, tick the licensed box on your journey page and everything switches over from exam prep to finding work. If it didn't go your way, ask the AI about retakes — it's more common than schools let on."
+            ),
+          { href: `${SITE}/account/journey`, label: "Update where you are" },
+          why
+        ),
+      };
+
+    case "student_dormant":
+      return {
+        subject: "Still on the journey?",
+        html: shell(
+          "Checking in once",
+          para(`${hi} it's been a while.`) +
+            para(
+              "If you've got an exam date now, adding it is what turns the account from a search box into something that tells you what's due and when."
+            ) +
+            para("This is the last time we'll bring it up."),
+          { href: `${SITE}/account/journey`, label: "Pick this back up" },
+          why
         ),
       };
 

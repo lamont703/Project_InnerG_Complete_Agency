@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Menu, X, ArrowRight, ChevronDown, LogOut, User as UserIcon, LayoutGrid, Store, BarChart3, TrendingUp, Search } from "lucide-react"
+import { Menu, X, ArrowRight, ChevronDown, LogOut, User as UserIcon, LayoutGrid, Store, BarChart3, TrendingUp, Search, GraduationCap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { trackNavClick, trackCTAClick } from "@/lib/analytics"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -48,6 +48,10 @@ export function Navbar() {
   const [authChecked, setAuthChecked] = useState(false)
   const [accountLabel, setAccountLabel] = useState<string | null>(null)
   const [accountProjects, setAccountProjects] = useState<AccountProject[]>([])
+  // Which audience this member signed up as, so the menu offers what belongs
+  // to them. NULL for every member who predates the column — and they keep the
+  // owner-side items, which is what they've always seen.
+  const [accountAudience, setAccountAudience] = useState<string | null>(null)
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20)
@@ -66,6 +70,17 @@ export function Navbar() {
         .maybeSingle() as any
 
       setAccountLabel(profile?.full_name || email || "Account")
+
+      // community_members is a public directory table by design (its RLS
+      // policy is USING(true)), so this is readable with the anon key like
+      // the rest of it. Nothing private is fetched here — just which set of
+      // menu items to show.
+      const { data: memberRow } = await supabase
+        .from("community_members")
+        .select("audience")
+        .eq("user_id", userId)
+        .maybeSingle() as any
+      setAccountAudience(memberRow?.audience ?? null)
 
       // Community members have no project associations at all — this
       // query just comes back empty for them, which is correct (their
@@ -96,6 +111,7 @@ export function Navbar() {
       } else {
         setAccountLabel(null)
         setAccountProjects([])
+        setAccountAudience(null)
       }
     })
 
@@ -122,6 +138,10 @@ export function Navbar() {
     : accountProjects
 
   const isAuthenticated = authChecked && !!accountLabel
+  // A student has no listing, no Google profile and no ads — every one of the
+  // four owner items below is addressed to somebody else. They get the one
+  // page that is theirs instead.
+  const isStudent = accountAudience === "student"
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('/#')) {
@@ -142,6 +162,9 @@ export function Navbar() {
     await supabase.auth.signOut()
     setAccountLabel(null)
     setAccountProjects([])
+    // Cleared with the rest, or a student's menu persists into the next
+    // person to sign in on this browser.
+    setAccountAudience(null)
     setIsAccountOpen(false)
     setIsMobileOpen(false)
     router.push("/login")
@@ -279,6 +302,17 @@ export function Navbar() {
                       </div>
                     )}
                     <div className="py-1 border-t border-slate-100">
+                      {isStudent ? (
+                        <Link
+                          href="/account/journey"
+                          onClick={() => setIsAccountOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-foreground transition-colors"
+                        >
+                          <GraduationCap className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          My Licence Journey
+                        </Link>
+                      ) : (
+                      <>
                       <Link
                         href="/account/manage-listing"
                         onClick={() => setIsAccountOpen(false)}
@@ -311,6 +345,8 @@ export function Navbar() {
                         <BarChart3 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                         Ad Performance
                       </Link>
+                      </>
+                      )}
                     </div>
                     <ViewAsMenuItem
                       isAdmin={viewAs.isAdmin}
@@ -433,6 +469,17 @@ export function Navbar() {
                     {project.name}
                   </Link>
                 ))}
+                {isStudent ? (
+                  <Link
+                    href="/account/journey"
+                    onClick={(e) => handleNavClick(e, "/account/journey")}
+                    className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
+                  >
+                    <GraduationCap className="h-3.5 w-3.5 shrink-0" />
+                    My Licence Journey
+                  </Link>
+                ) : (
+                <>
                 <Link
                   href="/account/manage-listing"
                   onClick={(e) => handleNavClick(e, "/account/manage-listing")}
@@ -465,6 +512,8 @@ export function Navbar() {
                   <BarChart3 className="h-3.5 w-3.5 shrink-0" />
                   Ad Performance
                 </Link>
+                </>
+                )}
                 <ViewAsMenuItem
                   isAdmin={viewAs.isAdmin}
                   onClick={() => {

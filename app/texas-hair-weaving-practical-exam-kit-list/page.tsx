@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { KitChecklist, type KitGroup } from "@/components/tools/kit-checklist";
+import { AgentInvite } from "@/components/journey/agent-invite";
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
@@ -218,6 +219,20 @@ export default function HairWeavingPracticalExamKitListPage() {
 
         <KitChecklist groups={KIT_GROUPS} />
 
+
+        <AgentInvite
+
+          questions={[
+
+            "What are the Texas hair weaving licence requirements?",
+
+            "Which schools near me teach hair weaving?",
+
+            "Which shops near me are hiring for hair weaving and extensions?",
+
+          ]}
+
+        />
         <div className="bg-slate-50 border border-slate-200 rounded-2xl px-6 py-6 mb-10">
           <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide mb-3">
             Already provided at the exam site — don&apos;t bring these

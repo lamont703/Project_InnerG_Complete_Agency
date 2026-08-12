@@ -36,10 +36,85 @@ export interface WelcomeEmailInput {
   claimedEntityName?: string | null;
   /** Absolute or site-relative URL of the claimed listing. */
   claimedEntityUrl?: string | null;
+  /** Which audience registry entry they signed up as — see lib/audiences.ts. */
+  audience?: string | null;
+}
+
+/**
+ * The student welcome.
+ *
+ * A separate function rather than a branch inside the one below, because
+ * almost nothing survives the translation. "You're in the search index" is a
+ * benefit to a professional and meaningless to someone who won't be findable
+ * for another nine months; the single CTA — run a Google Business Profile
+ * audit — is addressed to a business owner and would be the first thing a
+ * student read after signing up to get help with an exam.
+ *
+ * Same discipline as its sibling: ONE call to action, and it promises only
+ * what exists. The one thing worth doing after signing up is telling the agent
+ * where they are, because until they do, the account has changed nothing.
+ */
+function buildStudentWelcomeEmail(name: string): { subject: string; html: string } {
+  const subject = "Your ShearQuery account is live — one thing left";
+
+  const html = `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;color:#0f172a">
+    <p style="font-size:13px;color:#64748b;margin:0 0 6px">ShearQuery membership</p>
+    <h2 style="margin:0 0 14px;font-size:21px">Welcome${name ? `, ${esc(name)}` : ""}.</h2>
+
+    <p style="margin:0 0 6px;color:#475569;font-size:15px;line-height:1.55">
+      Your account is active, and your conversations with the AI now save instead of vanishing when
+      you close the tab.
+    </p>
+
+    <table style="width:100%;border-collapse:collapse;margin:8px 0 0">
+      <tr><td style="padding:12px 0;border-bottom:1px solid #f1f5f9">
+        <strong style="color:#0f172a">It remembers now</strong><br>
+        <span style="color:#475569;font-size:14px">
+          Ask something today, come back next month, and you pick up where you left off instead of
+          starting over.
+        </span>
+      </td></tr>
+      <tr><td style="padding:12px 0;border-bottom:1px solid #f1f5f9">
+        <strong style="color:#0f172a">50 questions a day, not 5</strong><br>
+        <span style="color:#475569;font-size:14px">
+          The daily limit on AI search is ten times higher on an account.
+        </span>
+      </td></tr>
+    </table>
+
+    <h3 style="margin:28px 0 6px;font-size:16px">The one thing worth doing next</h3>
+    <p style="margin:0 0 4px;color:#475569;font-size:15px;line-height:1.55">
+      Tell it three things — your state, which licence you're going for, and when you test. It takes
+      about a minute, and it's the difference between general answers about barber school and answers
+      about <em>your</em> exam: your school's real first-attempt pass rate, the kit list that applies
+      to your licence, and what a chair rents for where you want to work.
+    </p>
+
+    <p style="margin:22px 0 0">
+      <a href="${SITE}/account/journey"
+         style="background:#1d4ed8;color:#fff;text-decoration:none;padding:13px 22px;border-radius:10px;font-weight:700;font-size:15px;display:inline-block">
+        Set up my journey
+      </a>
+    </p>
+
+    <p style="color:#94a3b8;font-size:12px;margin-top:30px;line-height:1.5">
+      You're receiving this because you created a ShearQuery membership with this address.
+      Reply to this email if you'd like the account removed.<br>
+      ShearQuery by Inner G Complete Agency
+    </p>
+  </div>`.trim();
+
+  return { subject, html };
 }
 
 export function buildCommunityWelcomeEmail(input: WelcomeEmailInput): { subject: string; html: string } {
   const name = (input.firstName || "").trim();
+
+  // A student who also claimed a listing is not a case that occurs — the claim
+  // CTAs live on business entity pages — so audience decides outright.
+  if (input.audience === "student") return buildStudentWelcomeEmail(name);
+
   const claimed = Boolean(input.claimedEntityName);
   const entity = esc(input.claimedEntityName || "");
   const entityUrl = input.claimedEntityUrl

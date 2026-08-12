@@ -1,11 +1,21 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Sparkles, BadgeCheck, Users, CheckCircle2 } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { CommunityMembershipForm } from "@/components/forms/CommunityMembershipForm";
-import { ClaimHeading } from "@/components/membership/claim-heading";
+import { MembershipHeading, MembershipBenefits } from "@/components/membership/membership-intro";
 import { SITE_URL } from "@/lib/site";
 
+/**
+ * Metadata stays fixed across audiences, and the canonical stays /membership.
+ *
+ * `?for=student` changes what a person reads, not what Google indexes. Making
+ * the title vary per audience would mean generateMetadata with searchParams,
+ * which makes the route dynamic and creates a set of near-duplicate URLs
+ * competing to be canonical — the exact consolidation problem this repo has
+ * already spent a domain migration on. The audience is a conversion surface,
+ * not a landing page.
+ */
 export const metadata: Metadata = {
   title: "Free Community Membership — Verified Badge on Your Listing",
   description:
@@ -14,24 +24,6 @@ export const metadata: Metadata = {
     canonical: `${SITE_URL}/membership`,
   },
 };
-
-const BENEFITS = [
-  {
-    icon: BadgeCheck,
-    title: "Get the Verified Badge on Your Listing",
-    body: "Claim your profile and earn the verified badge shown on your entity page — a clear signal to clients, shop owners, and hiring managers that it's owner-verified and up to date.",
-  },
-  {
-    icon: Users,
-    title: "Join a Real Industry Community",
-    body: "You're joining a growing directory of barbers and beauty professionals across Texas, not a mailing list.",
-  },
-  {
-    icon: CheckCircle2,
-    title: "Free, Always",
-    body: "No credit card, no trial period, no upsell. Community membership stays free.",
-  },
-];
 
 export default function MembershipPage() {
   return (
@@ -56,7 +48,7 @@ export default function MembershipPage() {
                 </>
               }
             >
-              <ClaimHeading />
+              <MembershipHeading />
             </Suspense>
           </div>
 
@@ -64,21 +56,10 @@ export default function MembershipPage() {
             {/* order-2 on mobile: the form has to be the first thing on a phone.
                 On a real visit the first input sat at y=1176 in an 844px viewport,
                 so the page offered nothing to do without scrolling a full screen. */}
-            <div className="order-2 lg:order-1 lg:col-span-3 space-y-6">
-              {BENEFITS.map((benefit) => (
-                <div
-                  key={benefit.title}
-                  className="flex gap-4 p-5 sm:p-6 rounded-2xl border border-slate-200 bg-white shadow-sm"
-                >
-                  <div className="h-11 w-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
-                    <benefit.icon className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-black text-slate-900 mb-1.5">{benefit.title}</h2>
-                    <p className="text-sm text-slate-600 leading-relaxed">{benefit.body}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="order-2 lg:order-1 lg:col-span-3">
+              <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-slate-100" />}>
+                <MembershipBenefits />
+              </Suspense>
             </div>
 
             <div className="order-1 lg:order-2 lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8">

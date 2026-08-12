@@ -5,6 +5,8 @@ import { GoogleGenAI } from "@google/genai";
 import { parseWeeklyRent } from "@/lib/shop-ecosystem";
 import { AD_ENTITY_TYPES } from "@/lib/ad-campaigns";
 import { rotateEligible } from "@/lib/ad-rotation";
+import { currentMember, getJourney, loadThread } from "@/lib/member-context";
+import { isJourneyStarted, journeyHeadline } from "@/lib/member-journey";
 
 // rent_rate is free text ("$175/week", "40% for 5 months then $300/wk",
 // etc.) with no queryable numeric column, so a rent filter has to fetch a
@@ -979,4 +981,45 @@ export async function getSponsoredSearchEntities(filterTab: string): Promise<Spo
 export async function getSponsoredSearchEntity(filterTab: string): Promise<SponsoredSearchEntity | null> {
   const list = await getSponsoredSearchEntities(filterTab);
   return list[0] || null;
+}
+
+/**
+ * What AI Mode needs to know about the person using it.
+ *
+ * Called once on mount. For the anonymous majority this returns
+ * `{ isMember: false }` and the chat behaves exactly as it always has —
+ * sessionStorage, no server round-trip for history, nothing stored.
+ *
+ * For a member it returns their saved conversation, so closing the tab stops
+ * being the thing that erases the agent's memory. That single difference is
+ * what the account is actually for, so it loads with the page rather than
+ * behind a "restore" button nobody would press.
+ */
+export async function getAiModeMemberContext(): Promise<{
+  isMember: boolean;
+  firstName: string | null;
+  /** Their prior conversation, oldest first, in the client's wire shape. */
+  messages: { role: string; content: string }[];
+  /** One line for the chat header — null when they've told us nothing yet. */
+  journeyLine: string | null;
+  /** Set when the journey is thin enough to be worth finishing. */
+  setupHref: string | null;
+}> {
+  const member = await currentMember();
+  if (!member) return { isMember: false, firstName: null, messages: [], journeyLine: null, setupHref: null };
+
+  const [thread, facts] = await Promise.all([loadThread(member.id), getJourney(member.id)]);
+  const today = new Date().toISOString().split("T")[0];
+  const started = isJourneyStarted(facts);
+
+  return {
+    isMember: true,
+    firstName: member.firstName,
+    messages: thread?.messages ?? [],
+    journeyLine: started ? journeyHeadline(facts, today) : null,
+    // Two different nudges, and the difference matters: someone who has told
+    // us nothing needs the setup, someone mid-journey does not need to be sent
+    // back to a form they already filled in.
+    setupHref: started ? null : "/account/journey",
+  };
 }

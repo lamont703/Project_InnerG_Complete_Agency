@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { KitChecklist, type KitGroup } from "@/components/tools/kit-checklist";
+import { AgentInvite } from "@/components/journey/agent-invite";
 import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
@@ -206,6 +207,13 @@ export default function BarberPracticalExamKitListPage() {
         {/* Interactive + printable checklist */}
         <KitChecklist groups={KIT_GROUPS} />
 
+        <AgentInvite
+          questions={[
+            "What's the first-attempt pass rate at my barber school in Texas?",
+            "Which Texas barber schools have the best written exam pass rates?",
+            "What does booth rent cost in my zip code once I'm licensed?",
+          ]}
+        />
         {/* Provided on site */}
         <div className="bg-slate-50 border border-slate-200 rounded-2xl px-6 py-6 mb-10">
           <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide mb-3">

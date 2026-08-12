@@ -4,6 +4,7 @@ import { CheckCircle2, GraduationCap, FileText, RefreshCw, ArrowRight, Star, Tre
 import { Navbar } from "@/components/layout/navbar";
 import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
+import { AgentInvite } from "@/components/journey/agent-invite";
 
 export const revalidate = 3600;
 
@@ -304,6 +305,14 @@ export default async function HowToGetBarberLicenseTexasPage() {
             </Link>
           </div>
         </div>
+
+        <AgentInvite
+          questions={[
+            "What's the first-attempt pass rate at the barber school I'm looking at?",
+            "Which barber schools near me have the best pass rates?",
+            "How much does booth rent cost in my area once I'm licensed?",
+          ]}
+        />
 
         <div className="flex items-center gap-2 justify-center mt-16 text-xs text-slate-400 font-medium">
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />

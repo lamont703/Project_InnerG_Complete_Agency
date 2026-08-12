@@ -4,6 +4,9 @@ import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
+import { currentMember, getJourney, appendToThread } from '@/lib/member-context';
+import { agentJourneyContext } from '@/lib/member-journey';
+import { AUDIENCES } from '@/lib/audiences';
 
 // Next.js patches the global fetch() to cache responses by default, which
 // can end up caching the Gemini SDK's own internal fetch calls (identical
@@ -11,8 +14,19 @@ import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployme
 // one). Chat responses must never be cached — force this route dynamic.
 export const dynamic = 'force-dynamic';
 
-// Simple Rate Limit: 5 per 24 hours
+// Simple Rate Limit: 5 per 24 hours for anyone not signed in.
+//
+// Signed-in members get a much higher ceiling, and that difference is the
+// point rather than a perk bolted on afterwards. The 429 copy has always said
+// "or upgrade your account for more" while no account gave you more, so the
+// one place a visitor was told membership was worth something was also the
+// one place it demonstrably wasn't.
+//
+// Still a real limit, not unlimited: every request is an embedding call plus
+// one or two Gemini generations, and a free tier with no ceiling is an
+// unbounded bill.
 const MAX_REQUESTS = 5;
+const MAX_REQUESTS_MEMBER = 50;
 const RATE_LIMIT_RESET_HOURS = 24;
 
 // The LINKING RULE in the system prompt tells the model never to invent a
@@ -60,9 +74,21 @@ export async function POST(req: Request) {
       usageCount = 0;
     }
 
-    if (usageCount >= MAX_REQUESTS) {
+    // Who is asking. Established from their own session cookie — never from
+    // anything in the request body — and null for the anonymous majority.
+    // Everything downstream treats a null member as the existing behaviour.
+    const member = await currentMember();
+    const limit = member ? MAX_REQUESTS_MEMBER : MAX_REQUESTS;
+
+    if (usageCount >= limit) {
       return NextResponse.json(
-        { error: "You've reached your limit of 5 AI searches for today. This resets every 24 hours, so feel free to come back tomorrow — or upgrade your account for more." },
+        {
+          error: member
+            ? `You've reached your limit of ${MAX_REQUESTS_MEMBER} AI searches for today. This resets every 24 hours.`
+            : `You've reached your limit of ${MAX_REQUESTS} AI searches for today. A free account raises that to ${MAX_REQUESTS_MEMBER} a day — and the agent remembers your school, your licence track and your exam date instead of starting over each time.`,
+          // Lets the client show a real signup path instead of a dead end.
+          upgradeHref: member ? null : '/membership?for=student',
+        },
         { status: 429 }
       );
     }
@@ -72,6 +98,23 @@ export async function POST(req: Request) {
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const supabase = createAdminClient();
+
+    // What we know about this member's own situation — state, licence track,
+    // school, exam date, ZIP. This is the one category of fact in the whole
+    // prompt that isn't a claim about the industry: it's a claim about the
+    // person asking, which they told us themselves.
+    //
+    // Null for anonymous visitors and for members who haven't filled anything
+    // in, and in both cases the prompt below simply doesn't mention it — an
+    // empty journey object would invite the model to comment on how little it
+    // knows, which is worse than saying nothing.
+    const todayIso = new Date().toISOString().split('T')[0];
+    let journeyContext: Record<string, unknown> | null = null;
+    if (member) {
+      const facts = await getJourney(member.id);
+      journeyContext = agentJourneyContext(facts, todayIso, member.firstName);
+    }
+    const audienceBrief = member?.audience ? AUDIENCES[member.audience].agentBrief : null;
 
     // When a shop owner arrives from their own shop's profile page via "Ask
     // AI About This Market", shopId identifies exactly which shop — this is
@@ -280,6 +323,10 @@ export async function POST(req: Request) {
     // previously cut the JSON off before ever reaching a field added later
     // in the object, silently making the model "forget" that data existed.
     const mergedContext = {
+      // First in the object, for the same defense-in-depth reason the exam
+      // leaderboard is: this JSON gets truncated at 120k characters, and who
+      // the member is must never be the thing that falls off the end.
+      ...(journeyContext ? { member_journey_context: journeyContext } : {}),
       ...(shopEcosystemContext ? { my_shop_ecosystem_report: shopEcosystemContext } : {}),
       texas_2026_exam_school_leaderboard: withProfileUrl(testingLeaderboard, '/schools'),
       texas_2026_cosmetology_exam_school_leaderboard: withProfileUrl(cosmetologyTestingLeaderboard, '/schools'),
@@ -309,7 +356,16 @@ Today's date is ${todayDate}. All exam data on file is for exam_year 2026 — th
 You MUST answer the user's questions based ONLY on the following context data fetched directly from our database.
 If the answer is not in the context, say you don't know based on current data.
 CRITICAL INSTRUCTION: Keep your answer extremely concise, friendly, and helpful. You MUST keep your entire response under 100 words. Do not ramble. If you write more than 100 words, your response will be abruptly cut off.
-
+${audienceBrief ? `\nWHO YOU ARE TALKING TO: ${audienceBrief}\n` : ''}${journeyContext ? `
+MEMBER_JOURNEY_CONTEXT RULE: member_journey_context is in the context data below. It is not a search result — it is what this specific person told us about their own situation, and it is the reason they made an account. Use it without being asked to.
+- ANSWER FOR THEIR STATE AND THEIR LICENCE, always. Rules, fees, exam format and kit requirements differ per state and per licence far more than the names suggest. Never hand a California student a Texas figure, or a manicurist a cosmetology answer, just because that is the more common case in the data.
+- days_until_exam is already computed for you. Use that number directly; do not do date arithmetic of your own, and do not ask what today's date is.
+- IF state_has_practical_exam IS FALSE, THERE IS NO PRACTICAL EXAM AND NO KIT. Do not mention kit lists, mannequins, models, or what to pack — not even as a "you may also need to". Their licence is decided by the written examination alone. Saying otherwise sends someone to buy equipment they will never use.
+- their_kit_list_url, their_requirements_url and each next_steps[].url are real internal links — hyperlink them per the LINKING RULE when they are relevant to what was asked.
+- A null field means they have not told us, NOT that the answer is unknown or that it does not apply. If a null field would materially change your answer (most often exam_date, state or license_track), ask for that one thing in a single short question rather than guessing or hedging across every possibility.
+- Do not recite their profile back at them, do not open with a greeting that lists what you know, and use their first name at most once in a conversation. Someone who told you their exam date wants a better answer, not a demonstration that you remembered.
+- NEVER invent a journey fact. If member_journey_context says school_name is null, you do not know where they study — the same rule as every other fact on this page.
+` : ''}
 LINKING RULE: Whenever you mention a specific tool from software_tools, or a specific barbershop/barber/school/salon/cosmetologist/store that has a profile_url (or profileUrl) field in the context, you MUST format that mention as a markdown link using its EXACT value, e.g. [Barber & Cosmetology Placement](/barber-beauty-network). Every one of those internal links is a relative path starting with "/" — NEVER use a link starting with "http" or "https" for these (this includes Google Places URLs like places.googleapis.com, which sometimes appear elsewhere in this data as image sources, not link destinations). If an item you want to mention does NOT have a profile_url/profileUrl in the context, mention it by plain name with NO link at all — do not construct, guess, or reuse a URL from anywhere else in the data.
 The ONE exception is articles_and_videos: each entry's "url" field IS meant to be used as-is (it's a real external link to that article or video, not our own site) — link to it directly, but keep the link label short (the page's title or topic), never the raw_text field, which is scraped page content for your own reference only and must never appear in your response.
 Use each link only once per response.
@@ -646,6 +702,20 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
     const nextReset = resetTime && new Date() > new Date(resetTime) ? resetTime : new Date(Date.now() + RATE_LIMIT_RESET_HOURS * 60 * 60 * 1000).toISOString();
 
     const finalText = response.text ? sanitizeMarkdownLinks(response.text, validLinks) : response.text;
+
+    // Persist the exchange for signed-in members only. Anonymous chats stay in
+    // sessionStorage exactly as before and are never written to the database —
+    // there is no account to attach them to, and storing them against a cookie
+    // would be collecting conversations from people who never asked us to.
+    //
+    // Awaited rather than fired and forgotten: this runs on a serverless
+    // function that may be frozen the moment the response is returned, so a
+    // dangling promise here is a write that usually doesn't happen. It is
+    // written post-sanitization, so what the member sees is what gets stored.
+    if (member && finalText) {
+      await appendToThread(member.id, latestMessage, finalText);
+    }
+
     const res = NextResponse.json({ text: finalText, employmentMatches });
     res.cookies.set('ai_chat_count', newCount.toString(), { path: '/' });
     res.cookies.set('ai_chat_reset', nextReset, { path: '/' });
