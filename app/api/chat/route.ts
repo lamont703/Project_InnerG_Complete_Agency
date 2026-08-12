@@ -67,7 +67,26 @@ function sanitizeMarkdownLinks(text: string, validLinks: Set<string>): string {
   return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => (validLinks.has(url) ? match : label));
 }
 
-const CHAT_MODEL = 'gemini-2.5-flash';
+// The chat model.
+//
+// Moved off gemini-2.5-flash on 2026-08-12, not by choice: it is closed to new
+// users, and the ShearQuery-Production / ShearQuery-Development Cloud projects
+// are new. The old shared project was grandfathered, which is why this surfaced
+// only once chat got its own key — a 404 reading "no longer available to new
+// users", not a deprecation notice anyone could have read in advance.
+//
+// generateContent is unaffected and still fully supported, so this is a model
+// ID change rather than an API migration.
+//
+// Flash-lite tier on purpose: the job is to read grounded JSON and answer in
+// under 100 words. At $0.25/M in and $1.50/M out this is cheaper than what it
+// replaced ($0.30 / $2.50) — see MODEL_PRICING in lib/ai-usage.ts, and keep the
+// two in step or the cost dashboard quietly starts reporting fiction.
+//
+// NOT changed anywhere else. lib/gbp-description.ts and lib/gbp-review-replies.ts
+// still call gemini-2.5-flash on the OLD shared project, where it remains
+// available. Changing them would be a migration nobody asked for.
+const CHAT_MODEL = 'gemini-3.1-flash-lite';
 
 export async function POST(req: Request) {
   // Declared outside the try so the catch can still record a failed attempt.

@@ -42,6 +42,19 @@ export interface ModelPricing {
  * from, so a figure on the dashboard can always be traced to a source.
  */
 export const MODEL_PRICING: Record<string, ModelPricing> = {
+  // What the chat feature uses. Cheaper than the 2.5-flash it replaced.
+  "gemini-3.1-flash-lite": {
+    inputPerMillion: 0.25,
+    outputPerMillion: 1.5,
+    verifiedOn: "2026-08-12",
+    source: "https://ai.google.dev/gemini-api/docs/pricing",
+  },
+  // KEPT after the chat feature moved off it. Two reasons, and the first is
+  // the important one: ai_usage_events rows already priced against this model
+  // must stay explicable, and removing the rate would turn their stored cost
+  // into an unexplainable number. Second, lib/gbp-description.ts and
+  // lib/gbp-review-replies.ts still call it on the older project, where it is
+  // still available.
   "gemini-2.5-flash": {
     inputPerMillion: 0.3,
     outputPerMillion: 2.5,
