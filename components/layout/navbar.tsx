@@ -48,9 +48,9 @@ export function Navbar() {
   const [authChecked, setAuthChecked] = useState(false)
   const [accountLabel, setAccountLabel] = useState<string | null>(null)
   const [accountProjects, setAccountProjects] = useState<AccountProject[]>([])
-  // Which audience this member signed up as, so the menu offers what belongs
-  // to them. NULL for every member who predates the column — and they keep the
-  // owner-side items, which is what they've always seen.
+  // Which audience this member signed up as. Used only to ADD an item that is
+  // relevant to them — never to remove one. NULL for every member who predates
+  // the column, and they see exactly what they always have.
   const [accountAudience, setAccountAudience] = useState<string | null>(null)
 
   useEffect(() => {
@@ -138,9 +138,16 @@ export function Navbar() {
     : accountProjects
 
   const isAuthenticated = authChecked && !!accountLabel
-  // A student has no listing, no Google profile and no ads — every one of the
-  // four owner items below is addressed to somebody else. They get the one
-  // page that is theirs instead.
+  // Adds "My Licence Journey" to the account menu. ADDITIVE ONLY.
+  //
+  // The first version of this treated audience as exclusive — a student got
+  // the journey link and lost Manage My Listing, My Google Audit, Listing
+  // Insights and Ad Performance. Two things wrong with that. Somebody can
+  // genuinely be both: a student who also owns a shop, or an admin who filled
+  // in the journey form to test it — which is exactly what happened, and it
+  // took the site owner's own admin menu away. And more generally, an audience
+  // is a hint about what to OFFER someone; it is never grounds for withdrawing
+  // a capability their account already has.
   const isStudent = accountAudience === "student"
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -302,17 +309,6 @@ export function Navbar() {
                       </div>
                     )}
                     <div className="py-1 border-t border-slate-100">
-                      {isStudent ? (
-                        <Link
-                          href="/account/journey"
-                          onClick={() => setIsAccountOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-foreground transition-colors"
-                        >
-                          <GraduationCap className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                          My Licence Journey
-                        </Link>
-                      ) : (
-                      <>
                       <Link
                         href="/account/manage-listing"
                         onClick={() => setIsAccountOpen(false)}
@@ -345,7 +341,24 @@ export function Navbar() {
                         <BarChart3 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                         Ad Performance
                       </Link>
-                      </>
+                      {/* ADDITIVE, never a replacement. An earlier version made
+                          this an either/or — students got the journey link and
+                          LOST the four items above. That is wrong twice over:
+                          somebody can genuinely be both (a student who also
+                          owns a shop), and the audience is a hint about what to
+                          offer, never a reason to take away a capability an
+                          account already has. It cost the site owner his own
+                          admin menu the moment he filled in the journey form
+                          while testing. */}
+                      {isStudent && (
+                        <Link
+                          href="/account/journey"
+                          onClick={() => setIsAccountOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-foreground transition-colors"
+                        >
+                          <GraduationCap className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          My Licence Journey
+                        </Link>
                       )}
                     </div>
                     <ViewAsMenuItem
@@ -469,17 +482,6 @@ export function Navbar() {
                     {project.name}
                   </Link>
                 ))}
-                {isStudent ? (
-                  <Link
-                    href="/account/journey"
-                    onClick={(e) => handleNavClick(e, "/account/journey")}
-                    className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
-                  >
-                    <GraduationCap className="h-3.5 w-3.5 shrink-0" />
-                    My Licence Journey
-                  </Link>
-                ) : (
-                <>
                 <Link
                   href="/account/manage-listing"
                   onClick={(e) => handleNavClick(e, "/account/manage-listing")}
@@ -512,7 +514,15 @@ export function Navbar() {
                   <BarChart3 className="h-3.5 w-3.5 shrink-0" />
                   Ad Performance
                 </Link>
-                </>
+                {isStudent && (
+                  <Link
+                    href="/account/journey"
+                    onClick={(e) => handleNavClick(e, "/account/journey")}
+                    className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
+                  >
+                    <GraduationCap className="h-3.5 w-3.5 shrink-0" />
+                    My Licence Journey
+                  </Link>
                 )}
                 <ViewAsMenuItem
                   isAdmin={viewAs.isAdmin}
