@@ -9,6 +9,7 @@ import {
   EMPTY_USAGE,
 } from "./ai-usage";
 import { slimContext, contextChars, DROPPED_FIELDS, TRUNCATED_FIELDS } from "./chat-context-slim";
+import { resolveChatKey, keyFingerprint } from "./gemini-keys";
 
 describe("extractUsage", () => {
   it("reads Gemini's camelCase usageMetadata", () => {
@@ -161,5 +162,54 @@ describe("slimContext", () => {
     const before = contextChars(realistic);
     const after = contextChars(slimContext(realistic));
     expect(after).toBeLessThan(before * 0.15);
+  });
+});
+
+describe("resolveChatKey", () => {
+  it("prefers the chat's own key, and reports it as isolated", () => {
+    const r = resolveChatKey({ GEMINI_CHAT_API_KEY: "chat-key", GEMINI_API_KEY: "shared-key" });
+    expect(r.key).toBe("chat-key");
+    expect(r.source).toBe("GEMINI_CHAT_API_KEY");
+    expect(r.isolated).toBe(true);
+  });
+
+  it("falls back to the shared key but never calls that isolated", () => {
+    // The failure this guards: believing two Cloud projects have separated
+    // your quota when the deploy is still on the shared key. Believing you're
+    // isolated when you aren't is what makes the next outage inexplicable.
+    const r = resolveChatKey({ GEMINI_API_KEY: "shared-key" });
+    expect(r.key).toBe("shared-key");
+    expect(r.isolated).toBe(false);
+    expect(r.note).toMatch(/competing for quota/);
+  });
+
+  it("treats whitespace-only as unset", () => {
+    // An env var set to "" or " " in a dashboard is a very common way to
+    // think you've configured something.
+    const r = resolveChatKey({ GEMINI_CHAT_API_KEY: "   ", GEMINI_API_KEY: "shared" });
+    expect(r.source).toBe("GEMINI_API_KEY");
+    expect(resolveChatKey({ GEMINI_CHAT_API_KEY: "", GEMINI_API_KEY: "" }).source).toBe("none");
+  });
+
+  it("reports 'none' rather than throwing when nothing is configured", () => {
+    const r = resolveChatKey({});
+    expect(r.key).toBeUndefined();
+    expect(r.source).toBe("none");
+  });
+});
+
+describe("keyFingerprint", () => {
+  it("reveals only the last 4 characters", () => {
+    // The leading characters of a Google key are a fixed prefix and would
+    // distinguish nothing while still being part of the secret.
+    expect(keyFingerprint("AIzaSyABCDEFGHIJKLMNOP1234")).toBe("…1234");
+    expect(keyFingerprint(undefined)).toBe("none");
+    expect(keyFingerprint("short")).toBe("invalid");
+  });
+
+  it("never contains the start of the key", () => {
+    const key = "AQ.Ab8SecretMaterialHere9999";
+    expect(keyFingerprint(key)).not.toContain("AQ.Ab8");
+    expect(keyFingerprint(key).length).toBeLessThanOrEqual(6);
   });
 });

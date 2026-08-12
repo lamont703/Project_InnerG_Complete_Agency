@@ -10,6 +10,7 @@ import { AUDIENCES } from '@/lib/audiences';
 import { slimContext, contextChars } from '@/lib/chat-context-slim';
 import { extractUsage, sumUsage, EMPTY_USAGE, type TokenUsage } from '@/lib/ai-usage';
 import { recordAiUsage } from '@/lib/ai-usage-record';
+import { resolveChatKey, keyFingerprint } from '@/lib/gemini-keys';
 
 // Next.js patches the global fetch() to cache responses by default, which
 // can end up caching the Gemini SDK's own internal fetch calls (identical
@@ -113,7 +114,22 @@ export async function POST(req: Request) {
     const { messages, shopId } = await req.json();
     const latestMessage = messages[messages.length - 1].content;
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    // The chat feature's OWN key, pointing at its OWN Cloud project.
+    //
+    // Google rate-limits per project, not per key, and GEMINI_API_KEY is shared
+    // with ~25 batch scripts and ~15 edge functions — so before this split, a
+    // backfill run from a laptop drew down the same allowance as live chat, and
+    // a staging test drew down production's. Chat gets its own quota here.
+    //
+    // Falls back to the shared key so nothing breaks mid-migration, but says so
+    // loudly: someone who has set up two Cloud projects and deployed should not
+    // be able to *believe* the environments are isolated while they are still
+    // sharing a ceiling.
+    const chatKey = resolveChatKey(process.env as Record<string, string | undefined>);
+    if (!chatKey.isolated) {
+      console.warn(`[AI Chat] ${chatKey.note}`);
+    }
+    const ai = new GoogleGenAI({ apiKey: chatKey.key });
     const supabase = createAdminClient();
 
     // What we know about this member's own situation — state, licence track,
@@ -803,7 +819,14 @@ ${JSON.stringify(slimmedContext).substring(0, 120000)}
 
     // One structured line, so a log search finds the classification rather than
     // a stack trace that has to be read.
-    console.error(`[AI Chat Error] kind=${kind} status=${status ?? 'none'} name=${error?.name || 'Error'}: ${message}`);
+    // keySource and the 4-character fingerprint are the two facts that turn
+    // "the AI is broken" into "this deployment picked up the wrong key" — the
+    // question an environment split creates and nothing else answers.
+    const keyInfo = resolveChatKey(process.env as Record<string, string | undefined>);
+    console.error(
+      `[AI Chat Error] kind=${kind} status=${status ?? 'none'} name=${error?.name || 'Error'} ` +
+      `keySource=${keyInfo.source} key=${keyFingerprint(keyInfo.key)} isolated=${keyInfo.isolated}: ${message}`
+    );
 
     // Failures are recorded too. A quota block burns no tokens, so a ledger
     // that only logged successes would go silent exactly when something was
@@ -844,7 +867,13 @@ ${JSON.stringify(slimmedContext).substring(0, 120000)}
         // upstream error string — those routinely carry internal endpoints,
         // project identifiers and occasionally partial keys.
         ...(process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production'
-          ? { detail: `${error?.name || 'Error'}${status ? ` [${status}]` : ''}: ${message}`.slice(0, 500) }
+          ? {
+              detail: `${error?.name || 'Error'}${status ? ` [${status}]` : ''}: ${message}`.slice(0, 500),
+              // Which variable this deployment read, and the last 4 characters
+              // of the key it got. Never more than that.
+              keySource: keyInfo.source,
+              keyFingerprint: keyFingerprint(keyInfo.key),
+            }
           : {}),
       },
       // A quota block upstream is our capacity problem, not a bug in the
