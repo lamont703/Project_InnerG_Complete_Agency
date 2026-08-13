@@ -15,26 +15,12 @@ import {
 import { COSMETOLOGIST_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import Image from "next/image";
-import {
-  MapPin,
-  Star,
-  Sparkles,
-  Instagram,
-  Youtube,
-  Globe,
-  Music2,
-  Users,
-  Navigation,
-  Landmark,
-  GraduationCap,
-  CheckCircle2,
-  CalendarCheck,
-  Phone,
-  Clock,
-} from "lucide-react";
+import {MapPin, Star, Sparkles, Instagram, Youtube, Music2, Users, Navigation, Landmark, GraduationCap, CheckCircle2, Clock} from "lucide-react";
 import { ClaimShopButton } from "@/components/shared/claim-shop-button";
 import { isEntityClaimed } from "@/lib/entity-claim";
 import { SITE_URL } from "@/lib/site";
+import { BookAppointmentButton } from "@/components/book-appointment-modal";
+import { servicesForEntity } from "@/lib/booking-services";
 
 export const revalidate = 3600;
 
@@ -206,6 +192,12 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
   const services: { name: string; price: number; duration?: string }[] = Array.isArray(person.booksy_services)
     ? person.booksy_services
     : [];
+  // The same list, normalised for the Book Appointment modal. See the matching
+  // block in app/barbers/[slug]/page.tsx.
+  const bookingServices = servicesForEntity({
+    entityType: "cosmetologist",
+    booksyServices: person.booksy_services,
+  });
   // booksy_hours is currently populated on 0 of 122 cosmetologist rows — the
   // StyleSeat scrape doesn't capture it the way the Booksy barber scrape does.
   // Wired anyway so the section appears the moment that changes, and renders
@@ -250,11 +242,8 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
       href: `https://youtube.com/@${person.youtube_channel.replace("@", "")}`,
       Icon: Youtube,
     },
-    person.website_url && {
-      label: "Website",
-      href: person.website_url.startsWith("http") ? person.website_url : `https://${person.website_url}`,
-      Icon: Globe,
-    },
+    // Website deliberately absent — same reasoning as app/barbers/[slug]/page.tsx.
+    // Populated on 0 of 122 rows today regardless.
   ].filter(Boolean) as { label: string; href: string; Icon: any }[];
 
   const cosmetologistJsonLd = buildCosmetologistJsonLd(person);
@@ -376,39 +365,20 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
                   website_url is populated on 0 of 122 rows, so the Website
                   button renders for nobody today but is wired for when it is. */}
               <div className="flex flex-wrap items-stretch gap-2 mt-5 pt-5 border-t border-slate-100">
-                {person.profile_url && (
-                  <a
-                    href={person.profile_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-ig-click="outbound_lead"
-                    className="flex-1 min-w-[150px] inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-fuchsia-600/20"
-                  >
-                    <CalendarCheck className="w-4 h-4" />
-                    Book Now
-                  </a>
-                )}
-                {person.phone && (
-                  <a
-                    href={`tel:${String(person.phone).replace(/[^\d+]/g, "")}`}
-                    data-ig-click="outbound_lead"
-                    className="flex-1 min-w-[110px] inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-200 bg-white hover:border-fuchsia-200 hover:bg-fuchsia-50 text-slate-700 hover:text-fuchsia-700 font-bold text-sm transition-colors"
-                  >
-                    <Phone className="w-4 h-4" />
-                    Call
-                  </a>
-                )}
-                {person.website_url && (
-                  <a
-                    href={person.website_url.startsWith("http") ? person.website_url : `https://${person.website_url}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-ig-click="outbound_lead"
-                    className="flex-1 min-w-[110px] inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-200 bg-white hover:border-fuchsia-200 hover:bg-fuchsia-50 text-slate-700 hover:text-fuchsia-700 font-bold text-sm transition-colors"
-                  >
-                    <Globe className="w-4 h-4" />
-                    Website
-                  </a>
+                {/* Book Appointment replaces the outbound Book Now (StyleSeat/
+                    Booksy), Call and Website buttons — same reasoning as
+                    app/barbers/[slug]/page.tsx. Services come from this
+                    person's own booksy_services, which carry durations as well
+                    as prices here. Directions stays. */}
+                {bookingServices && (
+                  <BookAppointmentButton
+                    entityType="cosmetologist"
+                    entityId={String(person.id)}
+                    entityName={person.name}
+                    services={bookingServices}
+                    fallbackWebsite={person.website_url}
+                    className="flex-1 min-w-[150px] px-5 py-3 bg-fuchsia-600 hover:bg-fuchsia-700 font-extrabold uppercase tracking-wider shadow-md shadow-fuchsia-600/20"
+                  />
                 )}
                 {directionsHref && (
                   <a

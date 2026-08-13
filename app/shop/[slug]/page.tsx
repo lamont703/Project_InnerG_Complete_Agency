@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Metadata, ResolvingMetadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft, Map as MapIcon, Mail, Phone, Info, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles, Landmark, Globe, Navigation, Clock, Store } from "lucide-react";
+import {MapPin, Scissors, CheckCircle2, ShieldCheck, Lock, Award, Users, ChevronLeft, Map as MapIcon, Mail, Info, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles, Landmark, Navigation, Clock, Store} from "lucide-react";
 import { computeShopEcosystemReport } from "@/lib/shop-ecosystem";
 import Image from "next/image";
 import { ShopPhotoGallery } from "@/components/shared/shop-photo-gallery";
@@ -18,6 +18,8 @@ import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { Navbar } from "@/components/layout/navbar";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
+import { BookAppointmentButton } from "@/components/book-appointment-modal";
+import { servicesForEntity } from "@/lib/booking-services";
 import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { composeDescription, ratingClause, streetClause } from "@/lib/seo-description";
 import { SITE_URL } from "@/lib/site";
@@ -299,6 +301,14 @@ export default async function ShopProfilePage({ params }: Props) {
     ? shop.website.startsWith("http") ? shop.website : `https://${shop.website}`
     : null;
 
+  // Null for the handful of rows whose google_category is a supply store or a
+  // scrape artifact ("Reviews", "Saved") — those get no booking CTA at all
+  // rather than being offered a haircut. See lib/booking-services.ts.
+  const bookingServices = servicesForEntity({
+    entityType: "shop",
+    googleCategory: shop.google_category,
+  });
+
   const maskEmail = (email: string) => email ? email.replace(/(.{2})(.*)(@.*)/, '$1***$3') : '';
   const maskPhone = (phone: string) => phone ? phone.replace(/(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/, '(***) ***-****') : '';
 
@@ -552,20 +562,22 @@ export default async function ShopProfilePage({ params }: Props) {
             ) : (
               <ClaimShopButton shop={shop} />
             )}
-            {(shop.phone || websiteHref) && (
+            {/* Book Appointment replaces the old Call and Website buttons.
+                Those both worked and both handed the lead away: the visit
+                converted somewhere we could not see, so the directory could
+                prove nothing. The phone and website are not gone — they are
+                revealed on the confirmation step once the request is in, so
+                nobody is left unable to reach the shop. */}
+            {bookingServices && (
               <div className="flex gap-2 mt-3 w-full sm:w-auto">
-                {shop.phone && (
-                  <a href={`tel:${shop.phone}`} data-ig-click="outbound_lead" className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm px-6 py-3">
-                    <Phone className="w-4 h-4 text-slate-500" />
-                    Call
-                  </a>
-                )}
-                {websiteHref && (
-                  <a href={websiteHref} target="_blank" rel="noopener noreferrer" data-ig-click="outbound_lead" className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm px-6 py-3">
-                    <Globe className="w-4 h-4 text-slate-500" />
-                    Website
-                  </a>
-                )}
+                <BookAppointmentButton
+                  entityType="shop"
+                  entityId={String(shop.id)}
+                  entityName={shop.shop_name}
+                  services={bookingServices}
+                  fallbackPhone={shop.phone}
+                  fallbackWebsite={websiteHref}
+                />
               </div>
             )}
           </div>

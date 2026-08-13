@@ -114,6 +114,12 @@ export const SALON_PUBLIC_COLUMNS = [
   // reconcile this row with its own record for the same business, which is why
   // it is published in the entity graph as a typed `identifier`.
   "place_id",
+  // The Google Maps business category, shown on the Maps listing itself and so
+  // public by the same reasoning as place_id. Needed because it is what picks
+  // the Book Appointment service list: this table holds 11 nail salons, 7 spas
+  // and 4 med spas alongside the hair salons, and lib/booking-services.ts keys
+  // off the category precisely so a nail salon is not offered a beard trim.
+  "google_category",
 ];
 
 export const STORE_PUBLIC_COLUMNS = [
