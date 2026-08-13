@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   decide, currentStage, STAGE_DELAY_DAYS, QUIET_PERIOD_DAYS,
-  type MemberFacts, type LifecycleStage,
+  currentStudentStage, decideStudent, STUDENT_STAGES,
+  type MemberFacts, type LifecycleStage, type StudentFacts,
 } from "./member-lifecycle";
+import type { JourneyFacts } from "./member-journey";
 
 const NOW = new Date("2026-08-02T12:00:00Z");
 const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86_400_000).toISOString();
@@ -151,5 +153,77 @@ describe("the first real cohort", () => {
     const joann = decide(facts({ hasClaim: true, claimedAt: daysAgo(1) }), NOW);
     expect(joann.send).toBe(false);
     expect(STAGE_DELAY_DAYS.claimed_not_connected).toBe(2);
+  });
+});
+
+describe("student track", () => {
+  const NOW = new Date("2026-08-12T12:00:00Z");
+
+  function student(journey: Partial<JourneyFacts>, over: Partial<StudentFacts> = {}): StudentFacts {
+    return {
+      memberId: "m1",
+      createdAt: "2026-01-01T00:00:00Z",
+      journey: { state: "TX", track: "barber", ...journey },
+      sentStages: [],
+      lastSentAt: null,
+      ...over,
+    };
+  }
+
+  it("asks an empty journey to be filled in, but not on day one", () => {
+    const empty = { state: null, track: null };
+    expect(currentStudentStage(student(empty, { createdAt: "2026-08-12T00:00:00Z" }), NOW)).toBeNull();
+    expect(currentStudentStage(student(empty, { createdAt: "2026-08-01T00:00:00Z" }), NOW)).toBe("student_setup");
+  });
+
+  it("walks the exam countdown, closest milestone winning", () => {
+    expect(currentStudentStage(student({ examDate: "2026-10-01" }), NOW)).toBe("student_kit");
+    expect(currentStudentStage(student({ examDate: "2026-09-01" }), NOW)).toBe("student_written");
+    expect(currentStudentStage(student({ examDate: "2026-08-15" }), NOW)).toBe("student_pack");
+    expect(currentStudentStage(student({ examDate: "2026-08-10" }), NOW)).toBe("student_market");
+  });
+
+  it("NEVER sends a kit email to a state with no practical exam", () => {
+    // California licenses on the written exam alone. A kit email there tells
+    // someone to go and buy equipment they will never use.
+    const ca = student({ state: "CA", track: "barber", examDate: "2026-10-01" });
+    expect(currentStudentStage(ca, NOW)).toBeNull();
+
+    // And a week out, they get written prep — not "pack your kit".
+    const caSoon = student({ state: "CA", track: "barber", examDate: "2026-08-15" });
+    expect(currentStudentStage(caSoon, NOW)).toBe("student_written");
+  });
+
+  it("stops the exam sequence dead once someone is licensed", () => {
+    const licensed = student({ examDate: "2026-10-01", licensedAt: "2026-08-01T00:00:00Z" });
+    expect(currentStudentStage(licensed, NOW)).toBe("student_market");
+  });
+
+  it("sends each stage at most once, ever", () => {
+    const facts = student({ examDate: "2026-08-15" }, { sentStages: ["student_pack"] });
+    const decision = decideStudent(facts, NOW);
+    expect(decision.send).toBe(false);
+    expect(decision.reason).toMatch(/already sent/);
+  });
+
+  it("honours the quiet period across the student sequence too", () => {
+    const facts = student({ examDate: "2026-08-15" }, { lastSentAt: "2026-08-10T00:00:00Z" });
+    const decision = decideStudent(facts, NOW);
+    expect(decision.send).toBe(false);
+    expect(decision.reason).toMatch(/quiet period/);
+  });
+
+  it("says nothing to someone in school with no date until they go quiet", () => {
+    const inSchool = student({ examDate: null, schoolName: "Bladesmith Barber College" });
+    expect(currentStudentStage({ ...inSchool, lastActivityAt: "2026-08-10T00:00:00Z" }, NOW)).toBeNull();
+    expect(currentStudentStage({ ...inSchool, lastActivityAt: "2026-06-01T00:00:00Z" }, NOW)).toBe("student_dormant");
+  });
+
+  it("keeps the two sequences from ever naming the same stage", () => {
+    // The unique index is per (member, stage), so an overlapping name would
+    // silently let one sequence block the other.
+    for (const s of STUDENT_STAGES) {
+      expect(Object.keys(STAGE_DELAY_DAYS)).not.toContain(s);
+    }
   });
 });

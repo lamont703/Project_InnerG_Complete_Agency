@@ -26,6 +26,7 @@ const AUTH_ROUTES = ["/login"]
 // tighter, general-purpose internal-tool access control is planned later.
 const INTERNAL_TOOL_ROUTES = [
     "/tools/event-submission",
+    "/admin/ai-usage",
     "/admin/agent-directives",
     "/admin/keyword-intelligence",
     "/admin/community-entity-links",

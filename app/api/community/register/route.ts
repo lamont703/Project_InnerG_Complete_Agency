@@ -5,6 +5,7 @@ import { claimTypeConfig, entityPath } from "@/lib/entity-claim";
 import { upsertGhlContact, memberTags, isTestContact } from "@/lib/ghl-contacts";
 import { sendGhlEmail } from "@/lib/ghl-email";
 import { buildCommunityWelcomeEmail } from "@/lib/community-welcome-email";
+import { storedAudience } from "@/lib/audiences";
 
 // Deliberately much simpler than /api/barber/register — community members
 // get a search-visible directory profile, not a business dashboard, so
@@ -13,6 +14,12 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { firstName, lastName, email, phone, password, claimEntityType, claimEntityId } = body;
+
+    // Which audience they signed up as. Validated against the registry rather
+    // than trusted — it arrives from a query string via the form — and stored
+    // as NULL when absent, which honestly records "we never asked" rather than
+    // guessing them into a lifecycle sequence written for somebody else.
+    const memberAudience = storedAudience(body.audience);
 
     if (!firstName || !lastName || !email || !phone || !password) {
       return NextResponse.json(
@@ -49,6 +56,7 @@ export async function POST(req: Request) {
         last_name: lastName,
         email,
         phone,
+        audience: memberAudience,
       });
 
     if (memberError) {
@@ -158,7 +166,7 @@ export async function POST(req: Request) {
         email,
         phone,
         source: "Community Signup",
-        tags: memberTags({ claimedEntityType: claimEntityType, claimLinked }),
+        tags: memberTags({ claimedEntityType: claimEntityType, claimLinked, audience: memberAudience }),
       });
 
       if (ghl.ok && ghl.contactId) {
@@ -192,6 +200,7 @@ export async function POST(req: Request) {
           firstName,
           claimedEntityName: claimLinked ? claimedName : null,
           claimedEntityUrl: claimRedirect,
+          audience: memberAudience,
         });
         const sent = await sendGhlEmail({
           email,
@@ -218,7 +227,17 @@ export async function POST(req: Request) {
       claimLinked,
       // Send a claimer back to the profile they just claimed so they see the
       // badge immediately, rather than dumping them in generic search.
-      redirect: claimRedirect || "/tools/barbershop-search?welcome=1",
+      //
+      // A student goes to the journey setup instead. Search is the right
+      // landing for someone whose next move is looking something up; a student
+      // who just signed up has an account that has changed nothing yet, and
+      // the minute it takes to say state/licence/exam date is what turns it
+      // on. Claim still wins if somehow both are present.
+      redirect:
+        claimRedirect ||
+        (memberAudience === "student"
+          ? "/account/journey?welcome=1"
+          : "/tools/barbershop-search?welcome=1"),
     });
   } catch (error: any) {
     console.error("[CommunityRegister] Error:", error);

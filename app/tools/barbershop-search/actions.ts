@@ -5,6 +5,8 @@ import { GoogleGenAI } from "@google/genai";
 import { parseWeeklyRent } from "@/lib/shop-ecosystem";
 import { AD_ENTITY_TYPES } from "@/lib/ad-campaigns";
 import { rotateEligible } from "@/lib/ad-rotation";
+import { currentMember, getJourney, loadThread } from "@/lib/member-context";
+import { chatBannerLine, isJourneyStarted } from "@/lib/member-journey";
 
 // rent_rate is free text ("$175/week", "40% for 5 months then $300/wk",
 // etc.) with no queryable numeric column, so a rent filter has to fetch a
@@ -979,4 +981,65 @@ export async function getSponsoredSearchEntities(filterTab: string): Promise<Spo
 export async function getSponsoredSearchEntity(filterTab: string): Promise<SponsoredSearchEntity | null> {
   const list = await getSponsoredSearchEntities(filterTab);
   return list[0] || null;
+}
+
+/**
+ * What AI Mode needs to know about the person using it.
+ *
+ * Called once on mount. For the anonymous majority this returns
+ * `{ isMember: false }` and the chat behaves exactly as it always has —
+ * sessionStorage, no server round-trip for history, nothing stored.
+ *
+ * For a member it returns their saved conversation, so closing the tab stops
+ * being the thing that erases the agent's memory. That single difference is
+ * what the account is actually for, so it loads with the page rather than
+ * behind a "restore" button nobody would press.
+ */
+export async function getAiModeMemberContext(): Promise<{
+  isMember: boolean;
+  firstName: string | null;
+  /** Their prior conversation, oldest first, in the client's wire shape. */
+  messages: { role: string; content: string }[];
+  /** One line for the chat header — null when they've told us nothing yet. */
+  journeyLine: string | null;
+  /** Set when the journey is thin enough to be worth finishing. */
+  setupHref: string | null;
+}> {
+  const member = await currentMember();
+  if (!member) return { isMember: false, firstName: null, messages: [], journeyLine: null, setupHref: null };
+
+  const [thread, facts] = await Promise.all([loadThread(member.id), getJourney(member.id)]);
+  const today = new Date().toISOString().split("T")[0];
+
+  // THE JOURNEY BANNER IS FOR STUDENTS ONLY.
+  //
+  // This gate was missing, and its absence showed a shop owner asking about
+  // their own market the line "Tell me your state, licence and exam date once."
+  // That is exactly the audience mismatch lib/audiences.ts exists to prevent —
+  // the student brief forbids pitching listing claims to a student, and the
+  // inverse has to hold too or the registry is decoration.
+  //
+  // A member with a journey but a NULL audience cannot occur in practice
+  // (saveJourneyAction stamps the audience on first save), but the check is
+  // written against the audience rather than the journey anyway: the question
+  // being asked is "is this person a student", not "did they fill in a form".
+  const isStudent = member.audience === "student";
+  const started = isJourneyStarted(facts);
+
+  return {
+    isMember: true,
+    firstName: member.firstName,
+    // History is restored for EVERY member regardless of audience. Persisted
+    // conversation is what the account buys, and an owner's chat is worth just
+    // as much to them as a student's.
+    messages: thread?.messages ?? [],
+    // Only when it says something. chatBannerLine is stricter than the page
+    // headline on purpose — see its comment — so a member with a half-filled
+    // journey no longer gets a banner reporting no status.
+    journeyLine: isStudent ? chatBannerLine(facts, today) : null,
+    // The setup nudge, for a student who hasn't told us anything yet. The
+    // client caps how many times this can be shown; the student_setup
+    // lifecycle email is the persistent ask, and it fires exactly once.
+    setupHref: isStudent && !started ? "/account/journey" : null,
+  };
 }

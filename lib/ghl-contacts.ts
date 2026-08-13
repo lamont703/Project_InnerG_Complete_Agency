@@ -108,10 +108,17 @@ export function memberTags(opts: {
   claimedEntityType?: string | null;
   claimLinked?: boolean;
   connectedGoogle?: boolean;
+  /** Which audience they signed up as — see lib/audiences.ts. */
+  audience?: string | null;
 }): string[] {
   return [
     "Community Member",
     "Table: community_members",
+    // Segments the list by who someone actually is. Without it a student and
+    // a shop owner are indistinguishable in the CRM, and every campaign has
+    // to be written for both at once — which in practice means written for
+    // the owner, since that is what the existing copy assumes.
+    opts.audience ? `Audience: ${opts.audience}` : null,
     opts.claimLinked && opts.claimedEntityType ? `Claimed: ${opts.claimedEntityType}` : null,
     opts.connectedGoogle ? "Google Connected" : null,
   ].filter(Boolean) as string[];

@@ -1,0 +1,245 @@
+/**
+ * WHO THE MEMBERSHIP IS FOR — one registry, several audiences.
+ *
+ * The free membership was built for exactly one person: someone who owns a
+ * listing and wants the verified badge on it. Every word on /membership said
+ * so. That is a real audience and it stays, but it is not the audience the
+ * traffic is. The kit-list and licensing guides pull students who are months
+ * from a licence, own nothing, and correctly read "claim your listing" as
+ * addressed to somebody else.
+ *
+ * So the audience is a parameter, not a rewrite. Adding the next one (school
+ * administrators, licensed pros looking for a chair) means adding an entry
+ * here — not forking the membership page, the signup route, the agent prompt
+ * and the lifecycle emails four ways.
+ *
+ * WHY A `status` FIELD. Some audiences are pursued now and some are next.
+ * Declaring a planned audience is how the shape gets designed before it ships
+ * (the agent can already recognise a school administrator and say something
+ * true about what it can't do yet), while `status` keeps it off the public
+ * membership page until its benefits are real. A planned audience that renders
+ * a benefits list is a promise nobody made.
+ *
+ * Pure — no network, no database, no React. Imported by the membership page,
+ * the signup route, the chat route and the lifecycle emails alike.
+ */
+
+export type AudienceId = "student" | "professional" | "owner" | "school";
+
+/**
+ * The audience assumed when nobody said otherwise.
+ *
+ * Deliberately `professional` rather than `student`: an un-parameterised visit
+ * to /membership is the pre-existing behaviour, and the copy that behaviour
+ * has always shown is the claim-your-listing copy. Changing the default would
+ * silently repoint every existing link, ad and email at student framing.
+ */
+export const DEFAULT_AUDIENCE: AudienceId = "professional";
+
+export interface AudienceBenefit {
+  /** Lucide icon name, resolved by the page — this module stays React-free. */
+  icon: "sparkles" | "badge-check" | "users" | "check-circle" | "calendar" | "map-pin" | "graduation-cap" | "bar-chart";
+  title: string;
+  body: string;
+}
+
+export interface Audience {
+  id: AudienceId;
+  /**
+   * `live` audiences appear on /membership and get their own onboarding.
+   * `planned` ones exist so the agent and the data model already know the
+   * shape, but nothing public promises them anything.
+   */
+  status: "live" | "planned";
+  /** Short label for pickers and admin. */
+  label: string;
+  /** One line, first person — used on the audience switcher. */
+  who: string;
+  headline: string;
+  subhead: string;
+  /** Badge above the headline. */
+  eyebrow: string;
+  benefits: AudienceBenefit[];
+  ctaLabel: string;
+  /**
+   * Handed to the agent so it knows who it is talking to. Kept to one
+   * paragraph: this lands inside an already-long system prompt, and the
+   * grounding rules there matter more than persona.
+   */
+  agentBrief: string;
+  /** Which lifecycle email sequence this audience belongs to, if any. */
+  lifecycleTrack: "student" | "owner" | null;
+  /** Does signup collect a journey (see lib/member-journey.ts)? */
+  collectsJourney: boolean;
+}
+
+export const AUDIENCES: Record<AudienceId, Audience> = {
+  student: {
+    id: "student",
+    status: "live",
+    label: "Student",
+    who: "I'm in barber or cosmetology school (or about to be)",
+    eyebrow: "Free — for students",
+    headline: "Your licence journey, with an AI that remembers it",
+    subhead:
+      "Free account. Tell it your school and your exam date once, and it stops being a search box and starts being something that knows where you are.",
+    benefits: [
+      {
+        icon: "sparkles",
+        title: "An AI that already knows your situation",
+        body: "It knows your state, your licence track, your school and how far out your exam is — so you stop re-explaining yourself every time, and the answer you get is about your exam, not a generic one.",
+      },
+      {
+        icon: "calendar",
+        title: "Milestones that arrive before you need them",
+        body: "Kit list, exam bulletin, application steps, then what the market actually pays near you — timed off your exam date instead of showing up after it would have helped.",
+      },
+      {
+        icon: "bar-chart",
+        title: "The numbers schools don't lead with",
+        body: "Real TDLR pass rates for your school — first-attempt, not the eventually-passed figure — plus published penalty history, booth rent by ZIP, and who's hiring near you.",
+      },
+      {
+        icon: "graduation-cap",
+        title: "A Passport for the day you pass",
+        body: "Everything you've told it becomes a professional profile shops can find, so licence day starts with a profile instead of a blank form.",
+      },
+    ],
+    ctaLabel: "Create my free account",
+    agentBrief:
+      "You are talking to a barber or cosmetology STUDENT working toward a licence — not a business owner. Their questions are about school quality, exam readiness, cost, hours, and what the job actually pays once they pass. Never pitch listing claims, verified badges, or Google Business Profile to them; those are owner features and are irrelevant. Read member_journey_context for who they are and where they are in the process, and prefer the answer that is specific to their state, licence track, school and exam date over a general one.",
+    lifecycleTrack: "student",
+    collectsJourney: true,
+  },
+
+  professional: {
+    id: "professional",
+    status: "live",
+    // Unchanged from what /membership has always said. This entry exists so
+    // the default path renders from the registry like every other audience —
+    // not because the copy needed revisiting.
+    label: "Licensed professional",
+    who: "I'm a licensed barber, stylist or beauty pro",
+    eyebrow: "Free Community Tier",
+    headline: "Join the ShearQuery Community",
+    subhead:
+      "Claim your profile, earn the verified badge, and be findable by the shops and clients already searching here.",
+    benefits: [
+      {
+        icon: "badge-check",
+        title: "Get the Verified Badge on Your Listing",
+        body: "Claim your profile and earn the verified badge shown on your entity page — a clear signal to clients, shop owners, and hiring managers that it's owner-verified and up to date.",
+      },
+      {
+        icon: "users",
+        title: "Join a Real Industry Community",
+        body: "You're joining a growing directory of barbers and beauty professionals across Texas, not a mailing list.",
+      },
+      {
+        icon: "check-circle",
+        title: "Free, Always",
+        body: "No credit card, no trial period, no upsell. Community membership stays free.",
+      },
+    ],
+    ctaLabel: "Create my free account",
+    agentBrief:
+      "You are talking to a licensed barber, stylist or beauty professional. Their questions are usually about where to work — booth rent, commission, which shops are hiring, what a chair costs in a given ZIP — and about keeping their licence current (renewal, continuing education).",
+    lifecycleTrack: null,
+    collectsJourney: false,
+  },
+
+  owner: {
+    id: "owner",
+    status: "live",
+    label: "Shop or salon owner",
+    who: "I own or manage a shop or salon",
+    eyebrow: "Free — for owners",
+    headline: "Own your listing, and see your market",
+    subhead:
+      "Claim the listing, connect Google, and get the market report for your own address — talent pipeline, competition, and what rent looks like around you.",
+    benefits: [
+      {
+        icon: "badge-check",
+        title: "Claim and verify your listing",
+        body: "The verified badge, plus control of what the listing says about your shop.",
+      },
+      {
+        icon: "map-pin",
+        title: "Your own market report",
+        body: "Talent pipeline, labor supply, competition and booth rent computed within a fixed radius of your address — not a national average.",
+      },
+      {
+        icon: "bar-chart",
+        title: "Google Business Profile tools",
+        body: "Connect your profile for an audit, post scheduling, review replies and category checks.",
+      },
+    ],
+    ctaLabel: "Claim my listing",
+    agentBrief:
+      "You are talking to a shop or salon OWNER about their own business — hiring, booth rent, competition and their local market.",
+    lifecycleTrack: "owner",
+    collectsJourney: false,
+  },
+
+  school: {
+    id: "school",
+    // PLANNED. A school administrator can already be recognised by the agent,
+    // and the data to serve them exists (pass rates, penalties, placement),
+    // but nothing here is packaged as a membership benefit yet — so it stays
+    // off /membership rather than making a promise.
+    status: "planned",
+    label: "School or instructor",
+    who: "I teach at, or run, a barber or cosmetology school",
+    eyebrow: "Coming soon — for schools",
+    headline: "See how your graduates actually do",
+    subhead:
+      "Pass rates against the state, campus by campus, and where your graduates end up working.",
+    benefits: [],
+    ctaLabel: "Create my free account",
+    agentBrief:
+      "You are talking to a barber/cosmetology SCHOOL administrator or instructor asking about their own institution — pass rates against the statewide benchmark, testing volume, and graduate outcomes. Be precise about what is and is not known: per-school placement rate is NOT supported, and saying so plainly is the correct answer.",
+    lifecycleTrack: null,
+    collectsJourney: false,
+  },
+};
+
+/** Every audience that may be shown to the public, in display order. */
+export const LIVE_AUDIENCES: Audience[] = [
+  AUDIENCES.student,
+  AUDIENCES.professional,
+  AUDIENCES.owner,
+];
+
+/**
+ * Read an audience out of a query string, a database column, or anything else
+ * untrusted.
+ *
+ * Returns the default rather than throwing, and deliberately will NOT resolve
+ * a planned audience from a query string — `?for=school` today would render a
+ * headline with an empty benefits list, which reads as a broken page rather
+ * than as "not yet".
+ */
+export function audienceFromParam(raw: string | null | undefined): AudienceId {
+  if (!raw) return DEFAULT_AUDIENCE;
+  const key = raw.trim().toLowerCase();
+  const found = (Object.keys(AUDIENCES) as AudienceId[]).find((id) => id === key);
+  if (!found) return DEFAULT_AUDIENCE;
+  if (AUDIENCES[found].status !== "live") return DEFAULT_AUDIENCE;
+  return found;
+}
+
+/**
+ * Same parse, but for values already stored on a member row — where a planned
+ * audience IS legitimate (an admin can set one before it launches publicly)
+ * and an unknown value should stay unknown rather than silently becoming the
+ * default audience and getting the wrong lifecycle emails.
+ */
+export function storedAudience(raw: string | null | undefined): AudienceId | null {
+  if (!raw) return null;
+  const key = raw.trim().toLowerCase();
+  return (Object.keys(AUDIENCES) as AudienceId[]).find((id) => id === key) ?? null;
+}
+
+export function audience(id: AudienceId): Audience {
+  return AUDIENCES[id];
+}

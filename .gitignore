@@ -77,6 +77,13 @@ yarn-error.log*
 # pre-existing design docs that were deliberately untracked, as a side effect of
 # committing one research plan.
 !docs/california-content-plan.md
+# ...and the JSON-LD reference, for the same reason and one more. It is the only
+# written record of WHY two deprecated types are deliberately kept, and it holds
+# dated claims about Google's behaviour that go stale silently — the FAQ
+# citation in it had already become a 301 without anyone noticing, because a
+# redirect resolves and a 404 doesn't. Untracked, corrections to it live on one
+# laptop and the next person re-derives them from scratch.
+!jsonld.md
 
 
 

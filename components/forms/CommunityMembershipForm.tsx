@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { ArrowRight, Loader2, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
+import { audienceFromParam } from "@/lib/audiences"
 import { toast } from "sonner"
 
 /**
@@ -60,6 +61,11 @@ export function CommunityMembershipForm() {
   const destination = (fallback: string) =>
     wantsConnect ? "/api/google-business/start" : fallback
 
+  // Which audience's copy they read on the way in. Resolved through the
+  // registry so an unknown or not-yet-launched value can't be written to the
+  // member row straight from a query string.
+  const signupAudience = audienceFromParam(searchParams.get("for"))
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     firstName: "",
@@ -91,12 +97,13 @@ export function CommunityMembershipForm() {
   const claimContext = useCallback(
     () => ({
       form: "community_membership",
+      audience: signupAudience,
       is_claiming: isClaiming,
       claim_entity_type: claimEntityType || undefined,
       claim_entity_id: claimEntityId || undefined,
       wants_connect: wantsConnect,
     }),
-    [isClaiming, claimEntityType, claimEntityId, wantsConnect]
+    [isClaiming, claimEntityType, claimEntityId, wantsConnect, signupAudience]
   )
 
   /** Field names only — see the note above about never sending values. */
@@ -185,7 +192,7 @@ export function CommunityMembershipForm() {
       const response = await fetch("/api/community/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, claimEntityType, claimEntityId }),
+        body: JSON.stringify({ ...formData, claimEntityType, claimEntityId, audience: signupAudience }),
       })
 
       const data = await response.json()
@@ -209,6 +216,7 @@ export function CommunityMembershipForm() {
 
       if ((window as any).innerG?.track) {
         (window as any).innerG.track('community_membership_signup', {
+          audience: signupAudience,
           claim_entity_type: claimEntityType || undefined,
           claim_entity_id: claimEntityId || undefined,
           claim_linked: !!data.claimLinked,

@@ -5,8 +5,10 @@ import { isTestContact } from "@/lib/ghl-contacts";
 import { claimTypeConfig } from "@/lib/entity-claim";
 import { auditPublicEntity } from "@/lib/gbp-audit-public-fetch";
 import { PUBLIC_ENTITY_TYPES } from "@/lib/gbp-audit-public";
-import { decide, type MemberFacts, type LifecycleStage } from "@/lib/member-lifecycle";
-import { buildLifecycleEmail } from "@/lib/member-lifecycle-emails";
+import { decide, decideStudent, type MemberFacts, type LifecycleStage, type StudentFacts } from "@/lib/member-lifecycle";
+import { buildLifecycleEmail, buildStudentLifecycleEmail } from "@/lib/member-lifecycle-emails";
+import { storedAudience } from "@/lib/audiences";
+import { daysUntilExam, journeyFactsFromRow, kitListRoute, trackRoutes, type JourneyFacts } from "@/lib/member-journey";
 
 /**
  * Member lifecycle emails.
@@ -58,11 +60,15 @@ export async function GET(req: Request) {
   const admin = createAdminClient();
   const now = new Date();
 
-  const [memberRes, linkRes, connRes, sentRes] = await Promise.all([
-    (admin.from("community_members") as any).select("id, first_name, last_name, email, phone, created_at"),
+  const [memberRes, linkRes, connRes, sentRes, journeyRes] = await Promise.all([
+    (admin.from("community_members") as any).select("id, first_name, last_name, email, phone, created_at, audience"),
     (admin.from("community_member_entity_links") as any).select("community_member_id, entity_type, entity_id, linked_at"),
     (admin.from("gbp_connections") as any).select("community_member_id, created_at, updated_at"),
     (admin.from("member_lifecycle_emails") as any).select("community_member_id, stage, sent_at"),
+    // The student track is driven entirely by this table. Read in the same
+    // batch as everything else so a student's stage is decided from the same
+    // snapshot as an owner's.
+    (admin.from("member_journeys") as any).select("*"),
   ]);
 
   // Fail loudly rather than emailing on partial facts.
@@ -77,6 +83,7 @@ export async function GET(req: Request) {
     ["community_member_entity_links", linkRes.error],
     ["gbp_connections", connRes.error],
     ["member_lifecycle_emails", sentRes.error],
+    ["member_journeys", journeyRes.error],
   ].filter(([, e]) => e);
 
   if (failed.length) {
@@ -94,6 +101,9 @@ export async function GET(req: Request) {
   for (const l of links || []) if (!claimBy.has(l.community_member_id)) claimBy.set(l.community_member_id, l);
   const connBy = new Map<string, any>();
   for (const c of conns || []) connBy.set(c.community_member_id, c);
+  const journeyBy = new Map<string, any>();
+  for (const j of journeyRes.data || []) journeyBy.set(j.community_member_id, j);
+
   const sentBy = new Map<string, { stages: LifecycleStage[]; last: string | null }>();
   for (const s of sent || []) {
     const e = sentBy.get(s.community_member_id) || { stages: [], last: null };
@@ -123,6 +133,64 @@ export async function GET(req: Request) {
     const claim = claimBy.get(m.id);
     const conn = connBy.get(m.id);
     const history = sentBy.get(m.id) || { stages: [], last: null };
+
+    // STUDENTS TAKE THE OTHER SEQUENCE ENTIRELY.
+    //
+    // Routed on the stored audience, so a member who predates that column
+    // (NULL) keeps the owner track and nothing about the existing cohort
+    // changes. The two sequences never interleave for one person: a student
+    // must not be told to claim a listing, and an owner must not be asked
+    // about their exam date.
+    if (storedAudience(m.audience) === "student") {
+      const journey: JourneyFacts = journeyFactsFromRow(journeyBy.get(m.id));
+      const facts: StudentFacts = {
+        memberId: m.id,
+        createdAt: m.created_at,
+        journey,
+        lastActivityAt: journeyBy.get(m.id)?.updated_at ?? m.created_at,
+        sentStages: history.stages,
+        lastSentAt: history.last,
+      };
+
+      const decision = decideStudent(facts, now);
+      if (!decision.send || !decision.stage) {
+        summary.skipped.push(`${who}: ${decision.reason}`);
+        continue;
+      }
+
+      // Every link resolved from THEIR journey. kitListRoute returns null when
+      // their state has no practical exam, and the email copy links the search
+      // tool instead rather than inventing a kit list that doesn't apply.
+      const routes = trackRoutes(journey.state, journey.track);
+      const email = buildStudentLifecycleEmail(decision.stage, {
+        firstName: m.first_name,
+        daysUntilExam: daysUntilExam(journey, now.toISOString().split("T")[0]),
+        kitListHref: kitListRoute(journey.state, journey.track),
+        examPrepHref: routes?.examPrep ?? null,
+        requirementsHref: routes?.requirements ?? null,
+        schoolName: journey.schoolName ?? null,
+        zip: journey.zip ?? null,
+      });
+      if (!email) { summary.skipped.push(`${who}: no copy for ${decision.stage}`); continue; }
+
+      if (dryRun) {
+        summary.planned.push({ name: who, email: m.email, stage: decision.stage, subject: email.subject });
+        continue;
+      }
+
+      const result = await sendGhlEmail({ email: m.email, name: who, subject: email.subject, html: email.html });
+      await (admin.from("member_lifecycle_emails") as any).insert({
+        community_member_id: m.id,
+        stage: decision.stage,
+        subject: email.subject,
+        sent_at: result.ok ? new Date().toISOString() : null,
+        error: result.ok ? null : result.error,
+      });
+
+      if (result.ok) summary.sent++;
+      else { summary.failed++; console.error(`[member-lifecycle] ${who}: ${result.error}`); }
+      continue;
+    }
 
     // An audit snapshot is the only evidence we have that someone looked at
     // their report, and an applied change request that they acted on it.

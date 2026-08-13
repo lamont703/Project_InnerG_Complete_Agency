@@ -4,6 +4,13 @@ import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
+import { currentMember, getJourney, appendToThread } from '@/lib/member-context';
+import { agentJourneyContext } from '@/lib/member-journey';
+import { AUDIENCES } from '@/lib/audiences';
+import { slimContext, contextChars } from '@/lib/chat-context-slim';
+import { extractUsage, sumUsage, EMPTY_USAGE, type TokenUsage } from '@/lib/ai-usage';
+import { recordAiUsage } from '@/lib/ai-usage-record';
+import { resolveChatKey, keyFingerprint } from '@/lib/gemini-keys';
 
 // Next.js patches the global fetch() to cache responses by default, which
 // can end up caching the Gemini SDK's own internal fetch calls (identical
@@ -11,8 +18,19 @@ import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployme
 // one). Chat responses must never be cached — force this route dynamic.
 export const dynamic = 'force-dynamic';
 
-// Simple Rate Limit: 5 per 24 hours
+// Simple Rate Limit: 5 per 24 hours for anyone not signed in.
+//
+// Signed-in members get a much higher ceiling, and that difference is the
+// point rather than a perk bolted on afterwards. The 429 copy has always said
+// "or upgrade your account for more" while no account gave you more, so the
+// one place a visitor was told membership was worth something was also the
+// one place it demonstrably wasn't.
+//
+// Still a real limit, not unlimited: every request is an embedding call plus
+// one or two Gemini generations, and a free tier with no ceiling is an
+// unbounded bill.
 const MAX_REQUESTS = 5;
+const MAX_REQUESTS_MEMBER = 50;
 const RATE_LIMIT_RESET_HOURS = 24;
 
 // The LINKING RULE in the system prompt tells the model never to invent a
@@ -49,7 +67,39 @@ function sanitizeMarkdownLinks(text: string, validLinks: Set<string>): string {
   return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => (validLinks.has(url) ? match : label));
 }
 
+// The chat model.
+//
+// Moved off gemini-2.5-flash on 2026-08-12, not by choice: it is closed to new
+// users, and the ShearQuery-Production / ShearQuery-Development Cloud projects
+// are new. The old shared project was grandfathered, which is why this surfaced
+// only once chat got its own key — a 404 reading "no longer available to new
+// users", not a deprecation notice anyone could have read in advance.
+//
+// generateContent is unaffected and still fully supported, so this is a model
+// ID change rather than an API migration.
+//
+// Flash-lite tier on purpose: the job is to read grounded JSON and answer in
+// under 100 words. At $0.25/M in and $1.50/M out this is cheaper than what it
+// replaced ($0.30 / $2.50) — see MODEL_PRICING in lib/ai-usage.ts, and keep the
+// two in step or the cost dashboard quietly starts reporting fiction.
+//
+// NOT changed anywhere else. lib/gbp-description.ts and lib/gbp-review-replies.ts
+// still call gemini-2.5-flash on the OLD shared project, where it remains
+// available. Changing them would be a migration nobody asked for.
+const CHAT_MODEL = 'gemini-3.1-flash-lite';
+
 export async function POST(req: Request) {
+  // Declared outside the try so the catch can still record a failed attempt.
+  // A quota block consumes no tokens and is the most costly kind of event in
+  // business terms — a ledger that logged only successes would fall silent at
+  // exactly the moment something was wrong.
+  const startedAt = Date.now();
+  const usageParts: TokenUsage[] = [];
+  let contextSize: number | null = null;
+  let memberIdForUsage: string | null = null;
+  let generations = 0;
+  let toolCallCount = 0;
+
   try {
     const cookieStore = await cookies();
     let usageCount = parseInt(cookieStore.get('ai_chat_count')?.value || '0', 10);
@@ -60,9 +110,22 @@ export async function POST(req: Request) {
       usageCount = 0;
     }
 
-    if (usageCount >= MAX_REQUESTS) {
+    // Who is asking. Established from their own session cookie — never from
+    // anything in the request body — and null for the anonymous majority.
+    // Everything downstream treats a null member as the existing behaviour.
+    const member = await currentMember();
+    memberIdForUsage = member?.id ?? null;
+    const limit = member ? MAX_REQUESTS_MEMBER : MAX_REQUESTS;
+
+    if (usageCount >= limit) {
       return NextResponse.json(
-        { error: "You've reached your limit of 5 AI searches for today. This resets every 24 hours, so feel free to come back tomorrow — or upgrade your account for more." },
+        {
+          error: member
+            ? `You've reached your limit of ${MAX_REQUESTS_MEMBER} AI searches for today. This resets every 24 hours.`
+            : `You've reached your limit of ${MAX_REQUESTS} AI searches for today. A free account raises that to ${MAX_REQUESTS_MEMBER} a day — and the agent remembers your school, your licence track and your exam date instead of starting over each time.`,
+          // Lets the client show a real signup path instead of a dead end.
+          upgradeHref: member ? null : '/membership?for=student',
+        },
         { status: 429 }
       );
     }
@@ -70,8 +133,40 @@ export async function POST(req: Request) {
     const { messages, shopId } = await req.json();
     const latestMessage = messages[messages.length - 1].content;
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    // The chat feature's OWN key, pointing at its OWN Cloud project.
+    //
+    // Google rate-limits per project, not per key, and GEMINI_API_KEY is shared
+    // with ~25 batch scripts and ~15 edge functions — so before this split, a
+    // backfill run from a laptop drew down the same allowance as live chat, and
+    // a staging test drew down production's. Chat gets its own quota here.
+    //
+    // Falls back to the shared key so nothing breaks mid-migration, but says so
+    // loudly: someone who has set up two Cloud projects and deployed should not
+    // be able to *believe* the environments are isolated while they are still
+    // sharing a ceiling.
+    const chatKey = resolveChatKey(process.env as Record<string, string | undefined>);
+    if (!chatKey.isolated) {
+      console.warn(`[AI Chat] ${chatKey.note}`);
+    }
+    const ai = new GoogleGenAI({ apiKey: chatKey.key });
     const supabase = createAdminClient();
+
+    // What we know about this member's own situation — state, licence track,
+    // school, exam date, ZIP. This is the one category of fact in the whole
+    // prompt that isn't a claim about the industry: it's a claim about the
+    // person asking, which they told us themselves.
+    //
+    // Null for anonymous visitors and for members who haven't filled anything
+    // in, and in both cases the prompt below simply doesn't mention it — an
+    // empty journey object would invite the model to comment on how little it
+    // knows, which is worse than saying nothing.
+    const todayIso = new Date().toISOString().split('T')[0];
+    let journeyContext: Record<string, unknown> | null = null;
+    if (member) {
+      const facts = await getJourney(member.id);
+      journeyContext = agentJourneyContext(facts, todayIso, member.firstName);
+    }
+    const audienceBrief = member?.audience ? AUDIENCES[member.audience].agentBrief : null;
 
     // When a shop owner arrives from their own shop's profile page via "Ask
     // AI About This Market", shopId identifies exactly which shop — this is
@@ -280,6 +375,10 @@ export async function POST(req: Request) {
     // previously cut the JSON off before ever reaching a field added later
     // in the object, silently making the model "forget" that data existed.
     const mergedContext = {
+      // First in the object, for the same defense-in-depth reason the exam
+      // leaderboard is: this JSON gets truncated at 120k characters, and who
+      // the member is must never be the thing that falls off the end.
+      ...(journeyContext ? { member_journey_context: journeyContext } : {}),
       ...(shopEcosystemContext ? { my_shop_ecosystem_report: shopEcosystemContext } : {}),
       texas_2026_exam_school_leaderboard: withProfileUrl(testingLeaderboard, '/schools'),
       texas_2026_cosmetology_exam_school_leaderboard: withProfileUrl(cosmetologyTestingLeaderboard, '/schools'),
@@ -294,8 +393,19 @@ export async function POST(req: Request) {
       software_tools: platformTools,
     };
 
+    // TRIM BEFORE ANYTHING ELSE READS IT.
+    //
+    // slimContext drops ranking internals, nulls and image URLs, and caps the
+    // scraped article bodies that measurement showed to be 43% of the entire
+    // payload. Applied here, before validLinks is collected, so the two can
+    // never disagree about what the model was actually shown — and so an image
+    // URL that is no longer in the context is no longer a legal link target
+    // either, which is what the prompt has always said and could not enforce.
+    const slimmedContext = slimContext(mergedContext);
+    contextSize = contextChars(slimmedContext);
+
     const validLinks = new Set<string>();
-    collectValidLinks(mergedContext, validLinks);
+    collectValidLinks(slimmedContext, validLinks);
 
     // 4. Construct System Prompt
     // Today's date, so relative time language ("this year," "currently,"
@@ -309,7 +419,16 @@ Today's date is ${todayDate}. All exam data on file is for exam_year 2026 — th
 You MUST answer the user's questions based ONLY on the following context data fetched directly from our database.
 If the answer is not in the context, say you don't know based on current data.
 CRITICAL INSTRUCTION: Keep your answer extremely concise, friendly, and helpful. You MUST keep your entire response under 100 words. Do not ramble. If you write more than 100 words, your response will be abruptly cut off.
-
+${audienceBrief ? `\nWHO YOU ARE TALKING TO: ${audienceBrief}\n` : ''}${journeyContext ? `
+MEMBER_JOURNEY_CONTEXT RULE: member_journey_context is in the context data below. It is not a search result — it is what this specific person told us about their own situation, and it is the reason they made an account. Use it without being asked to.
+- ANSWER FOR THEIR STATE AND THEIR LICENCE, always. Rules, fees, exam format and kit requirements differ per state and per licence far more than the names suggest. Never hand a California student a Texas figure, or a manicurist a cosmetology answer, just because that is the more common case in the data.
+- days_until_exam is already computed for you. Use that number directly; do not do date arithmetic of your own, and do not ask what today's date is.
+- IF state_has_practical_exam IS FALSE, THERE IS NO PRACTICAL EXAM AND NO KIT. Do not mention kit lists, mannequins, models, or what to pack — not even as a "you may also need to". Their licence is decided by the written examination alone. Saying otherwise sends someone to buy equipment they will never use.
+- their_kit_list_url, their_requirements_url and each next_steps[].url are real internal links — hyperlink them per the LINKING RULE when they are relevant to what was asked.
+- A null field means they have not told us, NOT that the answer is unknown or that it does not apply. If a null field would materially change your answer (most often exam_date, state or license_track), ask for that one thing in a single short question rather than guessing or hedging across every possibility.
+- Do not recite their profile back at them, do not open with a greeting that lists what you know, and use their first name at most once in a conversation. Someone who told you their exam date wants a better answer, not a demonstration that you remembered.
+- NEVER invent a journey fact. If member_journey_context says school_name is null, you do not know where they study — the same rule as every other fact on this page.
+` : ''}
 LINKING RULE: Whenever you mention a specific tool from software_tools, or a specific barbershop/barber/school/salon/cosmetologist/store that has a profile_url (or profileUrl) field in the context, you MUST format that mention as a markdown link using its EXACT value, e.g. [Barber & Cosmetology Placement](/barber-beauty-network). Every one of those internal links is a relative path starting with "/" — NEVER use a link starting with "http" or "https" for these (this includes Google Places URLs like places.googleapis.com, which sometimes appear elsewhere in this data as image sources, not link destinations). If an item you want to mention does NOT have a profile_url/profileUrl in the context, mention it by plain name with NO link at all — do not construct, guess, or reuse a URL from anywhere else in the data.
 The ONE exception is articles_and_videos: each entry's "url" field IS meant to be used as-is (it's a real external link to that article or video, not our own site) — link to it directly, but keep the link label short (the page's title or topic), never the raw_text field, which is scraped page content for your own reference only and must never appear in your response.
 Use each link only once per response.
@@ -365,7 +484,7 @@ GET_UPCOMING_EVENTS TOOL RULE: For any question about barber/beauty/wellness ind
 ENTITY LINKING IS NOT OPTIONAL: AI Mode doubles as navigation into the rest of the site, not just an answer — so the LINKING RULE above applies every single time you mention a specific barbershop/barber/school/salon/cosmetologist/store/tool that has a profile_url (or an equivalent href from a tool result like find_professional_employment), with no exceptions. Don't drop a link just because you've already mentioned that entity earlier in the conversation — link it again each time.
 
 Context Data (JSON):
-${JSON.stringify(mergedContext).substring(0, 120000)}
+${JSON.stringify(slimmedContext).substring(0, 120000)}
 `;
 
     // 5. Generate Response (Limit output tokens to keep costs cheap!)
@@ -545,10 +664,12 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
     };
 
     let response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: CHAT_MODEL,
       contents,
       config: { ...generationConfig, tools: [RENT_STATS_TOOL] },
     });
+    generations += 1;
+    usageParts.push(extractUsage(response));
 
     // Single round of tool-calling: if the model asked for rent data,
     // execute it, hand the result back, and let it produce the real
@@ -565,10 +686,47 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
     // unauthenticated chat surface can be talked into doing.
     const employmentMatches: any[] = [];
     if (response.functionCalls && response.functionCalls.length > 0) {
-      contents.push({
-        role: 'model',
-        parts: response.functionCalls.map((fc) => ({ functionCall: fc })),
-      });
+      toolCallCount = response.functionCalls.length;
+
+      // SEND BACK THE MODEL'S OWN TURN, VERBATIM. Do not rebuild it.
+      //
+      // This used to be `response.functionCalls.map(fc => ({ functionCall: fc }))`,
+      // which looks equivalent and is not. `functionCalls` is a convenience
+      // accessor returning the PARSED calls; the parts it hands back have lost
+      // the `thoughtSignature` that Gemini attached to the originals. Sending
+      // the reconstructed turn therefore drops the signature, and the second
+      // generation fails:
+      //
+      //   400 INVALID_ARGUMENT — "Function call is missing a thought_signature
+      //   in functionCall parts. This is required for tools to work correctly."
+      //
+      // Google's thinking guide is explicit that when you manage history
+      // yourself you "MUST always resend all thought blocks exactly as they
+      // were received from the model", and that for generateContent those
+      // signatures ride on the functionCall parts themselves.
+      //
+      // THIS BUG WAS LATENT, NOT NEW. gemini-2.5-flash did not enforce the
+      // requirement, so the reconstruction worked by luck for as long as we
+      // were on it. Moving to gemini-3.1-flash-lite (forced — 2.5-flash is
+      // closed to new Cloud projects) is what made it fire, and it broke every
+      // one of the 15 tools at once while plain answers kept working, which is
+      // why it read as "worked at first, then stopped".
+      //
+      // Note that thinkingBudget: 0 does NOT exempt us: the docs state that
+      // reducing thinking does not remove the signature requirement.
+      const modelTurn = response.candidates?.[0]?.content;
+      if (modelTurn && Array.isArray(modelTurn.parts) && modelTurn.parts.length > 0) {
+        contents.push({ ...modelTurn, role: modelTurn.role || 'model' });
+      } else {
+        // Only if the response shape is not what we expect. Reconstructing is
+        // better than pushing nothing — a turn with no model reply at all is a
+        // guaranteed failure, where this is merely the old broken behaviour.
+        console.warn('[AI Chat] no candidate content on a tool-calling turn — falling back to reconstruction');
+        contents.push({
+          role: 'model',
+          parts: response.functionCalls.map((fc) => ({ functionCall: fc })),
+        });
+      }
 
       const functionResponseParts = await Promise.all(
         response.functionCalls.map(async (fc) => {
@@ -634,11 +792,17 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
       // static context.
       collectValidLinks(functionResponseParts, validLinks);
 
+      // The second generation re-sends the ENTIRE context along with the tool
+      // result, so a tool-calling turn costs roughly double. Counted as its
+      // own generation rather than folded in, because "why was that message
+      // twice the price" is a question the dashboard should answer.
       response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: CHAT_MODEL,
         contents,
         config: generationConfig,
       });
+      generations += 1;
+      usageParts.push(extractUsage(response));
     }
 
     // Update rate limit cookies
@@ -646,6 +810,36 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
     const nextReset = resetTime && new Date() > new Date(resetTime) ? resetTime : new Date(Date.now() + RATE_LIMIT_RESET_HOURS * 60 * 60 * 1000).toISOString();
 
     const finalText = response.text ? sanitizeMarkdownLinks(response.text, validLinks) : response.text;
+
+    // Persist the exchange for signed-in members only. Anonymous chats stay in
+    // sessionStorage exactly as before and are never written to the database —
+    // there is no account to attach them to, and storing them against a cookie
+    // would be collecting conversations from people who never asked us to.
+    //
+    // Awaited rather than fired and forgotten: this runs on a serverless
+    // function that may be frozen the moment the response is returned, so a
+    // dangling promise here is a write that usually doesn't happen. It is
+    // written post-sanitization, so what the member sees is what gets stored.
+    if (member && finalText) {
+      await appendToThread(member.id, latestMessage, finalText);
+    }
+
+    // Awaited, not fired and forgotten: this is a serverless function and work
+    // still in flight when the response returns may simply be killed, which
+    // would make the ledger quietly lossy — and a ledger you cannot trust to
+    // be complete is worse than none, because it still gets used.
+    await recordAiUsage({
+      route: '/api/chat',
+      model: CHAT_MODEL,
+      usage: sumUsage(usageParts),
+      contextChars: contextSize,
+      generations,
+      toolCalls: toolCallCount,
+      latencyMs: Date.now() - startedAt,
+      status: 'ok',
+      communityMemberId: memberIdForUsage,
+    });
+
     const res = NextResponse.json({ text: finalText, employmentMatches });
     res.cookies.set('ai_chat_count', newCount.toString(), { path: '/' });
     res.cookies.set('ai_chat_reset', nextReset, { path: '/' });
@@ -653,20 +847,94 @@ ${JSON.stringify(mergedContext).substring(0, 120000)}
     return res;
 
   } catch (error: any) {
-    console.error('AI Chat Error:', error);
-    // Gemini occasionally returns a transient 503 when the model is under
-    // heavy load — this isn't the user's daily rate limit, so say so
-    // clearly rather than showing a generic failure (a failed attempt like
-    // this doesn't consume any of their 5 daily searches either, since the
-    // usage cookie is only updated after a successful response above).
-    const isTransientOverload = error?.status === 503 || /UNAVAILABLE|overloaded|high demand/i.test(error?.message || '');
+    // WHY THIS BLOCK IS NOT JUST console.error + "something went wrong".
+    //
+    // It used to be, and it cost a full afternoon. A 500 on staging was
+    // indistinguishable from a Gemini quota block, a missing environment
+    // variable, and a malformed request — the response said "Failed to process
+    // AI request" for all of them, and the browser console said 500. Three
+    // rounds of hypotheses were needed to rule out a free-tier quota that had
+    // never been the cause, because nothing anywhere named the actual error.
+    //
+    // The failure mode worth naming: a 429 from Gemini (RESOURCE_EXHAUSTED —
+    // the real quota block) was being flattened into the same generic 500 as
+    // everything else, so an upstream rate limit was invisible while a user's
+    // OWN daily limit got a clear, friendly message.
+    const status = error?.status ?? error?.response?.status;
+    const message = String(error?.message || '');
+
+    const kind =
+      status === 503 || /UNAVAILABLE|overloaded|high demand/i.test(message)
+        ? 'upstream_overloaded'
+        : status === 429 || /RESOURCE_EXHAUSTED|quota|rate limit/i.test(message)
+        ? 'upstream_quota'
+        : /is not set|API_KEY_INVALID|API key not valid|PERMISSION_DENIED|invalid authentication/i.test(message)
+        ? 'misconfigured'
+        : 'unknown';
+
+    // One structured line, so a log search finds the classification rather than
+    // a stack trace that has to be read.
+    // keySource and the 4-character fingerprint are the two facts that turn
+    // "the AI is broken" into "this deployment picked up the wrong key" — the
+    // question an environment split creates and nothing else answers.
+    const keyInfo = resolveChatKey(process.env as Record<string, string | undefined>);
+    console.error(
+      `[AI Chat Error] kind=${kind} status=${status ?? 'none'} name=${error?.name || 'Error'} ` +
+      `keySource=${keyInfo.source} key=${keyFingerprint(keyInfo.key)} isolated=${keyInfo.isolated}: ${message}`
+    );
+
+    // Failures are recorded too. A quota block burns no tokens, so a ledger
+    // that only logged successes would go silent exactly when something was
+    // wrong — and silence reads as "nothing happening" rather than "blocked".
+    await recordAiUsage({
+      route: '/api/chat',
+      model: CHAT_MODEL,
+      usage: usageParts.length ? sumUsage(usageParts) : EMPTY_USAGE,
+      contextChars: contextSize,
+      generations,
+      toolCalls: toolCallCount,
+      latencyMs: Date.now() - startedAt,
+      status: 'error',
+      errorKind: kind,
+      communityMemberId: memberIdForUsage,
+    });
+
+    const userMessage =
+      kind === 'upstream_overloaded'
+        ? "Our AI is experiencing high demand right now. This didn't count against your daily searches — please try again in a moment."
+        : kind === 'upstream_quota'
+        ? "Our AI has hit its usage cap for now — that's on us, not your account, and it didn't count against your daily searches. Please try again a little later."
+        : kind === 'misconfigured'
+        ? "The AI isn't configured correctly on this environment. This has been logged — it's not something you did."
+        : 'Failed to process AI request.';
+
     return NextResponse.json(
       {
-        error: isTransientOverload
-          ? "Our AI is experiencing high demand right now. This didn't count against your daily searches — please try again in a moment."
-          : 'Failed to process AI request.',
+        error: userMessage,
+        // A stable machine-readable code, safe to expose: it names the class of
+        // failure without revealing anything about the internals.
+        code: kind,
+        // The raw message, on non-production deployments ONLY.
+        //
+        // This is what makes a preview or staging deployment diagnose itself
+        // instead of requiring log access that, as it turns out, isn't reliably
+        // available. It is gated on VERCEL_ENV so production never leaks an
+        // upstream error string — those routinely carry internal endpoints,
+        // project identifiers and occasionally partial keys.
+        ...(process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production'
+          ? {
+              detail: `${error?.name || 'Error'}${status ? ` [${status}]` : ''}: ${message}`.slice(0, 500),
+              // Which variable this deployment read, and the last 4 characters
+              // of the key it got. Never more than that.
+              keySource: keyInfo.source,
+              keyFingerprint: keyFingerprint(keyInfo.key),
+            }
+          : {}),
       },
-      { status: 500 }
+      // A quota block upstream is our capacity problem, not a bug in the
+      // request — 503 says "try later", which is both true and the correct
+      // signal for anything watching status codes.
+      { status: kind === 'upstream_overloaded' || kind === 'upstream_quota' ? 503 : 500 }
     );
   }
 }

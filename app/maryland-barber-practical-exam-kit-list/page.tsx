@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, ExternalLink, AlertTriangle } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { KitChecklist, type KitGroup } from "@/components/tools/kit-checklist";
+import { AgentInvite } from "@/components/journey/agent-invite";
 import { SITE_URL } from "@/lib/site";
 import { authorSchema } from "@/lib/author";
 import {
@@ -117,6 +118,20 @@ export default function Page() {
 
         <KitChecklist groups={KIT_GROUPS} />
 
+
+        <AgentInvite
+
+          questions={[
+
+            "What does Maryland require to get a barber licence?",
+
+            "Which barber schools are near me?",
+
+            "What does booth rent cost around me once I'm licensed?",
+
+          ]}
+
+        />
         <section className="mt-10 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-5">
           <h2 className="mb-3 text-lg font-black text-slate-900">Rules that cost points</h2>
           <ul className="space-y-2 text-sm leading-relaxed text-slate-700">
