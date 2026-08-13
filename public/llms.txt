@@ -62,7 +62,7 @@
 
 ## For students surviving the program (between enrolling and testing)
 
-- [Barber Practical Exam Kit List](/texas-barber-practical-exam-kit-list): every required
+- [Barber Practical Exam Kit List](/texas-barber-state-board-practical-exam-kit-list): every required
   supply, English-labeling rules, and the exact station-by-station step order, sourced from
   the official PSI/TDLR Candidate Information Bulletin.
 - [Cosmetology Practical Exam Kit List](/texas-cosmetology-practical-exam-kit-list): the same,

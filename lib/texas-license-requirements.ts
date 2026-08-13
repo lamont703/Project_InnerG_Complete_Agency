@@ -59,7 +59,7 @@ export const LICENSE_REQUIREMENTS: LicenseRequirement[] = [
     ],
     related: [
       { href: "/texas-barber-exam-intelligence-prep", label: "Barber Exam Prep" },
-      { href: "/texas-barber-practical-exam-kit-list", label: "Barber Kit List" },
+      { href: "/texas-barber-state-board-practical-exam-kit-list", label: "Barber Kit List" },
       { href: "/texas-barber-license-renewal", label: "Barber Renewal" },
     ],
   },

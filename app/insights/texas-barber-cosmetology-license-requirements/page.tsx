@@ -332,7 +332,7 @@ export default function LicenseRequirementsGuide() {
               </p>
               <p>
                 For the exact kit list, station-by-station step order, and written-exam content outline, see our{" "}
-                <Link href="/texas-barber-practical-exam-kit-list" className="text-primary font-bold hover:underline">
+                <Link href="/texas-barber-state-board-practical-exam-kit-list" className="text-primary font-bold hover:underline">
                   Barber Practical Exam Kit List
                 </Link>{" "}
                 or{" "}

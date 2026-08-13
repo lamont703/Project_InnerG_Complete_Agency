@@ -67,7 +67,7 @@ const GROUPS: ResourceGroup[] = [
     blurb: "Every item, and the must-label vs do-not-label rules that cost candidates points.",
     icon: ListChecks,
     links: [
-      { href: "/texas-barber-practical-exam-kit-list", label: "Barber Kit List" },
+      { href: "/texas-barber-state-board-practical-exam-kit-list", label: "Barber Kit List" },
       { href: "/texas-cosmetology-practical-exam-kit-list", label: "Cosmetology Kit List" },
       { href: "/texas-esthetician-practical-exam-kit-list", label: "Esthetician Kit List" },
       { href: "/texas-manicurist-practical-exam-kit-list", label: "Manicurist Kit List" },

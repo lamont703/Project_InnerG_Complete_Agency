@@ -28,7 +28,7 @@ import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
  * every result; this one fits inside what Google actually displays.
  */
 export const metadata = {
-  title: "Texas Eyelash Extension Practical Exam Kit List (2026)",
+  title: "Texas Eyelash Extension State Board Practical Exam Kit Checklist (2026)",
   description:
     "Every kit item for the Texas eyelash extension practical exam, what must be labeled, and all 4 timed sections — from the Jan 1, 2026 PSI/TDLR bulletin.",
   keywords: [
@@ -42,7 +42,7 @@ export const metadata = {
     "eyelash extension practical exam checklist",
   ],
   openGraph: {
-    title: "Texas Eyelash Extension Practical Exam Kit List (2026)",
+    title: "Texas Eyelash Extension State Board Practical Exam Kit Checklist (2026)",
     description:
       "Every required kit item, the must-label vs. do-not-label rules, and all 4 timed sections for the Texas eyelash extension practical exam — from the official PSI/TDLR bulletin effective January 1, 2026.",
   },

@@ -50,7 +50,7 @@ describe("hasPracticalExam", () => {
 
 describe("kitListRoute", () => {
   it("gives Texas students their own track's kit list", () => {
-    expect(kitListRoute("TX", "barber")).toBe("/texas-barber-practical-exam-kit-list");
+    expect(kitListRoute("TX", "barber")).toBe("/texas-barber-state-board-practical-exam-kit-list");
     expect(kitListRoute("TX", "manicurist")).toBe("/texas-manicurist-practical-exam-kit-list");
   });
 
@@ -188,7 +188,7 @@ describe("agentJourneyContext", () => {
 
     const tx = agentJourneyContext(facts(), TODAY)!;
     expect(tx.state_has_practical_exam).toBe(true);
-    expect(tx.their_kit_list_url).toBe("/texas-barber-practical-exam-kit-list");
+    expect(tx.their_kit_list_url).toBe("/texas-barber-state-board-practical-exam-kit-list");
   });
 
   it("gives the model a countdown rather than a raw date to subtract", () => {

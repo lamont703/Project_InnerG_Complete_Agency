@@ -181,6 +181,26 @@ const nextConfig = {
 
     return [
       // ---------------------------------------------------------------------
+      // The Texas barber kit list gained "state board" in its URL.
+      // ---------------------------------------------------------------------
+      // Students say "state board", not "practical exam", and the old slug
+      // carried none of that vocabulary. Permanent because the old URL is real,
+      // indexed, and the single best-performing content page on the site — it
+      // holds links and bookmarks that must keep resolving.
+      //
+      // WORTH KNOWING BEFORE TOUCHING THIS AGAIN: as of 2026-08-11 this page
+      // was the one URL on the site inspecting as "Duplicate, Google chose
+      // different canonical than user", with Google still preferring the old
+      // domain. So this redirect now sits on top of the domain move, and a
+      // request for the original path on the original host takes two hops.
+      // That is tolerable once. It is a reason not to rename it a third time.
+      {
+        source: "/texas-barber-practical-exam-kit-list",
+        destination: "/texas-barber-state-board-practical-exam-kit-list",
+        permanent: true,
+      },
+
+      // ---------------------------------------------------------------------
       // THE DOMAIN MOVE: agency.innergcomplete.com -> shearquery.com
       // ---------------------------------------------------------------------
       // Permanent (308) and path-preserving. Google treats 301 and 308 alike

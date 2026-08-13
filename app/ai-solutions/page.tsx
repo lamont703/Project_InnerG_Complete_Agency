@@ -141,7 +141,7 @@ const solutions = [
     label: "Exam Kit Checklist",
     description: "The exact tool and product kit list required for the Texas barber practical licensing exam.",
     icon: ClipboardList,
-    href: "/texas-barber-practical-exam-kit-list",
+    href: "/texas-barber-state-board-practical-exam-kit-list",
     roles: ["School Students"]
   },
   {

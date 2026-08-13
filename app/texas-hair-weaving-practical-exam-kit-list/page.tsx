@@ -27,7 +27,7 @@ import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
  * the older kit pages which run 74-90 characters and lose their tail.
  */
 export const metadata = {
-  title: "Texas Hair Weaving Practical Exam Kit List (2026)",
+  title: "Texas Hair Weaving State Board Practical Exam Kit Checklist (2026)",
   description:
     "Every kit item for the Texas hair weaving practical exam, what must be labeled, and all 6 timed sections — from the Jan 1, 2026 PSI/TDLR bulletin.",
   keywords: [
@@ -41,7 +41,7 @@ export const metadata = {
     "hair weaving practical exam checklist",
   ],
   openGraph: {
-    title: "Texas Hair Weaving Practical Exam Kit List (2026)",
+    title: "Texas Hair Weaving State Board Practical Exam Kit Checklist (2026)",
     description:
       "Every required kit item, the must-label vs. do-not-label rules, and all 6 timed sections for the Texas hair weaving practical exam — from the official PSI/TDLR bulletin effective January 1, 2026.",
   },

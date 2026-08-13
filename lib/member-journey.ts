@@ -123,7 +123,7 @@ const ROUTES: Record<JourneyState, Partial<Record<LicenseTrack, TrackRoutes>>> =
   TX: {
     barber: {
       requirements: "/texas-barber-license-requirements-guide",
-      kitList: "/texas-barber-practical-exam-kit-list",
+      kitList: "/texas-barber-state-board-practical-exam-kit-list",
       examPrep: "/texas-barber-exam-intelligence-prep",
       renewal: "/texas-barber-license-renewal",
     },
