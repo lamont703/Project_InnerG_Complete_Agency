@@ -54,7 +54,7 @@ const MAINTAINED_PAGES = [
   "/barber-cos-continuing-education",
   "/how-to-get-a-barber-license-in-texas",
   "/how-to-get-a-cosmetology-license-in-texas",
-  "/texas-barber-practical-exam-kit-list",
+  "/texas-barber-state-board-practical-exam-kit-list",
   "/texas-cosmetology-practical-exam-kit-list",
   "/texas-barber-exam-intelligence-prep",
   "/texas-cosmetology-exam-intelligence-prep",

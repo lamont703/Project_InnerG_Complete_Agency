@@ -11,30 +11,58 @@ import { createBrowserClient } from "@/lib/supabase/browser"
 export interface KitItem {
   label: string
   hint?: string
+  /**
+   * Whether THIS item must carry a label, when the group itself is mixed.
+   *
+   * The CIB gives two authoritative lists — products that must be labeled in
+   * English, and tools that must not be — and a page that groups its kit by
+   * exam service will have both kinds inside one group. Set per item there.
+   * Leave undefined on pages whose groups are already split by label rule;
+   * those keep using KitGroup.mustLabel and render exactly as before.
+   */
+  mustLabel?: boolean
 }
 
 export interface KitGroup {
   title: string
   note?: string
-  mustLabel?: boolean // items in this group must carry a label
+  /**
+   * Every item in this group shares one label rule, shown as a single badge on
+   * the group heading. Leave UNDEFINED for a mixed group — the badge then moves
+   * to the individual items that declare their own `mustLabel`.
+   */
+  mustLabel?: boolean
   items: KitItem[]
 }
 
 /**
- * THE OLD KEY, AND WHY IT WAS A BUG.
+ * KEYING, AND THE TWO TIMES IT HAD TO MOVE.
  *
- * One constant — "tx-barber-kit-checklist-v2026" — was used by all seven kit
- * pages. The component even read `pathname` and never applied it. So a
- * cosmetology student's ticks showed up on the barber list, and any item whose
- * label appeared on two pages was shared between them. Keyed by path now, so
- * each licence keeps its own list.
+ * Originally one constant — "tx-barber-kit-checklist-v2026" — was used by all
+ * seven kit pages. The component even read `pathname` and never applied it, so
+ * a cosmetology student's ticks showed up on the barber list. Keyed by path
+ * since, so each licence keeps its own list.
  *
- * The legacy key is adopted once, on the page it was actually written by, so
- * nobody who packed half a bag loses it to the fix.
+ * Then the Texas barber page changed URL (…/texas-barber-practical-exam-kit-list
+ * → …/texas-barber-state-board-practical-exam-kit-list), and because the key IS
+ * the path, that would have silently emptied the checklist of anyone who had
+ * already packed half a bag. Nobody would have reported it as a bug; it would
+ * just look like the site forgot.
+ *
+ * So a page can name older keys to adopt, newest first. Adoption is read-only
+ * and one-way: the first key with anything in it wins, and the value is then
+ * written under the current key by the normal persistence effect.
  */
-const LEGACY_KEY = "tx-barber-kit-checklist-v2026"
-const LEGACY_PATH = "/texas-barber-practical-exam-kit-list"
 const storageKey = (pathname: string) => `shearquery.kit.v1:${pathname}`
+
+const PREVIOUS_KEYS: Record<string, string[]> = {
+  "/texas-barber-state-board-practical-exam-kit-list": [
+    // The same page under its previous URL.
+    storageKey("/texas-barber-practical-exam-kit-list"),
+    // And before keys carried a path at all.
+    "tx-barber-kit-checklist-v2026",
+  ],
+}
 
 export function KitChecklist({ groups }: { groups: KitGroup[] }) {
   // The checklist is mounted on several kit pages; each one keeps its own list.
@@ -55,9 +83,16 @@ export function KitChecklist({ groups }: { groups: KitGroup[] }) {
       const raw = localStorage.getItem(key)
       if (raw) {
         local = JSON.parse(raw)
-      } else if (pathname === LEGACY_PATH) {
-        const legacy = localStorage.getItem(LEGACY_KEY)
-        if (legacy) local = JSON.parse(legacy)
+      } else {
+        // Nothing under the current key — fall back through this page's older
+        // keys, newest first, and take the first that holds anything.
+        for (const older of PREVIOUS_KEYS[pathname] || []) {
+          const prior = localStorage.getItem(older)
+          if (prior) {
+            local = JSON.parse(prior)
+            break
+          }
+        }
       }
       setChecked(local)
     } catch {
@@ -194,11 +229,14 @@ export function KitChecklist({ groups }: { groups: KitGroup[] }) {
         {groups.map((group) => (
           <div key={group.title}>
             <div className="flex items-center gap-2 mb-2">
-              {group.mustLabel ? (
+              {/* A group badge only when the whole group shares one rule.
+                  `undefined` means mixed, and the badge moves to the items. */}
+              {group.mustLabel === true && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-amber-800">
                   <Tag className="w-3 h-3" /> Must be labeled
                 </span>
-              ) : (
+              )}
+              {group.mustLabel === false && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-500">
                   <TagIcon className="w-3 h-3" /> Do NOT label
                 </span>
@@ -222,6 +260,19 @@ export function KitChecklist({ groups }: { groups: KitGroup[] }) {
                       )}
                       <span className={isOn ? "text-slate-400 line-through" : "text-slate-700"}>
                         {item.label}
+                        {/* Per-item label rule, for mixed groups. Kept short —
+                            this sits inside a list of 40+ rows, and the full
+                            wording is on the group note. */}
+                        {item.mustLabel === true && (
+                          <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-amber-50 border border-amber-200 px-1.5 py-px text-[9px] font-black uppercase tracking-wide text-amber-800 align-middle no-underline">
+                            <Tag className="w-2.5 h-2.5" /> Label
+                          </span>
+                        )}
+                        {item.mustLabel === false && (
+                          <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-slate-50 border border-slate-200 px-1.5 py-px text-[9px] font-black uppercase tracking-wide text-slate-500 align-middle no-underline">
+                            <TagIcon className="w-2.5 h-2.5" /> No label
+                          </span>
+                        )}
                         {item.hint && <span className="block text-[11px] text-slate-400 no-underline">{item.hint}</span>}
                       </span>
                     </button>

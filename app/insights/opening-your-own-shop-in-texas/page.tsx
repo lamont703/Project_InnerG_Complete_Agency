@@ -633,7 +633,7 @@ export default async function OpeningYourOwnShopGuide() {
                 Establishments offering manicure or pedicure services need one additional piece of equipment: an
                 autoclave, dry heat sterilizer, or ultraviolet sanitizer for tool disinfection between clients.
                 For students preparing for licensing before opening their own shop, we have full checklists of required exam equipment in our{" "}
-                <Link href="/texas-barber-practical-exam-kit-list" className="text-primary font-bold hover:underline">
+                <Link href="/texas-barber-state-board-practical-exam-kit-list" className="text-primary font-bold hover:underline">
                   Barber Practical Exam Kit List
                 </Link>{" "}
                 and{" "}

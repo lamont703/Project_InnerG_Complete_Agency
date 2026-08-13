@@ -270,7 +270,7 @@ export default function PsiBulletinPage() {
             <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-indigo-600" />
           </Link>
           <Link
-            href="/texas-barber-practical-exam-kit-list"
+            href="/texas-barber-state-board-practical-exam-kit-list"
             data-ig-click="psi_bulletin_to_tx_kit"
             className="group flex items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition-colors hover:border-indigo-300"
           >

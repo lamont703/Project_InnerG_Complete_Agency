@@ -17,7 +17,7 @@ import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const metadata = {
-  title: "Texas Manicurist (Nail Tech) Practical Exam Kit List & Checklist (2026)",
+  title: "Texas Manicurist (Nail Tech) State Board Practical Exam Kit Checklist (2026)",
   description:
     "The complete Texas Manicurist / nail technician practical exam kit list and printable checklist, sourced from the official PSI/TDLR Candidate Information Bulletin effective January 1, 2026 — which items must be labeled, which must not, and all 6 timed stations in order.",
   keywords: [
@@ -31,7 +31,7 @@ export const metadata = {
     "texas manicurist practical exam steps",
   ],
   openGraph: {
-    title: "Texas Manicurist (Nail Tech) Practical Exam Kit List & Checklist (2026)",
+    title: "Texas Manicurist (Nail Tech) State Board Practical Exam Kit Checklist (2026)",
     description:
       "Every required kit item, the must-label vs. do-not-label rules, and all 6 timed stations for the Texas Manicurist practical exam — sourced from the official PSI/TDLR bulletin effective January 1, 2026.",
   },

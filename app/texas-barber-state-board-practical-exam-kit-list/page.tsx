@@ -16,7 +16,7 @@ import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const metadata = {
-  title: "Texas Barber Practical Exam Kit List & Checklist (2026)",
+  title: "Texas Barber State Board Practical Exam Kit Checklist (2026)",
   description:
     "The complete Texas Class A Barber practical exam kit list and printable checklist, sourced from the official PSI/TDLR Candidate Information Bulletin effective January 1, 2026 — every supply, the exact must-label vs. do-not-label rules, and all 11 timed stations (now including manicure and thermal curling).",
   keywords: [
@@ -30,11 +30,11 @@ export const metadata = {
     "class a barber practical exam checklist",
   ],
   openGraph: {
-    title: "Texas Barber Practical Exam Kit List & Checklist (2026)",
+    title: "Texas Barber State Board Practical Exam Kit Checklist (2026)",
     description:
       "Every required kit item, the exact must-label vs. do-not-label rules, and all 11 timed stations for the Texas Class A Barber practical exam — sourced from the official PSI/TDLR bulletin effective January 1, 2026.",
   },
-  alternates: { canonical: `${SITE_URL}/texas-barber-practical-exam-kit-list` },
+  alternates: { canonical: `${SITE_URL}/texas-barber-state-board-practical-exam-kit-list` },
 };
 
 const FAQS = [
@@ -60,61 +60,118 @@ const FAQS = [
   },
 ];
 
-// ── Kit, split into the CIB's two authoritative lists ──────────────────────
+// ── Kit, grouped by the exam service each item is used in ─────────────────
+//
+// WHY BY SERVICE, NOT BY LABEL RULE. The CIB publishes two lists — products
+// that must be labeled in English, and tools that must not be — and this page
+// used to mirror that split exactly. It is the right structure for verifying
+// compliance and the wrong one for packing a bag: a student on exam day thinks
+// in stations ("what do I need for the shave?"), not in label rules.
+//
+// The label rule is not lost, it moves onto the individual item as a badge,
+// because that is what it actually describes — a property of the item, not of
+// the group it happens to sit in.
+//
+// THE GROUPING IS OURS, THE LABEL RULES ARE THE BULLETIN'S. The CIB does not
+// assign supplies to sections; it lists them. Which service an item belongs to
+// is our editorial reading of the section descriptions in SECTIONS below, and
+// the page says so. Every mustLabel value, by contrast, comes straight from the
+// bulletin's two lists and must not be changed without re-reading it.
+//
+// EVERY ITEM APPEARS EXACTLY ONCE. KitChecklist keys progress on the item
+// label, so the same label in two groups would tick in both places and inflate
+// the count. Items genuinely used across several stations live in the first
+// group rather than being repeated.
 const KIT_GROUPS: KitGroup[] = [
   {
-    title: "Products & containers you must bring",
-    mustLabel: true,
-    note: "Label each in English (manufacturer labels are acceptable; numbering of any kind is not allowed).",
+    title: "Set-up, disinfection & general use",
+    note: "Used across the whole exam, not one station. Label the products; leave the tools unlabeled.",
     items: [
-      { label: "Kit / bag", hint: 'A 30" × 30" kit labeled "Pre-sanitized, Clean or Disinfected"' },
-      { label: "EPA-approved disinfectant (or simulated product)" },
-      { label: "Hand sanitizer" },
-      { label: "Astringent, freshener, or toner" },
-      { label: "Cleansing product" },
-      { label: "Massage product" },
-      { label: "Protective cream" },
-      { label: "Non-aerosol shaving cream", hint: "Aerosol products are prohibited" },
-      { label: "Cuticle remover" },
-      { label: "Simulated product for chemical services", hint: "e.g. gel, cholesterol" },
-      { label: "Simulated product for permanent wave service", hint: "e.g. water" },
-      { label: "Spray bottle with water" },
-      { label: "Blood exposure kit / first-aid kit" },
-      { label: "Trash bag(s)" },
+      { label: "Kit / bag", mustLabel: true, hint: 'A 30" × 30" kit labeled "Pre-sanitized, Clean or Disinfected"' },
+      { label: "EPA-approved disinfectant (or simulated product)", mustLabel: true },
+      { label: "Hand sanitizer", mustLabel: true },
+      { label: "Spray bottle with water", mustLabel: true },
+      { label: "Trash bag(s)", mustLabel: true },
+      { label: "Gloves", mustLabel: false },
+      { label: "Paper towels", mustLabel: false },
+      { label: "Towels", mustLabel: false },
+      { label: "Drape(s)", mustLabel: false },
+      { label: "Neck strips", mustLabel: false },
+      { label: "Combs", mustLabel: false },
+      { label: "Hairbrush", mustLabel: false },
+      { label: "Clips", mustLabel: false },
+      { label: "Cotton / cotton pads / facial tissues", mustLabel: false },
+      { label: "Protective cotton", mustLabel: false },
     ],
   },
   {
-    title: "Tools & implements you must bring",
-    mustLabel: false,
-    note: "Do NOT label these — labeling a do-not-label item can lose points.",
+    title: "Manicure",
+    note: "22 minutes, on a mannequin hand — added by the January 1, 2026 bulletin.",
     items: [
-      { label: "Mannequin head", hint: "Bring TWO — one is used for the haircut" },
-      { label: "Mannequin stand or tripod" },
-      { label: "Mannequin hand / finger", hint: "Prepped with tips to represent the natural nail (manicure)" },
-      { label: "Haircutting clippers" },
-      { label: "Haircutting shears" },
-      { label: "Disposable-blade straight razor (with blade)" },
-      { label: "Electric curling iron", hint: "Thermal curling section" },
-      { label: "Blow dryer" },
-      { label: "Abrasives / nail files and buffers" },
-      { label: "Cuticle pusher" },
-      { label: "Combs" },
-      { label: "Hairbrush" },
-      { label: "Clips" },
-      { label: "Permanent wave rods", hint: "You wrap a minimum of 4" },
-      { label: "End papers" },
-      { label: "Protective cotton" },
-      { label: "Cotton / cotton pads / facial tissues" },
-      { label: "Neck strips" },
-      { label: "Drape(s)" },
-      { label: "Head draping" },
-      { label: "Tint brush, bowl, or bottle" },
-      { label: "Disposable applicators" },
-      { label: "Gloves" },
-      { label: "Paper towels" },
-      { label: "Towels" },
-      { label: "Finger bowl" },
-      { label: "Bowl for water (optional)" },
+      { label: "Mannequin hand / finger", mustLabel: false, hint: "Prepped with tips to represent the natural nail" },
+      { label: "Cuticle remover", mustLabel: true },
+      { label: "Cuticle pusher", mustLabel: false },
+      { label: "Abrasives / nail files and buffers", mustLabel: false },
+      { label: "Finger bowl", mustLabel: false },
+      { label: "Bowl for water (optional)", mustLabel: false },
+    ],
+  },
+  {
+    title: "Professional shave",
+    note: "42 minutes — the longest scored service on the exam.",
+    items: [
+      { label: "Non-aerosol shaving cream", mustLabel: true, hint: "Aerosol products are prohibited" },
+      { label: "Disposable-blade straight razor (with blade)", mustLabel: false },
+    ],
+  },
+  {
+    title: "Blood exposure incident",
+    items: [
+      { label: "Blood exposure kit / first-aid kit", mustLabel: true },
+    ],
+  },
+  {
+    title: "Facial",
+    items: [
+      { label: "Cleansing product", mustLabel: true },
+      { label: "Massage product", mustLabel: true },
+      { label: "Astringent, freshener, or toner", mustLabel: true },
+      { label: "Head draping", mustLabel: false },
+    ],
+  },
+  {
+    title: "Haircut",
+    note: "Bring TWO mannequin heads — one is used for the haircut.",
+    items: [
+      { label: "Mannequin head", mustLabel: false, hint: "Bring TWO — one is used for the haircut" },
+      { label: "Mannequin stand or tripod", mustLabel: false },
+      { label: "Haircutting clippers", mustLabel: false },
+      { label: "Haircutting shears", mustLabel: false },
+    ],
+  },
+  {
+    title: "Blow drying & thermal curling",
+    note: "Added by the January 1, 2026 bulletin.",
+    items: [
+      { label: "Blow dryer", mustLabel: false },
+      { label: "Electric curling iron", mustLabel: false, hint: "Thermal curling section" },
+    ],
+  },
+  {
+    title: "Chemical application & permanent wave",
+    items: [
+      { label: "Protective cream", mustLabel: true },
+      { label: "Simulated product for permanent wave service", mustLabel: true, hint: "e.g. water" },
+      { label: "Permanent wave rods", mustLabel: false, hint: "You wrap a minimum of 4" },
+      { label: "End papers", mustLabel: false },
+    ],
+  },
+  {
+    title: "Single process color retouch",
+    items: [
+      { label: "Simulated product for chemical services", mustLabel: true, hint: "e.g. gel, cholesterol" },
+      { label: "Tint brush, bowl, or bottle", mustLabel: false },
+      { label: "Disposable applicators", mustLabel: false },
     ],
   },
 ];
@@ -170,13 +227,14 @@ export default function BarberPracticalExamKitListPage() {
             Updated for the Jan 1, 2026 exam
           </span>
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950 leading-tight mb-3">
-            Texas Barber Practical Exam Kit List &amp; Checklist
+            Texas Barber State Board Practical Exam Kit List &amp; Checklist
           </h1>
           <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl">
-            Every item, the exact must-label vs. do-not-label rules, and all 11 timed stations for the Texas
-            Class A Barber practical exam, administered by PSI on behalf of TDLR — sourced directly from the
-            official PSI Candidate Information Bulletin effective January 1, 2026, which added a manicure and a
-            thermal-curling section.
+            Everything you have to bring to the Texas barber state board exam, grouped by the service you use
+            it in, with the exact must-label vs. do-not-label rule on every item and all 11 timed stations. The
+            state board practical is administered by PSI on behalf of TDLR, and this list is sourced directly
+            from the official PSI Candidate Information Bulletin effective January 1, 2026, which added a
+            manicure and a thermal-curling section.
           </p>
         </div>
 
@@ -205,6 +263,11 @@ export default function BarberPracticalExamKitListPage() {
         </div>
 
         {/* Interactive + printable checklist */}
+        <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+          Grouped by the service each item is used in. The bulletin lists supplies without assigning them to
+          sections, so the grouping is ours — the <strong>Label</strong> / <strong>No label</strong> rule on each
+          item comes straight from the bulletin&apos;s two lists.
+        </p>
         <KitChecklist groups={KIT_GROUPS} />
 
         <AgentInvite
@@ -366,7 +429,7 @@ export default function BarberPracticalExamKitListPage() {
           __html: JSON.stringify(graph(
             {
             "@type": "FAQPage",
-            "@id": `${SITE_URL}/texas-barber-practical-exam-kit-list#faqpage`,
+            "@id": `${SITE_URL}/texas-barber-state-board-practical-exam-kit-list#faqpage`,
             "isPartOf": ref(WEBSITE_ID),
             "publisher": ref(ORG_ID),
             mainEntity: FAQS.map((faq) => ({
@@ -384,7 +447,7 @@ export default function BarberPracticalExamKitListPage() {
           __html: JSON.stringify(graph(
             {
             "@type": "HowTo",
-            "@id": `${SITE_URL}/texas-barber-practical-exam-kit-list#howto`,
+            "@id": `${SITE_URL}/texas-barber-state-board-practical-exam-kit-list#howto`,
             "isPartOf": ref(WEBSITE_ID),
             "publisher": ref(ORG_ID),
             name: "Texas Class A Barber Practical Exam — Station Order",
@@ -407,7 +470,7 @@ export default function BarberPracticalExamKitListPage() {
           __html: JSON.stringify(graph(
             {
             "@type": "ItemList",
-            "@id": `${SITE_URL}/texas-barber-practical-exam-kit-list#itemlist`,
+            "@id": `${SITE_URL}/texas-barber-state-board-practical-exam-kit-list#itemlist`,
             name: "Texas Barber Practical Exam Kit List (2026)",
             itemListElement: KIT_GROUPS.flatMap((g) => g.items).map((item, i) => ({
               "@type": "ListItem",

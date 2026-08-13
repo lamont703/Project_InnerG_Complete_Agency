@@ -16,7 +16,7 @@ import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 
 export const metadata = {
-  title: "Texas Cosmetology Practical Exam Kit List & Checklist (2026)",
+  title: "Texas Cosmetology State Board Practical Exam Kit Checklist (2026)",
   description:
     "The complete Texas Cosmetology Operator practical exam kit list and printable checklist, sourced from the official PSI/TDLR Candidate Information Bulletin effective January 1, 2026 — which items must be labeled in English, which must not be labeled at all, and all 13 timed stations in order.",
   keywords: [
@@ -31,7 +31,7 @@ export const metadata = {
     "cosmetology operator practical exam checklist",
   ],
   openGraph: {
-    title: "Texas Cosmetology Practical Exam Kit List & Checklist (2026)",
+    title: "Texas Cosmetology State Board Practical Exam Kit Checklist (2026)",
     description:
       "Every required kit item, the exact must-label vs. do-not-label rules, and all 13 timed stations for the Texas Cosmetology Operator practical exam — sourced from the official PSI/TDLR bulletin effective January 1, 2026.",
   },
@@ -325,7 +325,7 @@ export default function CosmetologyPracticalExamKitListPage() {
             Practice the Written Exam
           </Link>
           <Link
-            href="/texas-barber-practical-exam-kit-list"
+            href="/texas-barber-state-board-practical-exam-kit-list"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-extrabold text-sm uppercase tracking-wider transition-colors"
           >
             View Barber Kit List

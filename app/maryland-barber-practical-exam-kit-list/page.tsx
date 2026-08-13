@@ -192,7 +192,7 @@ export default function Page() {
           {[
             { href: "/maryland-barber-license-requirements", label: "Barber licence requirements", why: "1,200 school hours or 2,250 as an apprentice." },
             { href: "/maryland-barber-license-renewal", label: "Barber licence renewal", why: "Two-year cycle, $56, no CE requirement." },
-            { href: "/texas-barber-practical-exam-kit-list", label: "Texas barber kit list", why: "The same exam in another state — the kits are not the same." },
+            { href: "/texas-barber-state-board-practical-exam-kit-list", label: "Texas barber kit list", why: "The same exam in another state — the kits are not the same." },
             { href: "/maryland", label: "Maryland hub", why: "Every Maryland licensing guide in one place." },
           ].map((r) => (
             <Link
