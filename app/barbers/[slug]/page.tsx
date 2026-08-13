@@ -18,24 +18,10 @@ import {
 } from "@/lib/schema-graph";
 import { BARBER_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import Image from "next/image";
-import {
-  MapPin,
-  Star,
-  CheckCircle2,
-  GraduationCap,
-  Scissors,
-  Instagram,
-  Youtube,
-  Globe,
-  Music2,
-  Users,
-  Clock,
-  Navigation,
-  Landmark,
-  CalendarCheck,
-  Phone,
-} from "lucide-react";
+import {MapPin, Star, CheckCircle2, GraduationCap, Scissors, Instagram, Youtube, Music2, Users, Clock, Navigation, Landmark} from "lucide-react";
 import { SITE_URL } from "@/lib/site";
+import { BookAppointmentButton } from "@/components/book-appointment-modal";
+import { servicesForEntity } from "@/lib/booking-services";
 
 export const revalidate = 3600;
 
@@ -265,6 +251,13 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
   const services: { name: string; price: number; currency: string }[] = Array.isArray(barber.booksy_services)
     ? barber.booksy_services
     : [];
+  // The same list, normalised for the Book Appointment modal — deduped, junk
+  // rows dropped, and a "not sure yet" option appended so someone who cannot
+  // name the service is still a lead.
+  const bookingServices = servicesForEntity({
+    entityType: "barber",
+    booksyServices: barber.booksy_services,
+  });
   const specialties: string[] = (barber.desired_specialties || "")
     .split(",")
     .map((s: string) => s.trim())
@@ -303,11 +296,10 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
       href: `https://youtube.com/@${barber.youtube_channel.replace("@", "")}`,
       Icon: Youtube,
     },
-    barber.website_url && {
-      label: "Website",
-      href: barber.website_url.startsWith("http") ? barber.website_url : `https://${barber.website_url}`,
-      Icon: Globe,
-    },
+    // Website deliberately absent: it is the same outbound handoff the CTA row
+    // dropped, and leaving it here would just reopen the bypass one row down.
+    // The site is still reachable — the booking modal reveals it once the
+    // request is in. Populated on 2 of 1,429 rows regardless.
   ].filter(Boolean) as { label: string; href: string; Icon: any }[];
 
   const barberJsonLd = buildBarberJsonLd(barber);
@@ -441,39 +433,22 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
                   phone are 100% populated on this table, website_url is on 2 of
                   1,429 rows, so the Website button almost never renders. */}
               <div className="flex flex-wrap items-stretch gap-2 mt-5 pt-5 border-t border-slate-100">
-                {barber.profile_url && (
-                  <a
-                    href={barber.profile_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-ig-click="outbound_lead"
-                    className="flex-1 min-w-[150px] inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm uppercase tracking-wider transition-colors shadow-md shadow-indigo-600/20"
-                  >
-                    <CalendarCheck className="w-4 h-4" />
-                    Book Now
-                  </a>
-                )}
-                {barber.phone && (
-                  <a
-                    href={`tel:${String(barber.phone).replace(/[^\d+]/g, "")}`}
-                    data-ig-click="outbound_lead"
-                    className="flex-1 min-w-[110px] inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold text-sm transition-colors"
-                  >
-                    <Phone className="w-4 h-4" />
-                    Call
-                  </a>
-                )}
-                {barber.website_url && (
-                  <a
-                    href={barber.website_url.startsWith("http") ? barber.website_url : `https://${barber.website_url}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-ig-click="outbound_lead"
-                    className="flex-1 min-w-[110px] inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold text-sm transition-colors"
-                  >
-                    <Globe className="w-4 h-4" />
-                    Website
-                  </a>
+                {/* Book Appointment replaces the outbound Book Now (Booksy),
+                    Call and Website buttons. Those converted off-site where
+                    the directory could see nothing; this captures the request
+                    first. The services offered are this barber's OWN
+                    booksy_services, priced — populated on 1,429 of 1,429 rows
+                    — so the list is the real one, not a generic guess.
+                    Directions stays: it is a map link, not a lead handoff. */}
+                {bookingServices && (
+                  <BookAppointmentButton
+                    entityType="barber"
+                    entityId={String(barber.id)}
+                    entityName={barber.name}
+                    services={bookingServices}
+                    fallbackWebsite={barber.website_url}
+                    className="flex-1 min-w-[150px] px-5 py-3 bg-indigo-600 hover:bg-indigo-700 font-extrabold uppercase tracking-wider shadow-md shadow-indigo-600/20"
+                  />
                 )}
                 {directionsHref && (
                   <a

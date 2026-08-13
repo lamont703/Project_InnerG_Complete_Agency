@@ -22,31 +22,11 @@ import {
 } from "@/lib/schema-graph";
 import { computeShopEcosystemReport } from "@/lib/shop-ecosystem";
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
+import { BookAppointmentButton } from "@/components/book-appointment-modal";
+import { servicesForEntity } from "@/lib/booking-services";
 import { SALON_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import { composeDescription, ratingClause, streetClause } from "@/lib/seo-description";
-import {
-  MapPin,
-  Phone,
-  Mail,
-  Globe,
-  Clock,
-  Navigation,
-  Users,
-  ExternalLink,
-  Landmark,
-  Store,
-  CheckCircle2,
-  ShieldCheck,
-  Lock,
-  Award,
-  GraduationCap,
-  TrendingUp,
-  TrendingDown,
-  ShoppingBag,
-  Sparkles,
-  Scissors,
-  Info,
-} from "lucide-react";
+import {MapPin, Mail, Clock, Navigation, Users, ExternalLink, Landmark, Store, CheckCircle2, ShieldCheck, Lock, Award, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles, Scissors, Info} from "lucide-react";
 import { SITE_URL } from "@/lib/site";
 import { AddToShortlist } from "@/components/shortlist/add-to-shortlist";
 import { OwnerGbpStrip } from "@/components/shortlist/owner-gbp-strip";
@@ -266,6 +246,14 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
       : `https://${salon.website}`
     : null;
 
+  // Null for beauty supply stores, which get no booking CTA. Everything else
+  // is keyed off google_category — 25 distinct values on this table, so the
+  // entity type alone would be far too blunt. See lib/booking-services.ts.
+  const bookingServices = servicesForEntity({
+    entityType: "salon",
+    googleCategory: salon.google_category,
+  });
+
   // Prepare images array, fallback to shop_image_url — same precedence as
   // app/shop/[slug]/page.tsx.
   const images: string[] = salon.google_images && Array.isArray(salon.google_images) && salon.google_images.length > 0
@@ -393,20 +381,21 @@ export default async function SalonProfilePage(props: { params: Promise<{ slug: 
             ) : (
               <ClaimShopButton shop={salon} entityType="salon" />
             )}
-            {(salon.phone || websiteHref) && (
+            {/* Book Appointment replaces the old Call and Website buttons —
+                see the note on the same block in app/shop/[slug]/page.tsx.
+                The service list is keyed off google_category, which matters
+                more here than anywhere: this table holds nail salons, spas,
+                med spas and eyelash salons alongside the hair salons. */}
+            {bookingServices && (
               <div className="flex gap-2 mt-3 w-full sm:w-auto">
-                {salon.phone && (
-                  <a href={`tel:${salon.phone}`} data-ig-click="outbound_lead" className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm px-6 py-3">
-                    <Phone className="w-4 h-4 text-slate-500" />
-                    Call
-                  </a>
-                )}
-                {websiteHref && (
-                  <a href={websiteHref} target="_blank" rel="noopener noreferrer" data-ig-click="outbound_lead" className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm px-6 py-3">
-                    <Globe className="w-4 h-4 text-slate-500" />
-                    Website
-                  </a>
-                )}
+                <BookAppointmentButton
+                  entityType="salon"
+                  entityId={String(salon.id)}
+                  entityName={salon.shop_name}
+                  services={bookingServices}
+                  fallbackPhone={salon.phone}
+                  fallbackWebsite={websiteHref}
+                />
               </div>
             )}
           </div>
