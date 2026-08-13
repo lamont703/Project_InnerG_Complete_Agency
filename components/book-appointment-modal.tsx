@@ -185,7 +185,14 @@ export function BookAppointmentButton({
         </button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      {/* `light` is load-bearing, not decoration. app/globals.css defines the
+          DARK palette on :root and overrides it in `.light`, and every entity
+          page opts in by putting `light` on its own wrapper div. A Radix
+          dialog renders through a portal into document.body — outside that
+          wrapper — so without this class the modal inherits the dark :root and
+          the calendar renders near-white text on near-white surfaces. Anything
+          else portalled out of a page must carry this too. */}
+      <DialogContent className="light sm:max-w-lg max-h-[90vh] overflow-y-auto bg-white text-slate-900 border-slate-200">
         {step === "done" ? (
           <>
             <DialogHeader>
@@ -267,7 +274,7 @@ export function BookAppointmentButton({
                     id="bk-service"
                     value={service}
                     onChange={(e) => setService(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    className="w-full rounded-xl border border-slate-200 bg-white text-slate-900 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
                   >
                     {services.map((s) => (
                       <option key={s.name} value={s.name}>
@@ -287,7 +294,11 @@ export function BookAppointmentButton({
                       startMonth={today}
                       endMonth={lastDay}
                       disabled={{ before: today, after: lastDay }}
-                      className="p-0"
+                      // The calendar root carries bg-background, which under
+                      // `light` is a faint grey — fine on its own, muddy inside
+                      // this white bordered card. The surrounding div supplies
+                      // the surface instead.
+                      className="p-0 bg-transparent"
                     />
                   </div>
                   <p className="mt-1.5 text-xs text-slate-500">
@@ -346,7 +357,7 @@ export function BookAppointmentButton({
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     autoComplete="name"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    className="w-full rounded-xl border border-slate-200 bg-white text-slate-900 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
                   />
                 </div>
 
@@ -362,7 +373,7 @@ export function BookAppointmentButton({
                     onChange={(e) => setPhone(e.target.value)}
                     autoComplete="tel"
                     placeholder="(555) 555-5555"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    className="w-full rounded-xl border border-slate-200 bg-white text-slate-900 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
                   />
                 </div>
 
@@ -378,7 +389,7 @@ export function BookAppointmentButton({
                     onChange={(e) => setEmail(e.target.value)}
                     autoComplete="email"
                     placeholder="you@example.com"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    className="w-full rounded-xl border border-slate-200 bg-white text-slate-900 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
                   />
                 </div>
 
@@ -391,7 +402,7 @@ export function BookAppointmentButton({
                     rows={2}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    className="w-full rounded-xl border border-slate-200 bg-white text-slate-900 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
                   />
                 </div>
 
