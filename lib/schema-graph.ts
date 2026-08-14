@@ -102,6 +102,7 @@ export const WIKIDATA = {
   ohio: "https://www.wikidata.org/wiki/Q1397",
   mississippi: "https://www.wikidata.org/wiki/Q1494",
   tennessee: "https://www.wikidata.org/wiki/Q1509",
+  minnesota: "https://www.wikidata.org/wiki/Q1527",
   // Regulators. No QID exists for the California Board of Barbering and
   // Cosmetology, PSI Services or NACCAS — searched, nothing returned. Those
   // carry their official URL in `sameAs` instead, which is weaker but true.
@@ -148,6 +149,7 @@ const STATE_BY_CODE: Record<string, { name: string; sameAs: string }> = {
   OH: { name: "Ohio", sameAs: WIKIDATA.ohio },
   MS: { name: "Mississippi", sameAs: WIKIDATA.mississippi },
   TN: { name: "Tennessee", sameAs: WIKIDATA.tennessee },
+  MN: { name: "Minnesota", sameAs: WIKIDATA.minnesota },
 };
 
 /**
@@ -350,6 +352,17 @@ export const REGULATORS = {
     name: "Tennessee Board of Cosmetology and Barber Examiners",
     url: "https://www.tn.gov/commerce/regboards/cosmo.html",
   },
+  /**
+   * Minnesota has a standalone board rather than a division of a commerce
+   * department. The exam is PSI's (client code MNCOS), so the instructor kit
+   * page cites PSI for the bulletin and this node for the licence.
+   */
+  mn: {
+    "@type": "GovernmentOrganization",
+    "@id": "https://mn.gov/boards/cosmetology/#organization",
+    name: "Minnesota Board of Cosmetologist Examiners",
+    url: "https://mn.gov/boards/cosmetology/",
+  },
 } as const;
 
 /** The regulator for a postal state code, or null if we do not cover that state. */
@@ -363,6 +376,7 @@ export function regulatorFor(code: string | null | undefined) {
   if (key === "OH") return REGULATORS.oh;
   if (key === "MS") return REGULATORS.ms;
   if (key === "TN") return REGULATORS.tn;
+  if (key === "MN") return REGULATORS.mn;
   return null;
 }
 
