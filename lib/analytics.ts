@@ -188,6 +188,94 @@ export function trackExamRetake(deck_type: 'public' | 'enhanced', program: 'barb
 }
 
 // ─────────────────────────────────────────────────────────────
+// 🧰 KIT PACKER EVENTS
+// ─────────────────────────────────────────────────────────────
+//
+// The question these exist to answer is whether anyone plays this at all. The
+// module sits below the checklist on the site's highest-traffic page, so the
+// ratio of kit_packer_start to page views is the read that decides whether the
+// remaining nine decks get built. Track the start, not just the finish —
+// abandonment mid-round is the interesting signal.
+
+/** User starts a round. `licence` is the kit slug, e.g. "texas-barber". */
+export function trackKitPackerStart(params: {
+  licence: string
+  seed: number
+  tile_count: number
+}) {
+  gtagEvent('kit_packer_start', {
+    event_category: 'Kit Packer',
+    licence: params.licence,
+    seed: params.seed,
+    tile_count: params.tile_count,
+  })
+}
+
+/** Round one finished — or ended early because a prohibited item was packed. */
+export function trackKitPackerPackComplete(params: {
+  licence: string
+  seed: number
+  correct: number
+  required: number
+  wrong: number
+  fatal: boolean
+  time_taken_ms: number
+  timed_out: boolean
+}) {
+  gtagEvent('kit_packer_pack_complete', {
+    event_category: 'Kit Packer',
+    licence: params.licence,
+    seed: params.seed,
+    correct: params.correct,
+    required: params.required,
+    wrong: params.wrong,
+    /** True when the run ended on a prohibited item rather than the clock. */
+    fatal: params.fatal,
+    time_taken_ms: params.time_taken_ms,
+    timed_out: params.timed_out,
+    value: params.correct,
+  })
+}
+
+/** Round two finished — the label rule round. */
+export function trackKitPackerLabelComplete(params: {
+  licence: string
+  seed: number
+  correct: number
+  total: number
+}) {
+  gtagEvent('kit_packer_label_complete', {
+    event_category: 'Kit Packer',
+    licence: params.licence,
+    seed: params.seed,
+    correct: params.correct,
+    total: params.total,
+    value: params.correct,
+  })
+}
+
+/** User replays. A high retry rate is the strongest signal the format works. */
+export function trackKitPackerRetry(licence: string, from: 'pack' | 'label' | 'results') {
+  gtagEvent('kit_packer_retry', {
+    event_category: 'Kit Packer',
+    licence,
+    from,
+  })
+}
+
+/** User takes the account offer on the results screen. */
+export function trackKitPackerSignupInvite(params: {
+  licence: string
+  missed: number
+}) {
+  gtagEvent('kit_packer_signup_invite_clicked', {
+    event_category: 'Kit Packer',
+    licence: params.licence,
+    missed: params.missed,
+  })
+}
+
+// ─────────────────────────────────────────────────────────────
 // 📊 INSIGHTS / RESEARCH CONTENT EVENTS
 // ─────────────────────────────────────────────────────────────
 

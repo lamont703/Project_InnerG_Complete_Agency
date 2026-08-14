@@ -26,6 +26,19 @@ export interface KitItem {
    * those keep using KitGroup.mustLabel and render exactly as before.
    */
   mustLabel?: boolean;
+  /**
+   * The bulletin lists this item but does not require it.
+   *
+   * Four items across the Texas kits say so in their own text — three "Bowl for
+   * water (optional)" and the eyelash "Glasses / specs". The checklist renders
+   * them like any other row, which is right: you still want to think about
+   * them while packing. Kit Packer must NOT, because scoring someone down for
+   * leaving out an item the board calls optional teaches a false requirement.
+   *
+   * Declared rather than sniffed out of the label text — a game that infers
+   * meaning from a parenthetical is one rewording away from being wrong.
+   */
+  optional?: boolean;
 }
 
 export interface KitGroup {
@@ -62,6 +75,26 @@ export interface ExamSection {
 }
 
 /**
+ * A thing a candidate is forbidden to bring into the practical room.
+ *
+ * WHY THIS IS DECLARED AND NOT DERIVED. `rules` holds prose sentences — "Aerosol
+ * products are not permitted", "Cell phones are not allowed in the practical
+ * room". Pulling item names out of them with pattern matching would invent
+ * claims about state board policy from sentence fragments, which is the one
+ * thing the kit data must never do.
+ *
+ * So each prohibited item is written down explicitly AND carries the exact rule
+ * string that forbids it. `rule` must appear verbatim in the same kit's `rules`
+ * array — lib/kits/kits.test.ts asserts it, so a paraphrase fails the build
+ * rather than shipping as an unsourced claim.
+ */
+export interface ProhibitedItem {
+  label: string;
+  /** Verbatim from this kit's `rules`. Not a paraphrase, not a summary. */
+  rule: string;
+}
+
+/**
  * Everything one licence's kit page knows, in one object.
  *
  * The four arrays were four loose `const`s inside each page component. They are
@@ -89,6 +122,16 @@ export interface PracticalKit {
    * paraphrase these into a shorter form for display; the wording is the claim.
    */
   rules: string[];
+  /**
+   * Named items the bulletin forbids, each tied to the rule that forbids it.
+   *
+   * OPTIONAL ON PURPOSE. A licence without this cannot produce the fatal tiles
+   * that give Kit Packer its stakes, and `buildDeck` refuses to build a deck
+   * without it rather than quietly shipping a game with no way to lose. That
+   * refusal is the feature: it makes "we haven't read this bulletin's rules
+   * closely enough yet" an error instead of an omission nobody notices.
+   */
+  prohibited?: ProhibitedItem[];
 }
 
 /** Total items across every group — the number the pages print. */

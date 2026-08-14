@@ -66,7 +66,7 @@ const GROUPS: KitGroup[] = [
       { label: "Cuticle pusher", mustLabel: false },
       { label: "Abrasives / nail files and buffers", mustLabel: false },
       { label: "Finger bowl", mustLabel: false },
-      { label: "Bowl for water (optional)", mustLabel: false },
+      { label: "Bowl for water (optional)", mustLabel: false, optional: true },
     ],
   },
   {
@@ -157,6 +157,49 @@ const RULES = [
   "Wear closed-toe shoes. Cell phones are not allowed in the practical room. Once you sign in you cannot leave the area, and anything left behind is discarded.",
 ];
 
+/**
+ * Items the bulletin forbids, each carrying the RULES entry that forbids it.
+ *
+ * Every `rule` below is copied verbatim out of RULES above — the test suite
+ * asserts that, so a reworded rule breaks the build instead of silently
+ * turning a sourced claim into an unsourced one. Nothing may be added here
+ * that the bulletin does not name.
+ */
+const PROHIBITED = [
+  {
+    label: "Aerosol shaving cream",
+    rule: "Aerosol products are not permitted. Nail liquid must be odorless or you can't use it (examiners check).",
+  },
+  {
+    label: "Aerosol hairspray",
+    rule: "Aerosol products are not permitted. Nail liquid must be odorless or you can't use it (examiners check).",
+  },
+  {
+    label: "Handwritten notes / cheat sheet",
+    rule: "Cheat sheets and written notes — including written task lines on containers or bags with a written supply list — are prohibited and cost points across all Procedure Criteria.",
+  },
+  {
+    label: "Bag with a written supply list",
+    rule: "Cheat sheets and written notes — including written task lines on containers or bags with a written supply list — are prohibited and cost points across all Procedure Criteria.",
+  },
+  {
+    label: "Numbered containers",
+    rule: "Follow the bulletin's two labeling lists exactly: label the required products in English, but do NOT label tools/implements. Numbering any item is never allowed; an identifying bag for a service is fine.",
+  },
+  {
+    label: "Live model",
+    rule: "Every service is performed on a mannequin — bring TWO mannequins, since one is used for the haircut. No live models.",
+  },
+  {
+    label: "Cell phone",
+    rule: "Wear closed-toe shoes. Cell phones are not allowed in the practical room. Once you sign in you cannot leave the area, and anything left behind is discarded.",
+  },
+  {
+    label: "Open-toe shoes",
+    rule: "Wear closed-toe shoes. Cell phones are not allowed in the practical room. Once you sign in you cannot leave the area, and anything left behind is discarded.",
+  },
+];
+
 export const TEXAS_BARBER_KIT: PracticalKit = {
   slug: "texas-barber",
   state: "Texas",
@@ -167,4 +210,5 @@ export const TEXAS_BARBER_KIT: PracticalKit = {
   providedOnSite: PROVIDED_ON_SITE,
   sections: SECTIONS,
   rules: RULES,
+  prohibited: PROHIBITED,
 };

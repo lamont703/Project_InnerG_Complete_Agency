@@ -39,7 +39,7 @@ const GROUPS: KitGroup[] = [
       { label: "Drape(s)" },
       { label: "Head draping" },
       { label: "Paper towels" },
-      { label: "Glasses / specs", hint: "Optional" },
+      { label: "Glasses / specs", hint: "Optional", optional: true },
     ],
   },
 ];

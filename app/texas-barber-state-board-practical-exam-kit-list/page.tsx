@@ -14,7 +14,9 @@ import { KitChecklist } from "@/components/tools/kit-checklist";
 import { AgentInvite } from "@/components/journey/agent-invite";
 import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
+import { KitPacker } from "@/components/tools/kit-packer";
 import { TEXAS_BARBER_KIT } from "@/lib/kits/texas-barber";
+import { siblingKits } from "@/lib/kits";
 
 export const metadata = {
   title: "Texas Barber State Board Practical Exam Kit Checklist (2026)",
@@ -65,6 +67,10 @@ const FAQS = [
 // page and anything else that needs them read one source. Destructured to
 // the original local names — the markup below is unchanged.
 const { groups: KIT_GROUPS, providedOnSite: PROVIDED_ON_SITE, sections: SECTIONS, rules: RULES } = TEXAS_BARBER_KIT;
+
+// Same-state sibling kits, the source of Kit Packer's cross-licence
+// distractors — real items that belong to another Texas licence, not this one.
+const TEXAS_KIT_SIBLINGS = siblingKits(TEXAS_BARBER_KIT);
 
 export default function BarberPracticalExamKitListPage() {
   return (
@@ -131,6 +137,11 @@ export default function BarberPracticalExamKitListPage() {
           item comes straight from the bulletin&apos;s two lists.
         </p>
         <KitChecklist groups={KIT_GROUPS} />
+
+        {/* Kit Packer sits BELOW the checklist and starts collapsed — this is
+            the site's best-performing organic page and the list is what people
+            came for. The game builds no deck until Start is pressed. */}
+        <KitPacker kit={TEXAS_BARBER_KIT} siblings={TEXAS_KIT_SIBLINGS} />
 
         <AgentInvite
           questions={[

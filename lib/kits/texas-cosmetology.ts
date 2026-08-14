@@ -77,7 +77,7 @@ const GROUPS: KitGroup[] = [
       { label: "Gloves" },
       { label: "Paper towels" },
       { label: "Towels" },
-      { label: "Bowl for water (optional)" },
+      { label: "Bowl for water (optional)", optional: true },
     ],
   },
 ];
