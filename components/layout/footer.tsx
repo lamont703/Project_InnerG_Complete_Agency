@@ -40,6 +40,23 @@ const footerLinks = {
     { label: "Shop Day Map", href: "/shop-day-map" },
     { label: "Shop Day Connections", href: "/shop-day-connections" },
     { label: "Accreditation Advisory Committee Toolkit", href: "/program-advisory-committee-kit" },
+    /**
+     * DEVELOPMENT ONLY, and the condition is load-bearing rather than cautious.
+     *
+     * Every other entry in this list is an auth-gated route that still returns
+     * 200 in production. /ar-lab does not: its layout calls notFound() when
+     * NODE_ENV is production, because it is a rendering harness rather than a
+     * page. An unconditional entry would put a guaranteed 404 in the footer of
+     * every page on the site — the one place a dead link is hardest to notice
+     * and easiest to leave there for months.
+     *
+     * The Footer is a server component, so this is resolved at build time and
+     * the link is simply absent from the production bundle rather than hidden
+     * with CSS.
+     */
+    ...(process.env.NODE_ENV === "production"
+      ? []
+      : [{ label: "AR Overlay Lab (dev only)", href: "/ar-lab" }]),
   ],
   Company: [
     { label: "Advertise / Media Kit", href: "/media-kit" },
