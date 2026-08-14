@@ -100,6 +100,7 @@ export const WIKIDATA = {
   maryland: "https://www.wikidata.org/wiki/Q1391",
   virginia: "https://www.wikidata.org/wiki/Q1370",
   ohio: "https://www.wikidata.org/wiki/Q1397",
+  mississippi: "https://www.wikidata.org/wiki/Q1494",
   // Regulators. No QID exists for the California Board of Barbering and
   // Cosmetology, PSI Services or NACCAS — searched, nothing returned. Those
   // carry their official URL in `sameAs` instead, which is weaker but true.
@@ -144,6 +145,7 @@ const STATE_BY_CODE: Record<string, { name: string; sameAs: string }> = {
   MD: { name: "Maryland", sameAs: WIKIDATA.maryland },
   VA: { name: "Virginia", sameAs: WIKIDATA.virginia },
   OH: { name: "Ohio", sameAs: WIKIDATA.ohio },
+  MS: { name: "Mississippi", sameAs: WIKIDATA.mississippi },
 };
 
 /**
@@ -323,6 +325,18 @@ export const REGULATORS = {
     alternateName: "OSCBB",
     url: "https://codes.ohio.gov/ohio-administrative-code/chapter-4713-5",
   },
+  /**
+   * Mississippi's practical is board-administered and board-documented — the
+   * MSBCB publishes its own Practical Exam Handbook with a full equipment list
+   * per licence, which is why the Mississippi pages need no derivation.
+   */
+  ms: {
+    "@type": "GovernmentOrganization",
+    "@id": "https://www.msbcb.ms.gov/#organization",
+    name: "Mississippi State Board of Cosmetology",
+    alternateName: "MSBCB",
+    url: "https://www.msbcb.ms.gov/",
+  },
 } as const;
 
 /** The regulator for a postal state code, or null if we do not cover that state. */
@@ -334,6 +348,7 @@ export function regulatorFor(code: string | null | undefined) {
   if (key === "MD") return REGULATORS.md;
   if (key === "VA") return REGULATORS.va;
   if (key === "OH") return REGULATORS.oh;
+  if (key === "MS") return REGULATORS.ms;
   return null;
 }
 
