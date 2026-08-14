@@ -119,9 +119,9 @@ export default function Page() {
 
         <AgentInvite
           questions={[
-            "What does Tennessee require to get a barber technician licence?",
-            "Which barber schools are near me?",
-            "What does booth rent cost around me once I'm licensed?",
+            "What does the Tennessee test centre supply, and what must I bring?",
+            "What's graded on the Tennessee barber technician practical?",
+            "Which Tennessee barber licences publish a kit list?",
           ]}
         />
 

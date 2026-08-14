@@ -5,7 +5,7 @@ import { GoogleGenAI } from '@google/genai';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
 import { currentMember, getJourney, appendToThread } from '@/lib/member-context';
-import { agentJourneyContext } from '@/lib/member-journey';
+import { agentJourneyContext, stateCoverageForChat } from '@/lib/member-journey';
 import { AUDIENCES } from '@/lib/audiences';
 import { slimContext, contextChars } from '@/lib/chat-context-slim';
 import { extractUsage, sumUsage, EMPTY_USAGE, type TokenUsage } from '@/lib/ai-usage';
@@ -380,6 +380,11 @@ export async function POST(req: Request) {
       // the member is must never be the thing that falls off the end.
       ...(journeyContext ? { member_journey_context: journeyContext } : {}),
       ...(shopEcosystemContext ? { my_shop_ecosystem_report: shopEcosystemContext } : {}),
+      // Near the top for the same truncation reason as the two above. Someone
+      // arriving from a state page's suggested question has NO journey profile,
+      // so this is the only thing that lets the assistant answer for a state
+      // other than Texas instead of refusing.
+      state_licensing_coverage: stateCoverageForChat(),
       texas_2026_exam_school_leaderboard: withProfileUrl(testingLeaderboard, '/schools'),
       texas_2026_cosmetology_exam_school_leaderboard: withProfileUrl(cosmetologyTestingLeaderboard, '/schools'),
       school_district_barbershop_rankings: districtBarbershopRankings,
@@ -429,6 +434,13 @@ MEMBER_JOURNEY_CONTEXT RULE: member_journey_context is in the context data below
 - Do not recite their profile back at them, do not open with a greeting that lists what you know, and use their first name at most once in a conversation. Someone who told you their exam date wants a better answer, not a demonstration that you remembered.
 - NEVER invent a journey fact. If member_journey_context says school_name is null, you do not know where they study — the same rule as every other fact on this page.
 ` : ''}
+STATE COVERAGE RULE: state_licensing_coverage lists every state this site covers, whether that state has a practical exam at all, and the kit lists we publish for it. Use it whenever someone asks about a state — including states with no business listings, where it may be the only thing you hold on them. Three things it settles that you must not get wrong:
+- If has_practical_exam is false, that state licenses on the written examination alone. Say so plainly and do not mention kits, mannequins or what to pack.
+- MATCH THE LICENCE LOOSELY BEFORE CONCLUDING WE HAVE NOTHING. The labels are formal; people are not. "esthetics" and "skin care" are Esthetician. "nails", "manicure" and "nail tech" are Manicurist / Nail Technician. "teaching" and "instructor" are Instructor. "hair" is usually Cosmetology. If any entry in practical_exam_kit_lists plausibly covers the licence they named, link THAT entry.
+- Only say we do not publish a kit list when practical_exam_kit_lists for that state is EMPTY, or when nothing in it covers their licence at all. Then link the state hub. Never substitute another state's kit — the exam vendors differ (PSI, NIC, and several boards run their own), and so do the kits.
+- Every profile_url in this block is a real internal link. Hyperlink it per the LINKING RULE.
+Exam data (the 2026 leaderboards) is Texas-only. Never present a Texas pass rate as though it applied to another state.
+
 LINKING RULE: Whenever you mention a specific tool from software_tools, or a specific barbershop/barber/school/salon/cosmetologist/store that has a profile_url (or profileUrl) field in the context, you MUST format that mention as a markdown link using its EXACT value, e.g. [Barber & Cosmetology Placement](/barber-beauty-network). Every one of those internal links is a relative path starting with "/" — NEVER use a link starting with "http" or "https" for these (this includes Google Places URLs like places.googleapis.com, which sometimes appear elsewhere in this data as image sources, not link destinations). If an item you want to mention does NOT have a profile_url/profileUrl in the context, mention it by plain name with NO link at all — do not construct, guess, or reuse a URL from anywhere else in the data.
 The ONE exception is articles_and_videos: each entry's "url" field IS meant to be used as-is (it's a real external link to that article or video, not our own site) — link to it directly, but keep the link label short (the page's title or topic), never the raw_text field, which is scraped page content for your own reference only and must never appear in your response.
 Use each link only once per response.

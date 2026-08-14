@@ -114,9 +114,9 @@ export default function Page() {
 
         <AgentInvite
           questions={[
-            "What does Minnesota require to become a cosmetology instructor?",
-            "Which cosmetology schools are near me?",
-            "What does booth rent cost around me once I'm licensed?",
+            "What does Minnesota require for the cosmetology instructor practical?",
+            "How long must my presentation be, and what fails it?",
+            "Which states publish an instructor exam kit list?",
           ]}
         />
 

@@ -126,9 +126,9 @@ export default function Page() {
 
         <AgentInvite
           questions={[
-            "What does Ohio require to get a barber licence?",
-            "Which barber schools are near me?",
-            "What does booth rent cost around me once I'm licensed?",
+            "Does Ohio publish a supply list for the barber practical?",
+            "What's graded on the Ohio barber practical?",
+            "How does Ohio's kit differ from Texas or Virginia?",
           ]}
         />
 
