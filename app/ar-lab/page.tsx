@@ -205,6 +205,20 @@ interface Mark extends Measurement {
   /** Fractions of the canvas, so the crosshair survives responsive resizing. */
   fx: number
   fy: number
+  /**
+   * What the model derived for this level on this head, captured at mark time.
+   *
+   * Stored rather than looked up, because the aggregate has to outlive the
+   * upload. Marks persist in localStorage but `results` is cleared on every new
+   * upload, so a summary that computed the delta from the loaded result could
+   * only ever see the current batch — and someone marking heads one photo at a
+   * time from a phone would sit at n=1 forever, being told it is not a
+   * measurement yet, while the marks piled up unseen.
+   *
+   * Optional so marks made before this existed still work whenever their image
+   * happens to be loaded.
+   */
+  derived?: number
 }
 
 /**
@@ -341,7 +355,8 @@ function RealImagePanel() {
       const x = ((e.clientX - rect.left) / rect.width) * r.w
       const y = ((e.clientY - rect.top) / rect.height) * r.h
       const m = measureU(r.landmarks, r.w, r.h, false, x, y)
-      if (m) record(r.name, mode, { ...m, fx: x / r.w, fy: y / r.h })
+      const derived = r.report ? MODES.find((x) => x.id === mode)!.derived(r.report.levels) : undefined
+      if (m) record(r.name, mode, { ...m, fx: x / r.w, fy: y / r.h, derived })
     },
     [mode, record]
   )
@@ -371,9 +386,19 @@ function RealImagePanel() {
    * parietal needs more heads to average down — not better technique.
    */
   const summary = MODES.map((m) => {
-    const rows = results
-      .filter((r) => r.report && marks[r.name]?.[m.id])
-      .map((r) => ({ r, mark: marks[r.name]![m.id]!, derived: m.derived(r.report!.levels) }))
+    // Every mark ever made, not just the current upload. `derived` comes from
+    // the mark when it was stored, and falls back to the loaded result for
+    // marks made before that was recorded.
+    const rows = Object.entries(marks)
+      .flatMap(([name, byMode]) => {
+        const mark = byMode[m.id]
+        if (!mark) return []
+        const loaded = results.find((r) => r.name === name && r.report)
+        const derived = mark.derived ?? (loaded ? m.derived(loaded.report!.levels) : undefined)
+        if (derived === undefined) return []
+        return [{ name, mark, derived, loaded: !!loaded }]
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
 
     if (!rows.length) return `${m.label} — no marks yet`
 
@@ -387,8 +412,10 @@ function RealImagePanel() {
     const lines = rows.map((x) => {
       const resid = (x.mark.dist / x.mark.headWidthPx) * 100
       const d = x.mark.u - x.derived
-      const flag = resid > 5 ? "  <- residual too high, click missed the head" : ""
-      return `  ${x.r.name.slice(0, 30).padEnd(32)} measured ${x.mark.u.toFixed(3)}  derived ${x.derived.toFixed(3)}  delta ${d >= 0 ? "+" : ""}${d.toFixed(3)}  residual ${resid.toFixed(1)}%${flag}`
+      const flags = [resid > 5 ? "residual too high, click missed the head" : "", x.loaded ? "" : "not loaded"]
+        .filter(Boolean)
+        .join("; ")
+      return `  ${x.name.slice(0, 30).padEnd(32)} measured ${x.mark.u.toFixed(3)}  derived ${x.derived.toFixed(3)}  delta ${d >= 0 ? "+" : ""}${d.toFixed(3)}  residual ${resid.toFixed(1)}%${flags ? `  <- ${flags}` : ""}`
     })
 
     let call: string
