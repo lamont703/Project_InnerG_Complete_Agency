@@ -8,6 +8,7 @@ import {
   headBand,
   skullRadius,
   axisPoint,
+  FADE_FRONT_HALF_ANGLE,
   toPixelSpace,
   dot,
   len,
@@ -154,12 +155,37 @@ describe("headBand", () => {
     }
   })
 
-  it("marks half the ring hidden, so the far side can be drawn as the far side", () => {
+  it("omits the front of the face, where a fade does not exist", () => {
+    // The bug real fixtures caught: a full 360° ring paints the guard ladder
+    // straight across the eyes of a head facing the camera.
     const f = buildHeadFrame(syntheticFace())!
-    const band = headBand(f, f.levels.earTop, 72)
+    const band = headBand(f, f.levels.earTop, 180)
+    const centre = axisPoint(f, f.levels.earTop)
+    // Nothing may sit forward of the temple boundary.
+    const limit = Math.cos((FADE_FRONT_HALF_ANGLE * Math.PI) / 180)
+    for (const bp of band) {
+      const forward = dot(sub(bp.point, centre), f.fwd) / (skullRadius(f, f.levels.earTop) * 1.22)
+      expect(forward).toBeLessThan(limit + 1e-6)
+    }
+  })
+
+  it("returns the fade zone as one contiguous arc, not a wrapped loop", () => {
+    // Drawing code walks this as an open polyline. If it came back as a
+    // filtered circle the run would wrap through index 0 and every rung would
+    // be stroked with a chord straight across the head.
+    const f = buildHeadFrame(syntheticFace())!
+    const band = headBand(f, f.levels.earTop, 96)
+    const ends = len(sub(band[0].point, band[band.length - 1].point))
+    const step = len(sub(band[0].point, band[1].point))
+    expect(ends).toBeGreaterThan(step * 5)
+  })
+
+  it("still splits into near and far halves so the far side can be dropped", () => {
+    const f = buildHeadFrame(syntheticFace())!
+    const band = headBand(f, f.levels.earTop, 96)
     const visible = band.filter((b) => b.visible).length
-    expect(visible).toBeGreaterThan(30)
-    expect(visible).toBeLessThan(42)
+    expect(visible).toBeGreaterThan(5)
+    expect(visible).toBeLessThan(band.length - 5)
   })
 
   it("keeps normals unit length so the elevation protractor reads a true angle", () => {

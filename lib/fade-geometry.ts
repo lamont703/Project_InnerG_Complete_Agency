@@ -256,6 +256,24 @@ export function skullRadius(frame: HeadFrame, u: number): number {
   return base * Math.sqrt(Math.max(0, 1 - t * t))
 }
 
+/**
+ * How far round from straight-ahead the fade zone starts, in degrees.
+ *
+ * A fade does not go all the way round. It runs across the back and up the two
+ * sides, and it stops at the front hairline — nobody fades a forehead. The ring
+ * model has no idea about that, so without this cut the ladder is drawn as a
+ * full 360° band and, on a head facing the camera, painted straight across the
+ * eyes: geometrically consistent, anatomically absurd, and confidently labelled.
+ *
+ * That is exactly what the first pass over real fixture photographs showed, and
+ * nothing before it could have: on synthetic front-on tiles the bands look like
+ * plausible horizontal lines, because there is no face there to contradict them.
+ *
+ * 55° puts the boundary near the temple recession, which is roughly where a
+ * fade's front edge dies on most heads.
+ */
+export const FADE_FRONT_HALF_ANGLE = 55
+
 export interface BandPoint {
   point: Vec3
   /** Outward surface normal at this point, unit length. */
@@ -278,8 +296,16 @@ export function headBand(frame: HeadFrame, u: number, segments = 72): BandPoint[
   const centre = axisPoint(frame, u)
   const out: BandPoint[] = []
 
-  for (let i = 0; i < segments; i++) {
-    const th = (i / segments) * Math.PI * 2
+  // Walk from one front edge of the fade zone, round the back, to the other, so
+  // the kept points come out as one contiguous run in drawing order. Sampling
+  // the full circle and filtering afterwards would leave the caller to work out
+  // that the run wraps through zero.
+  const cut = (FADE_FRONT_HALF_ANGLE * Math.PI) / 180
+  const from = Math.PI / 2 + cut
+  const span = Math.PI * 2 - 2 * cut
+
+  for (let i = 0; i <= segments; i++) {
+    const th = from + (i / segments) * span
     const point = add(centre, add(scale(frame.right, a * Math.cos(th)), scale(frame.fwd, b * Math.sin(th))))
     // Ellipse normal, before normalising: (cos/a, sin/b) in the local basis.
     const normal = normalize(

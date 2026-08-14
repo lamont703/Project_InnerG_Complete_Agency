@@ -162,15 +162,49 @@ function Grid({ title, note, cases }: { title: string; note: string; cases: Case
  * The half that synthetic landmarks cannot answer: whether MediaPipe puts the
  * landmarks where lib/fade-geometry.ts assumes on a real head, with real hair
  * over the forehead and a real ear.
+ *
+ * Takes a whole fixture set at once rather than one file at a time, because the
+ * question being asked is comparative. A single head tells you the overlay
+ * landed somewhere plausible; ten tell you whether earTop drifts on a head with
+ * a hairline the model did not expect, which is the only way the constants get
+ * tuned rather than defended.
+ *
+ * The landmarker is built once and reused across the set — it is a 16MB
+ * download and rebuilding it per image turns a ten-second pass into a minute.
  */
-function RealImagePanel() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [status, setStatus] = useState("Choose a photo of a head — a mannequin is ideal.")
-  const [report, setReport] = useState<OverlayReport | null>(null)
+interface Result {
+  name: string
+  png: string | null
+  report: OverlayReport | null
+  status: string
+}
 
-  const onFile = useCallback(async (file: File) => {
+/**
+ * Cheap invariants worth checking on every real head, since they are the ones
+ * that would silently make the overlay wrong rather than make it fail. If the
+ * ear lands above the temple on a real face, the landmark indices are wrong for
+ * that head and no amount of looking at the picture will make that obvious.
+ */
+function verdict(r: OverlayReport | null): { ok: boolean; note: string } {
+  if (!r) return { ok: false, note: "no frame" }
+  const { earCanal, earTop, temple, parietal } = r.levels
+  const problems: string[] = []
+  if (!(earCanal < earTop)) problems.push("ear inverted")
+  if (!(earTop < temple)) problems.push("temple below ear")
+  if (!(temple < parietal)) problems.push("ridge below temple")
+  if (!(r.uLine > earTop && r.uLine < parietal)) problems.push("line outside ear..ridge")
+  return { ok: problems.length === 0, note: problems.join(", ") || "ordering ok" }
+}
+
+function RealImagePanel() {
+  const [results, setResults] = useState<Result[]>([])
+  const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState("Choose fixture images — mannequins ideal. Nothing is uploaded.")
+
+  const onFiles = useCallback(async (files: File[]) => {
+    setBusy(true)
+    setResults([])
     setStatus("Loading tracker…")
-    setReport(null)
     try {
       const { FilesetResolver, FaceLandmarker } = await import("@mediapipe/tasks-vision")
       const fileset = await FilesetResolver.forVisionTasks(WASM_BASE)
@@ -180,45 +214,52 @@ function RealImagePanel() {
         numFaces: 1,
       })
 
-      const bitmap = await createImageBitmap(file)
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const W = Math.min(bitmap.width, 900)
-      const H = Math.round((bitmap.height / bitmap.width) * W)
-      canvas.width = W
-      canvas.height = H
-      const ctx = canvas.getContext("2d")
-      if (!ctx) return
-      ctx.drawImage(bitmap, 0, 0, W, H)
+      const out: Result[] = []
+      const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name))
+      for (const file of sorted) {
+        setStatus(`Processing ${file.name}…`)
+        try {
+          const bitmap = await createImageBitmap(file)
+          const W = Math.min(bitmap.width, 700)
+          const H = Math.round((bitmap.height / bitmap.width) * W)
+          const canvas = document.createElement("canvas")
+          canvas.width = W
+          canvas.height = H
+          const ctx = canvas.getContext("2d")!
+          ctx.drawImage(bitmap, 0, 0, W, H)
 
-      const result = landmarker.detect(canvas)
-      landmarker.close()
-
-      const raw = result.faceLandmarks?.[0]
-      if (!raw?.length) {
-        setStatus("No face found in that image. Tracking needs a face — a bare mannequin back-of-head will not work.")
-        return
+          const raw = landmarker.detect(canvas).faceLandmarks?.[0]
+          if (!raw?.length) {
+            out.push({ name: file.name, png: canvas.toDataURL(), report: null, status: "no face found" })
+            continue
+          }
+          const report = drawFadeOverlay(ctx, {
+            landmarks: raw,
+            width: W,
+            height: H,
+            spec: MID,
+            activeRung: null,
+            mirror: false,
+            debug: false,
+          })
+          out.push({ name: file.name, png: canvas.toDataURL(), report, status: report ? "tracked" : "frame rejected" })
+        } catch (e) {
+          out.push({ name: file.name, png: null, report: null, status: `error: ${(e as Error).message}` })
+        }
+        setResults([...out])
       }
-
-      const r = drawFadeOverlay(ctx, {
-        landmarks: raw,
-        width: W,
-        height: H,
-        spec: MID,
-        activeRung: 1,
-        mirror: false,
-        debug: true,
-      })
-      setReport(r)
-      setStatus(r ? `Tracked. ${raw.length} landmarks.` : "Landmarks found but the head frame was rejected.")
+      landmarker.close()
+      setStatus(`Done — ${out.filter((r) => r.report).length}/${out.length} tracked.`)
     } catch (e) {
       setStatus(`Failed: ${(e as Error).message}`)
+    } finally {
+      setBusy(false)
     }
   }, [])
 
   return (
     <section className="mb-10">
-      <h2 className="text-sm font-bold text-slate-100">Real photograph</h2>
+      <h2 className="text-sm font-bold text-slate-100">Real photographs</h2>
       <p className="mb-3 text-xs text-slate-500">
         Read from local disk into a canvas. Nothing is uploaded, and no image here belongs in the repo.
       </p>
@@ -226,18 +267,43 @@ function RealImagePanel() {
         id="ar-lab-file"
         type="file"
         accept="image/*"
-        onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
+        multiple
+        disabled={busy}
+        onChange={(e) => e.target.files?.length && onFiles(Array.from(e.target.files))}
         className="mb-3 block text-xs text-slate-400 file:mr-3 file:rounded-full file:border-0 file:bg-cyan-500 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-slate-950"
       />
-      <p className="mb-2 font-mono text-[11px] text-amber-300">{status}</p>
-      {report && (
-        <p className="mb-2 font-mono text-[11px] text-slate-400">
-          yaw {report.yawDeg.toFixed(1)}° · ear {report.levels.earTop.toFixed(3)} · temple{" "}
-          {report.levels.temple.toFixed(3)} · ridge {report.levels.parietal.toFixed(3)} · line {report.uLine.toFixed(3)} ·
-          head {report.headWidthPx.toFixed(0)}px
-        </p>
-      )}
-      <canvas ref={canvasRef} className="w-full max-w-2xl rounded-lg border border-slate-800 bg-slate-950" />
+      <p className="mb-3 font-mono text-[11px] text-amber-300">{status}</p>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {results.map((r) => {
+          const v = verdict(r.report)
+          return (
+            <div key={r.name} className="rounded-lg border border-slate-800 bg-slate-950 p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {r.png && <img src={r.png} alt={`Overlay on ${r.name}`} className="w-full rounded" />}
+              <p className="mt-1.5 truncate text-[11px] font-semibold text-slate-300" title={r.name}>
+                {r.name}
+              </p>
+              <p className="font-mono text-[10px] text-slate-500">
+                {r.status}
+                {r.report && (
+                  <>
+                    {" · "}
+                    <span className={v.ok ? "text-emerald-400" : "text-rose-400"}>{v.note}</span>
+                  </>
+                )}
+              </p>
+              {r.report && (
+                <p className="font-mono text-[10px] text-slate-500">
+                  yaw {r.report.yawDeg.toFixed(0)}° · canal {r.report.levels.earCanal.toFixed(2)} · ear{" "}
+                  {r.report.levels.earTop.toFixed(2)} · temple {r.report.levels.temple.toFixed(2)} · ridge{" "}
+                  {r.report.levels.parietal.toFixed(2)} · line {r.report.uLine.toFixed(2)}
+                </p>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </section>
   )
 }

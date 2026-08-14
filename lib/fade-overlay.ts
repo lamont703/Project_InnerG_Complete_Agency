@@ -96,63 +96,79 @@ const project = (p: Vec3, mirror: boolean, w: number) => ({
   y: p.y,
 })
 
-/** One ring around the skull, rotated so the camera-facing arc is contiguous. */
+/**
+ * The fade-zone arc of one ring around the skull, in drawing order.
+ *
+ * headBand already omits the front of the face (FADE_FRONT_HALF_ANGLE), so this
+ * is a single open arc running from one temple, round the back, to the other —
+ * not a closed loop. Everything below works on index runs rather than on a
+ * filtered point list for that reason.
+ */
 export function ring(frame: HeadFrame, u: number, mirror: boolean, w: number, segments = 96): P2[] {
-  const band = headBand(frame, u, segments).map((bp) => ({
+  return headBand(frame, u, segments).map((bp) => ({
     ...project(bp.point, mirror, w),
     visible: bp.visible,
   }))
-
-  // The visible points are a contiguous run on the ellipse, but the run wraps
-  // through index 0 about half the time. Rotating to the run's start lets the
-  // caller stroke it as a single path instead of two.
-  const start = band.findIndex((p, i) => p.visible && !band[(i - 1 + band.length) % band.length].visible)
-  return start <= 0 ? band : [...band.slice(start), ...band.slice(0, start)]
 }
 
-function strokeRing(ctx: CanvasRenderingContext2D, pts: P2[], colour: string, width: number, dashHidden = true) {
-  const vis = pts.filter((p) => p.visible)
-  const hid = pts.filter((p) => !p.visible)
-
-  if (dashHidden && hid.length > 1) {
-    ctx.save()
-    ctx.setLineDash([6, 8])
-    ctx.globalAlpha = 0.3
-    ctx.strokeStyle = colour
-    ctx.lineWidth = width
-    ctx.beginPath()
-    hid.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)))
-    ctx.stroke()
-    ctx.restore()
+/**
+ * Index ranges of consecutive camera-facing points.
+ *
+ * The far side of the head is dropped entirely rather than drawn dashed. On a
+ * head turned towards the camera the hidden arc projects across the middle of
+ * the face, so drawing it — in any style — paints guide lines over the features
+ * of the person being worked on. Two runs is the normal case for a front view:
+ * a sliver of fade zone visible at each temple, which is exactly how much of a
+ * fade you can actually see from straight ahead.
+ */
+function visibleRuns(pts: P2[]): Array<[number, number]> {
+  const runs: Array<[number, number]> = []
+  let start = -1
+  for (let i = 0; i < pts.length; i++) {
+    if (pts[i].visible && start < 0) start = i
+    if ((!pts[i].visible || i === pts.length - 1) && start >= 0) {
+      const end = pts[i].visible ? i : i - 1
+      if (end - start >= 1) runs.push([start, end])
+      start = -1
+    }
   }
-
-  if (vis.length > 1) {
-    ctx.save()
-    ctx.strokeStyle = colour
-    ctx.lineWidth = width
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    ctx.beginPath()
-    vis.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)))
-    ctx.stroke()
-    ctx.restore()
-  }
+  return runs
 }
 
-/** Fill the strip between two rings — one rung of the ladder. */
+function strokeRing(ctx: CanvasRenderingContext2D, pts: P2[], colour: string, width: number) {
+  ctx.save()
+  ctx.strokeStyle = colour
+  ctx.lineWidth = width
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  for (const [a, b] of visibleRuns(pts)) {
+    ctx.beginPath()
+    for (let i = a; i <= b; i++) (i === a ? ctx.moveTo : ctx.lineTo).call(ctx, pts[i].x, pts[i].y)
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
+/**
+ * Fill the strip between two rings — one rung of the ladder.
+ *
+ * Runs are taken from the lower ring and applied to both. The two rings share a
+ * sampling and a head frame, so their indices correspond; deriving a separate
+ * mask per ring would let the two disagree by a point at the silhouette and
+ * leave a hairline gap along every rung.
+ */
 function fillBetween(ctx: CanvasRenderingContext2D, lower: P2[], upper: P2[], colour: string, alpha: number) {
-  const a = lower.filter((p) => p.visible)
-  const b = upper.filter((p) => p.visible)
-  if (a.length < 2 || b.length < 2) return
-
   ctx.save()
   ctx.globalAlpha = alpha
   ctx.fillStyle = colour
-  ctx.beginPath()
-  a.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)))
-  for (let i = b.length - 1; i >= 0; i--) ctx.lineTo(b[i].x, b[i].y)
-  ctx.closePath()
-  ctx.fill()
+  for (const [a, b] of visibleRuns(lower)) {
+    if (b - a < 1 || b >= upper.length) continue
+    ctx.beginPath()
+    for (let i = a; i <= b; i++) (i === a ? ctx.moveTo : ctx.lineTo).call(ctx, lower[i].x, lower[i].y)
+    for (let i = b; i >= a; i--) ctx.lineTo(upper[i].x, upper[i].y)
+    ctx.closePath()
+    ctx.fill()
+  }
   ctx.restore()
 }
 
@@ -408,7 +424,7 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
     [frame.levels.parietal, 'parietal ridge'],
   ] as const) {
     const pr = ring(frame, u, mirror, W)
-    strokeRing(ctx, pr, 'rgba(226,232,240,0.55)', Math.max(1.5, size * 0.09), false)
+    strokeRing(ctx, pr, 'rgba(226,232,240,0.55)', Math.max(1.5, size * 0.09))
     const e = edgeOf(pr, 'right')
     if (e) labels.push({ text, x: e.x + size * 0.5, y: e.y, colour: '#e2e8f0', size: size * 0.78, align: 'left', priority: 2 })
   }

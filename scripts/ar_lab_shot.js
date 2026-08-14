@@ -36,13 +36,35 @@ function arg(name, fallback) {
 
 const PORT = arg('port', '3400')
 const IMAGE = arg('image', null)
+const IMAGES = arg('images', null)
 const OUT = path.resolve(arg('out', 'ar-lab-shot.png'))
 const URL = `http://localhost:${PORT}/ar-lab`
 
 ;(async () => {
-  if (IMAGE && !fs.existsSync(IMAGE)) {
-    console.error(`No such image: ${IMAGE}`)
-    process.exit(1)
+  // --images <dir> is the normal way to run this: the real-head question is
+  // comparative, and one fixture only tells you the overlay landed somewhere
+  // plausible on one head.
+  let files = []
+  if (IMAGES) {
+    if (!fs.existsSync(IMAGES)) {
+      console.error(`No such directory: ${IMAGES}`)
+      process.exit(1)
+    }
+    files = fs
+      .readdirSync(IMAGES)
+      .filter((f) => /\.(jpe?g|png|webp|gif|bmp)$/i.test(f))
+      .sort()
+      .map((f) => path.resolve(IMAGES, f))
+    if (!files.length) {
+      console.error(`No images in ${IMAGES}`)
+      process.exit(1)
+    }
+  } else if (IMAGE) {
+    if (!fs.existsSync(IMAGE)) {
+      console.error(`No such image: ${IMAGE}`)
+      process.exit(1)
+    }
+    files = [path.resolve(IMAGE)]
   }
 
   const browser = await puppeteer.launch({
@@ -75,17 +97,16 @@ const URL = `http://localhost:${PORT}/ar-lab`
       { timeout: 30000 }
     )
 
-    if (IMAGE) {
+    if (files.length) {
       const input = await page.$('#ar-lab-file')
       if (!input) throw new Error('File input not found on the page.')
-      await input.uploadFile(path.resolve(IMAGE))
-      // MediaPipe fetches ~16MB of wasm and model on first use.
+      await input.uploadFile(...files)
+      // MediaPipe fetches ~16MB of wasm and model on first use, then each image
+      // is fast. Waits for the panel to report a terminal status rather than
+      // for a fixed delay, which would truncate the set on a slow machine.
       await page.waitForFunction(
-        () => {
-          const t = document.body.innerText
-          return t.includes('Tracked.') || t.includes('No face found') || t.includes('Failed:')
-        },
-        { timeout: 120000 }
+        () => /Done — |Failed: /.test(document.body.innerText),
+        { timeout: 180000 }
       )
     }
 
@@ -100,9 +121,16 @@ const URL = `http://localhost:${PORT}/ar-lab`
     console.log(`Wrote ${OUT}`)
     console.log(`${readouts.length} readouts, ${drifting.length} drifting`)
     for (const d of drifting) console.log(`  DRIFT  ${d}`)
-    if (IMAGE) {
-      const status = readouts.find((r) => r.startsWith('yaw ') && r.includes('ridge'))
-      console.log(`  image: ${status || 'no tracking readout'}`)
+    if (files.length) {
+      // Print the per-fixture ordering verdicts. These are the assertions that
+      // survive a picture looking fine: an ear landing above a temple on a real
+      // head means the landmark indices are wrong for that head, and no amount
+      // of squinting at the overlay makes that obvious.
+      const rows = await page.$$eval('section:last-of-type .grid > div', (cards) =>
+        cards.map((c) => c.innerText.split('\n').filter(Boolean).join(' | '))
+      )
+      console.log(`  ${rows.length} fixtures:`)
+      for (const r of rows) console.log(`    ${r}`)
     }
     for (const p of problems.slice(0, 10)) console.log(`  console error: ${p}`)
 
