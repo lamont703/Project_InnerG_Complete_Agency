@@ -514,9 +514,28 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
           colour: isActive ? '#fde68a' : '#e0f2fe',
           size: size * 0.8,
           align: 'right',
-          // Ladder rungs yield to the anatomy and to the line: there are up to
-          // six of them and they are the least load-bearing thing on screen.
-          priority: isActive ? 1 : 4,
+          /**
+           * Rungs are placed from the TOP of the ladder downwards, and that
+           * ordering is load-bearing rather than cosmetic.
+           *
+           * The collision resolver nudges a clashing label DOWN. Placing the
+           * rungs in ladder order means the shortest guard is placed first and
+           * everything longer gets pushed below it — inverting the ladder. On a
+           * head facing the camera, where the visible fade zone is two narrow
+           * slivers and all six labels want the same rows, that produced
+           * "#3, #1, Bald/foil, #0, #2" top to bottom on a live camera frame.
+           *
+           * A guard ladder is a sequence. Displaying it out of order in a tool
+           * whose entire subject is the order of the passes is worse than not
+           * displaying it.
+           *
+           * The active rung takes its place in the same ordering rather than
+           * jumping the queue; it is already distinguished by colour, and
+           * letting it win placement would break the sequence again. Rungs sit
+           * below the anatomy and the fade line in priority, but never collide
+           * with them — those hang off the opposite side of the head.
+           */
+          priority: 10 + (plan.ladder.length - 1 - i),
         })
       }
     }

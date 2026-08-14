@@ -55,6 +55,8 @@ export function FadeArView({ spec, activeRung }: Props) {
   const streamRef = useRef<MediaStream | null>(null)
   const rafRef = useRef<number | null>(null)
   const lastTimeRef = useRef(-1)
+  /** Last successful landmarks, redrawn between camera frames. See render(). */
+  const landmarksRef = useRef<{ x: number; y: number; z: number }[] | null>(null)
   const yawRef = useRef(0)
   /** Set by `flip` so the effect below knows this stop() is a restart, not a stop. */
   const restartRef = useRef(false)
@@ -94,6 +96,7 @@ export function FadeArView({ spec, activeRung }: Props) {
     landmarkerRef.current?.close()
     landmarkerRef.current = null
     lastTimeRef.current = -1
+    landmarksRef.current = null
     setPhase("idle")
     setTracking(false)
   }, [])
@@ -127,31 +130,40 @@ export function FadeArView({ spec, activeRung }: Props) {
     ctx.drawImage(video, 0, 0, W, H)
     ctx.restore()
 
-    // detectForVideo demands strictly increasing timestamps and re-running it on
-    // a frame it has already seen throws rather than returning the cached result.
-    if (video.currentTime === lastTimeRef.current) return
-    lastTimeRef.current = video.currentTime
-
-    let result
-    try {
-      result = lm.detectForVideo(video, performance.now())
-    } catch {
-      return
+    /**
+     * Detection is throttled to new video frames; DRAWING is not.
+     *
+     * detectForVideo demands strictly increasing timestamps and throws if handed
+     * a frame it has already seen, so it can only run when currentTime advances.
+     * The first version returned early at that point — which meant the video was
+     * redrawn every animation frame but the overlay only on the ones that
+     * carried a new camera frame.
+     *
+     * A 30fps camera against a 60Hz animation loop is therefore an overlay
+     * blinking on and off thirty times a second, and every dropped frame is a
+     * gap. It does not show up on a still image, which is why the harness never
+     * caught it and pointing a fake camera at the live page did.
+     *
+     * So the last good landmarks are kept and redrawn until better ones arrive.
+     * A stale frame's worth of lag is invisible; a strobing overlay is not.
+     */
+    if (video.currentTime !== lastTimeRef.current) {
+      lastTimeRef.current = video.currentTime
+      try {
+        const raw = lm.detectForVideo(video, performance.now()).faceLandmarks?.[0]
+        landmarksRef.current = raw?.length ? raw : null
+        setTracking(!!raw?.length)
+      } catch {
+        // Leave the previous landmarks in place — one failed detection should
+        // not blank the overlay.
+      }
     }
 
-    const raw = result.faceLandmarks?.[0]
-    if (!raw?.length) {
-      setTracking(false)
-      return
-    }
-    setTracking(true)
+    const landmarks = landmarksRef.current
+    if (!landmarks) return
 
-    // Everything drawn is drawn by the shared renderer — the live view owns no
-    // drawing code of its own. That is what lets /ar-lab and the headless
-    // screenshot script exercise this exact code path instead of a copy that
-    // drifts out of step with it.
     const report = drawFadeOverlay(ctx, {
-      landmarks: raw,
+      landmarks,
       width: W,
       height: H,
       spec: specRef.current,
@@ -181,6 +193,29 @@ export function FadeArView({ spec, activeRung }: Props) {
   const start = useCallback(async () => {
     setPhase("loading")
     setError(null)
+
+    /**
+     * `navigator.mediaDevices` exists only in a secure context — HTTPS, or the
+     * localhost exemption. On any other http origin the browser does not expose
+     * the property at all, so the naive call dies with "undefined is not an
+     * object (evaluating 'navigator.mediaDevices.getUserMedia')", which tells a
+     * student nothing and reads like the tool is broken.
+     *
+     * It is not a hypothetical. Testing the AR on a phone means opening the dev
+     * server at the laptop's LAN address over plain http, which is exactly the
+     * case the platform refuses. Production is HTTPS, so this path is only ever
+     * hit in development — and development is precisely where it needs to say
+     * something useful.
+     */
+    if (typeof window !== "undefined" && (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia)) {
+      setError(
+        "This page is not on a secure connection, and browsers only expose the camera over HTTPS or on localhost. " +
+          "On a phone, restart the dev server with `next dev --experimental-https` and open the https:// address."
+      )
+      setPhase("error")
+      return
+    }
+
     try {
       const { landmarker, delegate } = await createFaceLandmarker("VIDEO")
       setDelegate(delegate)
