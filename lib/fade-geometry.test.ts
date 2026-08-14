@@ -181,6 +181,30 @@ describe("headBand", () => {
     expect(ends).toBeGreaterThan(step * 5)
   })
 
+  it("cuts the ear out of the bands, at ear height only", () => {
+    // The pinna carries no hair, so no part of a fade happens on it. Without
+    // this the ladder is drawn straight across the ear, which a real photograph
+    // makes obvious and a mannequin render does not.
+    const f = buildHeadFrame(syntheticFace())!
+    const atEar = headBand(f, f.levels.earCanal, 180).filter((b) => b.onEar)
+    expect(atEar.length).toBeGreaterThan(4)
+
+    // Nothing is excluded well above the ear or well below the lobe.
+    for (const u of [f.levels.parietal, f.levels.earCanal - 0.45]) {
+      expect(headBand(f, u, 180).some((b) => b.onEar)).toBe(false)
+    }
+  })
+
+  it("keeps the ear cut-out on the flat of the side, not in the nape", () => {
+    const f = buildHeadFrame(syntheticFace())!
+    const centre = axisPoint(f, f.levels.earCanal)
+    for (const bp of headBand(f, f.levels.earCanal, 180)) {
+      if (!bp.onEar) continue
+      const lateral = Math.abs(dot(sub(bp.point, centre), f.right))
+      expect(lateral).toBeGreaterThan(0.4 * skullRadius(f, f.levels.earCanal))
+    }
+  })
+
   it("still splits into near and far halves so the far side can be dropped", () => {
     const f = buildHeadFrame(syntheticFace())!
     const band = headBand(f, f.levels.earTop, 96)

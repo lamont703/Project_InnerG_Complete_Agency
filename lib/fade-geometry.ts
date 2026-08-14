@@ -192,6 +192,26 @@ export const HEAD_DEPTH_RATIO = 1.22
 /** How far the fade's bottom edge sits below the ear canal. */
 export const PERIMETER_BELOW_EAR = 0.12
 
+/**
+ * How far the head's central axis sits behind the line through the two
+ * face-oval points at ear height. Also where the front of the ear is, since
+ * those landmarks sit at roughly the tragus.
+ */
+export const AXIS_BEHIND_EAR_LINE = 0.1
+
+/** Bottom of the lobe, below the ear canal, in face heights. */
+export const EAR_LOBE_BELOW_CANAL = 0.13
+
+/** An ear is taller than it is deep. Front-to-back extent as a fraction of height. */
+export const EAR_DEPTH_RATIO = 0.62
+
+/**
+ * How far round the head the ear cut-out is allowed to reach, as a fraction of
+ * the skull's half-width. Keeps the exclusion on the flat of the side, where an
+ * ear actually is, rather than letting it bite into the nape.
+ */
+export const EAR_LATERAL_MIN = 0.45
+
 /** Whose head it is. See the cranium-to-face note above. */
 export type Subject = 'adult' | 'child'
 
@@ -406,6 +426,25 @@ export interface BandPoint {
   normal: Vec3
   /** False when the point is on the far side of the head from the camera. */
   visible: boolean
+  /**
+   * True where the point lands on the ear rather than on the head.
+   *
+   * The skull model is a smooth ellipsoid, so without this the guard ladder is
+   * drawn straight across the pinna — which a real photograph makes absurd, and
+   * which is wrong in the way that matters: there is no hair on an ear, so no
+   * part of a fade happens there. A barber works around it.
+   *
+   * The ear is not in the face mesh, so it is inferred: the front edge from the
+   * face-oval points that sit at roughly the tragus, the top from the (now
+   * measured) earTop level, the bottom from the lobe, and the depth from the
+   * fact that ears are taller than they are deep.
+   *
+   * Kept separate from `visible` rather than folded into it, because the two
+   * mean different things and one caller needs them apart: calibration clicks
+   * ON the top of the ear, and would have nothing to resolve against if the
+   * ear region were simply removed from the model.
+   */
+  onEar: boolean
 }
 
 /**
@@ -443,6 +482,16 @@ export function headBand(
   const from = Math.PI / 2 + cut
   const span = Math.PI * 2 - 2 * cut
 
+  // The ear's footprint on the side of the head, in the frame's own units.
+  const uLobe = frame.levels.earCanal - EAR_LOBE_BELOW_CANAL
+  const earHalfH = ((frame.levels.earTop - uLobe) / 2) * frame.faceHeight
+  const earCentreH = ((frame.levels.earTop + uLobe) / 2 - frame.axisOriginU) * frame.faceHeight
+  const earHalfD = earHalfH * EAR_DEPTH_RATIO
+  // Front of the ear is the tragus, which is where the face-oval points sit;
+  // it extends backwards from there.
+  const earCentreD = AXIS_BEHIND_EAR_LINE * frame.headWidth - earHalfD
+  const hHere = (u - frame.axisOriginU) * frame.faceHeight
+
   for (let i = 0; i <= segments; i++) {
     const th = from + (i / segments) * span
     const point = add(centre, add(scale(frame.right, a * Math.cos(th)), scale(frame.fwd, b * Math.sin(th))))
@@ -452,7 +501,14 @@ export function headBand(
     )
     // MediaPipe's z grows away from the camera, so an outward normal with a
     // negative z component is pointing back at the viewer.
-    out.push({ point, normal, visible: normal.z < 0 })
+    const lateral = a * Math.cos(th)
+    const depth = b * Math.sin(th)
+    const onEar =
+      Math.abs(lateral) > EAR_LATERAL_MIN * a &&
+      earHalfH > 1e-6 &&
+      ((hHere - earCentreH) / earHalfH) ** 2 + ((depth - earCentreD) / earHalfD) ** 2 < 1
+
+    out.push({ point, normal, visible: normal.z < 0, onEar })
   }
   return out
 }

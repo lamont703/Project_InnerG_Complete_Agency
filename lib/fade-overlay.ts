@@ -114,7 +114,10 @@ const project = (p: Vec3, mirror: boolean, w: number) => ({
 export function ring(frame: HeadFrame, u: number, mirror: boolean, w: number, segments = 96): P2[] {
   return headBand(frame, u, segments).map((bp) => ({
     ...project(bp.point, mirror, w),
-    visible: bp.visible,
+    // Points on the ear are undrawable for the same reason as points on the far
+    // side of the head: there is no fade there. Folding both into one flag lets
+    // visibleRuns split the arc around the ear without knowing why.
+    visible: bp.visible && !bp.onEar,
   }))
 }
 
@@ -159,16 +162,22 @@ function strokeRing(ctx: CanvasRenderingContext2D, pts: P2[], colour: string, wi
 /**
  * Fill the strip between two rings — one rung of the ladder.
  *
- * Runs are taken from the lower ring and applied to both. The two rings share a
- * sampling and a head frame, so their indices correspond; deriving a separate
- * mask per ring would let the two disagree by a point at the silhouette and
- * leave a hairline gap along every rung.
+ * The mask is the INTERSECTION of the two rings: a column is filled only where
+ * both its lower and upper edge are drawable. Taking it from the lower ring
+ * alone leaves the fill hazing straight over the ear on any rung whose bottom
+ * edge passes below the lobe — the strokes stop correctly at the cut-out while
+ * the translucent band carries on across it, which looks like a rendering
+ * smudge rather than the deliberate gap it is.
+ *
+ * The two rings share a sampling and a head frame, so their indices correspond
+ * and the intersection is a straight element-wise AND.
  */
 function fillBetween(ctx: CanvasRenderingContext2D, lower: P2[], upper: P2[], colour: string, alpha: number) {
+  const both = lower.map((p, i) => ({ ...p, visible: p.visible && (upper[i]?.visible ?? false) }))
   ctx.save()
   ctx.globalAlpha = alpha
   ctx.fillStyle = colour
-  for (const [a, b] of visibleRuns(lower)) {
+  for (const [a, b] of visibleRuns(both)) {
     if (b - a < 1 || b >= upper.length) continue
     ctx.beginPath()
     for (let i = a; i <= b; i++) (i === a ? ctx.moveTo : ctx.lineTo).call(ctx, lower[i].x, lower[i].y)
