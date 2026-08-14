@@ -230,12 +230,18 @@ export async function POST(request: NextRequest) {
   // business SMS that GHL accepted may still have gone to a landline.
   const notifyErrors: string[] = [];
 
+  // Both contact channels go in the text. The business closes this deal off
+  // our platform, so the message has to be self-sufficient — a barber reading
+  // it between clients should not have to open anything to call the customer
+  // back. Roughly 180 chars, so two SMS segments at worst.
   const smsBody =
     `New appointment request via ShearQuery\n` +
     `${match.name} — ${prettyDate} at ${requestedTime}\n` +
-    `${customerName || "A customer"}: ${customerPhone}\n` +
+    `${customerName || "A customer"}\n` +
+    `Phone: ${customerPhone}\n` +
+    `Email: ${customerEmail}\n` +
     (customerNotes ? `Note: ${customerNotes}\n` : "") +
-    `Call them to confirm. This is a request, not a booking.`;
+    `Contact them to confirm — this is a request, not a booking.`;
 
   let smsOk = false;
   try {

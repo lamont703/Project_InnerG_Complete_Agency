@@ -98,6 +98,11 @@ export const WIKIDATA = {
   texas: "https://www.wikidata.org/wiki/Q1439",
   california: "https://www.wikidata.org/wiki/Q99",
   maryland: "https://www.wikidata.org/wiki/Q1391",
+  virginia: "https://www.wikidata.org/wiki/Q1370",
+  ohio: "https://www.wikidata.org/wiki/Q1397",
+  mississippi: "https://www.wikidata.org/wiki/Q1494",
+  tennessee: "https://www.wikidata.org/wiki/Q1509",
+  minnesota: "https://www.wikidata.org/wiki/Q1527",
   // Regulators. No QID exists for the California Board of Barbering and
   // Cosmetology, PSI Services or NACCAS — searched, nothing returned. Those
   // carry their official URL in `sameAs` instead, which is weaker but true.
@@ -140,6 +145,11 @@ const STATE_BY_CODE: Record<string, { name: string; sameAs: string }> = {
   TX: { name: "Texas", sameAs: WIKIDATA.texas },
   CA: { name: "California", sameAs: WIKIDATA.california },
   MD: { name: "Maryland", sameAs: WIKIDATA.maryland },
+  VA: { name: "Virginia", sameAs: WIKIDATA.virginia },
+  OH: { name: "Ohio", sameAs: WIKIDATA.ohio },
+  MS: { name: "Mississippi", sameAs: WIKIDATA.mississippi },
+  TN: { name: "Tennessee", sameAs: WIKIDATA.tennessee },
+  MN: { name: "Minnesota", sameAs: WIKIDATA.minnesota },
 };
 
 /**
@@ -293,6 +303,66 @@ export const REGULATORS = {
     url: "https://labor.maryland.gov/",
     sameAs: [WIKIDATA.mdLabor],
   },
+  /**
+   * Virginia regulates barbering and cosmetology through DPOR, but the
+   * PRACTICAL EXAM is NIC's national examination rather than a state-written
+   * one — see lib/virginia-licensing.ts. The regulator node names the board;
+   * the exam citation on those pages names NIC. They are different bodies and
+   * the pages must not conflate them.
+   */
+  va: {
+    "@type": "GovernmentOrganization",
+    "@id": "https://www.dpor.virginia.gov/#organization",
+    name: "Virginia Department of Professional and Occupational Regulation",
+    alternateName: "Virginia DPOR",
+    url: "https://www.dpor.virginia.gov/",
+  },
+  /**
+   * Ohio writes AND administers its own practical exam — no PSI, no NIC. The
+   * board's vanity domains do not resolve, so this node points at the Ohio
+   * Administrative Code chapter that governs the exam, which does.
+   */
+  oh: {
+    "@type": "GovernmentOrganization",
+    "@id": "https://codes.ohio.gov/ohio-administrative-code/chapter-4713-5#organization",
+    name: "Ohio State Cosmetology and Barber Board",
+    alternateName: "OSCBB",
+    url: "https://codes.ohio.gov/ohio-administrative-code/chapter-4713-5",
+  },
+  /**
+   * Mississippi's practical is board-administered and board-documented — the
+   * MSBCB publishes its own Practical Exam Handbook with a full equipment list
+   * per licence, which is why the Mississippi pages need no derivation.
+   */
+  ms: {
+    "@type": "GovernmentOrganization",
+    "@id": "https://www.msbcb.ms.gov/#organization",
+    name: "Mississippi State Board of Cosmetology",
+    alternateName: "MSBCB",
+    url: "https://www.msbcb.ms.gov/",
+  },
+  /**
+   * Tennessee regulates through the Department of Commerce and Insurance; the
+   * exam itself is PSI's, so the kit page cites PSI for the bulletin and this
+   * node for the licence. Two bodies, not one.
+   */
+  tn: {
+    "@type": "GovernmentOrganization",
+    "@id": "https://www.tn.gov/commerce/regboards/cosmo.html#organization",
+    name: "Tennessee Board of Cosmetology and Barber Examiners",
+    url: "https://www.tn.gov/commerce/regboards/cosmo.html",
+  },
+  /**
+   * Minnesota has a standalone board rather than a division of a commerce
+   * department. The exam is PSI's (client code MNCOS), so the instructor kit
+   * page cites PSI for the bulletin and this node for the licence.
+   */
+  mn: {
+    "@type": "GovernmentOrganization",
+    "@id": "https://mn.gov/boards/cosmetology/#organization",
+    name: "Minnesota Board of Cosmetologist Examiners",
+    url: "https://mn.gov/boards/cosmetology/",
+  },
 } as const;
 
 /** The regulator for a postal state code, or null if we do not cover that state. */
@@ -302,6 +372,11 @@ export function regulatorFor(code: string | null | undefined) {
   if (key === "TX") return REGULATORS.tx;
   if (key === "CA") return REGULATORS.ca;
   if (key === "MD") return REGULATORS.md;
+  if (key === "VA") return REGULATORS.va;
+  if (key === "OH") return REGULATORS.oh;
+  if (key === "MS") return REGULATORS.ms;
+  if (key === "TN") return REGULATORS.tn;
+  if (key === "MN") return REGULATORS.mn;
   return null;
 }
 
