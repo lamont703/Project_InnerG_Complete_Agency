@@ -356,6 +356,23 @@ function RealImagePanel() {
    * The aggregate, as text. Rendered into a stable id so the headless script
    * can read the numbers out — a mean that only exists as pixels in a
    * screenshot cannot be pasted into a constant.
+   *
+   * Reports the mean DELTA against what the model currently derives, with a
+   * standard error, and refuses to call it actionable until that delta clears
+   * twice the error across at least three heads.
+   *
+   * That gate is the point. The first real reading came back with a parietal
+   * delta of +0.023 at a 2.1% residual — a difference smaller than the
+   * uncertainty of the click that produced it — under a line reading
+   * "PARIETAL_ABOVE_FOREHEAD = 0.123". Printing that next to a single imprecise
+   * tap is an invitation to edit a constant on the strength of nothing, and a
+   * guess relabelled as a measurement is worse than the guess, because nobody
+   * goes back and re-examines it.
+   *
+   * The two levels behaving differently is expected rather than a fault: the
+   * top of an ear is a crisp thing to point at, the parietal ridge is a diffuse
+   * curve with no line on it. Parietal residuals will always be worse, so
+   * parietal needs more heads to average down — not better technique.
    */
   const summary = MODES.map((m) => {
     const rows = results
@@ -364,19 +381,34 @@ function RealImagePanel() {
 
     if (!rows.length) return `${m.label} — no marks yet`
 
-    const us = rows.map((x) => x.mark.u)
-    const mean = us.reduce((a, b) => a + b, 0) / us.length
-    const sd = Math.sqrt(us.reduce((a, b) => a + (b - mean) ** 2, 0) / us.length)
+    const deltas = rows.map((x) => x.mark.u - x.derived)
+    const n = deltas.length
+    const meanDelta = deltas.reduce((a, b) => a + b, 0) / n
+    // Sample standard deviation, so n=1 is undefined rather than a flattering 0.
+    const sd = n > 1 ? Math.sqrt(deltas.reduce((a, b) => a + (b - meanDelta) ** 2, 0) / (n - 1)) : NaN
+    const sem = n > 1 ? sd / Math.sqrt(n) : NaN
+
     const lines = rows.map((x) => {
       const resid = (x.mark.dist / x.mark.headWidthPx) * 100
       const d = x.mark.u - x.derived
-      return `  ${x.r.name.slice(0, 34).padEnd(36)} measured ${x.mark.u.toFixed(3)}  derived ${x.derived.toFixed(3)}  delta ${d >= 0 ? "+" : ""}${d.toFixed(3)}  residual ${resid.toFixed(1)}% head`
+      const flag = resid > 5 ? "  <- residual too high, click missed the head" : ""
+      return `  ${x.r.name.slice(0, 30).padEnd(32)} measured ${x.mark.u.toFixed(3)}  derived ${x.derived.toFixed(3)}  delta ${d >= 0 ? "+" : ""}${d.toFixed(3)}  residual ${resid.toFixed(1)}%${flag}`
     })
-    const tail =
-      m.id === "parietal"
-        ? `  mean ${mean.toFixed(3)}  sd ${sd.toFixed(3)}  n=${us.length}  ->  PARIETAL_ABOVE_FOREHEAD = ${(mean - 1).toFixed(3)} (currently ${PARIETAL_ABOVE_FOREHEAD})`
-        : `  mean ${mean.toFixed(3)}  sd ${sd.toFixed(3)}  n=${us.length}  ->  earTop proxy is ${mean >= 0 ? "" : ""}${(mean - rows.reduce((a, x) => a + x.derived, 0) / rows.length).toFixed(3)} off the eye-corner derivation`
-    return [`${m.label} — ${us.length} marks`, ...lines, tail].join("\n")
+
+    let call: string
+    if (n < 3) {
+      call = `  n=${n} — NOT A MEASUREMENT YET. Mark at least 3 heads before reading anything into this.`
+    } else if (!(Math.abs(meanDelta) > 2 * sem)) {
+      call = `  mean delta ${meanDelta >= 0 ? "+" : ""}${meanDelta.toFixed(3)} +/- ${sem.toFixed(3)} (sem, n=${n}) — indistinguishable from the current value. No change justified.`
+    } else {
+      const suggestion =
+        m.id === "parietal"
+          ? `  ->  PARIETAL_ABOVE_FOREHEAD = ${(PARIETAL_ABOVE_FOREHEAD + meanDelta).toFixed(3)} (currently ${PARIETAL_ABOVE_FOREHEAD})`
+          : `  ->  the eye-corner proxy reads ${meanDelta > 0 ? "low" : "high"} by ${Math.abs(meanDelta).toFixed(3)}`
+      call = `  mean delta ${meanDelta >= 0 ? "+" : ""}${meanDelta.toFixed(3)} +/- ${sem.toFixed(3)} (sem, n=${n}) — real at 2 sem.\n${suggestion}`
+    }
+
+    return [`${m.label} — ${n} mark${n === 1 ? "" : "s"}`, ...lines, call].join("\n")
   }).join("\n\n")
 
   return (
