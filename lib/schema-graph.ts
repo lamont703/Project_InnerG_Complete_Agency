@@ -99,6 +99,7 @@ export const WIKIDATA = {
   california: "https://www.wikidata.org/wiki/Q99",
   maryland: "https://www.wikidata.org/wiki/Q1391",
   virginia: "https://www.wikidata.org/wiki/Q1370",
+  ohio: "https://www.wikidata.org/wiki/Q1397",
   // Regulators. No QID exists for the California Board of Barbering and
   // Cosmetology, PSI Services or NACCAS — searched, nothing returned. Those
   // carry their official URL in `sameAs` instead, which is weaker but true.
@@ -142,6 +143,7 @@ const STATE_BY_CODE: Record<string, { name: string; sameAs: string }> = {
   CA: { name: "California", sameAs: WIKIDATA.california },
   MD: { name: "Maryland", sameAs: WIKIDATA.maryland },
   VA: { name: "Virginia", sameAs: WIKIDATA.virginia },
+  OH: { name: "Ohio", sameAs: WIKIDATA.ohio },
 };
 
 /**
@@ -309,6 +311,18 @@ export const REGULATORS = {
     alternateName: "Virginia DPOR",
     url: "https://www.dpor.virginia.gov/",
   },
+  /**
+   * Ohio writes AND administers its own practical exam — no PSI, no NIC. The
+   * board's vanity domains do not resolve, so this node points at the Ohio
+   * Administrative Code chapter that governs the exam, which does.
+   */
+  oh: {
+    "@type": "GovernmentOrganization",
+    "@id": "https://codes.ohio.gov/ohio-administrative-code/chapter-4713-5#organization",
+    name: "Ohio State Cosmetology and Barber Board",
+    alternateName: "OSCBB",
+    url: "https://codes.ohio.gov/ohio-administrative-code/chapter-4713-5",
+  },
 } as const;
 
 /** The regulator for a postal state code, or null if we do not cover that state. */
@@ -319,6 +333,7 @@ export function regulatorFor(code: string | null | undefined) {
   if (key === "CA") return REGULATORS.ca;
   if (key === "MD") return REGULATORS.md;
   if (key === "VA") return REGULATORS.va;
+  if (key === "OH") return REGULATORS.oh;
   return null;
 }
 
