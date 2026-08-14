@@ -1,0 +1,116 @@
+#!/usr/bin/env node
+/**
+ * Screenshot the AR overlay lab, headless.
+ *
+ * WHY. The overlay could previously only be observed by a person holding a
+ * phone in front of a head. That is a feedback loop with a human in it, which
+ * means it does not run when nobody is looking — and every geometry change was
+ * reviewed by reading the maths rather than by looking at the result.
+ *
+ * This renders /ar-lab in Chrome and writes a PNG. The picture can then be
+ * opened by anyone, attached to a review, diffed against a previous run, or
+ * read by an assistant with no camera.
+ *
+ *   node scripts/ar_lab_shot.js                       # pose grids only
+ *   node scripts/ar_lab_shot.js --image path/to.jpg   # also run a real photo
+ *   node scripts/ar_lab_shot.js --port 3400 --out x.png
+ *
+ * The dev server must already be running — this script deliberately does not
+ * start one. /ar-lab 404s in production builds (app/ar-lab/layout.tsx), so
+ * pointing this at a production deployment gets you a picture of a 404 page,
+ * which is the correct outcome rather than a bug to work around.
+ *
+ * The --image path is read from local disk by the browser's file input. It is
+ * never uploaded and must not be committed: fixture photographs of real heads
+ * do not belong in this repository. Keep them somewhere gitignored.
+ */
+
+const fs = require('fs')
+const path = require('path')
+const puppeteer = require('puppeteer')
+
+function arg(name, fallback) {
+  const i = process.argv.indexOf(`--${name}`)
+  return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : fallback
+}
+
+const PORT = arg('port', '3400')
+const IMAGE = arg('image', null)
+const OUT = path.resolve(arg('out', 'ar-lab-shot.png'))
+const URL = `http://localhost:${PORT}/ar-lab`
+
+;(async () => {
+  if (IMAGE && !fs.existsSync(IMAGE)) {
+    console.error(`No such image: ${IMAGE}`)
+    process.exit(1)
+  }
+
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    // The lab draws to 2D canvases and, for the real-image panel, asks
+    // MediaPipe for a GPU delegate. Headless Chrome falls back to CPU on its
+    // own; these flags just stop it complaining about a missing sandbox in
+    // container environments.
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  })
+
+  try {
+    const page = await browser.newPage()
+    await page.setViewport({ width: 1400, height: 1200, deviceScaleFactor: 2 })
+
+    const problems = []
+    page.on('console', (m) => m.type() === 'error' && problems.push(m.text()))
+    page.on('pageerror', (e) => problems.push(String(e)))
+
+    const res = await page.goto(URL, { waitUntil: 'networkidle0', timeout: 60000 })
+    if (!res || !res.ok()) {
+      throw new Error(`${URL} returned ${res ? res.status() : 'no response'} — is the dev server up on ${PORT}?`)
+    }
+
+    // The tiles render in an effect after mount. Wait for the measured-yaw
+    // readouts to appear rather than for a fixed delay, which would be a race
+    // that passes on a fast machine and writes a blank sheet on a slow one.
+    await page.waitForFunction(
+      () => document.body.innerText.split('measured').length > 8,
+      { timeout: 30000 }
+    )
+
+    if (IMAGE) {
+      const input = await page.$('#ar-lab-file')
+      if (!input) throw new Error('File input not found on the page.')
+      await input.uploadFile(path.resolve(IMAGE))
+      // MediaPipe fetches ~16MB of wasm and model on first use.
+      await page.waitForFunction(
+        () => {
+          const t = document.body.innerText
+          return t.includes('Tracked.') || t.includes('No face found') || t.includes('Failed:')
+        },
+        { timeout: 120000 }
+      )
+    }
+
+    await page.screenshot({ path: OUT, fullPage: true })
+
+    // Pull the self-check out as text too. A drift line in the terminal is
+    // greppable and diffable in a way a PNG is not, and it is the thing that
+    // catches a sheet that looks fine and is measuring the wrong angles.
+    const readouts = await page.$$eval('p.font-mono', (ps) => ps.map((p) => p.innerText.trim()))
+    const drifting = readouts.filter((r) => r.includes('drift'))
+
+    console.log(`Wrote ${OUT}`)
+    console.log(`${readouts.length} readouts, ${drifting.length} drifting`)
+    for (const d of drifting) console.log(`  DRIFT  ${d}`)
+    if (IMAGE) {
+      const status = readouts.find((r) => r.startsWith('yaw ') && r.includes('ridge'))
+      console.log(`  image: ${status || 'no tracking readout'}`)
+    }
+    for (const p of problems.slice(0, 10)) console.log(`  console error: ${p}`)
+
+    process.exitCode = drifting.length ? 1 : 0
+  } finally {
+    await browser.close()
+  }
+})().catch((e) => {
+  console.error(e.message || e)
+  process.exit(1)
+})

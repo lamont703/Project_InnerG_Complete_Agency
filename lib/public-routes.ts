@@ -75,6 +75,11 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
   // fabricated barbershop that was competing in the index with 8,900 real
   // listings. Both subtrees are noindex'd in their own layout.tsx as well;
   // this stops us advertising them in the first place.
+  // Development-only visual harness for the AR overlay. Its layout calls
+  // notFound() when NODE_ENV is production, so advertising it would point
+  // crawlers at a guaranteed 404 — and the filesystem crawler below has no way
+  // to know a route 404s at runtime, so it has to be named here.
+  '/ar-lab',
   '/tools/ai-booth-station',
   '/tools/shop-site-template',
   '/tools/domain-management',

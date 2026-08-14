@@ -25,17 +25,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import {
-  buildHeadFrame,
-  deriveFadePlan,
-  headBand,
-  toPixelSpace,
-  scale,
-  add,
-  type FadeSpec,
-  type HeadFrame,
-  type Vec3,
-} from "@/lib/fade-geometry"
+import { type FadeSpec } from "@/lib/fade-geometry"
+import { drawFadeOverlay } from "@/lib/fade-overlay"
 
 const WASM_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
 const MODEL_URL =
@@ -54,227 +45,6 @@ interface Props {
   spec: FadeSpec
   /** Index into the plan's ladder to emphasise, or null to show the whole ladder evenly. */
   activeRung: number | null
-}
-
-// ---------------------------------------------------------------------------
-// Drawing
-// ---------------------------------------------------------------------------
-
-interface P2 {
-  x: number
-  y: number
-  visible: boolean
-}
-
-/**
- * Sequential ramp for the ladder: darkest at the shortest guard.
- *
- * Ordinal data, so one hue with a lightness ramp — a categorical palette here
- * would imply the guards are unrelated categories when they are a sequence, and
- * the sequence is the entire thing being taught.
- */
-function rungColour(i: number, n: number): string {
-  const t = n <= 1 ? 0 : i / (n - 1)
-  const l = 34 + t * 44
-  const s = 88 - t * 26
-  return `hsl(196 ${s}% ${l}%)`
-}
-
-/**
- * Project a head-space point to canvas pixels.
- *
- * Orthographic on purpose. MediaPipe's landmarks already arrive in a
- * screen-aligned space, so taking x and y directly keeps the overlay locked to
- * the mesh without having to reconstruct the camera intrinsics and match them
- * exactly — which is the usual source of an overlay that tracks well at the
- * centre of frame and slides off at the edges.
- */
-const project = (p: Vec3, mirror: boolean, w: number) => ({
-  x: mirror ? w - p.x : p.x,
-  y: p.y,
-})
-
-/** One ring around the skull, rotated so the camera-facing arc is contiguous. */
-function ring(frame: HeadFrame, u: number, mirror: boolean, w: number, segments = 96): P2[] {
-  const band = headBand(frame, u, segments).map((bp) => ({
-    ...project(bp.point, mirror, w),
-    visible: bp.visible,
-  }))
-
-  // The visible points are a contiguous run on the ellipse, but the run wraps
-  // through index 0 about half the time. Rotating to the run's start lets the
-  // caller stroke it as a single path instead of two.
-  const start = band.findIndex((p, i) => p.visible && !band[(i - 1 + band.length) % band.length].visible)
-  return start <= 0 ? band : [...band.slice(start), ...band.slice(0, start)]
-}
-
-function strokeRing(ctx: CanvasRenderingContext2D, pts: P2[], colour: string, width: number, dashHidden = true) {
-  const vis = pts.filter((p) => p.visible)
-  const hid = pts.filter((p) => !p.visible)
-
-  if (dashHidden && hid.length > 1) {
-    ctx.save()
-    ctx.setLineDash([6, 8])
-    ctx.globalAlpha = 0.3
-    ctx.strokeStyle = colour
-    ctx.lineWidth = width
-    ctx.beginPath()
-    hid.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)))
-    ctx.stroke()
-    ctx.restore()
-  }
-
-  if (vis.length > 1) {
-    ctx.save()
-    ctx.strokeStyle = colour
-    ctx.lineWidth = width
-    ctx.lineCap = "round"
-    ctx.lineJoin = "round"
-    ctx.beginPath()
-    vis.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)))
-    ctx.stroke()
-    ctx.restore()
-  }
-}
-
-/** Fill the strip between two rings — one rung of the ladder. */
-function fillBetween(ctx: CanvasRenderingContext2D, lower: P2[], upper: P2[], colour: string, alpha: number) {
-  const a = lower.filter((p) => p.visible)
-  const b = upper.filter((p) => p.visible)
-  if (a.length < 2 || b.length < 2) return
-
-  ctx.save()
-  ctx.globalAlpha = alpha
-  ctx.fillStyle = colour
-  ctx.beginPath()
-  a.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)))
-  for (let i = b.length - 1; i >= 0; i--) ctx.lineTo(b[i].x, b[i].y)
-  ctx.closePath()
-  ctx.fill()
-  ctx.restore()
-}
-
-/**
- * A chip of text with its own backing plate.
- *
- * The plate is not decoration — the overlay is drawn over live camera video,
- * so any text without one is unreadable against a light wall half the time.
- * `align: "right"` puts the chip's right edge at x, which is what the labels on
- * the left of the head need; measuring is done here rather than by the caller
- * because the font has to be set before measureText means anything.
- */
-function label(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  colour: string,
-  size: number,
-  align: "left" | "right" = "left"
-) {
-  ctx.save()
-  ctx.font = `600 ${size}px ui-sans-serif, system-ui, sans-serif`
-  ctx.textBaseline = "middle"
-  const w = ctx.measureText(text).width
-  const left = align === "right" ? x - w : x
-  ctx.fillStyle = "rgba(2,6,23,0.72)"
-  ctx.beginPath()
-  // roundRect is Safari 16+. Older engines get square corners rather than an
-  // exception that kills the whole frame.
-  if (typeof ctx.roundRect === "function") {
-    ctx.roundRect(left - 6, y - size * 0.78, w + 12, size * 1.56, size * 0.4)
-  } else {
-    ctx.rect(left - 6, y - size * 0.78, w + 12, size * 1.56)
-  }
-  ctx.fill()
-  ctx.fillStyle = colour
-  ctx.fillText(text, left, y)
-  ctx.restore()
-}
-
-/**
- * The elevation protractor, anchored to the skull's own surface normal.
- *
- * This is the instrument the tool is really for. Elevation is measured against
- * the curve of the head, not against the floor or the mirror, which is why it
- * is so hard to feel and so easy to get wrong — and why drawing it on the head,
- * in the right plane, is something a book cannot do. Anchored near the
- * silhouette so the arc is seen close to edge-on rather than foreshortened into
- * a line.
- */
-function drawProtractor(
-  ctx: CanvasRenderingContext2D,
-  frame: HeadFrame,
-  u: number,
-  mirror: boolean,
-  w: number,
-  size: number
-) {
-  const band = headBand(frame, u, 96)
-  let best = -1
-  let bestScore = -Infinity
-  band.forEach((bp, i) => {
-    if (!bp.visible) return
-    // Nearest the silhouette: the normal lying most across the screen.
-    const score = Math.abs(bp.normal.x)
-    if (score > bestScore) {
-      bestScore = score
-      best = i
-    }
-  })
-  if (best < 0) return
-
-  const anchor = band[best]
-  const p0 = project(anchor.point, mirror, w)
-  const nEnd = project(add(anchor.point, scale(anchor.normal, frame.headWidth * 0.42)), mirror, w)
-  const tEnd = project(add(anchor.point, scale(frame.up, frame.headWidth * 0.42)), mirror, w)
-
-  const aN = Math.atan2(nEnd.y - p0.y, nEnd.x - p0.x)
-  const aT = Math.atan2(tEnd.y - p0.y, tEnd.x - p0.x)
-  const r = frame.headWidth * 0.3
-
-  ctx.save()
-  ctx.lineWidth = Math.max(2, size * 0.14)
-
-  // 0° — flat against the head, the direction of the pass.
-  ctx.strokeStyle = "rgba(255,255,255,0.85)"
-  ctx.setLineDash([5, 5])
-  ctx.beginPath()
-  ctx.moveTo(p0.x, p0.y)
-  ctx.lineTo(tEnd.x, tEnd.y)
-  ctx.stroke()
-  ctx.setLineDash([])
-
-  // 90° — straight off the surface.
-  ctx.strokeStyle = "#f59e0b"
-  ctx.beginPath()
-  ctx.moveTo(p0.x, p0.y)
-  ctx.lineTo(nEnd.x, nEnd.y)
-  ctx.stroke()
-
-  // The sweep between them, drawn the short way round.
-  let delta = aN - aT
-  while (delta > Math.PI) delta -= Math.PI * 2
-  while (delta < -Math.PI) delta += Math.PI * 2
-  ctx.strokeStyle = "#f59e0b"
-  ctx.globalAlpha = 0.9
-  ctx.beginPath()
-  ctx.arc(p0.x, p0.y, r, aT, aT + delta, delta < 0)
-  ctx.stroke()
-  ctx.globalAlpha = 1
-
-  for (const f of [0, 0.5, 1]) {
-    const a = aT + delta * f
-    const inner = r * 0.86
-    ctx.beginPath()
-    ctx.moveTo(p0.x + Math.cos(a) * inner, p0.y + Math.sin(a) * inner)
-    ctx.lineTo(p0.x + Math.cos(a) * r * 1.1, p0.y + Math.sin(a) * r * 1.1)
-    ctx.stroke()
-  }
-  ctx.restore()
-
-  const mid = aT + delta * 0.5
-  label(ctx, "flick out", p0.x + Math.cos(mid) * r * 1.35 - size, p0.y + Math.sin(mid) * r * 1.35, "#fde68a", size * 0.82)
 }
 
 // ---------------------------------------------------------------------------
@@ -373,16 +143,21 @@ export function FadeArView({ spec, activeRung }: Props) {
     }
     setTracking(true)
 
-    const frame = buildHeadFrame(toPixelSpace(raw, W, H))
-    if (!frame) return
+    // Everything drawn is drawn by the shared renderer — the live view owns no
+    // drawing code of its own. That is what lets /ar-lab and the headless
+    // screenshot script exercise this exact code path instead of a copy that
+    // drifts out of step with it.
+    const report = drawFadeOverlay(ctx, {
+      landmarks: raw,
+      width: W,
+      height: H,
+      spec: specRef.current,
+      activeRung: rungRef.current,
+      mirror,
+    })
+    if (!report) return
 
-    const plan = deriveFadePlan(specRef.current, frame.levels)
-    const size = Math.max(13, W * 0.023)
-    const active = rungRef.current
-
-    // Which way the head is turned. `fwd` points out of the face, and the
-    // camera looks down -z, so a head square to the lens reads 0.
-    const deg = (Math.atan2(frame.fwd.x, -frame.fwd.z) * 180) / Math.PI
+    const deg = report.yawDeg
     // Only push a state update when the reading has actually moved. Rounding
     // alone still changes most frames, and a setState per frame re-renders the
     // component 30-60 times a second for a number nobody can read that fast.
@@ -398,56 +173,6 @@ export function FadeArView({ spec, activeRung }: Props) {
       }
       return next.front === c.front && next.left === c.left && next.right === c.right ? c : next
     })
-
-    // Anatomy first, underneath everything — the reference points the line is
-    // placed against, so a student can see the reasoning and not just the answer.
-    for (const [u, text] of [
-      [frame.levels.earTop, "top of ear"],
-      [frame.levels.parietal, "parietal ridge"],
-    ] as const) {
-      const pts = ring(frame, u, mirror, W)
-      strokeRing(ctx, pts, "rgba(226,232,240,0.55)", Math.max(1.5, size * 0.09), false)
-      const edge = pts.filter((p) => p.visible).reduce((m, p) => (p.x > m.x ? p : m), { x: -Infinity, y: 0, visible: true })
-      if (edge.x > -Infinity) label(ctx, text, edge.x + size * 0.5, edge.y, "#e2e8f0", size * 0.78)
-    }
-
-    // The ladder, rung by rung.
-    plan.ladder.forEach((rung, i) => {
-      const lower = ring(frame, rung.uFrom, mirror, W)
-      const upper = ring(frame, rung.uTo, mirror, W)
-      const colour = rungColour(i, plan.ladder.length)
-      const isActive = active === i
-      fillBetween(ctx, lower, upper, colour, isActive ? 0.5 : active === null ? 0.28 : 0.12)
-      strokeRing(ctx, lower, colour, Math.max(1.5, size * (isActive ? 0.14 : 0.08)))
-
-      if (isActive || active === null) {
-        const edge = lower
-          .filter((p) => p.visible)
-          .reduce((m, p) => (p.x < m.x ? p : m), { x: Infinity, y: 0, visible: true })
-        if (edge.x < Infinity) {
-          label(ctx, rung.guard.label, edge.x - size * 0.8, edge.y, isActive ? "#fde68a" : "#e0f2fe", size * 0.8, "right")
-        }
-      }
-    })
-
-    // The fade line itself — the target, and the one thing that must be
-    // unmistakable at a glance.
-    const line = ring(frame, plan.uLine, mirror, W)
-    ctx.save()
-    ctx.shadowColor = "rgba(2,6,23,0.9)"
-    ctx.shadowBlur = size * 0.5
-    strokeRing(ctx, line, "#ffffff", Math.max(2.5, size * 0.2))
-    ctx.restore()
-
-    const lineEdge = line.filter((p) => p.visible).reduce((m, p) => (p.x > m.x ? p : m), { x: -Infinity, y: 0, visible: true })
-    if (lineEdge.x > -Infinity) {
-      label(ctx, plan.perimeterOnly ? "perimeter" : "fade line", lineEdge.x + size * 0.5, lineEdge.y, "#ffffff", size * 0.9)
-    }
-
-    if (active !== null && plan.ladder[active]) {
-      const rung = plan.ladder[active]
-      drawProtractor(ctx, frame, (rung.uFrom + rung.uTo) / 2, mirror, W, size)
-    }
   }, [mirror])
 
   const start = useCallback(async () => {

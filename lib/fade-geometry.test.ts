@@ -17,6 +17,7 @@ import {
   type Vec3,
   type FadeSpec,
 } from "./fade-geometry"
+import { syntheticHeadLandmarks } from "./fade-synthetic-head"
 
 /**
  * A synthetic head in a known pose, so the geometry can be checked against
@@ -295,6 +296,49 @@ describe("guards", () => {
   it("looks up by id", () => {
     expect(guardById("2")?.inches).toBeCloseTo(0.25, 6)
     expect(guardById("nope")).toBeUndefined()
+  })
+})
+
+describe("syntheticHeadLandmarks", () => {
+  // The harness in /ar-lab is only worth looking at if the poses it renders are
+  // the poses it claims. If the frame builder's basis were skewed, the pictures
+  // would still look plausible — these assertions are what stops a confidently
+  // wrong contact sheet.
+  const measure = (pose: Parameters<typeof syntheticHeadLandmarks>[0]) => {
+    const f = buildHeadFrame(toPixelSpace(syntheticHeadLandmarks(pose), 400, 400))!
+    expect(f).not.toBeNull()
+    return { frame: f, yaw: (Math.atan2(f.fwd.x, -f.fwd.z) * 180) / Math.PI }
+  }
+
+  it("round-trips the yaw it was asked for", () => {
+    for (const yaw of [-75, -50, -25, 0, 25, 50, 75]) {
+      expect(measure({ yaw }).yaw).toBeCloseTo(yaw, 0)
+    }
+  })
+
+  it("faces the camera at rest", () => {
+    const { frame, yaw } = measure({})
+    expect(yaw).toBeCloseTo(0, 4)
+    expect(frame.fwd.z).toBeLessThan(0)
+  })
+
+  it("keeps the anatomy ordered under pitch and roll", () => {
+    for (const pose of [{ pitch: -25 }, { pitch: 25 }, { roll: 20 }, { yaw: 35, pitch: 15 }]) {
+      const { levels } = measure(pose).frame
+      expect(levels.earTop).toBeGreaterThan(levels.earCanal)
+      expect(levels.parietal).toBeGreaterThan(levels.temple)
+    }
+  })
+
+  it("normalises into frame, so the head is actually on the canvas", () => {
+    for (const yaw of [-75, 0, 75]) {
+      for (const p of syntheticHeadLandmarks({ yaw })) {
+        expect(p.x).toBeGreaterThan(0)
+        expect(p.x).toBeLessThan(1)
+        expect(p.y).toBeGreaterThan(0)
+        expect(p.y).toBeLessThan(1)
+      }
+    }
   })
 })
 

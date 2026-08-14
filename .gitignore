@@ -145,3 +145,16 @@ __pycache__/
 # as duplicates of the .gov originals.
 reference/
 .ca_bbc_added.json
+
+# Fixture photographs for the AR overlay harness (/ar-lab,
+# scripts/ar_lab_shot.js), and the PNGs it writes.
+#
+# Photographs of real heads do not belong in this repository — not the client's,
+# not the student's, not yours. The harness reads them from local disk in the
+# browser and uploads nothing, so keeping them out of git costs nothing and is
+# the difference between a rendering test and a face dataset.
+#
+# Mannequin heads are the right fixture anyway: they are the primary use case,
+# they hold still, and nobody has to consent to one.
+ar-fixtures/
+ar-lab-shot*.png
