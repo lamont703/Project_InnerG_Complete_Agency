@@ -202,8 +202,28 @@ export const AXIS_BEHIND_EAR_LINE = 0.1
 /** Bottom of the lobe, below the ear canal, in face heights. */
 export const EAR_LOBE_BELOW_CANAL = 0.13
 
-/** An ear is taller than it is deep. Front-to-back extent as a fraction of height. */
-export const EAR_DEPTH_RATIO = 0.62
+/**
+ * Front-to-back extent of the ear cut-out, as a fraction of its height.
+ *
+ * FITTED TO OBSERVATION, not measured, and the distinction matters. The other
+ * constants in this file were either measured through /ar-lab calibration or
+ * are named guesses awaiting it. This one cannot be measured the same way: the
+ * ear is not in the face mesh, so there is no landmark to solve a click
+ * against, and the quantity being approximated is the footprint a barber works
+ * around rather than an anatomical dimension.
+ *
+ * Started at 0.62, which is roughly a real ear's width-to-height. On a live
+ * three-quarter frame that left the rear third of the pinna still under the
+ * bands — the anatomical ratio is not the right target, because what has to be
+ * cleared is the ear plus the shadow of it a clipper cannot get into.
+ *
+ * The front edge is pinned at the tragus regardless of this value (see
+ * earCentreD), so raising it only extends the cut-out backwards, and
+ * EAR_LATERAL_MIN stops it reaching round into the nape where a fade genuinely
+ * happens. Over-covering slightly is the safer error: a gap a little too large
+ * reads as "work around the ear", a gap too small reads as a rendering fault.
+ */
+export const EAR_DEPTH_RATIO = 0.85
 
 /**
  * How far round the head the ear cut-out is allowed to reach, as a fraction of
