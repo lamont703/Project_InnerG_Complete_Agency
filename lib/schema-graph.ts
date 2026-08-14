@@ -98,6 +98,7 @@ export const WIKIDATA = {
   texas: "https://www.wikidata.org/wiki/Q1439",
   california: "https://www.wikidata.org/wiki/Q99",
   maryland: "https://www.wikidata.org/wiki/Q1391",
+  virginia: "https://www.wikidata.org/wiki/Q1370",
   // Regulators. No QID exists for the California Board of Barbering and
   // Cosmetology, PSI Services or NACCAS — searched, nothing returned. Those
   // carry their official URL in `sameAs` instead, which is weaker but true.
@@ -140,6 +141,7 @@ const STATE_BY_CODE: Record<string, { name: string; sameAs: string }> = {
   TX: { name: "Texas", sameAs: WIKIDATA.texas },
   CA: { name: "California", sameAs: WIKIDATA.california },
   MD: { name: "Maryland", sameAs: WIKIDATA.maryland },
+  VA: { name: "Virginia", sameAs: WIKIDATA.virginia },
 };
 
 /**
@@ -293,6 +295,20 @@ export const REGULATORS = {
     url: "https://labor.maryland.gov/",
     sameAs: [WIKIDATA.mdLabor],
   },
+  /**
+   * Virginia regulates barbering and cosmetology through DPOR, but the
+   * PRACTICAL EXAM is NIC's national examination rather than a state-written
+   * one — see lib/virginia-licensing.ts. The regulator node names the board;
+   * the exam citation on those pages names NIC. They are different bodies and
+   * the pages must not conflate them.
+   */
+  va: {
+    "@type": "GovernmentOrganization",
+    "@id": "https://www.dpor.virginia.gov/#organization",
+    name: "Virginia Department of Professional and Occupational Regulation",
+    alternateName: "Virginia DPOR",
+    url: "https://www.dpor.virginia.gov/",
+  },
 } as const;
 
 /** The regulator for a postal state code, or null if we do not cover that state. */
@@ -302,6 +318,7 @@ export function regulatorFor(code: string | null | undefined) {
   if (key === "TX") return REGULATORS.tx;
   if (key === "CA") return REGULATORS.ca;
   if (key === "MD") return REGULATORS.md;
+  if (key === "VA") return REGULATORS.va;
   return null;
 }
 
