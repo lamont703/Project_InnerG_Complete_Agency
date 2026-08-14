@@ -261,6 +261,17 @@ function RealImagePanel() {
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState("Choose fixture images — mannequins ideal. Nothing is uploaded.")
   const [mode, setMode] = useState<Mode>("parietal")
+  /**
+   * Draw the modelled skull over the photograph.
+   *
+   * Off by default because it obscures the head, on demand because it is the
+   * only way to see WHY the overlay misses. A frozen frame from a real phone
+   * showed the bands running past the back of the head onto the wall behind it;
+   * that could be the depth ratio, the width ratio, or the axis sitting too far
+   * forward, and the bands alone cannot tell you which. The modelled silhouette
+   * laid over the real one can.
+   */
+  const [showSkull, setShowSkull] = useState(false)
   const [marks, setMarks] = useState<Record<string, Partial<Record<Mode, Mark>>>>({})
   // Kept per HEAD rather than per mark: a head is a child or it is not,
   // whichever level you happen to be pointing at. Also means an existing mark
@@ -340,7 +351,7 @@ function RealImagePanel() {
             spec: MID,
             activeRung: null,
             mirror: false,
-            debug: false,
+            debug: showSkull,
           })
           out.push({
             name: file.name,
@@ -516,6 +527,14 @@ function RealImagePanel() {
             {m.label}
           </button>
         ))}
+        <button
+          onClick={() => setShowSkull((v) => !v)}
+          className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+            showSkull ? "bg-fuchsia-400 text-slate-950" : "border border-slate-700 text-slate-300"
+          }`}
+        >
+          Show modelled skull
+        </button>
         <button
           onClick={() => {
             setMarks({})
