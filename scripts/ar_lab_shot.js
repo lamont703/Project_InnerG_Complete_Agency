@@ -147,7 +147,9 @@ const URL = `http://localhost:${PORT}/ar-lab`
     // Calibration marks live in localStorage, so they survive between runs and
     // this prints whatever has been measured so far. A mean that exists only as
     // pixels in a screenshot cannot be pasted into a constant.
-    const calibration = await page.$eval('#calibration-summary', (el) => el.innerText.trim()).catch(() => null)
+    const calibration = await page
+      .$eval('#calibration-summary', (el) => (el.value ?? el.innerText ?? '').trim())
+      .catch(() => null)
     if (calibration && !/^Parietal ridge — no marks yet/.test(calibration)) {
       console.log('\n' + calibration + '\n')
     }

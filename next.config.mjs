@@ -1,5 +1,25 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  /**
+   * Origins allowed to request dev-only assets (`/_next/*`). DEVELOPMENT ONLY —
+   * this key has no effect on a production build, so nothing here reaches
+   * shearquery.com.
+   *
+   * Needed to test on a phone. `next dev` binds to localhost, and opening the
+   * site at the machine's LAN address from another device is a cross-origin
+   * request to those assets. Today that logs a warning and still serves;
+   * Next.js documents the intent as blocking such requests, so a future major
+   * turns the warning into a real failure and phone testing stops working.
+   *
+   * /ar-lab is the reason this matters: the AR work has to be checked on the
+   * device it runs on, and the fixture and calibration flows are only usable
+   * with a real phone in hand.
+   *
+   * These are DHCP addresses. If the laptop's LAN IP moves, add the new one —
+   * the symptom is the warning coming back, not an obvious error.
+   */
+  allowedDevOrigins: ['192.168.0.5', 'localhost'],
+
   // Allow images from Supabase storage bucket and unsplash
   images: {
     remotePatterns: [

@@ -321,12 +321,27 @@ function RealImagePanel() {
     }
   }, [])
 
-  const onClickImage = useCallback(
-    (r: Result, e: React.MouseEvent<HTMLImageElement>) => {
-      if (!r.landmarks) return
+  /**
+   * Marking is on pointer events rather than click, and it matters on a phone.
+   *
+   * A click handler on a plain <img> is reliable under a mouse and flaky under
+   * a finger — and this tool is most useful on the device the AR actually runs
+   * on. Pointer events fire for both. The movement threshold is what keeps a
+   * scroll that happens to start on a head from dropping a mark: a drag past a
+   * few pixels is someone moving the page, not measuring a skull.
+   */
+  const downRef = useRef<{ x: number; y: number } | null>(null)
+
+  const onPointerUp = useCallback(
+    (r: Result, e: React.PointerEvent<HTMLImageElement>) => {
+      const down = downRef.current
+      downRef.current = null
+      if (!r.landmarks || !down) return
+      if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10) return
+
       const rect = e.currentTarget.getBoundingClientRect()
-      // The image is CSS-scaled to the column, so clicks arrive in display
-      // pixels and the solver works in canvas pixels.
+      // The image is CSS-scaled to its column, so taps arrive in display pixels
+      // and the solver works in canvas pixels.
       const x = ((e.clientX - rect.left) / rect.width) * r.w
       const y = ((e.clientY - rect.top) / rect.height) * r.h
       const m = measureU(r.landmarks, r.w, r.h, false, x, y)
@@ -422,7 +437,10 @@ function RealImagePanel() {
                   <img
                     src={r.png}
                     alt={`Overlay on ${r.name}`}
-                    onClick={(e) => onClickImage(r, e)}
+                    onPointerDown={(e) => {
+                      downRef.current = { x: e.clientX, y: e.clientY }
+                    }}
+                    onPointerUp={(e) => onPointerUp(r, e)}
                     className={`w-full rounded ${r.landmarks ? "cursor-crosshair" : ""}`}
                   />
                 )}
@@ -463,13 +481,30 @@ function RealImagePanel() {
         })}
       </div>
 
-      <h3 className="mt-8 text-sm font-bold text-slate-100">Calibration</h3>
-      <pre
+      <div className="mt-8 flex flex-wrap items-center gap-2">
+        <h3 className="text-sm font-bold text-slate-100">Calibration</h3>
+        <button
+          onClick={() => {
+            const el = document.getElementById("calibration-summary") as HTMLTextAreaElement | null
+            if (!el) return
+            el.select()
+            // navigator.clipboard needs a secure context. Testing on a phone
+            // means http://<lan-ip>, which is not one — so selecting the text is
+            // the fallback that always works, and the copy is best effort.
+            navigator.clipboard?.writeText(summary).catch(() => {})
+          }}
+          className="rounded-full bg-amber-400 px-3 py-1.5 text-xs font-semibold text-slate-950"
+        >
+          Select / copy
+        </button>
+      </div>
+      <textarea
         id="calibration-summary"
-        className="mt-2 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950 p-3 font-mono text-[11px] leading-relaxed text-slate-300"
-      >
-        {summary}
-      </pre>
+        readOnly
+        value={summary}
+        rows={Math.min(24, summary.split("\n").length + 1)}
+        className="mt-2 w-full rounded-lg border border-slate-800 bg-slate-950 p-3 font-mono text-[11px] leading-relaxed text-slate-300"
+      />
       <p className="mt-2 text-xs text-slate-500">
         Residual is how far the click sat from the ring that matched it, as a percentage of head width. Anything past
         about 5% means the click missed the head and the height is not a measurement.
