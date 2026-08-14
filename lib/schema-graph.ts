@@ -101,6 +101,7 @@ export const WIKIDATA = {
   virginia: "https://www.wikidata.org/wiki/Q1370",
   ohio: "https://www.wikidata.org/wiki/Q1397",
   mississippi: "https://www.wikidata.org/wiki/Q1494",
+  tennessee: "https://www.wikidata.org/wiki/Q1509",
   // Regulators. No QID exists for the California Board of Barbering and
   // Cosmetology, PSI Services or NACCAS — searched, nothing returned. Those
   // carry their official URL in `sameAs` instead, which is weaker but true.
@@ -146,6 +147,7 @@ const STATE_BY_CODE: Record<string, { name: string; sameAs: string }> = {
   VA: { name: "Virginia", sameAs: WIKIDATA.virginia },
   OH: { name: "Ohio", sameAs: WIKIDATA.ohio },
   MS: { name: "Mississippi", sameAs: WIKIDATA.mississippi },
+  TN: { name: "Tennessee", sameAs: WIKIDATA.tennessee },
 };
 
 /**
@@ -337,6 +339,17 @@ export const REGULATORS = {
     alternateName: "MSBCB",
     url: "https://www.msbcb.ms.gov/",
   },
+  /**
+   * Tennessee regulates through the Department of Commerce and Insurance; the
+   * exam itself is PSI's, so the kit page cites PSI for the bulletin and this
+   * node for the licence. Two bodies, not one.
+   */
+  tn: {
+    "@type": "GovernmentOrganization",
+    "@id": "https://www.tn.gov/commerce/regboards/cosmo.html#organization",
+    name: "Tennessee Board of Cosmetology and Barber Examiners",
+    url: "https://www.tn.gov/commerce/regboards/cosmo.html",
+  },
 } as const;
 
 /** The regulator for a postal state code, or null if we do not cover that state. */
@@ -349,6 +362,7 @@ export function regulatorFor(code: string | null | undefined) {
   if (key === "VA") return REGULATORS.va;
   if (key === "OH") return REGULATORS.oh;
   if (key === "MS") return REGULATORS.ms;
+  if (key === "TN") return REGULATORS.tn;
   return null;
 }
 
