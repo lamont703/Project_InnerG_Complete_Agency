@@ -19,6 +19,7 @@ import {
   type FadeBottom,
   type FadeHeight,
   type FadeSpec,
+  type Subject,
 } from "@/lib/fade-geometry"
 
 const ROUTE = "/ar-fade-trainer"
@@ -100,6 +101,16 @@ export default function ArFadeTrainerPage() {
   const [height, setHeight] = useState<FadeHeight>("mid")
   const [bottom, setBottom] = useState<FadeBottom>("skin")
   const [topGuard, setTopGuard] = useState("3")
+  /**
+   * Adult or child. Not a detail — it moves the FLOOR of the fade.
+   *
+   * A child's braincase is near adult size long before the face catches up, so
+   * the ear sits differently against the eye corner the model measures from.
+   * Measured on real heads: on adults the ear tops out about a tenth of a face
+   * height above that corner, on the one child measured it did not. Nothing in
+   * a face mesh reveals age, so it has to be asked.
+   */
+  const [subject, setSubject] = useState<Subject>("adult")
   const [stepIndex, setStepIndex] = useState(0)
 
   const spec: FadeSpec = useMemo(() => ({ height, bottom, topGuard }), [height, bottom, topGuard])
@@ -145,7 +156,7 @@ export default function ArFadeTrainerPage() {
           <h2 className="text-lg font-bold">1. Name the finished cut</h2>
           <p className="mt-1 text-sm text-slate-600">Everything below is derived from these three choices.</p>
 
-          <div className="mt-6 grid gap-6 sm:grid-cols-3">
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">How high</span>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -166,6 +177,20 @@ export default function ArFadeTrainerPage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Whose head</span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["adult", "child"] as const).map((sbj) => (
+                  <button key={sbj} onClick={() => setSubject(sbj)} className={pill(subject === sbj)}>
+                    {sbj === "adult" ? "Adult" : "Child"}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                A child&apos;s ears sit differently against the eyes, which moves where the fade can start.
+              </p>
             </div>
 
             <div>
@@ -246,7 +271,7 @@ export default function ArFadeTrainerPage() {
           is the angle to flick out at as you reach the top of it.
         </p>
         <div className="mt-4 rounded-3xl border border-slate-800 bg-slate-900 p-4 sm:p-6">
-          <FadeArView spec={spec} activeRung={activeRung} />
+          <FadeArView spec={spec} activeRung={activeRung} subject={subject} />
         </div>
       </section>
 

@@ -29,7 +29,14 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { drawFadeOverlay, measureU, type Measurement, type OverlayReport } from "@/lib/fade-overlay"
 import { syntheticHeadLandmarks, type Pose } from "@/lib/fade-synthetic-head"
-import { fadeName, PARIETAL_ABOVE_FOREHEAD, type FadeSpec } from "@/lib/fade-geometry"
+import {
+  buildHeadFrame,
+  fadeName,
+  toPixelSpace,
+  PARIETAL_ABOVE_FOREHEAD,
+  type FadeSpec,
+  type Subject as HeadSubject,
+} from "@/lib/fade-geometry"
 import { createFaceLandmarker } from "@/lib/face-landmarker"
 
 const TILE = 300
@@ -438,10 +445,28 @@ function RealImagePanel() {
       .flatMap(([name, byMode]) => {
         const mark = byMode[m.id]
         if (!mark) return []
+        const subject = subjects[name] ?? ("untagged" as Subject)
         const loaded = results.find((r) => r.name === name && r.report)
-        const derived = mark.derived ?? (loaded ? m.derived(loaded.report!.levels) : undefined)
+
+        /**
+         * Recomputed live, in the tagged population, whenever the image is
+         * present — and only falling back to the value stored at mark time.
+         *
+         * Tagging happens after upload, so the levels captured when the photo
+         * was processed always assume adult. A head later marked as a child
+         * would then be compared against the adult model, quietly turning the
+         * population difference this whole split exists to measure into an
+         * artefact of when the button was pressed.
+         */
+        let derived = mark.derived
+        if (loaded?.landmarks) {
+          const frame = buildHeadFrame(toPixelSpace(loaded.landmarks, loaded.w, loaded.h), {
+            subject: subject === "untagged" ? undefined : (subject as HeadSubject),
+          })
+          if (frame) derived = m.derived(frame.levels)
+        }
         if (derived === undefined) return []
-        return [{ name, mark, derived, loaded: !!loaded, subject: subjects[name] ?? ("untagged" as Subject) }]
+        return [{ name, mark, derived, loaded: !!loaded, subject }]
       })
       .sort((a, b) => a.name.localeCompare(b.name))
 

@@ -27,6 +27,7 @@ import {
   add,
   type FadeSpec,
   type HeadFrame,
+  type Subject,
   type HeadLevels,
   type Vec3,
 } from './fade-geometry'
@@ -43,6 +44,12 @@ export interface OverlayInput {
   mirror: boolean
   /** Draw the modelled skull and the landmarks used. Off in the live view. */
   debug?: boolean
+  /**
+   * Whose head it is. Defaults to adult. Nothing in a face mesh reveals age, so
+   * this has to be told — see EAR_TOP_ABOVE_EYE_CORNER for why it changes where
+   * the floor of the fade lands.
+   */
+  subject?: Subject
 }
 
 /**
@@ -430,9 +437,12 @@ export function measureU(
   height: number,
   mirror: boolean,
   sx: number,
-  sy: number
+  sy: number,
+  subject?: Subject
 ): Measurement | null {
-  const frame = buildHeadFrame(toPixelSpace(landmarks, width, height))
+  // Same population as the drawing, or a mark would be solved against a
+  // different skull from the one on screen.
+  const frame = buildHeadFrame(toPixelSpace(landmarks, width, height), { subject })
   if (!frame) return null
 
   const lo = -0.3
@@ -470,11 +480,11 @@ export function measureU(
  * the caller should treat as "no overlay this frame" rather than as an error.
  */
 export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInput): OverlayReport | null {
-  const { landmarks, width: W, height: H, spec, activeRung: active, mirror, debug } = input
+  const { landmarks, width: W, height: H, spec, activeRung: active, mirror, debug, subject } = input
   if (!landmarks?.length) return null
 
   const pts = toPixelSpace(landmarks, W, H)
-  const frame = buildHeadFrame(pts)
+  const frame = buildHeadFrame(pts, { subject })
   if (!frame) return null
 
   const plan = deriveFadePlan(spec, frame.levels)

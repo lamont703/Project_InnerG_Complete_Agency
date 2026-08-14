@@ -9,6 +9,7 @@ import {
   skullRadius,
   axisPoint,
   FADE_FRONT_HALF_ANGLE,
+  EAR_TOP_ABOVE_EYE_CORNER,
   toPixelSpace,
   dot,
   len,
@@ -244,6 +245,18 @@ describe("deriveFadePlan", () => {
     expect(low.uLine).toBeLessThan(high.uLine)
   })
 
+  it("never puts a fade line below the top of the ear", () => {
+    // The defect the ear-top calibration existed to find. With the uncorrected
+    // eye-corner proxy the LOW fade line landed below where the ear actually
+    // topped out on both measured adults — a "fade" drawn below the ear, which
+    // by this file's own definition is not a fade at all. The high and mid
+    // lines were unaffected, so nothing looked wrong unless you checked low.
+    for (const height of ["low", "mid", "high"] as const) {
+      const p = deriveFadePlan(spec({ height }), frame.levels)
+      expect(p.uLine, `${height} fade line must clear the ear`).toBeGreaterThanOrEqual(frame.levels.earTop)
+    }
+  })
+
   it("leaves a taper's line on the ear and flags it as perimeter work", () => {
     const t = deriveFadePlan(spec({ height: "taper" }), frame.levels)
     expect(t.perimeterOnly).toBe(true)
@@ -322,6 +335,33 @@ describe("guards", () => {
   it("looks up by id", () => {
     expect(guardById("2")?.inches).toBeCloseTo(0.25, 6)
     expect(guardById("nope")).toBeUndefined()
+  })
+})
+
+describe("subject population", () => {
+  it("lifts an adult's ear top above the eye corner, and leaves a child's alone", () => {
+    // Measured, not assumed: an ear is on the braincase and an eye corner is on
+    // the face, and the two mature on different schedules. Pooling them would
+    // give a number wrong for both.
+    const pts = syntheticFace()
+    const adult = buildHeadFrame(pts, { subject: "adult" })!
+    const child = buildHeadFrame(pts, { subject: "child" })!
+    expect(adult.levels.earTop - child.levels.earTop).toBeCloseTo(EAR_TOP_ABOVE_EYE_CORNER.adult, 6)
+    expect(EAR_TOP_ABOVE_EYE_CORNER.child).toBe(0)
+  })
+
+  it("defaults to adult, so an un-told caller gets the measured population", () => {
+    const pts = syntheticFace()
+    expect(buildHeadFrame(pts)!.levels.earTop).toBeCloseTo(buildHeadFrame(pts, { subject: "adult" })!.levels.earTop, 9)
+  })
+
+  it("keeps the anatomy ordered for both populations", () => {
+    for (const subject of ["adult", "child"] as const) {
+      const { levels } = buildHeadFrame(syntheticFace(), { subject })!
+      expect(levels.earCanal).toBeLessThan(levels.earTop)
+      expect(levels.earTop).toBeLessThan(levels.temple)
+      expect(levels.temple).toBeLessThan(levels.parietal)
+    }
   })
 })
 

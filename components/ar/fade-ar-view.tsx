@@ -25,7 +25,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { type FadeSpec } from "@/lib/fade-geometry"
+import { type FadeSpec, type Subject } from "@/lib/fade-geometry"
 import { drawFadeOverlay } from "@/lib/fade-overlay"
 import { createFaceLandmarker } from "@/lib/face-landmarker"
 
@@ -42,13 +42,15 @@ interface Props {
   spec: FadeSpec
   /** Index into the plan's ladder to emphasise, or null to show the whole ladder evenly. */
   activeRung: number | null
+  /** Adult or child — changes where the floor of the fade sits. */
+  subject: Subject
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function FadeArView({ spec, activeRung }: Props) {
+export function FadeArView({ spec, activeRung, subject }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const landmarkerRef = useRef<{ detectForVideo: (v: HTMLVideoElement, t: number) => { faceLandmarks: { x: number; y: number; z: number }[][] }; close: () => void } | null>(null)
@@ -65,6 +67,10 @@ export function FadeArView({ spec, activeRung }: Props) {
   // over stale props.
   const specRef = useRef(spec)
   const rungRef = useRef(activeRung)
+  const subjectRef = useRef(subject)
+  useEffect(() => {
+    subjectRef.current = subject
+  }, [subject])
   useEffect(() => {
     specRef.current = spec
   }, [spec])
@@ -169,6 +175,7 @@ export function FadeArView({ spec, activeRung }: Props) {
       spec: specRef.current,
       activeRung: rungRef.current,
       mirror,
+      subject: subjectRef.current,
     })
     if (!report) return
 

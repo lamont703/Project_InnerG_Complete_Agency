@@ -192,6 +192,46 @@ export const HEAD_DEPTH_RATIO = 1.22
 /** How far the fade's bottom edge sits below the ear canal. */
 export const PERIMETER_BELOW_EAR = 0.12
 
+/** Whose head it is. See the cranium-to-face note above. */
+export type Subject = 'adult' | 'child'
+
+/**
+ * How far ABOVE the outer eye corner the top of the ear actually sits.
+ *
+ * MEASURED — /ar-lab calibration, 2026-08-14, marking where each ear actually
+ * tops out and solving the height back out of the tracked frame:
+ *
+ *   ADULT  Box Fade Styles Explained.png  +0.124  residual 0.5%
+ *   ADULT  IMG_2053.jpeg                  +0.079  residual 1.5%
+ *   ADULT  fade-plan.png / 2 (one person) +0.070, +0.121  residual 1.7%, 1.1%
+ *          -> 3 distinct heads, mean +0.0995, sd 0.0228, sem 0.0131
+ *
+ *   CHILD  IMG_2280.jpeg                  -0.004  residual 0.1%
+ *
+ * The two are separated rather than pooled, and the reason is in the block
+ * above: an ear is on the braincase, an eye corner is on the face, and the two
+ * mature on different schedules. Averaging them would produce a number wrong
+ * for both populations.
+ *
+ * WHY THIS MATTERS RATHER THAN BEING A ROUNDING DETAIL. earTop is the FLOOR of
+ * the fade — the file's own definition is that nothing below the top of the ear
+ * is a fade. With the uncorrected proxy the derived low-fade line came out at
+ * 0.747 on a head whose ear topped out at 0.808, i.e. the tool drew a "low
+ * fade" line below the ear. The correction moves the low line by ~0.09, the mid
+ * by ~0.05 and the high by ~0.02: the damage was concentrated exactly where the
+ * anchor carries the most weight.
+ *
+ * The child value is n=1 and is deliberately 0 — the same behaviour as before
+ * any of this, so the conservative choice for the population that has not been
+ * measured properly. Three child heads would settle it. Do not assume a child
+ * simply needs a smaller version of the adult offset; the one measurement says
+ * the relationship is different in kind, not in degree.
+ */
+export const EAR_TOP_ABOVE_EYE_CORNER: Record<Subject, number> = {
+  adult: 0.1,
+  child: 0,
+}
+
 // ---------------------------------------------------------------------------
 // The head frame
 // ---------------------------------------------------------------------------
@@ -251,7 +291,17 @@ export function toPixelSpace(
  * that are nearly parallel, and drawing from those puts bands in places that
  * look authoritative and are meaningless.
  */
-export function buildHeadFrame(p: ReadonlyArray<Vec3>): HeadFrame | null {
+export function buildHeadFrame(
+  p: ReadonlyArray<Vec3>,
+  opts?: {
+    /**
+     * Defaults to adult. A child's ear sits differently against the eye corner
+     * — see EAR_TOP_ABOVE_EYE_CORNER — and nothing in a face mesh reveals age,
+     * so this has to be told rather than detected.
+     */
+    subject?: Subject
+  }
+): HeadFrame | null {
   if (p.length <= LM.SIDE_RIGHT) return null
 
   const chin = p[LM.CHIN]
@@ -281,7 +331,11 @@ export function buildHeadFrame(p: ReadonlyArray<Vec3>): HeadFrame | null {
   const earMid = midpoint(sideL, sideR)
   const axisOrigin = sub(earMid, scale(fwd, 0.1 * headWidth))
 
-  const earTop = (uOf(p[LM.EYE_OUTER_LEFT]) + uOf(p[LM.EYE_OUTER_RIGHT])) / 2
+  // The eye corners give the height; the measured offset lifts it to where the
+  // ear actually tops out.
+  const earTop =
+    (uOf(p[LM.EYE_OUTER_LEFT]) + uOf(p[LM.EYE_OUTER_RIGHT])) / 2 +
+    EAR_TOP_ABOVE_EYE_CORNER[opts?.subject ?? 'adult']
   const earCanal = uOf(earMid)
   const temple = (uOf(p[LM.TEMPLE_LEFT]) + uOf(p[LM.TEMPLE_RIGHT])) / 2
 
