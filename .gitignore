@@ -161,3 +161,7 @@ ar-lab-shot*.png
 
 # Puppeteer profile for retained AR calibration marks.
 .ar-lab-profile/
+
+# Local dev TLS certs for testing the AR camera on a phone. Self-signed,
+# machine-specific, and a private key never belongs in a repo.
+certificates/
