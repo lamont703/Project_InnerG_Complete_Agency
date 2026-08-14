@@ -21,10 +21,20 @@ const navLinks = [
   { label: "Advertise", href: "/media-kit" },
 ]
 
+/**
+ * Ordered by depth of coverage, not alphabetically. Texas and California carry
+ * the business directory; everything below them is exam content only, and a
+ * visitor scanning this list is better served by the fullest hub first.
+ */
 const stateHubLinks = [
   { label: "Texas Hub", href: "/texas" },
   { label: "California Hub", href: "/california" },
   { label: "Maryland Hub", href: "/maryland" },
+  { label: "Mississippi Hub", href: "/mississippi" },
+  { label: "Virginia Hub", href: "/virginia" },
+  { label: "Ohio Hub", href: "/ohio" },
+  { label: "Tennessee Hub", href: "/tennessee" },
+  { label: "Minnesota Hub", href: "/minnesota" },
 ]
 
 interface AccountProject {
