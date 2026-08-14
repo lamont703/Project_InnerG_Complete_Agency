@@ -30,10 +30,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { drawFadeOverlay, measureU, type Measurement, type OverlayReport } from "@/lib/fade-overlay"
 import { syntheticHeadLandmarks, type Pose } from "@/lib/fade-synthetic-head"
 import { fadeName, PARIETAL_ABOVE_FOREHEAD, type FadeSpec } from "@/lib/fade-geometry"
-
-const WASM_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
-const MODEL_URL =
-  "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+import { createFaceLandmarker } from "@/lib/face-landmarker"
 
 const TILE = 300
 
@@ -263,13 +260,12 @@ function RealImagePanel() {
     setResults([])
     setStatus("Loading tracker…")
     try {
-      const { FilesetResolver, FaceLandmarker } = await import("@mediapipe/tasks-vision")
-      const fileset = await FilesetResolver.forVisionTasks(WASM_BASE)
-      const landmarker = await FaceLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
-        runningMode: "IMAGE",
-        numFaces: 1,
-      })
+      const { landmarker, delegate, fallbackReason } = await createFaceLandmarker("IMAGE")
+      if (fallbackReason) {
+        // Not an error — the CPU delegate gives identical landmarks. Surfaced
+        // because "why is this slow" deserves an answer other than a shrug.
+        setStatus(`Tracker on CPU (GPU unavailable: ${fallbackReason.slice(0, 90)}). Processing…`)
+      }
 
       const out: Result[] = []
       for (const file of [...files].sort((a, b) => a.name.localeCompare(b.name))) {
@@ -313,7 +309,7 @@ function RealImagePanel() {
         setResults([...out])
       }
       landmarker.close()
-      setStatus(`Done — ${out.filter((r) => r.report).length}/${out.length} tracked.`)
+      setStatus(`Done — ${out.filter((r) => r.report).length}/${out.length} tracked (${delegate}).`)
     } catch (e) {
       setStatus(`Failed: ${(e as Error).message}`)
     } finally {

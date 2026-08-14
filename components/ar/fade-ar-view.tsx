@@ -27,10 +27,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { type FadeSpec } from "@/lib/fade-geometry"
 import { drawFadeOverlay } from "@/lib/fade-overlay"
-
-const WASM_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
-const MODEL_URL =
-  "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+import { createFaceLandmarker } from "@/lib/face-landmarker"
 
 type Phase = "idle" | "loading" | "running" | "error"
 
@@ -80,6 +77,12 @@ export function FadeArView({ spec, activeRung }: Props) {
   const [yaw, setYaw] = useState(0)
   const [coverage, setCoverage] = useState<Coverage>({ front: false, left: false, right: false })
   const [shot, setShot] = useState<string | null>(null)
+  /**
+   * Which MediaPipe delegate we ended up on. Shown because the CPU fallback is
+   * noticeably slower, and a student whose overlay lags deserves to see why
+   * rather than conclude the tool is broken.
+   */
+  const [delegate, setDelegate] = useState<"GPU" | "CPU">("GPU")
 
   const mirror = facing === "user"
 
@@ -179,13 +182,8 @@ export function FadeArView({ spec, activeRung }: Props) {
     setPhase("loading")
     setError(null)
     try {
-      const { FilesetResolver, FaceLandmarker } = await import("@mediapipe/tasks-vision")
-      const fileset = await FilesetResolver.forVisionTasks(WASM_BASE)
-      const landmarker = await FaceLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
-        runningMode: "VIDEO",
-        numFaces: 1,
-      })
+      const { landmarker, delegate } = await createFaceLandmarker("VIDEO")
+      setDelegate(delegate)
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -305,6 +303,7 @@ export function FadeArView({ spec, activeRung }: Props) {
               Stop
             </button>
             <span className="ml-auto font-mono text-xs text-slate-400">
+              {delegate === "CPU" && <span className="mr-3 text-amber-400">CPU mode</span>}
               viewing angle {yaw > 0 ? "+" : ""}
               {yaw}°
             </span>
