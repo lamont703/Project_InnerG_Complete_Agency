@@ -146,7 +146,12 @@ export function KitChecklist({ groups }: { groups: KitGroup[] }) {
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-6 mb-6">
+    // id is the anchor KitPacker's "Check the full list" scrolls to when the
+    // game is embedded on this same page. One checklist per page, so it stays
+    // unique.
+    // scroll-mt-28 matches the page's own pt-28: the navbar is `fixed`, and
+    // without the offset an anchor jump parks the heading underneath it.
+    <div id="kit-checklist" className="scroll-mt-28 bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-6 mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
         <h2 className="text-xl font-black text-slate-900">Interactive kit checklist</h2>
         <div className="flex items-center gap-2 no-print">

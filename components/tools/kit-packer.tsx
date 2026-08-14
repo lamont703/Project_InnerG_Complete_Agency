@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   AlertTriangle,
   ArrowRight,
@@ -56,6 +57,11 @@ const SECONDS = 60
  * everything" from working is the prohibited tiles, which end the run.
  */
 export function KitPacker({ kit, siblings }: { kit: PracticalKit; siblings: PracticalKit[] }) {
+  // Whether the game is embedded on its own kit list page, which decides
+  // whether "Check the full list" navigates or scrolls.
+  const pathname = usePathname()
+  const onKitPage = pathname === kit.kitPath
+
   const [phase, setPhase] = useState<Phase>("idle")
   const [seed, setSeed] = useState<number>(1)
   const [deck, setDeck] = useState<KitDeck | null>(null)
@@ -410,12 +416,17 @@ export function KitPacker({ kit, siblings }: { kit: PracticalKit; siblings: Prac
           <RotateCcw className="h-3.5 w-3.5" />
           New round
         </button>
-        <Link
-          href={kit.kitPath}
+        {/* Embedded on the kit page itself, kit.kitPath is the page you are
+            already on — a link that navigates nowhere. Scroll to the checklist
+            instead. On the standalone /kit-packer/ route the same control has
+            to navigate for real, so both cases are handled rather than the
+            link being dropped. */}
+        <a
+          href={onKitPage ? "#kit-checklist" : kit.kitPath}
           className="text-xs font-black uppercase tracking-widest text-slate-500 underline underline-offset-4 hover:text-slate-900"
         >
           Check the full list
-        </Link>
+        </a>
       </div>
 
       {(missed.length > 0 || labelResult.missedLabels.length > 0) && (
