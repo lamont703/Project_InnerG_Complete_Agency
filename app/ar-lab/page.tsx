@@ -239,6 +239,22 @@ function verdict(r: OverlayReport | null): { ok: boolean; note: string } {
 }
 
 const STORE_KEY = "ar-lab-calibration-v1"
+const SUBJECT_KEY = "ar-lab-subjects-v1"
+
+/**
+ * Whose head it is.
+ *
+ * A child is not a small adult. The braincase is close to adult size years
+ * before the face catches up, so a child's face is proportionally SHORT against
+ * their skull — and every level in this model is measured in face heights.
+ * Pooling the two populations produces a mean that is wrong for both.
+ *
+ * This is not hypothetical here: the first three marked heads included a child,
+ * and it was the one disagreeing in sign about the top of the ear. Kids' cuts
+ * are a real segment of this trade, so the answer is to separate them, not to
+ * exclude them.
+ */
+type Subject = "adult" | "child" | "untagged"
 
 function RealImagePanel() {
   const [results, setResults] = useState<Result[]>([])
@@ -246,14 +262,32 @@ function RealImagePanel() {
   const [status, setStatus] = useState("Choose fixture images — mannequins ideal. Nothing is uploaded.")
   const [mode, setMode] = useState<Mode>("parietal")
   const [marks, setMarks] = useState<Record<string, Partial<Record<Mode, Mark>>>>({})
+  // Kept per HEAD rather than per mark: a head is a child or it is not,
+  // whichever level you happen to be pointing at. Also means an existing mark
+  // can be tagged without re-marking it.
+  const [subjects, setSubjects] = useState<Record<string, Subject>>({})
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORE_KEY)
       if (raw) setMarks(JSON.parse(raw))
+      const subj = localStorage.getItem(SUBJECT_KEY)
+      if (subj) setSubjects(JSON.parse(subj))
     } catch {
       /* a corrupt store is not worth failing the page over */
     }
+  }, [])
+
+  const tag = useCallback((name: string, subject: Subject) => {
+    setSubjects((prev) => {
+      const next = { ...prev, [name]: subject }
+      try {
+        localStorage.setItem(SUBJECT_KEY, JSON.stringify(next))
+      } catch {
+        /* private mode, quota — tags still work for this session */
+      }
+      return next
+    })
   }, [])
 
   const record = useCallback((name: string, m: Mode, mark: Mark | null) => {
@@ -396,42 +430,60 @@ function RealImagePanel() {
         const loaded = results.find((r) => r.name === name && r.report)
         const derived = mark.derived ?? (loaded ? m.derived(loaded.report!.levels) : undefined)
         if (derived === undefined) return []
-        return [{ name, mark, derived, loaded: !!loaded }]
+        return [{ name, mark, derived, loaded: !!loaded, subject: subjects[name] ?? ("untagged" as Subject) }]
       })
       .sort((a, b) => a.name.localeCompare(b.name))
 
     if (!rows.length) return `${m.label} — no marks yet`
 
-    const deltas = rows.map((x) => x.mark.u - x.derived)
-    const n = deltas.length
-    const meanDelta = deltas.reduce((a, b) => a + b, 0) / n
-    // Sample standard deviation, so n=1 is undefined rather than a flattering 0.
-    const sd = n > 1 ? Math.sqrt(deltas.reduce((a, b) => a + (b - meanDelta) ** 2, 0) / (n - 1)) : NaN
-    const sem = n > 1 ? sd / Math.sqrt(n) : NaN
+    /**
+     * Reported per population. Pooling an adult and a child produces a mean
+     * that describes neither, and every level here is in face heights — the one
+     * unit that changes most between the two.
+     */
+    const group = (label: string, subset: typeof rows) => {
+      const deltas = subset.map((x) => x.mark.u - x.derived)
+      const n = deltas.length
+      const meanDelta = deltas.reduce((a, b) => a + b, 0) / n
+      // Sample standard deviation, so n=1 is undefined rather than a flattering 0.
+      const sd = n > 1 ? Math.sqrt(deltas.reduce((a, b) => a + (b - meanDelta) ** 2, 0) / (n - 1)) : NaN
+      const sem = n > 1 ? sd / Math.sqrt(n) : NaN
 
-    const lines = rows.map((x) => {
-      const resid = (x.mark.dist / x.mark.headWidthPx) * 100
-      const d = x.mark.u - x.derived
-      const flags = [resid > 5 ? "residual too high, click missed the head" : "", x.loaded ? "" : "not loaded"]
-        .filter(Boolean)
-        .join("; ")
-      return `  ${x.name.slice(0, 30).padEnd(32)} measured ${x.mark.u.toFixed(3)}  derived ${x.derived.toFixed(3)}  delta ${d >= 0 ? "+" : ""}${d.toFixed(3)}  residual ${resid.toFixed(1)}%${flags ? `  <- ${flags}` : ""}`
-    })
+      const lines = subset.map((x) => {
+        const resid = (x.mark.dist / x.mark.headWidthPx) * 100
+        const d = x.mark.u - x.derived
+        const flags = [resid > 5 ? "residual too high, click missed the head" : "", x.loaded ? "" : "not loaded"]
+          .filter(Boolean)
+          .join("; ")
+        return `    ${x.name.slice(0, 30).padEnd(32)} measured ${x.mark.u.toFixed(3)}  derived ${x.derived.toFixed(3)}  delta ${d >= 0 ? "+" : ""}${d.toFixed(3)}  residual ${resid.toFixed(1)}%${flags ? `  <- ${flags}` : ""}`
+      })
 
-    let call: string
-    if (n < 3) {
-      call = `  n=${n} — NOT A MEASUREMENT YET. Mark at least 3 heads before reading anything into this.`
-    } else if (!(Math.abs(meanDelta) > 2 * sem)) {
-      call = `  mean delta ${meanDelta >= 0 ? "+" : ""}${meanDelta.toFixed(3)} +/- ${sem.toFixed(3)} (sem, n=${n}) — indistinguishable from the current value. No change justified.`
-    } else {
-      const suggestion =
-        m.id === "parietal"
-          ? `  ->  PARIETAL_ABOVE_FOREHEAD = ${(PARIETAL_ABOVE_FOREHEAD + meanDelta).toFixed(3)} (currently ${PARIETAL_ABOVE_FOREHEAD})`
-          : `  ->  the eye-corner proxy reads ${meanDelta > 0 ? "low" : "high"} by ${Math.abs(meanDelta).toFixed(3)}`
-      call = `  mean delta ${meanDelta >= 0 ? "+" : ""}${meanDelta.toFixed(3)} +/- ${sem.toFixed(3)} (sem, n=${n}) — real at 2 sem.\n${suggestion}`
+      let call: string
+      if (n < 3) {
+        call = `    n=${n} — NOT A MEASUREMENT YET. Mark at least 3 ${label.toLowerCase()} heads.`
+      } else if (!(Math.abs(meanDelta) > 2 * sem)) {
+        call = `    mean delta ${meanDelta >= 0 ? "+" : ""}${meanDelta.toFixed(3)} +/- ${sem.toFixed(3)} (sem, n=${n}) — indistinguishable from the current value. No change justified.`
+      } else {
+        const suggestion =
+          m.id === "parietal"
+            ? `    ->  PARIETAL_ABOVE_FOREHEAD = ${(PARIETAL_ABOVE_FOREHEAD + meanDelta).toFixed(3)} (currently ${PARIETAL_ABOVE_FOREHEAD}) for ${label.toLowerCase()}`
+            : `    ->  the eye-corner proxy reads ${meanDelta > 0 ? "low" : "high"} by ${Math.abs(meanDelta).toFixed(3)} for ${label.toLowerCase()}`
+        call = `    mean delta ${meanDelta >= 0 ? "+" : ""}${meanDelta.toFixed(3)} +/- ${sem.toFixed(3)} (sem, n=${n}) — real at 2 sem.\n${suggestion}`
+      }
+      return [`  ${label} (${n})`, ...lines, call].join("\n")
     }
 
-    return [`${m.label} — ${n} mark${n === 1 ? "" : "s"}`, ...lines, call].join("\n")
+    const groups: string[] = []
+    for (const [label, id] of [
+      ["Adult", "adult"],
+      ["Child", "child"],
+      ["Untagged", "untagged"],
+    ] as const) {
+      const subset = rows.filter((r) => r.subject === id)
+      if (subset.length) groups.push(group(label, subset))
+    }
+
+    return [`${m.label} — ${rows.length} mark${rows.length === 1 ? "" : "s"}`, ...groups].join("\n")
   }).join("\n\n")
 
   return (
@@ -509,6 +561,21 @@ function RealImagePanel() {
               <p className="mt-1.5 truncate text-[11px] font-semibold text-slate-300" title={r.name}>
                 {r.name}
               </p>
+              {r.report && (
+                <div className="mt-1 flex gap-1">
+                  {(["adult", "child"] as const).map((sbj) => (
+                    <button
+                      key={sbj}
+                      onClick={() => tag(r.name, subjects[r.name] === sbj ? "untagged" : sbj)}
+                      className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
+                        subjects[r.name] === sbj ? "bg-sky-400 text-slate-950" : "border border-slate-700 text-slate-500"
+                      }`}
+                    >
+                      {sbj}
+                    </button>
+                  ))}
+                </div>
+              )}
               <p className="font-mono text-[10px] text-slate-500">
                 {r.status}
                 {r.report && (

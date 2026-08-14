@@ -85,26 +85,27 @@ export const LM = {
    * scratch. /ar-lab calibration, 2026-08-14, three heads marked by hand
    * against where the ear actually tops out:
    *
-   *   Box Fade Styles Explained.png   delta +0.124   residual 0.5%
-   *   IMG_2053.jpeg                   delta +0.079   residual 1.5%
-   *   IMG_2280.jpeg                   delta -0.029   residual 0.2%
-   *   mean delta +0.058 +/- 0.045 (sem, n=3)
+   *   ADULT   Box Fade Styles Explained.png   delta +0.124   residual 0.5%
+   *   ADULT   IMG_2053.jpeg                   delta +0.079   residual 1.5%
+   *   CHILD   IMG_2280.jpeg                   delta -0.004   residual 0.1%
    *
-   * Two heads say the proxy places the ear too LOW by around a tenth of a face
-   * height. The third disagrees in sign. Every residual is small, so this is not
-   * imprecise clicking — it is genuine disagreement between heads.
+   * The two adults agree the proxy places the ear about a tenth of a face height
+   * too LOW. The child sits at zero.
    *
-   * Which matters, because the two explanations need different fixes. If it is a
-   * mismarked point on one head, the proxy needs a constant offset. If ear
-   * height relative to the eye corner genuinely varies this much between people
-   * — which is anatomically plausible — then no single offset helps and the
-   * floor of the fade carries irreducible per-head error that the UI should
-   * admit to rather than hide.
+   * That looked like one outlier until the subject was identified, and it is not
+   * one — it is the cranium-to-face problem described in the block above this
+   * one. An ear is on the braincase and an eye corner is on the face, the two
+   * mature on different schedules, and this proxy spans them. So the disagreement
+   * is the expected behaviour of a badly-founded proxy, not noise.
    *
-   * Around eight marked heads would separate them at this spread. Do not apply
-   * an offset before that: at n=3 the mean does not clear two standard errors,
-   * and a correction fitted to two heads and an outlier is how a guess gets
-   * laundered into a measurement.
+   * The first mark on IMG_2280 read -0.029 at 0.2% residual; re-marking at the
+   * ear's true highest point gave -0.004 at 0.1%. The sign never flipped, which
+   * is what ruled out a mismark and left the population difference standing.
+   *
+   * NOT RESOLVED and no offset applied — n=2 on adults, n=1 on children. Three
+   * of each is the floor, and at this spread adults want around five. A
+   * correction fitted across both populations would be wrong for both, which is
+   * precisely the mistake the tagging in /ar-lab exists to prevent.
    */
   EYE_OUTER_LEFT: 33,
   EYE_OUTER_RIGHT: 263,
@@ -122,6 +123,32 @@ export const LM = {
 // the skull has to be estimated from proportion. These ratios are expressed in
 // FACE HEIGHTS (chin to forehead landmark = 1.0) so they scale with the head
 // rather than the frame.
+//
+// A CHILD IS NOT A SMALL ADULT, and this is the axis that matters here. The
+// braincase reaches near-adult size years before the face does, so a child's
+// face is proportionally SHORT against their skull — and a face height is the
+// unit everything in this file is denominated in.
+//
+// That splits these constants into two kinds, and calibration on three heads
+// (one of them a child) behaves exactly as the split predicts:
+//
+//   CRANIUM-TO-CRANIUM — forehead landmark to ridge, to vertex. Both ends sit
+//   on the braincase, which matures early, so the ratio between them should
+//   hold across ages. PARIETAL_ABOVE_FOREHEAD measured within 0.02 of its
+//   assumed value on adults AND on the child.
+//
+//   CRANIUM-TO-FACE — the ear-top proxy, which relates an ear to an eye corner.
+//   One end matures early and the other late, so the ratio should drift with
+//   age. It did: two adults agreed the proxy sits ~0.10 too low, the child came
+//   back at -0.004.
+//
+// So the prediction to carry forward is that face-referenced levels are the
+// fragile ones. PERIMETER_BELOW_EAR hangs off earCanal, which comes from
+// face-oval landmarks, and is therefore also suspect and unmeasured.
+//
+// Kids' cuts are a real part of this trade — the site has pages for them — so
+// the answer is to measure the two populations separately, never to pool them.
+// /ar-lab tags each head and reports the groups apart for that reason.
 // ---------------------------------------------------------------------------
 
 /**
