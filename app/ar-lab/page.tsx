@@ -27,9 +27,9 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { drawFadeOverlay, type OverlayReport } from "@/lib/fade-overlay"
+import { drawFadeOverlay, measureU, type Measurement, type OverlayReport } from "@/lib/fade-overlay"
 import { syntheticHeadLandmarks, type Pose } from "@/lib/fade-synthetic-head"
-import { fadeName, type FadeSpec } from "@/lib/fade-geometry"
+import { fadeName, PARIETAL_ABOVE_FOREHEAD, type FadeSpec } from "@/lib/fade-geometry"
 
 const WASM_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
 const MODEL_URL =
@@ -165,18 +165,49 @@ function Grid({ title, note, cases }: { title: string; note: string; cases: Case
  *
  * Takes a whole fixture set at once rather than one file at a time, because the
  * question being asked is comparative. A single head tells you the overlay
- * landed somewhere plausible; ten tell you whether earTop drifts on a head with
- * a hairline the model did not expect, which is the only way the constants get
- * tuned rather than defended.
+ * landed somewhere plausible; ten tell you whether a level drifts.
  *
- * The landmarker is built once and reused across the set — it is a 16MB
- * download and rebuilding it per image turns a ten-second pass into a minute.
+ * CALIBRATION. Click a tracked head where the anatomy actually is and the
+ * measured height is solved back out of that frame (measureU). That is what
+ * turns PARIETAL_ABOVE_FOREHEAD from a guess into a number with a mean and a
+ * spread behind it — it is the ceiling the whole high/mid/low derivation is
+ * measured against, and it is the one constant in the model with no evidence
+ * under it.
+ *
+ * Marks are kept in localStorage, keyed by filename. Clicking twenty heads and
+ * losing it to a reload is the sort of thing that makes a tool get used once.
  */
+type Mode = "parietal" | "earTop"
+
+const MODES: { id: Mode; label: string; hint: string; derived: (l: OverlayReport["levels"]) => number }[] = [
+  {
+    id: "parietal",
+    label: "Parietal ridge",
+    hint: "Click the corner where the SIDE of the skull turns into the TOP. Highest point of the side, not the crown.",
+    derived: (l) => l.parietal,
+  },
+  {
+    id: "earTop",
+    label: "Top of ear",
+    hint: "Click the highest point where the ear meets the head. Checks the eye-corner proxy against a real ear.",
+    derived: (l) => l.earTop,
+  },
+]
+
 interface Result {
   name: string
   png: string | null
   report: OverlayReport | null
   status: string
+  landmarks: { x: number; y: number; z: number }[] | null
+  w: number
+  h: number
+}
+
+interface Mark extends Measurement {
+  /** Fractions of the canvas, so the crosshair survives responsive resizing. */
+  fx: number
+  fy: number
 }
 
 /**
@@ -196,10 +227,36 @@ function verdict(r: OverlayReport | null): { ok: boolean; note: string } {
   return { ok: problems.length === 0, note: problems.join(", ") || "ordering ok" }
 }
 
+const STORE_KEY = "ar-lab-calibration-v1"
+
 function RealImagePanel() {
   const [results, setResults] = useState<Result[]>([])
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState("Choose fixture images — mannequins ideal. Nothing is uploaded.")
+  const [mode, setMode] = useState<Mode>("parietal")
+  const [marks, setMarks] = useState<Record<string, Partial<Record<Mode, Mark>>>>({})
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORE_KEY)
+      if (raw) setMarks(JSON.parse(raw))
+    } catch {
+      /* a corrupt store is not worth failing the page over */
+    }
+  }, [])
+
+  const record = useCallback((name: string, m: Mode, mark: Mark | null) => {
+    setMarks((prev) => {
+      const next = { ...prev, [name]: { ...prev[name], [m]: mark ?? undefined } }
+      if (!mark) delete next[name][m]
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(next))
+      } catch {
+        /* private mode, quota — the marks still work for this session */
+      }
+      return next
+    })
+  }, [])
 
   const onFiles = useCallback(async (files: File[]) => {
     setBusy(true)
@@ -215,8 +272,7 @@ function RealImagePanel() {
       })
 
       const out: Result[] = []
-      const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name))
-      for (const file of sorted) {
+      for (const file of [...files].sort((a, b) => a.name.localeCompare(b.name))) {
         setStatus(`Processing ${file.name}…`)
         try {
           const bitmap = await createImageBitmap(file)
@@ -230,7 +286,7 @@ function RealImagePanel() {
 
           const raw = landmarker.detect(canvas).faceLandmarks?.[0]
           if (!raw?.length) {
-            out.push({ name: file.name, png: canvas.toDataURL(), report: null, status: "no face found" })
+            out.push({ name: file.name, png: canvas.toDataURL(), report: null, status: "no face found", landmarks: null, w: W, h: H })
             continue
           }
           const report = drawFadeOverlay(ctx, {
@@ -242,9 +298,17 @@ function RealImagePanel() {
             mirror: false,
             debug: false,
           })
-          out.push({ name: file.name, png: canvas.toDataURL(), report, status: report ? "tracked" : "frame rejected" })
+          out.push({
+            name: file.name,
+            png: canvas.toDataURL(),
+            report,
+            status: report ? "tracked" : "frame rejected",
+            landmarks: raw.map((p) => ({ x: p.x, y: p.y, z: p.z })),
+            w: W,
+            h: H,
+          })
         } catch (e) {
-          out.push({ name: file.name, png: null, report: null, status: `error: ${(e as Error).message}` })
+          out.push({ name: file.name, png: null, report: null, status: `error: ${(e as Error).message}`, landmarks: null, w: 0, h: 0 })
         }
         setResults([...out])
       }
@@ -256,6 +320,49 @@ function RealImagePanel() {
       setBusy(false)
     }
   }, [])
+
+  const onClickImage = useCallback(
+    (r: Result, e: React.MouseEvent<HTMLImageElement>) => {
+      if (!r.landmarks) return
+      const rect = e.currentTarget.getBoundingClientRect()
+      // The image is CSS-scaled to the column, so clicks arrive in display
+      // pixels and the solver works in canvas pixels.
+      const x = ((e.clientX - rect.left) / rect.width) * r.w
+      const y = ((e.clientY - rect.top) / rect.height) * r.h
+      const m = measureU(r.landmarks, r.w, r.h, false, x, y)
+      if (m) record(r.name, mode, { ...m, fx: x / r.w, fy: y / r.h })
+    },
+    [mode, record]
+  )
+
+  const active = MODES.find((m) => m.id === mode)!
+
+  /**
+   * The aggregate, as text. Rendered into a stable id so the headless script
+   * can read the numbers out — a mean that only exists as pixels in a
+   * screenshot cannot be pasted into a constant.
+   */
+  const summary = MODES.map((m) => {
+    const rows = results
+      .filter((r) => r.report && marks[r.name]?.[m.id])
+      .map((r) => ({ r, mark: marks[r.name]![m.id]!, derived: m.derived(r.report!.levels) }))
+
+    if (!rows.length) return `${m.label} — no marks yet`
+
+    const us = rows.map((x) => x.mark.u)
+    const mean = us.reduce((a, b) => a + b, 0) / us.length
+    const sd = Math.sqrt(us.reduce((a, b) => a + (b - mean) ** 2, 0) / us.length)
+    const lines = rows.map((x) => {
+      const resid = (x.mark.dist / x.mark.headWidthPx) * 100
+      const d = x.mark.u - x.derived
+      return `  ${x.r.name.slice(0, 34).padEnd(36)} measured ${x.mark.u.toFixed(3)}  derived ${x.derived.toFixed(3)}  delta ${d >= 0 ? "+" : ""}${d.toFixed(3)}  residual ${resid.toFixed(1)}% head`
+    })
+    const tail =
+      m.id === "parietal"
+        ? `  mean ${mean.toFixed(3)}  sd ${sd.toFixed(3)}  n=${us.length}  ->  PARIETAL_ABOVE_FOREHEAD = ${(mean - 1).toFixed(3)} (currently ${PARIETAL_ABOVE_FOREHEAD})`
+        : `  mean ${mean.toFixed(3)}  sd ${sd.toFixed(3)}  n=${us.length}  ->  earTop proxy is ${mean >= 0 ? "" : ""}${(mean - rows.reduce((a, x) => a + x.derived, 0) / rows.length).toFixed(3)} off the eye-corner derivation`
+    return [`${m.label} — ${us.length} marks`, ...lines, tail].join("\n")
+  }).join("\n\n")
 
   return (
     <section className="mb-10">
@@ -274,13 +381,58 @@ function RealImagePanel() {
       />
       <p className="mb-3 font-mono text-[11px] text-amber-300">{status}</p>
 
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Measuring</span>
+        {MODES.map((m) => (
+          <button
+            key={m.id}
+            onClick={() => setMode(m.id)}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+              mode === m.id ? "bg-amber-400 text-slate-950" : "border border-slate-700 text-slate-300"
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+        <button
+          onClick={() => {
+            setMarks({})
+            try {
+              localStorage.removeItem(STORE_KEY)
+            } catch {
+              /* nothing to clear */
+            }
+          }}
+          className="rounded-full border border-slate-800 px-3 py-1.5 text-xs text-slate-500"
+        >
+          Clear marks
+        </button>
+      </div>
+      <p className="mb-3 text-xs text-amber-300/80">{active.hint} Click again to move it.</p>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {results.map((r) => {
           const v = verdict(r.report)
+          const mark = marks[r.name]?.[mode]
           return (
             <div key={r.name} className="rounded-lg border border-slate-800 bg-slate-950 p-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {r.png && <img src={r.png} alt={`Overlay on ${r.name}`} className="w-full rounded" />}
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {r.png && (
+                  <img
+                    src={r.png}
+                    alt={`Overlay on ${r.name}`}
+                    onClick={(e) => onClickImage(r, e)}
+                    className={`w-full rounded ${r.landmarks ? "cursor-crosshair" : ""}`}
+                  />
+                )}
+                {mark && (
+                  <span
+                    className="pointer-events-none absolute block h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-400 bg-amber-400/30"
+                    style={{ left: `${mark.fx * 100}%`, top: `${mark.fy * 100}%` }}
+                  />
+                )}
+              </div>
               <p className="mt-1.5 truncate text-[11px] font-semibold text-slate-300" title={r.name}>
                 {r.name}
               </p>
@@ -300,10 +452,28 @@ function RealImagePanel() {
                   {r.report.levels.parietal.toFixed(2)} · line {r.report.uLine.toFixed(2)}
                 </p>
               )}
+              {mark && r.report && (
+                <p className="font-mono text-[10px] text-amber-300">
+                  marked {mark.u.toFixed(3)} vs derived {active.derived(r.report.levels).toFixed(3)} · residual{" "}
+                  {((mark.dist / mark.headWidthPx) * 100).toFixed(1)}% head
+                </p>
+              )}
             </div>
           )
         })}
       </div>
+
+      <h3 className="mt-8 text-sm font-bold text-slate-100">Calibration</h3>
+      <pre
+        id="calibration-summary"
+        className="mt-2 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950 p-3 font-mono text-[11px] leading-relaxed text-slate-300"
+      >
+        {summary}
+      </pre>
+      <p className="mt-2 text-xs text-slate-500">
+        Residual is how far the click sat from the ring that matched it, as a percentage of head width. Anything past
+        about 5% means the click missed the head and the height is not a measurement.
+      </p>
     </section>
   )
 }

@@ -158,3 +158,6 @@ reference/
 # they hold still, and nobody has to consent to one.
 ar-fixtures/
 ar-lab-shot*.png
+
+# Puppeteer profile for retained AR calibration marks.
+.ar-lab-profile/

@@ -393,6 +393,73 @@ function drawDebugSkull(ctx: CanvasRenderingContext2D, frame: HeadFrame, pts: Ve
 }
 
 // ---------------------------------------------------------------------------
+// Calibration
+// ---------------------------------------------------------------------------
+
+export interface Measurement {
+  /** Head-relative height of the clicked point. */
+  u: number
+  /** Distance in pixels from the click to the best-matching ring. */
+  dist: number
+  /** Head width in pixels, so `dist` can be judged relative to the head. */
+  headWidthPx: number
+}
+
+/**
+ * Work out which head-relative height `u` a point on the image corresponds to.
+ *
+ * WHY THIS IS A SEARCH AND NOT ALGEBRA. `u` is a dot product against the head's
+ * up axis, which needs a 3D point, and a click gives two coordinates. The set of
+ * 3D points projecting to one pixel is a line along z, and on a pitched head `u`
+ * varies along that line — so a click does not determine a height on its own.
+ *
+ * What does determine it is the assumption that the clicked point lies on the
+ * visible surface of the skull. So this scans candidate heights, projects each
+ * ring, and keeps the height whose ring passes closest to the click. That is
+ * well defined at any pose, and it degrades honestly: `dist` comes back with the
+ * answer, so a click into empty space next to the head reports a large residual
+ * instead of a confident number.
+ *
+ * The whole point is to stop PARIETAL_ABOVE_FOREHEAD being a guess. It is the
+ * ceiling the entire high/mid/low derivation is measured against, and it is
+ * currently the one constant in the model with nothing behind it.
+ */
+export function measureU(
+  landmarks: ReadonlyArray<{ x: number; y: number; z: number }>,
+  width: number,
+  height: number,
+  mirror: boolean,
+  sx: number,
+  sy: number
+): Measurement | null {
+  const frame = buildHeadFrame(toPixelSpace(landmarks, width, height))
+  if (!frame) return null
+
+  const lo = -0.3
+  const hi = frame.levels.vertex + 0.35
+  const STEPS = 400
+
+  let bestU = 0
+  let bestDist = Infinity
+  for (let i = 0; i <= STEPS; i++) {
+    const u = lo + ((hi - lo) * i) / STEPS
+    for (const bp of headBand(frame, u, 72, { full: true })) {
+      // Only the near surface — the far side of the head is not clickable, and
+      // letting it match would silently resolve a click on the front of the
+      // forehead to a height measured round the back.
+      if (!bp.visible) continue
+      const p = project(bp.point, mirror, width)
+      const d = Math.hypot(p.x - sx, p.y - sy)
+      if (d < bestDist) {
+        bestDist = d
+        bestU = u
+      }
+    }
+  }
+  return { u: bestU, dist: bestDist, headWidthPx: frame.headWidth }
+}
+
+// ---------------------------------------------------------------------------
 // The one entry point
 // ---------------------------------------------------------------------------
 

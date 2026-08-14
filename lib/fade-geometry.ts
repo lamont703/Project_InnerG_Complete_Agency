@@ -290,7 +290,20 @@ export interface BandPoint {
  * far arc faint — which is the detail that makes the overlay read as wrapped
  * around a head instead of pasted on top of one.
  */
-export function headBand(frame: HeadFrame, u: number, segments = 72): BandPoint[] {
+export function headBand(
+  frame: HeadFrame,
+  u: number,
+  segments = 72,
+  opts?: {
+    /**
+     * Keep the front of the face. Off for anything drawn — a fade does not go
+     * there — but calibration measures ANATOMY rather than the fade zone, and
+     * the parietal ridge is often easiest to point at on the part of the head
+     * the fade never touches.
+     */
+    full?: boolean
+  }
+): BandPoint[] {
   const a = skullRadius(frame, u)
   const b = a * HEAD_DEPTH_RATIO
   const centre = axisPoint(frame, u)
@@ -300,7 +313,7 @@ export function headBand(frame: HeadFrame, u: number, segments = 72): BandPoint[
   // the kept points come out as one contiguous run in drawing order. Sampling
   // the full circle and filtering afterwards would leave the caller to work out
   // that the run wraps through zero.
-  const cut = (FADE_FRONT_HALF_ANGLE * Math.PI) / 180
+  const cut = opts?.full ? 0 : (FADE_FRONT_HALF_ANGLE * Math.PI) / 180
   const from = Math.PI / 2 + cut
   const span = Math.PI * 2 - 2 * cut
 

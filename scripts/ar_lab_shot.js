@@ -13,7 +13,14 @@
  *
  *   node scripts/ar_lab_shot.js                       # pose grids only
  *   node scripts/ar_lab_shot.js --image path/to.jpg   # also run a real photo
+ *   node scripts/ar_lab_shot.js --images ar-fixtures        # a whole fixture set
+ *   node scripts/ar_lab_shot.js --profile .ar-lab-profile   # keep calibration marks
  *   node scripts/ar_lab_shot.js --port 3400 --out x.png
+ *
+ * CALIBRATION. Marks are made by clicking heads in the browser and are stored in
+ * localStorage, so they belong to whichever profile made them. Pass --profile to
+ * give headless runs somewhere durable; otherwise measure in a real browser and
+ * read the summary off the page.
  *
  * The dev server must already be running — this script deliberately does not
  * start one. /ar-lab 404s in production builds (app/ar-lab/layout.tsx), so
@@ -38,6 +45,10 @@ const PORT = arg('port', '3400')
 const IMAGE = arg('image', null)
 const IMAGES = arg('images', null)
 const OUT = path.resolve(arg('out', 'ar-lab-shot.png'))
+// Calibration marks live in the browser's localStorage. Puppeteer makes a fresh
+// throwaway profile per launch, so without a persistent one every headless run
+// starts with nothing measured and the calibration block is always empty.
+const PROFILE = arg('profile', null)
 const URL = `http://localhost:${PORT}/ar-lab`
 
 ;(async () => {
@@ -69,6 +80,7 @@ const URL = `http://localhost:${PORT}/ar-lab`
 
   const browser = await puppeteer.launch({
     headless: 'new',
+    ...(PROFILE ? { userDataDir: path.resolve(PROFILE) } : {}),
     // The lab draws to 2D canvases and, for the real-image panel, asks
     // MediaPipe for a GPU delegate. Headless Chrome falls back to CPU on its
     // own; these flags just stop it complaining about a missing sandbox in
@@ -132,6 +144,14 @@ const URL = `http://localhost:${PORT}/ar-lab`
       console.log(`  ${rows.length} fixtures:`)
       for (const r of rows) console.log(`    ${r}`)
     }
+    // Calibration marks live in localStorage, so they survive between runs and
+    // this prints whatever has been measured so far. A mean that exists only as
+    // pixels in a screenshot cannot be pasted into a constant.
+    const calibration = await page.$eval('#calibration-summary', (el) => el.innerText.trim()).catch(() => null)
+    if (calibration && !/^Parietal ridge — no marks yet/.test(calibration)) {
+      console.log('\n' + calibration + '\n')
+    }
+
     for (const p of problems.slice(0, 10)) console.log(`  console error: ${p}`)
 
     process.exitCode = drifting.length ? 1 : 0
