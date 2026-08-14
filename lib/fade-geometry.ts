@@ -77,7 +77,35 @@ export const LM = {
   /** Face-oval extremes at roughly ear-canal height. The head's widest visible pair. */
   SIDE_LEFT: 234,
   SIDE_RIGHT: 454,
-  /** Outer eye corners. Their height is the working proxy for the top of the ear. */
+  /**
+   * Outer eye corners. Their height is the working proxy for the top of the ear
+   * — the floor of the fade, since nothing below the ear top is a fade.
+   *
+   * UNRESOLVED, and the numbers are here so it does not get re-litigated from
+   * scratch. /ar-lab calibration, 2026-08-14, three heads marked by hand
+   * against where the ear actually tops out:
+   *
+   *   Box Fade Styles Explained.png   delta +0.124   residual 0.5%
+   *   IMG_2053.jpeg                   delta +0.079   residual 1.5%
+   *   IMG_2280.jpeg                   delta -0.029   residual 0.2%
+   *   mean delta +0.058 +/- 0.045 (sem, n=3)
+   *
+   * Two heads say the proxy places the ear too LOW by around a tenth of a face
+   * height. The third disagrees in sign. Every residual is small, so this is not
+   * imprecise clicking — it is genuine disagreement between heads.
+   *
+   * Which matters, because the two explanations need different fixes. If it is a
+   * mismarked point on one head, the proxy needs a constant offset. If ear
+   * height relative to the eye corner genuinely varies this much between people
+   * — which is anatomically plausible — then no single offset helps and the
+   * floor of the fade carries irreducible per-head error that the UI should
+   * admit to rather than hide.
+   *
+   * Around eight marked heads would separate them at this spread. Do not apply
+   * an offset before that: at n=3 the mean does not clear two standard errors,
+   * and a correction fitted to two heads and an outlier is how a guess gets
+   * laundered into a measurement.
+   */
   EYE_OUTER_LEFT: 33,
   EYE_OUTER_RIGHT: 263,
   /** Upper face-oval contour, between forehead and ear — the temple corner. */
@@ -101,6 +129,23 @@ export const LM = {
  * going over. It is the single most important landmark in fading, because it
  * is the ceiling: a line placed above it reads as a high fade no matter what
  * the barber intended, and a line placed on it is what "high fade" means.
+ *
+ * MEASURED, not guessed — 2026-08-14, via /ar-lab calibration on three heads
+ * marked by hand:
+ *
+ *   Box Fade Styles Explained.png   measured 1.109   delta +0.009   residual 0.1%
+ *   IMG_2053.jpeg                   measured 1.079   delta -0.021   residual 0.2%
+ *   IMG_2280.jpeg                   measured 1.123   delta +0.023   residual 2.1%
+ *   mean delta +0.004 +/- 0.013 (sem, n=3)
+ *
+ * The delta is indistinguishable from zero, so the original 0.10 stands and the
+ * true value sits inside roughly 0.100 +/- 0.026 at two standard errors.
+ *
+ * That is a result, not a non-event. This was the one number in the model with
+ * nothing behind it, and the whole calibration apparatus exists because it was
+ * a guess. It is still 0.10 — but now it is a checked 0.10, and the next person
+ * to wonder about it can read this instead of re-deriving it. Do not re-open it
+ * without new marks; three heads at these residuals already bound it tightly.
  */
 export const PARIETAL_ABOVE_FOREHEAD = 0.1
 
