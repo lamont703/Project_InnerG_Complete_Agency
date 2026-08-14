@@ -115,11 +115,15 @@ export function MsKitPage({
 
         <KitChecklist groups={groups} />
 
+        {/* Questions the assistant can actually answer for Mississippi. The
+            previous set asked about nearby schools and booth rent, which exist
+            only for Texas and California — so clicking one produced a refusal
+            and made the assistant look broken on a page it should own. */}
         <AgentInvite
           questions={[
-            `What does Mississippi require to get a ${licence.toLowerCase()} licence?`,
-            "Which schools are near me?",
-            "What does booth rent cost around me once I'm licensed?",
+            `What's graded on the Mississippi ${licence.toLowerCase()} practical?`,
+            "Which of my supplies need an exact label in Mississippi?",
+            "How does Mississippi's kit differ from Texas?",
           ]}
         />
 

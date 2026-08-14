@@ -30,7 +30,13 @@
  * so the milestone logic is testable rather than dependent on the clock.
  */
 
-export type JourneyState = "TX" | "CA" | "MD";
+/**
+ * Every state the assistant can answer for. Adding one here is not cosmetic —
+ * it is the switch that lets the chat scope an answer to that state at all,
+ * and STATE_HUBS below must gain a matching entry or the type will not compile.
+ */
+export type JourneyState =
+  | "TX" | "CA" | "MD" | "VA" | "OH" | "MS" | "TN" | "MN";
 
 export type LicenseTrack =
   | "barber"
@@ -41,6 +47,14 @@ export type LicenseTrack =
   | "hair_weaving"
   | "hairstylist"
   | "electrologist"
+  /**
+   * Teaching, not practising. Added when Minnesota arrived: its only kit page
+   * is the cosmetology INSTRUCTOR practical, a taught lesson. Filing that under
+   * `cosmetology` would hand a student a lesson-plan checklist; leaving it
+   * unmapped hid a page we actually publish, and the assistant then told
+   * someone we had nothing. Its own track is the only answer that is true.
+   */
+  | "instructor"
   | "undecided";
 
 /** What the member told us. Every field optional but `audience`-implied ones. */
@@ -74,6 +88,11 @@ export const STATE_LABELS: Record<JourneyState, string> = {
   TX: "Texas",
   CA: "California",
   MD: "Maryland",
+  VA: "Virginia",
+  OH: "Ohio",
+  MS: "Mississippi",
+  TN: "Tennessee",
+  MN: "Minnesota",
 };
 
 export const TRACK_LABELS: Record<LicenseTrack, string> = {
@@ -85,6 +104,7 @@ export const TRACK_LABELS: Record<LicenseTrack, string> = {
   hair_weaving: "Hair Weaving",
   hairstylist: "Hairstylist",
   electrologist: "Electrologist",
+  instructor: "Instructor",
   undecided: "Still deciding",
 };
 
@@ -95,12 +115,32 @@ export const TRACK_LABELS: Record<LicenseTrack, string> = {
  * mannequin prep, what to label) applies to a person at all.
  */
 export function hasPracticalExam(state: JourneyState): boolean {
-  return state !== "CA";
+  return !NO_PRACTICAL_EXAM.has(state);
 }
 
+/**
+ * States whose licensure is decided by the written examination alone.
+ *
+ * An explicit set rather than `state !== "CA"`, which was fine at three states
+ * and becomes a trap at eight — the next state added would have silently
+ * inherited "has a practical" whether or not it does. California is here
+ * because its bulletins contain the word "practical" zero times across 26
+ * pages. Every other state currently supported was confirmed to HAVE a
+ * practical while its kit pages were built.
+ */
+const NO_PRACTICAL_EXAM = new Set<JourneyState>(["CA"]);
+
 interface TrackRoutes {
-  /** How to get the licence in the first place. Always present. */
-  requirements: string;
+  /**
+   * How to get the licence in the first place.
+   *
+   * OPTIONAL since the exam-only states arrived. Virginia, Ohio, Mississippi
+   * and Tennessee have kit lists and no requirements guides yet, and callers
+   * already fall back to the state hub (`routes?.requirements ?? hub`), which
+   * is honest. Inventing a requirements URL to satisfy the type would send
+   * someone to a 404.
+   */
+  requirements?: string;
   /** The practical kit list, where the state has a practical exam AND we cover it. */
   kitList?: string;
   /** Written-exam preparation. */
@@ -199,6 +239,40 @@ const ROUTES: Record<JourneyState, Partial<Record<LicenseTrack, TrackRoutes>>> =
     eyelash: { requirements: "/maryland-cosmetology-license-requirements", kitList: "/maryland-eyelash-extension-practical-exam" },
     hairstylist: { requirements: "/maryland-cosmetology-license-requirements", kitList: "/maryland-hairstylist-practical-exam" },
   },
+  /**
+   * The five exam-only states. Kit lists exist; requirements, exam-prep and
+   * renewal pages do not yet, so those keys are absent and every caller falls
+   * back to the state hub.
+   */
+  VA: {
+    barber: { kitList: "/virginia-master-barber-practical-exam-kit-list" },
+    cosmetology: { kitList: "/virginia-cosmetology-practical-exam-kit-list" },
+  },
+  OH: {
+    barber: { kitList: "/ohio-barber-practical-exam-kit-list" },
+    cosmetology: { kitList: "/ohio-cosmetology-practical-exam-kit-list" },
+  },
+  MS: {
+    barber: { kitList: "/mississippi-barbering-practical-exam-kit-list" },
+    cosmetology: { kitList: "/mississippi-cosmetology-practical-exam-kit-list" },
+    manicurist: { kitList: "/mississippi-nail-technology-practical-exam-kit-list" },
+    esthetician: { kitList: "/mississippi-esthetics-practical-exam-kit-list" },
+  },
+  TN: {
+    // Tennessee's Barber Technician licence covers manicure and facial work,
+    // which is why the same kit serves both tracks. Master Barber and Barber
+    // Instructor publish no kit, so they are deliberately absent.
+    barber: { kitList: "/tennessee-barber-technician-practical-exam-kit-list" },
+  },
+  /**
+   * Minnesota's only kit page is the cosmetology INSTRUCTOR practical, so it
+   * sits under `instructor` rather than `cosmetology`. A student asking about
+   * the cosmetology track correctly gets no kit; someone asking about teaching
+   * gets the real page.
+   */
+  MN: {
+    instructor: { kitList: "/minnesota-cosmetology-instructor-practical-exam-kit-list" },
+  },
 };
 
 /** Where to send someone whose track we have no specific page for. */
@@ -206,7 +280,53 @@ export const STATE_HUBS: Record<JourneyState, string> = {
   TX: "/texas",
   CA: "/california",
   MD: "/maryland",
+  VA: "/virginia",
+  OH: "/ohio",
+  MS: "/mississippi",
+  TN: "/tennessee",
+  MN: "/minnesota",
 };
+
+/**
+ * Every state this site can answer for, as context for the AI assistant.
+ *
+ * WHY IT IS DERIVED RATHER THAN WRITTEN OUT. The chat's system prompt tells it
+ * to answer ONLY from the context it is given, so a state absent from that
+ * context is a state the assistant will refuse to discuss — which is exactly
+ * what happened when someone clicked a Minnesota question on a Minnesota page
+ * and got "I don't know". Hand-listing the states here would put that failure
+ * one forgotten edit away every time a state is added. Building it from
+ * STATE_HUBS and ROUTES means adding a state to the type is enough.
+ *
+ * `profile_url` is the field name on purpose: the chat's LINKING RULE only
+ * hyperlinks context items carrying `profile_url`, and its deterministic link
+ * filter strips any URL that was not in the context. Naming the key anything
+ * else would give the model a real page it is then forbidden to link.
+ */
+export function stateCoverageForChat() {
+  return (Object.keys(STATE_HUBS) as JourneyState[]).map((code) => {
+    const tracks = ROUTES[code];
+    const kits = (Object.keys(tracks) as LicenseTrack[])
+      .map((track) => ({ track, routes: tracks[track] as TrackRoutes | undefined }))
+      .filter((t) => t.routes?.kitList)
+      .map((t) => ({
+        licence: TRACK_LABELS[t.track],
+        profile_url: t.routes!.kitList as string,
+      }));
+    return {
+      state: STATE_LABELS[code],
+      state_code: code,
+      profile_url: STATE_HUBS[code],
+      has_practical_exam: hasPracticalExam(code),
+      practical_exam_kit_lists: kits,
+      coverage_note: kits.length
+        ? `We publish ${kits.length} practical exam kit list${kits.length > 1 ? "s" : ""} for ${STATE_LABELS[code]}.`
+        : hasPracticalExam(code)
+          ? `${STATE_LABELS[code]} has a practical exam but we do not publish a kit list for it yet — send them to the hub.`
+          : `${STATE_LABELS[code]} licenses on the written examination alone. There is no practical exam and no kit.`,
+    };
+  });
+}
 
 /** Every route this module can emit — the test walks this to check they exist. */
 export function allJourneyRoutes(): string[] {

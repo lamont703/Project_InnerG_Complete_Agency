@@ -108,9 +108,9 @@ export default function Page() {
 
         <AgentInvite
           questions={[
-            "What does Virginia require to get a master barber licence?",
-            "Which barber schools are near me?",
-            "What does booth rent cost around me once I'm licensed?",
+            "Does Virginia have a practical exam, and who writes it?",
+            "What's on the Virginia master barber practical?",
+            "How does Virginia's kit differ from Texas or Maryland?",
           ]}
         />
 

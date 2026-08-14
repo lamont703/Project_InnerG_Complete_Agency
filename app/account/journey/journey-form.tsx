@@ -34,6 +34,15 @@ const TRACKS_BY_STATE: Record<JourneyState, LicenseTrack[]> = {
   TX: ["barber", "cosmetology", "esthetician", "manicurist", "eyelash", "hair_weaving", "undecided"],
   CA: ["barber", "cosmetology", "esthetician", "manicurist", "hairstylist", "electrologist", "undecided"],
   MD: ["barber", "cosmetology", "esthetician", "manicurist", "eyelash", "hairstylist", "undecided"],
+  // The exam-only states. Tracks are listed where the state actually licenses
+  // them AND we hold a kit list, so nobody picks a licence we would then answer
+  // about from another state's document. Minnesota offers only "undecided"
+  // because its single page is the INSTRUCTOR practical, not an entry licence.
+  VA: ["barber", "cosmetology", "undecided"],
+  OH: ["barber", "cosmetology", "undecided"],
+  MS: ["barber", "cosmetology", "esthetician", "manicurist", "undecided"],
+  TN: ["barber", "undecided"],
+  MN: ["instructor", "undecided"],
 };
 
 const LABEL = "text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block";

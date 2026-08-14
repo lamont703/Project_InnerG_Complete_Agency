@@ -101,9 +101,9 @@ export default function Page() {
 
         <AgentInvite
           questions={[
-            "What does Virginia require to get a cosmetology licence?",
-            "Which cosmetology schools are near me?",
-            "What does booth rent cost around me once I'm licensed?",
+            "Does Virginia have a practical exam, and who writes it?",
+            "What's on the Virginia cosmetology practical?",
+            "Why is Virginia's cosmetology kit different from its barber kit?",
           ]}
         />
 

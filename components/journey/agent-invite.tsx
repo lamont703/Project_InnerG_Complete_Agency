@@ -28,7 +28,14 @@ import { ArrowUpRight, Sparkles } from "lucide-react";
 export function AgentInvite({
   questions,
   heading = "Ask about your own situation",
-  blurb = "Our AI is grounded in real TDLR exam results, school records and shop data — ask it something this page doesn't cover.",
+  /**
+   * The default no longer claims TDLR grounding, because TDLR is Texas and
+   * this component now sits on Virginia, Ohio, Mississippi, Tennessee and
+   * Minnesota pages too. Promising Texas exam data to a Minnesota reader and
+   * then not having it is how the assistant came to look broken. Texas pages
+   * can still pass the stronger claim explicitly.
+   */
+  blurb = "Our AI is grounded in real licensing documents, school records and shop data — ask it something this page doesn't cover.",
 }: {
   questions: string[];
   heading?: string;
