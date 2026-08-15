@@ -38,6 +38,7 @@ import {
   type Subject as HeadSubject,
 } from "@/lib/fade-geometry"
 import { createFaceLandmarker } from "@/lib/face-landmarker"
+import { createHairSegmenter, hairMaskToCanvas, HAIR_MASK_INDEX } from "@/lib/hair-mask"
 
 const TILE = 300
 
@@ -206,6 +207,15 @@ interface Result {
   landmarks: { x: number; y: number; z: number }[] | null
   w: number
   h: number
+  /**
+   * Per-mask coverage from the hair segmenter, as "index:percent-above-0.5".
+   *
+   * The hair model is two-class, and which index carries HAIR rather than
+   * BACKGROUND is not something to assume — picking the wrong one inverts the
+   * clip and paints the overlay on everything that is not hair, which looks
+   * exactly like a mask that is not working at all.
+   */
+  maskStats: string | null
 }
 
 interface Mark extends Measurement {
@@ -279,6 +289,16 @@ function RealImagePanel() {
    * laid over the real one can.
    */
   const [showSkull, setShowSkull] = useState(false)
+  /**
+   * What the hair segmenter actually believes, painted straight onto the photo.
+   *
+   * The live view can only show the CONSEQUENCE of the mask — bands appearing
+   * or not appearing — which makes "the model is wrong here" and "the model
+   * never loaded" look identical from a frozen frame. Seeing the mask itself
+   * separates them in one glance, and short dark hair in low light is exactly
+   * the case where the answer is not obvious.
+   */
+  const [maskMode, setMaskMode] = useState<"off" | "clip" | "show">("off")
   const [marks, setMarks] = useState<Record<string, Partial<Record<Mode, Mark>>>>({})
   // Kept per HEAD rather than per mark: a head is a child or it is not,
   // whichever level you happen to be pointing at. Also means an existing mark
@@ -326,6 +346,7 @@ function RealImagePanel() {
     setResults([])
     setStatus("Loading tracker…")
     try {
+      const segmenter = maskMode === "off" ? null : (await createHairSegmenter("IMAGE")).segmenter
       const { landmarker, delegate, fallbackReason } = await createFaceLandmarker("IMAGE")
       if (fallbackReason) {
         // Not an error — the CPU delegate gives identical landmarks. Surfaced
@@ -346,9 +367,48 @@ function RealImagePanel() {
           const ctx = canvas.getContext("2d")!
           ctx.drawImage(bitmap, 0, 0, W, H)
 
+          // The mask has to be built before the overlay is drawn over the photo.
+          let hair: ReturnType<typeof hairMaskToCanvas> = null
+          let maskStats: string | null = null
+          if (segmenter) {
+            const segResult = segmenter.segment(canvas)
+            const masks = segResult.confidenceMasks ?? []
+            // Always non-empty, so "the segmenter returned nothing" cannot be
+            // mistaken for "the readout did not render".
+            maskStats =
+              `keys=${Object.keys(segResult).join("/") || "none"} n=${masks.length} ` +
+              masks
+              .map((m, i) => {
+                const d = m.getAsFloat32Array()
+                let hot = 0
+                for (let k = 0; k < d.length; k++) if (d[k] > 0.5) hot++
+                return `${i}:${((hot / d.length) * 100).toFixed(1)}%`
+              })
+              .join(" ")
+            const m = masks[HAIR_MASK_INDEX]
+            if (m) hair = hairMaskToCanvas(m.getAsFloat32Array(), m.width, m.height)
+            masks.forEach((x) => x.close())
+          }
+          if (hair && maskMode === "show") {
+            // Paint the mask itself: magenta where the model says hair.
+            ctx.save()
+            ctx.globalAlpha = 0.55
+            ctx.globalCompositeOperation = "source-over"
+            const tint = document.createElement("canvas")
+            tint.width = W
+            tint.height = H
+            const tctx = tint.getContext("2d")!
+            tctx.fillStyle = "#f0f"
+            tctx.fillRect(0, 0, W, H)
+            tctx.globalCompositeOperation = "destination-in"
+            tctx.drawImage(hair.canvas, 0, 0, W, H)
+            ctx.drawImage(tint, 0, 0)
+            ctx.restore()
+          }
+
           const raw = landmarker.detect(canvas).faceLandmarks?.[0]
           if (!raw?.length) {
-            out.push({ name: file.name, png: canvas.toDataURL(), report: null, status: "no face found", landmarks: null, w: W, h: H })
+            out.push({ name: file.name, png: canvas.toDataURL(), report: null, status: "no face found", landmarks: null, w: W, h: H, maskStats })
             continue
           }
           const report = drawFadeOverlay(ctx, {
@@ -359,6 +419,9 @@ function RealImagePanel() {
             activeRung: null,
             mirror: false,
             debug: showSkull,
+            // Still images are never mirrored, so no flip is needed here — the
+            // mask and the geometry are already in the same orientation.
+            hairMask: maskMode === "clip" ? hair : null,
           })
           out.push({
             name: file.name,
@@ -368,20 +431,32 @@ function RealImagePanel() {
             landmarks: raw.map((p) => ({ x: p.x, y: p.y, z: p.z })),
             w: W,
             h: H,
+            maskStats,
           })
         } catch (e) {
-          out.push({ name: file.name, png: null, report: null, status: `error: ${(e as Error).message}`, landmarks: null, w: 0, h: 0 })
+          out.push({ name: file.name, png: null, report: null, status: `error: ${(e as Error).message}`, landmarks: null, w: 0, h: 0, maskStats: null })
         }
         setResults([...out])
       }
       landmarker.close()
+      segmenter?.close()
       setStatus(`Done — ${out.filter((r) => r.report).length}/${out.length} tracked (${delegate}).`)
     } catch (e) {
       setStatus(`Failed: ${(e as Error).message}`)
     } finally {
       setBusy(false)
     }
-  }, [])
+    /**
+     * These deps are load-bearing. With an empty array `onFiles` is frozen at
+     * the first render, so the toggles above it change the buttons and change
+     * nothing else — the upload silently keeps using the values from page load.
+     *
+     * That is exactly what happened: "Show hair mask" lit up, the segmenter was
+     * never constructed, and the readout that was supposed to prove the mask
+     * was working rendered nothing. Two rounds of debugging went into the
+     * segmenter before the stale closure turned out to be upstream of it.
+     */
+  }, [showSkull, maskMode])
 
   /**
    * Marking is on pointer events rather than click, and it matters on a phone.
@@ -552,6 +627,17 @@ function RealImagePanel() {
             {m.label}
           </button>
         ))}
+        {(["off", "clip", "show"] as const).map((m) => (
+          <button
+            key={m}
+            onClick={() => setMaskMode(m)}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+              maskMode === m ? "bg-emerald-400 text-slate-950" : "border border-slate-700 text-slate-300"
+            }`}
+          >
+            {m === "off" ? "No hair mask" : m === "clip" ? "Clip to hair" : "Show hair mask"}
+          </button>
+        ))}
         <button
           onClick={() => setShowSkull((v) => !v)}
           className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
@@ -629,6 +715,9 @@ function RealImagePanel() {
                   </>
                 )}
               </p>
+              {r.maskStats && (
+                <p className="font-mono text-[10px] text-fuchsia-300">masks {r.maskStats}</p>
+              )}
               {r.report && (
                 <p className="font-mono text-[10px] text-slate-500">
                   yaw {r.report.yawDeg.toFixed(0)}° · canal {r.report.levels.earCanal.toFixed(2)} · ear{" "}

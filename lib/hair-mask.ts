@@ -122,5 +122,23 @@ export function hairMaskToCanvas(
   return { canvas: maskCanvas, data: confidence, width, height }
 }
 
-/** Convenience: index of the hair confidence mask in the segmenter's output. */
-export const HAIR_MASK_INDEX = 0
+/**
+ * Which confidence mask is HAIR.
+ *
+ * The model is two-class and this version of ImageSegmenter exposes no
+ * getLabels(), so the index has to be chosen rather than looked up — and
+ * choosing wrong does not fail, it INVERTS. Clipping to mask 0 keeps the
+ * overlay everywhere that is not hair, which paints the guard ladder onto the
+ * cheek and leaves a stray band on the wall behind the head. That was shipped,
+ * and it is exactly what came back from a live camera.
+ *
+ * Established by measuring coverage on a portrait: mask 0 covered 83.1% of the
+ * frame and mask 1 covered 16.9%, and the magenta overlay confirmed mask 1
+ * lands on the hair. Class order is a property of the model rather than of any
+ * image, so this is stable — but it is a fact about a downloaded artefact, so
+ * re-check it if the model URL ever moves.
+ *
+ * The coverage numbers are the check to repeat, not the rule to apply: "the
+ * smaller mask is hair" is false for a big afro filling the frame.
+ */
+export const HAIR_MASK_INDEX = 1
