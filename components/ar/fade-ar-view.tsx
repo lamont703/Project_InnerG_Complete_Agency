@@ -268,16 +268,22 @@ export function FadeArView({ spec, activeRung, subject }: Props) {
       const { landmarker, delegate } = await createFaceLandmarker("VIDEO")
       setDelegate(delegate)
 
-      // Best effort. Without it the overlay is simply not clipped to hair,
-      // which is where this feature was a commit ago — worth degrading to,
-      // never worth failing the camera for.
-      try {
-        const { segmenter } = await createHairSegmenter("VIDEO")
-        segmenterRef.current = segmenter as unknown as typeof segmenterRef.current
-        setHairClip(true)
-      } catch {
-        setHairClip(false)
-      }
+      /**
+       * The hair segmenter is DELIBERATELY NOT STARTED.
+       *
+       * It was added to stop the overlay landing on skin and it does the
+       * opposite of what this tool needs. The model finds hair as a visible
+       * mass, so a skin fade reads as skin: measured on two well-lit heads it
+       * classified 2.3% and 2.6% of the frame as hair, all of it on top, none
+       * on the faded sides. Clipping to that erases precisely the region the
+       * guard ladder belongs in.
+       *
+       * The face oval in lib/fade-geometry does the job properly — it is the
+       * boundary that actually matters, it is exact for this face at this pose,
+       * and it costs nothing. The segmenter stays wired up behind /ar-lab's
+       * toggle so the finding can be re-checked rather than taken on trust.
+       */
+      setHairClip(false)
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },

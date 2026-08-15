@@ -10,6 +10,8 @@ import {
   axisPoint,
   FADE_FRONT_HALF_ANGLE,
   EAR_TOP_ABOVE_EYE_CORNER,
+  FACE_OVAL,
+  insidePolygon,
   toPixelSpace,
   dot,
   len,
@@ -359,6 +361,43 @@ describe("guards", () => {
   it("looks up by id", () => {
     expect(guardById("2")?.inches).toBeCloseTo(0.25, 6)
     expect(guardById("nope")).toBeUndefined()
+  })
+})
+
+describe("face oval exclusion", () => {
+  // The boundary that replaced both a single hard-coded angle and a hair
+  // segmentation model. A fade happens outside the face; everything inside this
+  // contour is forehead, temple, cheek or jaw.
+  const square = () => {
+    const xs = Float64Array.from([0, 100, 100, 0])
+    const ys = Float64Array.from([0, 0, 100, 100])
+    return { xs, ys }
+  }
+
+  it("separates inside from outside", () => {
+    const { xs, ys } = square()
+    expect(insidePolygon(xs, ys, 4, 50, 50)).toBe(true)
+    expect(insidePolygon(xs, ys, 4, 150, 50)).toBe(false)
+    expect(insidePolygon(xs, ys, 4, 50, -10)).toBe(false)
+  })
+
+  it("treats a collapsed contour as excluding nothing", () => {
+    // The synthetic head only carries the nine landmarks buildHeadFrame reads,
+    // so its face oval degenerates to a point. That must not blank the pose
+    // grids — a zero-area polygon has to contain nothing rather than everything.
+    const xs = new Float64Array(36).fill(50)
+    const ys = new Float64Array(36).fill(50)
+    expect(insidePolygon(xs, ys, 36, 50, 50)).toBe(false)
+    expect(insidePolygon(xs, ys, 36, 10, 10)).toBe(false)
+  })
+
+  it("names a closed contour of real mesh indices", () => {
+    expect(FACE_OVAL.length).toBeGreaterThan(30)
+    expect(FACE_OVAL).toContain(LM.FOREHEAD)
+    expect(FACE_OVAL).toContain(LM.CHIN)
+    expect(FACE_OVAL).toContain(LM.SIDE_LEFT)
+    expect(FACE_OVAL).toContain(LM.SIDE_RIGHT)
+    expect(new Set(FACE_OVAL).size).toBe(FACE_OVAL.length)
   })
 })
 

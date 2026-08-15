@@ -25,6 +25,8 @@ import {
   toPixelSpace,
   scale,
   add,
+  FACE_OVAL,
+  insidePolygon,
   type FadeSpec,
   type HeadFrame,
   type Subject,
@@ -135,14 +137,24 @@ const project = (p: Vec3, mirror: boolean, w: number) => ({
  * not a closed loop. Everything below works on index runs rather than on a
  * filtered point list for that reason.
  */
-export function ring(frame: HeadFrame, u: number, mirror: boolean, w: number, segments = 96): P2[] {
-  return headBand(frame, u, segments).map((bp) => ({
-    ...project(bp.point, mirror, w),
-    // Points on the ear are undrawable for the same reason as points on the far
-    // side of the head: there is no fade there. Folding both into one flag lets
-    // visibleRuns split the arc around the ear without knowing why.
-    visible: bp.visible && !bp.onEar,
-  }))
+export function ring(
+  frame: HeadFrame,
+  u: number,
+  mirror: boolean,
+  w: number,
+  segments = 96,
+  onFace?: (x: number, y: number) => boolean
+): P2[] {
+  return headBand(frame, u, segments).map((bp) => {
+    const q = project(bp.point, mirror, w)
+    return {
+      ...q,
+      // Three ways a point can be undrawable, folded into one flag so
+      // visibleRuns can split the arc without knowing which applied: the far
+      // side of the head, the ear, and anywhere inside the face outline.
+      visible: bp.visible && !bp.onEar && !(onFace?.(q.x, q.y) ?? false),
+    }
+  })
 }
 
 /**
@@ -574,6 +586,26 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
    * Is this canvas pixel hair? Samples the mask directly, undoing the mirror so
    * the lookup lands on the same pixel the composite will keep.
    */
+  /**
+   * The face's own outline, in screen space. Anything inside it is forehead,
+   * temple, cheek or jaw — none of which carry a fade.
+   *
+   * Built per frame from the landmarks, so it is this face at this pose rather
+   * than an angle someone picked once.
+   */
+  const ovalX = new Float64Array(FACE_OVAL.length)
+  const ovalY = new Float64Array(FACE_OVAL.length)
+  let ovalN = 0
+  for (const idx of FACE_OVAL) {
+    const p = pts[idx]
+    if (!p) continue
+    const q = project(p, mirror, W)
+    ovalX[ovalN] = q.x
+    ovalY[ovalN] = q.y
+    ovalN++
+  }
+  const onFace = (x: number, y: number) => ovalN > 8 && insidePolygon(ovalX, ovalY, ovalN, x, y)
+
   const onHair = hairMask
     ? (x: number, y: number) => {
         const sx = mirror ? W - x : x
@@ -592,15 +624,15 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
     [frame.levels.earTop, 'top of ear'],
     [frame.levels.parietal, 'parietal ridge'],
   ] as const) {
-    const pr = ring(frame, u, mirror, W)
+    const pr = ring(frame, u, mirror, W, 96, onFace)
     strokeRing(g, pr, 'rgba(226,232,240,0.55)', Math.max(1.5, size * 0.09))
     const e = edgeOf(pr, 'right', onHair)
     if (e) labels.push({ text, x: e.x + size * 0.5, y: e.y, colour: '#e2e8f0', size: size * 0.78, align: 'left', priority: 2 })
   }
 
   plan.ladder.forEach((rung, i) => {
-    const lower = ring(frame, rung.uFrom, mirror, W)
-    const upper = ring(frame, rung.uTo, mirror, W)
+    const lower = ring(frame, rung.uFrom, mirror, W, 96, onFace)
+    const upper = ring(frame, rung.uTo, mirror, W, 96, onFace)
     const colour = rungColour(i, plan.ladder.length)
     const isActive = active === i
     fillBetween(g, lower, upper, colour, isActive ? 0.5 : active === null ? 0.28 : 0.12)
@@ -645,7 +677,7 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
 
   // The fade line itself — the target, and the one thing that must be
   // unmistakable at a glance. Placed first, so everything else moves for it.
-  const line = ring(frame, plan.uLine, mirror, W)
+  const line = ring(frame, plan.uLine, mirror, W, 96, onFace)
   g.save()
   g.shadowColor = 'rgba(2,6,23,0.9)'
   g.shadowBlur = size * 0.5
