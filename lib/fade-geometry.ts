@@ -116,6 +116,44 @@ export const LM = {
   NOSE_BASE: 2,
 } as const
 
+/**
+ * The face oval, in order, as a closed contour.
+ *
+ * THIS IS THE BOUNDARY THAT MATTERS. A fade happens outside the face: above and
+ * behind it. Everything inside this ring is forehead, temple, cheek or jaw, and
+ * no part of a guard ladder belongs on any of them.
+ *
+ * It replaces FADE_FRONT_HALF_ANGLE, which was a single angle standing in for
+ * "the hairline" on every head alive, and it replaces the hair segmentation
+ * that was tried instead. The segmenter turned out to be exactly wrong for this
+ * job: it finds hair as a visible mass, so a skin fade reads as skin and the
+ * mask excluded the very region the tool needs to draw on — 2.3% coverage on a
+ * well-lit head, all of it on top, none of it on the faded sides.
+ *
+ * This contour needs no model, costs nothing, and is per-head rather than a
+ * constant: it traces where THIS face ends, on every frame, at any pose.
+ */
+export const FACE_OVAL: readonly number[] = [
+  10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148,
+  176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109,
+]
+
+/**
+ * Is (x, y) inside a screen-space polygon? Standard ray crossing.
+ *
+ * Used per band point per frame, so it stays allocation-free — the polygon is
+ * passed as a flat array rather than as points.
+ */
+export function insidePolygon(xs: Float64Array, ys: Float64Array, n: number, x: number, y: number): boolean {
+  let inside = false
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    if (ys[i] > y !== ys[j] > y && x < ((xs[j] - xs[i]) * (y - ys[i])) / (ys[j] - ys[i]) + xs[i]) {
+      inside = !inside
+    }
+  }
+  return inside
+}
+
 // ---------------------------------------------------------------------------
 // Skull proportions inferred above the mesh.
 //

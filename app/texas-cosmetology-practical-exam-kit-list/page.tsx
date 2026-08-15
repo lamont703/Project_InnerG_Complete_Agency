@@ -15,6 +15,8 @@ import { AgentInvite } from "@/components/journey/agent-invite";
 import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 import { TEXAS_COSMETOLOGY_KIT } from "@/lib/kits/texas-cosmetology";
+import { VideoEmbed } from "@/components/shared/video-embed";
+import { WRITTEN_EXAM_EPISODE, WRITTEN_EXAM_CONTEXT } from "@/lib/episode-videos";
 
 export const metadata = {
   title: "Texas Cosmetology State Board Practical Exam Kit Checklist (2026)",
@@ -124,6 +126,16 @@ export default function CosmetologyPracticalExamKitListPage() {
 
         {/* Interactive + printable checklist */}
         <KitChecklist groups={KIT_GROUPS} />
+
+
+        <VideoEmbed
+          videoId={WRITTEN_EXAM_EPISODE.videoId}
+          title={WRITTEN_EXAM_EPISODE.title}
+          description={WRITTEN_EXAM_EPISODE.description}
+          duration={WRITTEN_EXAM_EPISODE.duration}
+          uploadDate={WRITTEN_EXAM_EPISODE.uploadDate}
+          context={WRITTEN_EXAM_CONTEXT.practicalKit}
+        />
 
         <AgentInvite
           questions={[

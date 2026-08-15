@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 import { LeaderboardTable } from "./leaderboard-table";
+import { VideoEmbed } from "@/components/shared/video-embed";
+import { WRITTEN_EXAM_EPISODE, WRITTEN_EXAM_CONTEXT } from "@/lib/episode-videos";
 import { Navbar } from "@/components/layout/navbar";
 import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
@@ -167,6 +169,15 @@ export default async function SchoolLeaderboardPage() {
             school prepares students to pass on their <em>first</em> try. This data isn&apos;t available on Google.
           </p>
         </div>
+
+        <VideoEmbed
+          videoId={WRITTEN_EXAM_EPISODE.videoId}
+          title={WRITTEN_EXAM_EPISODE.title}
+          description={WRITTEN_EXAM_EPISODE.description}
+          duration={WRITTEN_EXAM_EPISODE.duration}
+          uploadDate={WRITTEN_EXAM_EPISODE.uploadDate}
+          context={WRITTEN_EXAM_CONTEXT.leaderboard}
+        />
 
         <LeaderboardTable barberSchools={barber} cosmetologySchools={cosmetology} />
       </div>

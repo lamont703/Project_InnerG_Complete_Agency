@@ -25,6 +25,8 @@ import {
   toPixelSpace,
   scale,
   add,
+  FACE_OVAL,
+  insidePolygon,
   type FadeSpec,
   type HeadFrame,
   type Subject,
@@ -50,6 +52,30 @@ export interface OverlayInput {
    * the floor of the fade lands.
    */
   subject?: Subject
+  /**
+   * A canvas whose alpha channel is per-pixel hair confidence (lib/hair-mask).
+   *
+   * When supplied, the band geometry is clipped to it. That is what stops the
+   * ladder being painted on a cheek, an ear, or the wall behind the head — the
+   * geometry decides where the fade line belongs, and this decides where the
+   * overlay is allowed to exist. Optional, so the still-image and synthetic
+   * paths keep working unclipped.
+   */
+  hairMask?: HairMask | null
+}
+
+/**
+ * A hair mask, carrying both the canvas used for compositing and the raw
+ * confidences so labels can be anchored to pixels that are actually hair.
+ *
+ * The data comes along rather than being read back off the canvas because
+ * getImageData per frame is a synchronous GPU stall, and this runs at 30fps.
+ */
+export interface HairMask {
+  canvas: CanvasImageSource
+  data: Float32Array
+  width: number
+  height: number
 }
 
 /**
@@ -111,14 +137,24 @@ const project = (p: Vec3, mirror: boolean, w: number) => ({
  * not a closed loop. Everything below works on index runs rather than on a
  * filtered point list for that reason.
  */
-export function ring(frame: HeadFrame, u: number, mirror: boolean, w: number, segments = 96): P2[] {
-  return headBand(frame, u, segments).map((bp) => ({
-    ...project(bp.point, mirror, w),
-    // Points on the ear are undrawable for the same reason as points on the far
-    // side of the head: there is no fade there. Folding both into one flag lets
-    // visibleRuns split the arc around the ear without knowing why.
-    visible: bp.visible && !bp.onEar,
-  }))
+export function ring(
+  frame: HeadFrame,
+  u: number,
+  mirror: boolean,
+  w: number,
+  segments = 96,
+  onFace?: (x: number, y: number) => boolean
+): P2[] {
+  return headBand(frame, u, segments).map((bp) => {
+    const q = project(bp.point, mirror, w)
+    return {
+      ...q,
+      // Three ways a point can be undrawable, folded into one flag so
+      // visibleRuns can split the arc without knowing which applied: the far
+      // side of the head, the ear, and anywhere inside the face outline.
+      visible: bp.visible && !bp.onEar && !(onFace?.(q.x, q.y) ?? false),
+    }
+  })
 }
 
 /**
@@ -268,9 +304,22 @@ function placeLabels(ctx: CanvasRenderingContext2D, reqs: LabelRequest[], W: num
   }
 }
 
-/** The rightmost / leftmost visible point of a ring, for hanging a label off. */
-function edgeOf(pts: P2[], side: 'left' | 'right'): P2 | null {
-  const vis = pts.filter((p) => p.visible)
+/**
+ * The rightmost / leftmost drawable point of a ring, for hanging a label off.
+ *
+ * When a hair mask is present the point must also be ON HAIR. Anchoring to the
+ * raw ring instead puts the label against geometry that was clipped away — a
+ * "Bald / foil" tag pointing at the bottom of an ear, with no band under it,
+ * which is the reported symptom of exactly this.
+ */
+function edgeOf(pts: P2[], side: 'left' | 'right', onHair?: (x: number, y: number) => boolean): P2 | null {
+  let vis = pts.filter((p) => p.visible)
+  if (onHair) {
+    const hairy = vis.filter((p) => onHair(p.x, p.y))
+    // Fall back to the unclipped ring rather than dropping the label entirely:
+    // a slightly misplaced label beats a rung with no name on it.
+    if (hairy.length) vis = hairy
+  }
   if (!vis.length) return null
   return vis.reduce((m, p) => ((side === 'right' ? p.x > m.x : p.x < m.x) ? p : m), vis[0])
 }
@@ -408,6 +457,27 @@ function drawDebugSkull(ctx: CanvasRenderingContext2D, frame: HeadFrame, pts: Ve
   ctx.restore()
 }
 
+/**
+ * A reusable scratch canvas for the clipped-geometry pass.
+ *
+ * Module-level and resized in place. Allocating one per frame at 30fps is a
+ * garbage-collection pause every few seconds, which reads as the overlay
+ * stuttering and gets blamed on the tracker.
+ */
+let scratch: HTMLCanvasElement | null = null
+
+function scratchContext(w: number, h: number): CanvasRenderingContext2D | null {
+  if (typeof document === 'undefined') return null
+  if (!scratch) scratch = document.createElement('canvas')
+  if (scratch.width !== w || scratch.height !== h) {
+    scratch.width = w
+    scratch.height = h
+  }
+  const c = scratch.getContext('2d')
+  c?.clearRect(0, 0, w, h)
+  return c
+}
+
 // ---------------------------------------------------------------------------
 // Calibration
 // ---------------------------------------------------------------------------
@@ -489,7 +559,7 @@ export function measureU(
  * the caller should treat as "no overlay this frame" rather than as an error.
  */
 export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInput): OverlayReport | null {
-  const { landmarks, width: W, height: H, spec, activeRung: active, mirror, debug, subject } = input
+  const { landmarks, width: W, height: H, spec, activeRung: active, mirror, debug, subject, hairMask } = input
   if (!landmarks?.length) return null
 
   const pts = toPixelSpace(landmarks, W, H)
@@ -501,6 +571,51 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
 
   if (debug) drawDebugSkull(ctx, frame, pts, mirror, W)
 
+  /**
+   * With a hair mask, the band geometry is drawn to a scratch canvas, clipped,
+   * and then composited — rather than drawn straight onto the frame.
+   *
+   * Labels deliberately stay OUT of this. They hang off the edge of the head by
+   * design, so clipping them to hair would delete most of them, and a label is
+   * not a claim about the head's surface the way a band is.
+   */
+  const geo = hairMask ? scratchContext(W, H) : null
+  const g = geo ?? ctx
+
+  /**
+   * Is this canvas pixel hair? Samples the mask directly, undoing the mirror so
+   * the lookup lands on the same pixel the composite will keep.
+   */
+  /**
+   * The face's own outline, in screen space. Anything inside it is forehead,
+   * temple, cheek or jaw — none of which carry a fade.
+   *
+   * Built per frame from the landmarks, so it is this face at this pose rather
+   * than an angle someone picked once.
+   */
+  const ovalX = new Float64Array(FACE_OVAL.length)
+  const ovalY = new Float64Array(FACE_OVAL.length)
+  let ovalN = 0
+  for (const idx of FACE_OVAL) {
+    const p = pts[idx]
+    if (!p) continue
+    const q = project(p, mirror, W)
+    ovalX[ovalN] = q.x
+    ovalY[ovalN] = q.y
+    ovalN++
+  }
+  const onFace = (x: number, y: number) => ovalN > 8 && insidePolygon(ovalX, ovalY, ovalN, x, y)
+
+  const onHair = hairMask
+    ? (x: number, y: number) => {
+        const sx = mirror ? W - x : x
+        const mx = Math.round((sx / W) * hairMask.width)
+        const my = Math.round((y / H) * hairMask.height)
+        if (mx < 0 || my < 0 || mx >= hairMask.width || my >= hairMask.height) return false
+        return hairMask.data[my * hairMask.width + mx] > 0.5
+      }
+    : undefined
+
   const labels: LabelRequest[] = []
 
   // Anatomy first, underneath everything — the reference points the line is
@@ -509,22 +624,22 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
     [frame.levels.earTop, 'top of ear'],
     [frame.levels.parietal, 'parietal ridge'],
   ] as const) {
-    const pr = ring(frame, u, mirror, W)
-    strokeRing(ctx, pr, 'rgba(226,232,240,0.55)', Math.max(1.5, size * 0.09))
-    const e = edgeOf(pr, 'right')
+    const pr = ring(frame, u, mirror, W, 96, onFace)
+    strokeRing(g, pr, 'rgba(226,232,240,0.55)', Math.max(1.5, size * 0.09))
+    const e = edgeOf(pr, 'right', onHair)
     if (e) labels.push({ text, x: e.x + size * 0.5, y: e.y, colour: '#e2e8f0', size: size * 0.78, align: 'left', priority: 2 })
   }
 
   plan.ladder.forEach((rung, i) => {
-    const lower = ring(frame, rung.uFrom, mirror, W)
-    const upper = ring(frame, rung.uTo, mirror, W)
+    const lower = ring(frame, rung.uFrom, mirror, W, 96, onFace)
+    const upper = ring(frame, rung.uTo, mirror, W, 96, onFace)
     const colour = rungColour(i, plan.ladder.length)
     const isActive = active === i
-    fillBetween(ctx, lower, upper, colour, isActive ? 0.5 : active === null ? 0.28 : 0.12)
-    strokeRing(ctx, lower, colour, Math.max(1.5, size * (isActive ? 0.14 : 0.08)))
+    fillBetween(g, lower, upper, colour, isActive ? 0.5 : active === null ? 0.28 : 0.12)
+    strokeRing(g, lower, colour, Math.max(1.5, size * (isActive ? 0.14 : 0.08)))
 
     if (isActive || active === null) {
-      const e = edgeOf(lower, 'left')
+      const e = edgeOf(lower, 'left', onHair)
       if (e) {
         labels.push({
           text: rung.guard.label,
@@ -562,14 +677,14 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
 
   // The fade line itself — the target, and the one thing that must be
   // unmistakable at a glance. Placed first, so everything else moves for it.
-  const line = ring(frame, plan.uLine, mirror, W)
-  ctx.save()
-  ctx.shadowColor = 'rgba(2,6,23,0.9)'
-  ctx.shadowBlur = size * 0.5
-  strokeRing(ctx, line, '#ffffff', Math.max(2.5, size * 0.2))
-  ctx.restore()
+  const line = ring(frame, plan.uLine, mirror, W, 96, onFace)
+  g.save()
+  g.shadowColor = 'rgba(2,6,23,0.9)'
+  g.shadowBlur = size * 0.5
+  strokeRing(g, line, '#ffffff', Math.max(2.5, size * 0.2))
+  g.restore()
 
-  const le = edgeOf(line, 'right')
+  const le = edgeOf(line, 'right', onHair)
   if (le) {
     labels.push({
       text: plan.perimeterOnly ? 'perimeter' : 'fade line',
@@ -584,7 +699,32 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
 
   if (active !== null && plan.ladder[active]) {
     const rung = plan.ladder[active]
-    drawProtractor(ctx, frame, (rung.uFrom + rung.uTo) / 2, mirror, W, size, labels)
+    drawProtractor(g, frame, (rung.uFrom + rung.uTo) / 2, mirror, W, size, labels)
+  }
+
+  if (geo && hairMask) {
+    geo.save()
+    geo.globalCompositeOperation = 'destination-in'
+    /**
+     * The mask MUST be flipped with the geometry.
+     *
+     * Landmarks arrive from the raw camera frame and `project` mirrors them for
+     * a selfie view, so the bands are drawn mirrored. The mask is computed on
+     * that same raw frame and is not. Compositing them together unflipped clips
+     * the left side of the head against the right side of the head.
+     *
+     * This survived a headless test because the test subject was a symmetric
+     * mannequin facing the camera, where a flipped mask is very nearly the
+     * right mask. It took a real head at three-quarter — which is not symmetric
+     * — for the error to have anywhere to show.
+     */
+    if (mirror) {
+      geo.translate(W, 0)
+      geo.scale(-1, 1)
+    }
+    geo.drawImage(hairMask.canvas, 0, 0, W, H)
+    geo.restore()
+    ctx.drawImage(geo.canvas, 0, 0)
   }
 
   placeLabels(ctx, labels, W, H)

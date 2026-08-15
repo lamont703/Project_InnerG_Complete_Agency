@@ -26,8 +26,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { type FadeSpec, type Subject } from "@/lib/fade-geometry"
-import { drawFadeOverlay } from "@/lib/fade-overlay"
+import { drawFadeOverlay, type HairMask } from "@/lib/fade-overlay"
 import { createFaceLandmarker } from "@/lib/face-landmarker"
+import { createHairSegmenter, hairMaskToCanvas, HAIR_MASK_INDEX } from "@/lib/hair-mask"
 
 type Phase = "idle" | "loading" | "running" | "error"
 
@@ -54,6 +55,15 @@ export function FadeArView({ spec, activeRung, subject }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const landmarkerRef = useRef<{ detectForVideo: (v: HTMLVideoElement, t: number) => { faceLandmarks: { x: number; y: number; z: number }[][] }; close: () => void } | null>(null)
+  /**
+   * Hair segmenter. Optional on purpose: if it fails to load the overlay still
+   * works, just unclipped — the old behaviour rather than no behaviour.
+   */
+  const segmenterRef = useRef<{
+    segmentForVideo: (v: HTMLVideoElement, t: number) => { confidenceMasks?: { getAsFloat32Array: () => Float32Array; width: number; height: number; close: () => void }[] }
+    close: () => void
+  } | null>(null)
+  const hairMaskRef = useRef<HairMask | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const rafRef = useRef<number | null>(null)
   const lastTimeRef = useRef(-1)
@@ -91,6 +101,8 @@ export function FadeArView({ spec, activeRung, subject }: Props) {
    * rather than conclude the tool is broken.
    */
   const [delegate, setDelegate] = useState<"GPU" | "CPU">("GPU")
+  /** Whether the overlay is being clipped to hair, or drawn on the raw geometry. */
+  const [hairClip, setHairClip] = useState(false)
 
   const mirror = facing === "user"
 
@@ -101,6 +113,9 @@ export function FadeArView({ spec, activeRung, subject }: Props) {
     streamRef.current = null
     landmarkerRef.current?.close()
     landmarkerRef.current = null
+    segmenterRef.current?.close()
+    segmenterRef.current = null
+    hairMaskRef.current = null
     lastTimeRef.current = -1
     landmarksRef.current = null
     setPhase("idle")
@@ -155,13 +170,38 @@ export function FadeArView({ spec, activeRung, subject }: Props) {
      */
     if (video.currentTime !== lastTimeRef.current) {
       lastTimeRef.current = video.currentTime
+      const now = performance.now()
       try {
-        const raw = lm.detectForVideo(video, performance.now()).faceLandmarks?.[0]
+        const raw = lm.detectForVideo(video, now).faceLandmarks?.[0]
         landmarksRef.current = raw?.length ? raw : null
         setTracking(!!raw?.length)
       } catch {
         // Leave the previous landmarks in place — one failed detection should
         // not blank the overlay.
+      }
+
+      /**
+       * The hair mask is refreshed on the same cadence and is equally
+       * disposable: a failure leaves the previous mask in place rather than
+       * blanking the overlay, and a mask that never arrives just means the
+       * bands are not clipped.
+       *
+       * MPMask holds a GPU or WASM buffer that has to be released explicitly.
+       * Skipping close() here leaks a texture per frame, which on a phone is a
+       * few seconds to a crash rather than a slow drift.
+       */
+      const seg = segmenterRef.current
+      if (seg) {
+        try {
+          const mask = seg.segmentForVideo(video, now).confidenceMasks?.[HAIR_MASK_INDEX]
+          if (mask) {
+            const built = hairMaskToCanvas(mask.getAsFloat32Array(), mask.width, mask.height)
+            if (built) hairMaskRef.current = built
+            mask.close()
+          }
+        } catch {
+          // Keep the last good mask.
+        }
       }
     }
 
@@ -176,6 +216,7 @@ export function FadeArView({ spec, activeRung, subject }: Props) {
       activeRung: rungRef.current,
       mirror,
       subject: subjectRef.current,
+      hairMask: hairMaskRef.current,
     })
     if (!report) return
 
@@ -226,6 +267,23 @@ export function FadeArView({ spec, activeRung, subject }: Props) {
     try {
       const { landmarker, delegate } = await createFaceLandmarker("VIDEO")
       setDelegate(delegate)
+
+      /**
+       * The hair segmenter is DELIBERATELY NOT STARTED.
+       *
+       * It was added to stop the overlay landing on skin and it does the
+       * opposite of what this tool needs. The model finds hair as a visible
+       * mass, so a skin fade reads as skin: measured on two well-lit heads it
+       * classified 2.3% and 2.6% of the frame as hair, all of it on top, none
+       * on the faded sides. Clipping to that erases precisely the region the
+       * guard ladder belongs in.
+       *
+       * The face oval in lib/fade-geometry does the job properly — it is the
+       * boundary that actually matters, it is exact for this face at this pose,
+       * and it costs nothing. The segmenter stays wired up behind /ar-lab's
+       * toggle so the finding can be re-checked rather than taken on trust.
+       */
+      setHairClip(false)
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -345,6 +403,7 @@ export function FadeArView({ spec, activeRung, subject }: Props) {
               Stop
             </button>
             <span className="ml-auto font-mono text-xs text-slate-400">
+              {!hairClip && <span className="mr-3 text-amber-400">no hair mask</span>}
               {delegate === "CPU" && <span className="mr-3 text-amber-400">CPU mode</span>}
               viewing angle {yaw > 0 ? "+" : ""}
               {yaw}°

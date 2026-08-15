@@ -165,3 +165,7 @@ ar-lab-shot*.png
 # Local dev TLS certs for testing the AR camera on a phone. Self-signed,
 # machine-specific, and a private key never belongs in a repo.
 certificates/
+
+# Original YouTube snippets, written before any videos.update run.
+# Local safety net — real content, not source, and not ours to publish.
+scripts/youtube-backups/
