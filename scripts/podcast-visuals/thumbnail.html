@@ -1,0 +1,127 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Thumbnail</title>
+<!--
+  Episode thumbnail. Rendered, not designed by hand, so every future episode
+  gets the same treatment from different numbers.
+
+  THE NUMBERS ARE THE ASSET. Nobody else can publish 92% against 57% for the
+  same cohort, because it comes out of the 2026 TDLR roster. So the two figures
+  ARE the image — not decoration on a photo, not a face reacting to them.
+
+  SIZED FOR 210 PIXELS, NOT FOR 3840. YouTube recommends a 4K source but the
+  thumbnail is decided in a mobile feed at roughly a tenth of that. Anything
+  that stops working when you squint is wrong here, which rules out body copy,
+  thin weights, and more than one idea. Two numbers and three words survive the
+  shrink; a sentence does not.
+
+  Colours match Shear Run so the thumbnail and the video are visibly the same
+  object: near-black, one warm accent, teal for the number that works and rose
+  for the one that does not.
+-->
+<style>
+  @import url('');
+  html, body { margin: 0; background: #06070a; }
+  .frame {
+    position: relative;
+    width: var(--w); height: var(--h);
+    background:
+      radial-gradient(ellipse at 50% 40%, #10131c 0%, #06070a 70%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  /* A faint maze rule top and bottom — the Shear Run signature, at an opacity
+     that registers as texture rather than as content. */
+  .rule {
+    position: absolute; left: 0; right: 0; height: calc(var(--u) * 0.012);
+    background: repeating-linear-gradient(90deg,
+      #a855f7 0, #a855f7 calc(var(--u) * 0.06),
+      transparent calc(var(--u) * 0.06), transparent calc(var(--u) * 0.12));
+    opacity: 0.30;
+  }
+  .rule.top { top: calc(var(--u) * 0.07); }
+  .rule.bottom { bottom: calc(var(--u) * 0.07); }
+
+  .numbers { display: flex; align-items: center; gap: calc(var(--u) * 0.055); }
+
+  /* SQUARE STACKS. Side by side overflows a 1:1 frame — the first render
+     clipped "92%" to "2%" and cut the "57%" in half, because type is scaled
+     off the short side and in a square that is also the long side. The podcast
+     playlist crop is 1:1, so this is not an edge case, it is one of the two
+     required outputs. */
+  .square .numbers { flex-direction: column; gap: calc(var(--u) * 0.02); }
+  .square .pct { font-size: calc(var(--u) * 0.235); }
+  .square .vs { font-size: calc(var(--u) * 0.055); }
+  .square .punch { margin-top: calc(var(--u) * 0.045); font-size: calc(var(--u) * 0.078); }
+  .stat { text-align: center; }
+  .pct {
+    font-size: calc(var(--u) * 0.30);
+    font-weight: 900; letter-spacing: -0.03em; line-height: 0.9;
+  }
+  .good { color: #2dd4bf; text-shadow: 0 0 calc(var(--u)*0.05) rgba(45,212,191,.45); }
+  .bad  { color: #fb7185; text-shadow: 0 0 calc(var(--u)*0.05) rgba(251,113,133,.45); }
+  .label {
+    margin-top: calc(var(--u) * 0.022);
+    font-size: calc(var(--u) * 0.037);
+    font-weight: 800; letter-spacing: .14em;
+    color: #94a3b8; text-transform: uppercase;
+  }
+  .vs {
+    font-size: calc(var(--u) * 0.075); font-weight: 900;
+    color: #475569; letter-spacing: -.02em;
+  }
+  .punch {
+    margin-top: calc(var(--u) * 0.055);
+    font-size: calc(var(--u) * 0.088);
+    font-weight: 900; letter-spacing: -.02em;
+    color: #ffd166;
+  }
+  .brand {
+    position: absolute; bottom: calc(var(--u) * 0.028);
+    display: flex; align-items: center; gap: calc(var(--u) * 0.014);
+    font-size: calc(var(--u) * 0.026); font-weight: 800;
+    letter-spacing: .1em; color: #64748b; text-transform: uppercase;
+  }
+</style>
+<div class="frame" id="f">
+  <div class="rule top"></div>
+  <div class="numbers">
+    <div class="stat">
+      <div class="pct good" id="a">92%</div>
+      <div class="label" id="al">Practical exam</div>
+    </div>
+    <div class="vs">vs</div>
+    <div class="stat">
+      <div class="pct bad" id="b">57%</div>
+      <div class="label" id="bl">Written exam</div>
+    </div>
+  </div>
+  <div class="punch" id="p">Same students.</div>
+  <div class="rule bottom"></div>
+  <div class="brand">
+    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="2.4" stroke-linecap="round">
+      <path d="M4 5 L20 19"/><path d="M20 5 L4 19"/><circle cx="12" cy="12" r="1.6" fill="#ffd166" stroke="none"/>
+    </svg>
+    <span id="brand">shearquery.com</span>
+  </div>
+</div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const w = +(q.get("w") || 3840), h = +(q.get("h") || 2160);
+  const f = document.getElementById("f");
+  f.style.setProperty("--w", w + "px");
+  f.style.setProperty("--h", h + "px");
+  // Type scales off the SHORT side, so the square podcast crop keeps the same
+  // optical weight instead of exploding.
+  f.style.setProperty("--u", Math.min(w, h) + "px");
+  // Anything near square stacks. 1.4 rather than 1.0 so a 4:3 or 5:4 crop —
+  // which YouTube also generates — does not squeeze either.
+  if (w / h < 1.4) f.classList.add("square");
+  const set = (id, key) => { const v = q.get(key); if (v) document.getElementById(id).textContent = v; };
+  set("a", "a"); set("b", "b"); set("al", "al"); set("bl", "bl"); set("p", "p"); set("brand", "brand");
+  document.body.style.width = w + "px";
+  document.body.style.height = h + "px";
+  window.__ready = true;
+</script>
