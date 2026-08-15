@@ -6,6 +6,7 @@ import { WRITTEN_EXAM_EPISODE, WRITTEN_EXAM_CONTEXT } from "@/lib/episode-videos
 import { Navbar } from "@/components/layout/navbar";
 import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
+import { ogImage } from "@/lib/og-cards";
 
 export const revalidate = 3600;
 
@@ -119,10 +120,15 @@ export const metadata: Metadata = {
     "compare barber schools texas",
   ],
   openGraph: {
+    images: ogImage("texas-school-leaderboard"),
     title: "Texas Barber & Cosmetology School Leaderboard (2026)",
     description: "Compare Texas barber and cosmetology schools by real 2026 Class A licensing exam outcomes — data not available on Google.",
     url: `${SITE_URL}/texas-school-leaderboard`,
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ogImage("texas-school-leaderboard"),
   },
   alternates: { canonical: `${SITE_URL}/texas-school-leaderboard` },
 };
