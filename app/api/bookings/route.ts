@@ -4,6 +4,7 @@ import { sendGhlSms } from "@/lib/ghl-sms";
 import { sendGhlEmail } from "@/lib/ghl-email";
 import { servicesForEntity, type BookingEntityType } from "@/lib/booking-services";
 import { SITE_URL } from "@/lib/site";
+import { isTooSoonAnywhere, TOO_SOON_MESSAGE } from "@/lib/booking-lead-time";
 
 /**
  * Appointment requests from the Book Appointment modal on the four entity
@@ -153,6 +154,17 @@ export async function POST(request: NextRequest) {
       { ok: false, error: `Please pick a date within the next ${BOOKING_WINDOW_DAYS} days.` },
       { status: 400 }
     );
+  }
+
+  /**
+   * The lead-time floor. Deliberately the weaker of the two checks — see
+   * lib/booking-lead-time.ts. The picker is what actually stops a customer
+   * choosing a slot an hour out; this only refuses what no timezone we serve
+   * could make reasonable, because a server that rejects a valid booking is a
+   * worse failure than the one being fixed.
+   */
+  if (isTooSoonAnywhere(requestedDate, requestedTime, new Date())) {
+    return NextResponse.json({ ok: false, error: TOO_SOON_MESSAGE }, { status: 400 });
   }
 
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
