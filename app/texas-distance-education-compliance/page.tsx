@@ -7,6 +7,7 @@ import { SHEARS, SHEARS_RULES, COURSE_CAPS, OBLIGATIONS, VERIFIED_ON } from "@/l
 import { DistanceEducationCta } from "@/components/distance-education-cta";
 import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
+import { ShareLinks } from "@/components/shared/share-links";
 
 /**
  * What distance education requires that in-person compliance software does not
@@ -101,6 +102,8 @@ export default function TexasDistanceEducationCompliancePage() {
           <strong className="text-slate-900">eight obligations across two authorities</strong>, each
           evidenced per student, and the systems built for in-person schools do not carry them.
         </p>
+
+          <ShareLinks title="Texas distance education compliance for barber & cosmetology schools" professional className="mt-8 mb-2" />
 
         {/* ---- The finding ---------------------------------------------------- */}
         <div className="mb-12 rounded-2xl border border-amber-300 bg-amber-50 px-6 py-6">

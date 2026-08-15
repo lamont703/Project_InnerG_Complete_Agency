@@ -20,6 +20,7 @@ import { siblingKits } from "@/lib/kits";
 import { VideoEmbed } from "@/components/shared/video-embed";
 import { WRITTEN_EXAM_EPISODE, WRITTEN_EXAM_CONTEXT } from "@/lib/episode-videos";
 import { ogImage } from "@/lib/og-cards";
+import { ShareLinks } from "@/components/shared/share-links";
 
 export const metadata = {
   title: "Texas Barber State Board Practical Exam Kit Checklist (2026)",
@@ -112,6 +113,8 @@ export default function BarberPracticalExamKitListPage() {
             from the official PSI Candidate Information Bulletin effective January 1, 2026, which added a
             manicure and a thermal-curling section.
           </p>
+
+          <ShareLinks title="Texas Barber State Board Practical Exam Kit Checklist" className="mt-8 mb-2" />
         </div>
 
         {/* Exam Structure */}

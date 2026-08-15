@@ -6,6 +6,7 @@ import { ResearchByline } from "@/components/research-byline";
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
+import { ShareLinks } from "@/components/shared/share-links";
 
 /**
  * The school-operator layer of the distance-education cluster.
@@ -96,6 +97,8 @@ export default function NaccasDistanceEducationPage() {
           requirement rather than a document requirement &mdash; which is why schools tend to fail
           them with a compliant-looking binder.
         </p>
+
+          <ShareLinks title="NACCAS distance education requirements" professional className="mt-8 mb-2" />
 
         {/* The correction, up top, because it is the reason to trust this page. */}
         <div className="mb-12 rounded-2xl border border-rose-200 bg-rose-50 px-6 py-6">
