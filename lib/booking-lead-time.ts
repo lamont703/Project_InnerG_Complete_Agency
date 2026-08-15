@@ -118,6 +118,35 @@ export function isTooSoonAnywhere(dateStr: string, time: string, now: Date): boo
   return (latest.getTime() - now.getTime()) / 3600_000 < MIN_LEAD_HOURS;
 }
 
+/**
+ * The EARLIEST instant a wall clock could mean, across covered zones — Eastern.
+ *
+ * The mirror of MOST_PERMISSIVE_UTC_OFFSET, and used where the safe direction
+ * is the opposite one. Deciding "is this appointment soon" wants the earliest
+ * reading, because acting slightly early on a request that turns out to be four
+ * hours further off costs nothing, and acting late costs the appointment.
+ */
+const EARLIEST_UTC_OFFSET = -4;
+
+/** Hours until the slot, read as early as any covered zone could make it. */
+export function hoursUntilSlotEarliest(dateStr: string, time: string, now: Date): number | null {
+  const earliest = slotInstant(dateStr, time, EARLIEST_UTC_OFFSET);
+  if (!earliest) return null;
+  return (earliest.getTime() - now.getTime()) / 3600_000;
+}
+
+/**
+ * True once the slot is behind us in every covered timezone.
+ *
+ * Uses the latest reading on purpose: a request should never be written off as
+ * missed while some zone still has it in the future.
+ */
+export function slotHasPassedEverywhere(dateStr: string, time: string, now: Date): boolean {
+  const latest = slotInstant(dateStr, time, MOST_PERMISSIVE_UTC_OFFSET);
+  if (!latest) return false;
+  return latest.getTime() <= now.getTime();
+}
+
 /** The slots still bookable on a given date. Used to build the picker. */
 export function bookableSlots(slots: string[], dateStr: string, now: Date): string[] {
   return slots.filter((s) => !isTooSoonLocal(dateStr, s, now));
