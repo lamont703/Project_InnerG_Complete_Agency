@@ -17,6 +17,8 @@ import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 import { TEXAS_COSMETOLOGY_KIT } from "@/lib/kits/texas-cosmetology";
 import { VideoEmbed } from "@/components/shared/video-embed";
 import { WRITTEN_EXAM_EPISODE, WRITTEN_EXAM_CONTEXT } from "@/lib/episode-videos";
+import { ogImage } from "@/lib/og-cards";
+import { ShareLinks } from "@/components/shared/share-links";
 
 export const metadata = {
   title: "Texas Cosmetology State Board Practical Exam Kit Checklist (2026)",
@@ -34,9 +36,14 @@ export const metadata = {
     "cosmetology operator practical exam checklist",
   ],
   openGraph: {
+    images: ogImage("texas-cosmetology-practical-exam-kit-list"),
     title: "Texas Cosmetology State Board Practical Exam Kit Checklist (2026)",
     description:
       "Every required kit item, the exact must-label vs. do-not-label rules, and all 13 timed stations for the Texas Cosmetology Operator practical exam — sourced from the official PSI/TDLR bulletin effective January 1, 2026.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ogImage("texas-cosmetology-practical-exam-kit-list"),
   },
   alternates: { canonical: `${SITE_URL}/texas-cosmetology-practical-exam-kit-list` },
 };
@@ -98,6 +105,8 @@ export default function CosmetologyPracticalExamKitListPage() {
             Cosmetology Operator practical exam, administered by PSI on behalf of TDLR — sourced directly from the
             official PSI Candidate Information Bulletin effective January 1, 2026.
           </p>
+
+          <ShareLinks title="Texas Cosmetology Practical Exam Kit Checklist" className="mt-8 mb-2" />
         </div>
 
         {/* Exam Structure */}

@@ -19,6 +19,8 @@ import { TEXAS_BARBER_KIT } from "@/lib/kits/texas-barber";
 import { siblingKits } from "@/lib/kits";
 import { VideoEmbed } from "@/components/shared/video-embed";
 import { WRITTEN_EXAM_EPISODE, WRITTEN_EXAM_CONTEXT } from "@/lib/episode-videos";
+import { ogImage } from "@/lib/og-cards";
+import { ShareLinks } from "@/components/shared/share-links";
 
 export const metadata = {
   title: "Texas Barber State Board Practical Exam Kit Checklist (2026)",
@@ -35,9 +37,14 @@ export const metadata = {
     "class a barber practical exam checklist",
   ],
   openGraph: {
+    images: ogImage("texas-barber-state-board-practical-exam-kit-list"),
     title: "Texas Barber State Board Practical Exam Kit Checklist (2026)",
     description:
       "Every required kit item, the exact must-label vs. do-not-label rules, and all 11 timed stations for the Texas Class A Barber practical exam — sourced from the official PSI/TDLR bulletin effective January 1, 2026.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ogImage("texas-barber-state-board-practical-exam-kit-list"),
   },
   alternates: { canonical: `${SITE_URL}/texas-barber-state-board-practical-exam-kit-list` },
 };
@@ -106,6 +113,8 @@ export default function BarberPracticalExamKitListPage() {
             from the official PSI Candidate Information Bulletin effective January 1, 2026, which added a
             manicure and a thermal-curling section.
           </p>
+
+          <ShareLinks title="Texas Barber State Board Practical Exam Kit Checklist" className="mt-8 mb-2" />
         </div>
 
         {/* Exam Structure */}

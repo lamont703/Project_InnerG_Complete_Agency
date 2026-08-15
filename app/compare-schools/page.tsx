@@ -6,6 +6,7 @@ import { getSchoolIndex, MIN_SAMPLE } from "@/lib/compare-schools-data";
 import { getSchoolCompareContent } from "@/lib/compare-content";
 import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
+import { ShareLinks } from "@/components/shared/share-links";
 
 export const revalidate = 3600;
 
@@ -136,6 +137,8 @@ export default async function CompareSchoolsPage() {
             side by side on real 2026 licensing exam outcomes — written, practical, and how many students passed on
             the first try. This data isn&apos;t on Google.
           </p>
+
+          <ShareLinks title="Compare Texas barber & cosmetology schools" professional className="mt-8 mb-2" />
         </div>
 
         <CompareSchoolsClient

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/navbar";
 import { SITE_HOST, SITE_URL } from "@/lib/site";
+import { ShareLinks } from "@/components/shared/share-links";
 
 export const revalidate = 3600;
 
@@ -133,6 +134,8 @@ export default function MediaKitPage() {
             directory of nearly 9,000 shops, salons, schools, licensed pros, and suppliers, with market data that
             isn&rsquo;t on Google.
           </p>
+
+          <ShareLinks title="ShearQuery advertising & media kit" professional className="mt-8 mb-2" />
           <div className="badge">◆ Intelligence not available on Google</div>
         </div>
       </header>

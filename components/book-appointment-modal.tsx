@@ -14,6 +14,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { formatServiceLabel, type BookableService, type BookingEntityType } from "@/lib/booking-services";
+import { bookableSlots } from "@/lib/booking-lead-time";
 
 /**
  * The Book Appointment CTA and its modal — the single conversion point on the
@@ -103,6 +104,39 @@ export function BookAppointmentButton({
 
   const today = React.useMemo(() => startOfDay(new Date()), []);
   const lastDay = React.useMemo(() => addDays(today, BOOKING_WINDOW_DAYS), [today]);
+
+  /**
+   * The clock the lead-time floor is measured against.
+   *
+   * Null until mounted, on purpose. Reading `new Date()` during render would
+   * make the server and client produce different slot lists and hydrate
+   * mismatched — and a null `now` simply shows every slot, which is exactly
+   * what the pre-mount markup should say. The server guard is the backstop.
+   *
+   * It ticks while the picker is open so someone who lingers is not offered a
+   * slot that has since fallen inside the floor. Only while the picker is open:
+   * a re-render every minute behind the contact form would be waste.
+   */
+  const [now, setNow] = React.useState<Date | null>(null);
+  React.useEffect(() => {
+    if (!open || step !== "details") return;
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, [open, step]);
+
+  const dateStr = date ? format(date, "yyyy-MM-dd") : "";
+  const slots = React.useMemo(
+    () => (now && dateStr ? bookableSlots(SLOTS, dateStr, now) : SLOTS),
+    [now, dateStr]
+  );
+
+  // A slot chosen a moment ago can fall inside the floor while the modal sits
+  // open. Dropping it is better than carrying a selection the button no longer
+  // shows.
+  React.useEffect(() => {
+    if (time && !slots.includes(time)) setTime("");
+  }, [slots, time]);
 
   // Reset only after the dialog has fully closed, so the confirmation does not
   // flicker back to step one on the way out.
@@ -293,7 +327,14 @@ export function BookAppointmentButton({
                       onSelect={setDate}
                       startMonth={today}
                       endMonth={lastDay}
-                      disabled={{ before: today, after: lastDay }}
+                      disabled={[
+                        { before: today, after: lastDay },
+                        // Today disappears once its last bookable slot has
+                        // passed, rather than offering a day with no times.
+                        (day: Date) =>
+                          now !== null &&
+                          bookableSlots(SLOTS, format(day, "yyyy-MM-dd"), now).length === 0,
+                      ]}
                       // The calendar root carries bg-background, which under
                       // `light` is a faint grey — fine on its own, muddy inside
                       // this white bordered card. The surrounding div supplies
@@ -308,8 +349,14 @@ export function BookAppointmentButton({
 
                 <div>
                   <span className="block text-sm font-semibold text-slate-900 mb-1.5">Time</span>
+                  {date && slots.length === 0 ? (
+                    <p className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900">
+                      No times left today — the salon needs a few hours&apos; notice to call you
+                      back. Pick another day.
+                    </p>
+                  ) : (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    {SLOTS.map((s) => (
+                    {slots.map((s) => (
                       <button
                         key={s}
                         type="button"
@@ -326,6 +373,7 @@ export function BookAppointmentButton({
                       </button>
                     ))}
                   </div>
+                  )}
                 </div>
 
                 <button

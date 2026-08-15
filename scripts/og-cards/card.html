@@ -1,0 +1,95 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>OG card</title>
+<!--
+  The share card template. 1200x630, which is the site's existing convention in
+  app/layout.tsx and satisfies both OpenGraph and Twitter's large summary card.
+
+  READ AT THUMBNAIL SIZE, ALWAYS. A LinkedIn card in feed is roughly 550px
+  wide; an iMessage preview is smaller still. So one number, one line under it,
+  one title. Anything needing a second glance is wasted here — this image gets
+  a fraction of a second while someone scrolls past.
+
+  Same visual language as the video thumbnail and Shear Run: near-black, one
+  accent, teal for a number that is good news and rose for one that is not.
+  A share card that looks like a different company from the video is a wasted
+  impression.
+-->
+<style>
+  html, body { margin: 0; background: #06070a; }
+  .card {
+    position: relative;
+    width: 1200px; height: 630px;
+    background: radial-gradient(ellipse at 50% 35%, #10131c 0%, #06070a 72%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    overflow: hidden;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 0 78px; box-sizing: border-box;
+  }
+  .rule {
+    position: absolute; left: 0; right: 0; height: 7px;
+    background: repeating-linear-gradient(90deg,
+      #a855f7 0, #a855f7 34px, transparent 34px, transparent 68px);
+    opacity: .28;
+  }
+  .rule.top { top: 42px } .rule.bottom { bottom: 42px }
+
+  .eyebrow {
+    font-size: 21px; font-weight: 800; letter-spacing: .22em;
+    text-transform: uppercase; color: #7c8798; margin-bottom: 26px;
+  }
+  .stats { display: flex; align-items: flex-end; gap: 54px; }
+  .stat .n {
+    font-size: 148px; font-weight: 900; letter-spacing: -.04em; line-height: .84;
+    color: #2dd4bf; text-shadow: 0 0 60px rgba(45,212,191,.35);
+  }
+  .stat.alt .n { color: #fb7185; text-shadow: 0 0 60px rgba(251,113,133,.35); }
+  .stat .l {
+    margin-top: 16px; font-size: 22px; font-weight: 700; color: #94a3b8;
+    max-width: 470px; line-height: 1.35;
+  }
+  /* One stat gets more room and a bigger number; two share the width. */
+  .single .stat .n { font-size: 176px }
+  .single .stat .l { max-width: 900px; font-size: 26px }
+
+  .title {
+    margin-top: 46px; font-size: 40px; font-weight: 900; letter-spacing: -.02em;
+    color: #f8fafc; line-height: 1.15; max-width: 1000px;
+  }
+  .brand {
+    position: absolute; bottom: 62px; left: 78px;
+    display: flex; align-items: center; gap: 11px;
+    font-size: 20px; font-weight: 800; letter-spacing: .17em;
+    text-transform: uppercase; color: #ffd166;
+  }
+</style>
+<div class="card" id="card">
+  <div class="rule top"></div>
+  <div class="eyebrow" id="eyebrow">Texas</div>
+  <div class="stats" id="stats">
+    <div class="stat"><div class="n" id="stat">41</div><div class="l" id="statLabel">items</div></div>
+    <div class="stat alt" id="second" style="display:none">
+      <div class="n" id="stat2"></div><div class="l" id="stat2Label"></div>
+    </div>
+  </div>
+  <div class="title" id="title">Title</div>
+  <div class="rule bottom"></div>
+  <div class="brand">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="2.6" stroke-linecap="round">
+      <path d="M4 5 L20 19"/><path d="M20 5 L4 19"/><circle cx="12" cy="12" r="1.7" fill="#ffd166" stroke="none"/>
+    </svg>
+    shearquery.com
+  </div>
+</div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const set = (id, key) => { const v = q.get(key); if (v !== null) document.getElementById(id).textContent = v; };
+  set("eyebrow", "eyebrow"); set("stat", "stat"); set("statLabel", "statLabel"); set("title", "title");
+  if (q.get("stat2")) {
+    document.getElementById("second").style.display = "";
+    set("stat2", "stat2"); set("stat2Label", "stat2Label");
+  } else {
+    document.getElementById("card").classList.add("single");
+  }
+  window.__ready = true;
+</script>
