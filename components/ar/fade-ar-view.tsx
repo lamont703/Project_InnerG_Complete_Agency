@@ -26,7 +26,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { type FadeSpec, type Subject } from "@/lib/fade-geometry"
-import { drawFadeOverlay } from "@/lib/fade-overlay"
+import { drawFadeOverlay, type HairMask } from "@/lib/fade-overlay"
 import { createFaceLandmarker } from "@/lib/face-landmarker"
 import { createHairSegmenter, hairMaskToCanvas, HAIR_MASK_INDEX } from "@/lib/hair-mask"
 
@@ -63,7 +63,7 @@ export function FadeArView({ spec, activeRung, subject }: Props) {
     segmentForVideo: (v: HTMLVideoElement, t: number) => { confidenceMasks?: { getAsFloat32Array: () => Float32Array; width: number; height: number; close: () => void }[] }
     close: () => void
   } | null>(null)
-  const hairMaskRef = useRef<CanvasImageSource | null>(null)
+  const hairMaskRef = useRef<HairMask | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const rafRef = useRef<number | null>(null)
   const lastTimeRef = useRef(-1)
@@ -195,8 +195,8 @@ export function FadeArView({ spec, activeRung, subject }: Props) {
         try {
           const mask = seg.segmentForVideo(video, now).confidenceMasks?.[HAIR_MASK_INDEX]
           if (mask) {
-            const canvas = hairMaskToCanvas(mask.getAsFloat32Array(), mask.width, mask.height)
-            if (canvas) hairMaskRef.current = canvas
+            const built = hairMaskToCanvas(mask.getAsFloat32Array(), mask.width, mask.height)
+            if (built) hairMaskRef.current = built
             mask.close()
           }
         } catch {

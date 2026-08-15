@@ -95,7 +95,11 @@ export async function createHairSegmenter(
  */
 let maskCanvas: HTMLCanvasElement | null = null
 
-export function hairMaskToCanvas(confidence: Float32Array, width: number, height: number): HTMLCanvasElement | null {
+export function hairMaskToCanvas(
+  confidence: Float32Array,
+  width: number,
+  height: number
+): { canvas: HTMLCanvasElement; data: Float32Array; width: number; height: number } | null {
   if (!width || !height || confidence.length < width * height) return null
 
   if (!maskCanvas) maskCanvas = document.createElement('canvas')
@@ -113,7 +117,9 @@ export function hairMaskToCanvas(confidence: Float32Array, width: number, height
     img.data[i * 4 + 3] = a > 1 ? 255 : a < 0 ? 0 : Math.round(a * 255)
   }
   ctx.putImageData(img, 0, 0)
-  return maskCanvas
+  // The raw confidences travel with the canvas so label anchoring can sample
+  // them without a getImageData readback, which is a synchronous GPU stall.
+  return { canvas: maskCanvas, data: confidence, width, height }
 }
 
 /** Convenience: index of the hair confidence mask in the segmenter's output. */
