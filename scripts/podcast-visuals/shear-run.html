@@ -1,0 +1,495 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Shear Run</title>
+<!--
+  SHEAR RUN — an original maze-chase, built to be watched rather than played.
+
+  WHY ORIGINAL AND NOT A PAC-MAN CLONE. Game MECHANICS are not protectable, but
+  the expression around them is, and Pac-Man's is owned and actively defended:
+  the name, the character, the four ghosts and their personalities, the maze
+  layout, the sounds, the palette. A recreation used as branded background on a
+  monetised channel is the kind of thing that gets claimed, and the channel
+  takes the hit. So this borrows the genre — maze, collectibles, pursuers — and
+  none of the expression.
+
+  WHICH TURNS OUT BETTER ANYWAY, because it can be themed. The player is a pair
+  of shears that snips as it moves; the collectibles are comb teeth. That reads
+  as ours rather than as a copy, and it is memorable in a way a clone cannot be.
+
+  DESIGNED FOR PERIPHERAL VISION. Every choice here fights the instinct to make
+  a good game, because a good game demands attention and this must not:
+
+    - NO HUD. No score, no lives, no level. A number on screen is a thing
+      people track, and tracking is attention taken from the audio. It also
+      removes the loop seam — a score that resets is visible, nothing to reset
+      is not.
+    - SLOW. Roughly two-thirds arcade speed. Fast enough to be alive, slow
+      enough to stop reading as something you ought to be playing.
+    - THE SATISFYING PART IS THE PELLET LINE, not the chase. A long corridor
+      emptying at a steady tempo is the same phenomenon as ink spreading in
+      water: continuous, rhythmic, uncut. Corridors are therefore long and
+      straight wherever the maze allows.
+    - NEAR MISSES, RARE DEATHS. Tension you notice at the edge of vision and
+      never have to resolve. A bot that never dies is a screensaver; one that
+      dies constantly is irritating.
+
+  Deterministic from a seed, so a recording can be reproduced exactly.
+-->
+<style>
+  html, body { margin: 0; background: #06070a; overflow: hidden; }
+  canvas { display: block; }
+</style>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+(() => {
+  "use strict";
+
+  const params = new URLSearchParams(location.search);
+  const SEED = parseInt(params.get("seed") || "1", 10);
+  const PALETTE_ID = parseInt(params.get("palette") || String(SEED), 10);
+
+  // ---------------------------------------------------------------- rng
+  // Deterministic, so a seed reproduces a recording frame for frame.
+  let _s = SEED * 2654435761 >>> 0;
+  const rnd = () => (_s = (_s * 1664525 + 1013904223) >>> 0) / 4294967296;
+  const rndInt = (n) => Math.floor(rnd() * n);
+
+  // ------------------------------------------------------------ palettes
+  // Two accents at most. The title card, captions and waveform have to sit on
+  // top of this without fighting it, and a two-colour scene tolerates overlays
+  // that a busy one does not.
+  const PALETTES = [
+    { wall: "#1e6fff", glow: "#2f8bff", pellet: "#ffe9c7", player: "#ffd166", bg: "#06070a" },
+    { wall: "#a855f7", glow: "#c084fc", pellet: "#f3e8ff", player: "#5eead4", bg: "#08060c" },
+    { wall: "#14b8a6", glow: "#2dd4bf", pellet: "#ccfbf1", player: "#fb923c", bg: "#04090a" },
+    { wall: "#f43f5e", glow: "#fb7185", pellet: "#ffe4e6", player: "#fde047", bg: "#0a0609" },
+  ];
+  const P = PALETTES[PALETTE_ID % PALETTES.length];
+
+  const HUES = ["#ff5d8f", "#5ec8ff", "#ffb35c", "#9d7bff"];
+
+  // ------------------------------------------------------------- geometry
+  const COLS = 43, ROWS = 23, TILE = 44;
+  const W = COLS * TILE, H = ROWS * TILE;
+  const OX = (1920 - W) / 2, OY = (1080 - H) / 2;
+
+  const cv = document.getElementById("c");
+  const ctx = cv.getContext("2d", { alpha: false });
+
+  // ------------------------------------------------------------ maze gen
+  // Recursive backtracker on the left half, then mirrored. Symmetry is what
+  // makes a generated maze look authored rather than random.
+  //
+  // Extra walls are then knocked out to create LOOPS. This is the one change
+  // that matters for watchability: a perfect maze is all dead ends, and a
+  // chase in a dead end ends immediately and looks stupid. Cycles let the
+  // pursuit keep flowing.
+  function buildMaze() {
+    const g = [];
+    for (let y = 0; y < ROWS; y++) g.push(new Array(COLS).fill(1));
+
+    const halfCols = Math.floor(COLS / 2);
+    const cellCols = Math.floor((halfCols - 1) / 2);
+    const cellRows = Math.floor((ROWS - 1) / 2);
+    const seen = [];
+    for (let y = 0; y < cellRows; y++) seen.push(new Array(cellCols).fill(false));
+
+    const stack = [[0, 0]];
+    seen[0][0] = true;
+    g[1][1] = 0;
+    while (stack.length) {
+      const [cx, cy] = stack[stack.length - 1];
+      const opts = [];
+      if (cy > 0 && !seen[cy - 1][cx]) opts.push([0, -1]);
+      if (cy < cellRows - 1 && !seen[cy + 1][cx]) opts.push([0, 1]);
+      if (cx > 0 && !seen[cy][cx - 1]) opts.push([-1, 0]);
+      if (cx < cellCols - 1 && !seen[cy][cx + 1]) opts.push([1, 0]);
+      if (!opts.length) { stack.pop(); continue; }
+      const [dx, dy] = opts[rndInt(opts.length)];
+      const nx = cx + dx, ny = cy + dy;
+      g[1 + ny * 2][1 + nx * 2] = 0;
+      g[1 + cy * 2 + dy][1 + cx * 2 + dx] = 0;
+      seen[ny][nx] = true;
+      stack.push([nx, ny]);
+    }
+
+    // Loops. ~22% of interior walls in the half, biased to vertical removals
+    // so horizontal runs stay long — the pellet line is the point.
+    for (let y = 1; y < ROWS - 1; y++) {
+      for (let x = 1; x < halfCols; x++) {
+        if (g[y][x] !== 1) continue;
+        const horizontal = g[y][x - 1] === 0 && g[y][x + 1] === 0;
+        const vertical = g[y - 1] && g[y + 1] && g[y - 1][x] === 0 && g[y + 1][x] === 0;
+        if ((horizontal || vertical) && rnd() < (horizontal ? 0.3 : 0.16)) g[y][x] = 0;
+      }
+    }
+
+    // Mirror.
+    for (let y = 0; y < ROWS; y++)
+      for (let x = 0; x < halfCols; x++) g[y][COLS - 1 - x] = g[y][x];
+
+    // THE CENTRE IS A FULL-HEIGHT CORRIDOR, opened outright.
+    //
+    // The mirror never writes the middle column, so it kept its initial wall
+    // value and only got punched through where a neighbour happened to be
+    // open — which rendered as a lattice running down the middle of the maze,
+    // obviously an artifact rather than a design.
+    //
+    // Opening it completely fixes that and pays for itself twice: it joins the
+    // two halves into one space for the chase, and it is the longest straight
+    // run on the board. Long straight runs are where the pellet line reads,
+    // and the pellet line is the point.
+    for (let y = 1; y < ROWS - 1; y++) g[y][halfCols] = 0;
+
+    // ...with entrances, or it is scenery. A corridor walled for its whole
+    // height is a tunnel the bot almost never enters, so the best straight run
+    // on the board would go unused. Opened every third row, both sides, which
+    // keeps the mirror symmetry intact.
+    for (let y = 2; y < ROWS - 2; y += 3) {
+      g[y][halfCols - 1] = 0;
+      g[y][halfCols + 1] = 0;
+    }
+
+    return g;
+  }
+
+  let grid = buildMaze();
+  const open = (x, y) => x >= 0 && y >= 0 && x < COLS && y < ROWS && grid[y][x] === 0;
+
+  // Pellets everywhere open.
+  let pellets, pelletCount;
+  function fillPellets() {
+    pellets = [];
+    pelletCount = 0;
+    for (let y = 0; y < ROWS; y++) {
+      pellets.push(new Array(COLS).fill(false));
+      for (let x = 0; x < COLS; x++) if (grid[y][x] === 0) { pellets[y][x] = true; pelletCount++; }
+    }
+  }
+  fillPellets();
+
+  const openCells = [];
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (grid[y][x] === 0) openCells.push([x, y]);
+
+  // ------------------------------------------------------------- pathing
+  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  function bfsStep(from, to, avoid) {
+    // Returns the first step along a shortest path, or null.
+    const key = (x, y) => y * COLS + x;
+    const prev = new Map();
+    const q = [from];
+    const seen = new Set([key(from[0], from[1])]);
+    let head = 0;
+    while (head < q.length) {
+      const cur = q[head++];
+      if (cur[0] === to[0] && cur[1] === to[1]) {
+        let node = cur;
+        while (prev.has(key(node[0], node[1]))) {
+          const p = prev.get(key(node[0], node[1]));
+          if (p[0] === from[0] && p[1] === from[1]) return node;
+          node = p;
+        }
+        return null;
+      }
+      for (const [dx, dy] of DIRS) {
+        const nx = cur[0] + dx, ny = cur[1] + dy;
+        if (!open(nx, ny) || seen.has(key(nx, ny))) continue;
+        if (avoid && avoid.has(key(nx, ny))) continue;
+        seen.add(key(nx, ny));
+        prev.set(key(nx, ny), cur);
+        q.push([nx, ny]);
+      }
+    }
+    return null;
+  }
+
+  // --------------------------------------------------------------- actors
+  function spawn() {
+    const spot = openCells[rndInt(openCells.length)];
+    return { x: spot[0], y: spot[1], px: spot[0], py: spot[1], dir: [0, 0], t: 1 };
+  }
+
+  const player = spawn();
+  player.snip = 0;
+
+  const CHASERS = 4;
+  const chasers = [];
+  for (let i = 0; i < CHASERS; i++) {
+    const c = spawn();
+    c.hue = HUES[i % HUES.length];
+    c.role = i;          // 0 chase, 1 ambush, 2 wander, 3 patrol
+    c.home = [c.x, c.y];
+    c.wisp = [];
+    chasers.push(c);
+  }
+
+  // Speeds are per-tile durations in seconds. ~2/3 arcade, and chasers are
+  // deliberately a touch slower than the player so near misses resolve as
+  // misses far more often than as catches.
+  const PLAYER_STEP = 0.155;
+  const CHASER_STEP = 0.185;
+
+  let mistakeTimer = 0;   // while > 0 the bot ignores danger
+  let deathFlash = 0;
+  let refillFade = 0;
+
+  function dangerSet(radius) {
+    const s = new Set();
+    for (const c of chasers) {
+      for (let dy = -radius; dy <= radius; dy++)
+        for (let dx = -radius; dx <= radius; dx++) {
+          if (Math.abs(dx) + Math.abs(dy) > radius) continue;
+          const nx = c.x + dx, ny = c.y + dy;
+          if (open(nx, ny)) s.add(ny * COLS + nx);
+        }
+    }
+    return s;
+  }
+
+  function nearestPellet(from, avoid) {
+    const key = (x, y) => y * COLS + x;
+    const q = [from];
+    const seen = new Set([key(from[0], from[1])]);
+    let head = 0;
+    while (head < q.length) {
+      const cur = q[head++];
+      if (pellets[cur[1]][cur[0]]) return cur;
+      for (const [dx, dy] of DIRS) {
+        const nx = cur[0] + dx, ny = cur[1] + dy;
+        if (!open(nx, ny) || seen.has(key(nx, ny))) continue;
+        if (avoid && avoid.has(key(nx, ny))) continue;
+        seen.add(key(nx, ny));
+        q.push([nx, ny]);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * The bot.
+   *
+   * Fallible on purpose. Flawless play is a screensaver — no tension, nothing
+   * to notice. So it plans around a danger radius most of the time, and every
+   * so often stops doing that for a second or two, which is what produces the
+   * near misses and the occasional death that make it worth glancing at.
+   */
+  function planPlayer() {
+    const careful = mistakeTimer <= 0;
+    const avoid = careful ? dangerSet(2) : null;
+    let target = nearestPellet([player.x, player.y], avoid);
+    if (!target) target = nearestPellet([player.x, player.y], null);
+    if (!target) return null;
+    let step = bfsStep([player.x, player.y], target, avoid);
+    if (!step) step = bfsStep([player.x, player.y], target, null);
+    return step;
+  }
+
+  function planChaser(c) {
+    const p = [player.x, player.y];
+    if (c.role === 0) return bfsStep([c.x, c.y], p, null);
+    if (c.role === 1) {
+      const ax = Math.max(0, Math.min(COLS - 1, player.x + player.dir[0] * 5));
+      const ay = Math.max(0, Math.min(ROWS - 1, player.y + player.dir[1] * 5));
+      const t = open(ax, ay) ? [ax, ay] : p;
+      return bfsStep([c.x, c.y], t, null);
+    }
+    if (c.role === 2) {
+      const dist = Math.abs(c.x - player.x) + Math.abs(c.y - player.y);
+      if (dist < 9) return bfsStep([c.x, c.y], p, null);
+      const opts = DIRS.filter(([dx, dy]) => open(c.x + dx, c.y + dy));
+      if (!opts.length) return null;
+      const d = opts[rndInt(opts.length)];
+      return [c.x + d[0], c.y + d[1]];
+    }
+    const dist = Math.abs(c.x - player.x) + Math.abs(c.y - player.y);
+    if (dist < 7) return bfsStep([c.x, c.y], p, null);
+    return bfsStep([c.x, c.y], c.home, null);
+  }
+
+  function stepActor(a, next, dt, stepTime) {
+    a.t += dt / stepTime;
+    while (a.t >= 1) {
+      a.t -= 1;
+      a.px = a.x; a.py = a.y;
+      const n = next(a);
+      if (n) {
+        a.dir = [n[0] - a.x, n[1] - a.y];
+        a.x = n[0]; a.y = n[1];
+      }
+    }
+  }
+
+  function update(dt) {
+    if (deathFlash > 0) { deathFlash -= dt; return; }
+    if (mistakeTimer > 0) mistakeTimer -= dt;
+    else if (rnd() < dt * 0.12) mistakeTimer = 0.8 + rnd() * 1.4;
+
+    stepActor(player, planPlayer, dt, PLAYER_STEP);
+    player.snip = (player.snip + dt * 7) % (Math.PI * 2);
+
+    if (pellets[player.y][player.x]) { pellets[player.y][player.x] = false; pelletCount--; }
+    if (pelletCount === 0) { fillPellets(); refillFade = 1; }
+    if (refillFade > 0) refillFade -= dt * 0.6;
+
+    for (const c of chasers) {
+      stepActor(c, planChaser, dt, CHASER_STEP);
+      c.wisp.push([c.px + (c.x - c.px) * c.t, c.py + (c.y - c.py) * c.t]);
+      if (c.wisp.length > 7) c.wisp.shift();
+      if (c.x === player.x && c.y === player.y) {
+        deathFlash = 0.55;
+        const s = spawn();
+        player.x = s.x; player.y = s.y; player.px = s.x; player.py = s.y; player.t = 1;
+        for (const k of chasers) { const h = spawn(); k.x = h.x; k.y = h.y; k.px = h.x; k.py = h.y; k.wisp = []; }
+        break;
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------- draw
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  function drawMaze() {
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    // Two passes: a wide soft glow, then a crisp core. Cheaper and cleaner
+    // than shadowBlur on every segment.
+    for (const pass of [{ w: 13, a: 0.13, col: P.glow }, { w: 5, a: 0.95, col: P.wall }]) {
+      ctx.strokeStyle = pass.col;
+      ctx.globalAlpha = pass.a;
+      ctx.lineWidth = pass.w;
+      ctx.beginPath();
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          if (grid[y][x] !== 1) continue;
+          const cx = OX + x * TILE + TILE / 2, cy = OY + y * TILE + TILE / 2;
+          // Draw a wall as connectors to neighbouring walls — produces
+          // continuous runs instead of a field of disconnected blocks.
+          if (x + 1 < COLS && grid[y][x + 1] === 1) { ctx.moveTo(cx, cy); ctx.lineTo(cx + TILE, cy); }
+          if (y + 1 < ROWS && grid[y + 1][x] === 1) { ctx.moveTo(cx, cy); ctx.lineTo(cx, cy + TILE); }
+          const isolated =
+            (x + 1 >= COLS || grid[y][x + 1] !== 1) && (x - 1 < 0 || grid[y][x - 1] !== 1) &&
+            (y + 1 >= ROWS || grid[y + 1][x] !== 1) && (y - 1 < 0 || grid[y - 1][x] !== 1);
+          if (isolated) { ctx.moveTo(cx, cy); ctx.lineTo(cx + 0.01, cy); }
+        }
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPellets(time) {
+    ctx.fillStyle = P.pellet;
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        if (!pellets[y][x]) continue;
+        const cx = OX + x * TILE + TILE / 2, cy = OY + y * TILE + TILE / 2;
+        // A slow spatial wave rather than a global blink: it keeps the field
+        // alive without anything flashing in peripheral vision.
+        const pulse = 0.82 + 0.18 * Math.sin(time * 1.6 + (x + y) * 0.35);
+        ctx.globalAlpha = (refillFade > 0 ? 1 - refillFade : 1) * 0.9;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3.6 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPlayer() {
+    const x = OX + lerp(player.px, player.x, player.t) * TILE + TILE / 2;
+    const y = OY + lerp(player.py, player.y, player.t) * TILE + TILE / 2;
+    const ang = Math.atan2(player.dir[1] || 0, player.dir[0] || 1);
+    // The shears open and close as they travel — the snip is the character.
+    const gap = 0.28 + 0.34 * Math.abs(Math.sin(player.snip));
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+    ctx.strokeStyle = P.player;
+    ctx.lineCap = "round";
+    ctx.lineWidth = 6;
+    ctx.shadowColor = P.player;
+    ctx.shadowBlur = 18;
+    for (const s of [1, -1]) {
+      ctx.beginPath();
+      ctx.moveTo(-12, s * 7);                       // handle end
+      ctx.quadraticCurveTo(2, s * 3, 17, s * gap * 22); // blade out to the tip
+      ctx.stroke();
+    }
+    ctx.beginPath();                                 // pivot
+    ctx.arc(0, 0, 3.4, 0, Math.PI * 2);
+    ctx.fillStyle = P.player;
+    ctx.fill();
+    ctx.restore();
+    ctx.shadowBlur = 0;
+  }
+
+  function drawChasers() {
+    for (const c of chasers) {
+      const x = OX + lerp(c.px, c.x, c.t) * TILE + TILE / 2;
+      const y = OY + lerp(c.py, c.y, c.t) * TILE + TILE / 2;
+      // Trailing wisp — motion you read at the edge of vision without looking.
+      for (let i = 0; i < c.wisp.length; i++) {
+        const w = c.wisp[i];
+        ctx.globalAlpha = (i / c.wisp.length) * 0.16;
+        ctx.fillStyle = c.hue;
+        ctx.beginPath();
+        ctx.arc(OX + w[0] * TILE + TILE / 2, OY + w[1] * TILE + TILE / 2, 9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = c.hue;
+      ctx.shadowColor = c.hue;
+      ctx.shadowBlur = 16;
+      ctx.beginPath();
+      ctx.arc(x, y, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  function frame(dt, time) {
+    ctx.fillStyle = P.bg;
+    ctx.fillRect(0, 0, 1920, 1080);
+    drawMaze();
+    drawPellets(time);
+    drawChasers();
+    drawPlayer();
+
+    if (deathFlash > 0) {
+      ctx.fillStyle = "#ffffff";
+      ctx.globalAlpha = Math.max(0, deathFlash) * 0.16;
+      ctx.fillRect(0, 0, 1920, 1080);
+      ctx.globalAlpha = 1;
+    }
+
+    // Vignette. Pulls the eye off the edges and hides the maze border.
+    const g = ctx.createRadialGradient(960, 540, 380, 960, 540, 1150);
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(1, "rgba(0,0,0,0.55)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 1920, 1080);
+  }
+
+  // ---------------------------------------------------------------- loop
+  // A FIXED timestep, driven by frame count rather than wall clock, so the
+  // simulation is identical whether it runs at 60fps live or is stepped by a
+  // recorder. Without this a recording would drift from what you previewed.
+  const FPS = 30, DT = 1 / FPS;
+  let simTime = 0;
+
+  window.__step = () => { update(DT); simTime += DT; frame(DT, simTime); };
+
+  if (!params.has("manual")) {
+    let last = performance.now(), acc = 0;
+    (function tick(now) {
+      acc += Math.min((now - last) / 1000, 0.25);
+      last = now;
+      while (acc >= DT) { window.__step(); acc -= DT; }
+      requestAnimationFrame(tick);
+    })(performance.now());
+  }
+
+  window.__ready = true;
+})();
+</script>
