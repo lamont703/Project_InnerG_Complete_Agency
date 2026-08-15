@@ -40,8 +40,20 @@ const { google } = require('googleapis');
 const { internalEnv } = require('./_google_internal_oauth');
 
 const env = internalEnv();
-const CLIENT_ID = env.GOOGLE_INTERNAL_CLIENT_ID || env.GOOGLE_CLIENT_ID;
-const CLIENT_SECRET = env.GOOGLE_INTERNAL_CLIENT_SECRET || env.GOOGLE_CLIENT_SECRET;
+/**
+ * Same precedence as scripts/test-youtube-oauth.js, and it MUST stay the same.
+ *
+ * A refresh token is bound to the client that issued it. Authorising under the
+ * dedicated YouTube client and then reading with the internal automation client
+ * fails as `unauthorized_client` — which is exactly what happened the first
+ * time this ran, because the audit was written before that client existed and
+ * only the OAuth script was updated. If you ever change one of these two lists,
+ * change the other in the same commit.
+ */
+const CLIENT_ID =
+  env.YOUTUBE_CLIENT_ID || env.GOOGLE_INTERNAL_CLIENT_ID || env.GOOGLE_CLIENT_ID;
+const CLIENT_SECRET =
+  env.YOUTUBE_CLIENT_SECRET || env.GOOGLE_INTERNAL_CLIENT_SECRET || env.GOOGLE_CLIENT_SECRET;
 const REFRESH_TOKEN =
   env.YOUTUBE_REFRESH_TOKEN || env.GOOGLE_YOUTUBE_REFRESH_TOKEN || env.YT_REFRESH_TOKEN;
 

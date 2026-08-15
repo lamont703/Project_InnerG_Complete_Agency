@@ -15,11 +15,37 @@ envContent.split('\n').forEach(line => {
 // Internal automation client, not the customer-facing app's — this flow asks
 // for sensitive YouTube scopes, which must not be attributed to the client that
 // shows barbershop owners a consent screen. See lib/google-internal-oauth.ts.
-const CLIENT_ID = env['GOOGLE_INTERNAL_CLIENT_ID'] || env['GOOGLE_CLIENT_ID'];
-const CLIENT_SECRET = env['GOOGLE_INTERNAL_CLIENT_SECRET'] || env['GOOGLE_CLIENT_SECRET'];
-if (!env['GOOGLE_INTERNAL_CLIENT_ID']) {
-  console.warn("[youtube-oauth] GOOGLE_INTERNAL_CLIENT_ID not set — using the app's client.");
-}
+/**
+ * Client precedence: the dedicated YouTube client first, then the shared
+ * internal automation client, then the customer-facing app's as a last resort.
+ *
+ * THIS ORDERING IS WHAT FIXES redirect_uri_mismatch. The failure was not a
+ * wrong URI — it was the right URI sent by the wrong client. Google validates
+ * the redirect against the client that made the request, so sending
+ * https://shearquery.com/youtube/callback under GOOGLE_INTERNAL_CLIENT_ID,
+ * which has no such URI registered, is rejected every time. The new client has
+ * it; the old one does not.
+ *
+ * WHY YOUTUBE GETS ITS OWN CLIENT. This flow asks for youtube.force-ssl, which
+ * can rewrite every title and description on the channel. Keeping it separate
+ * means that authority is not bundled with the Search Console and Ads tokens,
+ * and can be revoked on its own without taking those down.
+ *
+ * A REFRESH TOKEN IS BOUND TO THE CLIENT THAT ISSUED IT, so any YouTube token
+ * minted under the old client is dead the moment this switches. Re-run this
+ * flow after changing clients and expect invalid_grant until you do.
+ */
+const CLIENT_ID =
+  env['YOUTUBE_CLIENT_ID'] || env['GOOGLE_INTERNAL_CLIENT_ID'] || env['GOOGLE_CLIENT_ID'];
+const CLIENT_SECRET =
+  env['YOUTUBE_CLIENT_SECRET'] || env['GOOGLE_INTERNAL_CLIENT_SECRET'] || env['GOOGLE_CLIENT_SECRET'];
+
+/** Printed before the consent link so the wrong-client case is visible, not inferred. */
+const CLIENT_SOURCE = env['YOUTUBE_CLIENT_ID']
+  ? 'YOUTUBE_CLIENT_ID — dedicated YouTube client'
+  : env['GOOGLE_INTERNAL_CLIENT_ID']
+    ? 'GOOGLE_INTERNAL_CLIENT_ID — shared internal client (redirect URI must be registered on IT)'
+    : 'GOOGLE_CLIENT_ID — customer-facing app client, not ideal for this flow';
 
 /**
  * The exact redirect URI configured in Google Cloud. It must match BYTE FOR
@@ -72,7 +98,9 @@ async function run() {
   
   // Printed prominently because a mismatch here is the single most common way
   // this flow fails, and the error Google returns names the URI it expected.
-  console.log("\nRedirect URI this flow will send: " + REDIRECT_URI);
+  console.log("\nOAuth client in use: " + CLIENT_SOURCE);
+  console.log("Client ID: " + String(CLIENT_ID).slice(0, 24) + "…");
+  console.log("Redirect URI this flow will send: " + REDIRECT_URI);
   console.log("It must match an Authorised redirect URI on the OAuth client EXACTLY.");
   console.log("If you get redirect_uri_mismatch, copy the value above into Google Cloud,");
   console.log("or re-run with YOUTUBE_OAUTH_REDIRECT_URI=<the one Google has>.\n");
