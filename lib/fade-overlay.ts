@@ -50,6 +50,16 @@ export interface OverlayInput {
    * the floor of the fade lands.
    */
   subject?: Subject
+  /**
+   * A canvas whose alpha channel is per-pixel hair confidence (lib/hair-mask).
+   *
+   * When supplied, the band geometry is clipped to it. That is what stops the
+   * ladder being painted on a cheek, an ear, or the wall behind the head — the
+   * geometry decides where the fade line belongs, and this decides where the
+   * overlay is allowed to exist. Optional, so the still-image and synthetic
+   * paths keep working unclipped.
+   */
+  hairMask?: CanvasImageSource | null
 }
 
 /**
@@ -408,6 +418,27 @@ function drawDebugSkull(ctx: CanvasRenderingContext2D, frame: HeadFrame, pts: Ve
   ctx.restore()
 }
 
+/**
+ * A reusable scratch canvas for the clipped-geometry pass.
+ *
+ * Module-level and resized in place. Allocating one per frame at 30fps is a
+ * garbage-collection pause every few seconds, which reads as the overlay
+ * stuttering and gets blamed on the tracker.
+ */
+let scratch: HTMLCanvasElement | null = null
+
+function scratchContext(w: number, h: number): CanvasRenderingContext2D | null {
+  if (typeof document === 'undefined') return null
+  if (!scratch) scratch = document.createElement('canvas')
+  if (scratch.width !== w || scratch.height !== h) {
+    scratch.width = w
+    scratch.height = h
+  }
+  const c = scratch.getContext('2d')
+  c?.clearRect(0, 0, w, h)
+  return c
+}
+
 // ---------------------------------------------------------------------------
 // Calibration
 // ---------------------------------------------------------------------------
@@ -489,7 +520,7 @@ export function measureU(
  * the caller should treat as "no overlay this frame" rather than as an error.
  */
 export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInput): OverlayReport | null {
-  const { landmarks, width: W, height: H, spec, activeRung: active, mirror, debug, subject } = input
+  const { landmarks, width: W, height: H, spec, activeRung: active, mirror, debug, subject, hairMask } = input
   if (!landmarks?.length) return null
 
   const pts = toPixelSpace(landmarks, W, H)
@@ -501,6 +532,17 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
 
   if (debug) drawDebugSkull(ctx, frame, pts, mirror, W)
 
+  /**
+   * With a hair mask, the band geometry is drawn to a scratch canvas, clipped,
+   * and then composited — rather than drawn straight onto the frame.
+   *
+   * Labels deliberately stay OUT of this. They hang off the edge of the head by
+   * design, so clipping them to hair would delete most of them, and a label is
+   * not a claim about the head's surface the way a band is.
+   */
+  const geo = hairMask ? scratchContext(W, H) : null
+  const g = geo ?? ctx
+
   const labels: LabelRequest[] = []
 
   // Anatomy first, underneath everything — the reference points the line is
@@ -510,7 +552,7 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
     [frame.levels.parietal, 'parietal ridge'],
   ] as const) {
     const pr = ring(frame, u, mirror, W)
-    strokeRing(ctx, pr, 'rgba(226,232,240,0.55)', Math.max(1.5, size * 0.09))
+    strokeRing(g, pr, 'rgba(226,232,240,0.55)', Math.max(1.5, size * 0.09))
     const e = edgeOf(pr, 'right')
     if (e) labels.push({ text, x: e.x + size * 0.5, y: e.y, colour: '#e2e8f0', size: size * 0.78, align: 'left', priority: 2 })
   }
@@ -520,8 +562,8 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
     const upper = ring(frame, rung.uTo, mirror, W)
     const colour = rungColour(i, plan.ladder.length)
     const isActive = active === i
-    fillBetween(ctx, lower, upper, colour, isActive ? 0.5 : active === null ? 0.28 : 0.12)
-    strokeRing(ctx, lower, colour, Math.max(1.5, size * (isActive ? 0.14 : 0.08)))
+    fillBetween(g, lower, upper, colour, isActive ? 0.5 : active === null ? 0.28 : 0.12)
+    strokeRing(g, lower, colour, Math.max(1.5, size * (isActive ? 0.14 : 0.08)))
 
     if (isActive || active === null) {
       const e = edgeOf(lower, 'left')
@@ -563,11 +605,11 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
   // The fade line itself — the target, and the one thing that must be
   // unmistakable at a glance. Placed first, so everything else moves for it.
   const line = ring(frame, plan.uLine, mirror, W)
-  ctx.save()
-  ctx.shadowColor = 'rgba(2,6,23,0.9)'
-  ctx.shadowBlur = size * 0.5
-  strokeRing(ctx, line, '#ffffff', Math.max(2.5, size * 0.2))
-  ctx.restore()
+  g.save()
+  g.shadowColor = 'rgba(2,6,23,0.9)'
+  g.shadowBlur = size * 0.5
+  strokeRing(g, line, '#ffffff', Math.max(2.5, size * 0.2))
+  g.restore()
 
   const le = edgeOf(line, 'right')
   if (le) {
@@ -584,7 +626,16 @@ export function drawFadeOverlay(ctx: CanvasRenderingContext2D, input: OverlayInp
 
   if (active !== null && plan.ladder[active]) {
     const rung = plan.ladder[active]
-    drawProtractor(ctx, frame, (rung.uFrom + rung.uTo) / 2, mirror, W, size, labels)
+    drawProtractor(g, frame, (rung.uFrom + rung.uTo) / 2, mirror, W, size, labels)
+  }
+
+  if (geo && hairMask) {
+    // Keep only the geometry that landed on hair, then stamp it onto the frame.
+    geo.save()
+    geo.globalCompositeOperation = 'destination-in'
+    geo.drawImage(hairMask, 0, 0, W, H)
+    geo.restore()
+    ctx.drawImage(geo.canvas, 0, 0)
   }
 
   placeLabels(ctx, labels, W, H)
