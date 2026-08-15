@@ -21,8 +21,31 @@ if (!env['GOOGLE_INTERNAL_CLIENT_ID']) {
   console.warn("[youtube-oauth] GOOGLE_INTERNAL_CLIENT_ID not set — using the app's client.");
 }
 
-// The exact redirect URI configured in Google Cloud
-const REDIRECT_URI = 'https://agency.innergcomplete.com/auth/google/callback';
+/**
+ * The exact redirect URI configured in Google Cloud. It must match BYTE FOR
+ * BYTE or Google refuses the request with redirect_uri_mismatch — scheme,
+ * host, path, and the presence or absence of a trailing slash all count.
+ *
+ * TWO THINGS WERE WRONG WITH THE PREVIOUS VALUE, not one:
+ *
+ *   1. The host was agency.innergcomplete.com, the domain the site has moved
+ *      away from (SITE_HOST is shearquery.com).
+ *   2. The path was /auth/google/callback, which is not a route in this app
+ *      and never has been. `find app -type d -name callback` lists eight
+ *      callbacks and that is not among them. /youtube/callback IS one, so the
+ *      redirect now lands on a page that actually exists.
+ *
+ * It only ever "worked" because this is a manual copy-paste flow: you read the
+ * ?code= value out of the address bar, so a 404 at the destination is
+ * survivable. It is still worth landing somewhere real.
+ *
+ * Override without editing this file when Google Cloud says otherwise:
+ *   YOUTUBE_OAUTH_REDIRECT_URI=... node scripts/test-youtube-oauth.js
+ */
+const REDIRECT_URI =
+  process.env.YOUTUBE_OAUTH_REDIRECT_URI ||
+  env['YOUTUBE_OAUTH_REDIRECT_URI'] ||
+  'https://shearquery.com/youtube/callback';
 
 if (!CLIENT_ID || !CLIENT_SECRET) {
   console.error("Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET in .env.local");
@@ -47,8 +70,19 @@ async function run() {
   authUrl.searchParams.append('access_type', 'offline');
   authUrl.searchParams.append('prompt', 'consent');
   
-  console.log("\n1. To test the API, you first need an access token.");
-  console.log("Please visit the following URL to authorize this application:\n");
+  // Printed prominently because a mismatch here is the single most common way
+  // this flow fails, and the error Google returns names the URI it expected.
+  console.log("\nRedirect URI this flow will send: " + REDIRECT_URI);
+  console.log("It must match an Authorised redirect URI on the OAuth client EXACTLY.");
+  console.log("If you get redirect_uri_mismatch, copy the value above into Google Cloud,");
+  console.log("or re-run with YOUTUBE_OAUTH_REDIRECT_URI=<the one Google has>.\n");
+
+  console.log("PICK THE RIGHT CHANNEL. If this Google account owns more than one");
+  console.log("YouTube channel, Google will ask which to authorise — choose the");
+  console.log("ShearQuery channel, not a personal one. The audit prints the channel");
+  console.log("it authenticated as so you can confirm afterwards.\n");
+
+  console.log("1. Visit this URL to authorize:\n");
   console.log(authUrl.toString());
   
   console.log("\n2. After authorizing, you will be redirected to: " + REDIRECT_URI);
