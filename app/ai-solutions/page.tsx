@@ -3,11 +3,19 @@
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { Navbar } from "@/components/layout/navbar"
-import { Brain, BarChart3, GraduationCap, LayoutDashboard, ArrowRight, Shield, Users, Calendar, Globe, Armchair, Radar, ClipboardList, Scale, ShieldCheck } from "lucide-react"
+import { Brain, BarChart3, GraduationCap, LayoutDashboard, ArrowRight, Shield, Users, Calendar, Globe, Armchair, Radar, ClipboardList, Scale, ShieldCheck, Scan } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 const solutions = [
+  {
+    title: "AR Fade Trainer",
+    label: "Augmented Reality Training",
+    description: "Name the finished fade and the tool works backwards to it — where the line sits on the skull, the guard ladder underneath it, the order of the passes — then draws that plan on a real head through your phone's camera.",
+    icon: Scan,
+    href: "/ar-fade-trainer",
+    roles: ["School Students", "School Instructors", "Barbers & Stylists"]
+  },
   {
     title: "Distance Education Audit Binder",
     label: "NACCAS & TDLR Compliance",

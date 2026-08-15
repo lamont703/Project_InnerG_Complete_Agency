@@ -8,32 +8,17 @@ import { DownloadPdfButton } from "@/components/tools/download-pdf-button"
 import { syncChecklist, toggleChecklistItem, resetChecklist } from "@/components/tools/checklist-actions"
 import { createBrowserClient } from "@/lib/supabase/browser"
 
-export interface KitItem {
-  label: string
-  hint?: string
-  /**
-   * Whether THIS item must carry a label, when the group itself is mixed.
-   *
-   * The CIB gives two authoritative lists — products that must be labeled in
-   * English, and tools that must not be — and a page that groups its kit by
-   * exam service will have both kinds inside one group. Set per item there.
-   * Leave undefined on pages whose groups are already split by label rule;
-   * those keep using KitGroup.mustLabel and render exactly as before.
-   */
-  mustLabel?: boolean
-}
-
-export interface KitGroup {
-  title: string
-  note?: string
-  /**
-   * Every item in this group shares one label rule, shown as a single badge on
-   * the group heading. Leave UNDEFINED for a mixed group — the badge then moves
-   * to the individual items that declare their own `mustLabel`.
-   */
-  mustLabel?: boolean
-  items: KitItem[]
-}
+/**
+ * The kit types now live in `lib/kits/types.ts`, next to the kit data itself.
+ *
+ * They are re-exported here because fifteen kit pages import them from this
+ * module — `import { KitChecklist, type KitGroup } from ".../kit-checklist"` —
+ * and there is no reason to churn every one of those imports. New code should
+ * import from `@/lib/kits/types` directly; a lib module must not have to reach
+ * into a "use client" component to name its own data.
+ */
+export type { KitItem, KitGroup } from "@/lib/kits/types"
+import type { KitGroup } from "@/lib/kits/types"
 
 /**
  * KEYING, AND THE TWO TIMES IT HAD TO MOVE.
@@ -161,7 +146,12 @@ export function KitChecklist({ groups }: { groups: KitGroup[] }) {
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-6 mb-6">
+    // id is the anchor KitPacker's "Check the full list" scrolls to when the
+    // game is embedded on this same page. One checklist per page, so it stays
+    // unique.
+    // scroll-mt-28 matches the page's own pt-28: the navbar is `fixed`, and
+    // without the offset an anchor jump parks the heading underneath it.
+    <div id="kit-checklist" className="scroll-mt-28 bg-white border border-slate-200 rounded-2xl shadow-sm px-6 py-6 mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
         <h2 className="text-xl font-black text-slate-900">Interactive kit checklist</h2>
         <div className="flex items-center gap-2 no-print">
