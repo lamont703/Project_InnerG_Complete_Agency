@@ -24,6 +24,8 @@ import {
 } from "lucide-react"
 import { joinCosmetologyPrepWaitlist } from "@/app/tools/texas-cosmetology-exam-practice-deck/actions"
 import { Navbar } from "@/components/layout/navbar"
+import { VideoEmbed } from "@/components/shared/video-embed";
+import { WRITTEN_EXAM_EPISODE, WRITTEN_EXAM_CONTEXT } from "@/lib/episode-videos";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -221,6 +223,20 @@ export default function TexasCosmetologyExamPrep() {
           </div>
         </div>
       </section>
+
+      <section className="py-16 bg-white border-b border-slate-100">
+        <div className="mx-auto max-w-4xl px-6">
+          <VideoEmbed
+            videoId={WRITTEN_EXAM_EPISODE.videoId}
+            title={WRITTEN_EXAM_EPISODE.title}
+            description={WRITTEN_EXAM_EPISODE.description}
+            duration={WRITTEN_EXAM_EPISODE.duration}
+            uploadDate={WRITTEN_EXAM_EPISODE.uploadDate}
+            context={WRITTEN_EXAM_CONTEXT.examPrep}
+          />
+        </div>
+      </section>
+
 
       {/* The Blueprint: Section 02 */}
       <section aria-label="Texas Cosmetology Exam Intelligence Prep ADI Blueprint" className="py-20 lg:py-40 bg-slate-50 relative overflow-hidden border-y border-slate-200">

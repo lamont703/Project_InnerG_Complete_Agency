@@ -17,6 +17,8 @@ import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 import { KitPacker } from "@/components/tools/kit-packer";
 import { TEXAS_BARBER_KIT } from "@/lib/kits/texas-barber";
 import { siblingKits } from "@/lib/kits";
+import { VideoEmbed } from "@/components/shared/video-embed";
+import { WRITTEN_EXAM_EPISODE, WRITTEN_EXAM_CONTEXT } from "@/lib/episode-videos";
 
 export const metadata = {
   title: "Texas Barber State Board Practical Exam Kit Checklist (2026)",
@@ -137,6 +139,16 @@ export default function BarberPracticalExamKitListPage() {
           item comes straight from the bulletin&apos;s two lists.
         </p>
         <KitChecklist groups={KIT_GROUPS} />
+
+
+        <VideoEmbed
+          videoId={WRITTEN_EXAM_EPISODE.videoId}
+          title={WRITTEN_EXAM_EPISODE.title}
+          description={WRITTEN_EXAM_EPISODE.description}
+          duration={WRITTEN_EXAM_EPISODE.duration}
+          uploadDate={WRITTEN_EXAM_EPISODE.uploadDate}
+          context={WRITTEN_EXAM_CONTEXT.practicalKit}
+        />
 
         {/* Kit Packer sits BELOW the checklist and starts collapsed — this is
             the site's best-performing organic page and the list is what people
