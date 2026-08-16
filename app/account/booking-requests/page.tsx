@@ -8,7 +8,7 @@ import { CalendarCheck, LogIn, BadgeCheck, ArrowUpRight, Eye } from "lucide-reac
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Booking Requests | Inner G Complete",
+  title: "Booking Requests | ShearQuery",
   robots: { index: false, follow: false },
 };
 
