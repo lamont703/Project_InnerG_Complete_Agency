@@ -6,7 +6,43 @@ import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { AdTracker } from "@/components/ads/AdTracker";
 import { fetchEntityBottomBannerAd } from "./scroll-cta-ad";
+import { fetchBannerBookingTarget } from "./scroll-cta-booking";
 import type { EntityBottomBannerAd } from "@/lib/profile-ad";
+import type { BannerBookingTarget } from "@/lib/banner-booking";
+import { isBookableEntityPath } from "@/lib/bookable-routes";
+import { BookAppointmentButton } from "@/components/book-appointment-modal";
+
+/**
+ * WHAT THE BANNER OFFERS, decided by ROUTE first and not by a priority list:
+ *
+ *   On shop / salon / barber / cosmetologist detail pages — Book Appointment,
+ *   and nothing else. No ad is even fetched. The banner opens the SAME modal as
+ *   the button at the top of the page, so a visitor who scrolled past that
+ *   button gets it back at the moment they finish reading.
+ *
+ *   Everywhere else the banner runs (schools, stores) — a campaign ad when one
+ *   targets the page, otherwise the directory search CTA.
+ *
+ * WHY ADS LOSE THIS SLOT RATHER THAN OUTRANKING BOOKING. Nine of the ten active
+ * entity_bottom_banner campaigns target shop pages, which is exactly the
+ * segment converting at zero: 0 requests from 278 unique visitors. Leaving ads
+ * in front would have put the new CTA everywhere except where it is needed.
+ *
+ * The cost is one slot, not an advertiser's visibility: all nine distinct
+ * banner advertisers also hold search_results, shop_profile / salon_profile and
+ * city_hub_banner campaigns, and the profile placement still renders an inline
+ * sponsored card on these very pages. Verified before making the change, and
+ * worth re-checking if that stops being true.
+ *
+ * An entity with no bookable services falls through to the directory CTA, not
+ * to an ad — the route decides, so a bookable page type never shows one.
+ *
+ * WHY THIS REPLACES THE OLD CTA RATHER THAN JOINING IT. "Compare this location
+ * against 1,000+ others" asks a visitor who has just chosen a business to go
+ * back to choosing. It was dismissed 45 times in three days — the single most
+ * clicked control on the site — which is a fair verdict on asking someone to
+ * restart their search at the end of it.
+ */
 
 // Dismissal used to be plain component state, which reset on every fresh
 // page load with no memory of a prior dismissal — a visitor who returned
@@ -33,6 +69,9 @@ export function ScrollCTA() {
   // Campaign-driven ad for this entity page, if one is targeting it. null = fall
   // back to the default directory CTA below.
   const [ad, setAd] = useState<EntityBottomBannerAd | null>(null);
+  // The bookable entity behind this page, or null on schools, stores and
+  // anything without services. Null keeps the directory CTA below.
+  const [booking, setBooking] = useState<BannerBookingTarget | null>(null);
 
   // Runs once on mount (this component lives in the root layout, so
   // "mount" effectively means a fresh page load, not every client-side
@@ -47,6 +86,9 @@ export function ScrollCTA() {
 
   // Determine if we should show on the current page path
   const isEntityPage = /^\/(salons|barbers|schools|stores|shop|cosmetologists)\/[^/]+$/.test(pathname);
+  // Bookable pages take the booking branch and never fetch an ad. See the
+  // header: this is a route decision, not a precedence one.
+  const isBookable = isBookableEntityPath(pathname);
 
   // Figure out the context and target URL
   let typeLabel = "shops";
@@ -83,13 +125,27 @@ export function ScrollCTA() {
   // entity_bottom_banner campaign, or null when none targets it).
   useEffect(() => {
     let ignore = false;
-    if (isEntityPage) {
+    if (isEntityPage && !isBookable) {
       fetchEntityBottomBannerAd(pathname).then((a) => { if (!ignore) setAd(a); });
     } else {
+      // Cleared, not left stale: navigating from a school to a salon must not
+      // carry the school's ad into the booking branch.
       setAd(null);
     }
     return () => { ignore = true; };
-  }, [isEntityPage, pathname]);
+  }, [isEntityPage, isBookable, pathname]);
+
+  // Resolved from the pathname, because this component lives in the root layout
+  // and has no entity props. See lib/banner-booking.ts. Cleared on navigation
+  // so a stale target can never be offered against the wrong business.
+  useEffect(() => {
+    let ignore = false;
+    setBooking(null);
+    if (isBookable) {
+      fetchBannerBookingTarget(pathname).then((b) => { if (!ignore) setBooking(b); });
+    }
+    return () => { ignore = true; };
+  }, [isBookable, pathname]);
 
   useEffect(() => {
     if (!isEntityPage || isDismissed) {
@@ -175,7 +231,11 @@ export function ScrollCTA() {
 
           <div>
             <p className="text-sm font-semibold text-slate-100 leading-relaxed">
-              {ad ? ad.headline : hookText}
+              {ad
+                ? ad.headline
+                : booking
+                  ? `Want an appointment at ${booking.entityName}? Send a request and they'll call you back to confirm.`
+                  : hookText}
             </p>
           </div>
 
@@ -192,6 +252,24 @@ export function ScrollCTA() {
                 {ad.ctaLabel}
               </Link>
             </AdTracker>
+          ) : booking ? (
+            <div className="flex items-center gap-3">
+              {/* Same component, same modal, same API as the button at the top
+                  of the page. trackingId is the ONLY difference: it makes this
+                  entry point separately attributable in pixel_events, so the
+                  banner can be credited (or cut) on its own numbers. */}
+              <BookAppointmentButton
+                entityType={booking.entityType}
+                entityId={booking.entityId}
+                entityName={booking.entityName}
+                services={booking.services}
+                fallbackPhone={booking.phone}
+                fallbackWebsite={booking.website}
+                trackingId="book_appointment_banner"
+                variant="block"
+                className={ctaCls}
+              />
+            </div>
           ) : (
             <div className="flex items-center gap-3">
               <Link href={searchUrl} onClick={handleCTAClick} className={ctaCls}>

@@ -44,6 +44,15 @@ export interface BookAppointmentButtonProps {
   fallbackWebsite?: string | null;
   className?: string;
   variant?: "primary" | "block";
+  /**
+   * The `data-ig-click` value on the trigger, which is what the site-wide pixel
+   * tracker records as element_name. Distinct values are the ONLY way to tell
+   * two entry points apart in pixel_events — without one, the scroll banner's
+   * button and the entity page's button are the same row and neither can be
+   * credited. Do not rename the visible copy to achieve this; the tracker falls
+   * back to button text, so copy changes silently break historical funnels.
+   */
+  trackingId?: string;
 }
 
 const BOOKING_WINDOW_DAYS = 30;
@@ -84,6 +93,7 @@ export function BookAppointmentButton({
   fallbackWebsite = null,
   className,
   variant = "primary",
+  trackingId = "book_appointment",
 }: BookAppointmentButtonProps) {
   const [open, setOpen] = React.useState(false);
   const [step, setStep] = React.useState<Step>("details");
@@ -213,7 +223,7 @@ export function BookAppointmentButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button type="button" data-ig-click="book_appointment" className={cn(triggerClass, className)}>
+        <button type="button" data-ig-click={trackingId} className={cn(triggerClass, className)}>
           <CalendarDays className="w-4 h-4" />
           Book Appointment
         </button>
