@@ -12,8 +12,6 @@ import {
   Star,
   CheckCircle2,
   GraduationCap,
-  Globe,
-  Phone,
   Clock,
   Navigation,
   DollarSign,
@@ -43,6 +41,7 @@ import { WriteReviewButton } from "@/components/shared/write-review-button";
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { composeDescription, ratingClause, streetClause, percentClause } from "@/lib/seo-description";
 import { PassRateAlert } from "@/components/schools/pass-rate-alert";
+import { RequestSchoolTourButton } from "@/components/request-school-tour-modal";
 import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
@@ -554,34 +553,27 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                 </div>
               )}
 
-              {/* Call / Website — same top-of-page placement as the shop/salon
-                  pages (moved up out of the sidebar). */}
-              {(school.phone || websiteHref) && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {school.phone && (
-                    <a
-                      href={`tel:${school.phone.replace(/[^0-9+]/g, "")}`}
-                      data-ig-click="outbound_lead"
-                      className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm px-6 py-3"
-                    >
-                      <Phone className="w-4 h-4 text-slate-500" />
-                      Call
-                    </a>
-                  )}
-                  {websiteHref && (
-                    <a
-                      href={websiteHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-ig-click="outbound_lead"
-                      className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm rounded-xl transition-colors border border-slate-200 shadow-sm px-6 py-3"
-                    >
-                      <Globe className="w-4 h-4 text-slate-500" />
-                      Website
-                    </a>
-                  )}
-                </div>
-              )}
+              {/*
+                Request a School Tour REPLACES Call and Website, the same move
+                Book Appointment made on the salon pages. Both of those buttons
+                handed the lead away: the visit converted somewhere we could not
+                see, so the directory could prove nothing and charge for nothing.
+
+                The school's phone and website are not withheld — they are
+                delivered two ways once the request exists. The modal reveals
+                both on the confirmation step, and the confirmation email
+                repeats them. So a visitor whose request goes unanswered always
+                has the direct route; they just have the route AND we have the
+                lead, instead of only the former.
+              */}
+              <div className="mt-3 max-w-sm">
+                <RequestSchoolTourButton
+                  schoolId={String(school.id)}
+                  schoolName={school.name}
+                  fallbackPhone={school.phone}
+                  fallbackWebsite={websiteHref}
+                />
+              </div>
 
               <div className="flex flex-wrap items-center gap-2 mt-3">
                 {school.rating && (

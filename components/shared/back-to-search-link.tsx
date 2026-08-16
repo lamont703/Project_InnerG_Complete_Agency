@@ -21,7 +21,8 @@ export function BackToSearchLink({ fallbackHref, className }: { fallbackHref: st
           router.push(fallbackHref);
         }
       }}
-      data-ig-click="outbound_lead"
+      /** See dynamic-back-button.tsx — internal navigation, never a lead. */
+      data-ig-click="nav_back_to_search"
       className={className}
     >
       ← Back to search
