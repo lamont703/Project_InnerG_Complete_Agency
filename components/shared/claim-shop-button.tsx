@@ -45,7 +45,20 @@ export function ClaimShopButton({
         }
       }}
       data-ig-click="outbound_lead"
-      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors shadow-md mt-6"
+      /*
+       * THE TOKEN, NOT A HARDCODED BLUE. This has to match the "Search
+       * ShearQuery" button in the navbar, which is `bg-primary`. Writing the
+       * colour literally would match today and drift the first time the brand
+       * blue moves, in a component rendered on eight page types where nobody
+       * would think to look.
+       *
+       * The token is context-dependent and that is exactly why it works here:
+       * `--primary` is #00b2de under the dark `:root` and #0051bd under
+       * `.light`. Every entity page wraps itself — navbar included — in
+       * `light`, so both buttons resolve to the same #0051bd on the same page.
+       * A literal #0051bd would have been wrong on any dark-context page.
+       */
+      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-md mt-6"
     >
       <ShieldCheck className="w-4 h-4" />
       {label}
