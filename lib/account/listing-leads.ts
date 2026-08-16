@@ -14,7 +14,7 @@ export type ListingRoute =
 // → the URL route segment + backing table + display-name column. Note the two
 // school types and two store types collapse onto one route each (/schools, /stores),
 // matching the profile routes get_entity_profile_engagement parses.
-const LEAD_LISTING_BY_CLAIM_KEY: Record<string, { route: ListingRoute; table: string; nameCol: string }> = {
+export const LEAD_LISTING_BY_CLAIM_KEY: Record<string, { route: ListingRoute; table: string; nameCol: string }> = {
   shop: { route: "shop", table: "agent_barbershop_leads", nameCol: "shop_name" },
   salon: { route: "salons", table: "agent_salon_leads", nameCol: "shop_name" },
   barber_school: { route: "schools", table: "agent_barber_school_leads", nameCol: "school_name" },

@@ -56,6 +56,8 @@ export type EscalationAction =
   | { kind: "release_customer" }
   /** The business declined. The customer is still sitting in silence. */
   | { kind: "tell_customer_declined" }
+  /** The business said yes. Nothing has told the customer that yet. */
+  | { kind: "tell_customer_booked" }
   /** Nothing to do. `why` is returned so a dry run explains itself. */
   | { kind: "wait"; why: string };
 
@@ -75,6 +77,15 @@ export function nextAction(row: EscalationRow, now: Date): EscalationAction {
     return row.resolution_notified_at
       ? { kind: "wait", why: "declined, customer already told" }
       : { kind: "tell_customer_declined" };
+  }
+
+  // The good outcome, and it needs saying out loud. A business replying "Y" by
+  // SMS moves the row and nothing else — without this the customer who started
+  // all of it is the only person who never finds out it worked.
+  if (row.status === "booked") {
+    return row.resolution_notified_at
+      ? { kind: "wait", why: "booked, customer already told" }
+      : { kind: "tell_customer_booked" };
   }
 
   if (row.status !== "notified") {
