@@ -55,10 +55,10 @@ export const INVITE_SOURCES: Record<InviteSource, InviteConfig> = {
   booking: {
     table: "booking_requests",
     emailColumn: "customer_email",
-    // The person booking a haircut is not a student or an owner. `professional`
-    // would be wrong and `student` badly wrong, so this stays null until they
-    // do something that says otherwise.
-    audience: null,
+    // Not a student, not an owner, not in the trade at all. This audience
+    // exists precisely so a haircut customer is never answered with pass rates
+    // or asked to claim a listing — see the agentBrief in lib/audiences.ts.
+    audience: "service_customer",
     headline: "Track this request",
     opensWith: "your request, and whether the business has confirmed it",
   },
@@ -81,14 +81,18 @@ export const INVITE_SOURCES: Record<InviteSource, InviteConfig> = {
   shortlist: {
     table: "shortlists",
     emailColumn: "email",
-    audience: null,
+    // Comparing shops to pick one is the same person as the one who books,
+    // a step earlier. Owners use /compare-shops too, but they arrive claimed
+    // and an already-set audience is never overwritten by the callback.
+    audience: "service_customer",
     headline: "Keep your shortlist",
     opensWith: "your saved list, on any device",
   },
   review: {
     table: "shearquery_reviews",
     emailColumn: "email",
-    audience: null,
+    // You review a place you went to as a customer.
+    audience: "service_customer",
     headline: "Keep track of your reviews",
     opensWith: "the reviews you've written",
   },

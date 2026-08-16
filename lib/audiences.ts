@@ -24,7 +24,21 @@
  * the signup route, the chat route and the lifecycle emails alike.
  */
 
-export type AudienceId = "student" | "professional" | "owner" | "school";
+export type AudienceId =
+  | "student"
+  | "professional"
+  | "owner"
+  | "school"
+  /**
+   * Someone who books a haircut or a salon service. NOT in the trade.
+   *
+   * The first audience here that arrives without ever visiting /membership:
+   * they are inferred from a completed booking request, server-side, and the
+   * account is offered afterwards. That is why the agent brief below spends
+   * its words on what NOT to say — without it, someone who booked a beard trim
+   * gets answered with TDLR pass rates and asked to claim a listing.
+   */
+  | "service_customer";
 
 /**
  * The audience assumed when nobody said otherwise.
@@ -74,6 +88,47 @@ export interface Audience {
 }
 
 export const AUDIENCES: Record<AudienceId, Audience> = {
+  service_customer: {
+    id: "service_customer",
+    status: "live",
+    label: "Service customer",
+    who: "I'm looking for a barber or salon",
+    eyebrow: "Free — for customers",
+    headline: "Know where your appointment actually stands",
+    subhead:
+      "A request isn't a confirmed appointment until the business says so. This is where you see which ones they've answered — free, no password.",
+    benefits: [
+      {
+        icon: "calendar",
+        title: "Every request in one place",
+        body: "Appointments and school tours you've asked for, each with where it stands — waiting on them, confirmed, or declined so you know not to hold the time.",
+      },
+      {
+        icon: "check-circle",
+        title: "Told either way, quickly",
+        body: "We text the business and chase them if they go quiet. When they answer, you get an email — including when the answer is no, which is the one nobody else tells you.",
+      },
+      {
+        icon: "map-pin",
+        title: "Their number when you want it",
+        body: "Once you've sent a request, the business's own phone number is right there. No dead ends waiting on a callback that isn't coming.",
+      },
+      {
+        icon: "sparkles",
+        title: "Your shortlist, saved",
+        body: "The places you were comparing stay compared, on any device, instead of living in six browser tabs.",
+      },
+    ],
+    ctaLabel: "Create my free account",
+    agentBrief:
+      "You are talking to a CUSTOMER looking to book a barber or salon service — they are not in the trade. They are not a student, not a licensee and not a shop owner. Never pitch listing claims, verified badges, Google Business Profile, exam prep, kit lists or pass rates; all of those are for people in the industry and are noise to this person. Help them find somewhere good near them, understand what a service involves, and know where their booking request stands.",
+    // No sequence exists for this audience. A track name here would enrol them
+    // in student or owner emails, which is worse than sending nothing.
+    lifecycleTrack: null,
+    // There is no licence journey to collect — they are not getting licensed.
+    collectsJourney: false,
+  },
+
   student: {
     id: "student",
     status: "live",

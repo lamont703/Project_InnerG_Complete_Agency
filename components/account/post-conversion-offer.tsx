@@ -23,12 +23,20 @@ export function PostConversionAccountOffer({
   source,
   id,
   className = "",
+  tone = "light",
 }: {
   source: InviteSource;
   /** The row that just got created. Never an email — see above. */
   id: string;
   className?: string;
+  /**
+   * Some confirmations live on dark surfaces — the pass-rate alert banner is
+   * bg-slate-900. A light card dropped into one reads as a rendering fault, so
+   * the palette is a prop rather than an assumption.
+   */
+  tone?: "light" | "dark";
 }) {
+  const dark = tone === "dark";
   const cfg = INVITE_SOURCES[source];
   const [state, setState] = React.useState<"idle" | "sending" | "sent" | "member">("idle");
   const [error, setError] = React.useState<string | null>(null);
@@ -53,7 +61,11 @@ export function PostConversionAccountOffer({
 
   if (state === "member") {
     return (
-      <div className={`rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600 ${className}`}>
+      <div
+        className={`rounded-xl border p-3 text-sm ${
+          dark ? "border-slate-700 bg-slate-800 text-slate-300" : "border-slate-200 bg-slate-50 text-slate-600"
+        } ${className}`}
+      >
         You already have an account with that email — just log in to see this.
       </div>
     );
@@ -61,12 +73,16 @@ export function PostConversionAccountOffer({
 
   if (state === "sent") {
     return (
-      <div className={`rounded-xl border border-emerald-200 bg-emerald-50 p-3 ${className}`}>
-        <p className="flex items-center gap-2 text-sm font-bold text-emerald-900">
+      <div
+        className={`rounded-xl border p-3 ${
+          dark ? "border-emerald-700/50 bg-emerald-900/30" : "border-emerald-200 bg-emerald-50"
+        } ${className}`}
+      >
+        <p className={`flex items-center gap-2 text-sm font-bold ${dark ? "text-emerald-300" : "text-emerald-900"}`}>
           <MailCheck className="w-4 h-4" />
           Check your email
         </p>
-        <p className="mt-1 text-sm text-emerald-800">
+        <p className={`mt-1 text-sm ${dark ? "text-emerald-200/90" : "text-emerald-800"}`}>
           We sent a link to the address you just used. Tap it and you&apos;re in — no password to
           make up.
         </p>
@@ -75,9 +91,13 @@ export function PostConversionAccountOffer({
   }
 
   return (
-    <div className={`rounded-xl border border-indigo-200 bg-indigo-50/70 p-3 ${className}`}>
-      <p className="text-sm font-bold text-slate-900">{cfg.headline}</p>
-      <p className="mt-0.5 text-sm text-slate-600">
+    <div
+      className={`rounded-xl border p-3 ${
+        dark ? "border-indigo-500/40 bg-indigo-500/10" : "border-indigo-200 bg-indigo-50/70"
+      } ${className}`}
+    >
+      <p className={`text-sm font-bold ${dark ? "text-white" : "text-slate-900"}`}>{cfg.headline}</p>
+      <p className={`mt-0.5 text-sm ${dark ? "text-slate-300" : "text-slate-600"}`}>
         Free account, no password — it opens with {cfg.opensWith}.
       </p>
       <button

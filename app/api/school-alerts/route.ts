@@ -121,5 +121,18 @@ export async function POST(request: NextRequest) {
     console.error("[school-alerts] GHL sync failed (non-fatal):", err);
   }
 
-  return NextResponse.json({ ok: true });
+  /*
+   * Read the row back rather than returning the upsert's own result: with
+   * ignoreDuplicates a repeat ask returns NO row, and the account offer would
+   * silently vanish for exactly the people asking a second time. The id is the
+   * only thing the offer needs — it reads the address itself, server-side.
+   */
+  const { data: saved } = await db
+    .from("school_pass_rate_alerts")
+    .select("id")
+    .eq("email", email)
+    .eq("school_id", school_id)
+    .maybeSingle();
+
+  return NextResponse.json({ ok: true, alert_id: saved?.id ?? null });
 }

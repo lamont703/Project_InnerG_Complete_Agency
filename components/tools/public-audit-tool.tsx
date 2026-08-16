@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PostConversionAccountOffer } from "@/components/account/post-conversion-offer";
 import Link from "next/link";
 import {
   AlertTriangle, ArrowRight, Building2, CheckCircle2, Lock, Loader2,
@@ -328,12 +329,22 @@ function EmailReport({
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const [auditId, setAuditId] = useState<string | null>(null);
 
   if (state === "done") {
     return (
-      <p className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-        <CheckCircle2 className="h-3.5 w-3.5" /> Sent — check your inbox.
-      </p>
+      <div className="mt-4">
+        <p className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+          <CheckCircle2 className="h-3.5 w-3.5" /> Sent — check your inbox.
+        </p>
+        {/*
+          The one owner-side conversion on the site. Running a diagnostic on a
+          listing is a stronger ownership signal than clicking "claim", which
+          costs nothing — so this offer stamps audience "owner" and lands on
+          the booking dashboard rather than the customer view.
+        */}
+        {auditId && <PostConversionAccountOffer source="gbp_audit" id={auditId} className="mt-3" />}
+      </div>
     );
   }
 
@@ -361,6 +372,7 @@ function EmailReport({
         setMessage(json.error || "Couldn't save that.");
         return;
       }
+      setAuditId(json.audit_id ?? null);
       setState("done");
     } catch {
       setState("error");

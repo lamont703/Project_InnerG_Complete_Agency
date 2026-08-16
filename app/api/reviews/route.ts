@@ -60,20 +60,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "That listing could not be found." }, { status: 404 });
     }
 
-    const { error } = await (admin.from("shearquery_reviews") as any).insert({
+    const { data: savedReview, error } = await (admin.from("shearquery_reviews") as any).insert({
       entity_type: entityType,
       entity_id: entityId,
       reviewer_name: reviewerName.trim(),
       reviewer_email: reviewerEmail.trim(),
       rating: numericRating,
       review_text: typeof reviewText === "string" ? reviewText.trim() || null : null,
-    });
+    })
+      // See the shortlist route: a bare insert returns data:null.
+      .select("id")
+      .maybeSingle();
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, review_id: savedReview?.id ?? null });
   } catch (err: any) {
     console.error("[reviews POST] Error:", err);
     return NextResponse.json({ success: false, error: err.message || "Unexpected error." }, { status: 500 });

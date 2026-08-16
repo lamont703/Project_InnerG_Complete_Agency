@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PostConversionAccountOffer } from "@/components/account/post-conversion-offer";
 import { useCallback, useEffect, useState } from "react";
 import { Check, Link2, Loader2, Scale } from "lucide-react";
 import type { ComparisonRow, ShortlistItem } from "@/lib/shortlist";
@@ -102,6 +103,9 @@ function SaveBox({ items, onCleared }: { items: ShortlistItem[]; onCleared: () =
   const [url, setUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // For the account offer only. Null when the shortlist was saved without an
+  // email, which is the common case — no address, nothing to offer.
+  const [shortlistId, setShortlistId] = useState<string | null>(null);
 
   const save = async () => {
     setSaving(true); setError(null);
@@ -113,7 +117,10 @@ function SaveBox({ items, onCleared }: { items: ShortlistItem[]; onCleared: () =
       });
       const json = await res.json();
       if (!json.ok) setError(json.error || "Could not save that.");
-      else setUrl(`${window.location.origin}${json.url}`);
+      else {
+        setShortlistId(json.shortlist_id ?? null);
+        setUrl(`${window.location.origin}${json.url}`);
+      }
     } catch {
       setError("Could not save that.");
     }
@@ -135,6 +142,12 @@ function SaveBox({ items, onCleared }: { items: ShortlistItem[]; onCleared: () =
             <Link2 className="h-3.5 w-3.5" /> {copied ? "Copied" : "Copy link"}
           </button>
         </div>
+        {/* Only when they left an email — the offer reads the address from the
+            saved row, so with no address there is nothing to send. */}
+        {shortlistId && email && (
+          <PostConversionAccountOffer source="shortlist" id={shortlistId} className="mt-4" />
+        )}
+
         <button type="button" onClick={onCleared} className="mt-4 text-xs font-bold text-emerald-800 underline">
           Start a new shortlist
         </button>

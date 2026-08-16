@@ -74,7 +74,7 @@ export async function POST(req: Request) {
     : null;
 
   const shareToken = newShareToken();
-  const { error } = await service().from("shortlists").insert({
+  const { data: savedRow, error } = await service().from("shortlists").insert({
     share_token: shareToken,
     email,
     name: typeof body.name === "string" ? body.name.slice(0, 120) : null,
@@ -82,7 +82,11 @@ export async function POST(req: Request) {
     service_intent: typeof body.serviceIntent === "string" ? body.serviceIntent.slice(0, 120) : null,
     followup_opt_in: wantsFollowUp,
     followup_after: followupAfter,
-  });
+  })
+    // Supabase returns data:null from a bare insert, so without this the id is
+    // always null and the account offer never renders.
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     return NextResponse.json({ ok: false, error: "Could not save" }, { status: 500 });
@@ -91,5 +95,12 @@ export async function POST(req: Request) {
   // The token is the only thing returned. Never echo the email back — a
   // response body is the easiest place to leak one into a log or an analytics
   // payload, and the client already knows what it typed.
-  return NextResponse.json({ ok: true, shareToken, url: `/shortlist/${shareToken}` });
+  // shortlist_id is for the account offer only. The share token stays the
+  // public handle; this id is never rendered and never in a URL.
+  return NextResponse.json({
+    ok: true,
+    shareToken,
+    url: `/shortlist/${shareToken}`,
+    shortlist_id: (savedRow as any)?.id ?? null,
+  });
 }
