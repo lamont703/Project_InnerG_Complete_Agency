@@ -19,6 +19,7 @@
  * that has no bookable services is worse than the generic CTA it replaced.
  */
 import { createAdminClient } from "@/lib/supabase/admin";
+import { BOOKABLE_ENTITY_PATH } from "@/lib/bookable-routes";
 import {
   servicesForEntity,
   type BookableService,
@@ -98,13 +99,10 @@ const ROUTES: Record<
   },
 };
 
-/** Matches only the four bookable entity routes, and only a detail page. */
-const BOOKABLE_PATH = /^\/(shop|salons|barbers|cosmetologists)\/([^/?#]+)$/;
-
 export async function getBannerBookingTarget(
   pathname: string
 ): Promise<BannerBookingTarget | null> {
-  const m = pathname.match(BOOKABLE_PATH);
+  const m = pathname.match(BOOKABLE_ENTITY_PATH);
   if (!m) return null;
 
   const cfg = ROUTES[m[1]];

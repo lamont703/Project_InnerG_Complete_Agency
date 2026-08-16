@@ -9,19 +9,33 @@ import { fetchEntityBottomBannerAd } from "./scroll-cta-ad";
 import { fetchBannerBookingTarget } from "./scroll-cta-booking";
 import type { EntityBottomBannerAd } from "@/lib/profile-ad";
 import type { BannerBookingTarget } from "@/lib/banner-booking";
+import { isBookableEntityPath } from "@/lib/bookable-routes";
 import { BookAppointmentButton } from "@/components/book-appointment-modal";
 
 /**
- * WHAT THE BANNER OFFERS, in strict precedence order:
+ * WHAT THE BANNER OFFERS, decided by ROUTE first and not by a priority list:
  *
- *   1. A campaign ad, when one targets this page. Paid placement outranks
- *      everything — someone bought this slot.
- *   2. Book Appointment, on shop / salon / barber / cosmetologist detail pages
- *      whose entity has bookable services. The banner opens the SAME modal as
- *      the button at the top of the page, so a visitor who has scrolled past
- *      that button gets it back at the moment they have finished reading.
- *   3. The directory search CTA. Schools and stores never leave this branch,
- *      and neither does any entity with no bookable services.
+ *   On shop / salon / barber / cosmetologist detail pages — Book Appointment,
+ *   and nothing else. No ad is even fetched. The banner opens the SAME modal as
+ *   the button at the top of the page, so a visitor who scrolled past that
+ *   button gets it back at the moment they finish reading.
+ *
+ *   Everywhere else the banner runs (schools, stores) — a campaign ad when one
+ *   targets the page, otherwise the directory search CTA.
+ *
+ * WHY ADS LOSE THIS SLOT RATHER THAN OUTRANKING BOOKING. Nine of the ten active
+ * entity_bottom_banner campaigns target shop pages, which is exactly the
+ * segment converting at zero: 0 requests from 278 unique visitors. Leaving ads
+ * in front would have put the new CTA everywhere except where it is needed.
+ *
+ * The cost is one slot, not an advertiser's visibility: all nine distinct
+ * banner advertisers also hold search_results, shop_profile / salon_profile and
+ * city_hub_banner campaigns, and the profile placement still renders an inline
+ * sponsored card on these very pages. Verified before making the change, and
+ * worth re-checking if that stops being true.
+ *
+ * An entity with no bookable services falls through to the directory CTA, not
+ * to an ad — the route decides, so a bookable page type never shows one.
  *
  * WHY THIS REPLACES THE OLD CTA RATHER THAN JOINING IT. "Compare this location
  * against 1,000+ others" asks a visitor who has just chosen a business to go
@@ -72,6 +86,9 @@ export function ScrollCTA() {
 
   // Determine if we should show on the current page path
   const isEntityPage = /^\/(salons|barbers|schools|stores|shop|cosmetologists)\/[^/]+$/.test(pathname);
+  // Bookable pages take the booking branch and never fetch an ad. See the
+  // header: this is a route decision, not a precedence one.
+  const isBookable = isBookableEntityPath(pathname);
 
   // Figure out the context and target URL
   let typeLabel = "shops";
@@ -108,13 +125,15 @@ export function ScrollCTA() {
   // entity_bottom_banner campaign, or null when none targets it).
   useEffect(() => {
     let ignore = false;
-    if (isEntityPage) {
+    if (isEntityPage && !isBookable) {
       fetchEntityBottomBannerAd(pathname).then((a) => { if (!ignore) setAd(a); });
     } else {
+      // Cleared, not left stale: navigating from a school to a salon must not
+      // carry the school's ad into the booking branch.
       setAd(null);
     }
     return () => { ignore = true; };
-  }, [isEntityPage, pathname]);
+  }, [isEntityPage, isBookable, pathname]);
 
   // Resolved from the pathname, because this component lives in the root layout
   // and has no entity props. See lib/banner-booking.ts. Cleared on navigation
@@ -122,11 +141,11 @@ export function ScrollCTA() {
   useEffect(() => {
     let ignore = false;
     setBooking(null);
-    if (isEntityPage) {
+    if (isBookable) {
       fetchBannerBookingTarget(pathname).then((b) => { if (!ignore) setBooking(b); });
     }
     return () => { ignore = true; };
-  }, [isEntityPage, pathname]);
+  }, [isBookable, pathname]);
 
   useEffect(() => {
     if (!isEntityPage || isDismissed) {
