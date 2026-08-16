@@ -186,3 +186,43 @@ describe("withinContactWindow", () => {
     expect(at("2026-08-15T15:00:00Z")).toBe(true);  // 10:00 Central / 08:00 Pacific
   });
 });
+
+describe("phone_call rows are never auto-texted", () => {
+  // The school-tour migration changed the escalation INDEX to exclude these,
+  // but an index does not filter — this policy is what the job actually asks.
+  const tour = (over: Partial<EscalationRow> = {}) =>
+    row({ notify_channel: "phone_call", ...over });
+
+  it("never nudges, however long it has waited", () => {
+    for (const d of ["2026-08-16", "2026-08-20", "2026-09-01"]) {
+      const a = nextAction(tour(), new Date(`${d}T15:00:00Z`));
+      expect(a.kind).not.toBe("nudge_business");
+    }
+  });
+
+  it("says why, so a dry run explains itself", () => {
+    const a = nextAction(tour(), new Date("2026-08-20T15:00:00Z"));
+    expect(a.kind === "wait" && a.why).toMatch(/phone_call/);
+  });
+
+  it("does not fire even in the urgent lane", () => {
+    const soon = tour({ requested_date: "2026-08-16", requested_time: "9:00 AM" });
+    expect(nextAction(soon, new Date("2026-08-15T16:00:00Z")).kind).not.toBe("nudge_business");
+  });
+
+  it("STILL tells the customer — only the business nudge is suppressed", () => {
+    // Someone who asked for a campus tour and heard nothing deserves telling
+    // just as much as someone who asked for a haircut.
+    const missed = tour({ requested_date: "2026-08-13", requested_time: "12:00 PM" });
+    expect(nextAction(missed, new Date("2026-08-15T15:00:00Z")).kind).toBe("release_customer");
+
+    const booked = tour({ status: "booked" });
+    expect(nextAction(booked, new Date("2026-08-20T15:00:00Z")).kind).toBe("tell_customer_booked");
+  });
+
+  it("treats a missing channel as sms, so existing rows are unaffected", () => {
+    const legacy = row({ notify_channel: undefined });
+    const now = new Date(Date.parse("2026-08-15T14:00:00Z") + NUDGE_AFTER_HOURS * 3600_000);
+    expect(nextAction(legacy, now).kind).toBe("nudge_business");
+  });
+});

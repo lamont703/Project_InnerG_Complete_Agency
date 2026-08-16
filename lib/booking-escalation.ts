@@ -42,6 +42,13 @@ export const URGENT_MIN_WAIT_HOURS = 1;
 
 export interface EscalationRow {
   status: string;
+  /**
+   * 'sms' = we can text the business. 'phone_call' = a human owes them a call
+   * and no automation may send anything. Added by the school-tour migration
+   * (20260816180000): across 1,185 schools we hold FOUR email addresses and no
+   * usable automated channel, so tour requests are worked by a person.
+   */
+  notify_channel?: string | null;
   notified_business_at: string | null;
   escalated_at: string | null;
   resolution_notified_at: string | null;
@@ -92,6 +99,20 @@ export function nextAction(row: EscalationRow, now: Date): EscalationAction {
     return { kind: "wait", why: `status is ${row.status}, not awaiting a reply` };
   }
 
+  /*
+   * NO AUTOMATED NUDGE ON A PHONE-CALL ROW. The migration that introduced
+   * notify_channel changed booking_requests_escalation_due_idx to exclude these
+   * — but an index does not filter, a query does, and this policy is what the
+   * job actually asks. Without this check a school tour request sitting at
+   * 'notified' would be texted a reminder about an appointment, on a channel we
+   * deliberately do not use for schools.
+   *
+   * Only the NUDGE is suppressed. The customer-facing outcomes below still
+   * apply: someone who asked for a tour and heard nothing deserves to be told
+   * just as much as someone who asked for a haircut.
+   */
+  const canText = (row.notify_channel ?? "sms") === "sms";
+
   const passed = slotHasPassedEverywhere(row.requested_date, row.requested_time, now);
 
   if (row.escalated_at) {
@@ -119,6 +140,10 @@ export function nextAction(row: EscalationRow, now: Date): EscalationAction {
     // this should not happen. Waiting rather than nudging means a data problem
     // never turns into a message.
     return { kind: "wait", why: "notified with no timestamp — not acting on that" };
+  }
+
+  if (!canText) {
+    return { kind: "wait", why: "phone_call row — a human owes this a call, no automated nudge" };
   }
 
   const untilSlot = hoursUntilSlotEarliest(row.requested_date, row.requested_time, now);

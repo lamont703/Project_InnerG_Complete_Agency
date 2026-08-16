@@ -29,6 +29,31 @@
 export type ReplyIntent = "accept" | "decline" | "optout" | "unclear";
 
 /**
+ * How long after we text a business its reply is still assumed to be ABOUT
+ * that booking.
+ *
+ * WHY A WINDOW AT ALL. This number holds more than one conversation. The same
+ * business is texted by app/api/bookings (a new request), the escalation cron
+ * (a reminder), app/api/account/verify-listing (a claim code) and
+ * scripts/trigger_sms_barber_agent (outreach). A message arriving three weeks
+ * after a booking notification is almost certainly about something else, and
+ * treating it as an answer would move a real appointment on the strength of an
+ * unrelated sentence.
+ *
+ * Seven days is generous against the fact that requests are usually for the
+ * next day or two — a business that has not answered in a week is not about to.
+ */
+export const REPLY_WINDOW_DAYS = 7;
+
+/** True when we texted this business about the booking recently enough. */
+export function withinReplyWindow(lastContactIso: string | null, now: Date): boolean {
+  if (!lastContactIso) return false;
+  const age = now.getTime() - new Date(lastContactIso).getTime();
+  if (Number.isNaN(age) || age < 0) return false;
+  return age <= REPLY_WINDOW_DAYS * 24 * 3600_000;
+}
+
+/**
  * Carrier opt-out keywords. Checked first and in isolation — these are commands
  * to the messaging system, not answers.
  */
@@ -141,6 +166,31 @@ export function parseReply(raw: string): ReplyIntent {
   // Both, or neither. Do not guess — see the header.
   if (accepts === declines) return "unclear";
   return accepts ? "accept" : "decline";
+}
+
+/**
+ * Whether an unparseable message was even TRYING to answer us.
+ *
+ * WHY SILENCE IS OFTEN THE RIGHT REPLY. "unclear" covers two very different
+ * messages: a genuine but ambiguous answer ("yes but not at 9"), and something
+ * with nothing to do with the booking ("hey do you know what the booth rent is
+ * at the shop on Westheimer?"). Both parse the same, and firing the
+ * clarification prompt at the second one is a non-sequitur that names a
+ * customer and a date into a conversation that was about something else.
+ *
+ * The heuristic is length plus keywords, and it is deliberately crude: a short
+ * message to us is probably an answer, and anything containing a yes/no word is
+ * probably an attempt at one. Everything else gets recorded and no reply. The
+ * cost of being wrong here is a business waiting a bit longer for the
+ * escalation nudge, not a wrong appointment.
+ */
+const ANSWER_ATTEMPT_MAX_CHARS = 40;
+
+export function looksLikeAnswerAttempt(raw: string): boolean {
+  const text = String(raw ?? "").trim();
+  if (!text) return false;
+  if (text.length <= ANSWER_ATTEMPT_MAX_CHARS) return true;
+  return ACCEPT.some((re) => re.test(text)) || DECLINE.some((re) => re.test(text));
 }
 
 /** The status an intent moves a request to, or null to leave it alone. */

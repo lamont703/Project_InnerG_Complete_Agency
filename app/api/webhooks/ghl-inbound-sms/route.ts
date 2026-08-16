@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendGhlSms } from "@/lib/ghl-sms";
 import { normalizePhone } from "@/lib/ghl-contacts";
-import { parseReply, statusForIntent, replyAcknowledgement } from "@/lib/booking-reply";
+import {
+  parseReply,
+  statusForIntent,
+  replyAcknowledgement,
+  withinReplyWindow,
+  looksLikeAnswerAttempt,
+} from "@/lib/booking-reply";
 
 /**
  * A business texts back, and the booking moves.
@@ -106,6 +112,7 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createAdminClient();
+  const now = new Date();
 
   /*
    * Open requests for this business, newest first. Statuses are the two that
@@ -121,8 +128,17 @@ export async function POST(req: NextRequest) {
   const last10 = phone.replace(/\D/g, "").slice(-10);
   const { data: rows, error } = await (admin as any)
     .from("booking_requests")
-    .select("id, entity_name, entity_phone, customer_name, customer_email, requested_date, requested_time, status")
+    .select(
+      "id, entity_name, entity_phone, customer_name, customer_email, requested_date, " +
+        "requested_time, status, notified_business_at, escalated_at, clarification_sent_at"
+    )
     .in("status", ["new", "notified"])
+    /*
+     * A phone_call row is worked by a human and never received a text from us,
+     * so an inbound SMS cannot be a reply to it. Without this a school that
+     * texts us for any reason could have its tour request marked "booked".
+     */
+    .eq("notify_channel", "sms")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -131,47 +147,94 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "lookup failed" }, { status: 500 });
   }
 
-  const mine = (rows || []).filter(
+  const byPhone = (rows || []).filter(
     (r: any) => (r.entity_phone || "").replace(/\D/g, "").slice(-10) === last10
   );
+
+  /*
+   * GUARD 1 — RECENCY. This number holds more than one conversation: booking
+   * notifications, escalation nudges, claim-verification codes and outreach all
+   * go to the same businesses. A message arriving weeks after we last mentioned
+   * a booking is almost certainly about something else, and acting on it would
+   * move a real appointment on the strength of an unrelated sentence.
+   */
+  const mine = byPhone.filter((r: any) => {
+    const lastTouched = [r.escalated_at, r.notified_business_at]
+      .filter(Boolean)
+      .sort()
+      .pop() as string | undefined;
+    return withinReplyWindow(lastTouched ?? null, now);
+  });
 
   if (!mine.length) {
     // Not an error. Businesses text about all sorts of things, and most inbound
     // messages will have nothing to do with a booking.
-    return NextResponse.json({ ok: true, matched: false, reason: "no open request for that number" });
+    return NextResponse.json({
+      ok: true,
+      matched: false,
+      reason: byPhone.length
+        ? "open request exists but we haven't texted them about it recently"
+        : "no open request for that number",
+    });
   }
 
   const target = mine[0];
   const intent = parseReply(text || "");
+
+  /*
+   * GUARD 2 — SILENCE ON ANYTHING THAT WASN'T AN ANSWER. "unclear" covers both
+   * an ambiguous answer and a message about something else entirely. Replying
+   * "we couldn't tell if that was a yes or a no for Dana, Sat Aug 22" to a
+   * question about booth rent is a non-sequitur that names a customer into an
+   * unrelated conversation. The booking is left untouched; the escalation cron
+   * still owns chasing it.
+   */
+  if (intent === "unclear" && !looksLikeAnswerAttempt(text || "")) {
+    return NextResponse.json({ ok: true, matched: false, reason: "not an answer to us" });
+  }
   const nextStatus = statusForIntent(intent);
-  const now = new Date().toISOString();
+  const nowIso = now.toISOString();
 
   // The reply is recorded on the request whether or not it was understood.
   // An unparsed message is the most valuable row in the table — it is the only
   // way to find out how the parser is wrong.
   const patch: Record<string, unknown> = {
     business_reply: (text || "").slice(0, 2000),
-    business_replied_at: now,
-    updated_at: now,
+    business_replied_at: nowIso,
+    updated_at: nowIso,
   };
 
   if (nextStatus) {
     patch.status = nextStatus;
     patch.status_source = "sms_reply";
     if (nextStatus === "declined") {
-      patch.declined_at = now;
+      patch.declined_at = nowIso;
       patch.declined_reason = `Business replied by SMS: "${(text || "").slice(0, 200)}"`;
     }
   }
 
-  await (admin as any).from("booking_requests").update(patch).eq("id", target.id);
+  /*
+   * GUARD 3 — CLARIFY AT MOST ONCE PER REQUEST. Without this the prompt fires
+   * on every unparsed message, so a business sending three of them gets three
+   * identical texts naming the same customer. That reads as a malfunction and
+   * is the fastest route to having our number blocked — which would silently
+   * kill every future booking notification to that listing.
+   */
+  const alreadyClarified = Boolean(target.clarification_sent_at);
+  const suppressAck = intent === "unclear" && alreadyClarified;
 
-  const ack = replyAcknowledgement(intent, {
-    customerName: target.customer_name,
-    date: prettyDate(target.requested_date),
-    time: target.requested_time,
-    othersOpen: mine.length - 1,
-  });
+  const ack = suppressAck
+    ? null
+    : replyAcknowledgement(intent, {
+        customerName: target.customer_name,
+        date: prettyDate(target.requested_date),
+        time: target.requested_time,
+        othersOpen: mine.length - 1,
+      });
+
+  if (intent === "unclear" && !alreadyClarified) patch.clarification_sent_at = nowIso;
+
+  await (admin as any).from("booking_requests").update(patch).eq("id", target.id);
 
   if (ack) {
     try {
@@ -195,6 +258,7 @@ export async function POST(req: NextRequest) {
     matched: true,
     intent,
     status: nextStatus || target.status,
+    replied: Boolean(ack),
     othersOpen: mine.length - 1,
   });
 }

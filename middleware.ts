@@ -36,6 +36,11 @@ const INTERNAL_TOOL_ROUTES = [
     "/admin/ad-campaigns",
     "/admin/listing-insights",
     "/admin/listing-report",
+    // The queue renders customers' names, phones and emails. The page and the
+    // route handler both re-check isAdmin() — this entry is defence in depth,
+    // because this middleware fails OPEN on an auth exception.
+    "/admin/school-tour-queue",
+    "/api/admin/school-tour-queue",
     "/tools/employment-match-review",
     "/tools/domain-management",
     "/tools/seo-keyword-tracker",

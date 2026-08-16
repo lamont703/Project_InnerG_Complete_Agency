@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { parseReply, statusForIntent, replyAcknowledgement } from "./booking-reply";
+import {
+  parseReply,
+  statusForIntent,
+  replyAcknowledgement,
+  withinReplyWindow,
+  looksLikeAnswerAttempt,
+} from "./booking-reply";
 
 describe("the plain answers we asked for", () => {
   it("reads a bare Y or N", () => {
@@ -114,5 +120,59 @@ describe("the acknowledgement echoes what moved", () => {
 
   it("copes with no customer name", () => {
     expect(replyAcknowledgement("accept", { ...ctx, customerName: null })).toContain("the customer");
+  });
+});
+
+describe("the reply window — this number holds more than one conversation", () => {
+  const now = new Date("2026-08-16T15:00:00Z");
+
+  it("accepts a reply to a recent notification", () => {
+    expect(withinReplyWindow("2026-08-15T15:00:00Z", now)).toBe(true);
+    expect(withinReplyWindow("2026-08-10T15:00:00Z", now)).toBe(true);
+  });
+
+  it("ignores one that arrives long after we last texted about it", () => {
+    // Almost certainly about outreach, a claim code, or nothing to do with us.
+    expect(withinReplyWindow("2026-07-20T15:00:00Z", now)).toBe(false);
+  });
+
+  it("refuses to act when we never texted them at all", () => {
+    expect(withinReplyWindow(null, now)).toBe(false);
+  });
+
+  it("refuses a timestamp in the future rather than treating it as fresh", () => {
+    expect(withinReplyWindow("2026-09-01T15:00:00Z", now)).toBe(false);
+  });
+
+  it("refuses junk rather than throwing", () => {
+    expect(withinReplyWindow("not-a-date", now)).toBe(false);
+  });
+});
+
+describe("looksLikeAnswerAttempt — when to stay silent", () => {
+  it("treats a short message as an attempt", () => {
+    expect(looksLikeAnswerAttempt("Y")).toBe(true);
+    expect(looksLikeAnswerAttempt("who is this?")).toBe(true);
+  });
+
+  it("treats a long message with a yes/no word as an attempt", () => {
+    expect(
+      looksLikeAnswerAttempt("Yes we can take that appointment, please let them know we run a bit late on Saturdays")
+    ).toBe(true);
+  });
+
+  it("stays silent on a long message about something else entirely", () => {
+    // Firing "we couldn't tell if that was a yes or no for Dana, Sat Aug 22"
+    // at this would name a customer into an unrelated conversation.
+    expect(
+      looksLikeAnswerAttempt(
+        "Hey do you know what the booth rent is running at the shop over on Westheimer these days? Asking for my cousin who just got licensed"
+      )
+    ).toBe(false);
+  });
+
+  it("stays silent on an empty body", () => {
+    expect(looksLikeAnswerAttempt("")).toBe(false);
+    expect(looksLikeAnswerAttempt(null as any)).toBe(false);
   });
 });
