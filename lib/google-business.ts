@@ -329,7 +329,19 @@ export async function claimEntityForMember(
   await admin
     .from("community_member_entity_links")
     .upsert(
-      { community_member_id: memberId, entity_type: match.entityType, entity_id: match.entityId },
+      {
+        community_member_id: memberId,
+        entity_type: match.entityType,
+        entity_id: match.entityId,
+        // GOOGLE OAUTH IS PROOF, so this path lands verified. The member signed
+        // in to Google and Google says they manage this location — that is a
+        // stronger claim than the SMS code path, which only proves possession
+        // of the listed phone. Without stamping it here, an owner who connected
+        // GBP would still be asked to verify by text on
+        // /account/booking-requests, which is both insulting and pointless.
+        verified_at: new Date().toISOString(),
+        verification_method: "gbp",
+      },
       { onConflict: "community_member_id" }
     );
 
