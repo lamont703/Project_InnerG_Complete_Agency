@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { PostConversionAccountOffer } from "@/components/account/post-conversion-offer";
 import { format, addDays, startOfDay } from "date-fns";
 import { CalendarDays, Phone, Globe, Check, Loader2, ArrowLeft } from "lucide-react";
 import {
@@ -85,6 +86,8 @@ export function RequestSchoolTourButton({
     phone: null,
     website: null,
   });
+  // Handed to the account offer below. Not an email — see that component.
+  const [tourId, setTourId] = React.useState<string | null>(null);
 
   /**
    * `now` is state, not a render-time Date. Reading the clock during render
@@ -134,6 +137,7 @@ export function RequestSchoolTourButton({
         setError(json.error || "Something went wrong. Please try again.");
         return;
       }
+      setTourId(json.tour_id ?? null);
       setReveal({
         phone: json.school_phone ?? fallbackPhone ?? null,
         website: json.school_website ?? fallbackWebsite ?? null,
@@ -178,7 +182,7 @@ export function RequestSchoolTourButton({
           this class the modal inherits the dark :root and the calendar renders
           near-white text on near-white surfaces. Anything portalled out of a
           page must carry this. */}
-      <DialogContent className="light sm:max-w-md max-h-[90vh] overflow-y-auto bg-white text-slate-900 border-slate-200">
+      <DialogContent className="light sm:max-w-lg max-h-[90vh] overflow-y-auto bg-white text-slate-900 border-slate-200">
         {step === "details" && (
           <>
             <DialogHeader>
@@ -190,18 +194,39 @@ export function RequestSchoolTourButton({
             </DialogHeader>
 
             <div className="space-y-4">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                disabled={(day) =>
-                  day < today ||
-                  day > addDays(today, TOUR_WINDOW_DAYS) ||
-                  !isWeekday(format(day, "yyyy-MM-dd")) ||
-                  (now ? bookableTourSlots(format(day, "yyyy-MM-dd"), now).length === 0 : false)
-                }
-                className="rounded-md border"
-              />
+              {/*
+                `flex justify-center` on the WRAPPER, not a width on the
+                Calendar. components/ui/calendar.tsx sets `w-fit` on its root,
+                so a calendar dropped straight into this column hugs the left
+                edge and leaves dead space to its right — while the time-slot
+                grid below spans the full width. The two then disagree about
+                where the content starts, which is the misalignment.
+                book-appointment-modal.tsx already wraps it this way; this is
+                the same fix, not a new idea.
+              */}
+              <div className="rounded-xl border border-slate-200 p-1 flex justify-center">
+                <Calendar
+                  /**
+                   * `bg-transparent` so the calendar takes the white of the box
+                   * around it. components/ui/calendar.tsx paints `bg-background`
+                   * on its root, which inside this bordered container renders as
+                   * a pale panel narrower than the box — a nested frame that
+                   * reads as misalignment even though it is perfectly centred.
+                   * It only shows up at mobile widths, where the calendar is
+                   * narrow relative to the dialog.
+                   */
+                  className="bg-transparent"
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  disabled={(day) =>
+                    day < today ||
+                    day > addDays(today, TOUR_WINDOW_DAYS) ||
+                    !isWeekday(format(day, "yyyy-MM-dd")) ||
+                    (now ? bookableTourSlots(format(day, "yyyy-MM-dd"), now).length === 0 : false)
+                  }
+                />
+              </div>
 
               {date && slots.length === 0 ? (
                 <p className="text-sm text-slate-500">
@@ -209,7 +234,12 @@ export function RequestSchoolTourButton({
                   later date.
                 </p>
               ) : (
-                <div className="grid grid-cols-3 gap-2">
+                // Same responsive step as book-appointment-modal.tsx: three
+                // across on mobile, four on desktop. With seven slots that is
+                // 3+3+1 on a phone and 4+3 on a laptop — a ragged last row is
+                // unavoidable at any column count for an odd number of slots,
+                // and the count varies anyway as lead time filters them.
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {slots.map((s) => (
                     <button
                       key={s}
@@ -332,6 +362,11 @@ export function RequestSchoolTourButton({
                 to confirm. This isn&apos;t a confirmed booking yet.
               </DialogDescription>
             </DialogHeader>
+
+            {/* Post-conversion, same rule as the appointment modal. A tour
+                request is the clearest student signal on the site, so this is
+                also where `audience` gets stamped — see lib/account-invite. */}
+            {tourId && <PostConversionAccountOffer source="school_tour" id={tourId} />}
 
             <div className="space-y-2">
               {reveal.phone && (
