@@ -133,6 +133,12 @@ export async function POST(req: NextRequest) {
         "requested_time, status, notified_business_at, escalated_at, clarification_sent_at"
     )
     .in("status", ["new", "notified"])
+    /*
+     * A phone_call row is worked by a human and never received a text from us,
+     * so an inbound SMS cannot be a reply to it. Without this a school that
+     * texts us for any reason could have its tour request marked "booked".
+     */
+    .eq("notify_channel", "sms")
     .order("created_at", { ascending: false })
     .limit(200);
 

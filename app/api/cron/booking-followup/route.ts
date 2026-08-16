@@ -176,7 +176,7 @@ export async function GET(req: Request) {
     .select(
       "id, status, notified_business_at, escalated_at, resolution_notified_at, requested_date, " +
         "requested_time, entity_name, entity_phone, entity_slug, entity_type, service_name, " +
-        "customer_name, customer_phone, customer_email"
+        "customer_name, customer_phone, customer_email, notify_channel"
     )
     .is("resolution_notified_at", null)
     .in("status", ["notified", "declined", "booked"])
