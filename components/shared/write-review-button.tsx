@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PostConversionAccountOffer } from "@/components/account/post-conversion-offer";
 import { useRouter } from "next/navigation";
 import { Star, PenLine, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -16,6 +17,9 @@ export function WriteReviewButton({ entityType, entityId, entityName }: { entity
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Non-null once a review has been written: switches the modal to its
+  // thank-you step, which is where the account offer lives.
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewerName, setReviewerName] = useState("");
@@ -46,8 +50,14 @@ export function WriteReviewButton({ entityType, entityId, entityName }: { entity
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       toast.success("Thanks for your review!");
+      /*
+       * The modal used to close here. It now holds a short thank-you instead,
+       * because a toast is not somewhere an account offer can live — it is gone
+       * in four seconds and cannot be interacted with. The form is reset either
+       * way, so dismissing lands in exactly the old state.
+       */
+      setSubmittedId(data.review_id ?? null);
       resetForm();
-      setIsOpen(false);
       router.refresh();
     } catch (err: any) {
       toast.error(err.message || "Failed to submit review.");
@@ -71,6 +81,23 @@ export function WriteReviewButton({ entityType, entityId, entityName }: { entity
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => !isSubmitting && setIsOpen(false)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+            {submittedId !== null ? (
+              <div className="py-2">
+                <h3 className="text-lg font-black text-slate-900">Thanks — that helps.</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Your review is in. It shows up on the listing once it&apos;s been checked over.
+                </p>
+                <PostConversionAccountOffer source="review" id={submittedId} className="mt-4" />
+                <button
+                  type="button"
+                  onClick={() => { setSubmittedId(null); setIsOpen(false); }}
+                  className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+            <>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
@@ -157,6 +184,8 @@ export function WriteReviewButton({ entityType, entityId, entityName }: { entity
                 )}
               </button>
             </form>
+            </>
+            )}
           </div>
         </div>
       )}

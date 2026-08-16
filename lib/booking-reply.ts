@@ -222,14 +222,14 @@ export function replyAcknowledgement(
 
   switch (intent) {
     case "accept":
-      return `Got it — ${who}, ${when} marked as booked. Please call them to confirm the details.${more}`;
+      return `Got it - ${who}, ${when} marked as booked. Please call them to confirm the details.${more}`;
     case "decline":
-      return `Thanks for letting us know — ${who}, ${when} marked as declined, and we'll tell them.${more}`;
+      return `Thanks for letting us know - ${who}, ${when} marked as declined, and we'll tell them.${more}`;
     case "optout":
       // Nothing. The carrier handles STOP, and a reply to it would be another
       // message to someone who just asked for none.
       return null;
     case "unclear":
-      return `Sorry — we couldn't tell if that was a yes or a no for ${who}, ${when}. Reply Y to confirm or N if you can't take it.`;
+      return `Sorry - we couldn't tell if that was a yes or a no for ${who}, ${when}. Reply Y to confirm or N if you can't take it.`;
   }
 }

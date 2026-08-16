@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PostConversionAccountOffer } from "@/components/account/post-conversion-offer";
 import { X, TrendingUp, Loader2, CheckCircle2 } from "lucide-react";
 
 /**
@@ -64,6 +65,8 @@ export function PassRateAlert({
   const [visible, setVisible] = useState(false);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "saving" | "done" | "error">("idle");
+  // For the account offer only — it reads the address itself, server-side.
+  const [alertId, setAlertId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -138,6 +141,7 @@ export function PassRateAlert({
         setStatus("error");
         return;
       }
+      setAlertId(json.alert_id ?? null);
       setStatus("done");
       try {
         localStorage.setItem(DISMISS_KEY, "1");
@@ -172,6 +176,9 @@ export function PassRateAlert({
                 We&apos;ll email you when {schoolName}&apos;s {NEXT_PERIOD} results publish. Nothing
                 else.
               </p>
+              {alertId && (
+                <PostConversionAccountOffer source="pass_rate_alert" id={alertId} tone="dark" className="mt-3" />
+              )}
             </div>
           </div>
         ) : (

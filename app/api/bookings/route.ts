@@ -246,14 +246,53 @@ export async function POST(request: NextRequest) {
   // our platform, so the message has to be self-sufficient — a barber reading
   // it between clients should not have to open anything to call the customer
   // back. Roughly 180 chars, so two SMS segments at worst.
+  /*
+   * IS THIS THEIR FIRST EVER REQUEST, AND HAVE THEY CLAIMED THE LISTING?
+   *
+   * Only then does the SMS mention the dashboard. A business's first request is
+   * the one moment the offer means anything — they have just learned this
+   * channel exists and produces customers. Repeating it on every request
+   * afterwards is noise stapled to the one message that has to stay actionable,
+   * and it pushes a 2-segment text to 3 every single time.
+   *
+   * Both checks are cheap and both matter: an already-claimed listing needs no
+   * invitation, and a business on its fifth request has made its decision.
+   */
+  let inviteToDashboard = false;
+  try {
+    const [{ count: priorCount }, { data: link }] = await Promise.all([
+      db
+        .from("booking_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("entity_type", entityType)
+        .eq("entity_id", entityId)
+        .neq("id", row.id),
+      (db.from("community_member_entity_links") as any)
+        .select("id")
+        .eq("entity_type", entityType)
+        .eq("entity_id", entityId)
+        .maybeSingle(),
+    ]);
+    inviteToDashboard = (priorCount ?? 0) === 0 && !link;
+  } catch {
+    // A failed check just means no invitation line. The request itself is what
+    // matters and must not depend on this.
+  }
+
   const smsBody =
     `New appointment request via ShearQuery\n` +
-    `${match.name} — ${prettyDate} at ${requestedTime}\n` +
+    `${match.name} - ${prettyDate} at ${requestedTime}\n` +
     `${customerName || "A customer"}\n` +
     `Phone: ${customerPhone}\n` +
     `Email: ${customerEmail}\n` +
     (customerNotes ? `Note: ${customerNotes}\n` : "") +
-    `Contact them to confirm — this is a request, not a booking.`;
+    `Contact them to confirm - this is a request, not a booking.\n` +
+    // On EVERY message, not just the first. This is the core mechanic of the
+    // reply handler: a business that does not know it can answer by text will
+    // not, and that reply is the only signal that ever moves a request for the
+    // businesses who will never log in to anything.
+    `Reply Y if you can take it, N if you can't.` +
+    (inviteToDashboard ? `\nSee all your requests: ${SITE_URL}/membership` : "");
 
   let smsOk = false;
   try {

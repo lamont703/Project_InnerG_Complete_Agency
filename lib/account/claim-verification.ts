@@ -121,6 +121,6 @@ export function verificationSms(code: string, listingName: string): string {
   return (
     `ShearQuery: someone is claiming ${listingName} on our directory. ` +
     `If that's you, your code is ${code} (expires in ${CODE_TTL_MINUTES} minutes). ` +
-    `If it isn't, ignore this message — no one gets access without the code.`
+    `If it isn't, ignore this message - no one gets access without the code.`
   );
 }

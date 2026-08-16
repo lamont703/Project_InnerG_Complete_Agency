@@ -90,8 +90,8 @@ const prettyDate = (d: string) =>
  */
 function nudgeSms(r: Row) {
   return (
-    `Reminder — appointment request still waiting (ShearQuery)\n` +
-    `${r.service_name || "Appointment"} — ${prettyDate(r.requested_date)} at ${r.requested_time}\n` +
+    `Reminder - appointment request still waiting (ShearQuery)\n` +
+    `${r.service_name || "Appointment"} - ${prettyDate(r.requested_date)} at ${r.requested_time}\n` +
     `${r.customer_name || "A customer"}\n` +
     `Phone: ${r.customer_phone}\n` +
     `They haven't heard back yet. Can you take it? A quick yes or no is enough.`

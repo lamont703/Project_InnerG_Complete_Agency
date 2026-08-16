@@ -103,7 +103,7 @@ export async function POST(req: Request) {
     );
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, audit_id: row?.id ?? null });
 }
 
 export async function GET(req: Request) {

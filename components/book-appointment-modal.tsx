@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { formatServiceLabel, type BookableService, type BookingEntityType } from "@/lib/booking-services";
 import { bookableSlots } from "@/lib/booking-lead-time";
+import { PostConversionAccountOffer } from "@/components/account/post-conversion-offer";
 
 /**
  * The Book Appointment CTA and its modal — the single conversion point on the
@@ -111,6 +112,9 @@ export function BookAppointmentButton({
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [business, setBusiness] = React.useState<BusinessContact | null>(null);
+  // Kept only to hand the account offer a reference to the row that was just
+  // created. Never the email — see the offer component.
+  const [bookingId, setBookingId] = React.useState<string | null>(null);
 
   const today = React.useMemo(() => startOfDay(new Date()), []);
   const lastDay = React.useMemo(() => addDays(today, BOOKING_WINDOW_DAYS), [today]);
@@ -163,6 +167,7 @@ export function BookAppointmentButton({
       setNotes("");
       setError(null);
       setBusiness(null);
+      setBookingId(null);
     }, 200);
     return () => clearTimeout(t);
   }, [open, services]);
@@ -203,6 +208,7 @@ export function BookAppointmentButton({
       }
 
       setBusiness(data.business ?? { name: entityName, phone: fallbackPhone, website: fallbackWebsite });
+      setBookingId(data.booking_id ?? null);
       setStep("done");
     } catch {
       setError("We couldn't reach the server. Please try again.");
@@ -258,6 +264,11 @@ export function BookAppointmentButton({
               This is a request, not a confirmed appointment. The time is yours once the
               business confirms it.
             </div>
+
+            {/* AFTER the conversion, never before it. The request is already
+                sent and nothing here can undo it — that is the whole reason
+                the ask lives at this step. */}
+            {bookingId && <PostConversionAccountOffer source="booking" id={bookingId} className="mt-3" />}
 
             {(phoneOut || siteHref) && (
               <div className="space-y-2">
