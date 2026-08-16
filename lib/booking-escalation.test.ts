@@ -127,9 +127,26 @@ describe("declined", () => {
   });
 });
 
+describe("booked", () => {
+  it("tells the customer the good news — nothing else does", () => {
+    const b = row({ status: "booked" });
+    expect(nextAction(b, new Date("2026-08-20T15:00:00Z")).kind).toBe("tell_customer_booked");
+  });
+
+  it("tells them once", () => {
+    const b = row({ status: "booked", resolution_notified_at: "2026-08-20T15:00:00Z" });
+    expect(nextAction(b, new Date("2026-08-21T15:00:00Z")).kind).toBe("wait");
+  });
+
+  it("never nudges a business that already said yes", () => {
+    const b = row({ status: "booked" });
+    expect(nextAction(b, new Date("2026-09-30T15:00:00Z")).kind).not.toBe("nudge_business");
+  });
+});
+
 describe("statuses the job must not touch", () => {
   it("leaves everything a human has already moved on", () => {
-    for (const status of ["new", "contacted", "booked", "no_response", "cancelled"]) {
+    for (const status of ["new", "contacted", "no_response", "cancelled"]) {
       const a = nextAction(row({ status }), new Date("2026-09-30T15:00:00Z"));
       expect(a.kind).toBe("wait");
     }

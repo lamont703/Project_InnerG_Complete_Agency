@@ -17,6 +17,7 @@ import { nextAction, withinContactWindow, type EscalationRow } from "@/lib/booki
  * WHAT IT DOES, in priority order per request:
  *
  *   nudge_business         one reminder SMS, never a second
+ *   tell_customer_booked   the business said yes — nothing else tells them
  *   tell_customer_declined the business said no; the customer is still waiting
  *   release_customer       nobody ever answered and the slot has gone
  *
@@ -110,12 +111,26 @@ function nudgeSms(r: Row) {
  * business that declined promptly did the right thing and the email says so; a
  * business that never replied gets no such cover.
  */
-function resolutionEmail(r: Row, kind: "declined" | "no_response") {
+function resolutionEmail(r: Row, kind: "declined" | "no_response" | "booked") {
   const who = r.entity_name || "The business";
   const when = `${prettyDate(r.requested_date)} at ${r.requested_time}`;
   const call = r.entity_phone
     ? `<p>Their number, if you'd like to try another time: <a href="tel:${r.entity_phone}">${r.entity_phone}</a></p>`
     : "";
+
+  if (kind === "booked") {
+    return {
+      subject: `${who} confirmed — ${when}`,
+      html:
+        `<p>${r.customer_name ? `${r.customer_name}, ` : ""}good news: <strong>${who}</strong> ` +
+        `confirmed <strong>${when}</strong>.</p>` +
+        `<p>They may still call to check details, so keep an eye on your phone. If anything ` +
+        `changes on your side, contact them directly rather than us — we passed the request ` +
+        `on, but the appointment is theirs.</p>` +
+        call +
+        `<p><a href="${listingUrl(r)}">View the listing</a></p>`,
+    };
+  }
 
   if (kind === "declined") {
     return {
@@ -164,7 +179,7 @@ export async function GET(req: Request) {
         "customer_name, customer_phone, customer_email"
     )
     .is("resolution_notified_at", null)
-    .in("status", ["notified", "declined"])
+    .in("status", ["notified", "declined", "booked"])
     .order("requested_date", { ascending: true })
     .limit(BATCH);
 
@@ -233,8 +248,13 @@ export async function GET(req: Request) {
       continue;
     }
 
-    // Both remaining actions tell the customer something final.
-    const kind = action.kind === "tell_customer_declined" ? "declined" : "no_response";
+    // The remaining actions all tell the customer something final.
+    const kind =
+      action.kind === "tell_customer_declined"
+        ? "declined"
+        : action.kind === "tell_customer_booked"
+          ? "booked"
+          : "no_response";
     if (!row.customer_email) {
       failures.push(`${row.id}: no customer email`);
     } else {
@@ -257,9 +277,12 @@ export async function GET(req: Request) {
       resolution_notified_at: now.toISOString(),
       updated_at: now.toISOString(),
     };
-    // A released request also changes status. A declined one does not — it is
-    // already in its final state and only the customer was outstanding.
-    if (kind === "no_response") patch.status = "no_response";
+    // A released request also changes status. Declined and booked do not — both
+    // are already in their final state and only the customer was outstanding.
+    if (kind === "no_response") {
+      patch.status = "no_response";
+      patch.status_source = "cron";
+    }
 
     await (supabase as any).from("booking_requests").update(patch).eq("id", row.id);
   }
