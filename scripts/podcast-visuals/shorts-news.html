@@ -1,0 +1,396 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Shorts news card</title>
+<!--
+  A 9:16 news card for YouTube Shorts. Same visual world as thumbnail.html —
+  near-black, one warm accent, teal for the figure that works and rose for the
+  one that does not — so a Short and an episode read as the same publication.
+
+  THE STAT IS THE WHOLE POST, and that is inherited deliberately. Nobody else
+  can publish these numbers, because they come out of the TDLR roster and the
+  PSI bulletins. A template wrapped around a headline anyone can scrape is
+  undifferentiated; the same template wrapped around a figure only we hold is
+  the entire reason to make it.
+
+  ============================================================================
+  THE UI SAFE AREA IS THE CONSTRAINT THAT DECIDES THE LAYOUT
+  ============================================================================
+  A Short is not shown full-bleed. YouTube paints its own chrome over the frame:
+  the title, channel, description and sound row along the BOTTOM, and the like /
+  comment / share / more column down the RIGHT. Anything placed there is covered
+  on every phone, and it looks fine in the file and broken in the feed — which
+  is the worst possible way to be wrong.
+
+  So the composition lives inside a box inset from those two edges:
+    bottom  22% reserved for YouTube's caption stack
+    right   14% reserved for the action rail
+  Both are DESIGN ASSUMPTIONS, generous on purpose, not published numbers.
+  Verify against a real upload before trusting them — the failure is silent.
+
+  The source line sits ABOVE the bottom reserve rather than at the foot of the
+  frame, which is where it would naturally go and where it would be invisible.
+
+  IT MUST SURVIVE THE FEED. thumbnail.html learned this the hard way: body copy
+  dies when it shrinks. A Short is scrolled past at speed on a small screen, so
+  the rule is stricter here — one number, one claim, one attribution. If a
+  second idea wants in, it is a second Short.
+-->
+<style>
+  html, body { margin: 0; background: #06070a; }
+
+  .frame {
+    position: relative;
+    width: var(--w); height: var(--h);
+    background:
+      radial-gradient(ellipse at 50% 34%, #131826 0%, #06070a 68%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    overflow: hidden;
+  }
+
+  /* A faint scanline texture. Registers as material, not as content — it is
+     the only thing in the frame that is allowed to be invisible at a glance. */
+  .frame::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, rgba(255,255,255,.020) 0, rgba(255,255,255,.020) 1px,
+      transparent 1px, transparent calc(var(--u) * 0.006));
+    pointer-events: none;
+  }
+
+  /* The Shear Run signature rule, top and bottom of the SAFE box. */
+  .rule {
+    position: absolute; left: var(--padx); right: var(--safeR);
+    height: calc(var(--u) * 0.006);
+    background: repeating-linear-gradient(90deg,
+      #a855f7 0, #a855f7 calc(var(--u) * 0.045),
+      transparent calc(var(--u) * 0.045), transparent calc(var(--u) * 0.09));
+    opacity: 0.34;
+  }
+  .rule.top { top: calc(var(--u) * 0.10); }
+  .rule.bottom { bottom: var(--safeB); }
+
+  /* Everything meaningful lives in here. See the safe-area note above. */
+  .safe {
+    position: absolute;
+    left: var(--padx);
+    right: var(--safeR);
+    top: calc(var(--u) * 0.10);
+    bottom: var(--safeB);
+    display: flex; flex-direction: column;
+    justify-content: center;
+  }
+
+  .eyebrow {
+    display: flex; align-items: center; gap: calc(var(--u) * 0.028);
+    margin-bottom: calc(var(--u) * 0.055);
+  }
+  .chip {
+    font-size: calc(var(--u) * 0.028);
+    font-weight: 900; letter-spacing: .16em; text-transform: uppercase;
+    color: #ffd166;
+    border: calc(var(--u) * 0.0035) solid rgba(255,209,102,.42);
+    border-radius: 999px;
+    padding: calc(var(--u) * 0.014) calc(var(--u) * 0.032);
+  }
+  .date {
+    font-size: calc(var(--u) * 0.027);
+    font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+    color: #64748b;
+  }
+
+  .stat {
+    /* Starting size only — the script below shrinks it to fit. See the fitter. */
+    font-size: calc(var(--u) * 0.30);
+    white-space: nowrap;
+    font-weight: 900; letter-spacing: -0.045em; line-height: 0.86;
+    color: #fb7185;
+    text-shadow: 0 0 calc(var(--u) * 0.075) rgba(251,113,133,.40);
+  }
+  .frame.good .stat {
+    color: #2dd4bf;
+    text-shadow: 0 0 calc(var(--u) * 0.075) rgba(45,212,191,.40);
+  }
+
+  .label {
+    margin-top: calc(var(--u) * 0.030);
+    font-size: calc(var(--u) * 0.052);
+    font-weight: 800; line-height: 1.18; letter-spacing: -0.012em;
+    color: #e2e8f0;
+    max-width: 96%;
+  }
+
+  /* The turn — the sentence that makes the number mean something. Warm accent,
+     because it is the line the viewer is meant to leave with. */
+  .punch {
+    margin-top: calc(var(--u) * 0.042);
+    padding-left: calc(var(--u) * 0.030);
+    border-left: calc(var(--u) * 0.008) solid #ffd166;
+    font-size: calc(var(--u) * 0.043);
+    font-weight: 800; line-height: 1.28; letter-spacing: -0.01em;
+    color: #ffd166;
+    max-width: 94%;
+  }
+
+  /* Attribution is not optional and not decoration. Every figure on this site
+     traces to a named source; a card that drops it is a card that cannot be
+     defended when somebody screenshots it. */
+  /*
+    IN FLOW, NOT PINNED TO THE FLOOR. Pinned absolutely to the bottom of the
+    safe box it did two bad things: it sat ON the bottom rule, which struck
+    through a wrapped second line, and it left a large dead gap between the
+    punch and itself. The whole card now composes as one block and centres as
+    one, which is what makes it read as designed rather than assembled.
+  */
+  .source {
+    margin-top: calc(var(--u) * 0.075);
+    font-size: calc(var(--u) * 0.0245);
+    font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: #6b7789; line-height: 1.5;
+  }
+
+  /* Everything that moves lives in .stage, so the Ken Burns scale is clipped by
+     .frame instead of overflowing it. */
+  .stage { position: absolute; inset: 0; transform-origin: 50% 42%; will-change: transform; }
+
+  /* A story-style progress bar. Shorts loop, so a filling bar tells the viewer
+     how much is left and makes the loop point legible instead of jarring. */
+  .progress {
+    position: absolute; top: 0; left: 0; height: calc(var(--u) * 0.007);
+    width: 0%; background: #ffd166; opacity: .85; z-index: 5;
+  }
+
+  /* The accent bar is drawn as a pseudo-element so it can wipe downward
+     independently of the text sliding in beside it. */
+  .punch { border-left: none; position: relative; }
+  .punch::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+    width: calc(var(--u) * 0.008); background: #ffd166;
+    transform-origin: 50% 0%;
+    transform: scaleY(var(--barScale, 1));
+  }
+
+  /*
+    THE QUESTION IS THE COMMENT ENGINE, and it is the last thing revealed on
+    purpose — it is what the viewer should be holding when the clip loops.
+    A card that only states a figure gets watched; a card that asks something
+    answerable gets replied to, and replies are what the algorithm reads.
+    Simple beats clever: a question with an obvious side to take produces more
+    comments than one that sounds like an exam prompt.
+  */
+  .question {
+    margin-top: calc(var(--u) * 0.055);
+    display: flex; align-items: center; gap: calc(var(--u) * 0.028);
+    border: calc(var(--u) * 0.0035) solid rgba(148,163,184,.30);
+    border-radius: calc(var(--u) * 0.032);
+    padding: calc(var(--u) * 0.032) calc(var(--u) * 0.034);
+    background: rgba(148,163,184,.06);
+  }
+  .qmark {
+    flex: none;
+    width: calc(var(--u) * 0.072); height: calc(var(--u) * 0.072);
+    border-radius: 50%;
+    background: #ffd166; color: #06070a;
+    font-size: calc(var(--u) * 0.045); font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .qtext {
+    font-size: calc(var(--u) * 0.040);
+    font-weight: 800; line-height: 1.25; letter-spacing: -0.01em;
+    color: #f1f5f9;
+  }
+
+  .brand {
+    position: absolute;
+    left: var(--padx); bottom: calc(var(--u) * 0.045);
+    display: flex; align-items: center; gap: calc(var(--u) * 0.016);
+    font-size: calc(var(--u) * 0.028); font-weight: 900;
+    letter-spacing: .13em; color: #94a3b8; text-transform: uppercase;
+  }
+</style>
+
+<div class="frame" id="f">
+ <div class="progress" id="prog"></div>
+ <div class="stage" id="stage">
+  <div class="rule top"></div>
+
+  <div class="safe">
+    <div class="eyebrow">
+      <span class="chip" id="chip">Texas · Licensing</span>
+      <span class="date" id="date">17 Aug 2026</span>
+    </div>
+
+    <div class="stat" id="stat">36.55%</div>
+    <div class="label" id="label">of Texas barber candidates never pass the written exam.</div>
+    <div class="punch" id="punch">They pass the hands-on exam at 92.34%.</div>
+
+    <div class="source" id="source">Source: TDLR / PSI roster · 2,411 records · 2026</div>
+
+    <div class="question" id="questionBox">
+      <div class="qmark">?</div>
+      <div class="qtext" id="question">So is the exam broken — or the training?</div>
+    </div>
+  </div>
+
+  <div class="rule bottom"></div>
+
+  <div class="brand" id="brandrow">
+    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="2.4" stroke-linecap="round">
+      <path d="M4 5 L20 19"/><path d="M20 5 L4 19"/><circle cx="12" cy="12" r="1.6" fill="#ffd166" stroke="none"/>
+    </svg>
+    <span id="brand">shearquery.com</span>
+  </div>
+ </div>
+</div>
+
+<script>
+  const q = new URLSearchParams(location.search);
+  const w = +(q.get("w") || 1080), h = +(q.get("h") || 1920);
+  const f = document.getElementById("f");
+
+  f.style.setProperty("--w", w + "px");
+  f.style.setProperty("--h", h + "px");
+  // Type scales off the SHORT side, as in thumbnail.html — in a 9:16 frame the
+  // width is what everything has to fit across, not the height.
+  f.style.setProperty("--u", Math.min(w, h) + "px");
+  f.style.setProperty("--padx", (Math.min(w, h) * 0.085) + "px");
+  // The two reserves. See the safe-area note at the top of this file.
+  f.style.setProperty("--safeR", (w * 0.14) + "px");
+  f.style.setProperty("--safeB", (h * 0.22) + "px");
+
+  // `tone=good` flips the stat from rose to teal. The default is rose because
+  // a figure worth a Short is usually one that should not be true.
+  if ((q.get("tone") || "") === "good") f.classList.add("good");
+
+  const set = (id, key) => { const v = q.get(key); if (v) document.getElementById(id).textContent = v; };
+  ["chip","date","stat","label","punch","source","brand","question"].forEach((k) => set(k, k));
+
+  /**
+   * FIT THE STAT TO THE FRAME, because the stat is the one field whose LENGTH
+   * is unpredictable. A fixed size tuned for "36.55%" clips the "%" at six
+   * characters and looks absurdly small at three ("4 of 6" vs "83%"). The first
+   * render of this file lost the % off the right edge for exactly that reason.
+   *
+   * Shrink-to-fit, then grow-to-fill: a short stat should still command the
+   * frame. Capped so a two-character figure does not become a wall.
+   */
+  const stat = document.getElementById("stat");
+  const safe = document.querySelector(".safe");
+  const avail = safe.clientWidth;
+  const u = Math.min(w, h);
+  let size = u * 0.30;
+  stat.style.fontSize = size + "px";
+  // Shrink while it overflows.
+  let guard = 0;
+  while (stat.scrollWidth > avail && size > u * 0.10 && guard++ < 200) {
+    size -= u * 0.004;
+    stat.style.fontSize = size + "px";
+  }
+  // Grow while there is room, up to a ceiling that keeps short stats sane.
+  guard = 0;
+  while (stat.scrollWidth < avail * 0.97 && size < u * 0.34 && guard++ < 200) {
+    size += u * 0.004;
+    stat.style.fontSize = size + "px";
+  }
+  if (stat.scrollWidth > avail) stat.style.fontSize = (size - u * 0.004) + "px";
+
+
+  /**
+   * THE TIMELINE. `__setT(t)` places every element for a normalised time
+   * 0..1, and the video renderer steps t frame by frame. Nothing here uses CSS
+   * transitions or requestAnimationFrame, and that is the whole point: a
+   * renderer that screenshots on its own clock cannot capture an animation
+   * running on the browser's. Driving from a pure function of t means frame 47
+   * looks identical whether it was rendered in 8ms or 800ms.
+   *
+   * A still render is simply t = 1.
+   */
+  const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
+  const easeOutExpo = (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
+  /** Progress of a segment [a,b] at time t, clamped to 0..1. */
+  const seg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+
+  /**
+   * Count the stat up ONLY when it is purely a number with a short unit.
+   * "36.55%" counts; "4 of 6" must not, because ticking to 4 and leaving
+   * " of 6" static reads as a bug rather than an effect.
+   */
+  const statText = document.getElementById("stat").textContent.trim();
+  const m = /^([\d,]+(?:\.\d+)?)\s*([%×x]?)$/.exec(statText);
+  const countTarget = m ? parseFloat(m[1].replace(/,/g, "")) : null;
+  const countSuffix = m ? m[2] : "";
+  const countDecimals = m && m[1].includes(".") ? m[1].split(".")[1].length : 0;
+
+  const el = {
+    stage: document.getElementById("stage"),
+    prog: document.getElementById("prog"),
+    eyebrow: document.querySelector(".eyebrow"),
+    stat: document.getElementById("stat"),
+    label: document.getElementById("label"),
+    punch: document.getElementById("punch"),
+    source: document.getElementById("source"),
+    question: document.getElementById("questionBox"),
+    brand: document.getElementById("brandrow"),
+    ruleTop: document.querySelector(".rule.top"),
+    ruleBottom: document.querySelector(".rule.bottom"),
+  };
+
+  window.__setT = function (t) {
+    t = Math.max(0, Math.min(1, t));
+
+    // Continuous slow push-in across the whole clip. Small on purpose — enough
+    // to feel alive, not enough to notice as an effect.
+    el.stage.style.transform = "scale(" + (1 + 0.045 * easeOutCubic(t)) + ")";
+    el.prog.style.width = (t * 100) + "%";
+
+    // Rules wipe outward from the left.
+    const rw = easeOutExpo(seg(t, 0.00, 0.28));
+    el.ruleTop.style.clipPath = "inset(0 " + (100 - rw * 100) + "% 0 0)";
+    el.ruleBottom.style.clipPath = "inset(0 " + (100 - rw * 100) + "% 0 0)";
+
+    // Eyebrow drops in.
+    const e = easeOutCubic(seg(t, 0.02, 0.16));
+    el.eyebrow.style.opacity = e;
+    el.eyebrow.style.transform = "translateY(" + (-18 * (1 - e)) + "px)";
+
+    // The stat: counts up, settling from slightly small.
+    const sp = easeOutExpo(seg(t, 0.06, 0.44));
+    el.stat.style.opacity = Math.min(1, sp * 1.6);
+    el.stat.style.transform = "scale(" + (0.90 + 0.10 * sp) + ")";
+    el.stat.style.transformOrigin = "0% 50%";
+    if (countTarget !== null) {
+      const v = countTarget * sp;
+      el.stat.textContent = v.toFixed(countDecimals) + countSuffix;
+    }
+
+    // Label wipes up from behind its own baseline.
+    const l = easeOutCubic(seg(t, 0.34, 0.54));
+    el.label.style.opacity = l;
+    el.label.style.transform = "translateY(" + (26 * (1 - l)) + "px)";
+
+    // Punch: the accent bar draws DOWN first, then the text slides in beside
+    // it. Sequencing the two is what makes it read as deliberate.
+    const pb = easeOutExpo(seg(t, 0.52, 0.64));
+    const pt = easeOutCubic(seg(t, 0.56, 0.72));
+    el.punch.style.setProperty("--bar", pb);
+    el.punch.style.opacity = pt;
+    el.punch.style.transform = "translateX(" + (-22 * (1 - pt)) + "px)";
+    const bar = el.punch;
+    bar.style.setProperty("--barScale", pb);
+
+    // Source settles, then the question arrives last and holds.
+    const s2 = easeOutCubic(seg(t, 0.66, 0.78));
+    el.source.style.opacity = s2 * 0.95;
+
+    const qz = easeOutExpo(seg(t, 0.76, 0.92));
+    el.question.style.opacity = qz;
+    el.question.style.transform = "translateY(" + (24 * (1 - qz)) + "px) scale(" + (0.97 + 0.03 * qz) + ")";
+    el.brand.style.opacity = easeOutCubic(seg(t, 0.80, 0.94));
+  };
+
+  document.body.style.width = w + "px";
+  document.body.style.height = h + "px";
+  window.__setT(1);
+  window.__ready = true;
+</script>

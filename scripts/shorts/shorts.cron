@@ -1,0 +1,37 @@
+# ShearQuery — automated YouTube Shorts, once daily at 9am.
+#
+# INSTALL:
+#   crontab scripts/shorts/shorts.cron
+# VERIFY:
+#   crontab -l
+# STOP:
+#   crontab -r
+#
+# ---------------------------------------------------------------------------
+# PATH IS SET EXPLICITLY, and this line is the one that decides whether any of
+# this works. cron runs with a minimal environment — it does not read .zshrc,
+# so it never sees nvm, so `node` is not on its PATH. A job that runs perfectly
+# in a shell and does nothing on a schedule is almost always this.
+#
+# TIMES ARE SYSTEM LOCAL. Currently EDT. The card data is Central; if this
+# machine's timezone changes, these fire at a different Central hour than
+# intended. cron has no timezone of its own to pin.
+#
+# THE MACHINE MUST BE AWAKE. A sleeping or powered-off Mac runs no cron and
+# does not catch up afterwards — the slot is simply missed, silently. If this
+# needs to be reliable, it belongs on a server or a GitHub Action, not a laptop.
+#
+# WHAT IT DOES EACH RUN: picks the next unpublished card, renders a 9-second
+# 1080x1920 Short with the music bed, and publishes it PUBLIC. Guards live in
+# run_scheduled.js — a 1/day cap, no repeats, and a hard stop when the card
+# pool is exhausted rather than looping.
+#
+# ONCE A DAY, NOT TWICE, because cadence is limited by supply. Adding a second
+# slot here without deepening the card pool just exhausts it twice as fast —
+# change MAX_PER_DAY in run_scheduled.js as well, or the second run will simply
+# hit the daily cap and log a skip.
+# ---------------------------------------------------------------------------
+
+PATH=/Users/lamontevans/.nvm/versions/node/v23.11.0/bin:/usr/bin:/bin:/usr/sbin:/sbin
+
+0 9 * * * cd /Users/lamontevans/Desktop/AI_Blockchain_Enterprise_Services && node scripts/shorts/run_scheduled.js >> "reference/Podcast Visuals/Shorts/_cron.log" 2>&1
