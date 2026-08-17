@@ -1108,6 +1108,10 @@ function SearchContent() {
                     conversation isn't yet a thing you'd be sorry to lose. */}
                 {memberCtx && !memberCtx.isMember && !isAiLoading && !chatError &&
                   chatMessages.filter((m) => m.role === 'model').length >= 2 && (
+                  <SignupOfferImpression />
+                )}
+                {memberCtx && !memberCtx.isMember && !isAiLoading && !chatError &&
+                  chatMessages.filter((m) => m.role === 'model').length >= 2 && (
                   <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 px-4 py-3.5">
                     <p className="text-sm font-black text-slate-900">This conversation disappears when you close the tab.</p>
                     <p className="text-sm text-slate-600 mt-1 leading-relaxed">
@@ -1115,7 +1119,8 @@ function SearchContent() {
                       answering in general and starts answering about your exam.
                     </p>
                     <Link
-                      href="/membership?for=student"
+                      href="/membership?for=student&src=ai_mode"
+                      data-ig-click="ai_mode_signup_offer"
                       onClick={() => (window as any).innerG?.track?.('ai_chat_signup_invite_clicked')}
                       className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-black text-white hover:bg-blue-700 transition-colors"
                     >
@@ -1811,4 +1816,24 @@ export default function BarbershopSearchPage() {
       <SearchContent />
     </Suspense>
   );
+}
+
+/**
+ * Fires once when the signup offer becomes visible.
+ *
+ * WITHOUT A DENOMINATOR A CLICK COUNT MEANS NOTHING. The offer has been clicked
+ * zero times, which reads like a failing CTA until you learn it has been SHOWN
+ * about sixteen times: only 16 of 197 chat sessions ever reach two model
+ * replies, and the median session is a single message. Zero from sixteen is no
+ * signal at all; zero from a thousand would be. This event is what lets those
+ * be told apart.
+ *
+ * Once per mount, not once per render — the offer sits inside a list that
+ * re-renders on every streamed token.
+ */
+function SignupOfferImpression() {
+  useEffect(() => {
+    (window as any).innerG?.track?.('ai_mode_signup_offer_shown');
+  }, []);
+  return null;
 }
