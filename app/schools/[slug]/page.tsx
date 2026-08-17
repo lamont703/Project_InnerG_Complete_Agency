@@ -32,7 +32,7 @@ import { fetchNearbyEntities } from "@/lib/nearby-entities";
 import { deriveExamState, examPrepInfo } from "@/lib/exam-prep";
 import { SCHOOL_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
-import { ClaimShopButton } from "@/components/shared/claim-shop-button";
+import { AiSchoolCompanionCta } from "@/components/schools/ai-school-companion-cta";
 import { isEntityClaimed } from "@/lib/entity-claim";
 import { ReviewsSection } from "@/components/shared/reviews-section";
 import { GoogleReviews } from "@/components/shared/google-reviews";
@@ -544,15 +544,64 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                 )}
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{school.school_name}</h1>
-              {isClaimed ? (
-                <div className="mt-2">
-                  <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1.5 rounded-lg font-bold text-xs">
+              {/*
+                THE PRIMARY CTA NOW SPEAKS TO WHO IS ACTUALLY READING. 877 unique
+                visitors reached school pages; 8 clicked "Claim your school".
+                That CTA addresses an administrator on a page read by students
+                choosing where to enrol — the same mismatch /membership had.
+
+                Claiming is DEMOTED, NOT REMOVED: those 8 clicks are the only
+                inbound channel for schools as customers, and an admin who finds
+                no way to claim is an account lost in silence.
+              */}
+              <div className="mt-3 flex flex-col gap-2">
+                <div>
+                  <AiSchoolCompanionCta
+                    school={{
+                      name: school.school_name,
+                      city: school.city,
+                      category: school.school_category,
+                      // The same cosmetology/barber split generateMetadata
+                      // uses; reading the wrong column shows a barber rate on a
+                      // cosmetology school, which is worse than showing none.
+                      //
+                      // The OVERALL rate, not first-attempt: the latter is not
+                      // in SCHOOL_PUBLIC_COLUMNS, so it arrives undefined and
+                      // the number vanishes from the prompt with no error.
+                      writtenRate:
+                        school._matchType === "cosmetology"
+                          ? school.cosmetology_written_pass_rate_2026
+                          : school.written_pass_rate_2026,
+                      practicalRate:
+                        school._matchType === "cosmetology"
+                          ? school.cosmetology_practical_pass_rate_2026
+                          : school.practical_pass_rate_2026,
+                    }}
+                  />
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    Compare pass rates, ask what to look for on a tour, and get answers about your
+                    licence track — free.
+                  </p>
+                </div>
+
+                {isClaimed ? (
+                  <span className="inline-flex w-fit items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1.5 rounded-lg font-bold text-xs">
                     <CheckCircle2 className="w-3.5 h-3.5" /> Claimed
                   </span>
-                </div>
-              ) : (
-                <ClaimShopButton entityType={claimEntityType} entityId={school.id} entityName={school.school_name} noun="school" />
-              )}
+                ) : (
+                  <p className="text-xs text-slate-500">
+                    Work here?{" "}
+                    <Link
+                      href={`/membership?claim_type=${encodeURIComponent(claimEntityType)}&claim_id=${encodeURIComponent(school.id)}&claim_name=${encodeURIComponent(school.school_name)}`}
+                      data-ig-click="claim_school_secondary"
+                      className="font-bold text-indigo-700 hover:underline"
+                    >
+                      Claim this school
+                    </Link>{" "}
+                    to keep its details right.
+                  </p>
+                )}
+              </div>
               {(school.formatted_address || directionsHref) && (
                 <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 mt-1 text-sm text-slate-500 font-medium">
                   {school.formatted_address && (
