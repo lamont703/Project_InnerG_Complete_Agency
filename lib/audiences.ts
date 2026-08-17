@@ -214,6 +214,17 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
       "Claim the listing, connect Google, and get the market report for your own address — talent pipeline, competition, and what rent looks like around you.",
     benefits: [
       {
+        // FIRST, deliberately. Additive — nothing below was removed — but a
+        // booking request is a named person waiting on a phone call, and the
+        // owner arriving from that text needs to see it before the badge and
+        // the market report. Everything described here already ships:
+        // /account/booking-requests, the SMS reply handler, and the escalation
+        // job that chases on their behalf.
+        icon: "calendar",
+        title: "Appointment requests, in one place",
+        body: "Customers can request an appointment straight from your listing. You get a text with their name and number, and this is where you see every request, mark what you booked, and answer with a single Y or N. We chase the ones you miss and tell the customer either way.",
+      },
+      {
         icon: "badge-check",
         title: "Claim and verify your listing",
         body: "The verified badge, plus control of what the listing says about your shop.",
@@ -259,6 +270,22 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
 };
 
 /** Every audience that may be shown to the public, in display order. */
+/**
+ * The audiences offered on the /membership switcher — NOT simply every audience
+ * whose status is "live", which is what the name suggests and why this comment
+ * exists.
+ *
+ * service_customer is live and its benefits ship, but it is deliberately absent
+ * here. Nobody arrives at /membership to describe themselves as a haircut
+ * customer; that audience is inferred server-side from a completed booking and
+ * the account is offered afterwards. Adding a fourth tab would invite a
+ * self-select that is not the path, on the page whose entire job is converting
+ * the other three.
+ *
+ * If a customer-facing signup entry point is ever wanted, add it here on
+ * purpose rather than deriving this list from `status` — the two answer
+ * different questions.
+ */
 export const LIVE_AUDIENCES: Audience[] = [
   AUDIENCES.student,
   AUDIENCES.professional,

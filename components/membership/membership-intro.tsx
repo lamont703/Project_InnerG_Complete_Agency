@@ -54,10 +54,38 @@ export function MembershipHeading() {
   const claimName = params.get("claim_name");
   const claimType = params.get("claim_type");
 
+  /*
+   * Arriving from a booking notification is the most specific reason anyone
+   * lands here: a real customer is waiting on them right now. The generic claim
+   * copy ("keep its details right") is true and completely beside the point at
+   * that moment, so this branch answers the text they just received.
+   */
+  const fromBooking = params.get("src") === "booking";
+
   // A claim in progress answers the question that got them here. Unchanged.
   if (claimName) {
     const noun =
       claimType === "cosmetology_school" || claimType === "barber_school" ? "school" : "listing";
+
+    if (fromBooking) {
+      return (
+        <>
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-800 bg-amber-50 border border-amber-200 rounded-full px-3 py-1 mb-3">
+            <Sparkles className="w-3 h-3" />
+            You have a booking request
+          </span>
+          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-slate-950 leading-tight mb-3">
+            See who&apos;s asking for {claimName}
+          </h1>
+          <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+            Someone requested an appointment and we texted you the details. Create a free account to
+            see every request in one place, mark what you booked, and get the verified badge on your
+            listing. No card, no trial.
+          </p>
+        </>
+      );
+    }
+
     return (
       <>
         <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-3 py-1 mb-3">
@@ -93,7 +121,14 @@ export function MembershipHeading() {
 
 export function MembershipBenefits() {
   const params = useSearchParams();
-  const activeId = audienceFromParam(params.get("for"));
+  /*
+   * Someone who followed a booking-request text IS an owner — that is the one
+   * thing the link proves. Without this the page showed them the default
+   * `professional` benefits (verified badge, industry community, free always),
+   * all true and none of them the reason they tapped. The owner set leads with
+   * the appointment-requests benefit, which is what they came for.
+   */
+  const activeId = params.get("src") === "booking" ? "owner" : audienceFromParam(params.get("for"));
   const active = AUDIENCES[activeId];
   const isClaiming = Boolean(params.get("claim_name"));
 
