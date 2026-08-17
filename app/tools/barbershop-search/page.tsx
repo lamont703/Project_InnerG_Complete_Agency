@@ -259,7 +259,13 @@ function SearchContent() {
         setChatError(data.error || 'Failed to connect.');
         setUpgradeHref(res.status === 429 ? data.upgradeHref || null : null);
         if (res.status === 429 && (window as any).innerG?.track) {
-          (window as any).innerG.track('ai_rate_limit_hit', { is_member: !!memberCtx?.isMember });
+          // `reason` distinguishes the two-answer guard on an anonymous visitor
+          // from a member exhausting their daily 50. Without it both land in one
+          // bucket and the guard's conversion rate cannot be computed.
+          (window as any).innerG.track('ai_rate_limit_hit', {
+            is_member: !!memberCtx?.isMember,
+            reason: data.reason || null,
+          });
         }
       } else {
         setChatMessages([...newHistory, { role: 'model', content: data.text, employmentMatches: data.employmentMatches }]);
@@ -1087,6 +1093,7 @@ function SearchContent() {
                       {upgradeHref && (
                         <Link
                           href={upgradeHref}
+                          data-ig-click="ai_mode_guard_upgrade"
                           className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-black text-white hover:bg-blue-700 transition-colors"
                         >
                           Create a free account
