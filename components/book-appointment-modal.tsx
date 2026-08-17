@@ -217,10 +217,24 @@ export function BookAppointmentButton({
     }
   }
 
+  /*
+   * THE TOKEN, NOT A LITERAL — same reasoning as the claim CTA. This has to
+   * match "Search ShearQuery" in the navbar, which is bg-primary. A hardcoded
+   * blue matches today and drifts the first time the brand colour moves, in a
+   * component rendered on four page types.
+   *
+   * --primary is context-dependent (#00b2de under the dark :root, #0051bd
+   * under .light) and every entity page wraps itself — navbar included — in
+   * `light`, so both buttons resolve to the same value on the same page.
+   *
+   * NOTE for anyone rendering this somewhere new: the scroll banner passes its
+   * own gradient because it sits OUTSIDE that wrapper, in the root layout,
+   * where bg-primary resolves to the dark-context cyan instead.
+   */
   const triggerClass =
     variant === "block"
-      ? "w-full inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl transition-colors shadow-sm px-6 py-3"
-      : "flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl transition-colors shadow-sm px-6 py-3";
+      ? "w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-sm rounded-xl transition-colors shadow-sm px-6 py-3"
+      : "flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-sm rounded-xl transition-colors shadow-sm px-6 py-3";
 
   const phoneOut = business?.phone ?? fallbackPhone;
   const siteOut = business?.website ?? fallbackWebsite;
