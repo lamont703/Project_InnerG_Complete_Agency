@@ -19,7 +19,7 @@
  * that has no bookable services is worse than the generic CTA it replaced.
  */
 import { createAdminClient } from "@/lib/supabase/admin";
-import { BOOKABLE_ENTITY_PATH } from "@/lib/bookable-routes";
+import { BOOKABLE_ENTITY_PATH, SCHOOL_TOUR_PATH } from "@/lib/bookable-routes";
 import {
   servicesForEntity,
   type BookableService,
@@ -148,6 +148,63 @@ export async function getBannerBookingTarget(
   } catch {
     // A banner is decoration. It must never take a page down, and falling back
     // to the directory CTA is a complete, working experience on its own.
+    return null;
+  }
+}
+
+/**
+ * The school behind a /schools/[slug] page, for the banner's tour CTA.
+ *
+ * SEPARATE FROM getBannerBookingTarget, for the same reason SCHOOL_TOUR_PATH is
+ * separate from BOOKABLE_ENTITY_PATH: there are no services to resolve, so the
+ * null-means-not-bookable contract above does not apply. Here a null means only
+ * "no such school", and the banner falls back to its directory CTA.
+ *
+ * IT SEARCHES BOTH TABLES because schools are split by trade —
+ * agent_barber_school_leads and agent_cosmetology_school_leads — exactly as
+ * app/schools/[slug]/page.tsx and app/api/school-tours/route.ts both do. A
+ * lookup that checked only one would work on most pages and silently fail on
+ * the rest, which is the worst shape this bug could take.
+ *
+ * PHONE IS PUBLIC HERE. A school's number is its published contact detail, the
+ * same as a shop's — unlike the barber and cosmetologist tables, where the
+ * number is private lead data and lib/public-columns.ts omits it.
+ */
+export interface BannerTourTarget {
+  entityId: string;
+  entityName: string;
+  phone: string | null;
+  website: string | null;
+}
+
+const SCHOOL_TABLES = ["agent_barber_school_leads", "agent_cosmetology_school_leads"] as const;
+
+export async function getBannerTourTarget(pathname: string): Promise<BannerTourTarget | null> {
+  const m = pathname.match(SCHOOL_TOUR_PATH);
+  if (!m) return null;
+  const slug = m[1];
+
+  try {
+    const admin = createAdminClient();
+    for (const table of SCHOOL_TABLES) {
+      const { data } = await admin
+        .from(table)
+        .select("id, school_name, phone, website")
+        .eq("slug", slug)
+        .maybeSingle();
+      const row = data as Record<string, any> | null;
+      if (row?.school_name) {
+        return {
+          entityId: String(row.id),
+          entityName: String(row.school_name),
+          phone: row.phone ?? null,
+          website: row.website ?? null,
+        };
+      }
+    }
+    return null;
+  } catch {
+    // A banner is decoration. It must never take a page down.
     return null;
   }
 }

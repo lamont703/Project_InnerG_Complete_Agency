@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
   for (const table of SCHOOL_TABLES) {
     const { data } = await db
       .from(table)
-      .select("id, slug, name, phone, city, website")
+      .select("id, slug, school_name, phone, city, website")
       .eq("id", entityId)
       .maybeSingle();
     if (data) {
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
       entity_type: "school",
       entity_id: String(school.id),
       entity_slug: school.slug ?? null,
-      entity_name: school.name ?? null,
+      entity_name: school.school_name ?? null,
       entity_phone: school.phone ?? null,
       request_type: "tour",
       notify_channel: "phone_call",
@@ -239,10 +239,10 @@ export async function POST(request: NextRequest) {
     await sendGhlEmail({
       email: customerEmail,
       name: customerName,
-      subject: `Tour request sent — ${school.name ?? "your school"}`,
+      subject: `Tour request sent — ${school.school_name ?? "your school"}`,
       html: `
         <p>Hi ${customerName},</p>
-        <p>We've received your request to tour <strong>${school.name ?? "this school"}</strong>${
+        <p>We've received your request to tour <strong>${school.school_name ?? "this school"}</strong>${
           school.city ? ` in ${school.city}` : ""
         }.</p>
         <p><strong>Requested:</strong> ${requestedDate} at ${requestedTime}</p>
