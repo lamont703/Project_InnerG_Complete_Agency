@@ -4,6 +4,8 @@ import { Navbar } from "@/components/layout/navbar";
 import { TrendingUp, CheckCircle2, GraduationCap, ArrowRight, MapPin, BookOpen } from "lucide-react";
 import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, ref, webPageNode } from "@/lib/schema-graph";
+import { AgentInvite } from "@/components/journey/agent-invite";
+import { examPrepQuestions } from "@/lib/agent-invite-questions";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -296,6 +298,15 @@ export async function CaliforniaExamPrep({ variant }: { variant: Variant }) {
             Open the California {licenseLabel} Leaderboard
           </Link>
         </section>
+
+        {/* variant is the only thing separating the two pages that use this
+            component, so it is what picks the licence. California has no
+            practical exam — its bulletin contains the word zero times — so
+            these are written-exam questions only. */}
+        <AgentInvite
+          questions={examPrepQuestions("California", licenseLabel)}
+          blurb="Ask about the California written exam, your school's pass rate, or what the BBC actually requires — grounded in the Board's own reporting."
+        />
 
         <div className="flex items-center gap-2 justify-center text-xs text-slate-400 font-medium">
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />

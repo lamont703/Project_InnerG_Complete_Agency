@@ -25,6 +25,8 @@ import Image from "next/image"
 import { Navbar } from "@/components/layout/navbar"
 import { VideoEmbed } from "@/components/shared/video-embed";
 import { WRITTEN_EXAM_EPISODE, WRITTEN_EXAM_CONTEXT } from "@/lib/episode-videos";
+import { AgentInvite } from "@/components/journey/agent-invite";
+import { questionsForSlug } from "@/lib/agent-invite-questions";
 
 function GlowOrb({ className }: { className: string }) {
   return (
@@ -649,6 +651,11 @@ export default function TexasBarberExamPrep() {
           </div>
         </div>
       </section>
-    </main>
+            {/* Questions derived from this route, so a page renamed or added
+            to the same convention is handled without a second edit.
+            See lib/agent-invite-questions.ts. */}
+        <AgentInvite questions={questionsForSlug("texas-barber-exam-intelligence-prep")!} />
+
+</main>
   )
 }

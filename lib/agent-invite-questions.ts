@@ -67,3 +67,100 @@ export function requirementsQuestions(state: string, licence: string): string[] 
     `What's the full step-by-step to get licensed as a ${l} in ${s}?`,
   ];
 }
+
+/** Questions for a licence-transfer or reciprocity page. */
+export function transferQuestions(fromState: string, toState: string, licence: string): string[] {
+  const l = licence.trim();
+  return [
+    `Can I transfer my ${l} licence from ${fromState.trim()} to ${toState.trim()}?`,
+    `What hours or exams would ${toState.trim()} make me repeat?`,
+    `How long does a ${l} licence transfer actually take?`,
+  ];
+}
+
+/** Questions for an exam-prep page — the reader has a date, not a curiosity. */
+export function examPrepQuestions(state: string, licence: string): string[] {
+  const s = state.trim();
+  const l = licence.trim();
+  return [
+    `What's actually on the ${s} ${l} written exam?`,
+    `Which topics do most ${l} candidates fail on?`,
+    `How should I study for the ${s} ${l} exam if I test in 30 days?`,
+  ];
+}
+
+/**
+ * A route slug -> the state, licence and kind of page it is.
+ *
+ * WHY PARSE THE SLUG. 59 licensing pages need questions and every one of them
+ * already announces its subject in its own URL. Hand-classifying them is 59
+ * chances to put a renewal question on a requirements page; deriving it means
+ * a new page named to the same convention is handled the day it ships.
+ *
+ * Returns null for anything it cannot read with confidence — a page that gets
+ * no AgentInvite is a page that keeps working, whereas a page given the wrong
+ * questions actively misleads someone about their own licence.
+ */
+export type PageKind = "renewal" | "requirements" | "exam_prep" | "transfer" | "unknown";
+
+const STATES: Record<string, string> = {
+  texas: "Texas", california: "California", maryland: "Maryland",
+  virginia: "Virginia", ohio: "Ohio", minnesota: "Minnesota",
+  mississippi: "Mississippi", tennessee: "Tennessee",
+};
+
+/** Longest first, so "eyelash-extension" wins over "extension". */
+const LICENCES: [string, string][] = [
+  ["eyelash-extension", "Eyelash Extension"],
+  ["hair-weaving", "Hair Weaving"],
+  ["nail-technician", "Nail Technician"],
+  ["cosmetology-operator", "Cosmetology Operator"],
+  ["electrologist", "Electrologist"],
+  ["esthetician", "Esthetician"],
+  ["hairstylist", "Hairstylist"],
+  ["manicurist", "Manicurist"],
+  ["cosmetology", "Cosmetology"],
+  ["barbering", "Barbering"],
+  ["barber", "Barber"],
+  ["nail", "Nail Technician"],
+];
+
+export function parseLicensingSlug(slug: string): { state: string; licence: string; kind: PageKind } | null {
+  const s = String(slug || "").toLowerCase();
+
+  // Establishment and school licences are for someone OPENING a business, not
+  // a student getting licensed. Different audience, different questions —
+  // excluded rather than given student framing.
+  if (/establishment|school-license/.test(s)) return null;
+
+  const stateKey = Object.keys(STATES).find((k) => s.startsWith(k + "-"));
+  if (!stateKey) return null;
+  const state = STATES[stateKey];
+
+  const hit = LICENCES.find(([k]) => s.includes(k));
+  if (!hit) return null;
+  const licence = hit[1];
+
+  const kind: PageKind =
+    /transfer|reciprocity/.test(s) ? "transfer"
+    : /renewal/.test(s) ? "renewal"
+    : /exam-prep|exam-intelligence-prep|practical-exam/.test(s) ? "exam_prep"
+    : /requirements|license$|licence$|-license-|-licence-/.test(s) ? "requirements"
+    : "unknown";
+
+  return kind === "unknown" ? null : { state, licence, kind };
+}
+
+/** The questions for a slug, or null if it should be left alone. */
+export function questionsForSlug(slug: string): string[] | null {
+  const parsed = parseLicensingSlug(slug);
+  if (!parsed) return null;
+  const { state, licence, kind } = parsed;
+  switch (kind) {
+    case "renewal": return renewalQuestions(state, licence);
+    case "requirements": return requirementsQuestions(state, licence);
+    case "exam_prep": return examPrepQuestions(state, licence);
+    case "transfer": return transferQuestions(state, "another state", licence);
+    default: return null;
+  }
+}

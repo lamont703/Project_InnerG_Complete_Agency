@@ -5,6 +5,7 @@ import {
   REGULATORS, articleGraph, ref, stateNode, topics,
 } from "@/lib/schema-graph";
 import { MD_SOURCES, BARBER_FEES, COSMETOLOGY_FEES, RENEWAL, CHECKED} from "@/lib/maryland-licensing";
+import { questionsForSlug } from "@/lib/agent-invite-questions";
 
 const TITLE = "Maryland Barber License Renewal (2026): Fee, Cycle & Steps";
 const DESCRIPTION =
@@ -28,6 +29,7 @@ export default function Page() {
   return (
     <>
       <MdGuide
+      agentQuestions={questionsForSlug("maryland-barber-license-renewal") ?? undefined}
         eyebrow="Maryland · Board of Barbers"
         h1="Maryland Barber License Renewal"
         board="Board of Barbers"
