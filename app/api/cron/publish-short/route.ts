@@ -24,6 +24,25 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * the allowance on one video — then nothing publishes at all.
  */
 
+/**
+ * SCHEDULED 13:00 UTC, WHICH IS 9am EASTERN — BUT ONLY UNTIL EARLY NOVEMBER.
+ *
+ * Vercel cron schedules are UTC and have no timezone to pin, so a fixed entry
+ * cannot track daylight saving. 13:00 UTC is 9am EDT now; when the clocks go
+ * back it becomes 8am EST and the entry has to move to 14:00.
+ *
+ * Written here rather than in vercel.json because JSON takes no comments, and
+ * an hour that silently drifts twice a year is exactly the kind of thing that
+ * gets rediscovered by noticing posts going out at the wrong time.
+ *
+ *   Mar - Nov (EDT, UTC-4)   13:00 UTC = 9am Eastern
+ *   Nov - Mar (EST, UTC-5)   14:00 UTC = 9am Eastern
+ *
+ * The queue's own dates are computed in Central (America/Chicago), where the
+ * licensing data and audience are. At 9am Eastern it is 8am Central — the same
+ * calendar day either way, so the two timezones cannot disagree about which
+ * Short is due.
+ */
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
