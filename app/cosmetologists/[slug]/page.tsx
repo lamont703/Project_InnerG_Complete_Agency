@@ -377,7 +377,7 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
                     entityName={person.name}
                     services={bookingServices}
                     fallbackWebsite={person.website_url}
-                    className="flex-1 min-w-[150px] px-5 py-3 bg-fuchsia-600 hover:bg-fuchsia-700 font-extrabold uppercase tracking-wider shadow-md shadow-fuchsia-600/20"
+                    className="flex-1 min-w-[150px] px-5 py-3 font-extrabold uppercase tracking-wider shadow-md"
                   />
                 )}
                 {directionsHref && (

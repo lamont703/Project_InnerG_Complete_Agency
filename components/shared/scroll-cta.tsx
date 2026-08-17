@@ -6,11 +6,12 @@ import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { AdTracker } from "@/components/ads/AdTracker";
 import { fetchEntityBottomBannerAd } from "./scroll-cta-ad";
-import { fetchBannerBookingTarget } from "./scroll-cta-booking";
+import { fetchBannerBookingTarget, fetchBannerTourTarget } from "./scroll-cta-booking";
 import type { EntityBottomBannerAd } from "@/lib/profile-ad";
-import type { BannerBookingTarget } from "@/lib/banner-booking";
-import { isBookableEntityPath } from "@/lib/bookable-routes";
+import type { BannerBookingTarget, BannerTourTarget } from "@/lib/banner-booking";
+import { isBookableEntityPath, isSchoolTourPath } from "@/lib/bookable-routes";
 import { BookAppointmentButton } from "@/components/book-appointment-modal";
+import { RequestSchoolTourButton } from "@/components/request-school-tour-modal";
 
 /**
  * WHAT THE BANNER OFFERS, decided by ROUTE first and not by a priority list:
@@ -20,8 +21,13 @@ import { BookAppointmentButton } from "@/components/book-appointment-modal";
  *   the button at the top of the page, so a visitor who scrolled past that
  *   button gets it back at the moment they finish reading.
  *
- *   Everywhere else the banner runs (schools, stores) — a campaign ad when one
- *   targets the page, otherwise the directory search CTA.
+ *   On school detail pages — a campaign ad if one targets the page, otherwise
+ *   Request a School Tour, opening the same modal as the button at the top.
+ *   Note the ad still wins here, unlike the four routes above: schools carry ad
+ *   inventory and a paying campaign should not be displaced by a CTA change.
+ *
+ *   Everywhere else the banner runs (stores) — a campaign ad when one targets
+ *   the page, otherwise the directory search CTA.
  *
  * WHY ADS LOSE THIS SLOT RATHER THAN OUTRANKING BOOKING. Nine of the ten active
  * entity_bottom_banner campaigns target shop pages, which is exactly the
@@ -72,6 +78,9 @@ export function ScrollCTA() {
   // The bookable entity behind this page, or null on schools, stores and
   // anything without services. Null keeps the directory CTA below.
   const [booking, setBooking] = useState<BannerBookingTarget | null>(null);
+  // The school behind a /schools/[slug] page. Same idea as `booking`, but a
+  // tour is not an appointment — different modal, different calendar rules.
+  const [tour, setTour] = useState<BannerTourTarget | null>(null);
 
   // Runs once on mount (this component lives in the root layout, so
   // "mount" effectively means a fresh page load, not every client-side
@@ -89,6 +98,9 @@ export function ScrollCTA() {
   // Bookable pages take the booking branch and never fetch an ad. See the
   // header: this is a route decision, not a precedence one.
   const isBookable = isBookableEntityPath(pathname);
+  // Schools take the tour branch. Kept separate from isBookable so neither can
+  // silently swallow the other — see lib/bookable-routes.ts.
+  const isSchoolTour = isSchoolTourPath(pathname);
 
   // Figure out the context and target URL
   let typeLabel = "shops";
@@ -98,7 +110,12 @@ export function ScrollCTA() {
   if (pathname.startsWith("/schools")) {
     typeLabel = "schools";
     targetTab = "Schools";
-    hookText = "Comparing beauty schools? View the official 2026 pass rates on our search engine.";
+    // Points at the tour, because that is what the button now does. The old
+    // copy sent readers to the search engine while the CTA beside it opened a
+    // calendar, which is the kind of mismatch nobody reports and everybody
+    // bounces off. Falls back to the directory CTA only when the school cannot
+    // be resolved, and generic copy is fine in that case.
+    hookText = "Want to see this school in person? Book a campus tour, Monday to Friday.";
   } else if (pathname.startsWith("/salons")) {
     typeLabel = "salons";
     targetTab = "Salons";
@@ -141,11 +158,14 @@ export function ScrollCTA() {
   useEffect(() => {
     let ignore = false;
     setBooking(null);
+    setTour(null);
     if (isBookable) {
       fetchBannerBookingTarget(pathname).then((b) => { if (!ignore) setBooking(b); });
+    } else if (isSchoolTour) {
+      fetchBannerTourTarget(pathname).then((t) => { if (!ignore) setTour(t); });
     }
     return () => { ignore = true; };
-  }, [isBookable, pathname]);
+  }, [isBookable, isSchoolTour, pathname]);
 
   useEffect(() => {
     if (!isEntityPage || isDismissed) {
@@ -267,6 +287,32 @@ export function ScrollCTA() {
                 fallbackWebsite={booking.website}
                 trackingId="book_appointment_banner"
                 variant="block"
+                className={ctaCls}
+              />
+            </div>
+          ) : tour ? (
+            <div className="flex items-center gap-3">
+              {/*
+                Deliberately BELOW the ad branch, unlike Book Appointment.
+
+                The four bookable routes never fetch an ad at all — that is a
+                route decision made upstream. Schools do fetch one, and a paying
+                campaign targeting a school page should still win, so this
+                replaces only the generic "Search Directory" fallback rather
+                than the ad inventory. Removing ad slots from school pages would
+                be a revenue decision, not a CTA change.
+
+                trackingId is the only difference from the button at the top of
+                the page — it makes this entry point separately attributable in
+                pixel_events, so the banner can be credited or cut on its own
+                numbers.
+              */}
+              <RequestSchoolTourButton
+                schoolId={tour.entityId}
+                schoolName={tour.entityName}
+                fallbackPhone={tour.phone}
+                fallbackWebsite={tour.website}
+                trackingId="school_tour_banner"
                 className={ctaCls}
               />
             </div>

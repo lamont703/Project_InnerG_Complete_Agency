@@ -447,7 +447,7 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
                     entityName={barber.name}
                     services={bookingServices}
                     fallbackWebsite={barber.website_url}
-                    className="flex-1 min-w-[150px] px-5 py-3 bg-indigo-600 hover:bg-indigo-700 font-extrabold uppercase tracking-wider shadow-md shadow-indigo-600/20"
+                    className="flex-1 min-w-[150px] px-5 py-3 font-extrabold uppercase tracking-wider shadow-md"
                   />
                 )}
                 {directionsHref && (

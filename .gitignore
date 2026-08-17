@@ -68,6 +68,12 @@ yarn-error.log*
 # catches nothing anywhere else. Narrow on purpose — this re-includes skill
 # definitions, not documentation generally.
 !.claude/skills/**/*.md
+# ...and agent definitions, for exactly the same reason. An agent that owns a
+# workflow — what it runs, what it must never do, what it already learned — is
+# worth nothing if it exists only on the laptop it was written on. The rules in
+# one of these files are the difference between an agent that repeats a mistake
+# and one that does not.
+!.claude/agents/**/*.md
 # ...and research plans under docs/. These carry the reasoning behind what got
 # built and — more usefully — what got REJECTED and why, which is the part no
 # commit message captures. The California plan records that the exam-language

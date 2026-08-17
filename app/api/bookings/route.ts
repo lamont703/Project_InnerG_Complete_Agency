@@ -279,6 +279,21 @@ export async function POST(request: NextRequest) {
     // matters and must not depend on this.
   }
 
+  /*
+   * A BARE /membership LINK THROWS AWAY EVERYTHING WE KNOW. The page already
+   * reads claim_type/claim_id/claim_name — it will name the business in the
+   * heading, and the signup route writes the entity link from these, so the
+   * listing is claimed the moment they register instead of needing a second
+   * hunt for their own shop. src=booking additionally tells the page WHY they
+   * are here, so the copy can mention the request that is waiting.
+   */
+  const claimQuery = new URLSearchParams({
+    claim_type: entityType,
+    claim_id: entityId,
+    ...(entityName ? { claim_name: entityName } : {}),
+    src: "booking",
+  }).toString();
+
   const smsBody =
     `New appointment request via ShearQuery\n` +
     `${match.name} - ${prettyDate} at ${requestedTime}\n` +
@@ -292,7 +307,9 @@ export async function POST(request: NextRequest) {
     // not, and that reply is the only signal that ever moves a request for the
     // businesses who will never log in to anything.
     `Reply Y if you can take it, N if you can't.` +
-    (inviteToDashboard ? `\nSee all your requests: ${SITE_URL}/membership` : "");
+    (inviteToDashboard
+      ? `\nSee all your requests: ${SITE_URL}/membership?${claimQuery}`
+      : "");
 
   let smsOk = false;
   try {

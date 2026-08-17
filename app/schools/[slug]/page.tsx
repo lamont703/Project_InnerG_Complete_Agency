@@ -569,7 +569,7 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
               <div className="mt-3 max-w-sm">
                 <RequestSchoolTourButton
                   schoolId={String(school.id)}
-                  schoolName={school.name}
+                  schoolName={school.school_name}
                   fallbackPhone={school.phone}
                   fallbackWebsite={websiteHref}
                 />
