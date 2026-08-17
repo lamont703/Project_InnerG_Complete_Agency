@@ -43,6 +43,7 @@ import { composeDescription, ratingClause, streetClause, percentClause } from "@
 import { PassRateAlert } from "@/components/schools/pass-rate-alert";
 import { RequestSchoolTourButton } from "@/components/request-school-tour-modal";
 import { SITE_URL } from "@/lib/site";
+import { isIndexableSchool } from "@/lib/listing-address-quality";
 
 export const revalidate = 3600;
 
@@ -161,9 +162,31 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   ]);
   const heroImage = Array.isArray(school.google_photos) ? school.google_photos[0] : null;
 
+  /*
+   * NOINDEX WHEN THERE IS NO ADDRESS TO PUBLISH. 34 school rows have none — 19
+   * are districts rather than campuses, two were scraped Google ad cards named
+   * "Sponsored", one is in India. A page that cannot say where the school is
+   * cannot answer the question it exists for, and it still spends crawl budget
+   * on a domain mid-migration.
+   *
+   * Kept and noindexed rather than deleted or redirected: these pages have real
+   * traffic (Joshua ISD drew 6 separate visitors, above the average school
+   * page), so the demand is genuine even where the record is broken, and a
+   * district is not a duplicate of anything to redirect to. Google's own
+   * guidance for "keep it, don't list it" is noindex.
+   *
+   * Derived from the row, so a repaired address re-indexes on the next crawl
+   * with nothing to remember. lib/listing-address-quality.ts explains why this
+   * is a predicate rather than a list of slugs, and app/sitemap.ts uses the
+   * same one — a sitemap that submits a noindexed URL is a contradiction
+   * Search Console reports as an error.
+   */
+  const indexable = isIndexableSchool(school);
+
   return {
     title,
     description,
+    ...(indexable ? {} : { robots: { index: false, follow: true } }),
     alternates: { canonical: `${SITE_URL}/schools/${slug}` },
     openGraph: {
       title,
