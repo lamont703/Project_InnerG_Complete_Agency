@@ -34,6 +34,7 @@ const footerLinks = {
     { label: "Pixel Analytics", href: "/pixel-analytics" },
     { label: "Global Listing Insights", href: "/admin/listing-insights" },
     { label: "School Tour Call Queue", href: "/admin/school-tour-queue" },
+    { label: "YouTube Shorts Queue", href: "/admin/shorts-queue" },
     { label: "Ad Performance", href: "/ad-performance" },
     { label: "Ad Campaigns (Assign)", href: "/admin/ad-campaigns" },
     { label: "Employment Match Review", href: "/tools/employment-match-review" },

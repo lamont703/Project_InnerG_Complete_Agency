@@ -41,6 +41,8 @@ const INTERNAL_TOOL_ROUTES = [
     // because this middleware fails OPEN on an auth exception.
     "/admin/school-tour-queue",
     "/api/admin/school-tour-queue",
+    // Shows unpublished video before it goes out.
+    "/admin/shorts-queue",
     "/tools/employment-match-review",
     "/tools/domain-management",
     "/tools/seo-keyword-tracker",
