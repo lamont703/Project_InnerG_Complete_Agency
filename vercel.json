@@ -19,6 +19,10 @@
     {
       "path": "/api/cron/booking-followup",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/prune-unconfirmed-users",
+      "schedule": "0 9 * * 1"
     }
   ]
 }

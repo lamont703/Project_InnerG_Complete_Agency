@@ -98,6 +98,18 @@ export async function GET(req: NextRequest) {
         .eq("id", memberId);
     }
 
+    /*
+     * Normalise the role as well as creating the member. Belt and braces: the
+     * metadata above fixes new sign-ups, and this fixes anyone provisioned
+     * before that fix — they exist, and they would otherwise stay labelled
+     * client_viewer forever. Only ever narrows toward community_member, and
+     * never touches an admin or developer account.
+     */
+    await (admin.from("users") as any)
+      .update({ role: "community_member" })
+      .eq("id", user.id)
+      .eq("role", "client_viewer");
+
     if (invite?.id) {
       await (admin.from("account_conversion_invites") as any)
         .update({ claimed_at: new Date().toISOString(), claimed_by: memberId ?? null })

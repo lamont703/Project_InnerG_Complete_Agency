@@ -114,6 +114,16 @@ export async function POST(req: NextRequest) {
     email,
     options: {
       shouldCreateUser: true,
+      /*
+       * THE ROLE HAS TO BE STATED HERE. handle_new_user() reads it from signup
+       * metadata and falls back to the column default, which is
+       * 'client_viewer' — a client-portal role that appears in the RLS
+       * policies for clients and projects. Omitting it filed a real haircut
+       * customer as a portal viewer; harmless today only because those
+       * policies also require a project_user_access row she does not have.
+       * /api/community/register has always passed this; this path did not.
+       */
+      data: { role: "community_member" },
       emailRedirectTo: `${SITE_URL}/auth/callback?next=${encodeURIComponent(landingPath(source))}`,
     },
   });
