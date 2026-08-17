@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, ExternalLink, AlertTriangle, Tag } from "lucide-
 import { Navbar } from "@/components/layout/navbar";
 import { KitChecklist, type KitGroup } from "@/components/tools/kit-checklist";
 import { AgentInvite } from "@/components/journey/agent-invite";
+import { practicalExamQuestions } from "@/lib/agent-invite-questions";
 import { SITE_URL } from "@/lib/site";
 import { authorSchema } from "@/lib/author";
 import { REGULATORS, articleGraph, entityId, ref, stateNode, topics } from "@/lib/schema-graph";
@@ -114,6 +115,13 @@ export function MsKitPage({
         </div>
 
         <KitChecklist groups={groups} />
+
+        {/* One edit covers all four Mississippi kit lists, and the questions
+            come from the page's own licence rather than being hand-written per
+            file — 55 student pages lacked this, and hand-writing three
+            questions on each is 165 chances to leave a Texas question on a
+            Mississippi page. */}
+        <AgentInvite questions={practicalExamQuestions("Mississippi", licence)} />
 
         {/* Questions the assistant can actually answer for Mississippi. The
             previous set asked about nearby schools and booth rent, which exist
