@@ -27,6 +27,7 @@ const { createClient } = require("@supabase/supabase-js");
 // of truth so the preview cannot drift from what actually gets sent.
 const { buildSchoolOutreachEmail, MIN_TEST_TAKERS } = require("../lib/school-outreach-email.ts");
 const { unsubscribeUrl, suppressedSet, normaliseEmail } = require("../lib/outreach-suppression.ts");
+const { selectSendable } = require("../lib/outreach-address-quality.ts");
 
 const SITE = "https://shearquery.com";
 const N = Number((process.argv.find((a) => a.startsWith("--n=")) || "").split("=")[1]) || 3;
@@ -130,8 +131,17 @@ const CFG = {
     drafts.push({ to: email, school: school.school_name, ...built });
   }
 
-  // The gate, applied here too. A preview that shows drafts for people who
-  // already opted out teaches the wrong number and invites sending them.
+  // Address quality, applied across the whole list because two failure modes
+  // (a template address on unrelated schools, campuses sharing an inbox) are
+  // only visible between rows.
+  const graded = selectSendable(drafts.map((d) => ({ ...d, email: d.to, schoolName: d.school })));
+  const refusedBy = {};
+  graded.refused.forEach((r) => (refusedBy[r.reason] = (refusedBy[r.reason] || 0) + 1));
+  drafts.length = 0;
+  drafts.push(...graded.sendable);
+
+  // The suppression gate, applied here too. A preview that shows drafts for
+  // people who already opted out teaches the wrong number and invites sending.
   const suppressed = await suppressedSet(admin, drafts.map((d) => d.to));
   const blocked = drafts.filter((d) => suppressed.has(normaliseEmail(d.to))).length;
   const sendable = drafts.filter((d) => !suppressed.has(normaliseEmail(d.to)));
@@ -146,6 +156,16 @@ const CFG = {
   console.log(`  ${String(skipped.no_rate).padStart(4)}  no 2026 TDLR rate we can quote`);
   console.log(`  ${String(skipped.small_cohort).padStart(4)}  cohort under ${MIN_TEST_TAKERS} — the rate would be noise`);
   console.log(`  ${String(skipped.already_publishes).padStart(4)}  already publish their pass rate (different message)`);
+  const REASON_LABEL = {
+    placeholder: "placeholder / template address, not a real inbox",
+    unreachable_role: "role mailbox nobody reads",
+    wrong_audience: "district, .edu or correctional — no owner to reach",
+    shared_across_schools: "one address on unrelated schools — a site template",
+    duplicate: "same chain, already mailed once",
+  };
+  Object.entries(refusedBy).forEach(([k, v]) =>
+    console.log(`  ${String(v).padStart(4)}  ${REASON_LABEL[k] || k}`)
+  );
 
   const show = ALL ? drafts : drafts.slice(0, N);
   for (const d of show) {
