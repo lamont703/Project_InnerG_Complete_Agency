@@ -11,9 +11,31 @@ import { CLAIM_ENTITY_TYPES, CLAIMED_AT_TYPES } from "@/lib/entity-claim";
 // SETUP (one-time, in Google Cloud Console for that OAuth client):
 //   • Enable: Business Profile API + My Business Account Management / Business
 //     Information APIs (and request GBP API access — it's approval-gated).
-//   • Add these Authorized redirect URIs to the OAuth client:
-//       http://localhost:3000/api/google-business/callback
+//   • Add these Authorized redirect URIs to the OAuth client. The redirect is
+//     built from the REQUEST HOST (see gbpRedirectUri), so every host an owner
+//     might start the flow from needs its own entry — a missing one is a
+//     redirect_uri_mismatch at the consent screen, not a build error:
+//       https://shearquery.com/api/google-business/callback
+//       https://staging.shearquery.com/api/google-business/callback
 //       https://agency.innergcomplete.com/api/google-business/callback
+//       http://localhost:3000/api/google-business/callback
+//
+// IF THE CONSENT SCREEN SAYS "Error 401: deleted_client", the OAuth client
+// named by GOOGLE_CLIENT_ID no longer exists in Google Cloud Console — someone
+// deleted it, or the credentials were regenerated and the env var still points
+// at the old one. Confirm with a throwaway token exchange, which needs neither
+// a real code nor the right secret:
+//
+//   curl -s -X POST https://oauth2.googleapis.com/token \
+//     -d "code=probe&client_id=$GOOGLE_CLIENT_ID&client_secret=probe" \
+//     -d "grant_type=authorization_code&redirect_uri=https://shearquery.com/api/google-business/callback"
+//
+//   deleted_client  -> the client is gone; create a new one and update the env
+//   invalid_client  -> the client EXISTS (the probe secret is simply wrong)
+//
+// EVERY REFRESH TOKEN THAT CLIENT ISSUED DIES WITH IT. Rows in gbp_connections
+// keep a refresh_token that can no longer be redeemed, so each owner has to run
+// the consent flow again — a new client cannot inherit the old grants.
 //   • Add the business.manage scope to the OAuth consent screen (it's a
 //     restricted scope → needs Google verification before non-test users).
 
