@@ -112,7 +112,7 @@ export default function LocsHoustonPage() {
                 </div>
                 <Link
                   href={pro.profileUrl}
-                  data-ig-click="outbound_lead"
+                  data-ig-click="entity_profile_open"
                   className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-extrabold text-xs uppercase tracking-wider transition-colors"
                 >
                   View Profile

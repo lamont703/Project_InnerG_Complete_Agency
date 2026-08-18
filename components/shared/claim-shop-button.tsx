@@ -44,7 +44,19 @@ export function ClaimShopButton({
           (window as any).innerG.track('claim_shop_initiated', { entity_id: id, entity_name: name, entity_type: entityType });
         }
       }}
-      data-ig-click="outbound_lead"
+      /*
+       * `claim_listing`, NOT `outbound_lead`. An outbound lead is a VISITOR
+       * leaving to reach the business — a website, a phone call, directions.
+       * This is the opposite party doing the opposite thing: the OWNER coming
+       * toward us to claim the listing, on an internal link to /membership.
+       *
+       * Counting it as a lead inflated the one metric used to judge whether an
+       * entity page converts for its business, and it was the largest source
+       * still firing — 48 events, most recently the day before this was fixed.
+       * The label was pure noise besides: the onClick above already emits a
+       * dedicated claim_shop_initiated event with the entity attached.
+       */
+      data-ig-click="claim_listing"
       /*
        * THE TOKEN, NOT A HARDCODED BLUE. This has to match the "Search
        * ShearQuery" button in the navbar, which is `bg-primary`. Writing the
