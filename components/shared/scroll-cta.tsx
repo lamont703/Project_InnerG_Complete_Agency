@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { isEmbedded } from "@/lib/embed-mode";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { AdTracker } from "@/components/ads/AdTracker";
@@ -70,6 +71,12 @@ function isDismissalStillActive(): boolean {
 
 export function ScrollCTA() {
   const pathname = usePathname();
+  /*
+   * Never inside the AI Mode side panel. This is fixed-position, so in an
+   * iframe it floats over the panel's own content AND appears to belong to
+   * the chat sitting next to it.
+   */
+  const embedded = isEmbedded(useSearchParams());
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   // Campaign-driven ad for this entity page, if one is targeting it. null = fall
@@ -221,7 +228,7 @@ export function ScrollCTA() {
     }
   };
 
-  if (!isEntityPage || !isVisible) return null;
+  if (embedded || !isEntityPage || !isVisible) return null;
 
   return (
     <div className="fixed bottom-6 left-4 right-4 md:left-auto md:right-6 md:w-[420px] z-[90] transition-all duration-500 ease-out animate-in slide-in-from-bottom-10 fade-in duration-300">

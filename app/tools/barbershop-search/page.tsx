@@ -12,6 +12,7 @@ import { AdTracker } from "@/components/ads/AdTracker";
 import { Navbar } from "@/components/layout/navbar";
 import { createBrowserClient } from "@/lib/supabase/browser";
 import { toast } from "sonner";
+import { PagePanel } from "@/components/search/page-panel";
 
 interface EmploymentMatchForVerification {
   professionalType: string;
@@ -149,6 +150,22 @@ function SearchContent() {
   // (Gemini overloaded) never renders a signup pitch — being sold to at the
   // moment something breaks is how you lose someone who was mid-question.
   const [upgradeHref, setUpgradeHref] = useState<string | null>(null);
+
+  /*
+   * THE SIDE PANEL. Every link the agent produces is a real internal path, and
+   * clicking one used to navigate away and take the conversation with it — so
+   * the answer and the thing it was about could never be read together.
+   *
+   * `panelUrl` holds the path being shown; `chatCollapsed` hides the chat so
+   * the page can have the full width. Both closable independently, which is the
+   * whole point: chat alone, page alone, or both.
+   */
+  const [panelUrl, setPanelUrl] = useState<string | null>(null);
+  const [chatCollapsed, setChatCollapsed] = useState(false);
+
+  // Closing the page always brings the chat back — otherwise closing both
+  // leaves an empty column and no way out of it.
+  const closePanel = () => { setPanelUrl(null); setChatCollapsed(false); };
   // Who's using AI Mode. Null until the mount effect answers; `isMember:
   // false` is the normal case and everything below must render identically
   // to how it did before any of this existed.
@@ -685,10 +702,29 @@ function SearchContent() {
               <ArrowUpRight className="w-3 h-3 shrink-0" />
             </a>
           ) : (
-            <Link key={`${keyPrefix}-${idx++}`} href={url} className={linkClasses}>
+            /*
+             * Opens beside the chat rather than replacing it. Modifier-clicks
+             * and middle-clicks fall through to the browser untouched — a
+             * reader who wants a real tab must always be able to have one, and
+             * swallowing cmd+click is the fastest way to make a link feel
+             * broken.
+             */
+            <a
+              key={`${keyPrefix}-${idx++}`}
+              href={url}
+              data-ig-click="chat_link_panel"
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                e.preventDefault();
+                setPanelUrl(url);
+                setChatCollapsed(false);
+                (window as any).innerG?.track?.('ai_mode_panel_opened', { path: url });
+              }}
+              className={linkClasses}
+            >
               {label}
               <ArrowUpRight className="w-3 h-3 shrink-0" />
-            </Link>
+            </a>
           )
         );
       } else if (match[3] !== undefined) {
@@ -961,7 +997,9 @@ function SearchContent() {
         {/* Results Area / AI Chat */}
         <div className={
           filterTab === 'AI Mode'
-            ? 'w-full max-w-3xl flex flex-col mt-4 pb-4 flex-1'
+            // The panel needs room: max-w-3xl is right for one column and
+            // cramped for two, so the constraint lifts only when it is open.
+            ? (panelUrl ? 'w-full max-w-[1400px] flex flex-col mt-4 pb-4 flex-1' : 'w-full max-w-3xl flex flex-col mt-4 pb-4 flex-1')
             : filterTab === 'Images'
             ? 'w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-12 pb-20'
             : query.trim().length === 0 && results.length === 0
@@ -970,7 +1008,29 @@ function SearchContent() {
         }>
           
           {filterTab === 'AI Mode' ? (
-            <div className="flex flex-col w-full" style={{ height: 'calc(100dvh - 170px)', maxHeight: '850px' }}>
+            <div
+              className={`w-full gap-3 ${panelUrl ? 'flex flex-col lg:flex-row' : 'flex flex-col'}`}
+              style={{ height: 'calc(100dvh - 170px)', maxHeight: '850px' }}
+            >
+            {/*
+              THE CHAT COLUMN. Hidden only when the reader asks for the page to
+              have the full width — never automatically, because a chat that
+              vanishes on its own has lost the conversation as far as the person
+              reading it is concerned.
+
+              On narrow screens the two stack rather than shrink: a 380px column
+              beside a 380px iframe is two unusable things instead of one good
+              one, so below lg the open panel takes the screen and the chat
+              waits behind the "Chat" button in its header.
+            */}
+            <div
+              className={`flex-col min-w-0 ${
+                panelUrl
+                  ? (chatCollapsed ? 'hidden' : 'hidden lg:flex lg:w-[420px] lg:shrink-0')
+                  : 'flex w-full'
+              }`}
+              style={{ height: '100%' }}
+            >
               
               {/* The one visible difference an account makes, sitting where
                   you can't miss it: the agent opens knowing where you are.
@@ -1161,6 +1221,24 @@ function SearchContent() {
                   {chatInput.length}/150 characters
                 </div>
               </form>
+            </div>
+
+            {/*
+              THE PAGE, BESIDE THE ANSWER. Rendered only when a link was
+              clicked, so the single-column layout is untouched for everyone who
+              never opens one.
+
+              Closing it always restores the chat — see closePanel. Leaving both
+              hidden would be a blank column with no way back out of it.
+            */}
+            {panelUrl && (
+              <PagePanel
+                url={panelUrl}
+                onClose={closePanel}
+                chatCollapsed={chatCollapsed}
+                onCollapseChat={() => setChatCollapsed((v) => !v)}
+              />
+            )}
             </div>
           ) : (
             <>
