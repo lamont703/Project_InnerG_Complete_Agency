@@ -5,6 +5,8 @@ import {
   CHECKED, MD_SOURCES, PSI_CONTAINER, PSI_MONOMER, PSI_NO_SUPPLY_LIST,
   type PsiPractical,
 } from "@/lib/maryland-licensing";
+import { AgentInvite } from "@/components/journey/agent-invite";
+import { practicalExamQuestions } from "@/lib/agent-invite-questions";
 
 /**
  * A PSI National Practical test guide.
@@ -157,6 +159,10 @@ export function MdPractical({ p, related }: { p: PsiPractical; related: { href: 
             </Link>
           ))}
         </section>
+        {/* Covers every Maryland practical page in one edit. Maryland is the
+            state that DOES publish a kit list, so the comparison question
+            ("how does this differ from Texas") is the genuinely useful one. */}
+        <AgentInvite questions={practicalExamQuestions("Maryland", p.license)} />
       </main>
     </div>
   );

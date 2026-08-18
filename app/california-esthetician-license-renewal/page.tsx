@@ -7,6 +7,8 @@ import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 import { CA_FEES } from "@/lib/ca-sources";
 import { caExam } from "@/lib/ca-exam-2026";
+import { AgentInvite } from "@/components/journey/agent-invite";
+import { questionsForSlug } from "@/lib/agent-invite-questions";
 
 /**
  * California esthetician licence renewal.
@@ -320,7 +322,12 @@ export default function CaliforniaEstheticianRenewalPage() {
           </a>{" "}
           before relying on a figure here.
         </div>
-      </main>
+              {/* Questions derived from this route, so a page renamed or added
+            to the same convention is handled without a second edit.
+            See lib/agent-invite-questions.ts. */}
+        <AgentInvite questions={questionsForSlug("california-esthetician-license-renewal")!} />
+
+</main>
 
       <script
         type="application/ld+json"

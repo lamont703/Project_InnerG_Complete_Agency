@@ -20,6 +20,7 @@ import { PAGE_SIZE as DIRECTORY_PAGE_SIZE } from '@/lib/directory-config'
 // from what the sitemap considers public.
 import { isExcludedFromSitemap } from '@/lib/public-routes'
 import { SITE_HOST } from "@/lib/site";
+import { isIndexableSchool } from "@/lib/listing-address-quality";
 
 export const dynamic = 'force-dynamic'
 
@@ -110,8 +111,8 @@ const getCachedSitemapData = unstable_cache(
       ceProviders,
     ] = await Promise.all([
       fetchAllRows(supabase, 'agent_barbershop_leads', 'slug, updated_at'),
-      fetchAllRows(supabase, 'agent_barber_school_leads', 'slug, updated_at'),
-      fetchAllRows(supabase, 'agent_cosmetology_school_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_barber_school_leads', 'slug, updated_at, formatted_address, google_business_status'),
+      fetchAllRows(supabase, 'agent_cosmetology_school_leads', 'slug, updated_at, formatted_address, google_business_status'),
       fetchAllRows(supabase, 'agent_barber_leads', 'slug, updated_at'),
       fetchAllRows(supabase, 'agent_barber_supply_store_leads', 'slug, updated_at'),
       fetchAllRows(supabase, 'agent_beauty_supply_store_leads', 'slug, updated_at'),
@@ -253,7 +254,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // (/schools/[slug]) across both the barber and cosmetology directories.
     // These were previously invisible to the sitemap entirely — Google could
     // only discover them via internal links/crawl, not a submitted URL list.
-    const schoolProfileSitemap = [...barberSchools, ...cosmetologySchools].map((school: any) => ({
+    const schoolProfileSitemap = [...barberSchools, ...cosmetologySchools]
+      // Same predicate the page uses for robots. Submitting a URL we noindex is
+      // a contradiction, and Search Console reports it as one.
+      //
+      // The two school queries above select formatted_address SOLELY for this
+      // filter. Drop the column and every school silently disappears from the
+      // sitemap, because undefined fails the check.
+      .filter((school: any) => isIndexableSchool(school))
+      .map((school: any) => ({
       url: `${baseUrl}/schools/${school.slug}`,
       lastModified: school.updated_at ? new Date(school.updated_at) : new Date(),
       changeFrequency: 'weekly' as const,

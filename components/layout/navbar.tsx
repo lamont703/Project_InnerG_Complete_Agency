@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Menu, X, ArrowRight, ChevronDown, LogOut, User as UserIcon, LayoutGrid, Store, BarChart3, TrendingUp, Search, GraduationCap, CalendarCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { trackNavClick, trackCTAClick } from "@/lib/analytics"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { LOGO_LOCKUP } from "@/lib/brand";
+import { isEmbedded } from "@/lib/embed-mode";
 import { ViewAsMenuItem, ViewAsPicker, useViewAs } from "@/components/layout/view-as";
 
 const navLinks = [
@@ -45,6 +46,13 @@ interface AccountProject {
 
 
 export function Navbar() {
+  /*
+   * Suppressed inside the AI Mode side panel. Otherwise the panel renders
+   * a second navbar in a 500px column directly beneath the real one, and
+   * the reader sees the site twice with no way to tell which chrome is
+   * which. The panel is for reading a page, not re-entering the site.
+   */
+  const embedded = isEmbedded(useSearchParams())
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isAccountOpen, setIsAccountOpen] = useState(false)
@@ -187,6 +195,9 @@ export function Navbar() {
     router.push("/login")
     router.refresh()
   }
+
+  // See the note on `embedded` above: nothing at all inside the panel.
+  if (embedded) return null
 
   return (
     <>

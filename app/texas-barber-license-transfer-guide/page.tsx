@@ -6,6 +6,8 @@ import { TDLR_SOURCES } from "@/lib/tdlr-sources";
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
+import { AgentInvite } from "@/components/journey/agent-invite";
+import { questionsForSlug } from "@/lib/agent-invite-questions";
 
 /**
  * Every figure comes from lib/texas-license-requirements.ts, read in turn from
@@ -142,7 +144,12 @@ export default function TexasCosmetologistToClassABarberRequirementsPage() {
             ))}
           </div>
         </div>
-      </main>
+              {/* Questions derived from this route, so a page renamed or added
+            to the same convention is handled without a second edit.
+            See lib/agent-invite-questions.ts. */}
+        <AgentInvite questions={questionsForSlug("texas-barber-license-transfer-guide")!} />
+
+</main>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
             {

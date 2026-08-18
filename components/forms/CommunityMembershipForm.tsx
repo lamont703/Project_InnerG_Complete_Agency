@@ -57,6 +57,12 @@ export function CommunityMembershipForm() {
   // query string says: an arbitrary post-signup redirect is a phishing
   // primitive, and this form is exactly the kind of page worth abusing.
   const nextIntent = searchParams.get("next")
+  /*
+   * Which surface produced this signup. Seven members exist and not one can be
+   * attributed, because every entry point links to the same /membership URL —
+   * so "is AI Mode a funnel?" has been unanswerable rather than answered badly.
+   */
+  const signupSource = searchParams.get("src")
   const wantsConnect = nextIntent === "connect"
   const destination = (fallback: string) =>
     wantsConnect ? "/api/google-business/start" : fallback
@@ -192,7 +198,7 @@ export function CommunityMembershipForm() {
       const response = await fetch("/api/community/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, claimEntityType, claimEntityId, audience: signupAudience }),
+        body: JSON.stringify({ ...formData, claimEntityType, claimEntityId, audience: signupAudience, signupSource }),
       })
 
       const data = await response.json()

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { CHECKED, type FeeRow, type Requirement } from "@/lib/maryland-licensing";
+import { AgentInvite } from "@/components/journey/agent-invite";
 
 /**
  * One shell for the Maryland licensing guides.
@@ -27,8 +28,8 @@ export interface MdGuideProps {
 }
 
 export function MdGuide({
-  eyebrow, h1, intro, board, requirements, fees, facts, body, sources, related,
-}: MdGuideProps) {
+  eyebrow, h1, intro, board, requirements, fees, facts, body, sources, related, agentQuestions,
+}: MdGuideProps & { agentQuestions?: string[] }) {
   return (
     <div className="min-h-screen light bg-white text-slate-950">
       <Navbar />
@@ -161,6 +162,11 @@ export function MdGuide({
             </Link>
           ))}
         </section>
+        {/* Passed in rather than derived: this component carries nothing
+            that identifies its route, and guessing from the heading would
+            put renewal questions on a requirements page. */}
+        {agentQuestions?.length ? <AgentInvite questions={agentQuestions} /> : null}
+
       </main>
     </div>
   );

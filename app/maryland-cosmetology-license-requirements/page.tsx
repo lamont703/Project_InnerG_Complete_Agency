@@ -7,6 +7,7 @@ import {
 import {
   MD_SOURCES, BARBER_REQUIREMENTS, COSMETOLOGY_REQUIREMENTS,
   BARBER_FEES, COSMETOLOGY_FEES, RENEWAL, CHECKED} from "@/lib/maryland-licensing";
+import { questionsForSlug } from "@/lib/agent-invite-questions";
 
 const TITLE = "Maryland Cosmetology License Requirements (2026): Hours & Fees";
 const DESCRIPTION =
@@ -32,6 +33,7 @@ export default function Page() {
   return (
     <>
       <MdGuide
+      agentQuestions={questionsForSlug("maryland-cosmetology-license-requirements") ?? undefined}
         eyebrow="Maryland · Board of Cosmetologists"
         h1="Maryland Cosmetology License Requirements"
         board="Board of Cosmetologists"

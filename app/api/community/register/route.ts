@@ -21,6 +21,20 @@ export async function POST(req: Request) {
     // guessing them into a lifecycle sequence written for somebody else.
     const memberAudience = storedAudience(body.audience);
 
+    /*
+     * WHICH SURFACE PRODUCED THIS SIGNUP. Every entry point links to the same
+     * /membership URL, so seven members exist and not one can be attributed —
+     * which makes "is AI Mode a funnel?" unanswerable rather than answered.
+     *
+     * Sanitised, not validated against a list: the entry points are still being
+     * added, and rejecting an unknown value would turn shipping a new CTA into
+     * a broken signup. Length-capped and stripped to a slug so it cannot carry
+     * anything but a label.
+     */
+    const signupSource = typeof body.signupSource === "string"
+      ? body.signupSource.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40) || null
+      : null;
+
     if (!firstName || !lastName || !email || !phone || !password) {
       return NextResponse.json(
         { success: false, error: "All fields are required." },
@@ -57,6 +71,7 @@ export async function POST(req: Request) {
         email,
         phone,
         audience: memberAudience,
+        signup_source: signupSource,
       });
 
     if (memberError) {

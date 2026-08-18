@@ -5,6 +5,8 @@ import { SPECIALTY_RENEWAL, TDLR_RENEW_URL, TDLR_OAG_URL } from "@/lib/tdlr-sour
 import { authorSchema } from "@/lib/author";
 import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
+import { AgentInvite } from "@/components/journey/agent-invite";
+import { questionsForSlug } from "@/lib/agent-invite-questions";
 
 /**
  * Figures come from lib/tdlr-sources.ts, which records which TDLR page settles
@@ -185,7 +187,12 @@ export default function TexasEstheticianLicenseRenewalPage() {
             ))}
           </div>
         </div>
-      </main>
+              {/* Questions derived from this route, so a page renamed or added
+            to the same convention is handled without a second edit.
+            See lib/agent-invite-questions.ts. */}
+        <AgentInvite questions={questionsForSlug("texas-esthetician-license-renewal")!} />
+
+</main>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(
             {

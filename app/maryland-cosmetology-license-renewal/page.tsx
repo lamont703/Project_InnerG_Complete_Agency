@@ -5,6 +5,7 @@ import {
   REGULATORS, articleGraph, ref, stateNode, topics,
 } from "@/lib/schema-graph";
 import { MD_SOURCES, BARBER_FEES, COSMETOLOGY_FEES, RENEWAL, CHECKED} from "@/lib/maryland-licensing";
+import { questionsForSlug } from "@/lib/agent-invite-questions";
 
 const TITLE = "Maryland Cosmetology License Renewal (2026): CE Hours, Fee & Steps";
 const DESCRIPTION =
@@ -29,6 +30,7 @@ export default function Page() {
   return (
     <>
       <MdGuide
+      agentQuestions={questionsForSlug("maryland-cosmetology-license-renewal") ?? undefined}
         eyebrow="Maryland · Board of Cosmetologists"
         h1="Maryland Cosmetology License Renewal"
         board="Board of Cosmetologists"

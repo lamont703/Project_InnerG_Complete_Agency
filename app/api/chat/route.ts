@@ -18,18 +18,29 @@ import { resolveChatKey, keyFingerprint } from '@/lib/gemini-keys';
 // one). Chat responses must never be cached — force this route dynamic.
 export const dynamic = 'force-dynamic';
 
-// Simple Rate Limit: 5 per 24 hours for anyone not signed in.
+// TWO ANSWERS FOR ANYONE NOT SIGNED IN. The third question asks for an account.
 //
-// Signed-in members get a much higher ceiling, and that difference is the
-// point rather than a perk bolted on afterwards. The 429 copy has always said
-// "or upgrade your account for more" while no account gave you more, so the
-// one place a visitor was told membership was worth something was also the
-// one place it demonstrably wasn't.
+// The counter is incremented only on the SUCCESS path below, so it counts
+// answers actually delivered rather than requests attempted — a failed or
+// rate-limited call costs the visitor nothing.
 //
-// Still a real limit, not unlimited: every request is an embedding call plus
-// one or two Gemini generations, and a free tier with no ceiling is an
-// unbounded bill.
-const MAX_REQUESTS = 5;
+// WHY TWO. Membership has to be worth something at the moment someone can feel
+// it, and the second answer is where a conversation starts being worth keeping;
+// the in-chat signup offer appears at exactly the same point, so the guard and
+// the offer reinforce rather than compete. It is also the only real control on
+// cost: every request is an embedding call plus one or two Gemini generations,
+// and the free tier has already returned 429 RESOURCE_EXHAUSTED once.
+//
+// WHAT IT WILL AND WILL NOT DO TODAY. Only 16 of 197 chat sessions have ever
+// reached two model replies and the median session is a single message, so this
+// fires rarely right now — it is a ceiling for when the traffic arrives, not a
+// lever that changes this week's numbers.
+//
+// PER 24 HOURS, NOT FOREVER, and that is a deliberate reading of "two total".
+// The counter is a cookie: making it permanent would block someone who asked
+// two questions six months ago, while still being cleared by anyone who opens
+// a private window. A daily reset is the honest version of a soft guard.
+const MAX_REQUESTS = 2;
 const MAX_REQUESTS_MEMBER = 50;
 const RATE_LIMIT_RESET_HOURS = 24;
 
@@ -122,9 +133,14 @@ export async function POST(req: Request) {
         {
           error: member
             ? `You've reached your limit of ${MAX_REQUESTS_MEMBER} AI searches for today. This resets every 24 hours.`
-            : `You've reached your limit of ${MAX_REQUESTS} AI searches for today. A free account raises that to ${MAX_REQUESTS_MEMBER} a day — and the agent remembers your school, your licence track and your exam date instead of starting over each time.`,
+            // Names what they get, not what they hit. "You've reached your
+            // limit" is a door closing; the account is the door.
+            : `That's your ${MAX_REQUESTS} free answers for today. A free account gives you ${MAX_REQUESTS_MEMBER} a day — and once it knows your state, licence track and exam date, it stops answering in general and starts answering about your exam.`,
           // Lets the client show a real signup path instead of a dead end.
-          upgradeHref: member ? null : '/membership?for=student',
+          upgradeHref: member ? null : '/membership?for=student&src=ai_mode_guard',
+          // Lets the client fire a distinct event, so guard-shown can be
+          // measured against signups the same way the in-chat offer is.
+          reason: member ? 'member_daily_limit' : 'anonymous_limit',
         },
         { status: 429 }
       );
@@ -437,6 +453,8 @@ MEMBER_JOURNEY_CONTEXT RULE: member_journey_context is in the context data below
 STATE COVERAGE RULE: state_licensing_coverage lists every state this site covers, whether that state has a practical exam at all, and the kit lists we publish for it. Use it whenever someone asks about a state — including states with no business listings, where it may be the only thing you hold on them. Three things it settles that you must not get wrong:
 - If has_practical_exam is false, that state licenses on the written examination alone. Say so plainly and do not mention kits, mannequins or what to pack.
 - MATCH THE LICENCE LOOSELY BEFORE CONCLUDING WE HAVE NOTHING. The labels are formal; people are not. "esthetics" and "skin care" are Esthetician. "nails", "manicure" and "nail tech" are Manicurist / Nail Technician. "teaching" and "instructor" are Instructor. "hair" is usually Cosmetology. If any entry in practical_exam_kit_lists plausibly covers the licence they named, link THAT entry.
+- LICENSING_GUIDES IS THE REST OF WHAT WE PUBLISH FOR THAT STATE, alongside the kit list: requirements_url (how to get licensed), exam_prep_url (the written exam) and renewal_url (renewing and CE). Each is a real internal page — hyperlink it per the LINKING RULE whenever it answers what was asked, exactly as you would a kit list. These were absent from the context until now, so a renewal or requirements page could only be described in plain text; that is no longer true and there is no reason to describe one without linking it.
+- A missing field in licensing_guides means we do not publish that page for that licence — link the state hub instead. Never adapt another state's guide: fees, hours and CE rules differ per state, and the whole point of these being separate pages is that they are not interchangeable.
 - Only say we do not publish a kit list when practical_exam_kit_lists for that state is EMPTY, or when nothing in it covers their licence at all. Then link the state hub. Never substitute another state's kit — the exam vendors differ (PSI, NIC, and several boards run their own), and so do the kits.
 - Every profile_url in this block is a real internal link. Hyperlink it per the LINKING RULE.
 Exam data (the 2026 leaderboards) is Texas-only. Never present a Texas pass rate as though it applied to another state.

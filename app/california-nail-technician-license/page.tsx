@@ -7,6 +7,8 @@ import { SITE_URL } from "@/lib/site";
 import { ORG_ID, WEBSITE_ID, graph, ref } from "@/lib/schema-graph";
 import { CA_FEES, CA_ELIGIBILITY, CA_TRAINING_HOURS } from "@/lib/ca-sources";
 import { caExam } from "@/lib/ca-exam-2026";
+import { AgentInvite } from "@/components/journey/agent-invite";
+import { questionsForSlug } from "@/lib/agent-invite-questions";
 
 /**
  * California nail technician / manicurist licence.
@@ -317,7 +319,12 @@ export default function CaliforniaNailTechnicianLicensePage() {
           </a>{" "}
           before relying on a figure here.
         </div>
-      </main>
+              {/* Questions derived from this route, so a page renamed or added
+            to the same convention is handled without a second edit.
+            See lib/agent-invite-questions.ts. */}
+        <AgentInvite questions={questionsForSlug("california-nail-technician-license")!} />
+
+</main>
 
       <script
         type="application/ld+json"

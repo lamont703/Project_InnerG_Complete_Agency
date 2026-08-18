@@ -6,6 +6,8 @@ import { SITE_URL } from "@/lib/site";
 import {
   ORG_ID, REGULATORS, WEBSITE_ID, faqNode, graphJson, ref, stateNode, webPageNode,
 } from "@/lib/schema-graph";
+import { AgentInvite } from "@/components/journey/agent-invite";
+import { questionsForSlug } from "@/lib/agent-invite-questions";
 
 export interface RenewalStep {
   t: string
@@ -220,6 +222,12 @@ export function RenewalLanding({ config, stats }: { config: RenewalConfig; stats
             ))}
           </div>
         </div>
+        {/* Derived from config.path, so this covers every renewal page
+            that uses this component and any future one for free. */}
+        {questionsForSlug(config.path.replace(/^\//, "")) && (
+          <AgentInvite questions={questionsForSlug(config.path.replace(/^\//, ""))!} />
+        )}
+
       </main>
 
       {/* Schema */}
