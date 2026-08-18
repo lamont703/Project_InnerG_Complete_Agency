@@ -92,6 +92,8 @@ const pct = (n: number) => {
 export interface OutreachEmail {
   subject: string;
   text: string;
+  /** The same message as HTML — GHL sends HTML, so both come from one source. */
+  html: string;
 }
 
 /**
@@ -198,5 +200,32 @@ export function buildSchoolOutreachEmail(
   // it gets opened by the person it is meant for.
   const subject = `${name}: your 2026 TDLR pass rates (${written} written)`;
 
-  return { subject, text: lines.join("\n") };
+  const text = lines.join("\n");
+
+  /*
+   * HTML built from the SAME lines, so the two bodies cannot drift and the
+   * CAN-SPAM block cannot end up in one and not the other. Deliberately plain:
+   * a message claiming to come from a person should look like one, and a
+   * templated banner is the first thing that marks an email as bulk.
+   */
+  const esc = (t: string) =>
+    t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const linkify = (t: string) =>
+    esc(t).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1">$1</a>');
+  const html =
+    `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;color:#111">` +
+    lines
+      .map((l) =>
+        l === ""
+          ? "<div style=\"height:12px\"></div>"
+          : l === "---"
+          ? '<hr style="border:none;border-top:1px solid #ddd;margin:16px 0">'
+          : l.startsWith("  - ")
+          ? `<div style="margin-left:16px">&bull; ${linkify(l.slice(4))}</div>`
+          : `<div>${linkify(l)}</div>`
+      )
+      .join("") +
+    `</div>`;
+
+  return { subject, text, html };
 }

@@ -87,6 +87,27 @@ describe("CAN-SPAM, enforced rather than remembered", () => {
   });
 });
 
+describe("the HTML body", () => {
+  it("carries the same CAN-SPAM block as the text version", () => {
+    const e = buildSchoolOutreachEmail(BASE, SENDER)!;
+    expect(e.html).toContain("This message is an advertisement.");
+    expect(e.html).toContain("123 Example St, Houston, TX 77002");
+    expect(e.html).toContain(BASE.unsubscribeUrl);
+  });
+
+  it("makes the links clickable", () => {
+    const e = buildSchoolOutreachEmail(BASE, SENDER)!;
+    expect(e.html).toContain(`<a href="${BASE.listingUrl}">`);
+  });
+
+  it("escapes a school name that would otherwise inject markup", () => {
+    const e = buildSchoolOutreachEmail({ ...BASE, schoolName: "A <b>Bold</b> & Co" }, SENDER)!;
+    expect(e.html).toContain("&lt;b&gt;");
+    expect(e.html).toContain("&amp;");
+    expect(e.html).not.toContain("<b>Bold</b>");
+  });
+});
+
 describe("the message itself", () => {
   it("asks them to correct it — the reply is what verifies the address", () => {
     const e = buildSchoolOutreachEmail(BASE, SENDER)!;
