@@ -66,6 +66,27 @@ function rankEmail(e) {
   return 3;
 }
 
+/**
+ * Make extracted text safe to store as jsonb.
+ *
+ * POSTGRES REJECTS \u0000 IN JSONB and there is no way to escape it — the
+ * insert fails with "unsupported Unicode escape sequence" and takes the whole
+ * batch with it. Real pages contain null bytes (truncated files, mis-decoded
+ * encodings, minified assets inlined into HTML), so this is not a theoretical
+ * input. Lone surrogates fail the same way once JSON.stringify emits them.
+ *
+ * This cost a full 388-site crawl: everything was accumulated in memory,
+ * inserted once at the end, and one bad byte discarded fifty minutes of work.
+ * Hence also the chunked insert and the on-disk fallback below.
+ */
+function jsonSafe(str) {
+  return String(str || "")
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, " ")
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
+    .replace(/(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "$1");
+}
+
 /** Strip tags so text matching isn't fooled by markup and attributes. */
 function textOf(html) {
   return html
@@ -74,6 +95,7 @@ function textOf(html) {
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;?/gi, " ")
     .replace(/\s+/g, " ");
+  // NB: callers pass the result into jsonb — see jsonSafe.
 }
 
 /**
@@ -177,7 +199,7 @@ async function crawlSchool(school) {
   const row = {
     entity_type: school.entity_type,
     entity_id: school.id,
-    school_name: school.school_name,
+    school_name: jsonSafe(school.school_name),
     site_url: base,
     final_url: null,
     http_status: null,
@@ -224,7 +246,7 @@ async function crawlSchool(school) {
     const text = textOf(page.html);
     allText += " " + text;
     allHtml += page.html;
-    row.raw[path || "/"] = text.slice(0, 4000);
+    row.raw[path || "/"] = jsonSafe(text).slice(0, 4000);
 
     for (const m of page.html.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) || []) {
       const e = m.toLowerCase();
@@ -246,7 +268,7 @@ async function crawlSchool(school) {
   if (!reached && !row.fetch_error) row.fetch_error = "no page returned 200";
 
   row.emails = [...found.entries()]
-    .map(([address, source_url]) => ({ address, source_url, rank: rankEmail(address) }))
+    .map(([address, source_url]) => ({ address: jsonSafe(address), source_url: jsonSafe(source_url), rank: rankEmail(address) }))
     .sort((a, b) => a.rank - b.rank)
     .slice(0, 6);
   row.signals = reached ? extractSignals(allText, allHtml) : {};
@@ -347,9 +369,39 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     return;
   }
 
-  const { error } = await admin.from("school_site_crawl").insert(rows);
-  if (error) throw new Error(`insert failed: ${error.message}`);
-  console.log(`\nwrote ${rows.length} observations to school_site_crawl (all unverified — confirmed_at is null).`);
+  // Written to disk BEFORE the network call. A crawl is ~50 minutes of other
+  // people's bandwidth as well as ours; losing it to a failed insert is not an
+  // acceptable failure mode, and re-fetching 388 sites to recover from our own
+  // bug would be rude as well as slow.
+  const dump = `/tmp/school_crawl_${rows.length}_rows.json`;
+  try {
+    require("fs").writeFileSync(dump, JSON.stringify(rows));
+    console.log(`raw results saved to ${dump}`);
+  } catch (e) {
+    console.warn("could not save fallback dump:", e.message);
+  }
+
+  // Chunked, so one unstorable row costs a chunk rather than the whole crawl,
+  // and the failure names the schools involved instead of a bare error.
+  const CHUNK = 25;
+  let written = 0;
+  const failedChunks = [];
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const chunk = rows.slice(i, i + CHUNK);
+    const { error } = await admin.from("school_site_crawl").insert(chunk);
+    if (error) {
+      failedChunks.push({ from: i, error: error.message, schools: chunk.map((r) => r.school_name) });
+      continue;
+    }
+    written += chunk.length;
+  }
+
+  console.log(`\nwrote ${written} of ${rows.length} observations to school_site_crawl (all unverified — confirmed_at is null).`);
+  if (failedChunks.length) {
+    console.log(`\n${failedChunks.length} chunk(s) failed:`);
+    failedChunks.forEach((f) => console.log(`  rows ${f.from}-${f.from + CHUNK - 1}: ${f.error}`));
+    console.log(`Recover from ${dump} rather than re-crawling.`);
+  }
 })();
 
 function pct(a, b) {
