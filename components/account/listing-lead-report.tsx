@@ -1,11 +1,19 @@
-import { Eye, PhoneCall, Globe, Mail, Users } from "lucide-react";
+import { Eye, CalendarCheck, CalendarPlus, Navigation, Users } from "lucide-react";
 import type { LeadMonth, ResolvedListing } from "@/lib/account/listing-leads";
 import { ROUTE_LABEL } from "@/lib/account/listing-leads";
 
 // Presentational, server-safe (no client hooks) so both the owner dashboard and
 // the admin cold-outreach one-pager render the exact same numbers.
 
-const MONTH_FMT = new Intl.DateTimeFormat("en-US", { month: "short" });
+/*
+ * UTC, because the months arrive from Postgres as bare dates.
+ *
+ * new Date("2026-08-01") is midnight UTC, and formatting it in the server's own
+ * zone (America/New_York) rolls it back to 31 July — so every month on this
+ * report was labelled one month early. August activity read "Jul". Pre-dates
+ * the booking metrics; found while checking them against real data.
+ */
+const MONTH_FMT = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" });
 
 function fmt(n: number) {
   return n.toLocaleString("en-US");
@@ -22,26 +30,39 @@ export function ListingLeadReport({
     (a, m) => ({
       visits: a.visits + m.visits,
       uniqueVisitors: a.uniqueVisitors + m.uniqueVisitors,
-      callClicks: a.callClicks + m.callClicks,
-      websiteClicks: a.websiteClicks + m.websiteClicks,
-      emailClicks: a.emailClicks + m.emailClicks,
+      bookAppointmentClicks: a.bookAppointmentClicks + m.bookAppointmentClicks,
+      bookingRequests: a.bookingRequests + m.bookingRequests,
+      directionsClicks: a.directionsClicks + m.directionsClicks,
       totalLeads: a.totalLeads + m.totalLeads,
     }),
-    { visits: 0, uniqueVisitors: 0, callClicks: 0, websiteClicks: 0, emailClicks: 0, totalLeads: 0 }
+    { visits: 0, uniqueVisitors: 0, bookAppointmentClicks: 0, bookingRequests: 0, directionsClicks: 0, totalLeads: 0 }
   );
 
-  const hasData = series.length > 0 && (totals.visits > 0 || totals.totalLeads > 0);
+  // bookingRequests counts too: an ad blocker can suppress every beacon on a
+  // visit that still ended in a real request, and "no activity" would then be
+  // shown to an owner who has someone waiting on a phone call.
+  const hasData = series.length > 0 && (totals.visits > 0 || totals.totalLeads > 0 || totals.bookingRequests > 0);
   const maxVisits = Math.max(1, ...series.map((m) => m.visits));
 
   const rangeLabel = hasData
-    ? `${MONTH_FMT.format(new Date(series[0].month))} ${new Date(series[0].month).getFullYear()} – ${MONTH_FMT.format(new Date(series[series.length - 1].month))} ${new Date(series[series.length - 1].month).getFullYear()}`
+    ? `${MONTH_FMT.format(new Date(series[0].month))} ${new Date(series[0].month).getUTCFullYear()} – ${MONTH_FMT.format(new Date(series[series.length - 1].month))} ${new Date(series[series.length - 1].month).getUTCFullYear()}`
     : null;
 
+  /*
+   * THE FUNNEL, IN ORDER: found -> intended -> committed, then how to get there.
+   * The three that were here before — click-to-call, website clicks, email
+   * inquiries — measured a visitor LEAVING, and the email one had logged a
+   * single click in the table's entire history.
+   *
+   * Booking Requests is the only card counted from a table rather than the
+   * pixel, and it is deliberately the one an owner reads first: it is a named
+   * person with a phone number and a time they intend to arrive.
+   */
   const cards = [
     { icon: Eye, label: "Profile Views", value: totals.visits, color: "text-indigo-600 bg-indigo-50" },
-    { icon: PhoneCall, label: "Click-to-Calls", value: totals.callClicks, color: "text-emerald-600 bg-emerald-50" },
-    { icon: Globe, label: "Website Clicks", value: totals.websiteClicks, color: "text-sky-600 bg-sky-50" },
-    { icon: Mail, label: "Email Inquiries", value: totals.emailClicks, color: "text-amber-600 bg-amber-50" },
+    { icon: CalendarPlus, label: "Booking Button Clicks", value: totals.bookAppointmentClicks, color: "text-sky-600 bg-sky-50" },
+    { icon: CalendarCheck, label: "Booking Requests", value: totals.bookingRequests, color: "text-emerald-600 bg-emerald-50" },
+    { icon: Navigation, label: "Directions Clicks", value: totals.directionsClicks, color: "text-amber-600 bg-amber-50" },
   ];
 
   if (!hasData) {
@@ -50,7 +71,7 @@ export function ListingLeadReport({
         <Eye className="w-8 h-8 text-slate-300 mx-auto mb-3" />
         <p className="font-black text-slate-900">No lead activity recorded yet</p>
         <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
-          We haven&apos;t logged views or contact clicks for{" "}
+          We haven&apos;t logged views or booking activity for{" "}
           <span className="font-bold text-slate-700">{listing.name}</span> yet. Data appears here once people
           start finding this {ROUTE_LABEL[listing.route].toLowerCase()} in search.
         </p>
@@ -82,7 +103,14 @@ export function ListingLeadReport({
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block" />Lead actions</span>
           </div>
         </div>
-        <div className="flex items-end gap-2 h-44" role="img" aria-label="Monthly profile views and lead actions">
+        {/*
+          items-STRETCH, not items-end. With items-end each column was only as
+          tall as its own content, so the bar's height:100% resolved against
+          nothing and every bar rendered at 0px — a chart that was always blank
+          however much data it had. The bars sit at the bottom via the inner
+          `items-end`, which is what the outer one was reaching for.
+        */}
+        <div className="flex items-stretch gap-2 h-44" role="img" aria-label="Monthly profile views and lead actions">
           {series.map((m) => {
             const visitH = Math.round((m.visits / maxVisits) * 100);
             const leadH = Math.round((m.totalLeads / maxVisits) * 100);
@@ -93,7 +121,7 @@ export function ListingLeadReport({
                   <div
                     className="w-full max-w-[34px] rounded-t bg-indigo-200 relative"
                     style={{ height: `${Math.max(visitH, 2)}%` }}
-                    title={`${MONTH_FMT.format(d)} ${d.getFullYear()}: ${fmt(m.visits)} views, ${fmt(m.totalLeads)} leads`}
+                    title={`${MONTH_FMT.format(d)} ${d.getUTCFullYear()}: ${fmt(m.visits)} views, ${fmt(m.totalLeads)} leads`}
                   >
                     {m.totalLeads > 0 && (
                       <div
@@ -113,11 +141,17 @@ export function ListingLeadReport({
       {/* lead-type breakdown + honesty note */}
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 flex flex-col gap-3">
-          <h2 className="font-black text-slate-900 mb-1">Lead actions, by type</h2>
+          <h2 className="font-black text-slate-900 mb-1">The booking funnel</h2>
+          {/*
+            Read top to bottom it is a funnel, and the drop between the first
+            two rows is the number worth acting on: people who opened the form
+            and did not finish it.
+          */}
           {[
-            { icon: PhoneCall, label: "Calls", value: totals.callClicks, color: "text-emerald-600" },
-            { icon: Globe, label: "Website visits", value: totals.websiteClicks, color: "text-sky-600" },
-            { icon: Mail, label: "Emails", value: totals.emailClicks, color: "text-amber-600" },
+            { icon: Eye, label: "Profile views", value: totals.visits, color: "text-indigo-600" },
+            { icon: CalendarPlus, label: "Opened the booking form", value: totals.bookAppointmentClicks, color: "text-sky-600" },
+            { icon: CalendarCheck, label: "Sent a booking request", value: totals.bookingRequests, color: "text-emerald-600" },
+            { icon: Navigation, label: "Asked for directions", value: totals.directionsClicks, color: "text-amber-600" },
           ].map((r) => (
             <div key={r.label} className="flex items-center justify-between">
               <span className="flex items-center gap-2 text-sm text-slate-600">
@@ -127,8 +161,18 @@ export function ListingLeadReport({
               <span className="font-black text-slate-900 tabular-nums">{fmt(r.value)}</span>
             </div>
           ))}
+          {/*
+            NOT a sum of the rows above, so it must not be labelled as one.
+            totalLeads counts every outbound click on the page — phone, website,
+            directions, the claim link — and reading "13 / 2 / 1 / 0" then
+            "Total 7" invites the owner to look for arithmetic that was never
+            there.
+          */}
           <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
-            <span className="text-sm font-bold text-slate-700">Total lead actions</span>
+            <span className="text-sm font-bold text-slate-700">
+              All contact clicks
+              <span className="block text-[11px] font-medium text-slate-400">phone, website, directions and claim</span>
+            </span>
             <span className="font-black text-indigo-600 tabular-nums">{fmt(totals.totalLeads)}</span>
           </div>
         </div>

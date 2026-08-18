@@ -66,9 +66,13 @@ export interface LeadMonth {
   month: string; // YYYY-MM-DD (first of month)
   visits: number;
   uniqueVisitors: number;
-  callClicks: number;
-  websiteClicks: number;
-  emailClicks: number;
+  /** Booking modal opened — the page button and the scroll banner together. */
+  bookAppointmentClicks: number;
+  /** Completed requests, counted from booking_requests rather than the pixel. */
+  bookingRequests: number;
+  /** Google Maps clicks, matched on the href we generate ourselves. */
+  directionsClicks: number;
+  /** Every outbound_lead click. Kept for the leaderboard, not shown on a card. */
   totalLeads: number;
 }
 
@@ -156,9 +160,9 @@ export async function fetchListingLeadReport(route: string, slug: string, months
     month: r.month,
     visits: Number(r.visits) || 0,
     uniqueVisitors: Number(r.unique_visitors) || 0,
-    callClicks: Number(r.call_clicks) || 0,
-    websiteClicks: Number(r.website_clicks) || 0,
-    emailClicks: Number(r.email_clicks) || 0,
+    bookAppointmentClicks: Number(r.book_appointment_clicks) || 0,
+    bookingRequests: Number(r.booking_requests) || 0,
+    directionsClicks: Number(r.directions_clicks) || 0,
     totalLeads: Number(r.total_leads) || 0,
   }));
 }
@@ -169,12 +173,12 @@ export function summarizeLeads(series: LeadMonth[]) {
     (a, m) => ({
       visits: a.visits + m.visits,
       uniqueVisitors: a.uniqueVisitors + m.uniqueVisitors,
-      callClicks: a.callClicks + m.callClicks,
-      websiteClicks: a.websiteClicks + m.websiteClicks,
-      emailClicks: a.emailClicks + m.emailClicks,
+      bookAppointmentClicks: a.bookAppointmentClicks + m.bookAppointmentClicks,
+      bookingRequests: a.bookingRequests + m.bookingRequests,
+      directionsClicks: a.directionsClicks + m.directionsClicks,
       totalLeads: a.totalLeads + m.totalLeads,
     }),
-    { visits: 0, uniqueVisitors: 0, callClicks: 0, websiteClicks: 0, emailClicks: 0, totalLeads: 0 }
+    { visits: 0, uniqueVisitors: 0, bookAppointmentClicks: 0, bookingRequests: 0, directionsClicks: 0, totalLeads: 0 }
   );
   const thisMonth = series[series.length - 1];
   const lastMonth = series[series.length - 2];
