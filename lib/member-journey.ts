@@ -306,19 +306,70 @@ export const STATE_HUBS: Record<JourneyState, string> = {
 export function stateCoverageForChat() {
   return (Object.keys(STATE_HUBS) as JourneyState[]).map((code) => {
     const tracks = ROUTES[code];
-    const kits = (Object.keys(tracks) as LicenseTrack[])
+    const trackList = (Object.keys(tracks) as LicenseTrack[])
       .map((track) => ({ track, routes: tracks[track] as TrackRoutes | undefined }))
-      .filter((t) => t.routes?.kitList)
+      .filter((t) => t.routes);
+
+    /*
+     * EVERY GUIDE WE PUBLISH, not just the kit list.
+     *
+     * ROUTES has carried requirements, examPrep and renewal per track all
+     * along; only kitList was ever exposed here, so the agent could link a
+     * student to their kit list and then had to describe the renewal guide in
+     * plain text — the deterministic link filter strips any URL absent from the
+     * context, so a page it could not see was a page it was forbidden to link
+     * even when it knew the path perfectly well.
+     *
+     * Keys end in _url because collectValidLinks() in the chat route
+     * allowlists any key ending "url" or "href". Renaming one of these breaks
+     * the link silently: the model still writes it and the filter still strips
+     * it, with nothing anywhere reporting that it happened.
+     */
+    /*
+     * The kit lists, UNCHANGED. The system prompt has tuned rules that name
+     * `practical_exam_kit_lists` and reason about it being empty; repointing
+     * them at a new field to save tokens would risk behaviour that was tuned
+     * against real failures ("I don't know" on a Minnesota page) for a saving
+     * currently measured in cents.
+     */
+    const kits = trackList
+      .filter((t) => t.routes!.kitList)
+      .map((t) => ({ licence: TRACK_LABELS[t.track], profile_url: t.routes!.kitList as string }));
+
+    /*
+     * The guides that were NOT linkable before, and only those — no kit list is
+     * repeated here. ROUTES has carried requirements, examPrep and renewal per
+     * track all along; only kitList was ever exposed, so the agent could send a
+     * student to their kit list and then had to describe the renewal guide in
+     * plain text. The deterministic link filter strips any URL absent from the
+     * context, so a page it could not see was a page it was forbidden to link
+     * even when it knew the path perfectly well.
+     *
+     * Keys end in _url because collectValidLinks() in the chat route allowlists
+     * any key ending "url" or "href". Renaming one breaks the link SILENTLY:
+     * the model still writes it, the filter still strips it, and nothing
+     * reports that it happened.
+     *
+     * Entries with no guides at all are dropped rather than sent as a row of
+     * nulls — 8 states of empty objects is context the model has to read and
+     * can never use.
+     */
+    const guides = trackList
       .map((t) => ({
         licence: TRACK_LABELS[t.track],
-        profile_url: t.routes!.kitList as string,
-      }));
+        requirements_url: t.routes!.requirements,
+        exam_prep_url: t.routes!.examPrep,
+        renewal_url: t.routes!.renewal,
+      }))
+      .filter((g) => g.requirements_url || g.exam_prep_url || g.renewal_url);
+
     return {
       state: STATE_LABELS[code],
       state_code: code,
       profile_url: STATE_HUBS[code],
       has_practical_exam: hasPracticalExam(code),
       practical_exam_kit_lists: kits,
+      licensing_guides: guides,
       coverage_note: kits.length
         ? `We publish ${kits.length} practical exam kit list${kits.length > 1 ? "s" : ""} for ${STATE_LABELS[code]}.`
         : hasPracticalExam(code)

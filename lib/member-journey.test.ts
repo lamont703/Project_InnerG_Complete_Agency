@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   allJourneyRoutes,
+  stateCoverageForChat,
   agentJourneyContext,
   currentPhase,
   datedMilestones,
@@ -281,6 +282,55 @@ describe("audiences", () => {
     expect(AUDIENCES.student.agentBrief).toMatch(/never pitch/i);
     for (const benefit of AUDIENCES.student.benefits) {
       expect(`${benefit.title} ${benefit.body}`.toLowerCase()).not.toMatch(/verified badge|claim your listing/);
+    }
+  });
+});
+
+describe("stateCoverageForChat exposes every guide, not just the kit list", () => {
+  const coverage = stateCoverageForChat() as any[];
+
+  it("still carries the kit lists the prompt's tuned rules depend on", () => {
+    // The system prompt reasons about practical_exam_kit_lists being EMPTY.
+    // Renaming or dropping it would silently defeat rules written against a
+    // real failure — "I don't know" on a Minnesota page.
+    for (const s of coverage) expect(Array.isArray(s.practical_exam_kit_lists)).toBe(true);
+    expect(coverage.reduce((n, s) => n + s.practical_exam_kit_lists.length, 0)).toBeGreaterThan(0);
+  });
+
+  it("adds requirements, exam prep and renewal links", () => {
+    const flat = coverage.flatMap((s) => s.licensing_guides);
+    expect(flat.some((g: any) => g.requirements_url)).toBe(true);
+    expect(flat.some((g: any) => g.exam_prep_url)).toBe(true);
+    expect(flat.some((g: any) => g.renewal_url)).toBe(true);
+  });
+
+  it("does NOT repeat kit lists in licensing_guides", () => {
+    // Duplicating them cost ~750 tokens on every single chat request for no
+    // extra linkable page.
+    const kitUrls = new Set(coverage.flatMap((s: any) =>
+      s.practical_exam_kit_lists.map((k: any) => k.profile_url)));
+    for (const g of coverage.flatMap((s: any) => s.licensing_guides)) {
+      for (const u of [g.requirements_url, g.exam_prep_url, g.renewal_url]) {
+        if (u) expect(kitUrls.has(u)).toBe(false);
+      }
+    }
+  });
+
+  it("drops licences with no guides rather than sending a row of nulls", () => {
+    for (const g of coverage.flatMap((s: any) => s.licensing_guides)) {
+      expect(Boolean(g.requirements_url || g.exam_prep_url || g.renewal_url)).toBe(true);
+    }
+  });
+
+  it("names every link field so collectValidLinks allowlists it", () => {
+    // The chat route allowlists any key ending "url" or "href". A key named
+    // anything else gives the model a real page it is then forbidden to link,
+    // and nothing reports the mismatch.
+    for (const g of coverage.flatMap((s: any) => s.licensing_guides)) {
+      for (const key of Object.keys(g)) {
+        if (key === "licence") continue;
+        expect(key.toLowerCase().endsWith("url")).toBe(true);
+      }
     }
   });
 });
