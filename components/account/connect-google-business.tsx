@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2, RefreshCw, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Link2Off, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface LocationOutcome {
@@ -46,12 +46,56 @@ export function ConnectGoogleBusiness() {
   const [retyping, setRetyping] = useState<string | null>(null);
   const [types, setTypes] = useState<{ key: string; label: string }[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [confirmingDisconnect, setConfirmingDisconnect] = useState(false);
   const [perf, setPerf] = useState<{ callClicks: number; websiteClicks: number; directionRequests: number; impressions: number; days: number } | null>(null);
 
   const refreshStatus = () =>
     fetch("/api/google-business/status", { credentials: "include" })
       .then((r) => r.json())
       .then(setStatus);
+
+  /**
+   * Hand the Google account back.
+   *
+   * TWO STEPS, NOT A confirm(). Disconnecting throws away a grant that took an
+   * OAuth round trip and a location choice to establish, so it should not be one
+   * stray click — but a native dialog is a blunt instrument and this button sits
+   * beside "Sync from Google", which is a click people make often. The inline
+   * confirm puts the weight in the right place without a modal.
+   *
+   * SAYS WHAT SURVIVES. The fear behind this button is "will I lose my listing?"
+   * — so the answer is on the button's own explanation, not buried in a help
+   * page. The claim stays; only the Google link goes.
+   */
+  const disconnect = async () => {
+    setDisconnecting(true);
+    try {
+      const res = await fetch("/api/google-business/disconnect", {
+        method: "POST",
+        credentials: "include",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.success) {
+        toast.error(json?.error || "Could not disconnect. Please try again.");
+        return;
+      }
+      setConfirmingDisconnect(false);
+      await refreshStatus();
+      // Only claim a clean break when we got one. If Google refused the revoke
+      // the grant is still listed in their account, and telling them otherwise
+      // would leave access standing that they believe is gone.
+      if (json.revokedAtGoogle === false) {
+        toast.success("Disconnected. Google may still list ShearQuery under your account's third-party access — remove it there to finish.");
+      } else {
+        toast.success("Google Business Profile disconnected. Your listing and claim are unchanged.");
+      }
+    } catch {
+      toast.error("Could not disconnect. Please try again.");
+    } finally {
+      setDisconnecting(false);
+    }
+  };
 
   // A Google account managing several locations can't be auto-claimed — a
   // member holds exactly one entity link, so they tell us which storefront is
@@ -304,7 +348,52 @@ export function ConnectGoogleBusiness() {
             <a href="/api/google-business/start" className="text-xs font-bold text-indigo-600 hover:underline">
               Reconnect
             </a>
+
+            {/* THE EXIT BELONGS NEXT TO THE ENTRY. A connection made in one
+                click and only undoable through Google's own account settings is
+                a consent problem, not a missing convenience — and the stale
+                token keeps getting used by the sync in the meantime. */}
+            {!confirmingDisconnect ? (
+              <button
+                type="button"
+                onClick={() => setConfirmingDisconnect(true)}
+                data-ig-click="gbp_disconnect_open"
+                className="ml-auto inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 transition-colors hover:text-rose-600"
+              >
+                <Link2Off className="h-3.5 w-3.5" />
+                Disconnect
+              </button>
+            ) : (
+              <span className="ml-auto inline-flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={disconnect}
+                  disabled={disconnecting}
+                  data-ig-click="gbp_disconnect_confirm"
+                  className="rounded-lg bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
+                >
+                  {disconnecting ? "Disconnecting…" : "Yes, disconnect"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDisconnect(false)}
+                  disabled={disconnecting}
+                  className="text-[11px] font-bold text-slate-500 hover:text-slate-800 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </span>
+            )}
           </div>
+
+          {confirmingDisconnect && (
+            // The one question anybody hesitating here is actually asking.
+            <p className="mt-2 max-w-md text-[11px] text-slate-500">
+              This revokes our access to your Google account and stops syncing.{" "}
+              <b className="text-slate-700">Your listing stays published and stays claimed by you</b> — you can
+              reconnect at any time.
+            </p>
+          )}
         </div>
       </div>
     );
