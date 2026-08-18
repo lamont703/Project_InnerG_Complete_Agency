@@ -11,7 +11,7 @@ export function RequestShopDayButton({ shop, className }: { shop: any; className
     <>
       <button
         onClick={() => setIsOpen(true)}
-        data-ig-click="outbound_lead"
+        data-ig-click="request_shop_day"
         className={
           className ||
           "inline-flex items-center justify-center gap-3 bg-white text-blue-600 px-8 py-4 rounded-2xl font-black text-lg hover:bg-blue-50 hover:scale-105 transition-all shadow-xl shadow-blue-900/20 w-full md:w-auto"

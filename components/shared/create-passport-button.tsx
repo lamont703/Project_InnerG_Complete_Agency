@@ -25,7 +25,7 @@ export function CreatePassportButton({
     <>
       <button
         onClick={() => setIsOpen(true)}
-        data-ig-click="outbound_lead"
+        data-ig-click="create_passport"
         className={
           className ||
           "w-full inline-flex flex-col items-center justify-center gap-1 px-5 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white transition-colors shadow-md"

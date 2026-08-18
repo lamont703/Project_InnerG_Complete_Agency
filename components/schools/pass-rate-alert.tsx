@@ -84,11 +84,13 @@ export function PassRateAlert({
       ) as HTMLAnchorElement | null;
       if (!el) return;
 
-      // outbound_lead does NOT mean "leaves the site". The claim CTA carries
-      // it too, and that one is an internal link to /membership — a school
-      // owner, not a student, and a same-tab navigation where this panel
-      // would never be seen anyway. Fire only on links that genuinely leave:
-      // the school's own website, a tel: dial, or map directions.
+      // outbound_lead now means only "the visitor left to reach this
+      // business" — the claim CTA that used to carry it as well is tagged
+      // claim_listing, so this no longer has to defend against that case.
+      //
+      // The href check stays anyway. It is cheap, it is the actual condition
+      // this panel cares about, and it means a future mislabel degrades into
+      // a missed panel rather than one shown to a student who never left.
       const href = el.getAttribute("href") || "";
       if (!href) return;
       const isTel = /^(tel:|mailto:)/i.test(href);

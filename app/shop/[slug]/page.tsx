@@ -748,7 +748,7 @@ export default async function ShopProfilePage({ params }: Props) {
                     <h2 className="text-2xl font-black text-slate-900">Your Market Ecosystem</h2>
                     <Link
                       href={`/tools/barbershop-search?ecosystemShopId=${shop.id}&ecosystemShopName=${encodeURIComponent(shop.shop_name)}`}
-                      data-ig-click="outbound_lead"
+                      data-ig-click="ask_ai_market"
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-sm"
                     >
                       <Sparkles className="w-3.5 h-3.5" />

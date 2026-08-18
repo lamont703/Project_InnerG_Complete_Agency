@@ -104,7 +104,7 @@ export default function TexasCosmetologyExamPrep() {
               className="whitespace-normal text-center leading-snug bg-primary text-white hover:bg-blue-700 gap-3 h-auto py-6 lg:py-8 px-6 lg:px-12 text-xs lg:text-sm font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] shadow-[0_4px_20px_rgba(37,99,235,0.4)] transition-all hover:-translate-y-1 w-full max-w-lg rounded-2xl border border-primary/50"
               asChild
             >
-              <Link href="/tools/texas-cosmetology-exam-practice-deck" data-ig-click="outbound_lead">
+              <Link href="/tools/texas-cosmetology-exam-practice-deck" data-ig-click="practice_deck">
                 Take the Free Cosmetology Practice Test
                 <ArrowRight className="h-5 w-5" />
               </Link>
@@ -115,7 +115,7 @@ export default function TexasCosmetologyExamPrep() {
               className="whitespace-normal text-center leading-snug border-white/20 bg-white/5 backdrop-blur-sm text-white hover:bg-white/10 hover:text-white gap-3 h-auto py-6 lg:py-8 px-6 lg:px-12 text-xs lg:text-sm font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] transition-all hover:scale-[1.02] border-2 shadow-sm w-full max-w-lg rounded-2xl"
               asChild
             >
-              <Link href="#pilot-application" data-ig-click="outbound_lead">Join Early Access Waitlist</Link>
+              <Link href="#pilot-application" data-ig-click="waitlist_anchor">Join Early Access Waitlist</Link>
             </Button>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-2">
               <Link href="/texas-cosmetology-practical-exam-kit-list" className="text-xs font-bold text-white/70 hover:text-white underline decoration-white/30 underline-offset-4">
@@ -321,7 +321,7 @@ export default function TexasCosmetologyExamPrep() {
 
           <div className="flex justify-center px-6">
             <Button size="lg" className="whitespace-normal text-center leading-snug w-full max-w-md sm:w-auto bg-slate-950 text-white hover:bg-primary gap-3 h-auto py-6 px-10 text-xs lg:text-sm font-black uppercase tracking-[0.2em] rounded-2xl" asChild>
-              <Link href="/tools/texas-cosmetology-exam-practice-deck" data-ig-click="outbound_lead">
+              <Link href="/tools/texas-cosmetology-exam-practice-deck" data-ig-click="practice_deck">
                 Start The Free Practice Deck
                 <ArrowRight className="h-5 w-5" />
               </Link>
@@ -511,7 +511,7 @@ export default function TexasCosmetologyExamPrep() {
                  disabled={isSubmitting}
                  size="lg"
                  className="whitespace-normal text-center leading-snug bg-primary text-white hover:bg-slate-950 gap-2 px-8 py-4 h-auto text-xs font-black uppercase tracking-widest rounded-xl shrink-0"
-                 data-ig-click="outbound_lead"
+                 data-ig-click="waitlist_submit"
                >
                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Join Waitlist<ArrowRight className="h-4 w-4" /></>}
                </Button>
