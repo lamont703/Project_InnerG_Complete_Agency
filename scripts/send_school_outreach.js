@@ -68,8 +68,16 @@ const CFG = {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function requireEnv() {
-  const missing = ["OUTREACH_POSTAL_ADDRESS", "OUTREACH_TOKEN_SECRET", "GHL_API_KEY", "GHL_LOCATION_ID"]
+  const missing = ["OUTREACH_POSTAL_ADDRESS", "GHL_API_KEY", "GHL_LOCATION_ID"]
     .filter((k) => !process.env[k]);
+  // Matches what lib/outreach-suppression.ts actually does: it signs with
+  // OUTREACH_TOKEN_SECRET and falls back to CRON_SECRET. Demanding the former
+  // here while the library accepts either invited the worse mistake — setting
+  // OUTREACH_TOKEN_SECRET locally to a value production does not share, which
+  // would sign every unsubscribe link with a key production cannot verify.
+  if (!process.env.OUTREACH_TOKEN_SECRET && !process.env.CRON_SECRET) {
+    missing.push("OUTREACH_TOKEN_SECRET (or CRON_SECRET)");
+  }
   if (missing.length) {
     console.error(`Refusing to run. Missing: ${missing.join(", ")}`);
     console.error("Without these the message is either non-compliant or its unsubscribe link is dead.");
