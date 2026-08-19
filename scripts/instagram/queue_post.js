@@ -25,6 +25,7 @@ const path = require("path");
 const fs = require("fs");
 const { createClient } = require("@supabase/supabase-js");
 const puppeteer = require("puppeteer");
+const { captionWithHashtags } = require("../../lib/instagram-hashtags.ts");
 
 const APPLY = process.argv.includes("--apply");
 const DATE = (process.argv.find((a) => a.startsWith("--date=")) || "").split("=")[1] || new Date().toISOString().slice(0, 10);
@@ -126,7 +127,7 @@ async function renderCard(fields, outPath) {
       post_key: POST.post_key,
       concept: POST.concept,
       title: jsonSafe(POST.title),
-      caption: jsonSafe(POST.caption),
+      caption: jsonSafe(captionWithHashtags(POST.caption, POST.concept)),
       image_urls: [pub.publicUrl],
       tag_handles: POST.tag_handles,
       scheduled_for: DATE,
