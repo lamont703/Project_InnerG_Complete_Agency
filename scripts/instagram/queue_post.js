@@ -51,6 +51,11 @@ const POST = {
     label: "is the 2026 statewide written exam pass rate for Texas barber schools.",
     punch: "Cohort-weighted across 135 schools.",
     source: "TDLR 2026 exam results",
+    // The card's question IS the caption's ask. Leaving it unset inherited the
+    // template's default -- "So is the exam broken - or the training?" -- which
+    // is a fine question and not the one the caption asks, so the reader got
+    // two calls to action and a reason to trust neither.
+    question: "Comment your school for its own number.",
     date: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase(),
   },
   caption: [
@@ -62,7 +67,10 @@ const POST = {
     "",
     "We publish the per-school numbers at shearquery.com, including for schools that don't put them on their own sites.",
     "",
-    "Which would you want to see next — pass rates by city, or by school?",
+    // A prompt has to promise something the single private reply can actually
+    // deliver. "Which would you want to see next" earns a comment we can only
+    // answer with a thank-you, and Meta allows exactly one reply per commenter.
+    "Comment your school and I'll send you its own 2026 number.",
   ].join("\n"),
   // Deliberately empty. The first post tags nobody: it proves the pipeline
   // without risking a wrong tag on a real business.

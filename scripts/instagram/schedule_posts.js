@@ -23,6 +23,18 @@
  * word that names a thing we hold data about -- a city, a school -- so the
  * reply can deliver a real answer and be worth answering.
  *
+ * THE CARD'S QUESTION IS THE CAPTION'S PROMPT — the same sentence, not two
+ * related ones. The template puts a question in the lower third, and the first
+ * run of this file passed none, so all thirteen cards inherited the template's
+ * default: "So is the exam broken - or the training?" That is a fine question
+ * about pass rates and pure noise on a card listing Houston barbershops.
+ *
+ * Filling the field was the small half of the fix. The real problem was that a
+ * card asking one thing above a caption asking another gives the reader two
+ * calls to action and no reason to trust either. One `prompt` per post now
+ * drives both, so the thing the card asks is the thing the caption asks is the
+ * thing the private reply can answer.
+ *
  * TAGGING POSTS ARE SCHEDULED AS DRAFTS. Not one of the 1,126 scraped handles
  * is confirmed, and a tag cannot be un-notified. Drafts appear on
  * /admin/instagram-queue and publish to nobody until a person promotes them.
@@ -46,20 +58,20 @@ const jsonSafe = (x) => String(x || "").replace(/[\u0000-\u0008\u000B\u000C\u000
 const pct = (n) => Math.round(Number(n) <= 1 ? Number(n) * 100 : Number(n)) + "%";
 
 /**
- * Posting days: Tue, Wed, Fri. Three a week, not seven.
+ * One a day, every day, starting today.
  *
- * Cadence is limited by how much is worth saying, not by the API's 100-a-day
- * ceiling. Three good posts beat seven that include four weak ones, and the
- * weak ones are what teach an audience to scroll past the account.
+ * A daily cadence is a supply problem before it is a strategy: the pool has to
+ * hold enough that is genuinely worth saying, or the schedule fills with weak
+ * posts and those are what teach an audience to scroll past. The generator
+ * produces what the data supports and no more — if that is fewer posts than
+ * days, the queue runs short rather than padded, and running short is the
+ * honest signal that the pool needs deepening.
  */
-const DAYS = [2, 3, 5];
-
-function scheduleDates(weeks) {
+function scheduleDates(count) {
   const out = [];
   const d = new Date();
-  d.setDate(d.getDate() + 1);
-  while (out.length < weeks * DAYS.length) {
-    if (DAYS.includes(d.getDay())) out.push(d.toISOString().slice(0, 10));
+  while (out.length < count) {
+    out.push(d.toISOString().slice(0, 10));
     d.setDate(d.getDate() + 1);
   }
   return out;
@@ -146,7 +158,7 @@ async function renderCard(fields, outPath) {
     key: "kit-list-texas-barber", concept: "kit-list", tags: [],
     title: "What Texas makes you bring to the barber practical",
     card: { chip: "Texas · Practical Exam", stat: "1 list", label: "is all that stands between you and walking in unprepared.",
-            punch: "The full Texas barber practical kit list.", source: "TDLR · PSI Candidate Bulletin", date: today, tone: "good" },
+            punch: "The full Texas barber practical kit list.", source: "TDLR · PSI Candidate Bulletin", question: "Testing in another state? Comment the state.", date: today, tone: "good" },
     caption: ["Everything Texas expects you to bring to the barber practical exam - and the items candidates most often turn up without.",
       "", "The full checklist is on shearquery.com.", "",
       "Testing in another state? Comment the state and I'll send you its list."].join("\n"),
@@ -156,7 +168,7 @@ async function renderCard(fields, outPath) {
     key: "practical-not-a-filter", concept: "stat", tags: [],
     title: "97% pass the practical. The written is the wall.",
     card: { chip: "Texas · Cosmetology", stat: "97%", label: "of Texas cosmetology candidates pass the hands-on exam.",
-            punch: "The written is where people actually fail.", source: "TDLR 2026 exam results", date: today },
+            punch: "The written is where people actually fail.", source: "TDLR 2026 exam results", question: "Comment your school for its written pass rate.", date: today },
     caption: ["Almost everyone passes the practical. The written exam is what stops people.",
       "", "Which means the hours you spend on the floor aren't the ones that decide whether you get licensed.",
       "", "Comment your school and I'll send you its 2026 written pass rate."].join("\n"),
@@ -166,7 +178,7 @@ async function renderCard(fields, outPath) {
     key: "renewal-wave-august", concept: "deadline", tags: [],
     title: "15,174 Texas licences expire this month",
     card: { chip: "Texas · Renewals", stat: "15,174", label: "Texas barber and cosmetology licences expire in August.",
-            punch: "Late renewal costs 1.5x the fee at 90 days.", source: "TDLR licence records", date: today },
+            punch: "Late renewal costs 1.5x the fee at 90 days.", source: "TDLR licence records", question: "Comment RENEW for your renewal steps.", date: today },
     caption: ["15,174 Texas beauty and barber licences come up for renewal this month.",
       "", "Miss it and the fee goes to 1.5x within 90 days, 2x after that.",
       "", "Comment RENEW and I'll send you the renewal steps for your licence type."].join("\n"),
@@ -176,7 +188,7 @@ async function renderCard(fields, outPath) {
     key: "written-first-attempt", concept: "stat", tags: [],
     title: "36.55% never pass the written at all",
     card: { chip: "Texas · Barber Exam", stat: "36.55%", label: "of Texas barber candidates never pass the written exam.",
-            punch: "Not 'not yet'. Never.", source: "TDLR 2026 exam results", date: today },
+            punch: "Not 'not yet'. Never.", source: "TDLR 2026 exam results", question: "Comment your city for the schools near you.", date: today },
     caption: ["More than a third of Texas barber candidates never pass the written exam. Not 'not on the first try' - never.",
       "", "Which school you pick moves that number more than anything else you control.",
       "", "Comment your city and I'll send you the pass rates for the schools near you."].join("\n"),
@@ -191,7 +203,8 @@ async function renderCard(fields, outPath) {
       card: { chip: "Texas · Barber Schools", stat: pct(s.written_pass_rate_2026),
               label: "of " + s.school_name + " students passed the written exam in 2026.",
               punch: "State average: 65%. Cohort of " + s.written_test_takers_2026 + ".",
-              source: "TDLR 2026 exam results", date: today, tone: "good" },
+              source: "TDLR 2026 exam results", date: today, tone: "good",
+              question: "Comment your school for the same figure." },
       caption: [pct(s.written_pass_rate_2026) + " of students at " + s.school_name + " (" + s.city + ") passed the written exam in 2026, against a statewide average of 65%.",
         "", "Cohort of " + s.written_test_takers_2026 + " - big enough that the number means something.",
         "", "Comment your school and I'll send you the same figure for yours."].join("\n"),
@@ -208,18 +221,34 @@ async function renderCard(fields, outPath) {
       title: "Top rated barbershops in " + c.city,
       card: { chip: c.city + " · Barbershops", stat: String(c.top.length),
               label: "barbershops in " + c.city + " hold 4.8 stars or better with 50+ reviews.",
-              punch: "These are the five most reviewed.", source: "Google ratings, verified " + today, date: today, tone: "good" },
+              punch: "These are the five most reviewed.", source: "Google ratings, verified " + today, date: today, tone: "good",
+              question: "Comment your city for the same list." },
       caption: ["The five most-reviewed 4.8+ barbershops in " + c.city + ", tagged below.",
         "", c.tagged.map((s, i) => (i + 1) + ". " + s.shop_name + " - " + s.rating + " (" + s.total_reviews + " reviews)").join("\n"),
         "", "Comment your city and I'll send you the same list for where you are."].join("\n"),
     });
   }
 
-  const dates = scheduleDates(WEEKS);
-  posts.forEach((p, i) => { p.date = dates[i] || dates[dates.length - 1]; });
+  /*
+   * SKIP DATES ALREADY SPOKEN FOR.
+   *
+   * This generator does not own the whole queue - a one-off written by another
+   * script sits in it too, and the first daily run put two posts on the same
+   * day. The cron would still drain one per day, so nothing would have gone out
+   * twice, but every recorded date after the collision would have been wrong
+   * about when its post actually published. A schedule that quietly disagrees
+   * with reality is worse than one that is visibly short.
+   */
+  const { data: taken } = await admin.from("instagram_queue")
+    .select("post_key, scheduled_for").in("status", ["queued", "draft", "published"]);
+  const mine = new Set(posts.map((p) => p.key));
+  const claimed = new Set((taken || []).filter((r) => !mine.has(r.post_key)).map((r) => r.scheduled_for));
+
+  const dates = scheduleDates(posts.length + claimed.size).filter((d) => !claimed.has(d));
+  posts.forEach((p, i) => { p.date = dates[i]; });
 
   // ---- report ----------------------------------------------------------
-  console.log((APPLY ? "APPLY" : "DRY RUN") + " - " + posts.length + " posts over " + WEEKS + " weeks (Tue/Wed/Fri)\n");
+  console.log((APPLY ? "APPLY" : "DRY RUN") + " - " + posts.length + " posts, one a day from " + dates[0] + "\n");
   for (const p of posts) {
     const status = p.tags.length || p.draftReason ? "DRAFT " : "queued";
     console.log("  " + p.date + "  " + status + "  " + p.title.slice(0, 52));
@@ -233,7 +262,22 @@ async function renderCard(fields, outPath) {
 
   if (!APPLY) return console.log("\nNothing written. Re-run with --apply.");
 
+  /*
+   * NEVER TOUCH A PUBLISHED POST. Regenerating is a routine act — a copy tweak,
+   * a tighter filter — and the upsert would happily rewrite a row that is
+   * already live, resetting it to queued and pointing it at a fresh image the
+   * post on Instagram does not use. The record would then describe something
+   * that never went out.
+   */
+  const { data: alreadyLive } = await admin.from("instagram_queue")
+    .select("post_key").eq("status", "published");
+  const live = new Set((alreadyLive || []).map((r) => r.post_key));
+
   for (const p of posts) {
+    if (live.has(p.key)) {
+      console.log("  skipped " + p.key + " (already published — its card cannot change)");
+      continue;
+    }
     const tmp = path.join(os.tmpdir(), "ig-" + p.key + ".png");
     await renderCard(p.card, tmp);
     const key = "instagram/" + p.key + "-" + Date.now() + ".png";

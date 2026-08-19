@@ -1,7 +1,12 @@
-import "server-only";
-
 /**
  * Publishing to Instagram: container, then publish.
+ *
+ * NOT MARKED server-only, deliberately. It takes the token and account id as
+ * ARGUMENTS rather than reading them from the environment, so there is nothing
+ * here for a client bundle to leak — and scripts need to import it. The
+ * alternative was a second copy of the container-then-publish sequence in
+ * scripts/, which is the kind of duplication that drifts and then fails
+ * differently in the two places.
  *
  * TWO CALLS, NEVER ONE. Instagram will not take a post in a single request. You
  * create a media CONTAINER, which is a staged, invisible object, and then you
@@ -55,11 +60,61 @@ async function igPost(path: string, body: Record<string, unknown>): Promise<any>
   return { status: res.status, body: await res.json().catch(() => ({})) };
 }
 
+/**
+ * Poll a container until Instagram has finished processing it.
+ *
+ * Generous but bounded: a still image is usually ready within a second or two,
+ * and anything that has not finished in ~30s is stuck rather than slow.
+ */
+async function waitForContainer(
+  containerId: string,
+  accessToken: string,
+  attempts = 15,
+  gapMs = 2000
+): Promise<{ ok: boolean; error?: string }> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(
+        `${IG}/${containerId}?fields=status_code,status&access_token=${accessToken}`,
+        { signal: AbortSignal.timeout(15000) }
+      );
+      const body: any = await res.json().catch(() => ({}));
+      const code = body?.status_code;
+      if (code === "FINISHED") return { ok: true };
+      if (code === "ERROR" || code === "EXPIRED") {
+        return { ok: false, error: `container ${code}: ${body?.status || "no detail"}` };
+      }
+    } catch {
+      /* a transient read failure is not a verdict; keep polling */
+    }
+    await new Promise((r) => setTimeout(r, gapMs));
+  }
+  return { ok: false, error: "container never reported FINISHED" };
+}
+
 export async function publishToInstagram(input: PublishInput): Promise<PublishResult> {
   const { igUserId, accessToken, imageUrls, caption } = input;
   if (!imageUrls.length) return { ok: false, error: "no images", stage: "child_container" };
 
-  const tags = (input.tagHandles || []).filter(Boolean).map((h) => ({ username: h.replace(/^@/, "") }));
+  /*
+   * IMAGE TAGS NEED COORDINATES. Instagram rejects a container with
+   * `user_tags: [{username}]` on a photo — "User tag positions are required for
+   * image" — even though the same shape is valid for video. It is the error you
+   * get after everything else is right, so it is worth the comment.
+   *
+   * The positions are where the little tag markers sit when someone taps the
+   * photo. On a typographic card there is no subject to point at, so they are
+   * spread down the middle rather than stacked: overlapping markers are
+   * unreadable, and a column keeps them clear of the stat and the caption block
+   * whatever the card says.
+   */
+  const handles = (input.tagHandles || []).filter(Boolean).map((h) => h.replace(/^@/, ""));
+  const tags = handles.map((username, i) => ({
+    username,
+    x: 0.5,
+    // Evenly spaced through the middle band, away from the top and bottom edges.
+    y: handles.length === 1 ? 0.5 : 0.2 + (0.6 * i) / Math.max(1, handles.length - 1),
+  }));
   const single = imageUrls.length === 1;
 
   // --- containers -------------------------------------------------------
@@ -97,6 +152,21 @@ export async function publishToInstagram(input: PublishInput): Promise<PublishRe
       return { ok: false, stage: "parent_container", error: body?.error?.message || `carousel container failed (${status})` };
     }
     publishId = body.id;
+  }
+
+  /*
+   * WAIT FOR THE CONTAINER TO FINISH BEFORE PUBLISHING.
+   *
+   * Creating a container returns an id immediately, but Instagram is still
+   * fetching and processing the image behind it. Publishing too early fails
+   * with "Media ID is not available" — an error that says nothing about timing
+   * and reads like the container was rejected, when in fact it was fine and we
+   * were early. status_code goes IN_PROGRESS -> FINISHED, and only FINISHED can
+   * be published.
+   */
+  const ready = await waitForContainer(publishId, accessToken);
+  if (!ready.ok) {
+    return { ok: false, stage: "publish", error: ready.error };
   }
 
   // --- publish ----------------------------------------------------------
