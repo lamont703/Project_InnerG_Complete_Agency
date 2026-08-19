@@ -97,6 +97,21 @@ export async function publishToInstagram(input: PublishInput): Promise<PublishRe
   if (!imageUrls.length) return { ok: false, error: "no images", stage: "child_container" };
 
   /*
+   * JPEG ONLY. A PNG creates a container quite happily and then fails at
+   * media_publish with "Media ID is not available" - an error that says nothing
+   * about the format and reads like a timing problem, which sends you looking
+   * at the container polling that is working fine. Caught by publishing a
+   * branded card as PNG; the identical image as JPEG published first try.
+   */
+  const png = imageUrls.find((u) => /\.png(\?|$)/i.test(u));
+  if (png) {
+    return {
+      ok: false, stage: "child_container",
+      error: `Instagram will not publish PNG. Convert to JPEG first: ${png}`,
+    };
+  }
+
+  /*
    * IMAGE TAGS NEED COORDINATES. Instagram rejects a container with
    * `user_tags: [{username}]` on a photo — "User tag positions are required for
    * image" — even though the same shape is valid for video. It is the error you
