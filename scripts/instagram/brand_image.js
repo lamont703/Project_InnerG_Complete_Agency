@@ -24,6 +24,15 @@ const puppeteer = require("puppeteer");
 
 const arg = (n, d) => { const m = process.argv.find((a) => a.startsWith(`--${n}=`)); return m ? m.split("=").slice(1).join("=") : d; };
 const IN = arg("in");
+/*
+ * TWO TREATMENTS, ONE TOOL.
+ *   card  - the data-post frame: rules, chip, amber mark, image contained.
+ *   photo - the picture runs full bleed with a gradient scrim, and the
+ *           branding is a small site-style wordmark that gets out of its way.
+ * A photo post wearing the card frame becomes a thumbnail inside a box, which
+ * is the wrong emphasis when the picture is the product.
+ */
+const STYLE = arg("style", "card");
 const OUT = arg("out", "branded.png");
 const W = Number(arg("w", 1080)), H = Number(arg("h", 1350));
 
@@ -43,7 +52,8 @@ const W = Number(arg("w", 1080)), H = Number(arg("h", 1350));
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: W, height: H, deviceScaleFactor: 1 });
-    await page.goto(`file://${path.join(__dirname, "brand_image.html")}?${params}`, { waitUntil: "networkidle0" });
+    const template = STYLE === "photo" ? "brand_photo.html" : "brand_image.html";
+    await page.goto(`file://${path.join(__dirname, template)}?${params}`, { waitUntil: "networkidle0" });
 
     // Inlined as a data URI: a file:// page cannot reliably fetch a sibling, and
     // an image that silently fails to load renders an empty frame that looks
@@ -58,5 +68,5 @@ const W = Number(arg("w", 1080)), H = Number(arg("h", 1350));
   } finally {
     await browser.close();
   }
-  console.log(`  ${OUT}  ${W}x${H}  ${Math.round(fs.statSync(OUT).size / 1024)}KB`);
+  console.log(`  ${OUT}  ${W}x${H}  style=${STYLE}  ${Math.round(fs.statSync(OUT).size / 1024)}KB`);
 })();
