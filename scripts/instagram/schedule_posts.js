@@ -23,6 +23,18 @@
  * word that names a thing we hold data about -- a city, a school -- so the
  * reply can deliver a real answer and be worth answering.
  *
+ * THE CARD'S QUESTION IS THE CAPTION'S PROMPT — the same sentence, not two
+ * related ones. The template puts a question in the lower third, and the first
+ * run of this file passed none, so all thirteen cards inherited the template's
+ * default: "So is the exam broken - or the training?" That is a fine question
+ * about pass rates and pure noise on a card listing Houston barbershops.
+ *
+ * Filling the field was the small half of the fix. The real problem was that a
+ * card asking one thing above a caption asking another gives the reader two
+ * calls to action and no reason to trust either. One `prompt` per post now
+ * drives both, so the thing the card asks is the thing the caption asks is the
+ * thing the private reply can answer.
+ *
  * TAGGING POSTS ARE SCHEDULED AS DRAFTS. Not one of the 1,126 scraped handles
  * is confirmed, and a tag cannot be un-notified. Drafts appear on
  * /admin/instagram-queue and publish to nobody until a person promotes them.
@@ -146,7 +158,7 @@ async function renderCard(fields, outPath) {
     key: "kit-list-texas-barber", concept: "kit-list", tags: [],
     title: "What Texas makes you bring to the barber practical",
     card: { chip: "Texas · Practical Exam", stat: "1 list", label: "is all that stands between you and walking in unprepared.",
-            punch: "The full Texas barber practical kit list.", source: "TDLR · PSI Candidate Bulletin", date: today, tone: "good" },
+            punch: "The full Texas barber practical kit list.", source: "TDLR · PSI Candidate Bulletin", question: "Testing in another state? Comment the state.", date: today, tone: "good" },
     caption: ["Everything Texas expects you to bring to the barber practical exam - and the items candidates most often turn up without.",
       "", "The full checklist is on shearquery.com.", "",
       "Testing in another state? Comment the state and I'll send you its list."].join("\n"),
@@ -156,7 +168,7 @@ async function renderCard(fields, outPath) {
     key: "practical-not-a-filter", concept: "stat", tags: [],
     title: "97% pass the practical. The written is the wall.",
     card: { chip: "Texas · Cosmetology", stat: "97%", label: "of Texas cosmetology candidates pass the hands-on exam.",
-            punch: "The written is where people actually fail.", source: "TDLR 2026 exam results", date: today },
+            punch: "The written is where people actually fail.", source: "TDLR 2026 exam results", question: "Comment your school for its written pass rate.", date: today },
     caption: ["Almost everyone passes the practical. The written exam is what stops people.",
       "", "Which means the hours you spend on the floor aren't the ones that decide whether you get licensed.",
       "", "Comment your school and I'll send you its 2026 written pass rate."].join("\n"),
@@ -166,7 +178,7 @@ async function renderCard(fields, outPath) {
     key: "renewal-wave-august", concept: "deadline", tags: [],
     title: "15,174 Texas licences expire this month",
     card: { chip: "Texas · Renewals", stat: "15,174", label: "Texas barber and cosmetology licences expire in August.",
-            punch: "Late renewal costs 1.5x the fee at 90 days.", source: "TDLR licence records", date: today },
+            punch: "Late renewal costs 1.5x the fee at 90 days.", source: "TDLR licence records", question: "Comment RENEW for your renewal steps.", date: today },
     caption: ["15,174 Texas beauty and barber licences come up for renewal this month.",
       "", "Miss it and the fee goes to 1.5x within 90 days, 2x after that.",
       "", "Comment RENEW and I'll send you the renewal steps for your licence type."].join("\n"),
@@ -176,7 +188,7 @@ async function renderCard(fields, outPath) {
     key: "written-first-attempt", concept: "stat", tags: [],
     title: "36.55% never pass the written at all",
     card: { chip: "Texas · Barber Exam", stat: "36.55%", label: "of Texas barber candidates never pass the written exam.",
-            punch: "Not 'not yet'. Never.", source: "TDLR 2026 exam results", date: today },
+            punch: "Not 'not yet'. Never.", source: "TDLR 2026 exam results", question: "Comment your city for the schools near you.", date: today },
     caption: ["More than a third of Texas barber candidates never pass the written exam. Not 'not on the first try' - never.",
       "", "Which school you pick moves that number more than anything else you control.",
       "", "Comment your city and I'll send you the pass rates for the schools near you."].join("\n"),
@@ -191,7 +203,8 @@ async function renderCard(fields, outPath) {
       card: { chip: "Texas · Barber Schools", stat: pct(s.written_pass_rate_2026),
               label: "of " + s.school_name + " students passed the written exam in 2026.",
               punch: "State average: 65%. Cohort of " + s.written_test_takers_2026 + ".",
-              source: "TDLR 2026 exam results", date: today, tone: "good" },
+              source: "TDLR 2026 exam results", date: today, tone: "good",
+              question: "Comment your school for the same figure." },
       caption: [pct(s.written_pass_rate_2026) + " of students at " + s.school_name + " (" + s.city + ") passed the written exam in 2026, against a statewide average of 65%.",
         "", "Cohort of " + s.written_test_takers_2026 + " - big enough that the number means something.",
         "", "Comment your school and I'll send you the same figure for yours."].join("\n"),
@@ -208,7 +221,8 @@ async function renderCard(fields, outPath) {
       title: "Top rated barbershops in " + c.city,
       card: { chip: c.city + " · Barbershops", stat: String(c.top.length),
               label: "barbershops in " + c.city + " hold 4.8 stars or better with 50+ reviews.",
-              punch: "These are the five most reviewed.", source: "Google ratings, verified " + today, date: today, tone: "good" },
+              punch: "These are the five most reviewed.", source: "Google ratings, verified " + today, date: today, tone: "good",
+              question: "Comment your city for the same list." },
       caption: ["The five most-reviewed 4.8+ barbershops in " + c.city + ", tagged below.",
         "", c.tagged.map((s, i) => (i + 1) + ". " + s.shop_name + " - " + s.rating + " (" + s.total_reviews + " reviews)").join("\n"),
         "", "Comment your city and I'll send you the same list for where you are."].join("\n"),
@@ -233,7 +247,22 @@ async function renderCard(fields, outPath) {
 
   if (!APPLY) return console.log("\nNothing written. Re-run with --apply.");
 
+  /*
+   * NEVER TOUCH A PUBLISHED POST. Regenerating is a routine act — a copy tweak,
+   * a tighter filter — and the upsert would happily rewrite a row that is
+   * already live, resetting it to queued and pointing it at a fresh image the
+   * post on Instagram does not use. The record would then describe something
+   * that never went out.
+   */
+  const { data: alreadyLive } = await admin.from("instagram_queue")
+    .select("post_key").eq("status", "published");
+  const live = new Set((alreadyLive || []).map((r) => r.post_key));
+
   for (const p of posts) {
+    if (live.has(p.key)) {
+      console.log("  skipped " + p.key + " (already published — its card cannot change)");
+      continue;
+    }
     const tmp = path.join(os.tmpdir(), "ig-" + p.key + ".png");
     await renderCard(p.card, tmp);
     const key = "instagram/" + p.key + "-" + Date.now() + ".png";
