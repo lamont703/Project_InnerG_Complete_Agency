@@ -26,6 +26,9 @@ const arg=(n,d)=>{const m=process.argv.find(a=>a.startsWith(`--${n}=`));return m
 const FPS=Number(arg("fps",30)), W=1080, H=1920, HERE=__dirname;
 const AUDIO=arg("audio", path.join("reference","Podcast Visuals","Shorts","_bed-9s.m4a"));
 const IN=arg("in", path.join(HERE,"source.jpg"));
+const NAMES=arg("names", null);      // JSON array of six style names
+const HEADLINE=arg("headline", null);
+const CTA=arg("cta", null);
 const OUT=arg("out", path.join(HERE,"hairstyles-reel.mp4"));
 const SECONDS=9.0;   // matches the bed
 
@@ -35,7 +38,11 @@ const SECONDS=9.0;   // matches the bed
   const page=await browser.newPage();
   page.on("pageerror",e=>console.error("  page error:",String(e).slice(0,180)));
   await page.setViewport({width:W,height:H});
-  await page.goto(`file://${path.join(HERE,"reel_hairstyles.html")}?w=${W}&h=${H}`,{waitUntil:"networkidle0"});
+  const qp=new URLSearchParams({w:String(W),h:String(H)});
+  if(NAMES) qp.set("names",NAMES);
+  if(HEADLINE) qp.set("headline",HEADLINE);
+  if(CTA) qp.set("cta",CTA);
+  await page.goto(`file://${path.join(HERE,"reel_hairstyles.html")}?${qp}`,{waitUntil:"networkidle0"});
 
   const src="data:image/jpeg;base64,"+fs.readFileSync(IN).toString("base64");
   const dims=await page.evaluate((s)=>window.__load(s), src);
