@@ -81,6 +81,17 @@ export function isPlausibleHandle(platform: Platform, raw: string): boolean {
   // A handle that is only digits is almost always a Facebook numeric page id
   // scraped out of a share URL, or a truncated post id.
   if (/^\d+$/.test(h)) return false;
+  /*
+   * A FILENAME IS NOT A HANDLE. instagram.com/embed.js is a script tag, and it
+   * matched cleanly enough to be stored as somebody's handle in the first full
+   * crawl — caught only because it happened to appear on three sites and
+   * tripped the shared-handle rule. On a site where it appeared once it would
+   * have passed as real, which is the version of this bug that reaches a public
+   * post.
+   */
+  if (/\.(js|css|php|json|png|jpe?g|gif|svg|html?|xml)$/i.test(h)) return false;
+  // Structural paths on the platforms that the profile pattern also matches.
+  if (/^(embed|share|sharer|tr|people|search|settings|policies|dialog|plugins|graph|badge|static|images?|v\d)$/i.test(h)) return false;
   // Instagram allows 1-30 of [a-z0-9._]; anything longer came from a bad match.
   if (platform === "instagram" && !/^[a-z0-9._]{1,30}$/.test(h)) return false;
   return true;

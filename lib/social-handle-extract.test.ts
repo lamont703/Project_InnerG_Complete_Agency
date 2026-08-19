@@ -67,6 +67,20 @@ describe("things that look like handles and are not", () => {
     expect(at('<a href="https://instagram.com/squarecutsbarber">us</a>')).toHaveLength(1);
   });
 
+  it("rejects a filename that happens to sit under instagram.com", () => {
+    // instagram.com/embed.js was stored as a real handle by the first full
+    // crawl. It survived extraction and was only caught downstream because it
+    // appeared on three sites.
+    expect(at('<script src="https://www.instagram.com/embed.js"></script>')).toHaveLength(0);
+    expect(at('<a href="https://www.facebook.com/share.php?u=x">s</a>')).toHaveLength(0);
+  });
+
+  it("rejects structural paths the profile pattern also matches", () => {
+    for (const p of ["people", "search", "settings", "plugins", "tr"]) {
+      expect(at(`<a href="https://www.facebook.com/${p}">x</a>`)).toHaveLength(0);
+    }
+  });
+
   it("rejects a numeric facebook page id scraped from a share URL", () => {
     expect(isPlausibleHandle("facebook", "1234567890")).toBe(false);
   });
