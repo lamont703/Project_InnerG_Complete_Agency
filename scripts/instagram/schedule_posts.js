@@ -91,13 +91,30 @@ async function renderCard(fields, outPath) {
   const { data: shops } = await admin.from("agent_barbershop_leads")
     .select("id,shop_name,city,rating,total_reviews").not("rating", "is", null).limit(4000);
 
+  /**
+   * ONLY HANDLES THAT LOOK LIKE THE BUSINESS GET TAGGED.
+   *
+   * name_match_score >= MIN_TAG_SCORE means the handle contains the
+   * distinctive words of the business name. Below that the crawl found
+   * something real but different - overwhelmingly a barber's personal account
+   * off a "meet the team" page. The first run of this file wanted to tag
+   * @rockytattoo, a tattoo artist at Top Notch Barbers, as though it were the
+   * shop; that is a public tag on a private person and the reason this filter
+   * exists rather than "take the first handle we found".
+   *
+   * This is a confidence bar, NOT verification. confirmed_at still means a
+   * person checked, and nothing here sets it.
+   */
+  const MIN_TAG_SCORE = 0.6;
   let handles = [], from = 0;
   for (;;) {
     const { data } = await admin.from("entity_social_profiles")
-      .select("entity_id,handle,confirmed_at").eq("platform", "instagram")
-      .is("rejected_reason", null).range(from, from + 999);
+      .select("entity_id,handle,confirmed_at,name_match_score").eq("platform", "instagram")
+      .is("rejected_reason", null).gte("name_match_score", MIN_TAG_SCORE).range(from, from + 999);
     handles = handles.concat(data || []); if (!data || data.length < 1000) break; from += 1000;
   }
+  // Best-scoring handle wins where a business has several.
+  handles.sort((a, b) => (b.name_match_score || 0) - (a.name_match_score || 0));
   const H_BY_ENTITY = new Map();
   for (const h of handles) if (!H_BY_ENTITY.has(h.entity_id)) H_BY_ENTITY.set(h.entity_id, h);
 
@@ -236,5 +253,32 @@ async function renderCard(fields, outPath) {
     if (error) console.error("  queue failed " + p.key + ": " + error.message);
     else console.log("  " + (isDraft ? "draft " : "queued") + " " + p.key);
   }
+  /*
+   * RETIRE DRAFTS THIS RUN NO LONGER PRODUCES.
+   *
+   * Tightening the tag filter dropped two city posts whose handles no longer
+   * qualified - but the rows from the previous run stayed, still carrying the
+   * tags that failed. One of them held @rockytattoo, a tattoo artist tagged as
+   * though he were the barbershop. A draft nobody regenerates is worse than no
+   * draft: it looks reviewed, sits on the page beside current work, and is one
+   * click from being promoted by someone who assumes it was produced by the
+   * same rules as everything around it.
+   *
+   * Only drafts are retired. A queued or published post is a decision already
+   * taken and is never touched by a regeneration.
+   */
+  const liveKeys = new Set(posts.map((p) => p.key));
+  const { data: existingDrafts } = await admin.from("instagram_queue")
+    .select("id, post_key").eq("status", "draft");
+  const orphans = (existingDrafts || []).filter((d) => !liveKeys.has(d.post_key));
+  for (const o of orphans) {
+    await admin.from("instagram_queue").update({
+      status: "skipped",
+      error: "superseded: this run no longer produces it, most often because its tags stopped qualifying",
+      updated_at: new Date().toISOString(),
+    }).eq("id", o.id);
+    console.log("  retired " + o.post_key + " (no longer generated)");
+  }
+
   console.log("\nReview at /admin/instagram-queue. Drafts publish to nobody until promoted.");
 })();
