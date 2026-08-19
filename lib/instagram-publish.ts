@@ -45,6 +45,17 @@ export interface PublishInput {
    * as one endpoint with a different file on the end.
    */
   videoUrl?: string;
+  /**
+   * A publicly reachable JPEG to use as the Reel's cover, ignored for images.
+   *
+   * Instagram cURLs this URL itself, so it has to be reachable from the public
+   * internet rather than signed or behind auth. JPEG only, under 8MB, sRGB, and
+   * 9:16 or it crops to the middle 9:16 rectangle.
+   *
+   * When this is set Instagram ignores thumb_offset entirely, so there is no
+   * point sending both. Leaving it undefined falls back to frame 0.
+   */
+  coverUrl?: string;
 }
 
 export interface PublishResult {
@@ -150,9 +161,22 @@ export async function publishToInstagram(input: PublishInput): Promise<PublishRe
    * longer wait while Instagram transcodes.
    */
   if (input.videoUrl) {
+    /*
+     * A NON-JPEG COVER IS DROPPED RATHER THAN SENT. Instagram documents JPEG
+     * for a Reels cover, and the failure mode for the wrong format here is the
+     * one that already cost this pipeline a debugging session: the container is
+     * accepted and the refusal only surfaces at publish, several minutes of
+     * transcoding later. Losing the cover is much better than losing the Reel.
+     */
+    const cover = input.coverUrl && /\.jpe?g(\?|$)/i.test(input.coverUrl) ? input.coverUrl : undefined;
+    if (input.coverUrl && !cover) {
+      console.warn(`[instagram] ignoring non-JPEG cover: ${input.coverUrl}`);
+    }
+
     const { status, body } = await igPost(`${igUserId}/media`, {
       media_type: "REELS",
       video_url: input.videoUrl,
+      ...(cover ? { cover_url: cover } : {}),
       caption,
       access_token: accessToken,
     });

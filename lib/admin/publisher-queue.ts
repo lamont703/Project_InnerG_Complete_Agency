@@ -20,6 +20,8 @@ export interface PublisherItem {
   label: string | null;
   question: string | null;
   videoUrl: string | null;
+  /** Cover JPEG, used as the card's poster and as the Reel's cover_url. */
+  thumbnailUrl: string | null;
   caption: string | null;
   position: number;
   status: PublisherStatus;
@@ -114,6 +116,7 @@ export async function fetchPublisherQueue(): Promise<PublisherQueue> {
     label: r.label,
     question: r.question,
     videoUrl: r.video_url,
+    thumbnailUrl: r.thumbnail_url ?? null,
     caption: r.caption,
     position: r.position,
     status: r.status,
