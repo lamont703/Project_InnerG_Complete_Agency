@@ -18,8 +18,74 @@ function loadEnv() {
 loadEnv()
 
 const accessToken = process.env.META_ACCESS_TOKEN || process.env.INSTAGRAM_ACCESS_TOKEN
-const version = 'v19.0'
+const version = 'v21.0'
 const baseUrl = `https://graph.facebook.com/${version}`
+
+/**
+ * THERE ARE TWO INSTAGRAM APIS AND THEY ARE NOT INTERCHANGEABLE.
+ *
+ *   Instagram API with FACEBOOK Login   -> graph.facebook.com, a Facebook User
+ *                                          token, permissions readable at
+ *                                          /me/permissions, reaches Instagram
+ *                                          through a Page.
+ *   Instagram API with INSTAGRAM Login  -> graph.instagram.com, a token that
+ *                                          begins "IGAA", no Page involved, and
+ *                                          NO /me/permissions endpoint at all.
+ *
+ * This script was written for the first and the stored token is the second, so
+ * it reported "Cannot parse access token" and looked like an expired-credential
+ * problem. It is not: a brand-new working Instagram Login token fails here in
+ * exactly the same way, which is the kind of error that sends someone
+ * re-authorising over and over wondering why nothing changes.
+ *
+ * So detect the token type first and audit it the way that token can be
+ * audited. Instagram Login tokens do not enumerate their grants, so capability
+ * is established by calling the endpoints the permissions gate and reading what
+ * comes back.
+ */
+const isInstagramLoginToken = (t: string) => t.startsWith('IGAA')
+
+/** The four scopes Instagram Login can carry. */
+const IG_LOGIN_SCOPES = [
+    'instagram_business_basic',
+    'instagram_business_content_publish',
+    'instagram_business_manage_messages',
+    'instagram_business_manage_comments',
+]
+
+async function auditInstagramLoginToken(token: string) {
+    console.log('Token type: Instagram Login (graph.instagram.com)\n')
+
+    const me = await fetch(`https://graph.instagram.com/me?fields=id,username,account_type&access_token=${token}`)
+    const meData: any = await me.json()
+
+    if (meData.error) {
+        console.error('❌ ' + meData.error.message)
+        if (/expired/i.test(meData.error.message || '')) {
+            console.error('\nThis token is past its 60-day life. Meta does not allow refreshing an')
+            console.error('expired token - it has to be re-authorised through the OAuth flow.')
+        }
+        return
+    }
+
+    console.log(`✅ Connected as @${meData.username}  (id ${meData.id}, ${meData.account_type})\n`)
+    console.log('Scopes are not enumerable for this token type, so capability is')
+    console.log('probed by calling what each permission gates:\n')
+
+    // instagram_business_content_publish gates the publishing container endpoint.
+    // A GET on it is harmless and tells us whether the grant is there.
+    const pub = await fetch(`https://graph.instagram.com/${meData.id}/media?limit=1&access_token=${token}`)
+    const pubData: any = await pub.json()
+    const canRead = !pubData.error
+    console.log(`${canRead ? '✅ READY   ' : '⚠️  MISSING'} | instagram_business_basic (read own media)`)
+    if (pubData.error) console.log(`             ${pubData.error.message}`)
+
+    console.log('\nTo confirm instagram_business_content_publish, create a media container')
+    console.log('and do NOT publish it - that call fails with a permission error if the')
+    console.log('grant is absent, and costs nothing if it succeeds.')
+    console.log('\nAll four Instagram Login scopes:')
+    IG_LOGIN_SCOPES.forEach((sc) => console.log(`  - ${sc}`))
+}
 
 async function auditPermissions() {
     console.log('--------------------------------------------------')
@@ -31,6 +97,12 @@ async function auditPermissions() {
         return
     }
 
+    if (isInstagramLoginToken(accessToken)) {
+        await auditInstagramLoginToken(accessToken)
+        return
+    }
+
+    console.log('Token type: Facebook Login (graph.facebook.com)\n')
     console.log('🔍 Fetching current permission set from Meta Graph API...')
     const permRes = await fetch(`${baseUrl}/me/permissions?access_token=${accessToken}`)
     const permData: any = await permRes.json()
