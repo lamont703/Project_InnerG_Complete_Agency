@@ -284,7 +284,7 @@ export function PublisherQueueBoard({ queue }: { queue: PublisherQueue }) {
             Nothing in line. New Shorts and Reels are added to the back automatically.
           </p>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
             {order.map((item, i) => (
               <Card
                 key={item.id}
@@ -314,7 +314,7 @@ export function PublisherQueueBoard({ queue }: { queue: PublisherQueue }) {
         {queue.done.length === 0 ? (
           <p className="text-sm text-slate-500">Nothing published from here yet.</p>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
             {queue.done.map((item, i) => (
               <Card key={item.id} item={item} index={i} draggable={false} />
             ))}
