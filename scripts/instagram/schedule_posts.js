@@ -58,20 +58,20 @@ const jsonSafe = (x) => String(x || "").replace(/[\u0000-\u0008\u000B\u000C\u000
 const pct = (n) => Math.round(Number(n) <= 1 ? Number(n) * 100 : Number(n)) + "%";
 
 /**
- * Posting days: Tue, Wed, Fri. Three a week, not seven.
+ * One a day, every day, starting today.
  *
- * Cadence is limited by how much is worth saying, not by the API's 100-a-day
- * ceiling. Three good posts beat seven that include four weak ones, and the
- * weak ones are what teach an audience to scroll past the account.
+ * A daily cadence is a supply problem before it is a strategy: the pool has to
+ * hold enough that is genuinely worth saying, or the schedule fills with weak
+ * posts and those are what teach an audience to scroll past. The generator
+ * produces what the data supports and no more — if that is fewer posts than
+ * days, the queue runs short rather than padded, and running short is the
+ * honest signal that the pool needs deepening.
  */
-const DAYS = [2, 3, 5];
-
-function scheduleDates(weeks) {
+function scheduleDates(count) {
   const out = [];
   const d = new Date();
-  d.setDate(d.getDate() + 1);
-  while (out.length < weeks * DAYS.length) {
-    if (DAYS.includes(d.getDay())) out.push(d.toISOString().slice(0, 10));
+  while (out.length < count) {
+    out.push(d.toISOString().slice(0, 10));
     d.setDate(d.getDate() + 1);
   }
   return out;
@@ -229,11 +229,26 @@ async function renderCard(fields, outPath) {
     });
   }
 
-  const dates = scheduleDates(WEEKS);
-  posts.forEach((p, i) => { p.date = dates[i] || dates[dates.length - 1]; });
+  /*
+   * SKIP DATES ALREADY SPOKEN FOR.
+   *
+   * This generator does not own the whole queue - a one-off written by another
+   * script sits in it too, and the first daily run put two posts on the same
+   * day. The cron would still drain one per day, so nothing would have gone out
+   * twice, but every recorded date after the collision would have been wrong
+   * about when its post actually published. A schedule that quietly disagrees
+   * with reality is worse than one that is visibly short.
+   */
+  const { data: taken } = await admin.from("instagram_queue")
+    .select("post_key, scheduled_for").in("status", ["queued", "draft", "published"]);
+  const mine = new Set(posts.map((p) => p.key));
+  const claimed = new Set((taken || []).filter((r) => !mine.has(r.post_key)).map((r) => r.scheduled_for));
+
+  const dates = scheduleDates(posts.length + claimed.size).filter((d) => !claimed.has(d));
+  posts.forEach((p, i) => { p.date = dates[i]; });
 
   // ---- report ----------------------------------------------------------
-  console.log((APPLY ? "APPLY" : "DRY RUN") + " - " + posts.length + " posts over " + WEEKS + " weeks (Tue/Wed/Fri)\n");
+  console.log((APPLY ? "APPLY" : "DRY RUN") + " - " + posts.length + " posts, one a day from " + dates[0] + "\n");
   for (const p of posts) {
     const status = p.tags.length || p.draftReason ? "DRAFT " : "queued";
     console.log("  " + p.date + "  " + status + "  " + p.title.slice(0, 52));
