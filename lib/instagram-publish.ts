@@ -39,6 +39,12 @@ export interface PublishInput {
   caption: string;
   /** Handles WITHOUT the @, already reviewed. */
   tagHandles?: string[];
+  /**
+   * A publicly reachable MP4. When set, this publishes a REEL and imageUrls is
+   * ignored - Instagram treats the two as different media types entirely, not
+   * as one endpoint with a different file on the end.
+   */
+  videoUrl?: string;
 }
 
 export interface PublishResult {
@@ -72,6 +78,10 @@ async function waitForContainer(
   attempts = 15,
   gapMs = 2000
 ): Promise<{ ok: boolean; error?: string }> {
+  // A still is ready in a second or two. A Reel has to be transcoded, which
+  // takes tens of seconds and occasionally minutes - so callers publishing
+  // video pass a far longer budget rather than this one being generous for
+  // everybody and slowing every image publish down.
   for (let i = 0; i < attempts; i++) {
     try {
       const res = await fetch(
@@ -103,7 +113,7 @@ export async function publishToInstagram(input: PublishInput): Promise<PublishRe
    * at the container polling that is working fine. Caught by publishing a
    * branded card as PNG; the identical image as JPEG published first try.
    */
-  const png = imageUrls.find((u) => /\.png(\?|$)/i.test(u));
+  const png = input.videoUrl ? undefined : imageUrls.find((u) => /\.png(\?|$)/i.test(u));
   if (png) {
     return {
       ok: false, stage: "child_container",
@@ -123,6 +133,39 @@ export async function publishToInstagram(input: PublishInput): Promise<PublishRe
    * unreadable, and a column keeps them clear of the stat and the caption block
    * whatever the card says.
    */
+  /*
+   * REELS ARE A DIFFERENT MEDIA TYPE, not an image publish with an MP4. One
+   * container with media_type REELS and a video_url, no carousel, and a much
+   * longer wait while Instagram transcodes.
+   */
+  if (input.videoUrl) {
+    const { status, body } = await igPost(`${igUserId}/media`, {
+      media_type: "REELS",
+      video_url: input.videoUrl,
+      caption,
+      access_token: accessToken,
+    });
+    if (!body?.id) {
+      return { ok: false, stage: "child_container", error: body?.error?.message || `reel container failed (${status})` };
+    }
+    // 60 attempts at 5s = five minutes. Transcoding a short clip is usually
+    // well under a minute, but a tight budget here fails a good Reel for being
+    // slow, which is the least useful reason to fail.
+    const ready = await waitForContainer(body.id, accessToken, 60, 5000);
+    if (!ready.ok) return { ok: false, stage: "publish", error: ready.error };
+
+    const pub = await igPost(`${igUserId}/media_publish`, { creation_id: body.id, access_token: accessToken });
+    if (!pub.body?.id) {
+      return { ok: false, stage: "publish", error: pub.body?.error?.message || `reel publish failed (${pub.status})` };
+    }
+    let permalink: string | undefined;
+    try {
+      const r = await fetch(`${IG}/${pub.body.id}?fields=permalink&access_token=${accessToken}`, { signal: AbortSignal.timeout(15000) });
+      permalink = (await r.json().catch(() => ({})))?.permalink;
+    } catch { /* already live; a missing link is cosmetic */ }
+    return { ok: true, mediaId: pub.body.id, permalink };
+  }
+
   const handles = (input.tagHandles || []).filter(Boolean).map((h) => h.replace(/^@/, ""));
   const tags = handles.map((username, i) => ({
     username,

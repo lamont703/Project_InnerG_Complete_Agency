@@ -1,0 +1,153 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>hairstyles reel</title>
+<style>
+/*
+ * The hairstyles grid as a Reel.
+ *
+ * THE MOTION IS THE CAPTION'S ARGUMENT. The post asks someone to comment a
+ * NUMBER, so the edit walks the six cuts in order and puts the number on
+ * screen while each one is held. A generic push-in would look nicer and would
+ * not teach anyone what they are being asked to do.
+ *
+ * OPEN AND CLOSE ON THE FULL GRID. The middle of the clip only makes sense if
+ * the viewer has seen all six first, and the last frame has to answer "so what
+ * do I do" - so the CTA lands on the wide, not on cut six.
+ *
+ * NINE SECONDS BECAUSE THE MUSIC BED IS NINE SECONDS. Cutting to the audio you
+ * actually have beats cutting to a number you picked and then fading the track
+ * awkwardly.
+ *
+ * Pure function of t, same discipline as every other renderer here.
+ */
+html,body{margin:0;background:#06070a;overflow:hidden}
+.frame{position:relative;width:var(--w);height:var(--h);overflow:hidden;background:#06070a;
+  font-family:"Helvetica Neue",Inter,system-ui,sans-serif}
+.viewport{position:absolute;inset:0;overflow:hidden}
+.viewport img{position:absolute;transform-origin:0 0;will-change:transform}
+
+.scrim{position:absolute;left:0;right:0;bottom:0;height:30%;
+  background:linear-gradient(to top,rgba(6,7,10,0.95) 0%,rgba(6,7,10,0.75) 45%,rgba(6,7,10,0) 100%)}
+
+/* The number, large, while a cut is held. */
+.badge{position:absolute;left:var(--pad);top:calc(var(--u)*0.085);
+  font-size:calc(var(--u)*0.20);font-weight:900;line-height:0.9;letter-spacing:-0.05em;
+  color:#ffffff;text-shadow:0 calc(var(--u)*0.004) calc(var(--u)*0.02) rgba(0,0,0,.45)}
+.styleName{position:absolute;left:var(--pad);top:calc(var(--u)*0.285);
+  font-size:calc(var(--u)*0.042);font-weight:800;letter-spacing:-0.01em;color:#ffffff;
+  text-shadow:0 calc(var(--u)*0.003) calc(var(--u)*0.016) rgba(0,0,0,.55)}
+
+/* One flex column. Pinning the headline and the CTA to separate `bottom`
+   offsets collided the moment the CTA wrapped to two lines - the same bug the
+   still had, which I fixed there and failed to carry across. */
+.copy{position:absolute;left:var(--pad);right:var(--pad);bottom:calc(var(--u)*0.095);
+  display:flex;flex-direction:column;gap:calc(var(--u)*0.018)}
+.headline{font-size:calc(var(--u)*0.066);font-weight:800;line-height:1.08;letter-spacing:-0.02em;color:#fff}
+.cta{font-size:calc(var(--u)*0.034);font-weight:600;color:rgba(255,255,255,0.88);line-height:1.3}
+
+.brand{position:absolute;left:var(--pad);bottom:calc(var(--u)*0.042);
+  font-size:calc(var(--u)*0.032);font-weight:700;letter-spacing:-0.02em;color:#fff}
+.brand .q{color:#00b2de}
+</style>
+<div class="frame" id="f">
+  <div class="viewport"><img id="shot" alt=""></div>
+  <div class="scrim" id="scrim"></div>
+  <div class="badge" id="badge"></div>
+  <div class="styleName" id="styleName"></div>
+  <div class="copy" id="copy">
+    <div class="headline" id="headline">Six cuts to ask for.</div>
+    <div class="cta" id="cta">Comment the number and I'll send you shops that do it.</div>
+  </div>
+  <div class="brand">Shear<span class="q">Query</span></div>
+</div>
+<script>
+const q=new URLSearchParams(location.search);
+const W=+(q.get("w")||1080), H=+(q.get("h")||1920);
+const f=document.getElementById("f");
+f.style.setProperty("--w",W+"px"); f.style.setProperty("--h",H+"px");
+f.style.setProperty("--u",Math.min(W,H)+"px");
+f.style.setProperty("--pad",(Math.min(W,H)*0.070)+"px");
+
+/* Reading order, matching the caption's numbering. Centres are nudged off the
+   exact cell midpoints because the heads sit high within each cell. */
+const CUTS=[
+  {n:1,x:0.27,y:0.155,name:"Taper fade · 360 waves"},
+  {n:2,x:0.73,y:0.155,name:"Burst fade mohawk"},
+  {n:3,x:0.27,y:0.495,name:"Low fade · twists"},
+  {n:4,x:0.73,y:0.495,name:"Mid fade · hard part"},
+  {n:5,x:0.27,y:0.840,name:"Short afro · shape-up"},
+  {n:6,x:0.73,y:0.840,name:"Bald fade · design"},
+];
+
+const OPEN=1.4, HOLD=1.0, CLOSE=1.6;
+const TOTAL=OPEN+CUTS.length*HOLD+CLOSE;   // 9.0s, matching the bed
+
+let img=null, natural={w:1,h:1};
+window.__load=(src)=>new Promise((res)=>{
+  const el=document.getElementById("shot");
+  el.onload=()=>{ natural={w:el.naturalWidth,h:el.naturalHeight}; img=el; res(natural); };
+  el.src=src;
+});
+
+const lerp=(a,b,t)=>a+(b-a)*t;
+const easeInOut=(x)=> x<0.5 ? 2*x*x : 1-Math.pow(-2*x+2,2)/2;
+
+/** Place the image so that (cx,cy) in image space sits at the frame centre, at `scale`. */
+function place(cx,cy,scale){
+  // Base scale fits the image's WIDTH to the frame; zooming past that crops in.
+  const base=W/natural.w;
+  const s=base*scale;
+  const dw=natural.w*s, dh=natural.h*s;
+  let x=W/2 - cx*dw;
+  let y=H/2 - cy*dh;
+  /*
+   * CLAMP TO THE IMAGE. Cut 6 sits at y=0.84, and at 2.3x the frame ran off the
+   * bottom of the picture and showed a black band - which reads as a rendering
+   * fault rather than a choice. Where the scaled image is smaller than the
+   * frame on an axis it is centred instead, so a 3:4 source in a 9:16 frame
+   * still sits sensibly at the wide framing.
+   */
+  x = dw >= W ? Math.min(0, Math.max(W - dw, x)) : (W - dw) / 2;
+  y = dh >= H ? Math.min(0, Math.max(H - dh, y)) : (H - dh) / 2;
+  img.style.transform=`translate(${x}px, ${y}px) scale(${s})`;
+}
+
+window.__setT=(t)=>{
+  if(!img) return;
+  const clock=t*TOTAL;
+  const badge=document.getElementById("badge");
+  const name=document.getElementById("styleName");
+  const copy=document.getElementById("copy");
+  const scrim=document.getElementById("scrim");
+
+  // The wide framing: whole grid visible, centred.
+  const wideScale = (H/natural.h) / (W/natural.w) < 1 ? 1 : 1;   // width-fit shows all of a 3:4 grid
+  const WIDE={cx:0.5, cy:0.5, s:1.0};
+
+  if(clock < OPEN){
+    const u=clock/OPEN;
+    place(WIDE.cx, WIDE.cy, lerp(1.02,1.10,easeInOut(u)));
+    badge.style.opacity=0; name.style.opacity=0;
+    copy.style.opacity=easeInOut(Math.max(0,(u-0.35)/0.65));
+    scrim.style.opacity=1;
+  } else if(clock < OPEN+CUTS.length*HOLD){
+    const idx=Math.min(CUTS.length-1, Math.floor((clock-OPEN)/HOLD));
+    const u=((clock-OPEN)-idx*HOLD)/HOLD;
+    const c=CUTS[idx];
+    // Ease from the wide into the cut on the first third, then hold with drift.
+    const enter=Math.min(1,u/0.34);
+    const e=easeInOut(enter);
+    place(lerp(WIDE.cx,c.x,e), lerp(WIDE.cy,c.y,e), lerp(1.10,2.30,e) + u*0.05);
+    badge.textContent=c.n; name.textContent=c.name;
+    badge.style.opacity=e; name.style.opacity=e;
+    copy.style.opacity=0; scrim.style.opacity=0.35;
+  } else {
+    const u=(clock-(OPEN+CUTS.length*HOLD))/CLOSE;
+    const e=easeInOut(Math.min(1,u/0.5));
+    const last=CUTS[CUTS.length-1];
+    place(lerp(last.x,WIDE.cx,e), lerp(last.y,WIDE.cy,e), lerp(2.30,1.04,e));
+    badge.style.opacity=1-e; name.style.opacity=1-e;
+    copy.style.opacity=e; scrim.style.opacity=lerp(0.35,1,e);
+  }
+};
+</script>
