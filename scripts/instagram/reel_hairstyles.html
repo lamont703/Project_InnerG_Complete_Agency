@@ -70,14 +70,20 @@ f.style.setProperty("--pad",(Math.min(W,H)*0.070)+"px");
 
 /* Reading order, matching the caption's numbering. Centres are nudged off the
    exact cell midpoints because the heads sit high within each cell. */
-const CUTS=[
-  {n:1,x:0.27,y:0.155,name:"Taper fade · 360 waves"},
-  {n:2,x:0.73,y:0.155,name:"Burst fade mohawk"},
-  {n:3,x:0.27,y:0.495,name:"Low fade · twists"},
-  {n:4,x:0.73,y:0.495,name:"Mid fade · hard part"},
-  {n:5,x:0.27,y:0.840,name:"Short afro · shape-up"},
-  {n:6,x:0.73,y:0.840,name:"Bald fade · design"},
-];
+/*
+ * The six cuts, injected by the renderer. Centres are nudged off the exact cell
+ * midpoints because the heads sit high within each cell.
+ *
+ * PARAMETERISED because the template now serves five different grids. Baking
+ * one set of names in meant the second grid would have shown "360 waves" over a
+ * pompadour - a caption confidently describing the wrong thing, which is worse
+ * than no caption at all.
+ */
+const NAMES = JSON.parse(q.get("names") || "[]");
+const DEFAULTS = ["Taper fade \u00b7 360 waves","Burst fade mohawk","Low fade \u00b7 twists",
+                  "Mid fade \u00b7 hard part","Short afro \u00b7 shape-up","Bald fade \u00b7 design"];
+const POS = [[0.27,0.155],[0.73,0.155],[0.27,0.495],[0.73,0.495],[0.27,0.840],[0.73,0.840]];
+const CUTS = POS.map((p,i)=>({ n:i+1, x:p[0], y:p[1], name: NAMES[i] || DEFAULTS[i] }));
 
 const OPEN=1.4, HOLD=1.0, CLOSE=1.6;
 const TOTAL=OPEN+CUTS.length*HOLD+CLOSE;   // 9.0s, matching the bed
@@ -111,6 +117,9 @@ function place(cx,cy,scale){
   y = dh >= H ? Math.min(0, Math.max(H - dh, y)) : (H - dh) / 2;
   img.style.transform=`translate(${x}px, ${y}px) scale(${s})`;
 }
+
+const setTxt=(id,k)=>{const v=q.get(k); if(v) document.getElementById(id).textContent=v;};
+["headline","cta"].forEach(k=>setTxt(k,k));
 
 window.__setT=(t)=>{
   if(!img) return;
