@@ -39,6 +39,7 @@ const INTERNAL_TOOL_ROUTES = [
     "/ad-performance",
     "/admin/ad-campaigns",
     "/admin/listing-insights",
+    "/admin/instagram-queue",
     "/admin/listing-report",
     // The queue renders customers' names, phones and emails. The page and the
     // route handler both re-check isAdmin() — this entry is defence in depth,
