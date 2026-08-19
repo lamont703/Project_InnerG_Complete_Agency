@@ -4,6 +4,7 @@ import { MIN_SAMPLE } from "@/lib/compare-entities";
 import { isMarkdownEligible } from "@/lib/public-routes";
 import { renderPageMarkdown } from "@/lib/page-markdown";
 import { SITE_URL, SITE_HOST } from "@/lib/site";
+import { recordAgentRequest, clientIpFrom } from "@/lib/agent-requests";
 
 /**
  * Markdown twin for non-entity pages (tools, comparison hubs).
@@ -235,7 +236,31 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // Re-check eligibility here rather than trusting the middleware alone —
   // this route is reachable directly, and a private page must never be
   // serialized to prose just because someone guessed the internal URL.
-  if (!isMarkdownEligible(routePath)) return notFound();
+  const eligible = isMarkdownEligible(routePath);
+
+  /*
+   * THIS ROUTE PREVIOUSLY LOGGED NOTHING, and it is the half that mattered.
+   * Its sibling (app/api/llm/[entityType]/[slug]) has recorded crawler hits
+   * since July; this one serves the CONTENT pages — including the kit lists,
+   * the best-performing pages on the site — so the .md traffic most likely to
+   * be worth something was the traffic nobody could see.
+   *
+   * Ineligible paths are recorded too, flagged as errors. A crawler guessing
+   * at .md URLs we do not serve is a request for coverage we do not have, and
+   * it is only visible if the 404s leave a trace.
+   *
+   * Same CDN undercount as the entity route — see the note there.
+   */
+  recordAgentRequest({
+    surface: "md_page",
+    path: `${routePath}.md`,
+    userAgent: request.headers.get("user-agent"),
+    clientIp: clientIpFrom(request.headers),
+    statusCode: eligible ? 200 : 404,
+    isError: !eligible,
+  });
+
+  if (!eligible) return notFound();
 
   try {
     const build = segments.length === 1 ? BUILDERS[segments[0]] : undefined;

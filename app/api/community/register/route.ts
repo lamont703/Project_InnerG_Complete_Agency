@@ -252,7 +252,7 @@ export async function POST(req: Request) {
         claimRedirect ||
         (memberAudience === "student"
           ? "/account/journey?welcome=1"
-          : "/tools/barbershop-search?welcome=1"),
+          : "/search?welcome=1"),
     });
   } catch (error: any) {
     console.error("[CommunityRegister] Error:", error);

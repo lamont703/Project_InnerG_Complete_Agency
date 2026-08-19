@@ -208,7 +208,7 @@ coverage is licensing and examination guidance only; the directory is Texas and 
 - [Barber & Cosmetology Placement Network](/barber-beauty-network): matches licensed and
   soon-to-be-licensed barbers/cosmetologists with hiring shops based on location, pay
   structure preference (booth rent vs. commission), and specialty.
-- [Barbershop & Stylist Search Engine](/tools/barbershop-search): a unified search covering
+- [Barbershop & Stylist Search Engine](/search): a unified search covering
   barbershops, salons, individual barbers, cosmetologists, schools, supply stores, and
   events in one query, with tabs for each category and semantic (not just keyword) matching.
 

@@ -24,7 +24,7 @@ const tools = [
   { name: "Shop Site AI Customizer", url: "/tools/shop-site-template/shop-website-customizer/a6cd48e5-2b32-4062-8284-c100cccdefc3/customizer", description: "An AI-powered website builder that allows shop owners to instantly customize their digital storefront, update menus, and change designs without coding." },
   { name: "AI Booth Station Tool", url: "/tools/ai-booth-station", description: "A smart management system for shop owners to track booth rental payments, monitor station utilization, and maximize revenue per square foot." },
   { name: "Foot Traffic Radar Tool", url: "/tools/foot-traffic-radar", description: "A local SEO and marketing tool that analyzes neighborhood data to help barbershops increase walk-in clientele, boost local visibility, and get more clients." },
-  { name: "Barbershop Search Engine", url: "/tools/barbershop-search", description: "The ultimate hybrid search engine for finding the best barbershops, salons, industry news, and career opportunities using advanced AI semantic matching." },
+  { name: "Barbershop Search Engine", url: "/search", description: "The ultimate hybrid search engine for finding the best barbershops, salons, industry news, and career opportunities using advanced AI semantic matching." },
   { name: "Web Crawler Domain Management", url: "/tools/domain-management", description: "An administrative console to configure the AI web crawler, manage seed domains, and generate vector embeddings for intelligent content indexing." }
 ];
 

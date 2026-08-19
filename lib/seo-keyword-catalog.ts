@@ -167,7 +167,7 @@ export const SEO_KEYWORD_CATALOG: KeywordCategory[] = [
       { path: "/texas", label: "Texas Directory Hub", keywords: ["texas barbershops directory", "hair salons in texas", "barbershops in texas", "find a barber texas", "texas hair stylists", "texas barber schools", "texas cosmetology schools"] },
       { path: "/california", label: "California Directory Hub", keywords: ["california barbershops directory", "hair salons in california", "barbershops in california", "find a barber california", "california hair stylists", "california barber schools", "california cosmetology schools"] },
       { path: "/texas/houston", label: "Houston Directory Hub", keywords: ["houston barber", "barbershops houston tx", "hair salon houston tx", "houston hair stylist", "houston beauty salon", "houston cosmetology school"] },
-      { path: "/tools/barbershop-search", label: "Barbershop Search Engine", keywords: ["barbershop search engine", "find a barber Texas", "Texas salon search", "barber school search", "cosmetologist search Texas", "barber supply store search"] },
+      { path: "/search", label: "Barbershop Search Engine", keywords: ["barbershop search engine", "find a barber Texas", "Texas salon search", "barber school search", "cosmetologist search Texas", "barber supply store search"] },
     ],
   },
   {

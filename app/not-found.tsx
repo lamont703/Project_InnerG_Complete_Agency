@@ -32,7 +32,7 @@ export default function NotFound() {
         </p>
 
         <Link
-          href="/tools/barbershop-search"
+          href="/search"
           data-ig-click="notfound_search"
           className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white font-bold text-sm px-6 py-3.5 hover:bg-indigo-700 transition-colors mb-10"
         >

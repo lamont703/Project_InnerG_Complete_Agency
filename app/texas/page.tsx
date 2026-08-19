@@ -132,7 +132,7 @@ export default async function TexasHubPage() {
         data={data}
         title="Texas Barbershops, Hair Salons & Barber Schools"
         subtitle={`${data.totalEntities.toLocaleString()} barbershops, hair salons, barbers, and licensed schools across Texas — including real 2026 licensing exam outcomes, with intelligence not available on Google.`}
-        backHref="/tools/barbershop-search"
+        backHref="/search"
         backLabel="← Back to Search"
         heroStat={heroStat}
         resourcesNote={resourcesNote}

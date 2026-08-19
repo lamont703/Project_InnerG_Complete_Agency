@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     description:
       "Search Texas barbershops, salons, barbers, cosmetologists, schools, supply stores, and events in one unified, semantic search engine.",
   },
-  alternates: { canonical: `${SITE_URL}/tools/barbershop-search` },
+  alternates: { canonical: `${SITE_URL}/search` },
 };
 
 export default function BarbershopSearchLayout({ children }: { children: React.ReactNode }) {

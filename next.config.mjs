@@ -439,12 +439,33 @@ const nextConfig = {
         destination: "/schools/r-c-beauty-college-pflugerville-ace6c69d",
         permanent: true,
       },
+      // --- Renamed route redirects ---
+      // The search engine moved from /tools/barbershop-search to /search.
+      // It was never really a "tool" — it is the primary entry point to the
+      // whole directory, linked from the navbar, the footer, every entity
+      // page's back button, the lifecycle emails and the SearchAction in
+      // lib/schema-graph.ts. Burying it under /tools/ also undersold it: the
+      // name said "barbershop" while the page has always searched salons,
+      // barbers, cosmetologists, schools, supply stores and events too.
+      //
+      // permanent: true is a 308, which Google treats as a permanent redirect
+      // and a canonical signal toward the destination
+      // (developers.google.com/search/docs/crawling-indexing/301-redirects).
+      // Query values are passed through to the destination automatically, so
+      // the ?q= / ?tab= / ?ask= / ?ecosystemShopId= deep links that GoHighLevel
+      // campaigns and the member lifecycle emails already sent out keep working
+      // unchanged — those parameters are the whole payload of those links.
+      {
+        source: "/tools/barbershop-search",
+        destination: "/search",
+        permanent: true,
+      },
       // --- Nonexistent route redirects ---
       // /tools/barber-schools was never a real route; redirect to the
       // main search tool where users can filter by schools.
       {
         source: "/tools/barber-schools",
-        destination: "/tools/barbershop-search",
+        destination: "/search",
         permanent: true,
       },
       // Real production 404: "/ai-tools" was never a real route — the

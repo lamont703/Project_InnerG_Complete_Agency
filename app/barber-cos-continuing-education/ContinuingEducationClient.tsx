@@ -789,7 +789,7 @@ export default function ContinuingEducationClient({ schools, errorMsg }: Continu
       )}
 
       <div className="text-center py-10">
-        <Link href="/tools/barbershop-search" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
+        <Link href="/search" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
           <ArrowLeft className="h-4 w-4" />
           Back to Search
         </Link>

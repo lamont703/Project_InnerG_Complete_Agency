@@ -193,7 +193,7 @@ export default function HighestPayingBarbershopsArticle() {
               This page is for <strong>barbers</strong> comparing where to work — the lowest booth rent and highest
               commission splits currently listed in Houston. Looking for the best place to <em>get</em> a haircut
               instead? Try our{" "}
-              <Link href="/tools/barbershop-search" className="text-primary font-bold hover:underline">
+              <Link href="/search" className="text-primary font-bold hover:underline">
                 barbershop search
               </Link>
               .

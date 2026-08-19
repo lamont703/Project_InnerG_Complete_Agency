@@ -35,7 +35,7 @@ export interface BoothRentListing {
 }
 
 // Surfaces the same booth_count_available/rent_type/rent_rate inventory
-// already filterable inside /tools/barbershop-search (Barbershops tab,
+// already filterable inside /search (Barbershops tab,
 // "Booth Rent" chip) — this is that same real data given its own
 // SEO-matched front door for "barber booth rent houston" / "barber chairs
 // for rent in houston" searches, since a cold searcher would never find

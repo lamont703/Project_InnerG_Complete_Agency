@@ -353,7 +353,7 @@ export default function MarylandHubPage() {
 
           <div className="text-center mt-10">
             <Link
-              href="/tools/barbershop-search"
+              href="/search"
               className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors"
             >
               ← Back to Search

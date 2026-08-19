@@ -76,7 +76,7 @@ export default async function CaliforniaCityHubPage(props: Props) {
       cityLabel={cityName}
       citySlug={slug}
       basePath="/california"
-      backHref={`/tools/barbershop-search?q=${encodeURIComponent(cityName)}`}
+      backHref={`/search?q=${encodeURIComponent(cityName)}`}
       backLabel="← Back to Search"
     />
   );

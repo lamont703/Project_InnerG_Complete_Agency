@@ -241,7 +241,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
       />
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-6">
-        <DynamicBackButton fallbackHref="/tools/barbershop-search?tab=Stores" />
+        <DynamicBackButton fallbackHref="/search?tab=Stores" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">
@@ -387,7 +387,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
                 Nearby
               </p>
               <Link
-                href={`/tools/barbershop-search?tab=Barbershops${store.city ? `&q=${encodeURIComponent(store.city)}` : ""}`}
+                href={`/search?tab=Barbershops${store.city ? `&q=${encodeURIComponent(store.city)}` : ""}`}
                 data-ig-click="find_shops_near_store"
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-extrabold text-sm uppercase tracking-wider transition-colors"
               >
@@ -433,7 +433,7 @@ export default async function SupplyStoreProfilePage(props: { params: Promise<{ 
 
         <div className="text-center mt-8">
           <BackToSearchLink
-            fallbackHref="/tools/barbershop-search?tab=Stores"
+            fallbackHref="/search?tab=Stores"
             className="text-sm font-bold text-slate-500 hover:text-emerald-600 transition-colors"
           />
         </div>

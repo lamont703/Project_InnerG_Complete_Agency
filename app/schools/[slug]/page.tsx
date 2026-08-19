@@ -519,7 +519,7 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
       />
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-6">
-        <DynamicBackButton fallbackHref="/tools/barbershop-search" />
+        <DynamicBackButton fallbackHref="/search" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">
@@ -841,7 +841,7 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
 
         <div className="text-center mt-8">
           <BackToSearchLink
-            fallbackHref="/tools/barbershop-search"
+            fallbackHref="/search"
             className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors"
           />
         </div>

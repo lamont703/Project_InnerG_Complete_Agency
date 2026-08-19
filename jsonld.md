@@ -87,7 +87,7 @@ These are the singletons every page references rather than restates.
 |---|---|---|
 | `Organization` | `lib/schema-graph.ts` | The publisher. Fixed `@id`, `knowsAbout`, `areaServed`. |
 | `WebSite` | `lib/schema-graph.ts` | Declares the search endpoint. |
-| `SearchAction` + `EntryPoint` | `lib/schema-graph.ts` | Points at `/tools/barbershop-search?q=`, which really does read the param. |
+| `SearchAction` + `EntryPoint` | `lib/schema-graph.ts` | Points at `/search?q=`, which really does read the param. |
 | `Person` | `lib/author.ts` | One author node with a fixed `@id` — previously an anonymous copy on ~22 pages. |
 | `ImageObject` | `lib/schema-graph.ts` | The logo, referenced by the Organization. |
 | `PostalAddress` | `lib/schema-graph.ts` | |

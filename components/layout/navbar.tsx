@@ -430,8 +430,8 @@ export function Navbar() {
             asChild
           >
             <Link
-              href="/tools/barbershop-search"
-              onClick={() => trackCTAClick({ cta_label: 'Search ShearQuery', page: 'Navbar', destination: '/tools/barbershop-search' })}
+              href="/search"
+              onClick={() => trackCTAClick({ cta_label: 'Search ShearQuery', page: 'Navbar', destination: '/search' })}
             >
               Search ShearQuery
               <ArrowRight className="h-3.5 w-3.5" />
@@ -578,10 +578,10 @@ export function Navbar() {
             <div className="mt-3 border-t border-border pt-3 flex flex-col gap-2">
               <Button className="w-full bg-primary text-primary-foreground gap-2 shadow-lg" asChild>
                 <Link
-                  href="/tools/barbershop-search"
+                  href="/search"
                   onClick={() => {
                     setIsMobileOpen(false);
-                    trackCTAClick({ cta_label: 'Search ShearQuery (Mobile)', page: 'Navbar', destination: '/tools/barbershop-search' });
+                    trackCTAClick({ cta_label: 'Search ShearQuery (Mobile)', page: 'Navbar', destination: '/search' });
                   }}
                 >
                   Search ShearQuery

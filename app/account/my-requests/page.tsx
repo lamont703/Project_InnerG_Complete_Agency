@@ -132,7 +132,7 @@ export default async function MyRequestsPage() {
               Requests you send from a shop, salon or school page will show up here.
             </p>
             <Link
-              href="/tools/barbershop-search"
+              href="/search"
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800"
             >
               Find somewhere

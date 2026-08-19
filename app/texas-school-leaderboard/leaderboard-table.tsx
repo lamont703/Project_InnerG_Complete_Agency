@@ -305,7 +305,7 @@ export function LeaderboardTable({
       )}
 
       <div className="text-center mt-10">
-        <Link href="/tools/barbershop-search" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
+        <Link href="/search" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
           <ArrowLeft className="w-4 h-4" />
           Back to Search
         </Link>

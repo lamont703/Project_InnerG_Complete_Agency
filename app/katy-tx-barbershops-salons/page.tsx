@@ -133,7 +133,7 @@ export default function KatyBarbershopsSalonsPage() {
           ))}
           <p className="not-prose text-sm">
             Looking for a different city?{" "}
-            <Link href="/tools/barbershop-search" className="text-indigo-600 font-bold hover:underline">
+            <Link href="/search" className="text-indigo-600 font-bold hover:underline">
               Search the full directory
             </Link>{" "}
             of Texas barbershops, salons, and cosmetologists.

@@ -506,7 +506,7 @@ export default async function ShopProfilePage({ params }: Props) {
 
       <div className="flex-grow pt-28 pb-20 px-4 md:px-8 max-w-7xl mx-auto w-full">
 
-        <DynamicBackButton fallbackHref="/tools/barbershop-search" />
+        <DynamicBackButton fallbackHref="/search" />
 
 
         {/* Header Title & Badges */}
@@ -747,7 +747,7 @@ export default async function ShopProfilePage({ params }: Props) {
                   <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
                     <h2 className="text-2xl font-black text-slate-900">Your Market Ecosystem</h2>
                     <Link
-                      href={`/tools/barbershop-search?ecosystemShopId=${shop.id}&ecosystemShopName=${encodeURIComponent(shop.shop_name)}`}
+                      href={`/search?ecosystemShopId=${shop.id}&ecosystemShopName=${encodeURIComponent(shop.shop_name)}`}
                       data-ig-click="ask_ai_market"
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-sm"
                     >

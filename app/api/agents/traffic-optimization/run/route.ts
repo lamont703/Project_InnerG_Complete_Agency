@@ -38,7 +38,7 @@ const RISING_QUERY_GROWTH_THRESHOLD = 0.5;
 const RISING_QUERY_PERIOD_DAYS = 14;
 
 const ACCIDENTAL_RANKING_MIN_IMPRESSIONS = 15;
-const GENERIC_PAGES = new Set([`${SITE_URL}/`, `${SITE_URL}/tools/barbershop-search`]);
+const GENERIC_PAGES = new Set([`${SITE_URL}/`, `${SITE_URL}/search`]);
 
 const GEOGRAPHIC_GAP_MIN_IMPRESSIONS = 10;
 // Static list on purpose — deriving this from formatted_address strings

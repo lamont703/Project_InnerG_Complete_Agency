@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MCP_TOOLS, TOOL_BY_NAME, toolDescriptors } from "@/lib/mcp/tools";
 import { SITE_URL } from "@/lib/site";
+import { recordAgentRequest, clientIpFrom } from "@/lib/agent-requests";
 
 /**
  * MCP endpoint — Streamable HTTP transport, stateless.
@@ -108,12 +109,44 @@ function originAllowed(request: NextRequest): boolean {
   return ALLOWED_ORIGINS.includes(origin);
 }
 
+/**
+ * Every POST leaves a row, including the ones that are refused.
+ *
+ * A rejection is not noise here — it is the only way to see a client that
+ * tried and could not get in. An MCP server that silently 403s a caller and
+ * records nothing looks identical, from the dashboard, to one nobody has ever
+ * called. Those are opposite facts and they demand opposite responses.
+ *
+ * Never awaited: see lib/agent-requests.ts on why the response is not held
+ * open for the write.
+ */
 export async function POST(request: NextRequest) {
+  const startedAt = Date.now();
+  const userAgent = request.headers.get("user-agent");
+  const clientIp = clientIpFrom(request.headers);
+  const log = (fields: {
+    mcpMethod?: string | null;
+    toolName?: string | null;
+    toolArguments?: unknown;
+    statusCode: number;
+    isError?: boolean;
+  }) =>
+    recordAgentRequest({
+      surface: "mcp",
+      path: "/mcp",
+      userAgent,
+      clientIp,
+      durationMs: Date.now() - startedAt,
+      ...fields,
+    });
+
   if (!originAllowed(request)) {
+    log({ statusCode: 403, isError: true });
     return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
   }
 
   if (rateLimited(request)) {
+    log({ statusCode: 429, isError: true });
     return NextResponse.json(
       { error: "Too many requests" },
       { status: 429, headers: { "Retry-After": "60" } }
@@ -124,11 +157,13 @@ export async function POST(request: NextRequest) {
   // than buffered.
   const declared = Number(request.headers.get("content-length") || 0);
   if (declared > MAX_BODY_BYTES) {
+    log({ statusCode: 413, isError: true });
     return NextResponse.json({ error: "Request body too large" }, { status: 413 });
   }
 
   const requested = request.headers.get("mcp-protocol-version");
   if (requested && !SUPPORTED_PROTOCOL_VERSIONS.includes(requested)) {
+    log({ statusCode: 400, isError: true });
     return NextResponse.json(
       { error: `Unsupported MCP-Protocol-Version: ${requested}` },
       { status: 400 }
@@ -161,10 +196,16 @@ export async function POST(request: NextRequest) {
   // JSON-RPC object here is a conformance failure, not a harmless extra.
   const isNotification = body.id === undefined || body.id === null;
   if (isNotification) {
+    log({ mcpMethod: typeof body.method === "string" ? body.method : null, statusCode: 202 });
     return new NextResponse(null, { status: 202 });
   }
 
   const { id, method, params } = body;
+  // Logged once here rather than at each return: every branch below answers
+  // with HTTP 200 (JSON-RPC carries its own error channel in the body), so the
+  // status code distinguishes nothing and the method is what we actually want
+  // to count. tools/call adds the tool name and arguments at its own branch.
+  if (method !== "tools/call") log({ mcpMethod: typeof method === "string" ? method : null, statusCode: 200 });
 
   try {
     switch (method) {
@@ -200,6 +241,16 @@ export async function POST(request: NextRequest) {
       case "tools/call": {
         const name = params?.name;
         const tool = typeof name === "string" ? TOOL_BY_NAME.get(name) : undefined;
+        // Recorded before dispatch, so a call for a tool we do not have is
+        // still counted. That is the highest-value row in the table: it names
+        // a capability a real client came here expecting to find.
+        log({
+          mcpMethod: "tools/call",
+          toolName: typeof name === "string" ? name : null,
+          toolArguments: params?.arguments ?? null,
+          statusCode: 200,
+          isError: !tool,
+        });
         if (!tool) {
           // Unknown tool is a PROTOCOL error, distinct from a tool that ran and
           // failed — that one comes back as isError below.

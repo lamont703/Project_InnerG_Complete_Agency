@@ -131,7 +131,7 @@ export default function KidsHaircutsHoustonPage() {
           ))}
           <p className="not-prose text-sm">
             Looking for a different service, or a different city?{" "}
-            <Link href="/tools/barbershop-search?tab=Barbers" className="text-indigo-600 font-bold hover:underline">
+            <Link href="/search?tab=Barbers" className="text-indigo-600 font-bold hover:underline">
               Search the full directory
             </Link>{" "}
             of Texas barbers, salons, and cosmetologists.

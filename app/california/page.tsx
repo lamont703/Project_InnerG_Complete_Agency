@@ -36,7 +36,7 @@ export default async function CaliforniaHubPage() {
       data={data}
       title="California Barbershops, Hair Salons & Barber Schools"
       subtitle={`${data.totalEntities.toLocaleString()} barbershops, hair salons, barbers, and licensed schools across California, with intelligence not available on Google.`}
-      backHref="/tools/barbershop-search"
+      backHref="/search"
       backLabel="← Back to Search"
       beforeBackLink={<CaliforniaResourceIndex />}
     />

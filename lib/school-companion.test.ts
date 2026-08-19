@@ -93,7 +93,7 @@ describe("the 300-character cap the search page enforces", () => {
 describe("the href", () => {
   it("targets AI Mode with the question encoded", () => {
     const href = schoolCompanionHref({ name: "Ogle School", city: "Dallas" });
-    expect(href.startsWith("/tools/barbershop-search?ask=")).toBe(true);
+    expect(href.startsWith("/search?ask=")).toBe(true);
     expect(decodeURIComponent(href.split("ask=")[1])).toContain("Ogle School");
   });
 

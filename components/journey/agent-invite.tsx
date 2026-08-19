@@ -57,7 +57,7 @@ export function AgentInvite({
         {questions.map((q) => (
           <Link
             key={q}
-            href={`/tools/barbershop-search?ask=${encodeURIComponent(q)}`}
+            href={`/search?ask=${encodeURIComponent(q)}`}
             onClick={() =>
               (window as any).innerG?.track?.("agent_invite_clicked", { from: pathname, question: q })
             }

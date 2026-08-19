@@ -388,7 +388,7 @@ async function main() {
         boardName: BOARDS.ENTITY_LEADERBOARD,
         title: barbershopLeaderboardTitle,
         description: "Ranked by real customer ratings and review volume, all with 500+ verified reviews. See full profiles, hours, and contact info.",
-        link: "/tools/barbershop-search?tab=Barbershops",
+        link: "/search?tab=Barbershops",
         imageBuffer,
       });
     }
@@ -403,7 +403,7 @@ async function main() {
           boardName: BOARDS.ENTITY_LEADERBOARD,
           title: salonLeaderboardTitle,
           description: "Ranked by real customer ratings and review volume, all with 500+ verified reviews. See full profiles, hours, and contact info.",
-          link: "/tools/barbershop-search?tab=Salons",
+          link: "/search?tab=Salons",
           imageBuffer,
         });
       }
@@ -436,25 +436,25 @@ async function main() {
       title: "5 Highest-Rated Individual Barbers in Houston (2026)",
       headline: "5 Highest-Rated Barbers in Houston",
       fetch: fetchIndividualBarberLeaderboard,
-      link: "/tools/barbershop-search?tab=Barbers",
+      link: "/search?tab=Barbers",
     },
     {
       title: "5 Highest-Rated Cosmetologists in Houston (2026)",
       headline: "5 Highest-Rated Cosmetologists in Houston",
       fetch: fetchCosmetologistLeaderboard,
-      link: "/tools/barbershop-search?tab=Cosmetologist",
+      link: "/search?tab=Cosmetologist",
     },
     {
       title: "5 Highest-Rated Barber Supply Stores in Houston (2026)",
       headline: "5 Highest-Rated Barber Supply Stores in Houston",
       fetch: () => fetchSupplyStoreLeaderboard("agent_barber_supply_store_leads"),
-      link: "/tools/barbershop-search?tab=Stores",
+      link: "/search?tab=Stores",
     },
     {
       title: "5 Highest-Rated Beauty Supply Stores in Houston (2026)",
       headline: "5 Highest-Rated Beauty Supply Stores in Houston",
       fetch: () => fetchSupplyStoreLeaderboard("agent_beauty_supply_store_leads"),
-      link: "/tools/barbershop-search?tab=Stores",
+      link: "/search?tab=Stores",
     },
   ];
   for (const run of individualLeaderboardRuns) {
