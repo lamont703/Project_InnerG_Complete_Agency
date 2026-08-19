@@ -39,7 +39,6 @@ const INTERNAL_TOOL_ROUTES = [
     "/ad-performance",
     "/admin/ad-campaigns",
     "/admin/listing-insights",
-    "/admin/instagram-queue",
     "/admin/listing-report",
     // The queue renders customers' names, phones and emails. The page and the
     // route handler both re-check isAdmin() — this entry is defence in depth,
@@ -47,7 +46,6 @@ const INTERNAL_TOOL_ROUTES = [
     "/admin/school-tour-queue",
     "/api/admin/school-tour-queue",
     // Shows unpublished video before it goes out.
-    "/admin/shorts-queue",
     // Same, and it also DECIDES what goes out next — the order set here is the
     // publish order. The page re-checks isAdmin() and so does every server
     // action behind it, because this middleware fails OPEN on an auth
