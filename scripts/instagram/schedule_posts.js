@@ -47,6 +47,8 @@ const fs = require("fs");
 const os = require("os");
 const { createClient } = require("@supabase/supabase-js");
 const puppeteer = require("puppeteer");
+// Tags are appended at write time so a post cannot reach the queue without them.
+const { captionWithHashtags } = require("../../lib/instagram-hashtags.ts");
 
 const APPLY = process.argv.includes("--apply");
 const WEEKS = Number((process.argv.find((a) => a.startsWith("--weeks=")) || "").split("=")[1]) || 4;
@@ -288,7 +290,7 @@ async function renderCard(fields, outPath) {
 
     const isDraft = p.tags.length > 0 || !!p.draftReason;
     const { error } = await admin.from("instagram_queue").upsert({
-      post_key: p.key, concept: p.concept, title: jsonSafe(p.title), caption: jsonSafe(p.caption),
+      post_key: p.key, concept: p.concept, title: jsonSafe(p.title), caption: jsonSafe(captionWithHashtags(p.caption, p.concept)),
       image_urls: [pub.publicUrl], tag_handles: p.tags,
       scheduled_for: p.date, status: isDraft ? "draft" : "queued",
       error: isDraft ? p.draftReason || "tags unconfirmed" : null,

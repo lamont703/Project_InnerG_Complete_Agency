@@ -1,0 +1,105 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>brand frame</title>
+<style>
+/*
+ * A ShearQuery frame around an arbitrary image.
+ *
+ * WHY A FRAME RATHER THAN A WATERMARK. A logo dropped in a corner reads as an
+ * afterthought and gets cropped, covered by the UI, or simply ignored. Framing
+ * the image inside the same furniture the data cards already use - dashed
+ * rules, the amber shears mark, the letterspaced wordmark - makes a photo post
+ * and a statistic post look like they came from the same publication. That
+ * consistency is the brand; the mark on its own is not.
+ *
+ * THE PALETTE IS LIFTED FROM shorts-news.html, not re-picked. #ffd166 for the
+ * mark, #06070a for the ground, #94a3b8 for the wordmark. Re-choosing "roughly
+ * that gold" is how two surfaces drift apart over a few months.
+ */
+html,body{margin:0;background:#06070a;overflow:hidden}
+.frame{position:relative;width:var(--w);height:var(--h);background:#06070a;overflow:hidden;
+  font-family:"Helvetica Neue",Inter,system-ui,sans-serif;color:#f1f5f9}
+
+/* Dashed rules, same device as the cards. */
+.rule{position:absolute;left:var(--pad);right:var(--pad);height:calc(var(--u)*0.006);
+  background:repeating-linear-gradient(90deg,#a855f7 0,#a855f7 calc(var(--u)*0.030),
+    transparent calc(var(--u)*0.030),transparent calc(var(--u)*0.060));opacity:.55}
+.rule.top{top:calc(var(--u)*0.055)}
+.rule.bottom{bottom:calc(var(--u)*0.088)}
+
+.eyebrow{position:absolute;left:var(--pad);right:var(--pad);top:calc(var(--u)*0.082);
+  display:flex;align-items:center;gap:calc(var(--u)*0.022)}
+.chip{border:calc(var(--u)*0.0035) solid #6b5a1f;border-radius:999px;
+  padding:calc(var(--u)*0.014) calc(var(--u)*0.032);
+  font-size:calc(var(--u)*0.030);font-weight:900;letter-spacing:.13em;
+  text-transform:uppercase;color:#ffd166;white-space:nowrap}
+.date{font-size:calc(var(--u)*0.030);font-weight:900;letter-spacing:.13em;
+  text-transform:uppercase;color:#6b7789;margin-left:auto}
+
+/* The image, contained so nothing of it is lost - a grid of six cuts cannot
+   afford a crop that eats two of them. */
+.shot{position:absolute;left:var(--pad);right:var(--pad);
+  top:calc(var(--u)*0.142);bottom:calc(var(--u)*0.320);
+  display:flex;align-items:center;justify-content:center}
+.shot img{max-width:100%;max-height:100%;object-fit:contain;border-radius:calc(var(--u)*0.012)}
+
+/*
+ * ONE BLOCK, LAID OUT BY FLOW - not two absolutely-positioned lines.
+ * The first version pinned the headline and the prompt to separate `bottom`
+ * offsets, which held only while the prompt fitted on one line. A two-line
+ * prompt grew upward into the headline and the two collided. Stacking them in
+ * a flex column means the block sizes itself to whatever the copy turns out to
+ * be, which is the only version that survives copy nobody has written yet.
+ */
+.copy{position:absolute;left:var(--pad);right:var(--pad);bottom:calc(var(--u)*0.120);
+  display:flex;flex-direction:column;gap:calc(var(--u)*0.026)}
+.headline{font-size:calc(var(--u)*0.058);font-weight:800;line-height:1.12;letter-spacing:-0.015em}
+.prompt{display:flex;align-items:flex-start;gap:calc(var(--u)*0.020)}
+.qmark{flex:none;margin-top:calc(var(--u)*0.002);width:calc(var(--u)*0.062);height:calc(var(--u)*0.062);border-radius:999px;
+  background:#ffd166;color:#06070a;font-weight:900;font-size:calc(var(--u)*0.036);
+  display:flex;align-items:center;justify-content:center}
+.qtext{font-size:calc(var(--u)*0.034);font-weight:800;color:#e2e8f0;line-height:1.25}
+
+.brand{position:absolute;left:var(--pad);bottom:calc(var(--u)*0.040);
+  display:flex;align-items:center;gap:calc(var(--u)*0.016);
+  font-size:calc(var(--u)*0.028);font-weight:900;letter-spacing:.13em;
+  color:#94a3b8;text-transform:uppercase}
+</style>
+<div class="frame" id="f">
+  <div class="rule top"></div>
+  <div class="eyebrow">
+    <span class="chip" id="chip">Texas · Barber Cuts</span>
+    <span class="date" id="date">19 AUG 2026</span>
+  </div>
+  <div class="shot"><img id="shot" alt=""></div>
+  <div class="copy">
+    <div class="headline" id="headline">Six cuts to ask for.</div>
+    <div class="prompt">
+      <div class="qmark">?</div>
+      <div class="qtext" id="prompt">Comment the number you want.</div>
+    </div>
+  </div>
+  <div class="rule bottom"></div>
+  <div class="brand">
+    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="2.4" stroke-linecap="round">
+      <path d="M4 5 L20 19"/><path d="M20 5 L4 19"/><circle cx="12" cy="12" r="1.6" fill="#ffd166" stroke="none"/>
+    </svg>
+    <span id="brand">shearquery.com</span>
+  </div>
+</div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const w = +(q.get("w")||1080), h = +(q.get("h")||1350);
+  const f = document.getElementById("f");
+  f.style.setProperty("--w", w+"px");
+  f.style.setProperty("--h", h+"px");
+  // Scale off the SHORT side, as the cards do: the width is what everything has
+  // to fit across, whatever the frame's height happens to be.
+  f.style.setProperty("--u", Math.min(w,h)+"px");
+  f.style.setProperty("--pad", (Math.min(w,h)*0.070)+"px");
+  const set=(id,k)=>{const v=q.get(k); if(v) document.getElementById(id).textContent=v;};
+  ["chip","date","headline","prompt","brand"].forEach(k=>set(k,k));
+  window.__setImage = (src) => new Promise((res)=>{
+    const el=document.getElementById("shot"); el.onload=()=>res(true); el.src=src;
+  });
+</script>

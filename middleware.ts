@@ -48,6 +48,11 @@ const INTERNAL_TOOL_ROUTES = [
     "/api/admin/school-tour-queue",
     // Shows unpublished video before it goes out.
     "/admin/shorts-queue",
+    // Same, and it also DECIDES what goes out next — the order set here is the
+    // publish order. The page re-checks isAdmin() and so does every server
+    // action behind it, because this middleware fails OPEN on an auth
+    // exception and a write surface cannot rely on it alone.
+    "/admin/content-publisher",
     "/tools/employment-match-review",
     "/tools/domain-management",
     "/tools/seo-keyword-tracker",

@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>photo frame</title>
+<style>
+/*
+ * The PHOTO treatment. Deliberately not the card treatment.
+ *
+ * TWO POST TYPES, TWO JOBS. On a data card the furniture IS the post - the
+ * rules, the chip, the amber mark are what make a statistic feel published. On
+ * a photo post the picture is the product, and the same furniture shrinks it
+ * into a thumbnail inside a branded box. So here the image runs full bleed and
+ * the branding gets out of its way.
+ *
+ * THE WORDMARK MATCHES THE SITE, not the cards: "Shear" in the foreground
+ * colour and "Query" in the accent, bold with tight tracking - the same split
+ * the navbar and the hero use. Anyone who has seen the site recognises it
+ * instantly, which is the entire point of subtle branding. A different mark
+ * used quietly is just a mark nobody knows.
+ *
+ * #00b2de, NOT #0051bd. --primary resolves differently by context: the darker
+ * blue is the LIGHT-context value and would sink into the scrim. The scrim is a
+ * dark surface, so it takes the dark-context accent. Picking the wrong one
+ * produces a wordmark that is technically on-brand and practically invisible.
+ */
+html,body{margin:0;background:#000;overflow:hidden}
+.frame{position:relative;width:var(--w);height:var(--h);overflow:hidden;background:#0a0a0c;
+  font-family:"Helvetica Neue",Inter,system-ui,sans-serif}
+
+/*
+ * CONTAINED ABOVE THE COPY, not full bleed behind it.
+ *
+ * The first version ran the image edge to edge with a gradient over the bottom
+ * third. Two things went wrong and both defeat the post: this source is 3:4
+ * and the frame is 4:5, so `cover` cropped the top and bottom - and the scrim
+ * then sat on top of what survived. A post captioned "six cuts" showed four.
+ *
+ * So the picture gets its own space and the copy gets a strip beneath it. The
+ * image still owns 80% of the frame, which is the emphasis the post needs,
+ * and every cut is visible. The narrow side margins are the honest cost of a
+ * 3:4 image in a 4:5 frame - far cheaper than losing two haircuts.
+ */
+.shot{position:absolute;left:0;right:0;top:0;bottom:20%}
+.shot img{width:100%;height:100%;object-fit:contain;display:block}
+
+/* A short fade where the picture meets the copy, so the join is soft rather
+   than a ruled line. */
+.scrim{position:absolute;left:0;right:0;bottom:0;height:26%;
+  background:linear-gradient(to top,
+    rgba(6,7,10,1) 0%, rgba(6,7,10,1) 62%, rgba(6,7,10,0.72) 82%, rgba(6,7,10,0) 100%)}
+
+.copy{position:absolute;left:var(--pad);right:var(--pad);bottom:calc(var(--u)*0.092);
+  display:flex;flex-direction:column;gap:calc(var(--u)*0.020)}
+.headline{font-size:calc(var(--u)*0.058);font-weight:800;line-height:1.10;
+  letter-spacing:-0.02em;color:#ffffff;text-wrap:balance}
+.prompt{font-size:calc(var(--u)*0.031);font-weight:600;line-height:1.32;
+  color:rgba(255,255,255,0.86)}
+
+/* Small, bottom left, out of the way. */
+.brand{position:absolute;left:var(--pad);bottom:calc(var(--u)*0.040);
+  font-size:calc(var(--u)*0.031);font-weight:700;letter-spacing:-0.02em;color:#ffffff}
+.brand .q{color:#00b2de}
+</style>
+<div class="frame" id="f">
+  <div class="shot"><img id="shot" alt=""></div>
+  <div class="scrim"></div>
+  <div class="copy">
+    <div class="headline" id="headline">Six cuts to ask for.</div>
+    <div class="prompt" id="prompt">Comment the number and I'll send you shops that do it.</div>
+  </div>
+  <div class="brand">Shear<span class="q">Query</span></div>
+</div>
+<script>
+  const q=new URLSearchParams(location.search);
+  const w=+(q.get("w")||1080), h=+(q.get("h")||1350);
+  const f=document.getElementById("f");
+  f.style.setProperty("--w",w+"px"); f.style.setProperty("--h",h+"px");
+  f.style.setProperty("--u",Math.min(w,h)+"px");
+  f.style.setProperty("--pad",(Math.min(w,h)*0.068)+"px");
+  const set=(id,k)=>{const v=q.get(k); if(v) document.getElementById(id).textContent=v;};
+  ["headline","prompt"].forEach(k=>set(k,k));
+  window.__setImage=(src)=>new Promise((res)=>{
+    const el=document.getElementById("shot"); el.onload=()=>res(true); el.src=src;
+  });
+</script>

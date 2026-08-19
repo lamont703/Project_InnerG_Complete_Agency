@@ -51,6 +51,11 @@ const KEY = (process.argv.find((a) => a.startsWith("--key=")) || "").split("=")[
     imageUrls: post.image_urls,
     caption: post.caption,
     tagHandles: post.tag_handles,
+    // An .mp4 in image_urls means this row is a Reel. Storing it in the same
+    // column keeps one queue rather than two, and the publisher decides the
+    // media type from the file rather than from a flag somebody must remember
+    // to set.
+    videoUrl: (post.image_urls || []).find((u) => /\.mp4(\?|$)/i.test(u)),
   });
 
   if (!result.ok) {
