@@ -102,9 +102,37 @@ const TAGS = [
   "cosmetology state board", "beauty school", "barber apprentice",
 ];
 
+/**
+ * RETIRED. /api/cron/publish-content replaced this and its cron entry is gone.
+ *
+ * It refuses rather than being deleted, following the same reasoning as
+ * scripts/indexnow_bulk_submit.js: the danger is not that it stops working, it
+ * is that it still works. The content publisher queue was seeded from the same
+ * shorts_queue rows this route publishes from, so anything that invokes this -
+ * a leftover schedule somewhere, a curl from a runbook, someone restoring the
+ * vercel.json entry - would put the same video on the channel a second time.
+ * A public duplicate cannot be taken back quietly.
+ *
+ * Reordering, the three daily slots and the Instagram half all live in the new
+ * route. There is nothing here worth reviving; delete it once the publisher has
+ * a few weeks of clean runs behind it.
+ */
+const RETIRED = true;
+
 export async function GET(req: Request) {
   if (!authorized(req)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  if (RETIRED) {
+    return NextResponse.json(
+      {
+        ok: false,
+        state: "retired",
+        note: "Replaced by /api/cron/publish-content, which owns the same queue. Running both would publish each Short twice.",
+      },
+      { status: 410 }
+    );
   }
 
   const admin = createAdminClient();

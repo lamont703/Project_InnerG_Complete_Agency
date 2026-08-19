@@ -104,7 +104,18 @@ async function waitForContainer(
 
 export async function publishToInstagram(input: PublishInput): Promise<PublishResult> {
   const { igUserId, accessToken, imageUrls, caption } = input;
-  if (!imageUrls.length) return { ok: false, error: "no images", stage: "child_container" };
+  /*
+   * A REEL HAS NO IMAGES, and this guard used to make that impossible. It ran
+   * before the videoUrl branch below, so a caller passing only an MP4 - the
+   * shape the videoUrl field documents - was refused with "no images" and the
+   * reel path was unreachable. The one existing reel caller
+   * (scripts/instagram/publish_now.js) got past it only by smuggling the MP4
+   * inside image_urls and then picking it back out with a regex, which is why
+   * nothing had noticed.
+   */
+  if (!input.videoUrl && !imageUrls.length) {
+    return { ok: false, error: "no images", stage: "child_container" };
+  }
 
   /*
    * JPEG ONLY. A PNG creates a container quite happily and then fails at
