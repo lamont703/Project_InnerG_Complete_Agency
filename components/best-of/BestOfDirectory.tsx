@@ -95,7 +95,7 @@ export function BestOfDirectory({
               <h2 className="text-lg font-black text-slate-900">Top Rated</h2>
             </div>
             <Link
-              href={`/tools/barbershop-search?tab=${encodeURIComponent(searchTab)}&q=${encodeURIComponent(city)}`}
+              href={`/search?tab=${encodeURIComponent(searchTab)}&q=${encodeURIComponent(city)}`}
               className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider"
             >
               View All
@@ -180,7 +180,7 @@ export function BestOfDirectory({
             {minReviews} reviews to qualify, so a single five-star review can't outrank an established {singular.toLowerCase()}.
             Ratings and review counts shift over time; this page was last verified {updatedLabel}. Browse the full,
             live-updated list in the{" "}
-            <Link href={`/tools/barbershop-search?tab=${encodeURIComponent(searchTab)}&q=${encodeURIComponent(city)}`} className="text-indigo-600 font-bold hover:underline not-italic">
+            <Link href={`/search?tab=${encodeURIComponent(searchTab)}&q=${encodeURIComponent(city)}`} className="text-indigo-600 font-bold hover:underline not-italic">
               {city} search engine
             </Link>
             .

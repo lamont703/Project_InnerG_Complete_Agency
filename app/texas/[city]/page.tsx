@@ -98,7 +98,7 @@ export default async function CityHubPage(props: Props) {
       subtitle={`${data.totalEntities.toLocaleString()} barbershops, hair salons, barbers, and licensed schools across ${cityName} — real ratings and reviews, not available on Google.`}
       cityLabel={cityName}
       citySlug={slug}
-      backHref={`/tools/barbershop-search?q=${encodeURIComponent(cityName)}`}
+      backHref={`/search?q=${encodeURIComponent(cityName)}`}
       backLabel="← Back to Search"
     />
   );

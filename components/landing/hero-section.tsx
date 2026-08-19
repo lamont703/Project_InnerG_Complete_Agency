@@ -129,7 +129,7 @@ export function HeroSection() {
             className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 px-8 py-6 text-base shadow-[0_0_20px_rgba(209,173,117,0.4)] hover:shadow-[0_0_30px_rgba(209,173,117,0.6)] transition-all duration-300"
             asChild
           >
-            <Link href="/tools/barbershop-search">
+            <Link href="/search">
               <Search className="h-4 w-4" />
               Search ShearQuery
             </Link>

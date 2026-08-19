@@ -141,7 +141,7 @@ export function ScrollCTA() {
     hookText = "Looking for a precision cut? Search licensed local barbers.";
   }
 
-  const searchUrl = `/tools/barbershop-search?tab=${targetTab}`;
+  const searchUrl = `/search?tab=${targetTab}`;
   const ctaCls =
     "flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm px-4 py-3 shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0";
 

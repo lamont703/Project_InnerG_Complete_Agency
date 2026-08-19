@@ -484,7 +484,7 @@ export default function BarbershopApprenticeJobsPage() {
             <p className="text-sm text-slate-500 font-medium max-w-sm mx-auto">
               We&apos;ll text you the moment a salon near you confirms an opening. In the meantime, browse salons on
               our{" "}
-              <Link href="/tools/barbershop-search?tab=Salons" className="font-bold text-fuchsia-600 hover:underline">
+              <Link href="/search?tab=Salons" className="font-bold text-fuchsia-600 hover:underline">
                 search engine
               </Link>
               .

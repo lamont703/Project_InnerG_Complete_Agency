@@ -367,14 +367,14 @@ export function browseLinksFor(entityType: ShortlistEntityType, city: string | n
       });
     }
     links.push({
-      href: `/tools/barbershop-search?q=${encodeURIComponent(city)}&tab=${entityType === "shop" ? "Barbershops" : "Salons"}`,
+      href: `/search?q=${encodeURIComponent(city)}&tab=${entityType === "shop" ? "Barbershops" : "Salons"}`,
       label: `Every ${kind.slice(0, -1)} in ${city}`,
       why: "The full list, filterable.",
     });
   }
 
   links.push({
-    href: `/tools/barbershop-search?tab=${entityType === "shop" ? "Barbershops" : "Salons"}`,
+    href: `/search?tab=${entityType === "shop" ? "Barbershops" : "Salons"}`,
     label: `Search ${kind} anywhere`,
     why: "Somewhere else entirely.",
   });

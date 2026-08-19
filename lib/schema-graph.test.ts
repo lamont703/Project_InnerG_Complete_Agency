@@ -206,10 +206,10 @@ describe("graph assembly", () => {
 
 describe("singleton nodes", () => {
   it("points the website's search action at an endpoint that reads the param", () => {
-    // /tools/barbershop-search really does read `?q=`. A SearchAction naming an
+    // /search really does read `?q=`. A SearchAction naming an
     // endpoint that ignores its parameter is a promise a consumer will test.
     const target = (websiteNode().potentialAction.target as { urlTemplate: string }).urlTemplate;
-    expect(target).toContain("/tools/barbershop-search?q={search_term_string}");
+    expect(target).toContain("/search?q={search_term_string}");
   });
 
   it("ties the organization and the author together in both directions", () => {

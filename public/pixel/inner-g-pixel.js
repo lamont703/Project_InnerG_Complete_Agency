@@ -109,7 +109,7 @@
 
     // What counts as "a different page" — deliberately the path only.
     //
-    // /tools/barbershop-search rewrites its query string via replaceState on
+    // /search rewrites its query string via replaceState on
     // every filter and page change (see that page's handlers). Treating the
     // query as part of a page's identity would turn each of those into a
     // pageview, inflating that one page's traffic well above reality and

@@ -2,7 +2,7 @@
  * The question a school page hands to the AI companion.
  *
  * WHY THE QUESTION MATTERS MORE THAN THE BUTTON. `?ask=` on
- * /tools/barbershop-search does not open a chat box — it SENDS. Whatever is
+ * /search does not open a chat box — it SENDS. Whatever is
  * seeded here is the first thing the companion says, and therefore the entire
  * demonstration. "Tell me about this school" wastes it: the page they just left
  * already told them about the school.
@@ -110,5 +110,5 @@ export function schoolCompanionPrompt(school: SchoolCompanionInput): string {
  * model calls, and opens with a question aimed at the wrong audience.
  */
 export function schoolCompanionHref(school: SchoolCompanionInput): string {
-  return `/tools/barbershop-search?ask=${encodeURIComponent(schoolCompanionPrompt(school))}`;
+  return `/search?ask=${encodeURIComponent(schoolCompanionPrompt(school))}`;
 }

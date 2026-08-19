@@ -33,7 +33,7 @@ export default async function HoustonHubPage() {
       data={data}
       title="Houston Barbershops, Hair Salons & Hair Stylists"
       subtitle={`${data.totalEntities.toLocaleString()} barbershops, hair salons, hair stylists, schools, and licensed professionals across Houston — including school rankings from real 2026 Texas licensing exam outcomes, not available on Google.`}
-      backHref="/tools/barbershop-search?q=Houston"
+      backHref="/search?q=Houston"
       backLabel="← Back to Search"
       showServiceLinks
     />

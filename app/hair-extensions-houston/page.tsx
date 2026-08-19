@@ -134,7 +134,7 @@ export default function HairExtensionsHoustonPage() {
           ))}
           <p className="not-prose text-sm">
             Looking for a different service, or a different city?{" "}
-            <Link href="/tools/barbershop-search" className="text-fuchsia-600 font-bold hover:underline">
+            <Link href="/search" className="text-fuchsia-600 font-bold hover:underline">
               Search the full directory
             </Link>{" "}
             of Texas barbers, salons, and cosmetologists.

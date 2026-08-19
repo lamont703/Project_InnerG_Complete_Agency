@@ -177,7 +177,7 @@ export async function getCaliforniaHubData(): Promise<CaliforniaHubData> {
       qualifies,
       href: qualifies
         ? CA_BESPOKE_CITY_ROUTES[slug] || `/california/${slug}`
-        : `/tools/barbershop-search?q=${encodeURIComponent(label)}`,
+        : `/search?q=${encodeURIComponent(label)}`,
     };
   }).sort((a, b) => b.total - a.total);
 

@@ -520,7 +520,7 @@ export default async function EventProfilePage(props: { params: Promise<{ slug: 
 
         <div className="text-center mt-8">
           <BackToSearchLink
-            fallbackHref="/tools/barbershop-search?tab=Events"
+            fallbackHref="/search?tab=Events"
             className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors"
           />
         </div>

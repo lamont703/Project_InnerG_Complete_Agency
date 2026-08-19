@@ -27,6 +27,10 @@ const AUTH_ROUTES = ["/login"]
 const INTERNAL_TOOL_ROUTES = [
     "/tools/event-submission",
     "/admin/ai-usage",
+    // Caller IPs and the raw questions AI clients sent us. The page re-checks
+    // the allowlist itself — this entry is defence in depth, because this
+    // middleware fails OPEN on an auth exception.
+    "/admin/agent-traffic",
     "/admin/agent-directives",
     "/admin/keyword-intelligence",
     "/admin/community-entity-links",
@@ -178,7 +182,7 @@ export default async function proxy(request: NextRequest) {
 
     // Parametered variants of the barbershop search tool (?ecosystemShopId=…,
     // ?q=…, ?tab=…, ?ghl_contact_id=…) are functional deep-links, not distinct
-    // indexable pages. The clean /tools/barbershop-search already carries a
+    // indexable pages. The clean /search already carries a
     // self-referencing canonical and is the version in the sitemap. Google was
     // crawling thousands of these permutations (linked from GoHighLevel
     // campaigns and the ecosystem widget) and logging each one in Search
@@ -186,7 +190,7 @@ export default async function proxy(request: NextRequest) {
     // so link discovery/equity is preserved — to trim crawl budget without
     // affecting the clean page's ranking. The bare URL (no query string) is
     // left fully indexable.
-    if (pathname === '/tools/barbershop-search' && request.nextUrl.search) {
+    if (pathname === '/search' && request.nextUrl.search) {
         const res = NextResponse.next()
         res.headers.set('X-Robots-Tag', 'noindex, follow')
         return res
@@ -194,7 +198,7 @@ export default async function proxy(request: NextRequest) {
 
     // Only PROTECTED_ROUTES and AUTH_ROUTES actually need a session check.
     // Every other path (the vast majority of traffic — /shop, /barbers,
-    // /tools/barbershop-search, etc.) previously paid for an unconditional
+    // /search, etc.) previously paid for an unconditional
     // Supabase auth round-trip on every single navigation regardless of
     // whether the destination needed auth at all. On a slow mobile
     // connection that round-trip is real, visible latency before the page

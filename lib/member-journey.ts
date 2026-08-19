@@ -395,7 +395,7 @@ export function allJourneyRoutes(): string[] {
 
 /** Pages that apply regardless of state or track. */
 export const SHARED_ROUTES = {
-  search: "/tools/barbershop-search",
+  search: "/search",
   compareSchools: "/compare-schools",
   leaderboardTX: "/texas-school-leaderboard",
   leaderboardCA: "/california-school-leaderboard",

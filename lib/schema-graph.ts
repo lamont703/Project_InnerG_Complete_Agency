@@ -477,7 +477,7 @@ export function organizationNode(opts?: { name?: string; description?: string; o
 /**
  * The site itself, with the search endpoint declared.
  *
- * `potentialAction` points at /tools/barbershop-search, which really does read
+ * `potentialAction` points at /search, which really does read
  * `?q=` — it is the live search this site runs, not an aspirational URL. A
  * SearchAction naming an endpoint that ignores the parameter is a broken
  * promise a consumer can and will test.
@@ -496,7 +496,7 @@ export function websiteNode(opts?: { name?: string; alternateName?: string; orig
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: `${origin}/tools/barbershop-search?q={search_term_string}`,
+        urlTemplate: `${origin}/search?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },

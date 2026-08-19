@@ -7,7 +7,7 @@ const footerLinks = {
     { label: "Barber & Cosmetology Placement", href: "/barber-beauty-network" },
     { label: "Texas Barber Exam Intelligence Prep", href: "/texas-barber-exam-intelligence-prep" },
     { label: "Texas Cosmetology Exam Intelligence Prep", href: "/texas-cosmetology-exam-intelligence-prep" },
-    { label: "Barbershop Search Engine", href: "/tools/barbershop-search" },
+    { label: "Barbershop Search Engine", href: "/search" },
     { label: "Full Directory (A–Z)", href: "/directory" },
   ],
   "Industry Tools": [
@@ -27,6 +27,7 @@ const footerLinks = {
   "Internal Tools": [
     { label: "Submit Your Event", href: "/tools/event-submission" },
     { label: "AI Usage & Cost", href: "/admin/ai-usage" },
+    { label: "Agent Traffic (MCP & .md)", href: "/admin/agent-traffic" },
     { label: "Agent Directives", href: "/admin/agent-directives" },
     { label: "Keyword Intelligence", href: "/admin/keyword-intelligence" },
     { label: "SEO Keyword Tracker", href: "/tools/seo-keyword-tracker" },

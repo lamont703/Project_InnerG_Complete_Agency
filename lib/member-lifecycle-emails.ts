@@ -91,7 +91,7 @@ export function buildLifecycleEmail(
             para(
               "Claiming takes a moment and does two things: your listing shows a Claimed badge so customers know the owner is behind it, and we can run a free audit of your Google profile and tell you what's missing."
             ),
-          { href: `${SITE}/tools/barbershop-search`, label: "Find and claim your business" },
+          { href: `${SITE}/search`, label: "Find and claim your business" },
           "You created a ShearQuery membership with this address."
         ),
       };
@@ -240,7 +240,7 @@ export function buildStudentLifecycleEmail(
               "Two reasons to start now rather than the week before: some of it is genuinely hard to get at short notice, and the labelling rules catch people out — some items must carry a label, some must not, and getting that backwards is a fail on the day rather than a warning."
             ) +
             para("The checklist saves as you tick, so you can pack over several evenings instead of one panicked one."),
-          { href: `${SITE}${input.kitListHref || "/tools/barbershop-search"}`, label: "Open your kit list" },
+          { href: `${SITE}${input.kitListHref || "/search"}`, label: "Open your kit list" },
           why
         ),
       };
@@ -258,7 +258,7 @@ export function buildStudentLifecycleEmail(
               ? para(`Ask the AI how ${esc(input.schoolName)} does on first-attempt written pass rate against the state. It's a real number and your school may not have mentioned it.`)
               : ""),
           {
-            href: `${SITE}${input.examPrepHref || input.requirementsHref || "/tools/barbershop-search"}`,
+            href: `${SITE}${input.examPrepHref || input.requirementsHref || "/search"}`,
             label: "Work the written exam",
           },
           why
@@ -275,7 +275,7 @@ export function buildStudentLifecycleEmail(
               "Work down the checklist physically, one item at a time, rather than glancing at the bag and deciding it looks about right. Label what has to be labelled and take the labels off what mustn't be."
             ) +
             para("Tick as you go — the list is saved to your account, so it's the same one on your phone in the morning."),
-          { href: `${SITE}${input.kitListHref || "/tools/barbershop-search"}`, label: "Open your checklist" },
+          { href: `${SITE}${input.kitListHref || "/search"}`, label: "Open your checklist" },
           why
         ),
       };

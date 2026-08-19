@@ -26,7 +26,7 @@ export async function GET(request: Request) {
         // dashboard-selection logic below.
         if (role === 'community_member') {
             console.log(`[AuthProvision] Community member detected. Redirecting to ShearQuery.`);
-            return NextResponse.redirect(new URL("/tools/barbershop-search?welcome=1", request.url));
+            return NextResponse.redirect(new URL("/search?welcome=1", request.url));
         }
 
         // 3. Logic: Super Admins & Developers go to Agency Global

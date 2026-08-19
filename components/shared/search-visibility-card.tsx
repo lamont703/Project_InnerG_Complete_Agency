@@ -11,7 +11,7 @@ type SearchPerformance = {
 // claim flow exists), full breakdown once claimed. Shared across every
 // entity profile page — see get_search_performance_by_entity RPC for how
 // impressions/clicks are computed (search_impression + click events from
-// the internal /tools/barbershop-search tool, not external Google Search
+// the internal /search tool, not external Google Search
 // Console data).
 export function SearchVisibilityCard({
   searchPerformance,

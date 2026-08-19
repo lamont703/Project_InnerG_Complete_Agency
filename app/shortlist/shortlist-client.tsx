@@ -66,10 +66,10 @@ export function ShortlistClient() {
         {/* Two doors rather than one generic button — an empty shortlist tells
             us nothing about what they want, so ask instead of guessing. */}
         <div className="mt-5 flex flex-wrap justify-center gap-2.5">
-          <Link href="/tools/barbershop-search?tab=Salons" className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-black text-white hover:bg-slate-800">
+          <Link href="/search?tab=Salons" className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-black text-white hover:bg-slate-800">
             Browse salons
           </Link>
-          <Link href="/tools/barbershop-search?tab=Barbershops" className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-black text-slate-800 hover:border-indigo-400">
+          <Link href="/search?tab=Barbershops" className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-black text-slate-800 hover:border-indigo-400">
             Browse barbershops
           </Link>
         </div>

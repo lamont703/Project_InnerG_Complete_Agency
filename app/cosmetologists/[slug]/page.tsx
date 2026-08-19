@@ -278,7 +278,7 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
       />
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-6">
-        <DynamicBackButton fallbackHref="/tools/barbershop-search?tab=Cosmetologist" />
+        <DynamicBackButton fallbackHref="/search?tab=Cosmetologist" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-4">
@@ -511,7 +511,7 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
 
         <div className="text-center mt-8">
           <BackToSearchLink
-            fallbackHref="/tools/barbershop-search?tab=Cosmetologist"
+            fallbackHref="/search?tab=Cosmetologist"
             className="text-sm font-bold text-slate-500 hover:text-fuchsia-600 transition-colors"
           />
         </div>

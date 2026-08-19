@@ -181,7 +181,7 @@ export async function getTexasHubData(): Promise<TexasHubData> {
       qualifies,
       href: qualifies
         ? BESPOKE_CITY_ROUTES[slug] || `/texas/${slug}`
-        : `/tools/barbershop-search?q=${encodeURIComponent(label)}`,
+        : `/search?q=${encodeURIComponent(label)}`,
     };
   }).sort((a, b) => b.total - a.total);
 
