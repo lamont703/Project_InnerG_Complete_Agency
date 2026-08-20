@@ -65,6 +65,11 @@ export type EscalationAction =
   | { kind: "tell_customer_declined" }
   /** The business said yes. Nothing has told the customer that yet. */
   | { kind: "tell_customer_booked" }
+  /**
+   * The business said yes, but after the requested time had already passed.
+   * A different message: willing, not booked.
+   */
+  | { kind: "tell_customer_booked_late" }
   /** Nothing to do. `why` is returned so a dry run explains itself. */
   | { kind: "wait"; why: string };
 
@@ -90,8 +95,22 @@ export function nextAction(row: EscalationRow, now: Date): EscalationAction {
   // SMS moves the row and nothing else — without this the customer who started
   // all of it is the only person who never finds out it worked.
   if (row.status === "booked") {
-    return row.resolution_notified_at
-      ? { kind: "wait", why: "booked, customer already told" }
+    if (row.resolution_notified_at) return { kind: "wait", why: "booked, customer already told" };
+    /*
+     * A YES CAN ARRIVE TOO LATE, and until this check it was still sent as an
+     * ordinary confirmation — "confirmed, Sat Aug 22 at 9:00 AM" for a slot
+     * that had already gone. Telling someone to turn up to an appointment that
+     * has been and went is worse than telling them nothing.
+     *
+     * The booked branch sits above every timing rule below because a business
+     * that answered has done its part and that outranks the thresholds. That is
+     * still right — what was missing is that "answered" and "answered in time"
+     * are different facts, and only one of them is a booking.
+     *
+     * Not theoretical: the only business that has ever replied took 88 hours.
+     */
+    return slotHasPassedEverywhere(row.requested_date, row.requested_time, now)
+      ? { kind: "tell_customer_booked_late" }
       : { kind: "tell_customer_booked" };
   }
 

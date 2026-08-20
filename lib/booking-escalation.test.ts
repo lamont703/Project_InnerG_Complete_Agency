@@ -142,6 +142,45 @@ describe("booked", () => {
     const b = row({ status: "booked" });
     expect(nextAction(b, new Date("2026-09-30T15:00:00Z")).kind).not.toBe("nudge_business");
   });
+
+  /**
+   * THE LATE YES. Before this, `booked` short-circuited above every timing rule
+   * and produced the ordinary confirmation whenever it landed — so a business
+   * replying after the slot had gone sent the customer "confirmed, Sat Sep 5 at
+   * 11:30 AM" for a morning that was already over.
+   *
+   * The row default is 2026-09-05 11:30 AM, so "the same day, later" and "weeks
+   * after" are both past it.
+   */
+  it("does not confirm a slot that has already passed", () => {
+    const b = row({ status: "booked" });
+    expect(nextAction(b, new Date("2026-09-30T15:00:00Z")).kind).toBe("tell_customer_booked_late");
+  });
+
+  it("still confirms normally while the slot is ahead", () => {
+    const b = row({ status: "booked" });
+    expect(nextAction(b, new Date("2026-09-04T15:00:00Z")).kind).toBe("tell_customer_booked");
+  });
+
+  /**
+   * The 88-hour reply that prompted this. A request made for a slot two days
+   * out, answered "Y" nearly four days later, is the shape that actually
+   * occurred in production — not an invented edge case.
+   */
+  it("handles the real 88-hour reply pattern", () => {
+    const b = row({
+      status: "booked",
+      notified_business_at: "2026-08-17T01:50:00Z",
+      requested_date: "2026-08-19",
+      requested_time: "9:00 AM",
+    });
+    expect(nextAction(b, new Date("2026-08-20T18:18:00Z")).kind).toBe("tell_customer_booked_late");
+  });
+
+  it("tells a late yes only once, like every other outcome", () => {
+    const b = row({ status: "booked", resolution_notified_at: "2026-09-30T15:00:00Z" });
+    expect(nextAction(b, new Date("2026-10-01T15:00:00Z")).kind).toBe("wait");
+  });
 });
 
 describe("statuses the job must not touch", () => {

@@ -426,16 +426,24 @@ export default async function CosmetologistProfilePage(props: { params: Promise<
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         <span className="text-sm font-black text-slate-900">${service.price}</span>
-                        {person.profile_url && (
-                          <a
-                            href={person.profile_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            data-ig-click="outbound_lead"
+                        {/* Same fix as app/barbers/[slug]/page.tsx, and the same
+                            reason: the hero CTA became the booking modal and these
+                            per-service pills stayed pointed at Booksy, so the page gave
+                            the lead away one row at a time. Kept identical to the barber
+                            page apart from the colour — two pages that do the same thing
+                            differently is how one of them quietly stops matching. */}
+                        {bookingServices && (
+                          <BookAppointmentButton
+                            entityType="cosmetologist"
+                            entityId={String(person.id)}
+                            entityName={person.name}
+                            services={bookingServices}
+                            preselectService={service.name}
+                            fallbackWebsite={person.website_url}
+                            variant="inline"
+                            trackingId="book_service_row"
                             className="text-xs font-extrabold uppercase tracking-wider text-white bg-fuchsia-600 hover:bg-fuchsia-700 rounded-lg px-3 py-1.5 transition-colors"
-                          >
-                            Book
-                          </a>
+                          />
                         )}
                       </div>
                     </li>

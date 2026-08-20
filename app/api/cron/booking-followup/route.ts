@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendGhlSms } from "@/lib/ghl-sms";
-import { sendGhlEmail } from "@/lib/ghl-email";
-import { SITE_URL } from "@/lib/site";
 import { nextAction, withinContactWindow, type EscalationRow } from "@/lib/booking-escalation";
+import {
+  notifyCustomerOnce,
+  prettyDate,
+  type ResolutionKind,
+  type ResolutionRow,
+} from "@/lib/booking-resolution";
 
 /**
  * The follow-up the site owner has been doing by hand.
@@ -60,24 +64,6 @@ type Row = EscalationRow & {
   customer_email: string | null;
 };
 
-const SEGMENT: Record<string, string> = {
-  shop: "shop",
-  salon: "salons",
-  barber: "barbers",
-  cosmetologist: "cosmetologists",
-};
-
-const listingUrl = (r: Row) =>
-  r.entity_slug ? `${SITE_URL}/${SEGMENT[r.entity_type] || "shop"}/${r.entity_slug}` : SITE_URL;
-
-const prettyDate = (d: string) =>
-  new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-
 /**
  * The reminder.
  *
@@ -96,66 +82,6 @@ function nudgeSms(r: Row) {
     `Phone: ${r.customer_phone}\n` +
     `They haven't heard back yet. Can you take it? A quick yes or no is enough.`
   );
-}
-
-/**
- * The two customer emails.
- *
- * HONEST, AND WITH SOMEWHERE TO GO. Both say plainly that the appointment is
- * not happening — a vague "there may be a delay" leaves someone waiting on a
- * chair that was never booked, which is worse than the refusal. Both then hand
- * over the business's own number, because at this point withholding it serves
- * nobody, and a link back to the listing so the search can continue.
- *
- * The difference between them is whose fault it reads as, and that matters. A
- * business that declined promptly did the right thing and the email says so; a
- * business that never replied gets no such cover.
- */
-function resolutionEmail(r: Row, kind: "declined" | "no_response" | "booked") {
-  const who = r.entity_name || "The business";
-  const when = `${prettyDate(r.requested_date)} at ${r.requested_time}`;
-  const call = r.entity_phone
-    ? `<p>Their number, if you'd like to try another time: <a href="tel:${r.entity_phone}">${r.entity_phone}</a></p>`
-    : "";
-
-  if (kind === "booked") {
-    return {
-      subject: `${who} confirmed — ${when}`,
-      html:
-        `<p>${r.customer_name ? `${r.customer_name}, ` : ""}good news: <strong>${who}</strong> ` +
-        `confirmed <strong>${when}</strong>.</p>` +
-        `<p>They may still call to check details, so keep an eye on your phone. If anything ` +
-        `changes on your side, contact them directly rather than us — we passed the request ` +
-        `on, but the appointment is theirs.</p>` +
-        call +
-        `<p><a href="${listingUrl(r)}">View the listing</a></p>`,
-    };
-  }
-
-  if (kind === "declined") {
-    return {
-      subject: `${who} can't make ${r.requested_time} — here's where that leaves you`,
-      html:
-        `<p>${r.customer_name ? `${r.customer_name}, ` : ""}<strong>${who}</strong> got back to us: ` +
-        `they can't take <strong>${when}</strong>.</p>` +
-        `<p>That's a no for that slot, not for them — they answered quickly, which is worth ` +
-        `something. Another time may well work.</p>` +
-        call +
-        `<p><a href="${listingUrl(r)}">View the listing</a></p>`,
-    };
-  }
-
-  return {
-    subject: `No reply from ${who} — don't hold ${r.requested_time}`,
-    html:
-      `<p>${r.customer_name ? `${r.customer_name}, ` : ""}we passed your request for ` +
-      `<strong>${when}</strong> to <strong>${who}</strong> and followed up, and they never ` +
-      `came back to us.</p>` +
-      `<p>We'd rather tell you than leave you wondering: <strong>treat that time as not ` +
-      `booked.</strong></p>` +
-      call +
-      `<p><a href="${SITE_URL}">Find somewhere else</a></p>`,
-  };
 }
 
 export async function GET(req: Request) {
@@ -249,42 +175,28 @@ export async function GET(req: Request) {
     }
 
     // The remaining actions all tell the customer something final.
-    const kind =
+    const kind: ResolutionKind =
       action.kind === "tell_customer_declined"
         ? "declined"
         : action.kind === "tell_customer_booked"
           ? "booked"
-          : "no_response";
-    if (!row.customer_email) {
-      failures.push(`${row.id}: no customer email`);
-    } else {
-      try {
-        const { subject, html } = resolutionEmail(row, kind);
-        const res = await sendGhlEmail({
-          email: row.customer_email,
-          name: row.customer_name || undefined,
-          subject,
-          html,
-        });
-        if (res.ok) told++;
-        else failures.push(`${row.id} email: ${res.error || "unknown"}`);
-      } catch (err: any) {
-        failures.push(`${row.id} email threw: ${err?.message}`);
-      }
-    }
+          : action.kind === "tell_customer_booked_late"
+            ? "booked_late"
+            : "no_response";
 
-    const patch: Record<string, unknown> = {
-      resolution_notified_at: now.toISOString(),
-      updated_at: now.toISOString(),
-    };
-    // A released request also changes status. Declined and booked do not — both
-    // are already in their final state and only the customer was outstanding.
-    if (kind === "no_response") {
-      patch.status = "no_response";
-      patch.status_source = "cron";
+    /*
+     * The send, the stamp and the once-only guarantee all live in
+     * notifyCustomerOnce now, because the inbound-SMS webhook calls it too. It
+     * claims the row before sending, so whichever of the two gets there first
+     * is the only one that emails — this loop no longer needs to be the sole
+     * caller to be safe, which is precisely what let the webhook stop waiting
+     * an hour for this cron to notice a "Y".
+     */
+    const outcome = await notifyCustomerOnce(supabase, row as ResolutionRow, kind, now);
+    if (outcome.sent) told++;
+    else if (outcome.reason !== "already_notified") {
+      failures.push(`${row.id} ${outcome.reason}${outcome.error ? `: ${outcome.error}` : ""}`);
     }
-
-    await (supabase as any).from("booking_requests").update(patch).eq("id", row.id);
   }
 
   if (failures.length) console.warn(`[booking-followup] ${failures.join("; ")}`);

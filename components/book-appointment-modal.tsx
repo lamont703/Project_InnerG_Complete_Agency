@@ -43,8 +43,29 @@ export interface BookAppointmentButtonProps {
   /** Falls back into the confirmation step if the API response carries nothing. */
   fallbackPhone?: string | null;
   fallbackWebsite?: string | null;
+  /**
+   * Open with this service already chosen.
+   *
+   * WHY IT EXISTS. Each row in an entity's Services list has its own Book pill,
+   * and those pills used to be `<a href={profile_url}>` straight out to Booksy
+   * — the request had already been made by the time the modal existed, and the
+   * per-service links were never converted. Sending someone into the modal on
+   * the default first service after they clicked "Beard Trim" is its own small
+   * betrayal, so the row passes what was clicked.
+   *
+   * Matched by name against `services`; an unrecognised value falls back to the
+   * first entry rather than leaving the select empty, because the modal cannot
+   * submit without one.
+   */
+  preselectService?: string;
   className?: string;
-  variant?: "primary" | "block";
+  /**
+   * `inline` is the small pill used inside a Services row. It carries no base
+   * styling of its own and no icon — the row supplies the colour, which differs
+   * per entity type — and its label is just "Book", because the service name is
+   * already the thing sitting next to it.
+   */
+  variant?: "primary" | "block" | "inline";
   /**
    * The `data-ig-click` value on the trigger, which is what the site-wide pixel
    * tracker records as element_name. Distinct values are the ONLY way to tell
@@ -90,6 +111,7 @@ export function BookAppointmentButton({
   entityId,
   entityName,
   services,
+  preselectService,
   fallbackPhone = null,
   fallbackWebsite = null,
   className,
@@ -99,7 +121,26 @@ export function BookAppointmentButton({
   const [open, setOpen] = React.useState(false);
   const [step, setStep] = React.useState<Step>("details");
 
-  const [service, setService] = React.useState<string>(services[0]?.name ?? "");
+  /**
+   * The service the modal opens on. `preselectService` wins when it names one
+   * we actually offer — see the prop's note — and the first entry is the
+   * fallback so the form is never in an unsubmittable state.
+   */
+  const initialService = React.useMemo(() => {
+    /*
+     * Compared loosely on purpose. The Services list on an entity page renders
+     * the RAW booksy_services name, while this list has been through
+     * normalizeBooksyServices, which trims. An exact === would therefore miss
+     * on any row whose scraped name carries stray whitespace — and it would
+     * miss silently, landing the visitor on the first service with nothing to
+     * indicate the preselect had failed.
+     */
+    const wanted = preselectService?.trim().toLowerCase();
+    const match = wanted ? services.find((s) => s.name.trim().toLowerCase() === wanted) : undefined;
+    return (match ? match.name : services[0]?.name) ?? "";
+  }, [preselectService, services]);
+
+  const [service, setService] = React.useState<string>(initialService);
   const [date, setDate] = React.useState<Date | undefined>(undefined);
   const [time, setTime] = React.useState<string>("");
 
@@ -158,7 +199,7 @@ export function BookAppointmentButton({
     if (open) return;
     const t = setTimeout(() => {
       setStep("details");
-      setService(services[0]?.name ?? "");
+      setService(initialService);
       setDate(undefined);
       setTime("");
       setName("");
@@ -170,7 +211,7 @@ export function BookAppointmentButton({
       setBookingId(null);
     }, 200);
     return () => clearTimeout(t);
-  }, [open, services]);
+  }, [open, services, initialService]);
 
   const canContinue = Boolean(service && date && time);
   const canSubmit = Boolean(phone.trim() && email.trim()) && !submitting;
@@ -232,7 +273,9 @@ export function BookAppointmentButton({
    * where bg-primary resolves to the dark-context cyan instead.
    */
   const triggerClass =
-    variant === "block"
+    variant === "inline"
+      ? ""
+      : variant === "block"
       ? "w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-sm rounded-xl transition-colors shadow-sm px-6 py-3"
       : "flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-sm rounded-xl transition-colors shadow-sm px-6 py-3";
 
@@ -244,8 +287,8 @@ export function BookAppointmentButton({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <button type="button" data-ig-click={trackingId} className={cn(triggerClass, className)}>
-          <CalendarDays className="w-4 h-4" />
-          Book Appointment
+          {variant !== "inline" && <CalendarDays className="w-4 h-4" />}
+          {variant === "inline" ? "Book" : "Book Appointment"}
         </button>
       </DialogTrigger>
 
