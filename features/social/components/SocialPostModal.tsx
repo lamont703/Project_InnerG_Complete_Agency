@@ -52,7 +52,7 @@ export function SocialPostModal({
     onClose, 
     projectId, 
     onSuccess, 
-    platforms, 
+    platforms: allPlatforms, 
     initialData,
     onGenerateImage,
     onGenerateVideo,
@@ -61,6 +61,21 @@ export function SocialPostModal({
     const [isSaving, setIsSaving] = useState(false)
     const [title, setTitle] = useState("")
     const [content, setContent] = useState("")
+    /*
+     * LinkedIn, X, Facebook and Instagram are no longer published from here.
+     * They go out through the content publisher line
+     * (/admin/content-publisher), against publisher_connections rather than
+     * client_db_connections, and publish-social-post refuses them.
+     *
+     * FILTERED IN THE UI RATHER THAN LEFT TO FAIL. The backend already returns
+     * a clear refusal, but offering a button that always errors is worse than
+     * not offering it - somebody writes a post, picks LinkedIn, and finds out
+     * after composing it.
+     */
+    const platforms = allPlatforms.filter(
+        p => !["linkedin", "x", "twitter", "twitter_x", "facebook", "instagram"].includes(p.toLowerCase())
+    )
+
     const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(initialData?.platform ? [initialData.platform] : [platforms[0]].filter(Boolean))
     const [scheduledAt, setScheduledAt] = useState("")
     const [recurrence, setRecurrence] = useState<"none" | "weekly" | "monthly">("none")

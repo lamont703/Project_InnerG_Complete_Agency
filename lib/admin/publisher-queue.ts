@@ -12,6 +12,21 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type PublisherStatus = "queued" | "published" | "partial" | "failed" | "skipped";
 
+/**
+ * One platform's result, as the cron wrote it.
+ *
+ * Structurally the same union as Outcome in lib/admin/publisher-targets.ts and
+ * deliberately redeclared rather than imported: that module pulls in every
+ * publisher (and through them the Google and LinkedIn clients), and this file is
+ * imported by a page. A type-only import would be erased, but the coupling
+ * invites someone to reach for a value later and drag the whole chain into the
+ * page bundle.
+ */
+export type PublisherOutcome =
+  | { ok: true; id: string; url?: string; note?: string }
+  | { ok: false; error: string }
+  | { skipped: string };
+
 export interface PublisherItem {
   id: string;
   itemKey: string;
@@ -30,6 +45,14 @@ export interface PublisherItem {
   instagramMediaId: string | null;
   instagramPermalink: string | null;
   instagramError: string | null;
+  /**
+   * Per-platform outcome, keyed by platform, for everything the fan-out
+   * touched. Rows published before the fan-out have an empty object here and
+   * carry their outcome only in the youtube and instagram fields above, which
+   * is why the board falls back to those rather than trusting this to be
+   * populated.
+   */
+  results: Record<string, PublisherOutcome>;
   publishedAt: string | null;
   /**
    * True when the row is queued but has no video. It can never publish, and it
@@ -105,7 +128,7 @@ export async function fetchPublisherQueue(): Promise<PublisherQueue> {
       // null and the board fell back to loading video metadata to show a first
       // frame. A field that is mapped but not selected fails silently — the
       // page renders, it is just quietly worse.
-      "id, item_key, title, stat, label, question, video_url, thumbnail_url, caption, position, status, youtube_id, youtube_error, instagram_media_id, instagram_permalink, instagram_error, published_at"
+      "id, item_key, title, stat, label, question, video_url, thumbnail_url, caption, position, status, youtube_id, youtube_error, instagram_media_id, instagram_permalink, instagram_error, results, published_at"
     )
     .order("position", { ascending: true })
     .limit(300);
@@ -129,6 +152,7 @@ export async function fetchPublisherQueue(): Promise<PublisherQueue> {
     instagramMediaId: r.instagram_media_id,
     instagramPermalink: r.instagram_permalink,
     instagramError: r.instagram_error,
+    results: (r.results ?? {}) as Record<string, PublisherOutcome>,
     publishedAt: r.published_at,
     unpublishable: r.status === "queued" && !r.video_url,
   }));
@@ -148,4 +172,47 @@ export async function fetchPublisherQueue(): Promise<PublisherQueue> {
       .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "")),
     upcomingSlots: resolveUpcomingSlots(queued),
   };
+}
+
+/**
+ * The state of every destination the fan-out can reach.
+ *
+ * WHY THIS IS ON THE PAGE AT ALL. A platform that is not connected is skipped
+ * silently and correctly — the post still goes out everywhere else, and the row
+ * reads 'published'. That is the right behaviour and it is also how a
+ * destination can quietly stop publishing for a month without anyone noticing.
+ * Showing the connections beside the queue is what makes the silence visible.
+ *
+ * NO TOKENS ARE SELECTED. The columns are named explicitly rather than with *,
+ * because this feeds a rendered page and access_token / refresh_token have no
+ * business leaving the database.
+ */
+export interface PublisherConnectionView {
+  platform: string;
+  enabled: boolean;
+  status: string;
+  accountLabel: string | null;
+  lastError: string | null;
+  lastPublishedAt: string | null;
+  expiresAt: string | null;
+}
+
+export async function fetchPublisherConnections(): Promise<PublisherConnectionView[]> {
+  const db = createAdminClient();
+  const { data, error } = await db
+    .from("publisher_connections")
+    .select("platform, enabled, status, account_label, last_error, last_published_at, expires_at")
+    .order("platform", { ascending: true });
+
+  if (error || !data) return [];
+
+  return (data as any[]).map((r) => ({
+    platform: r.platform,
+    enabled: r.enabled,
+    status: r.status,
+    accountLabel: r.account_label,
+    lastError: r.last_error,
+    lastPublishedAt: r.last_published_at,
+    expiresAt: r.expires_at,
+  }));
 }

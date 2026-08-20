@@ -4,8 +4,9 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2, AlertTriangle, Clock, ExternalLink, GripVertical, Radio, Instagram, Youtube,
+  Linkedin, MapPin, Music2, MinusCircle,
 } from "lucide-react";
-import type { PublisherItem, PublisherQueue } from "@/lib/admin/publisher-queue";
+import type { PublisherItem, PublisherQueue, PublisherOutcome } from "@/lib/admin/publisher-queue";
 import { reorderQueue, skipItem } from "@/app/admin/content-publisher/actions";
 
 /**
@@ -31,41 +32,95 @@ import { reorderQueue, skipItem } from "@/app/admin/content-publisher/actions";
  * never saved.
  */
 
+/**
+ * One line per destination.
+ *
+ * DRIVEN BY THE ROW, NOT BY A HARDCODED PAIR. This used to render a YouTube row
+ * and an Instagram row and nothing else, so a platform added to the fan-out
+ * would publish successfully and be invisible here. It now walks `results`,
+ * which means the next platform needs no change to this file.
+ *
+ * OLDER ROWS HAVE NO `results` AT ALL. Everything published before the fan-out
+ * recorded its outcome only in youtube_id / instagram_media_id, so those are
+ * folded in when the row carries nothing else. Without that, the history on the
+ * board would go blank for every past post.
+ *
+ * SKIPPED IS GREY, NOT RED. "TikTok is not enabled" is a setting, not a
+ * failure, and colouring it like one trains the eye to ignore the colour - at
+ * which case a real failure stops standing out.
+ */
+
+const PLATFORM_META: Record<string, { label: string; Icon: typeof Youtube; tone: string }> = {
+  youtube: { label: "Short", Icon: Youtube, tone: "text-indigo-700" },
+  instagram: { label: "Reel", Icon: Instagram, tone: "text-fuchsia-700" },
+  linkedin: { label: "Post", Icon: Linkedin, tone: "text-sky-700" },
+  x: { label: "Post", Icon: Radio, tone: "text-slate-900" },
+  gbp: { label: "Google Post", Icon: MapPin, tone: "text-emerald-700" },
+  tiktok: { label: "Video", Icon: Music2, tone: "text-rose-700" },
+};
+
+const PLATFORM_ORDER = ["youtube", "instagram", "linkedin", "x", "gbp", "tiktok"];
+
+/** Fold the legacy columns in for rows written before `results` existed. */
+function outcomesFor(item: PublisherItem): Record<string, PublisherOutcome> {
+  if (item.results && Object.keys(item.results).length > 0) return item.results;
+
+  const legacy: Record<string, PublisherOutcome> = {};
+  legacy.youtube = item.youtubeId
+    ? { ok: true, id: item.youtubeId, url: `https://youtube.com/shorts/${item.youtubeId}` }
+    : { ok: false, error: item.youtubeError || "not published" };
+  legacy.instagram = item.instagramMediaId
+    ? { ok: true, id: item.instagramMediaId, url: item.instagramPermalink || undefined }
+    : { ok: false, error: item.instagramError || "not published" };
+  return legacy;
+}
+
 function PlatformResult({ item }: { item: PublisherItem }) {
   if (item.status === "queued") return null;
 
+  const outcomes = outcomesFor(item);
+  const keys = Object.keys(outcomes).sort(
+    (a, b) => PLATFORM_ORDER.indexOf(a) - PLATFORM_ORDER.indexOf(b)
+  );
+
   return (
     <div className="flex flex-col gap-1 text-[11px]">
-      <span className="inline-flex items-center gap-1.5">
-        <Youtube className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-        {item.youtubeId ? (
-          <a
-            href={`https://youtube.com/shorts/${item.youtubeId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 font-bold text-indigo-700"
-          >
-            Short <ExternalLink className="h-3 w-3" />
-          </a>
-        ) : (
-          <span className="text-rose-700">{item.youtubeError || "not published"}</span>
-        )}
-      </span>
-      <span className="inline-flex items-center gap-1.5">
-        <Instagram className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-        {item.instagramMediaId ? (
-          <a
-            href={item.instagramPermalink || "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 font-bold text-fuchsia-700"
-          >
-            Reel <ExternalLink className="h-3 w-3" />
-          </a>
-        ) : (
-          <span className="text-rose-700">{item.instagramError || "not published"}</span>
-        )}
-      </span>
+      {keys.map((key) => {
+        const o = outcomes[key];
+        const meta = PLATFORM_META[key] ?? { label: key, Icon: Radio, tone: "text-slate-700" };
+        const { Icon } = meta;
+
+        if ("skipped" in o) {
+          return (
+            <span key={key} className="inline-flex items-center gap-1.5 text-slate-400">
+              <MinusCircle className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{o.skipped}</span>
+            </span>
+          );
+        }
+
+        return (
+          <span key={key} className="inline-flex items-center gap-1.5">
+            <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+            {o.ok ? (
+              o.url ? (
+                <a
+                  href={o.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-1 font-bold ${meta.tone}`}
+                >
+                  {meta.label} <ExternalLink className="h-3 w-3" />
+                </a>
+              ) : (
+                <span className={`font-bold ${meta.tone}`}>{meta.label}</span>
+              )
+            ) : (
+              <span className="text-rose-700 truncate">{o.error || "not published"}</span>
+            )}
+          </span>
+        );
+      })}
     </div>
   );
 }

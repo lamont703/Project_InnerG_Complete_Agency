@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import { Navbar } from "@/components/layout/navbar";
-import { fetchPublisherQueue } from "@/lib/admin/publisher-queue";
+import { fetchPublisherQueue, fetchPublisherConnections } from "@/lib/admin/publisher-queue";
 import { PublisherQueueBoard } from "@/components/admin/publisher-queue-board";
+import { PublisherConnections } from "@/components/admin/publisher-connections";
 import { Send } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,10 @@ export const metadata = {
 export default async function ContentPublisherPage() {
   if (!(await isAdmin())) notFound();
 
-  const queue = await fetchPublisherQueue();
+  const [queue, connections] = await Promise.all([
+    fetchPublisherQueue(),
+    fetchPublisherConnections(),
+  ]);
   const blocked = queue.queued.filter((i) => i.unpublishable).length;
   const daysOfRunway = Math.floor(queue.queued.length / 3);
 
@@ -44,9 +48,9 @@ export default async function ContentPublisherPage() {
         </h1>
         <p className="text-slate-500 text-sm mb-10 max-w-2xl">
           Three posts a day — 9:00 AM, 2:00 PM and 7:00 PM Eastern. Whatever sits
-          in position 1 goes out at the next slot, to YouTube Shorts and
-          Instagram Reels together. Drag the cards to set the order the feed will
-          read in.
+          in position 1 goes out at the next slot, to every destination that is
+          connected below. Drag the cards to set the order the feed will read
+          in.
           {queue.queued.length > 0 && (
             <>
               {" "}At three a day this line lasts{" "}
@@ -57,6 +61,8 @@ export default async function ContentPublisherPage() {
             </>
           )}
         </p>
+
+        <PublisherConnections connections={connections} />
 
         <PublisherQueueBoard queue={queue} />
       </div>
