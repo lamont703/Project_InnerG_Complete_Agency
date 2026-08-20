@@ -3,10 +3,22 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { publishToInstagram } from "@/lib/instagram-publish";
 import { isExpired } from "@/lib/instagram-token";
 import { SLOT_HOURS_ET } from "@/lib/admin/publisher-queue";
+import {
+  buildYouTubeDescription,
+  buildInstagramCaption,
+  YOUTUBE_TAGS,
+} from "@/lib/admin/publisher-copy";
+import {
+  fanOutToTargets,
+  statusFromOutcomes,
+  TARGET_PLATFORMS,
+  type Outcome,
+  type PlatformKey,
+} from "@/lib/admin/publisher-targets";
 
 /**
- * Publishes whatever sits at the front of the content publisher line, to
- * YouTube Shorts and Instagram Reels together.
+ * Publishes whatever sits at the front of the content publisher line, to every
+ * connected platform.
  *
  * THREE SLOTS A DAY: 9am, 2pm and 7pm Eastern.
  *
@@ -33,11 +45,19 @@ import { SLOT_HOURS_ET } from "@/lib/admin/publisher-queue";
  * moment, never the content - the same division publish-short and
  * gbp-publish-scheduled keep.
  *
- * ONE PLATFORM CAN SUCCEED WHILE THE OTHER FAILS, and the row records both
- * outcomes rather than collapsing them. Calling a YouTube-only publish
- * "published" hides a missing Reel; calling it "failed" invites a re-post that
- * duplicates the Short. 'partial' is the honest answer and it names which half
- * needs attention.
+ * PLATFORMS SUCCEED AND FAIL INDEPENDENTLY, and the row records each outcome
+ * rather than collapsing them. Calling a YouTube-only publish "published" hides
+ * a missing Reel; calling it "failed" invites a re-post that duplicates the
+ * Short. 'partial' is the honest answer and it names which destination needs
+ * attention.
+ *
+ * A PLATFORM THAT IS SWITCHED OFF IS SKIPPED, NOT FAILED. With six
+ * destinations, counting an unconfigured one as a failure would make 'partial'
+ * the permanent state of every row - see statusFromOutcomes.
+ *
+ * THE VIDEO IS FETCHED ONCE. YouTube, LinkedIn, X and TikTok all need the raw
+ * bytes. Downloading the same MP4 four times inside one invocation wastes the
+ * budget and adds three more ways to fail for no benefit.
  */
 
 export const dynamic = "force-dynamic";
@@ -77,61 +97,21 @@ async function youtubeAccessToken(): Promise<string> {
 }
 
 /**
- * The YouTube description and the Instagram caption are built here rather than
- * stored on the row. The queue holds what the video SAYS; these hold how it is
- * listed, and keeping them apart means the wording can be improved for every
- * future post without re-rendering or re-queueing anything.
- *
- * They are not the same text. A YouTube description is read after the click and
- * carries the link; an Instagram caption is read in the feed, cannot carry a
- * working link, and leans on tags. Sharing one string would make both worse.
+ * Upload to YouTube. Takes the bytes rather than fetching them, so the same
+ * download serves every platform that needs the file.
  */
-function buildYouTubeDescription(row: any): string {
-  return [
-    `${row.stat ?? ""} ${row.label ?? ""}`.trim(),
-    "",
-    row.question ?? "",
-    "Tell us below.",
-    "",
-    "Full pass rates, kit lists and state board guides:",
-    "https://shearquery.com",
-    "",
-    "#Shorts #barber #barberschool #stateboard #cosmetology",
-  ].join("\n");
-}
-
-function buildInstagramCaption(row: any): string {
-  if (row.caption) return row.caption;
-  return [
-    `${row.stat ?? ""} ${row.label ?? ""}`.trim(),
-    "",
-    row.question ?? "",
-    "",
-    "Pass rates, kit lists and state board guides — link in bio.",
-    "",
-    "#barber #barberschool #barbershop #stateboard #cosmetology #beautyschool #barberlife",
-  ].join("\n");
-}
-
-const TAGS = [
-  "barber state board", "barber exam", "texas barber license",
-  "barber school", "barber state board practical", "barber written exam",
-  "cosmetology state board", "beauty school", "barber apprentice",
-];
-
-async function publishToYouTube(row: any): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+async function publishToYouTube(
+  row: any,
+  bytes: Buffer
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
     const token = await youtubeAccessToken();
-
-    const videoRes = await fetch(row.video_url);
-    if (!videoRes.ok) throw new Error(`could not fetch video: HTTP ${videoRes.status}`);
-    const bytes = Buffer.from(await videoRes.arrayBuffer());
 
     const metadata = {
       snippet: {
         title: String(row.title).slice(0, 100),
         description: buildYouTubeDescription(row),
-        tags: TAGS,
+        tags: YOUTUBE_TAGS,
         categoryId: "26",
         defaultLanguage: "en",
       },
@@ -158,7 +138,7 @@ async function publishToYouTube(row: any): Promise<{ ok: true; id: string } | { 
     const put = await fetch(location, {
       method: "PUT",
       headers: { "Content-Length": String(bytes.length), "Content-Type": "video/mp4" },
-      body: bytes,
+      body: new Uint8Array(bytes),
     });
     const text = await put.text();
     if (!put.ok) throw new Error(`upload ${put.status}: ${text.slice(0, 300)}`);
@@ -192,7 +172,7 @@ async function publishToYouTube(row: any): Promise<{ ok: true; id: string } | { 
           {
             method: "POST",
             headers: { Authorization: `Bearer ${token}`, "Content-Type": "image/jpeg" },
-            body: cover,
+            body: new Uint8Array(cover),
           }
         );
         if (!t.ok) throw new Error(`thumbnails.set ${t.status}: ${(await t.text()).slice(0, 200)}`);
@@ -211,23 +191,35 @@ async function publishToYouTube(row: any): Promise<{ ok: true; id: string } | { 
 export async function GET(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
+  /*
+   * A DRY RUN RESOLVES EVERY CONNECTION AND BUILDS EVERY CAPTION, AND SENDS
+   * NOTHING. The slots are five hours apart, so without this the only way to
+   * find out that a token is stale or a caption is over a platform's limit is
+   * to burn a real post. It deliberately ignores the slot hour and does not
+   * claim the slot - it is a question, not a turn.
+   */
+  const url = new URL(req.url);
+  const dryRun = url.searchParams.get("dryRun") === "1";
+
   const { hour, date } = easternNow();
-  if (!SLOT_HOURS_ET.includes(hour as (typeof SLOT_HOURS_ET)[number])) {
+  if (!dryRun && !SLOT_HOURS_ET.includes(hour as (typeof SLOT_HOURS_ET)[number])) {
     return NextResponse.json({ ok: true, state: "not_a_slot", easternHour: hour });
   }
 
   const admin = createAdminClient();
 
-  /*
-   * CLAIM FIRST. A conflict here means this slot already went out — return
-   * quietly rather than as an error, because a second invocation in the same
-   * hour is a normal thing for a cron platform to do, not a fault.
-   */
-  const { error: claimError } = await (admin.from("publisher_slot_claims") as any)
-    .insert({ slot_date: date, slot_hour: hour });
+  if (!dryRun) {
+    /*
+     * CLAIM FIRST. A conflict here means this slot already went out — return
+     * quietly rather than as an error, because a second invocation in the same
+     * hour is a normal thing for a cron platform to do, not a fault.
+     */
+    const { error: claimError } = await (admin.from("publisher_slot_claims") as any)
+      .insert({ slot_date: date, slot_hour: hour });
 
-  if (claimError) {
-    return NextResponse.json({ ok: true, state: "slot_already_taken", slot: `${date} ${hour}:00 ET` });
+    if (claimError) {
+      return NextResponse.json({ ok: true, state: "slot_already_taken", slot: `${date} ${hour}:00 ET` });
+    }
   }
 
   /*
@@ -248,12 +240,57 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, state: "queue_empty", slot: `${date} ${hour}:00 ET` });
   }
 
+  if (dryRun) {
+    const outcomes = await fanOutToTargets({ admin, row, video: null, dryRun: true });
+    return NextResponse.json({
+      ok: true,
+      state: "dry_run",
+      itemKey: row.item_key,
+      wouldPublish: {
+        youtube: { title: String(row.title).slice(0, 100), description: buildYouTubeDescription(row) },
+        instagram: { caption: buildInstagramCaption(row) },
+        ...Object.fromEntries(
+          Object.entries(outcomes).map(([k, v]) => [
+            k,
+            "skipped" in v ? { skipped: v.skipped } : { copy: (v as any).note },
+          ])
+        ),
+      },
+    });
+  }
+
   await (admin.from("publisher_slot_claims") as any)
     .update({ item_id: row.id })
     .eq("slot_date", date)
     .eq("slot_hour", hour);
 
-  const yt = await publishToYouTube(row);
+  /*
+   * ONE DOWNLOAD FOR EVERY PLATFORM THAT NEEDS BYTES. A failure here is not
+   * fatal to the whole slot: Instagram and Google Business Profile take a URL
+   * and can still go out, so the null is passed along and each platform that
+   * needs the file records its own skip.
+   */
+  let bytes: Buffer | null = null;
+  let videoFetchError: string | null = null;
+  try {
+    const videoRes = await fetch(row.video_url);
+    if (!videoRes.ok) throw new Error(`could not fetch video: HTTP ${videoRes.status}`);
+    bytes = Buffer.from(await videoRes.arrayBuffer());
+  } catch (e) {
+    videoFetchError = String((e as Error)?.message ?? e).slice(0, 300);
+  }
+
+  const outcomes: Record<string, Outcome> = {};
+
+  // YouTube.
+  if (bytes) {
+    const yt = await publishToYouTube(row, bytes);
+    outcomes.youtube = yt.ok
+      ? { ok: true, id: yt.id, url: `https://youtube.com/shorts/${yt.id}` }
+      : { ok: false, error: yt.error };
+  } else {
+    outcomes.youtube = { skipped: videoFetchError ?? "no video bytes" };
+  }
 
   /*
    * INSTAGRAM IS ATTEMPTED EVEN IF YOUTUBE FAILED. They are independent
@@ -261,17 +298,15 @@ export async function GET(req: Request) {
    * skipping the second because the first failed would turn one missing post
    * into two for no reason.
    */
-  let igResult: { ok: true; mediaId: string; permalink?: string } | { ok: false; error: string };
-
   const { data: conn } = await (admin.from("instagram_connection") as any)
     .select("access_token, ig_user_id, expires_at, status")
     .eq("id", 1)
     .maybeSingle();
 
   if (!conn?.access_token || !conn?.ig_user_id) {
-    igResult = { ok: false, error: "instagram not connected" };
+    outcomes.instagram = { skipped: "instagram not connected" };
   } else if (isExpired(conn.expires_at) || conn.status !== "connected") {
-    igResult = { ok: false, error: `instagram token unusable (expires ${conn.expires_at})` };
+    outcomes.instagram = { skipped: `instagram token unusable (expires ${conn.expires_at})` };
   } else {
     const r = await publishToInstagram({
       igUserId: conn.ig_user_id,
@@ -281,24 +316,39 @@ export async function GET(req: Request) {
       coverUrl: row.thumbnail_url ?? undefined,
       caption: buildInstagramCaption(row),
     });
-    igResult = r.ok
-      ? { ok: true, mediaId: r.mediaId!, permalink: r.permalink }
+    outcomes.instagram = r.ok
+      ? { ok: true, id: r.mediaId!, url: r.permalink }
       : { ok: false, error: `${(r as any).stage ?? "publish"}: ${(r as any).error}` };
   }
 
-  const status = yt.ok && igResult.ok ? "published" : yt.ok || igResult.ok ? "partial" : "failed";
+  // LinkedIn, X, Google Business Profile and TikTok.
+  const fanned = await fanOutToTargets({ admin, row, video: bytes });
+  for (const p of TARGET_PLATFORMS) outcomes[p] = fanned[p as PlatformKey];
+
+  const status = statusFromOutcomes(outcomes);
   const now = new Date().toISOString();
+
+  const yt = outcomes.youtube;
+  const ig = outcomes.instagram;
+  const ok = (o: Outcome) => "ok" in o && o.ok;
 
   await (admin.from("publisher_queue") as any)
     .update({
       status,
-      youtube_id: yt.ok ? yt.id : null,
-      youtube_error: yt.ok ? null : yt.error,
-      youtube_published_at: yt.ok ? now : null,
-      instagram_media_id: igResult.ok ? igResult.mediaId : null,
-      instagram_permalink: igResult.ok ? (igResult.permalink ?? null) : null,
-      instagram_error: igResult.ok ? null : igResult.error,
-      instagram_published_at: igResult.ok ? now : null,
+      results: outcomes,
+      /*
+       * The YouTube and Instagram columns are written as well as `results`.
+       * Every row published before the fan-out has its outcome only in these,
+       * and the board still reads them - dual-writing the two costs a few lines
+       * here and avoids both a backfill and a regression on historical rows.
+       */
+      youtube_id: ok(yt) ? (yt as any).id : null,
+      youtube_error: "error" in yt ? yt.error : null,
+      youtube_published_at: ok(yt) ? now : null,
+      instagram_media_id: ok(ig) ? (ig as any).id : null,
+      instagram_permalink: ok(ig) ? ((ig as any).url ?? null) : null,
+      instagram_error: "error" in ig ? ig.error : null,
+      instagram_published_at: ok(ig) ? now : null,
       published_at: now,
       updated_at: now,
     })
@@ -309,7 +359,6 @@ export async function GET(req: Request) {
     state: status,
     slot: `${date} ${hour}:00 ET`,
     itemKey: row.item_key,
-    youtube: yt.ok ? `https://youtube.com/shorts/${yt.id}` : yt.error,
-    instagram: igResult.ok ? (igResult.permalink ?? igResult.mediaId) : igResult.error,
+    results: outcomes,
   });
 }

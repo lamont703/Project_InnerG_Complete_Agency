@@ -8,10 +8,13 @@
  */
 
 import { createHandler, z, Logger, okResponse } from "../_shared/lib/index.ts"
-import { LinkedInClient } from "../connector-sync/providers/linkedin/client.ts"
-import { MetaClient } from "../connector-sync/providers/meta/client.ts"
-import { TwitterProvider } from "../_shared/lib/providers/twitter.ts"
 import { GhlProvider } from "../_shared/lib/providers/ghl.ts"
+
+/**
+ * Platforms this function no longer publishes to — see the branch below.
+ * GHL stays, because nothing has replaced it.
+ */
+const RETIRED_PLATFORMS = new Set(["linkedin", "x", "twitter", "facebook", "instagram"])
 
 const PublishSchema = z.object({
     draft_id: z.string().uuid(),
@@ -95,148 +98,38 @@ export default createHandler(async ({ adminClient, body, user }) => {
                 continue
             }
 
-            // If multiple connections, intelligently select. 
-            // For LinkedIn, prefer organization/page over individual if available.
-            let connection = connections[0]
-            if (platform.toLowerCase() === "linkedin" && connections.length > 1) {
-                const pageConn = connections.find((c: any) => (c.sync_config as any).page_id || c.label.toLowerCase().includes("page") || c.label.toLowerCase().includes("agency"))
-                if (pageConn) connection = pageConn
-            }
+            const connection = connections[0]
 
             logger.info(`Found ${connections.length} connections for ${platform}. Selected: ${connection.label} (${connection.id})`)
 
             const config = connection.sync_config as any
             const pLower = platform.toLowerCase()
 
-            if (pLower === "linkedin") {
-                const client = new LinkedInClient(config.access_token)
-                let authorUrn = ""
-                
-                if (config.page_id) {
-                    authorUrn = config.page_id.startsWith('urn:li:') ? config.page_id : `urn:li:organization:${config.page_id}`
-                } else if (config.person_id) {
-                    authorUrn = config.person_id.startsWith('urn:li:') ? config.person_id : `urn:li:person:${config.person_id}`
+            /*
+             * RETIRED: linkedin, x/twitter, facebook and instagram.
+             *
+             * These four now publish from the content publisher line
+             * (app/api/cron/publish-content) against publisher_connections,
+             * not from here against client_db_connections. Two systems that can
+             * both post to the same account is how the same video goes out
+             * twice, and how a token refreshed by one is invalidated under the
+             * other — X in particular rotates its refresh token on every use,
+             * so two writers race and whichever loses leaves a dead connection.
+             *
+             * REFUSED, NOT SILENTLY DROPPED. Returning success for a platform
+             * nothing was sent to is worse than an error: the draft would be
+             * marked published and nobody would look again.
+             *
+             * The publishing code that used to live here is not lost — it was
+             * ported to lib/linkedin-publish.ts and lib/x-publish.ts, both of
+             * which target the current APIs rather than the deprecated ones
+             * this used (LinkedIn's Assets/ugcPosts, X's v1.1 media upload).
+             */
+            if (RETIRED_PLATFORMS.has(pLower)) {
+                results[platform] = {
+                    success: false,
+                    error: `${platform} is published from the content publisher now, not from here. Queue it at /admin/content-publisher.`,
                 }
-                
-                if (!authorUrn) throw new Error("LinkedIn connection is missing author ID")
-
-                let mediaAsset = undefined
-                if (draft.media_url) {
-                    const isVideo = draft.media_url.includes(".mp4") || draft.media_url.includes(".mov")
-                    const mediaRes = await fetch(draft.media_url)
-                    if (mediaRes.ok) {
-                        const blob = await mediaRes.blob()
-                        if (isVideo) {
-                            mediaAsset = await client.uploadVideo(authorUrn, blob, blob.type || "video/mp4")
-                        } else {
-                            mediaAsset = await client.uploadImage(authorUrn, blob, blob.type || "image/png")
-                        }
-                    }
-                }
-                
-                const postResult = await client.createPost(authorUrn, draft.content_text, mediaAsset)
-                logger.info(`Successfully published to LinkedIn`, { post_id: postResult.id })
-                results[platform] = { success: true, post_id: postResult.id }
-                lastExternalPostId = postResult.id
-            } 
-            else if (pLower === "instagram") {
-                if (!draft.media_url) {
-                    throw new Error("Instagram requires an image or video for posting.")
-                }
-                
-                const igUserId = config.instagram_business_account_id || config.page_id
-                if (!igUserId) throw new Error("Missing IG Business Account ID")
-                
-                const metaClient = new MetaClient(config.access_token)
-                const isVideo = draft.media_url.includes(".mp4") || draft.media_url.includes(".mov")
-
-                let postResult
-                if (isVideo) {
-                    postResult = await metaClient.createInstagramVideoPost(igUserId, draft.content_text, draft.media_url)
-                } else {
-                    postResult = await metaClient.createInstagramPost(igUserId, draft.content_text, draft.media_url)
-                }
-                
-                logger.info(`Successfully published to Instagram`, { post_id: postResult.id })
-                results[platform] = { success: true, post_id: postResult.id }
-                lastExternalPostId = postResult.id
-            }
-            else if (pLower === "twitter" || pLower === "x") {
-                const client = new TwitterProvider()
-                let token = config.access_token
-                let postResult
-                let mediaId: string | undefined = undefined
-
-                const performXPublish = async (currentReqToken: string) => {
-                    // Stage Media if present
-                    if (draft.media_url) {
-                        try {
-                            const mediaRes = await fetch(draft.media_url)
-                            if (mediaRes.ok) {
-                                const blob = await mediaRes.blob()
-                                logger.info(`Staging media for X...`, { type: blob.type, size: blob.size })
-                                mediaId = await client.uploadMedia(currentReqToken, blob)
-                            }
-                        } catch (mediaErr: any) {
-                            logger.warn(`X Media staging failed, attempting text-only fallback: ${mediaErr.message}`)
-                        }
-                    }
-                    return await client.createTweet(currentReqToken, draft.content_text, mediaId)
-                }
-                
-                try {
-                    postResult = await performXPublish(token)
-                } catch (err: any) {
-                    const isAuthError = err.message.toLowerCase().includes("unauthorized") || 
-                                       err.message.includes("401") || 
-                                       err.message.toLowerCase().includes("forbidden") || 
-                                       err.message.includes("403") || 
-                                       err.message.toLowerCase().includes("not permitted")
-                    
-                    if (isAuthError && config.refresh_token) {
-                        logger.info(`Twitter token issue identified. Attempting forced refresh...`)
-                        const refreshData = await client.refreshToken(config.refresh_token)
-                        if (refreshData.access_token) {
-                            token = refreshData.access_token
-                            // Update the connection config
-                            const { error: updateErr } = await adminClient
-                                .from("client_db_connections")
-                                .update({ 
-                                    sync_config: { 
-                                        ...config, 
-                                        access_token: token,
-                                        refresh_token: refreshData.refresh_token || config.refresh_token
-                                    } 
-                                })
-                                .eq("id", connection.id)
-                            
-                            if (!updateErr) {
-                                logger.info(`Token refreshed. Retrying publish...`)
-                                postResult = await performXPublish(token)
-                            } else {
-                                throw new Error(`Refresh succeeded but failed to update DB: ${updateErr.message}`)
-                            }
-                        } else {
-                            throw err
-                        }
-                    } else {
-                        throw err
-                    }
-                }
-
-                logger.info(`Successfully published to X (Twitter)`, { post_id: postResult.id, has_media: !!mediaId })
-                results[platform] = { success: true, post_id: postResult.id }
-                lastExternalPostId = postResult.id
-            }
-            else if (pLower === "facebook") {
-                const metaClient = new MetaClient(config.access_token)
-                const pageId = config.page_id || config.instagram_business_account_id
-                if (!pageId) throw new Error("Missing Facebook Page ID")
-                
-                const postResult = await metaClient.createFacebookPost(pageId, draft.content_text)
-                logger.info(`Successfully published to Facebook`, { post_id: postResult.id })
-                results[platform] = { success: true, post_id: postResult.id }
-                lastExternalPostId = postResult.id
             }
             else if (pLower === "ghl") {
                 const ghl = new GhlProvider(config.access_token || config.apiKey)
