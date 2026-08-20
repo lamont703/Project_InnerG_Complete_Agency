@@ -493,16 +493,30 @@ export default async function BarberProfilePage(props: { params: Promise<{ slug:
                       <span className="text-sm font-semibold text-slate-800">{service.name}</span>
                       <div className="flex items-center gap-3 shrink-0">
                         <span className="text-sm font-black text-slate-900">{formatPrice(service.price, service.currency)}</span>
-                        {barber.profile_url && (
-                          <a
-                            href={barber.profile_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            data-ig-click="outbound_lead"
+                        {/* This pill used to be an `<a href={barber.profile_url}>`
+                            straight out to Booksy, carrying data-ig-click="outbound_lead".
+                            The hero CTA was converted to the booking modal when it was
+                            built; these per-service rows were missed, so the page had one
+                            button that captured the lead and a column of buttons beside it
+                            that gave the lead away. The pixel log has the outbound clicks
+                            to prove it, every one of them from /barbers/*.
+
+                            preselectService carries the row that was clicked, so someone
+                            who taps Beard Trim does not land on the first service in the
+                            list. Its own trackingId keeps these rows separable from the
+                            hero button in pixel_events — see the note on that prop. */}
+                        {bookingServices && (
+                          <BookAppointmentButton
+                            entityType="barber"
+                            entityId={String(barber.id)}
+                            entityName={barber.name}
+                            services={bookingServices}
+                            preselectService={service.name}
+                            fallbackWebsite={barber.website_url}
+                            variant="inline"
+                            trackingId="book_service_row"
                             className="text-xs font-extrabold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg px-3 py-1.5 transition-colors"
-                          >
-                            Book
-                          </a>
+                          />
                         )}
                       </div>
                     </li>
