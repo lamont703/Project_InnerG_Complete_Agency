@@ -9,6 +9,8 @@ import {
   withinReplyWindow,
   looksLikeAnswerAttempt,
 } from "@/lib/booking-reply";
+import { notifyCustomerOnce, type ResolutionKind } from "@/lib/booking-resolution";
+import { slotHasPassedEverywhere } from "@/lib/booking-lead-time";
 
 /**
  * A business texts back, and the booking moves.
@@ -129,8 +131,10 @@ export async function POST(req: NextRequest) {
   const { data: rows, error } = await (admin as any)
     .from("booking_requests")
     .select(
-      "id, entity_name, entity_phone, customer_name, customer_email, requested_date, " +
-        "requested_time, status, notified_business_at, escalated_at, clarification_sent_at"
+      "id, entity_name, entity_phone, entity_slug, entity_type, service_name, " +
+        "customer_name, customer_email, requested_date, " +
+        "requested_time, status, notified_business_at, escalated_at, clarification_sent_at, " +
+        "resolution_notified_at"
     )
     .in("status", ["new", "notified"])
     /*
@@ -248,17 +252,55 @@ export async function POST(req: NextRequest) {
   }
 
   /*
-   * The customer is NOT emailed here. A decline hands off to the escalation
-   * cron, which already owns every "here is how your request ended" message and
-   * stamps resolution_notified_at so it is sent exactly once. Sending from both
-   * places is how a customer gets told twice.
+   * THE CUSTOMER IS TOLD NOW, NOT AT THE TOP OF THE HOUR.
+   *
+   * This used to hand off to the follow-up cron on the grounds that sending
+   * from two places is how a customer gets told twice. The grounds were right;
+   * the conclusion cost too much. The cron runs hourly, so a business replying
+   * "Y" at 2:18pm left the customer in silence until 3:00 — 41 minutes on the
+   * first booking this site ever completed, and up to 60 in the worst case.
+   * That is the exact window in which somebody rings the shop themselves or
+   * books elsewhere.
+   *
+   * notifyCustomerOnce is the same function the cron calls, and it claims the
+   * row (`resolution_notified_at IS NULL` in the update predicate) before it
+   * sends. So the two callers cannot both email: whoever gets there first wins
+   * and the other returns "already_notified". The cron remains the safety net
+   * for everything this webhook never sees — a decline that arrives while we
+   * are down, a request nobody ever answers.
+   *
+   * A SEND FAILURE MUST NOT FAIL THE WEBHOOK. GHL retries a non-2xx, which
+   * would re-run the whole handler against a row whose status has already
+   * moved. Same reasoning as the acknowledgement above.
    */
+  let notified: string | null = null;
+  if (nextStatus === "booked" || nextStatus === "declined") {
+    try {
+      const slotGone = slotHasPassedEverywhere(target.requested_date, target.requested_time, now);
+      /*
+       * A yes that arrives after the slot is not a booking, and saying
+       * "confirmed - Sat Aug 22 at 9:00 AM" about a time that has passed sends
+       * someone to an appointment that already happened. booking-escalation
+       * makes the same distinction for the cron's path; this mirrors it so the
+       * two callers cannot disagree about what a late yes means.
+       */
+      const kind: ResolutionKind =
+        nextStatus === "declined" ? "declined" : slotGone ? "booked_late" : "booked";
+      const outcome = await notifyCustomerOnce(admin, target as any, kind, now);
+      notified = outcome.sent ? kind : (outcome.reason ?? "not_sent");
+    } catch (err: any) {
+      console.warn("[ghl-inbound] customer notify failed:", err?.message);
+      notified = "threw";
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     matched: true,
     intent,
     status: nextStatus || target.status,
     replied: Boolean(ack),
+    notified,
     othersOpen: mine.length - 1,
   });
 }
