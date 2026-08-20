@@ -1,18 +1,24 @@
 /**
  * Publishing to X: chunked media upload, then a post.
  *
- * THE ENDPOINTS MOVED TO v2. The older code in
- * supabase/functions/_shared/lib/providers/twitter.ts uploads to
- * `https://upload.twitter.com/1.1/media/upload.json` in a single shot. X's
- * current media documentation puts the whole chunked flow on
- * `https://api.x.com/2/media/upload`, and a single-shot upload is not an option
- * for video at all - INIT/APPEND/FINALIZE is the only documented path.
+ * THREE DEDICATED PATHS, NOT ONE ENDPOINT WITH A command PARAMETER. This is
+ * the correction that cost a live slot on 2026-08-20. The first version posted
+ * multipart form data with `command=INIT` to `/2/media/upload`, which is the
+ * shape the v1.1 API used and which several current-looking guides still show.
+ * X answered:
  *
- * FOUR STEPS, AND THE FOURTH IS NOT OPTIONAL FOR VIDEO:
- *   1. INIT     - declares total_bytes and media_category, returns media_id
- *   2. APPEND   - one call per chunk, each with its own segment_index
- *   3. FINALIZE - returns processing_info when transcoding is still running
- *   4. STATUS   - polled until state is 'succeeded'
+ *   400 "Missing media field in JSON"  {"parameters":{"media":[]}}
+ *
+ * - an error that names neither the endpoint nor the real problem, and reads
+ * like a malformed upload rather than the wrong URL entirely. What actually
+ * exists is a separate path per step:
+ *
+ *   1. POST /2/media/upload/initialize      JSON, returns the media id
+ *   2. POST /2/media/upload/{id}/append     multipart, one call per chunk
+ *   3. POST /2/media/upload/{id}/finalize   no body, returns processing_info
+ *   4. GET  /2/media/upload?media_id={id}   polled until state is 'succeeded'
+ *
+ * The id goes in the PATH for append and finalize, not the body.
  *
  * POSTING BEFORE PROCESSING FINISHES FAILS. Unlike LinkedIn, X will reject a
  * post that references a media_id still being transcoded, so step 4 is a real
@@ -143,12 +149,20 @@ export function fitToXLimit(text: string, limit: number = X_TEXT_LIMIT): string 
   return `${body.trimEnd()}…`;
 }
 
-async function mediaCommand(
+/**
+ * POST a multipart body to a media path.
+ *
+ * Content-Type is deliberately NOT set - fetch derives it from the FormData
+ * along with the multipart boundary, and setting it by hand produces a header
+ * with no boundary, which the server cannot parse.
+ */
+async function mediaPost(
   accessToken: string,
+  path: string,
   form: FormData,
   timeoutMs = 120000
 ): Promise<{ status: number; body: any }> {
-  const res = await fetch(`${API}/media/upload`, {
+  const res = await fetch(`${API}${path}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}` },
     body: form,
@@ -157,27 +171,46 @@ async function mediaCommand(
   return { status: res.status, body: await res.json().catch(() => ({})) };
 }
 
-export async function publishToX(input: XPublishInput): Promise<XPublishResult> {
-  const { accessToken, video, text } = input;
+/**
+ * Upload the video and return its media id. NOTHING IS POSTED.
+ *
+ * Separated from publishToX precisely because this is the half that broke: the
+ * media pipeline is four calls against endpoints that changed shape, while
+ * creating the post is one obvious call. Uploaded media is invisible until a
+ * post references it and X expires an unused upload on its own, so this can be
+ * run against the live API as a real check without putting anything on the
+ * timeline - see lib/x-publish.live.test.ts.
+ */
+export async function uploadVideoToX(
+  accessToken: string,
+  video: Buffer
+): Promise<{ ok: true; mediaId: string } | { ok: false; error: string; stage: XStage }> {
 
-  // 1. INIT
+  // 1. Initialize. JSON, not multipart - this is the step that was wrong.
   let mediaId: string;
   {
-    const form = new FormData();
-    form.append("command", "INIT");
-    form.append("media_type", "video/mp4");
-    form.append("total_bytes", String(video.length));
-    // Without tweet_video X treats the upload as an image and FINALIZE rejects
-    // an MP4 with an error that does not mention the category.
-    form.append("media_category", "tweet_video");
-
     try {
-      const { status, body } = await mediaCommand(accessToken, form, 30000);
+      const res = await fetch(`${API}/media/upload/initialize`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          media_type: "video/mp4",
+          total_bytes: video.length,
+          // Without tweet_video X treats the upload as an image and finalize
+          // rejects an MP4 with an error that does not mention the category.
+          media_category: "tweet_video",
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+      const body: any = await res.json().catch(() => ({}));
       // The v2 response nests under data; older shapes returned it flat, and
       // reading only one of the two turns a success into "no media id".
-      mediaId = body?.data?.id ?? body?.media_id_string ?? body?.id;
-      if (status >= 400 || !mediaId) {
-        return { ok: false, stage: "init", error: `${status}: ${JSON.stringify(body).slice(0, 300)}` };
+      mediaId = body?.data?.id ?? body?.id ?? body?.media_id_string;
+      if (!res.ok || !mediaId) {
+        return { ok: false, stage: "init", error: `${res.status}: ${JSON.stringify(body).slice(0, 300)}` };
       }
     } catch (e) {
       return { ok: false, stage: "init", error: String((e as Error)?.message ?? e) };
@@ -189,14 +222,18 @@ export async function publishToX(input: XPublishInput): Promise<XPublishResult> 
   for (let i = 0; i < chunks; i++) {
     const slice = video.subarray(i * CHUNK_SIZE, Math.min((i + 1) * CHUNK_SIZE, video.length));
     const form = new FormData();
-    form.append("command", "APPEND");
-    form.append("media_id", mediaId);
     form.append("segment_index", String(i));
     form.append("media", new Blob([new Uint8Array(slice)], { type: "application/octet-stream" }));
 
     try {
-      const { status, body } = await mediaCommand(accessToken, form);
-      // APPEND answers 204 with no body on success, so an empty parse is
+      // The media id is a PATH segment here. Sending it in the body instead is
+      // what the command-style API wanted and is silently ignored by this one.
+      const { status, body } = await mediaPost(
+        accessToken,
+        `/media/upload/${encodeURIComponent(mediaId)}/append`,
+        form
+      );
+      // A successful append may answer with an empty body, so an empty parse is
       // expected here rather than a problem.
       if (status >= 400) {
         return {
@@ -214,16 +251,18 @@ export async function publishToX(input: XPublishInput): Promise<XPublishResult> 
     }
   }
 
-  // 3. FINALIZE
+  // 3. Finalize. Documented as taking NO body at all.
   let processing: any;
   {
-    const form = new FormData();
-    form.append("command", "FINALIZE");
-    form.append("media_id", mediaId);
     try {
-      const { status, body } = await mediaCommand(accessToken, form, 60000);
-      if (status >= 400) {
-        return { ok: false, stage: "finalize", error: `${status}: ${JSON.stringify(body).slice(0, 300)}` };
+      const res = await fetch(`${API}/media/upload/${encodeURIComponent(mediaId)}/finalize`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(60000),
+      });
+      const body: any = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { ok: false, stage: "finalize", error: `${res.status}: ${JSON.stringify(body).slice(0, 300)}` };
       }
       processing = body?.data?.processing_info ?? body?.processing_info;
     } catch (e) {
@@ -246,7 +285,7 @@ export async function publishToX(input: XPublishInput): Promise<XPublishResult> 
       await new Promise((r) => setTimeout(r, Math.max(1, waitSecs) * 1000));
       try {
         const res = await fetch(
-          `${API}/media/upload?command=STATUS&media_id=${encodeURIComponent(mediaId)}`,
+          `${API}/media/upload?media_id=${encodeURIComponent(mediaId)}`,
           { headers: { Authorization: `Bearer ${accessToken}` }, signal: AbortSignal.timeout(30000) }
         );
         const body: any = await res.json().catch(() => ({}));
@@ -272,7 +311,16 @@ export async function publishToX(input: XPublishInput): Promise<XPublishResult> 
     }
   }
 
-  // 5. The post itself.
+  return { ok: true, mediaId };
+}
+
+export async function publishToX(input: XPublishInput): Promise<XPublishResult> {
+  const { accessToken, video, text } = input;
+
+  const uploaded = await uploadVideoToX(accessToken, video);
+  if (!uploaded.ok) return { ok: false, stage: uploaded.stage, error: uploaded.error };
+  const mediaId = uploaded.mediaId;
+
   try {
     const res = await fetch(`${API}/tweets`, {
       method: "POST",
