@@ -1,0 +1,12 @@
+[
+ {"k":"w1-bobs","h":"Six bobs, explained.","n":["Blunt bob","French bob","A-line bob","Inverted bob","Chin-length bob","Textured bob"]},
+ {"k":"w2-layers","h":"Six layered cuts.","n":["Long layers","Butterfly layers","Shag","Wolf cut","Face-framing layers","Curtain bangs"]},
+ {"k":"w3-pixie","h":"Six short cuts.","n":["Pixie cut","Undercut pixie","Bixie","Short shag","Cropped pixie","Buzz cut"]},
+ {"k":"w4-curly","h":"Six curly styles.","n":["Wash and go","Twist out","Curly shag","Defined coils","Curly bob","Natural afro"]},
+ {"k":"w5-braids","h":"Six protective styles.","n":["Box braids","Knotless braids","Cornrows","Senegalese twists","Faux locs","Bantu knots"]},
+ {"k":"m1-classic","h":"Six classic cuts.","n":["Crew cut","Buzz cut","Ivy League","French crop","Caesar cut","High and tight"]},
+ {"k":"m2-undercut","h":"Six undercuts.","n":["Disconnected","Slicked back","Curly undercut","Side-swept","Textured","Long undercut"]},
+ {"k":"m3-business","h":"Six smart cuts.","n":["Side part","Executive contour","Comb over + low fade","Slick back","Textured business","Taper + hard part"]},
+ {"k":"m4-long","h":"Six long styles.","n":["Man bun","Top knot + fade","Curtains","Shoulder-length flow","Modern mullet","Half-up tie back"]},
+ {"k":"m5-locs","h":"Six braid and loc styles.","n":["Cornrows","Box braids","Two-strand twists","Freeform locs","Starter locs","Braided ponytail"]}
+]

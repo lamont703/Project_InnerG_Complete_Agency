@@ -83,6 +83,12 @@ yarn-error.log*
 # pre-existing design docs that were deliberately untracked, as a side effect of
 # committing one research plan.
 !docs/california-content-plan.md
+# ...and the Data Reels Agent manual. This one is the operating instructions for
+# a pipeline that publishes to the public internet on a schedule with nobody
+# watching. If it lives only on one laptop, the first person to inherit it has
+# a cron they cannot explain and a set of rules — no unsourced figures, no
+# personal data, no naming a business — that exist nowhere they will look.
+!docs/data-reels-agent.md
 # ...and the JSON-LD reference, for the same reason and one more. It is the only
 # written record of WHY two deprecated types are deliberately kept, and it holds
 # dated claims about Google's behaviour that go stale silently — the FAQ
@@ -175,3 +181,13 @@ certificates/
 # Original YouTube snippets, written before any videos.update run.
 # Local safety net — real content, not source, and not ours to publish.
 scripts/youtube-backups/
+
+# Generated hairstyle grids, covers and Reels - large binaries, all reproducible
+# from scripts/instagram/hairstyle-batch and stored in Supabase for publishing.
+experiments/hairstyle-grids-v2/
+experiments/hairstyle-covers-v2/
+experiments/hairstyle-reels-v2/
+experiments/hairstyle-covers/
+
+# Local env file backups (may contain real secrets)
+.env-backups/

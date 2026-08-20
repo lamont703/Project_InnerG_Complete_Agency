@@ -59,16 +59,28 @@ const iso = (n) => { const d = new Date(); d.setUTCDate(d.getUTCDate() - n); ret
 async function main() {
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
+  /**
+   * READS publisher_queue, NOT shorts_queue.
+   *
+   * shorts_queue was the first version of this pipeline and is now orphaned —
+   * three videos were published through it before the content publisher
+   * replaced it. This tool pointed at that table and therefore reported on a
+   * frozen set of three while being blind to everything the live system posts.
+   * A report that is confidently about the wrong table is worse than no report.
+   *
+   * 'partial' counts as published: it means one platform took it and the other
+   * did not, and the YouTube half still has numbers worth reading.
+   */
   const { data: rows, error } = await db
-    .from("shorts_queue")
-    .select("card_key, title, stat, label, question, youtube_id, published_at, scheduled_for, status")
-    .eq("status", "published")
+    .from("publisher_queue")
+    .select("item_key, title, stat, label, question, youtube_id, instagram_media_id, published_at, position, status")
+    .in("status", ["published", "partial"])
     .not("youtube_id", "is", null);
 
   if (error) throw new Error(`queue read failed: ${error.message}`);
   if (!rows || !rows.length) {
-    console.log(`\n  No published Shorts in the queue yet.`);
-    console.log(`  Note: Shorts published before the queue existed are not tracked here.\n`);
+    console.log(`\n  No published Shorts in the publisher queue yet.`);
+    console.log(`  Note: three early Shorts live in the orphaned shorts_queue table and are not counted here.\n`);
     return;
   }
 
@@ -107,11 +119,12 @@ async function main() {
     const a = retention.get(r.youtube_id) || {};
     const ageDays = r.published_at ? (Date.now() - new Date(r.published_at).getTime()) / 86400000 : 0;
     return {
-      cardKey: r.card_key,
+      cardKey: r.item_key,
       title: r.title,
       stat: r.stat,
       question: r.question,
       youtubeId: r.youtube_id,
+      onInstagram: !!r.instagram_media_id,
       publishedAt: r.published_at,
       ageDays: Number(ageDays.toFixed(1)),
       settled: ageDays >= SETTLE_DAYS,
