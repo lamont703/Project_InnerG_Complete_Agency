@@ -175,3 +175,10 @@ certificates/
 # Original YouTube snippets, written before any videos.update run.
 # Local safety net — real content, not source, and not ours to publish.
 scripts/youtube-backups/
+
+# Generated hairstyle grids, covers and Reels - large binaries, all reproducible
+# from scripts/instagram/hairstyle-batch and stored in Supabase for publishing.
+experiments/hairstyle-grids-v2/
+experiments/hairstyle-covers-v2/
+experiments/hairstyle-reels-v2/
+experiments/hairstyle-covers/
