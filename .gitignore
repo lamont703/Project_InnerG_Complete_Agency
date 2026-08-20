@@ -96,6 +96,14 @@ yarn-error.log*
 # redirect resolves and a 404 doesn't. Untracked, corrections to it live on one
 # laptop and the next person re-derives them from scratch.
 !jsonld.md
+# ...and the Gaming agent manual. Same reason as the Data Reels one: it is the
+# operating record for something published to the public internet, and its rules
+# are the difference between a game that teaches the board's requirements and
+# one that teaches an invented requirement to somebody about to sit the exam.
+# The rule that no wrong answer may ever be invented, the three sourced
+# distractor classes, and the two bugs that passed every test — none of that is
+# recoverable from the code, and untracked it lives on one laptop.
+!docs/gaming-agent.md
 
 
 
