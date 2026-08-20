@@ -108,6 +108,86 @@ const ALL_TAB_INTENT_FILTER_MAP: Record<string, string> = {
   educational: 'Barbershops',
 };
 
+/**
+ * THE QUICK SEARCH CHIPS, CHOSEN FROM THE SEARCH LOG RATHER THAN FROM TASTE.
+ *
+ * Chips out-convert typing on this page — of 338 chip searches, 90.2% of those
+ * sessions went on to click a result, against 77.9% of 662 typed ones (session
+ * co-occurrence in pixel_events, so directional rather than strict
+ * attribution). The format was never the problem. What they pointed at was.
+ *
+ * The set they replace was three California/LA questions and two barber-and-
+ * beauty SUPPLY STORE questions, and the log is blunt about how that went:
+ *
+ *   "Open booth stations in Houston barbershops"        135 taps in 4 days
+ *   "Which Texas barber schools ... 2026 pass rates?"    89 taps in 14 days
+ *   "Which California cosmetology schools ...?"           9 taps in 18 days
+ *
+ * Neither supply-store chip appears anywhere in the top queries, and the two
+ * categories are minor next to shops, salons and schools.
+ *
+ * WHY BOOTH AVAILABILITY IS BACK AND FIRST. It was the best chip this page has
+ * ever had and it was pulled while it was still broken: 461 searches asked for
+ * open booths and none of them could reach the 52 shops with
+ * booth_count_available > 0, because nothing read that field (see the override
+ * in actions.ts, which now does). The chip did not fail for lack of demand, it
+ * failed because the answer was empty. It is answerable now.
+ *
+ * ONE CALIFORNIA CHIP IS KEPT ON PURPOSE. California is a market being entered
+ * rather than one already served, so its chips are there to CREATE demand, not
+ * to serve it - a job worth one slot out of six, not three.
+ */
+const QUICK_SEARCHES: { label: string; query: string }[] = [
+  {
+    label: "Open booth stations in Houston barbershops",
+    query: "Which Houston barbershops have open booth stations available right now?",
+  },
+  {
+    label: "Texas barber schools with the best 2026 pass rates",
+    query: "Which Texas barber schools actually deliver the highest 2026 pass rates?",
+  },
+  {
+    label: "Cheapest barber booth rent in Houston",
+    query: "Which Houston neighborhoods have the cheapest barber booth rent right now?",
+  },
+  {
+    /**
+     * "MY SCHOOL", NOT "SCHOOLS". This exact phrasing is the single most-used
+     * query of the last fortnight, typed by people who already know which
+     * school they attend and want their own number - a different question from
+     * the ranking chip above it, and the one nobody had put on a chip.
+     */
+    label: "What's the first-attempt pass rate at my school?",
+    query: "What's the first-attempt pass rate at my barber school in Texas?",
+  },
+  {
+    /**
+     * Kit lists are the best-performing page type on this site by a wide
+     * margin and had no chip at all - the largest gap in the old set.
+     */
+    label: "What's on the Texas practical exam kit list?",
+    query: "What do I need to bring to the Texas barber practical exam?",
+  },
+  {
+    label: "California schools with the top 2026 pass rates",
+    query: "Which California cosmetology schools have the highest 2026 first-time written pass rates?",
+  },
+];
+
+/**
+ * A SECOND ROW, BECAUSE PEOPLE DO NOT TYPE SENTENCES.
+ *
+ * Every chip above is a twelve-word question. The actual typed log is one and
+ * two-word places - beaumont, sherman, irving, cypress, fort worth, amarillo,
+ * waco, houston, san antonio. Those are two different behaviours and the page
+ * was only serving one of them: a sentence has to be READ before it can be
+ * decided on, and a city name does not.
+ *
+ * Deliberately Texas-weighted, which is where the licensing data, the entity
+ * coverage and the audience all are.
+ */
+const CITY_CHIPS = ["Houston", "Dallas", "San Antonio", "Fort Worth", "Austin"];
+
 function SearchContent() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") || "");
@@ -387,6 +467,27 @@ function SearchContent() {
     if (chatMessages.length === 0) {
       askAiOverview(text);
     }
+  };
+
+  /**
+   * A city chip is the same thing WITHOUT the AI overview.
+   *
+   * "Houston" is not a question, so there is nothing for the overview to
+   * synthesise that the directory listing does not already say better - and
+   * askAiOverview fires a real Gemini call, which is a genuine cost to spend on
+   * restating a result list. Setting the query is enough on its own: the
+   * debounced effect keyed on [query, page, filterTab, activeFilters] runs the
+   * search from here.
+   */
+  const startCitySearch = (city: string) => {
+    setQuery(city);
+    setFilterTab("All");
+    setPage(1);
+    setShowMoreTabs(false);
+    setActiveFilters([]);
+    setResults([]);
+    setTotal(0);
+    setIsLoading(true);
   };
 
   // A shop owner arriving via the "Ask AI About This Market" link on their
@@ -827,58 +928,41 @@ function SearchContent() {
                 </div>
               </div>
 
-              {/* Quick Search Suggestions — each one asks a question that only
-                  resolves against our own live, collected market data (real
-                  booth-rent pricing, hiring signals, Booksy pricing scrapes,
-                  this year's pass-rate data), not something a generic web
-                  search already answers well. Routed into AI Mode so the
-                  platform can actually synthesize an answer from that data,
-                  not just filter a directory. */}
+              {/* Quick Search Suggestions — each asks something that only
+                  resolves against our own live, collected market data (booth
+                  availability and rent, hiring signals, this year's pass
+                  rates, the practical kit list), not something a generic web
+                  search already answers well.
+
+                  The set is chosen from the search log rather than from taste;
+                  see QUICK_SEARCHES above for what the numbers said. */}
               {query.trim().length === 0 && results.length === 0 && (
                 <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
                   <span className="w-full text-center text-xs sm:text-sm text-slate-500 font-medium">Ask about real-time market data:</span>
-                  <button
-                    onClick={() => startQuickSearch("Which California cosmetology schools have the highest 2026 first-time written pass rates?")}
-                    className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <span className="mr-1.5">✨</span>
-                    California cosmetology schools with the best 2026 pass rates
-                  </button>
-                  <button
-                    onClick={() => startQuickSearch("Which California barber schools have the best 2026 state board written pass rates?")}
-                    className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <span className="mr-1.5">✨</span>
-                    California barber schools with the top 2026 pass rates
-                  </button>
-                  <button
-                    onClick={() => startQuickSearch("Which barber supply stores in Houston have the best ratings and selection?")}
-                    className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <span className="mr-1.5">✨</span>
-                    Top-rated barber supply stores in Houston
-                  </button>
-                  <button
-                    onClick={() => startQuickSearch("Where are the highest-rated beauty supply stores in Houston?")}
-                    className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <span className="mr-1.5">✨</span>
-                    Best-rated beauty supply stores in Houston
-                  </button>
-                  <button
-                    onClick={() => startQuickSearch("Which Los Angeles barbershops are the highest rated right now?")}
-                    className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <span className="mr-1.5">✨</span>
-                    Top-rated Los Angeles barbershops
-                  </button>
-                  <button
-                    onClick={() => startQuickSearch("Which Dallas barbershops are hiring barbers or have the strongest reviews right now?")}
-                    className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <span className="mr-1.5">✨</span>
-                    Dallas barbershops hiring or top-reviewed
-                  </button>
+                  {QUICK_SEARCHES.map((s) => (
+                    <button
+                      key={s.label}
+                      onClick={() => startQuickSearch(s.query)}
+                      className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <span className="mr-1.5">✨</span>
+                      {s.label}
+                    </button>
+                  ))}
+
+                  {/* The one-tap row. Visually quieter than the question chips
+                      above so it reads as a shortcut rather than as six more
+                      things to read. */}
+                  <span className="w-full text-center text-xs sm:text-sm text-slate-500 font-medium mt-3 sm:mt-4">Or jump straight to a city:</span>
+                  {CITY_CHIPS.map((city) => (
+                    <button
+                      key={city}
+                      onClick={() => startCitySearch(city)}
+                      className="px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-slate-100 border border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {city}
+                    </button>
+                  ))}
                 </div>
               )}
             </>
