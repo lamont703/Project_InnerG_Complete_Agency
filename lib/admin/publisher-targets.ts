@@ -26,7 +26,7 @@
 
 import { publishToLinkedIn } from "@/lib/linkedin-publish";
 import { publishToX, refreshXToken } from "@/lib/x-publish";
-import { publishToGbpBrand } from "@/lib/gbp-brand-publish";
+import { publishToGbpBrand, verifyGbpCredentials } from "@/lib/gbp-brand-publish";
 import { publishToTikTok } from "@/lib/tiktok-publish";
 import {
   buildLinkedInCommentary,
@@ -206,6 +206,25 @@ export async function fanOutToTargets(
     }
 
     if (dryRun) {
+      /*
+       * GBP's credentials are ACTUALLY EXERCISED here, because storing a
+       * refresh token and being able to redeem it are different facts and this
+       * connection has already been broken by the second while looking fine by
+       * the first. Redeeming a Google refresh token is read-only and does not
+       * rotate it, so this costs nothing.
+       *
+       * The other platforms are not checked this way on purpose: X rotates its
+       * refresh token on every redemption, so "verifying" it in a dry run would
+       * consume the credential and leave the connection worse than it found it.
+       */
+      if (platform === "gbp") {
+        const check = await verifyGbpCredentials(conn!.refresh_token!);
+        outcomes[platform] = check.ok
+          ? { ok: true, id: "dry-run", note: previewCopy(platform, row) }
+          : { ok: false, error: check.error };
+        continue;
+      }
+
       outcomes[platform] = {
         ok: true,
         id: "dry-run",

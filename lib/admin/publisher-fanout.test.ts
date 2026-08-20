@@ -142,9 +142,12 @@ describe("dry-run blockers", () => {
     });
 
     // The row has a video, so neither of these may claim otherwise.
+    //
+    // GBP is deliberately not asserted here: its dry run now redeems the
+    // refresh token for real, so its outcome depends on credentials rather
+    // than on the blocker logic this test is about.
     expect(out.linkedin).not.toHaveProperty("skipped");
     expect(out.x).not.toHaveProperty("skipped");
-    expect(out.gbp).not.toHaveProperty("skipped");
     // TikTok is genuinely off, and must still say so.
     expect(out.tiktok).toEqual({ skipped: "not enabled" });
   });

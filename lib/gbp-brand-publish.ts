@@ -89,6 +89,35 @@ async function internalGbpAccessToken(refreshToken: string): Promise<string> {
   return body.access_token as string;
 }
 
+/**
+ * Prove the credential chain without posting anything.
+ *
+ * WHY THE DRY RUN NEEDS THIS. Checking that a refresh token is STORED says
+ * nothing about whether it can still be redeemed, and for this connection the
+ * gap is not theoretical: a refresh token belongs to the client that minted it,
+ * so an environment where GOOGLE_INTERNAL_CLIENT_ID is unset falls back to the
+ * customer-facing client and every redemption fails with invalid_grant. The
+ * stored token is perfect; the environment is wrong. A dry run that reports
+ * "would post" there is worse than no dry run - it is confidence pointing the
+ * wrong way, and the truth only arrives on a live slot.
+ *
+ * SAFE TO CALL IN A DRY RUN. Minting an access token is read-only and Google
+ * does NOT rotate the refresh token on redemption, so this leaves nothing
+ * changed. That is specific to Google - the same trick would be actively
+ * harmful for X, which issues a new refresh token and invalidates the old one
+ * every time, so a dry run there would consume the credential it was checking.
+ */
+export async function verifyGbpCredentials(
+  refreshToken: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await internalGbpAccessToken(refreshToken);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String((e as Error)?.message ?? e) };
+  }
+}
+
 export async function publishToGbpBrand(
   input: GbpBrandPublishInput
 ): Promise<GbpBrandPublishResult> {
