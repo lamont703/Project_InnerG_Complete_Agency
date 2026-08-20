@@ -361,7 +361,20 @@
     el.stat.style.transformOrigin = "0% 50%";
     if (countTarget !== null) {
       const v = countTarget * sp;
-      el.stat.textContent = v.toFixed(countDecimals) + countSuffix;
+      /**
+       * Re-add the thousands separators the counter strips.
+       *
+       * The source stat is already formatted — "15,174" — but counting parses
+       * it to a number and writes back a bare one, so the card FINISHED on
+       * "15174". Not just mid-animation: the last frame kept it, which is what
+       * a viewer reads and what the thumbnail captures. Found by looking at a
+       * generated thumbnail, not by reading this code.
+       */
+      el.stat.textContent =
+        v.toLocaleString("en-US", {
+          minimumFractionDigits: countDecimals,
+          maximumFractionDigits: countDecimals,
+        }) + countSuffix;
     }
 
     // Label wipes up from behind its own baseline.

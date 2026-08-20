@@ -149,8 +149,15 @@ function Card({
       {item.videoUrl ? (
         <video
           src={item.videoUrl}
+          poster={item.thumbnailUrl ?? undefined}
           controls
-          preload="none"
+          /*
+           * preload="metadata" rather than "none" so a card with no cover still
+           * shows its first frame instead of a black rectangle. It costs a few
+           * KB per card and only on an internal page. Where a cover exists the
+           * poster wins and nothing is fetched until play.
+           */
+          preload={item.thumbnailUrl ? "none" : "metadata"}
           playsInline
           className="w-full bg-slate-900 aspect-[9/16] object-contain"
         />

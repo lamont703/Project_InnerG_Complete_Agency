@@ -162,7 +162,47 @@ async function publishToYouTube(row: any): Promise<{ ok: true; id: string } | { 
     });
     const text = await put.text();
     if (!put.ok) throw new Error(`upload ${put.status}: ${text.slice(0, 300)}`);
-    return { ok: true, id: JSON.parse(text).id };
+    const id = JSON.parse(text).id;
+
+    /*
+     * THE THUMBNAIL IS BEST-EFFORT AND ITS FAILURE IS NOT THE UPLOAD'S FAILURE.
+     * YouTube's own help page says custom thumbnails for Shorts "are currently
+     * only available to add in YouTube Studio on a computer", and there is an
+     * open feature request to expose it through the API. thumbnails.set may
+     * therefore refuse, or accept and not apply it to the Shorts player.
+     *
+     * It is still worth the call: the method is documented for videos, the
+     * channel is verified, and a thumbnail that only takes effect in search
+     * results and on the channel page is better than none. What is NOT
+     * acceptable is turning a published Short into a "failed" row because the
+     * cover did not stick - so this swallows its own errors and only logs.
+     */
+    if (row.thumbnail_url) {
+      try {
+        const img = await fetch(row.thumbnail_url);
+        if (!img.ok) throw new Error(`cover fetch HTTP ${img.status}`);
+        const cover = Buffer.from(await img.arrayBuffer());
+        // 2MB is the documented ceiling for thumbnails.set - smaller than the
+        // 8MB Instagram allows, so a cover can pass one and fail the other.
+        if (cover.length > 2 * 1024 * 1024) {
+          throw new Error(`cover is ${Math.round(cover.length / 1024)}KB, over the 2MB limit`);
+        }
+        const t = await fetch(
+          `https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${id}`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "image/jpeg" },
+            body: cover,
+          }
+        );
+        if (!t.ok) throw new Error(`thumbnails.set ${t.status}: ${(await t.text()).slice(0, 200)}`);
+        console.log(`[publish-content] thumbnail set on ${id}`);
+      } catch (e) {
+        console.warn(`[publish-content] thumbnail skipped on ${id}: ${String((e as Error)?.message ?? e)}`);
+      }
+    }
+
+    return { ok: true, id };
   } catch (e) {
     return { ok: false, error: String((e as Error)?.message ?? e).slice(0, 500) };
   }
@@ -238,6 +278,7 @@ export async function GET(req: Request) {
       accessToken: conn.access_token,
       imageUrls: [],
       videoUrl: row.video_url,
+      coverUrl: row.thumbnail_url ?? undefined,
       caption: buildInstagramCaption(row),
     });
     igResult = r.ok
