@@ -38,6 +38,7 @@ import { AdminHeader } from "@/features/agency/components/AdminHeader"
 import { MetaLoginButton } from "@/components/social/meta-login-button"
 import { TikTokLoginButton } from "@/components/social/tiktok-login-button"
 import { InstagramLoginButton } from "@/components/social/instagram-login-button"
+import { InstagramConnectionPanel } from "@/components/admin/instagram-connection-panel"
 import { TwitterLoginButton } from "@/components/social/twitter-login-button"
 import { LinkedInLoginButton } from "@/components/social/linkedin-login-button"
 import { YouTubeLoginButton } from "@/components/social/youtube-login-button"
@@ -427,6 +428,13 @@ export default function ConnectorAdminPage() {
                 title="External Connectors" 
                 subtitle="Data Bridges & Sync Pipelines"
             />
+
+            {/* The account that is connected RIGHT NOW, verified against
+                Instagram rather than read back from our own database — see the
+                component for why that distinction is the whole point. Renders
+                nothing when nothing is connected or the viewer is not an
+                admin. */}
+            <InstagramConnectionPanel />
 
             <div className="flex-1 overflow-y-auto custom-scrollbar pb-24 lg:pb-10">
                 <div className="p-6 md:p-10 relative z-10 max-w-5xl mx-auto w-full">
