@@ -1,0 +1,203 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>depth kinetic</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style>
+<canvas id="c"></canvas>
+<script>
+/*
+ * FAST-CUT renderer. Third experiment - depth-parallax does one slow move,
+ * depth-scenes cuts three calm beats, this one runs eight beats in six seconds
+ * with a transition on every cut.
+ *
+ * THE DEPTH WIPE IS THE ONE WORTH THE TROUBLE. Every other transition here
+ * exists in any editor: whip pan, zoom punch, RGB split, flash. A depth wipe
+ * does not, because it needs to know how far each pixel is from the camera. The
+ * cut sweeps through DEPTH rather than across the screen, so the man changes
+ * framing before the room behind him does. It reads as the world re-arranging
+ * around a subject who stays put, and it is only possible because we already
+ * ran a depth model.
+ *
+ * STILL NOTHING INVENTED. Every pixel is sampled from the original photograph.
+ * Transitions displace, blur and recolour; none of them draws anything new.
+ *
+ * PURE FUNCTION OF t, same as the other two.
+ */
+const VERT = `attribute vec2 p; varying vec2 v;
+void main(){ v = p*0.5+0.5; gl_Position = vec4(p,0.,1.); }`;
+
+const FRAG = `
+precision highp float;
+varying vec2 v;
+uniform sampler2D img, dep;
+uniform vec2 fitA, camA, fitB, camB, texel, whip;
+uniform float zoomA, zoomB, strength;
+uniform float wipe;      // -1 = hold A, 0..1 = depth sweep A->B, 2 = hold B
+uniform float rgbSplit, flash, vignette, warmth;
+
+vec2 project(vec2 uv, vec2 cam){
+  float d0 = texture2D(dep, uv).r;
+  vec2 off = cam * (d0 - 0.5) * strength;
+  float d1 = texture2D(dep, uv + off).r;
+  return uv + cam * (mix(d0,d1,0.5) - 0.5) * strength;
+}
+vec2 frame(vec2 vv, vec2 fit, float zoom, vec2 cam){
+  return project((vv - 0.5) / (fit * zoom) + 0.5, cam);
+}
+
+vec3 sampleAt(vec2 uv){
+  if (uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0) return vec3(0.0);
+  // Directional blur along the whip vector. Zero-length whip costs one tap.
+  vec3 s = texture2D(img, uv).rgb; float w = 1.0;
+  for (int i=1;i<=6;i++){
+    float f = float(i)/6.0;
+    s += texture2D(img, uv + whip*f).rgb;
+    s += texture2D(img, uv - whip*f).rgb;
+    w += 2.0;
+  }
+  return s / w;
+}
+
+void main(){
+  vec2 uvA = frame(v, fitA, zoomA, camA);
+  vec2 uvB = frame(v, fitB, zoomB, camB);
+
+  // THE DEPTH WIPE. Depth Anything returns inverse depth, so NEAR is high.
+  // Sweeping the threshold from 1 down to 0 flips the nearest planes to the new
+  // framing first and lets the background catch up.
+  float d = texture2D(dep, uvA).r;
+  float pick;
+  if (wipe < -0.5)      pick = 0.0;
+  else if (wipe > 1.5)  pick = 1.0;
+  else                  pick = smoothstep(0.0, 0.18, d - (1.0 - wipe));
+
+  vec2 uv = mix(uvA, uvB, pick);
+
+  vec3 col;
+  if (rgbSplit > 0.001){
+    vec2 o = vec2(rgbSplit,0.0) * texel * 40.0;
+    col = vec3(sampleAt(uv+o).r, sampleAt(uv).g, sampleAt(uv-o).b);
+  } else {
+    col = sampleAt(uv);
+  }
+
+  col.r *= 1.0 + warmth*0.10;
+  col.b *= 1.0 - warmth*0.10;
+  col = mix(col, vec3(1.0), flash);
+  col *= 1.0 - vignette * smoothstep(0.30, 0.88, distance(v, vec2(0.5)));
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+const q=new URLSearchParams(location.search);
+const W=+(q.get("w")||1080), H=+(q.get("h")||1920), STRENGTH=+(q.get("strength")||0.05);
+const c=document.getElementById("c"); c.width=W; c.height=H;
+const gl=c.getContext("webgl",{preserveDrawingBuffer:true});
+if(!gl) throw new Error("no WebGL - needs --enable-unsafe-swiftshader");
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
+  if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o;}
+const prog=gl.createProgram();
+gl.attachShader(prog,sh(gl.VERTEX_SHADER,VERT)); gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FRAG));
+gl.linkProgram(prog);
+if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+const b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+const al=gl.getAttribLocation(prog,"p"); gl.enableVertexAttribArray(al);
+gl.vertexAttribPointer(al,2,gl.FLOAT,false,0,0);
+
+function tex(image,unit){
+  const t=gl.createTexture(); gl.activeTexture(gl.TEXTURE0+unit);
+  gl.bindTexture(gl.TEXTURE_2D,t); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image); return t;
+}
+let ready=false, fit=[1,1], texel=[1/1080,1/1920];
+window.__load=(a1,b1)=>new Promise((res)=>{
+  const a=new Image(), bb=new Image(); let n=0;
+  const done=()=>{ if(++n<2)return; tex(a,0); tex(bb,1);
+    gl.uniform1i(gl.getUniformLocation(prog,"img"),0);
+    gl.uniform1i(gl.getUniformLocation(prog,"dep"),1);
+    const sa=a.width/a.height, fa=W/H;
+    fit = sa>fa ? [sa/fa,1] : [1,fa/sa]; texel=[1/a.width,1/a.height];
+    ready=true; res({w:a.width,h:a.height}); };
+  a.onload=done; bb.onload=done; a.src=a1; bb.src=b1;
+});
+
+/**
+ * EIGHT BEATS IN SIX SECONDS. 0.75s each, which is roughly 80bpm - fast enough
+ * to feel cut, slow enough that a viewer registers each framing.
+ *
+ * Each beat holds a framing; the transition INTO the next beat occupies the
+ * last ~0.22s of it. `to` names the transition, so the grammar is readable as a
+ * list rather than buried in the timeline maths.
+ */
+window.__BEATS = [
+  { zoom:1.34, cam:[ 0.55,-0.30], to:"depth",  warmth:-0.35 },
+  { zoom:1.16, cam:[-0.50, 0.20], to:"whip",   warmth:-0.20 },
+  { zoom:1.42, cam:[ 0.15, 0.45], to:"punch",  warmth:-0.05 },
+  { zoom:1.10, cam:[-0.20,-0.35], to:"depth",  warmth: 0.05 },
+  { zoom:1.30, cam:[ 0.60, 0.10], to:"rgb",    warmth: 0.15 },
+  { zoom:1.06, cam:[-0.45,-0.15], to:"whip",   warmth: 0.20 },
+  { zoom:1.38, cam:[ 0.10, 0.40], to:"flash",  warmth: 0.30 },
+  { zoom:1.02, cam:[ 0.00, 0.00], to:"depth",  warmth: 0.35 },
+];
+const BEAT = 0.75, TRANS = 0.22;
+
+const lerp=(a,b,t)=>a+(b-a)*t;
+const easeOut=(x)=>1-Math.pow(1-x,3);
+
+window.__setT=(t)=>{
+  if(!ready) return;
+  const B = window.__BEATS, n = B.length, total = n*BEAT;
+  const clock = t*total;
+  const i = Math.min(n-1, Math.floor(clock/BEAT));
+  const local = clock - i*BEAT;
+  const cur = B[i], nxt = B[(i+1)%n];
+
+  // Transition progress within this beat, 0 until the last TRANS seconds.
+  const tp = local <= BEAT-TRANS ? 0 : easeOut((local-(BEAT-TRANS))/TRANS);
+
+  let wipe = -1, whip=[0,0], rgbSplit=0, flash=0;
+  let zoomA = cur.zoom, camA = cur.cam.slice();
+  let zoomB = nxt.zoom, camB = nxt.cam.slice();
+
+  if (tp > 0){
+    if (cur.to === "depth"){
+      wipe = tp;                                   // sweep planes near -> far
+    } else if (cur.to === "whip"){
+      // A whip pan is a hard cut hidden inside a fast directional blur.
+      const dir = [nxt.cam[0]-cur.cam[0], nxt.cam[1]-cur.cam[1]];
+      const m = Math.sin(Math.PI*tp) * 0.010;
+      whip = [dir[0]*m, dir[1]*m];
+      wipe = tp < 0.5 ? -1 : 2;
+      zoomA = lerp(cur.zoom, cur.zoom*1.06, tp);
+    } else if (cur.to === "punch"){
+      zoomA = lerp(cur.zoom, cur.zoom*1.22, tp);   // snap in, then land on the next
+      wipe = tp < 0.72 ? -1 : 2;
+    } else if (cur.to === "rgb"){
+      rgbSplit = Math.sin(Math.PI*tp) * 1.6;
+      wipe = tp < 0.5 ? -1 : 2;
+    } else if (cur.to === "flash"){
+      flash = Math.sin(Math.PI*tp) * 0.85;
+      wipe = tp < 0.5 ? -1 : 2;
+    }
+  }
+
+  // Gentle drift inside the beat so a held framing is never actually static.
+  const drift = local/BEAT;
+  camA = [camA[0] + drift*0.06, camA[1] - drift*0.03];
+
+  const g=(k)=>gl.getUniformLocation(prog,k);
+  gl.uniform2f(g("fitA"),fit[0],fit[1]); gl.uniform2f(g("fitB"),fit[0],fit[1]);
+  gl.uniform2f(g("camA"),camA[0],camA[1]); gl.uniform2f(g("camB"),camB[0],camB[1]);
+  gl.uniform1f(g("zoomA"),zoomA); gl.uniform1f(g("zoomB"),zoomB);
+  gl.uniform2f(g("texel"),texel[0],texel[1]); gl.uniform2f(g("whip"),whip[0],whip[1]);
+  gl.uniform1f(g("strength"),STRENGTH); gl.uniform1f(g("wipe"),wipe);
+  gl.uniform1f(g("rgbSplit"),rgbSplit); gl.uniform1f(g("flash"),flash);
+  gl.uniform1f(g("warmth"), lerp(cur.warmth, nxt.warmth, tp));
+  gl.uniform1f(g("vignette"), 0.22);
+  gl.viewport(0,0,W,H); gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+};
+</script>

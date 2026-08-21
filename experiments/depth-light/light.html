@@ -1,0 +1,146 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>depth light</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style>
+<canvas id="c"></canvas>
+<script>
+/*
+ * ADDITIVE LIGHT. Nothing here alters a pixel of the photograph - every effect
+ * is a layer composited OVER it, and the only thing the depth map is used for
+ * is deciding what passes in front and what passes behind.
+ *
+ * WHY OCCLUSION IS THE WHOLE POINT. A particle drawn on top of everything is a
+ * sticker; anyone can add those and they read as a filter. A particle that
+ * disappears behind the subject's shoulder and reappears past his ear is
+ * three-dimensional, and the eye believes it instantly. Correct occlusion is
+ * the difference, and it is only available because a depth model already ran.
+ *
+ * DEPTH ANYTHING RETURNS INVERSE DEPTH - HIGHER IS NEARER. So a mote at
+ * particle depth pd is visible where pd > the scene's depth, and hidden where
+ * the scene is nearer. Getting that comparison backwards produces motes that
+ * hide behind the BACKGROUND, which looks wrong without looking obviously
+ * broken.
+ *
+ * Three layers, cheapest first:
+ *   1. atmospheric haze     - far pixels drift toward the light colour
+ *   2. directional bloom    - a soft key from one corner
+ *   3. occluded motes       - drifting particles at assorted depths
+ */
+const VERT = `attribute vec2 p; varying vec2 v;
+void main(){ v = p*0.5+0.5; gl_Position = vec4(p,0.,1.); }`;
+
+const FRAG = `
+precision highp float;
+varying vec2 v;
+uniform sampler2D img, dep;
+uniform vec2 cam, fit, lightDir;
+uniform float strength, zoom, time, haze, bloom, motes, warmth, vignette;
+
+vec2 project(vec2 uv){
+  float d0 = texture2D(dep, uv).r;
+  vec2 off = cam * (d0 - 0.5) * strength;
+  float d1 = texture2D(dep, uv + off).r;
+  return uv + cam * (mix(d0,d1,0.5) - 0.5) * strength;
+}
+float hash(float n){ return fract(sin(n) * 43758.5453123); }
+
+void main(){
+  vec2 uv = (v - 0.5) / (fit * zoom) + 0.5;
+  vec2 uv2 = project(uv);
+  if (uv2.x<0.0||uv2.x>1.0||uv2.y<0.0||uv2.y>1.0){ gl_FragColor=vec4(0.,0.,0.,1.); return; }
+
+  vec3 col = texture2D(img, uv2).rgb;
+  float d = texture2D(dep, uv2).r;          // 1 = near, 0 = far
+
+  // --- 1. atmospheric haze -------------------------------------------------
+  // Distance fog. The single cheapest way to make a flat photo read as deep.
+  vec3 hazeCol = vec3(1.00, 0.93, 0.82);
+  col = mix(col, hazeCol, (1.0 - d) * haze);
+
+  // --- 2. directional bloom ------------------------------------------------
+  // A soft key from one corner, strongest where the light is and falling off
+  // across the frame. Attenuated by depth so it does not flatten the subject.
+  float toLight = 1.0 - clamp(distance(v, lightDir) * 1.15, 0.0, 1.0);
+  col += hazeCol * pow(toLight, 2.2) * bloom * mix(0.35, 1.0, 1.0 - d);
+
+  // --- 3. occluded motes ---------------------------------------------------
+  // 28 drifting particles. Each carries its own depth, and is drawn only where
+  // it sits NEARER than the photograph at that pixel.
+  float glow = 0.0;
+  for (int i = 0; i < 28; i++){
+    float fi = float(i);
+    float pd  = 0.15 + hash(fi*1.7) * 0.8;                  // particle depth
+    float spd = 0.02 + hash(fi*3.1) * 0.05;
+    float px  = fract(hash(fi*5.3) + time * spd * 0.35);
+    float py  = fract(hash(fi*7.9) + time * spd);           // drifting upward
+    float r   = (0.004 + hash(fi*11.3) * 0.010) * mix(0.6, 1.4, pd);
+    float dist = distance(v, vec2(px, py));
+    float sprite = smoothstep(r, 0.0, dist);
+    // The occlusion test. Soft edge so a mote fades behind an arm rather than
+    // vanishing on one pixel.
+    float visible = smoothstep(-0.04, 0.04, pd - d);
+    glow += sprite * visible * (0.35 + 0.65 * pd);
+  }
+  col += hazeCol * glow * motes;
+
+  col.r *= 1.0 + warmth*0.10;
+  col.b *= 1.0 - warmth*0.10;
+  col *= 1.0 - vignette * smoothstep(0.28, 0.90, distance(v, vec2(0.5)));
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+const q=new URLSearchParams(location.search);
+const W=+(q.get("w")||1080), H=+(q.get("h")||1920), STRENGTH=+(q.get("strength")||0.05);
+const c=document.getElementById("c"); c.width=W; c.height=H;
+const gl=c.getContext("webgl",{preserveDrawingBuffer:true});
+if(!gl) throw new Error("no WebGL - needs --enable-unsafe-swiftshader");
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
+  if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o;}
+const prog=gl.createProgram();
+gl.attachShader(prog,sh(gl.VERTEX_SHADER,VERT)); gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FRAG));
+gl.linkProgram(prog);
+if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+const b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+const al=gl.getAttribLocation(prog,"p"); gl.enableVertexAttribArray(al);
+gl.vertexAttribPointer(al,2,gl.FLOAT,false,0,0);
+function tex(image,unit){
+  const t=gl.createTexture(); gl.activeTexture(gl.TEXTURE0+unit);
+  gl.bindTexture(gl.TEXTURE_2D,t); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image); return t;
+}
+let ready=false, fit=[1,1];
+window.__load=(a1,b1)=>new Promise((res)=>{
+  const a=new Image(), bb=new Image(); let n=0;
+  const done=()=>{ if(++n<2)return; tex(a,0); tex(bb,1);
+    gl.uniform1i(gl.getUniformLocation(prog,"img"),0);
+    gl.uniform1i(gl.getUniformLocation(prog,"dep"),1);
+    const sa=a.width/a.height, fa=W/H; fit = sa>fa ? [sa/fa,1] : [1,fa/sa];
+    ready=true; res({w:a.width,h:a.height}); };
+  a.onload=done; bb.onload=done; a.src=a1; bb.src=b1;
+});
+const lerp=(a,b,t)=>a+(b-a)*t;
+window.__setT=(t)=>{
+  if(!ready) return;
+  const a = Math.PI*2*t*0.6 + 0.4;
+  const g=(k)=>gl.getUniformLocation(prog,k);
+  gl.uniform2f(g("cam"), Math.sin(a), Math.cos(a)*0.4);
+  gl.uniform2f(g("fit"), fit[0], fit[1]);
+  // Light drifts across the top-right, so the bloom breathes rather than sits.
+  gl.uniform2f(g("lightDir"), lerp(0.82,0.62,t), lerp(0.88,0.80,t));
+  gl.uniform1f(g("strength"), STRENGTH);
+  gl.uniform1f(g("zoom"), lerp(1.14, 1.02, t));
+  gl.uniform1f(g("time"), t);
+  gl.uniform1f(g("haze"), 0.20);
+  gl.uniform1f(g("bloom"), 0.30);
+  gl.uniform1f(g("motes"), 0.55);
+  gl.uniform1f(g("warmth"), lerp(-0.1, 0.30, t));
+  gl.uniform1f(g("vignette"), 0.24);
+  gl.viewport(0,0,W,H); gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+};
+</script>

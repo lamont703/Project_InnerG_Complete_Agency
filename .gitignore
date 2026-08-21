@@ -202,3 +202,18 @@ experiments/hairstyle-covers/
 
 # Customer exports (contain PII)
 exports/
+
+# Same rule, extended to the rest of experiments/. The -v2 directories above
+# were already excluded on exactly this reasoning; these ones were simply never
+# added, and they are 169 MB across 95 files. Every one is reproducible from the
+# script sitting next to it (render.js, shots.js, outpaint.js, depth.py) — and
+# unlike the -v2 dirs these mix source and output in one folder, so the rule has
+# to be by extension rather than by directory.
+#
+# Committing a generated MP4 puts a permanent copy in history to save a command,
+# and history is the one place a mistake cannot be tidied later without
+# rewriting every clone.
+experiments/**/*.mp4
+experiments/**/*.jpg
+experiments/**/*.jpeg
+experiments/**/*.png
