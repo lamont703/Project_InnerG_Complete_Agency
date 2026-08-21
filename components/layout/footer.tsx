@@ -36,6 +36,18 @@ const footerLinks = {
     { label: "Global Listing Insights", href: "/admin/listing-insights" },
     { label: "School Tour Call Queue", href: "/admin/school-tour-queue" },
     { label: "Content Publisher", href: "/admin/content-publisher" },
+    /**
+     * Sits next to the Content Publisher because it answers that page's first
+     * question: is the account it publishes to still connected? The panel
+     * there checks the token against Instagram live rather than reading our
+     * own record of it.
+     *
+     * Unlike its neighbours this route is gated in its OWN layout rather than
+     * by middleware's INTERNAL_TOOL_ROUTES list, and it returns 404 rather
+     * than a lock screen — so a non-admin following this link gets a dead end,
+     * not a password prompt. That is deliberate; see the layout.
+     */
+    { label: "Connectors (Instagram, YouTube, GHL)", href: "/admin/connectors" },
     { label: "Rebooking Agent", href: "/admin/rebooking" },
     { label: "Ad Performance", href: "/ad-performance" },
     { label: "Ad Campaigns (Assign)", href: "/admin/ad-campaigns" },
