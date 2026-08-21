@@ -14,7 +14,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { formatServiceLabel, type BookableService, type BookingEntityType } from "@/lib/booking-services";
-import { bookableSlots } from "@/lib/booking-lead-time";
+import { bookableSlots, bookableSlotsForDate } from "@/lib/booking-lead-time";
 import { PostConversionAccountOffer } from "@/components/account/post-conversion-offer";
 
 /**
@@ -181,16 +181,30 @@ export function BookAppointmentButton({
   }, [open, step]);
 
   const dateStr = date ? format(date, "yyyy-MM-dd") : "";
+  // The empty-date case lives in bookableSlotsForDate so it is tested rather
+  // than re-derived here — see that function for what went wrong before.
   const slots = React.useMemo(
-    () => (now && dateStr ? bookableSlots(SLOTS, dateStr, now) : SLOTS),
+    () => bookableSlotsForDate(SLOTS, dateStr, now),
     [now, dateStr]
   );
 
-  // A slot chosen a moment ago can fall inside the floor while the modal sits
-  // open. Dropping it is better than carrying a selection the button no longer
-  // shows.
+  /**
+   * A chosen slot can stop being bookable — the modal sat open past the
+   * lead-time floor, or the day changed underneath it. Dropping the selection
+   * is right; dropping it SILENTLY was not.
+   *
+   * Someone picked 9:30 AM, then picked today, and their highlighted choice
+   * simply vanished with nothing on screen to explain it. The existing amber
+   * notice only fires when EVERY slot on the day has gone, which is a different
+   * situation and left this one unexplained. Now the reason is stated and
+   * cleared as soon as they choose again.
+   */
+  const [droppedTime, setDroppedTime] = React.useState<string | null>(null);
   React.useEffect(() => {
-    if (time && !slots.includes(time)) setTime("");
+    if (time && !slots.includes(time)) {
+      setDroppedTime(time);
+      setTime("");
+    }
   }, [slots, time]);
 
   // Reset only after the dialog has fully closed, so the confirmation does not
@@ -202,6 +216,7 @@ export function BookAppointmentButton({
       setService(initialService);
       setDate(undefined);
       setTime("");
+      setDroppedTime(null);
       setName("");
       setPhone("");
       setEmail("");
@@ -427,18 +442,46 @@ export function BookAppointmentButton({
 
                 <div>
                   <span className="block text-sm font-semibold text-slate-900 mb-1.5">Time</span>
-                  {date && slots.length === 0 ? (
+                  {!date ? (
+                    /*
+                     * NO DAY, NO TIMES. The grid used to render the full
+                     * unfiltered slot list before a date existed, because
+                     * `slots` falls back to SLOTS when dateStr is empty — so
+                     * every button was live, clicking one highlighted it, and
+                     * Continue stayed disabled because canContinue also needs a
+                     * date.
+                     *
+                     * One real visitor clicked seven different times in twelve
+                     * seconds, closed the modal, reopened it and started again.
+                     * They were not indecisive; they were pressing the only
+                     * controls that responded. Offering a choice that cannot
+                     * count is worse than offering none.
+                     */
+                    <p className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-600">
+                      Pick a day above and the available times will appear here.
+                    </p>
+                  ) : slots.length === 0 ? (
                     <p className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900">
                       No times left today — the salon needs a few hours&apos; notice to call you
                       back. Pick another day.
                     </p>
                   ) : (
+                  <>
+                  {droppedTime && (
+                    <p className="mb-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900">
+                      {droppedTime} isn&apos;t available on that day any more — the salon needs a few
+                      hours&apos; notice. Pick another time below.
+                    </p>
+                  )}
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                     {slots.map((s) => (
                       <button
                         key={s}
                         type="button"
-                        onClick={() => setTime(s)}
+                        onClick={() => {
+                          setTime(s);
+                          setDroppedTime(null);
+                        }}
                         aria-pressed={time === s}
                         className={cn(
                           "rounded-lg border px-2 py-2 text-xs font-semibold transition-colors",
@@ -451,6 +494,7 @@ export function BookAppointmentButton({
                       </button>
                     ))}
                   </div>
+                  </>
                   )}
                 </div>
 
