@@ -51,6 +51,10 @@ const INTERNAL_TOOL_ROUTES = [
     // action behind it, because this middleware fails OPEN on an auth
     // exception and a write surface cannot rely on it alone.
     "/admin/content-publisher",
+    // Renders haircut clients' names, phone numbers, email addresses and
+    // lifetime spend, so the page re-checks isAdmin() itself — this entry is
+    // defence in depth, because this middleware fails OPEN on an auth exception.
+    "/admin/rebooking",
     "/tools/employment-match-review",
     "/tools/domain-management",
     "/tools/seo-keyword-tracker",

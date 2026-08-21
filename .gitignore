@@ -199,3 +199,6 @@ experiments/hairstyle-covers/
 
 # Local env file backups (may contain real secrets)
 .env-backups/
+
+# Customer exports (contain PII)
+exports/
