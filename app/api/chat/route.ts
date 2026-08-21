@@ -4,7 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
-import { currentMember, getJourney, appendToThread } from '@/lib/member-context';
+import { currentMember, memberById, getJourney, appendToThread } from '@/lib/member-context';
 import { agentJourneyContext, stateCoverageForChat } from '@/lib/member-journey';
 import { AUDIENCES } from '@/lib/audiences';
 import { slimContext, contextChars } from '@/lib/chat-context-slim';
@@ -112,6 +112,14 @@ export async function POST(req: Request) {
   let toolCallCount = 0;
 
   try {
+    /*
+     * PARSED FIRST because the member lookup below can now depend on it. An
+     * internal agent has no cookie to identify itself with and passes a member
+     * id in the body instead — see the note on isInternalAgent. req.json() is
+     * single-use, so it happens once, here.
+     */
+    const { messages, shopId, memberId: bodyMemberId } = await req.json();
+
     const cookieStore = await cookies();
     let usageCount = parseInt(cookieStore.get('ai_chat_count')?.value || '0', 10);
     const resetTime = cookieStore.get('ai_chat_reset')?.value;
@@ -124,7 +132,24 @@ export async function POST(req: Request) {
     // Who is asking. Established from their own session cookie — never from
     // anything in the request body — and null for the anonymous majority.
     // Everything downstream treats a null member as the existing behaviour.
-    const member = await currentMember();
+    //
+    // THE ONE EXCEPTION IS AN INTERNAL AGENT, and the shared secret is the
+    // whole guard. The Instagram DM agent has no cookie jar to present: its
+    // caller is a Meta webhook, and identity there is a sender id it has
+    // already resolved to a member against its own table. Without the header
+    // the memberId field in the body is ignored completely, so the worst a
+    // leaked URL can do is what an anonymous visitor could already do.
+    //
+    // Its own rate limit lives in instagram_dm_threads for the same reason —
+    // no cookies — so the cookie counter below is left alone here rather than
+    // being made to mean two different things.
+    const agentSecret = process.env.INTERNAL_AGENT_SECRET;
+    const isInternalAgent = Boolean(
+      agentSecret && req.headers.get("x-internal-agent") === agentSecret
+    );
+    const member = isInternalAgent
+      ? await memberById(bodyMemberId)
+      : await currentMember();
     memberIdForUsage = member?.id ?? null;
     const limit = member ? MAX_REQUESTS_MEMBER : MAX_REQUESTS;
 
@@ -146,7 +171,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const { messages, shopId } = await req.json();
     const latestMessage = messages[messages.length - 1].content;
 
     // The chat feature's OWN key, pointing at its OWN Cloud project.

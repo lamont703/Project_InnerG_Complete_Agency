@@ -75,6 +75,38 @@ export async function GET(req: NextRequest) {
 
     let memberId = existing?.id as string | undefined;
 
+    /*
+     * ADOPT AN ACCOUNT THAT ALREADY EXISTS UNDER THIS EMAIL BUT HAS NO USER.
+     *
+     * The Instagram DM agent creates a community_members row the moment someone
+     * gives their email in the thread, because membership has to be worth
+     * something in that conversation rather than after a mailbox round trip. It
+     * has no auth user to attach yet — nobody has proved the mailbox.
+     *
+     * The lookup above matches on user_id, so without this the magic link would
+     * find nothing and create a SECOND row: the same person as two members, one
+     * holding the DM thread and the journey, the other holding the login. The
+     * duplicate is the kind that looks fine on both sides and is only visible
+     * when someone asks why the web account has forgotten everything.
+     *
+     * Matching on email is safe here precisely because the code exchange above
+     * has just proved control of that mailbox — which is the same standard the
+     * invite flow already uses to decide who an invite belongs to.
+     */
+    if (!memberId && user.email) {
+      const { data: orphan } = await (admin.from("community_members") as any)
+        .select("id, audience")
+        .ilike("email", user.email)
+        .is("user_id", null)
+        .maybeSingle();
+      if (orphan?.id) {
+        await (admin.from("community_members") as any)
+          .update({ user_id: user.id })
+          .eq("id", orphan.id);
+        memberId = orphan.id;
+      }
+    }
+
     if (!memberId) {
       const { data: created } = await (admin.from("community_members") as any)
         .insert({

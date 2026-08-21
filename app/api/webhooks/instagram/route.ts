@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { handleInstagramDm } from "@/lib/instagram-dm-agent";
 
 /**
  * Instagram webhook: comments, mentions and messages.
@@ -87,7 +88,43 @@ export async function POST(req: Request) {
     }
   }
 
-  if (!rows.length) return NextResponse.json({ ok: true, stored: 0 });
+  /*
+   * ANSWER THE DMs.
+   *
+   * Storing was the whole job until the bio started promising an answer.
+   * Comments and mentions are still recorded and left alone — a private reply
+   * to a comment is a different mechanism with a different budget, and nothing
+   * has asked for it yet.
+   *
+   * ECHOES ARE SKIPPED. Meta delivers our OWN outbound messages back to this
+   * webhook as message events. Without the is_echo check the agent would read
+   * its own reply as a new question, answer it, read that, and run until the
+   * rate limit stopped it — an infinite loop conducted in public, in someone
+   * else's inbox.
+   *
+   * FAILURES DO NOT FAIL THE WEBHOOK. A non-2xx makes Meta redeliver, which
+   * would re-answer a question already answered and spend the person's daily
+   * allowance twice on it. Every path inside the handler returns rather than
+   * throws for the same reason; this is the backstop.
+   */
+  const replies: any[] = [];
+  for (const entry of payload.entry || []) {
+    for (const m of entry.messaging || []) {
+      if (m.message?.is_echo) continue;
+      const senderId = m.sender?.id;
+      const text = m.message?.text;
+      if (!senderId || !text) continue;
+      try {
+        replies.push(
+          await handleInstagramDm({ senderId, text, mid: m.message?.mid ?? null })
+        );
+      } catch (err: any) {
+        console.warn("[instagram-webhook] dm handler threw:", err?.message);
+      }
+    }
+  }
+
+  if (!rows.length) return NextResponse.json({ ok: true, stored: 0, replies });
 
   // ignoreDuplicates: Meta retries deliveries, and a retry must not read as a
   // second comment — which would double-count the only engagement signal we get.
@@ -110,5 +147,5 @@ export async function POST(req: Request) {
       .is("confirmed_at", null);
   }
 
-  return NextResponse.json({ ok: true, stored: rows.length });
+  return NextResponse.json({ ok: true, stored: rows.length, replies });
 }
