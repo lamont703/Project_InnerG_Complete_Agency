@@ -57,6 +57,46 @@ export interface CurrentMember {
  * the barber-registration path, say — has no community_members row and
  * correctly comes back null here.
  */
+/**
+ * The same member, resolved by id instead of by session.
+ *
+ * FOR CALLERS WITH NO BROWSER. The Instagram DM agent identifies people by a
+ * Meta sender id it has already matched to a member in its own table, and it
+ * runs inside a webhook where there is no cookie to read. currentMember() has
+ * nothing to work with there.
+ *
+ * THIS TRUSTS ITS ARGUMENT ABSOLUTELY, which is why it is separate rather than
+ * a parameter on currentMember(): passing an id here IS the authentication, so
+ * the only safe callers are ones that established the id themselves. The chat
+ * route gates it behind a shared secret; nothing reachable from a browser may
+ * call it.
+ *
+ * Degrades to null on any failure, same as currentMember, because every caller
+ * has a working anonymous path and none of them should 500 over personalization.
+ */
+export async function memberById(id: unknown): Promise<CurrentMember | null> {
+  if (typeof id !== "string" || !id) return null;
+  try {
+    const admin = createAdminClient();
+    const { data } = await (admin as any)
+      .from("community_members")
+      .select("id, user_id, first_name, last_name, email, audience")
+      .eq("id", id)
+      .maybeSingle();
+    if (!data) return null;
+    return {
+      id: data.id,
+      userId: data.user_id,
+      firstName: data.first_name ?? null,
+      lastName: data.last_name ?? null,
+      email: data.email ?? null,
+      audience: storedAudience(data.audience),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function currentMember(): Promise<CurrentMember | null> {
   try {
     const supabase = await createServerClient();

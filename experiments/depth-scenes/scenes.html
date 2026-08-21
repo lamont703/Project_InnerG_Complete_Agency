@@ -1,0 +1,178 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>depth scenes</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style>
+<canvas id="c"></canvas>
+<script>
+/*
+ * MULTI-SCENE depth renderer. Separate from experiments/depth-parallax, which
+ * does one continuous camera move - keeping both means the two can be watched
+ * back to back rather than argued about.
+ *
+ * WHAT IS NEW HERE IS RACK FOCUS. The depth map already says how far every
+ * pixel sits from the camera, so a real depth-of-field is available for free:
+ * blur each pixel in proportion to how far its depth is from the focus plane,
+ * then move that plane over time. Opening with the subject soft and pulling
+ * focus onto him is the most "shot" thing on this list, and no pixel is
+ * invented to do it.
+ *
+ * DEPTH ANYTHING RETURNS INVERSE DEPTH - bigger means NEARER. So the subject
+ * sits near 1.0 and the background near 0.0, and a focus plane of 0.15 means
+ * "hold the room sharp and let the man go soft". Getting this backwards
+ * produces a clip that looks almost right and focuses on exactly the wrong
+ * thing, which is worse than an obvious failure.
+ *
+ * STILL A PURE FUNCTION OF t. The sequencer picks the scene and the local time
+ * inside it; the page never runs its own clock.
+ */
+const VERT = `attribute vec2 p; varying vec2 v;
+void main(){ v = p*0.5+0.5; gl_Position = vec4(p,0.,1.); }`;
+
+const FRAG = `
+precision highp float;
+varying vec2 v;
+uniform sampler2D img, dep;
+uniform vec2 cam, fit, texel;
+uniform float strength, zoom, focusPlane, blurAmount, warmth, vignette;
+
+vec2 project(vec2 uv){
+  float d0 = texture2D(dep, uv).r;
+  vec2 off = cam * (d0 - 0.5) * strength;
+  float d1 = texture2D(dep, uv + off).r;
+  return uv + cam * (mix(d0, d1, 0.5) - 0.5) * strength;
+}
+
+void main(){
+  vec2 uv = (v - 0.5) / (fit * zoom) + 0.5;
+  vec2 uv2 = project(uv);
+  if (uv2.x < 0.0 || uv2.x > 1.0 || uv2.y < 0.0 || uv2.y > 1.0){
+    gl_FragColor = vec4(0.,0.,0.,1.); return;
+  }
+
+  // Circle of confusion: how far this pixel's depth is from the focus plane.
+  float d = texture2D(dep, uv2).r;
+  float coc = clamp(abs(d - focusPlane) * 2.2, 0.0, 1.0) * blurAmount;
+
+  // 12 taps on two rings. Enough to read as defocus rather than as a smear,
+  // and cheap enough that a 180-frame clip still renders in a couple of minutes.
+  vec3 sum = texture2D(img, uv2).rgb;
+  float wsum = 1.0;
+  for (int i = 0; i < 12; i++){
+    float a = float(i) * 0.5236;                 // 30 degrees apart
+    float r = (i < 6) ? 1.0 : 2.0;
+    vec2 o = vec2(cos(a), sin(a)) * texel * coc * 14.0 * r;
+    sum += texture2D(img, uv2 + o).rgb;
+    wsum += 1.0;
+  }
+  vec3 col = sum / wsum;
+
+  // Grade: a small warm/cool push, used as punctuation between scenes.
+  col.r *= 1.0 + warmth * 0.10;
+  col.b *= 1.0 - warmth * 0.10;
+
+  float dist = distance(v, vec2(0.5));
+  col *= 1.0 - vignette * smoothstep(0.30, 0.85, dist);
+
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+const q = new URLSearchParams(location.search);
+const W = +(q.get("w")||1080), H = +(q.get("h")||1920);
+const STRENGTH = +(q.get("strength")||0.05);
+
+const c = document.getElementById("c"); c.width=W; c.height=H;
+const gl = c.getContext("webgl", { preserveDrawingBuffer: true });
+if (!gl) throw new Error("no WebGL - headless Chrome needs --enable-unsafe-swiftshader");
+
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
+  if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o;}
+const prog=gl.createProgram();
+gl.attachShader(prog,sh(gl.VERTEX_SHADER,VERT));
+gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FRAG));
+gl.linkProgram(prog);
+if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+
+const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+const loc=gl.getAttribLocation(prog,"p");
+gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+
+function tex(image,unit){
+  const t=gl.createTexture(); gl.activeTexture(gl.TEXTURE0+unit);
+  gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);   // see the parallax experiment
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);
+  return t;
+}
+
+let ready=false, fit=[1,1], texel=[1/1080,1/1920];
+window.__load=(a1,b1)=>new Promise((res)=>{
+  const a=new Image(), b=new Image(); let n=0;
+  const done=()=>{ if(++n<2) return;
+    tex(a,0); tex(b,1);
+    gl.uniform1i(gl.getUniformLocation(prog,"img"),0);
+    gl.uniform1i(gl.getUniformLocation(prog,"dep"),1);
+    const sa=a.width/a.height, fa=W/H;
+    fit = sa>fa ? [sa/fa,1] : [1,fa/sa];
+    texel=[1/a.width,1/a.height];
+    ready=true; res({w:a.width,h:a.height});
+  };
+  a.onload=done; b.onload=done; a.src=a1; b.src=b1;
+});
+
+const easeInOut = (x)=> x<0.5 ? 2.0*x*x : 1.0-Math.pow(-2.0*x+2.0,2.0)/2.0;
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+/**
+ * THE SCENES. Three beats, six seconds, hard cuts.
+ *
+ * Beat 1 opens with the room sharp and the man soft. That is a deliberate
+ * gamble on a surface where retention is decided in the first second: an
+ * out-of-focus opening poses a question instead of answering one.
+ */
+window.__SCENES = [
+  { seconds: 2.0, move: "push",  zoom:[1.30,1.20], focus:[0.14,0.14], blur:[1.0,1.0], warmth:[-0.5,-0.3], vig:[0.35,0.30] },
+  { seconds: 2.0, move: "orbit", zoom:[1.18,1.12], focus:[0.14,0.88], blur:[1.0,0.15], warmth:[-0.3,0.05], vig:[0.30,0.22] },
+  { seconds: 2.0, move: "drift", zoom:[1.10,1.02], focus:[0.88,0.88], blur:[0.10,0.0], warmth:[0.05,0.35], vig:[0.22,0.18] },
+];
+
+function cameraFor(move, u){
+  if (move==="push")  return [0,0];
+  if (move==="drift") return [(u-0.5)*1.6, 0.10];
+  const a = Math.PI*2*u*0.55 + Math.PI*0.25;   // partial arc, not a full loop
+  return [Math.sin(a), Math.cos(a)*0.4];
+}
+
+window.__setT=(t)=>{
+  if(!ready) return;
+  const S = window.__SCENES;
+  const total = S.reduce((s,x)=>s+x.seconds,0);
+  let acc = 0, sc = S[0], u = 0;
+  const clock = t*total;
+  for (const s of S){
+    if (clock < acc + s.seconds || s === S[S.length-1]){
+      sc = s; u = Math.min(1, (clock - acc) / s.seconds); break;
+    }
+    acc += s.seconds;
+  }
+  const e = easeInOut(u);
+  const cam = cameraFor(sc.move, u);
+  const g = gl.getUniformLocation.bind(gl);
+  gl.uniform2f(g(prog,"cam"), cam[0], cam[1]);
+  gl.uniform2f(g(prog,"fit"), fit[0], fit[1]);
+  gl.uniform2f(g(prog,"texel"), texel[0], texel[1]);
+  gl.uniform1f(g(prog,"strength"), STRENGTH);
+  gl.uniform1f(g(prog,"zoom"), lerp(sc.zoom[0], sc.zoom[1], e));
+  gl.uniform1f(g(prog,"focusPlane"), lerp(sc.focus[0], sc.focus[1], e));
+  gl.uniform1f(g(prog,"blurAmount"), lerp(sc.blur[0], sc.blur[1], e));
+  gl.uniform1f(g(prog,"warmth"), lerp(sc.warmth[0], sc.warmth[1], e));
+  gl.uniform1f(g(prog,"vignette"), lerp(sc.vig[0], sc.vig[1], e));
+  gl.viewport(0,0,W,H);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+};
+</script>

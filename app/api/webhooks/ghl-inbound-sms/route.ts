@@ -3,6 +3,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendGhlSms } from "@/lib/ghl-sms";
 import { normalizePhone } from "@/lib/ghl-contacts";
 import {
+  findAwaitingConfirmation,
+  markConfirmed,
+  markDeclined,
+  syncToShopify,
+  unsubscribeInShopify,
+} from "@/lib/sms-consent/store";
+import { classifyReply, welcomeSms } from "@/lib/sms-consent/disclosure";
+import { createHaircutOffer, hasOpenOffer } from "@/lib/offers/haircut-offer";
+import {
   parseReply,
   statusForIntent,
   replyAcknowledgement,
@@ -111,6 +120,83 @@ export async function POST(req: NextRequest) {
   const phone = normalizePhone(rawPhone);
   if (!phone) {
     return NextResponse.json({ ok: true, matched: false, reason: "unparseable phone" });
+  }
+
+  /*
+   * SMS CONSENT REPLIES ARE HANDLED FIRST, and the order is load-bearing.
+   *
+   * Both flows answer on the same number and both use "Y"/"YES": a business
+   * confirming a booking, and a client confirming they want texts. Matching
+   * bookings first would let a consent reply confirm a stranger's appointment.
+   * A consent record is only consulted when one is actually waiting on THIS
+   * number, so the booking path is untouched for everyone else.
+   *
+   * STOP is honoured here regardless of what else is pending. An opt-out that
+   * has to wait its turn behind a booking match is an opt-out that can be lost.
+   */
+  const pendingConsent = await findAwaitingConfirmation(phone);
+  if (pendingConsent) {
+    const kind = classifyReply(text ?? "");
+
+    if (kind === "opt_out") {
+      await markDeclined(pendingConsent.id);
+      // Push the opt-out into Shopify too. GHL already stopped the messages at
+      // the carrier level; this keeps Shopify's record from saying they are
+      // still contactable.
+      const un = await unsubscribeInShopify(pendingConsent.shopifyCustomerId);
+      return NextResponse.json({
+        ok: true, matched: true, flow: "sms_consent", result: "declined",
+        shopifyUnsubscribed: un.ok, shopifyError: un.ok ? null : un.error,
+      });
+    }
+
+    if (kind === "opt_in" && !pendingConsent.confirmedAt) {
+      await markConfirmed(pendingConsent.id);
+
+      // Re-read so the sync sees confirmed_at. A failure here is recoverable:
+      // the confirmation is already stored and syncPendingConsent() replays it.
+      const confirmed = { ...pendingConsent, confirmedAt: new Date().toISOString() };
+      const sync = await syncToShopify(confirmed);
+
+      /*
+       * THE DISCOUNT IS EARNED HERE, not in the email that asked. It is minted
+       * only once a real person has replied YES from the number they gave, so
+       * an ignored email costs nothing and a forwarded one gives nothing away.
+       * hasOpenOffer stops a second code landing on someone already holding one.
+       */
+      let offer = null;
+      if (!(await hasOpenOffer(pendingConsent.shopifyCustomerId))) {
+        const made = await createHaircutOffer({
+          shopifyCustomerId: pendingConsent.shopifyCustomerId,
+          clientName: pendingConsent.clientName,
+          context: "sms_opt_in",
+        });
+        if (made.ok) {
+          offer = { code: made.offer.code, percentOff: made.offer.percentOff, expiresAt: made.offer.expiresAt };
+        } else {
+          // A failed discount must not cost the welcome, and must not cost the
+          // consent that was already recorded above.
+          console.warn(`[sms-consent] offer failed for ${pendingConsent.clientName}: ${made.error}`);
+        }
+      }
+
+      const firstName = (pendingConsent.clientName ?? "").trim().split(/\s+/)[0] || "there";
+      await sendGhlSms({
+        message: welcomeSms(firstName, offer),
+        phone: pendingConsent.phone,
+        name: pendingConsent.clientName ?? undefined,
+      });
+
+      return NextResponse.json({
+        ok: true,
+        matched: true,
+        flow: "sms_consent",
+        result: "confirmed",
+        offerIssued: offer?.code ?? null,
+        syncedToShopify: sync.ok,
+        syncError: sync.ok ? null : sync.error,
+      });
+    }
   }
 
   const admin = createAdminClient();
