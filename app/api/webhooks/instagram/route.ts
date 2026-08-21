@@ -66,12 +66,19 @@ export async function POST(req: Request) {
     for (const change of entry.changes || []) {
       const v = change.value || {};
       rows.push({
-        kind: change.field === "mentions" ? "mention" : change.field === "comments" ? "comment" : "other",
-        sender_id: v.from?.id || null,
+        kind:
+          change.field === "mentions" ? "mention"
+          : change.field === "comments" ? "comment"
+          // A DM delivered as a change rather than in `messaging` — see the
+          // normalisation below. Filing it as "other" made a real message
+          // indistinguishable from an unrecognised event in the log.
+          : change.field === "messages" ? "message"
+          : "other",
+        sender_id: v.from?.id || v.sender?.id || null,
         username: v.from?.username || null,
         media_id: v.media?.id || v.media_id || null,
-        comment_id: v.id || v.comment_id || null,
-        text_body: v.text || null,
+        comment_id: v.id || v.comment_id || v.message?.mid || null,
+        text_body: v.text || v.message?.text || null,
         raw: change,
       });
     }
@@ -107,20 +114,43 @@ export async function POST(req: Request) {
    * allowance twice on it. Every path inside the handler returns rather than
    * throws for the same reason; this is the backstop.
    */
-  const replies: any[] = [];
+  /*
+   * A DM ARRIVES IN TWO SHAPES AND BOTH HAVE TO BE READ.
+   *
+   * Live deliveries put it in `entry.messaging` — confirmed against a real
+   * event from this account. But the App Dashboard's "Test" button, and the
+   * shape the dashboard documents for the `messages` field, wrap it as a
+   * CHANGE instead:
+   *
+   *   { "field": "messages",
+   *     "value": { "sender": {...}, "message": { "mid": ..., "text": ... } } }
+   *
+   * Reading only `messaging` meant the one tool available for testing this
+   * end to end could not reach the agent at all — it landed in the comments
+   * loop, was filed as kind "other", and silently did nothing. Normalising
+   * both shapes costs a few lines and makes the dashboard button a real test
+   * rather than a thing that appears to do nothing.
+   */
+  const inbound: any[] = [];
   for (const entry of payload.entry || []) {
-    for (const m of entry.messaging || []) {
-      if (m.message?.is_echo) continue;
-      const senderId = m.sender?.id;
-      const text = m.message?.text;
-      if (!senderId || !text) continue;
-      try {
-        replies.push(
-          await handleInstagramDm({ senderId, text, mid: m.message?.mid ?? null })
-        );
-      } catch (err: any) {
-        console.warn("[instagram-webhook] dm handler threw:", err?.message);
-      }
+    for (const m of entry.messaging || []) inbound.push(m);
+    for (const change of entry.changes || []) {
+      if (change.field === "messages" && change.value?.message) inbound.push(change.value);
+    }
+  }
+
+  const replies: any[] = [];
+  for (const m of inbound) {
+    if (m.message?.is_echo) continue;
+    const senderId = m.sender?.id;
+    const text = m.message?.text;
+    if (!senderId || !text) continue;
+    try {
+      replies.push(
+        await handleInstagramDm({ senderId, text, mid: m.message?.mid ?? null })
+      );
+    } catch (err: any) {
+      console.warn("[instagram-webhook] dm handler threw:", err?.message);
     }
   }
 
