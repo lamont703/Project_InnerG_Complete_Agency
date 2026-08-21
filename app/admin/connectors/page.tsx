@@ -167,8 +167,23 @@ export default function ConnectorAdminPage() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) { router.push("/login"); return }
 
-            const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single() as any
-            if (!profile || profile.role !== "super_admin") { router.push("/select-portal"); return }
+            /*
+             * THE super_admin REDIRECT IS GONE, and it was the reason this page
+             * bounced to /select-portal for the only person meant to use it.
+             *
+             * It checked users.role === 'super_admin'. The agency admin's row
+             * says 'community_member' — handle_new_user() assigns that, and
+             * nothing has ever promoted it — so the check refused the admin and
+             * sent them to a portal picker on every visit.
+             *
+             * Removing it does not loosen anything, because it was never the
+             * gate that mattered: a client-side role read decides what to SHOW
+             * and can be skipped by anyone who wants to. The real gate is
+             * app/admin/connectors/layout.tsx, which verifies a server-side
+             * session email against ADMIN_EMAILS and fails CLOSED. This was a
+             * weaker duplicate that disagreed with the stronger one, and the
+             * weaker one won because it ran second.
+             */
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const [typesRes, connsRes, projectsRes] = await Promise.all([
