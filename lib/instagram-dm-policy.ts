@@ -114,9 +114,25 @@ export function isBareEmail(text: string): string | null {
   return m ? t.toLowerCase() : null;
 }
 
-/** Meta's required disclosure, in the account's voice rather than boilerplate. */
+/**
+ * Meta's required disclosure, in the account's voice rather than boilerplate.
+ *
+ * IT IS NAMED "THE SHEARQUERY AGENT" AND IT STILL SAYS "BOT". Those are two
+ * different jobs and only one of them is optional. The name is branding; the
+ * word "bot" is the disclosure, and Meta's own two examples of an acceptable
+ * one — "I'm the [Page Name] bot" and "You are talking to a bot" — both use it.
+ *
+ * "Agent" cannot carry that weight on its own, and swapping it in would make
+ * this worse rather than shorter: in any service context an agent is a PERSON
+ * ("an agent will be with you shortly"), so the word people read as proof of a
+ * human would be doing the work of telling them there isn't one. That is the
+ * opposite of a disclosure.
+ *
+ * Not a style preference. The disclosure is a legal requirement for California
+ * and German users, and California is a market this site is actively entering.
+ */
 export const DISCLOSURE =
-  "Heads up: you're talking to the ShearQuery bot, not a person. I know Texas and California barber & beauty data — shops, salons, schools, licences.";
+  "Heads up — you're talking to the ShearQuery Agent, an automated bot rather than a person. I know Texas and California barber & beauty data: shops, salons, schools, licences.";
 
 /**
  * The one-time offer.
