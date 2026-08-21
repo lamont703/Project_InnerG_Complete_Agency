@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { chunkForDm } from "./instagram-dm";
+import { chunkForDm, plainForDm } from "./instagram-dm";
 
 const bytes = (s: string) => new TextEncoder().encode(s).length;
 
@@ -65,5 +65,40 @@ describe("chunkForDm", () => {
     const out = chunkForDm(huge);
     expect(bytes(out[out.length - 1])).toBeLessThanOrEqual(950);
     expect(out[out.length - 1]).toContain("trimmed");
+  });
+});
+
+describe("plainForDm", () => {
+  /**
+   * The exact string a real question produced through the live agent. It is
+   * correct on the website and unreadable in a DM.
+   */
+  it("turns a markdown link into a label and an absolute URL", () => {
+    const out = plainForDm(
+      "For the [Ogle School Hair Skin Nails](/schools/ogle-school-hair-skin-nails-houston-b6bcf873) in Houston…"
+    );
+    expect(out).not.toContain("](");
+    expect(out).toContain("Ogle School Hair Skin Nails");
+    expect(out).toContain("https://shearquery.com/schools/ogle-school-hair-skin-nails-houston-b6bcf873");
+  });
+
+  it("leaves an already-absolute link alone", () => {
+    expect(plainForDm("see [TDLR](https://tdlr.texas.gov/x)")).toContain("https://tdlr.texas.gov/x");
+  });
+
+  it("strips emphasis that cannot render", () => {
+    expect(plainForDm("the **first-time** rate is *61%*")).toBe("the first-time rate is 61%");
+  });
+
+  it("turns markdown bullets into readable ones", () => {
+    expect(plainForDm("* barber\n* cosmetology")).toBe("• barber\n• cosmetology");
+  });
+
+  it("drops heading marks", () => {
+    expect(plainForDm("## Pass rates\nOgle: 61%")).toBe("Pass rates\nOgle: 61%");
+  });
+
+  it("does not eat an asterisk that is not emphasis", () => {
+    expect(plainForDm("4.8 stars * 212 reviews")).toContain("4.8 stars");
   });
 });

@@ -49,6 +49,49 @@ const MAX_CHUNKS = 3;
 const bytes = (s: string) => new TextEncoder().encode(s).length;
 
 /**
+ * Flatten the chat model's markdown into something a DM can actually show.
+ *
+ * FOUND BY SENDING A REAL QUESTION THROUGH. The answer came back as
+ * "[Ogle School Hair Skin Nails](/schools/ogle-school-hair-skin-nails-houston-…)"
+ * — correct, useful, and completely wrong for this surface. Instagram renders
+ * plain text, so that arrives as literal square brackets wrapped around a path
+ * that is not clickable and does not even name a host.
+ *
+ * The system prompt could be told to avoid markdown, but it is shared with the
+ * website where markdown is exactly right, and a channel-specific instruction
+ * bolted onto a 900-line prompt is a thing that gets diluted by the next edit.
+ * Converting after the fact is deterministic and testable.
+ *
+ * RELATIVE LINKS ARE MADE ABSOLUTE. A path is meaningful inside a page and
+ * meaningless in a message. The prompt's linking rule already guarantees the
+ * model only emits paths that exist, so prefixing the site origin is safe.
+ */
+export function plainForDm(input: string, origin = "https://shearquery.com"): string {
+  return (
+    input
+      // [label](target) -> label (absolute target). The label is what a person
+      // reads; the URL has to survive because it is the only way to act on it.
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, label: string, href: string) => {
+        const abs = href.startsWith("/") ? `${origin}${href}` : href;
+        return `${label} — ${abs}`;
+      })
+      // Emphasis markers carry no meaning once they cannot render.
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/(^|\s)\*([^*\n]+)\*/g, "$1$2")
+      .replace(/(^|\s)_([^_\n]+)_/g, "$1$2")
+      // Bullets: markdown's asterisk or dash becomes a character that reads as
+      // a bullet in a plain-text message rather than as a typo.
+      .replace(/^[ \t]*[*-][ \t]+/gm, "• ")
+      // Headings have nothing to be in a DM.
+      .replace(/^#{1,6}[ \t]+/gm, "")
+      // Collapse the blank-line runs markdown encourages; in a message they are
+      // just wasted bytes against a 1000-byte budget.
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+  );
+}
+
+/**
  * Split a reply into sendable messages.
  *
  * Pure and exported so the byte arithmetic can be tested without a network
@@ -138,7 +181,10 @@ export type SendDmResult = { ok: true; sent: number } | { ok: false; error: stri
  * the recovery for "nothing sent" and "half sent" are opposites.
  */
 export async function sendDm(input: SendDmInput): Promise<SendDmResult> {
-  const parts = chunkForDm(input.text);
+  // Flattened before chunking, never after: the conversion changes length in
+  // both directions (a markdown link gets longer, emphasis markers get shorter),
+  // so chunking first would measure a string that is not the one being sent.
+  const parts = chunkForDm(plainForDm(input.text));
   if (!parts.length) return { ok: false, error: "nothing to send", sent: 0 };
 
   let sent = 0;
