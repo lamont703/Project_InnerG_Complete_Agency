@@ -89,40 +89,104 @@ async function connection(admin: any) {
 }
 
 /**
- * How many times this person has commented before now.
+ * Everything we already know about the person commenting.
  *
- * Drives the "everyone is new until they are not" rule. Read from the raw event
- * log rather than from our replies, because somebody who commented five times
- * before we had an agent is still a regular — they just never got an answer.
+ * A COUNT WAS NOT ENOUGH. The first version told the model "this person has
+ * commented 2 times before" and nothing else, which is the shape of familiarity
+ * without any of its substance — it can be warmer but has no idea what about.
+ * Somebody who left "🔥🔥" on two different posts and has had a seven-message
+ * conversation in the DMs is not a stranger, and answering them as one is the
+ * thing this is meant to avoid.
+ *
+ * COMMENTS AND DMs ARE THE SAME PERSON, and that is observed rather than
+ * assumed. @innergcompletefitness appears in instagram_events under sender
+ * 3881786518612596 and in instagram_dm_threads under the identical id — so the
+ * comment webhook's from.id and the messaging webhook's sender.id are one
+ * Instagram-scoped id per person per app, and the two histories join cleanly.
+ *
+ * DM CONTENT IS FOR TONE, NEVER FOR DISCLOSURE. It is included because knowing
+ * somebody has already asked us about their exam changes how familiar a public
+ * reply should sound. It must never be repeated in the comment: a DM is
+ * private, a comment reply is not, and quoting one in the other would publish
+ * something a person told us in confidence. The channel policy states that as a
+ * hard rule; this function only supplies the material.
  */
-async function priorComments(admin: any, commenterId: string): Promise<number> {
-  const { data } = await admin
-    .from("instagram_events")
-    .select("id")
-    .eq("kind", "comment")
-    .eq("sender_id", commenterId)
-    .limit(50);
-  return Math.max(0, (data?.length ?? 1) - 1);
+interface CommenterContext {
+  priorCount: number;
+  priorComments: { text: string; mediaId: string | null }[];
+  dmExchanges: number;
+  recentDms: { role: string; text: string }[];
 }
 
-async function askChat(text: string, priorCount: number): Promise<string | null> {
+async function commenterContext(admin: any, commenterId: string): Promise<CommenterContext> {
+  const [{ data: comments }, { data: thread }, { data: dms }] = await Promise.all([
+    admin
+      .from("instagram_events")
+      .select("text_body, media_id, received_at")
+      .eq("kind", "comment")
+      .eq("sender_id", commenterId)
+      .order("received_at", { ascending: false })
+      .limit(6),
+    admin
+      .from("instagram_dm_threads")
+      .select("exchanges")
+      .eq("sender_id", commenterId)
+      .maybeSingle(),
+    admin
+      .from("instagram_dm_messages")
+      .select("role, text_body")
+      .eq("sender_id", commenterId)
+      .order("created_at", { ascending: false })
+      .limit(6),
+  ]);
+
+  const rows = comments || [];
+  return {
+    // Minus one: the comment being answered is already in the log by the time
+    // this runs, and counting it would make every first-timer look like a
+    // returning visitor.
+    priorCount: Math.max(0, rows.length - 1),
+    priorComments: rows.slice(1).map((r: any) => ({
+      text: String(r.text_body || "").slice(0, 200),
+      mediaId: r.media_id ?? null,
+    })),
+    dmExchanges: thread?.exchanges ?? 0,
+    recentDms: (dms || []).reverse().map((d: any) => ({
+      role: d.role,
+      text: String(d.text_body || "").slice(0, 200),
+    })),
+  };
+}
+
+async function askChat(text: string, ctx: CommenterContext): Promise<string | null> {
   const secret = process.env.INTERNAL_AGENT_SECRET;
   /*
-   * The commenter's history is stated in the message rather than passed as a
-   * field, because /api/chat has no concept of one. It is the smallest honest
-   * way to give the model what the tone rule needs.
+   * The history is stated in the message rather than passed as a field, because
+   * /api/chat has no concept of one. It is the smallest honest way to give the
+   * model what the tone rule needs.
    */
-  const preface =
-    priorCount === 0
-      ? "[A first-time commenter. They have never interacted with us before.]"
-      : `[This person has commented ${priorCount} time(s) before. You may be warmer, but do not claim to remember specifics.]`;
+  const lines: string[] = [];
+  if (ctx.priorCount === 0 && ctx.dmExchanges === 0) {
+    lines.push("[A first-time commenter. They have never interacted with us before — assume they have never heard of ShearQuery.]");
+  } else {
+    lines.push(`[WHAT WE ALREADY KNOW ABOUT THIS PERSON — for tone only, see the rule about not quoting private messages.]`);
+    if (ctx.priorCount > 0) {
+      lines.push(`They have commented ${ctx.priorCount} time(s) before on our posts:`);
+      ctx.priorComments.forEach((c) => lines.push(`  - "${c.text}"`));
+    }
+    if (ctx.dmExchanges > 0) {
+      lines.push(`They have also messaged us privately (${ctx.dmExchanges} exchanges). Most recent:`);
+      ctx.recentDms.forEach((d) => lines.push(`  ${d.role === "user" ? "them" : "us"}: "${d.text}"`));
+    }
+    lines.push("[Be warmer and skip the explaining. Do NOT repeat anything from the private messages in your public reply.]");
+  }
 
   try {
     const res = await fetch(`${SITE_URL}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(secret ? { "x-internal-agent": secret } : {}) },
       body: JSON.stringify({
-        messages: [{ role: "user", content: `${preface}\n\nComment: ${text}` }],
+        messages: [{ role: "user", content: `${lines.join("\n")}\n\nComment: ${text}` }],
         channel: "instagram_comment",
         memberId: null,
       }),
@@ -235,7 +299,8 @@ export async function handleInstagramComment(input: {
    * generating anything means the loser of a race writes nothing, rather than
    * both racing to post under the same comment.
    */
-  const prior = await priorComments(admin, input.commenterId);
+  const ctx = await commenterContext(admin, input.commenterId);
+  const prior = ctx.priorCount;
   const { error: claimError } = await admin.from("instagram_comment_replies").insert({
     comment_id: input.commentId,
     media_id: input.mediaId ?? null,
@@ -256,7 +321,7 @@ export async function handleInstagramComment(input: {
     return { handled: false, reason: "instagram not connected" };
   }
 
-  const answer = await askChat(text, prior);
+  const answer = await askChat(text, ctx);
   if (!answer) {
     /*
      * Left 'pending' rather than 'failed'. A model that could not be reached is
