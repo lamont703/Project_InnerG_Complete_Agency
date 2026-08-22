@@ -46,6 +46,8 @@ const INTERNAL_TOOL_ROUTES = [
     "/admin/school-tour-queue",
     "/api/admin/school-tour-queue",
     // Shows unpublished video before it goes out.
+    // Other people's comments, and the replies we sent them.
+    "/admin/comment-engagement",
     // Same, and it also DECIDES what goes out next — the order set here is the
     // publish order. The page re-checks isAdmin() and so does every server
     // action behind it, because this middleware fails OPEN on an auth
@@ -55,6 +57,11 @@ const INTERNAL_TOOL_ROUTES = [
     // lifetime spend, so the page re-checks isAdmin() itself — this entry is
     // defence in depth, because this middleware fails OPEN on an auth exception.
     "/admin/rebooking",
+    // Both research agents render traffic patterns, CRM segment sizes and
+    // revenue. Each page re-checks isAdmin() itself — these entries are defence
+    // in depth, because this middleware fails OPEN on an auth exception.
+    "/admin/content-research",
+    "/admin/crm-research",
     "/tools/employment-match-review",
     "/tools/domain-management",
     "/tools/seo-keyword-tracker",

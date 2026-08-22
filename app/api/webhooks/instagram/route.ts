@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { handleInstagramDm } from "@/lib/instagram-dm-agent";
+import { handleInstagramComment } from "@/lib/instagram-comment-agent";
 
 /**
  * Instagram webhook: comments, mentions and messages.
@@ -139,6 +140,40 @@ export async function POST(req: Request) {
     }
   }
 
+  /*
+   * ANSWER THE COMMENTS.
+   *
+   * A comment is the only thing a stranger can do that opens a door — a public
+   * reply every future reader of the post also sees, plus one private message
+   * within 7 days. Until now these were stored and never answered; a real
+   * question sat unread for over an hour.
+   *
+   * Same failure posture as the DM loop below: a throw must not reach Meta,
+   * because a non-2xx makes it redeliver and a redelivered comment becomes a
+   * second public reply under the same thread.
+   */
+  const commentReplies: any[] = [];
+  for (const entry of payload.entry || []) {
+    for (const change of entry.changes || []) {
+      if (change.field !== "comments") continue;
+      const v = change.value || {};
+      if (!v.id || !v.text || !v.from?.id) continue;
+      try {
+        commentReplies.push(
+          await handleInstagramComment({
+            commentId: v.id,
+            mediaId: v.media?.id ?? null,
+            commenterId: v.from.id,
+            username: v.from.username ?? null,
+            text: v.text,
+          })
+        );
+      } catch (err: any) {
+        console.warn("[instagram-webhook] comment handler threw:", err?.message);
+      }
+    }
+  }
+
   const replies: any[] = [];
   for (const m of inbound) {
     if (m.message?.is_echo) continue;
@@ -154,7 +189,7 @@ export async function POST(req: Request) {
     }
   }
 
-  if (!rows.length) return NextResponse.json({ ok: true, stored: 0, replies });
+  if (!rows.length) return NextResponse.json({ ok: true, stored: 0, replies, commentReplies });
 
   // ignoreDuplicates: Meta retries deliveries, and a retry must not read as a
   // second comment — which would double-count the only engagement signal we get.
@@ -177,5 +212,5 @@ export async function POST(req: Request) {
       .is("confirmed_at", null);
   }
 
-  return NextResponse.json({ ok: true, stored: rows.length, replies });
+  return NextResponse.json({ ok: true, stored: rows.length, replies, commentReplies });
 }
