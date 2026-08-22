@@ -3,6 +3,7 @@ import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import { Navbar } from "@/components/layout/navbar";
 import { fetchCommentEngagement } from "@/lib/admin/comment-engagement";
 import { MessageCircle, AlertTriangle, CheckCircle2, Clock, Send } from "lucide-react";
+import { AutoReplySwitch, CommentDraftList } from "@/components/admin/comment-draft-list";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export const metadata = {
 export default async function CommentEngagementPage() {
   if (!(await isAdmin())) notFound();
 
-  const { threads, unanswered, counts, repeatCommenters } = await fetchCommentEngagement();
+  const { threads, drafts, autoReply, unanswered, counts, repeatCommenters } = await fetchCommentEngagement();
   const urgent = unanswered.filter((u) => u.hoursLeftInWindow < 48).length;
 
   return (
@@ -38,7 +39,7 @@ export default async function CommentEngagementPage() {
           Internal · Comment Engagement
         </span>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950 leading-tight mb-2">
-          {counts.replied} replied
+          {drafts.length > 0 ? `${drafts.length} awaiting review` : `${counts.replied} replied`}
           {unanswered.length > 0 && (
             <span className="text-amber-700"> · {unanswered.length} unanswered</span>
           )}
@@ -49,6 +50,24 @@ export default async function CommentEngagementPage() {
           commenter, which is all Instagram allows, and only when there is
           genuinely a link to hand over.
         </p>
+
+        <AutoReplySwitch
+          enabled={autoReply.enabled}
+          changedBy={autoReply.changedBy}
+          changedAt={autoReply.changedAt}
+        />
+
+        <CommentDraftList
+          drafts={drafts.map((d) => ({
+            commentId: d.commentId,
+            username: d.username,
+            commentText: d.commentText,
+            replyText: d.replyText,
+            dmText: d.dmText,
+            priorComments: d.priorComments,
+            firstTime: d.firstTime,
+          }))}
+        />
 
         {unanswered.length > 0 && (
           <section className="mb-12">
