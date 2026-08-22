@@ -152,6 +152,34 @@ export function bookableSlots(slots: string[], dateStr: string, now: Date): stri
   return slots.filter((s) => !isTooSoonLocal(dateStr, s, now));
 }
 
+/**
+ * What the picker should offer, given what the customer has chosen so far.
+ *
+ * THE EMPTY-DATE CASE IS THE POINT, and it is why this exists rather than the
+ * caller writing the ternary inline. The picker used to fall back to the full
+ * slot list whenever there was no date, conflating two different situations:
+ *
+ *   no date yet   -> nothing is offerable; the day decides which times exist
+ *   not mounted   -> show everything, because `now` is deliberately null until
+ *                    mount so the server and client render the same markup
+ *
+ * Treating the first like the second rendered a full grid of live buttons
+ * before any day was chosen. Clicking one highlighted it and Continue stayed
+ * disabled, because Continue also needs a date. One real visitor clicked seven
+ * different times in twelve seconds, closed the modal and started over.
+ *
+ * Returning [] for a missing date is what makes that impossible.
+ */
+export function bookableSlotsForDate(
+  slots: string[],
+  dateStr: string,
+  now: Date | null,
+): string[] {
+  if (!dateStr) return [];
+  if (!now) return slots;
+  return bookableSlots(slots, dateStr, now);
+}
+
 /** What the customer is told when every slot on a day has gone. */
 export const TOO_SOON_MESSAGE =
   `Please choose a time at least ${MIN_LEAD_HOURS} hours from now — the salon needs a chance to see the request and call you back.`;

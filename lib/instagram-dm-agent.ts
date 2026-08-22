@@ -144,6 +144,45 @@ async function askChat(messages: any[], memberId: string | null): Promise<string
  * row like this by email when they eventually click, rather than creating a
  * second one.
  */
+/**
+ * The sender's Instagram display name, so the member row is not anonymous.
+ *
+ * Available for anyone who has messaged the account — the first real thread
+ * returned "Inner G Complete Fitness". Best effort by design: a failure here
+ * must not cost someone their account, so it returns nulls and the row stores
+ * null names, which is what the column now means.
+ */
+async function senderName(
+  admin: any,
+  senderId: string
+): Promise<{ first: string | null; last: string | null }> {
+  try {
+    const { data: conn } = await admin
+      .from("instagram_connection")
+      .select("access_token")
+      .eq("id", 1)
+      .maybeSingle();
+    if (!conn?.access_token) return { first: null, last: null };
+
+    const r = await fetch(
+      `https://graph.instagram.com/v25.0/${senderId}?fields=name,username&access_token=${encodeURIComponent(conn.access_token)}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    const body = await r.json().catch(() => ({}));
+    const full = String(body?.name || "").trim();
+    if (!full) return { first: body?.username ? String(body.username) : null, last: null };
+
+    // A display name is not a structured name. Everything after the first word
+    // goes in last_name rather than being guessed at — splitting "Inner G
+    // Complete Fitness" into a surname of "G" would be worse than keeping it
+    // whole.
+    const [first, ...rest] = full.split(/\s+/);
+    return { first, last: rest.length ? rest.join(" ") : null };
+  } catch {
+    return { first: null, last: null };
+  }
+}
+
 async function createMemberFromDm(
   admin: any,
   senderId: string,
@@ -158,12 +197,22 @@ async function createMemberFromDm(
   let memberId = existing?.id as string | undefined;
 
   if (!memberId) {
+    const { first, last } = await senderName(admin, senderId);
     const { data: created, error } = await admin
       .from("community_members")
-      .insert({ email, signup_source: "instagram_dm" })
+      .insert({ email, signup_source: "instagram_dm", first_name: first, last_name: last })
       .select("id")
       .maybeSingle();
-    if (error || !created) return { ok: false };
+    /*
+     * The error is logged rather than swallowed. This exact insert failed twice
+     * in a real thread — first on user_id NOT NULL, then on first_name NOT NULL
+     * — and the person saw only "something went wrong on my end" while nothing
+     * anywhere recorded which column it was.
+     */
+    if (error || !created) {
+      console.error("[instagram-dm] member insert failed:", error?.message || "no row returned");
+      return { ok: false };
+    }
     memberId = created.id;
   }
 

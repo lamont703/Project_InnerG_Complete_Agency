@@ -6,6 +6,7 @@ import {
   isTooSoonLocal,
   isTooSoonAnywhere,
   bookableSlots,
+  bookableSlotsForDate,
 } from "./booking-lead-time";
 
 describe("parseSlotMinutes", () => {
@@ -113,5 +114,46 @@ describe("slotInstant", () => {
     expect(slotInstant("2026-08-15", "9:00 AM", -5)!.toISOString()).toBe("2026-08-15T14:00:00.000Z");
     // Same wall clock in Hawaii is five hours later in absolute terms.
     expect(slotInstant("2026-08-15", "9:00 AM", -10)!.toISOString()).toBe("2026-08-15T19:00:00.000Z");
+  });
+});
+
+describe("bookableSlotsForDate", () => {
+  const SLOTS = ["9:00 AM", "9:30 AM", "10:00 AM", "5:30 PM", "6:00 PM"];
+  const NOW = new Date("2026-08-21T15:34:00Z");
+
+  it("offers NOTHING until a day is chosen", () => {
+    // The bug this pins: falling back to the full list when there is no date
+    // rendered a grid of live buttons that could not lead anywhere, because
+    // Continue also requires a date. A real visitor clicked seven times in
+    // twelve seconds before giving up.
+    expect(bookableSlotsForDate(SLOTS, "", NOW)).toEqual([]);
+    expect(bookableSlotsForDate(SLOTS, "", null)).toEqual([]);
+  });
+
+  it("offers everything before mount, when a day IS chosen", () => {
+    // `now` is null until mount on purpose, so server and client render the
+    // same markup. Filtering here would hydrate mismatched; the server guard
+    // is the backstop.
+    expect(bookableSlotsForDate(SLOTS, "2026-08-25", null)).toEqual(SLOTS);
+  });
+
+  it("filters to what is still bookable once a day and a clock exist", () => {
+    const out = bookableSlotsForDate(SLOTS, "2026-08-25", NOW);
+    expect(out).toEqual(SLOTS); // a future day keeps everything
+  });
+
+  it("drops slots inside the lead-time floor on the chosen day", () => {
+    // Same instant, but today — the morning slots are already unreachable.
+    const out = bookableSlotsForDate(SLOTS, "2026-08-21", NOW);
+    expect(out).not.toContain("9:00 AM");
+    expect(out.length).toBeLessThan(SLOTS.length);
+  });
+
+  it("never returns a slot that bookableSlots would reject", () => {
+    // The wrapper must not widen what the underlying filter allows.
+    const day = "2026-08-21";
+    const wrapped = bookableSlotsForDate(SLOTS, day, NOW);
+    const raw = bookableSlots(SLOTS, day, NOW);
+    expect(wrapped).toEqual(raw);
   });
 });

@@ -5,6 +5,7 @@ import { GoogleGenAI } from '@google/genai';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
 import { currentMember, memberById, getJourney, appendToThread } from '@/lib/member-context';
+import { policyForChannel } from '@/lib/agent-policy';
 import { agentJourneyContext, stateCoverageForChat } from '@/lib/member-journey';
 import { AUDIENCES } from '@/lib/audiences';
 import { slimContext, contextChars } from '@/lib/chat-context-slim';
@@ -118,7 +119,7 @@ export async function POST(req: Request) {
      * id in the body instead — see the note on isInternalAgent. req.json() is
      * single-use, so it happens once, here.
      */
-    const { messages, shopId, memberId: bodyMemberId } = await req.json();
+    const { messages, shopId, memberId: bodyMemberId, channel } = await req.json();
 
     const cookieStore = await cookies();
     let usageCount = parseInt(cookieStore.get('ai_chat_count')?.value || '0', 10);
@@ -536,6 +537,8 @@ GET_SCHOOL_TEST_TAKERS TOOL RULE: For "who were those test takers" / "list the s
 GET_UPCOMING_EVENTS TOOL RULE: For any question about barber/beauty/wellness industry events — expos, trade shows, competitions, education/CEU classes, networking, charity events — call get_upcoming_events. This is a completely separate, unrelated dataset from exam data and employment matches — "event" language here means an actual scheduled happening (a date, a venue), never confuse it with a "test event" or "employment match." Always upcoming-only; if asked about past events, say plainly that only upcoming events are tracked. Hyperlink every event via eventHref, and its ticketHref too if present (label that one "tickets" or "buy tickets", not the event name itself, so the two links aren't confused). If more than 6 results come back, list the soonest 6 and say "and N more" for the rest.
 
 ENTITY LINKING IS NOT OPTIONAL: AI Mode doubles as navigation into the rest of the site, not just an answer — so the LINKING RULE above applies every single time you mention a specific barbershop/barber/school/salon/cosmetologist/store/tool that has a profile_url (or an equivalent href from a tool result like find_professional_employment), with no exceptions. Don't drop a link just because you've already mentioned that entity earlier in the conversation — link it again each time.
+
+${policyForChannel(channel)}
 
 Context Data (JSON):
 ${JSON.stringify(slimmedContext).substring(0, 120000)}

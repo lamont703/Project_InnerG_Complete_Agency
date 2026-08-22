@@ -47,8 +47,11 @@ const footerLinks = {
      * than a lock screen — so a non-admin following this link gets a dead end,
      * not a password prompt. That is deliberate; see the layout.
      */
+    { label: "Comment Engagement", href: "/admin/comment-engagement" },
     { label: "Connectors (Instagram, YouTube, GHL)", href: "/admin/connectors" },
     { label: "Rebooking Agent", href: "/admin/rebooking" },
+    { label: "Content Research Agent", href: "/admin/content-research" },
+    { label: "CRM Research Agent", href: "/admin/crm-research" },
     { label: "Ad Performance", href: "/ad-performance" },
     { label: "Ad Campaigns (Assign)", href: "/admin/ad-campaigns" },
     { label: "Employment Match Review", href: "/tools/employment-match-review" },
