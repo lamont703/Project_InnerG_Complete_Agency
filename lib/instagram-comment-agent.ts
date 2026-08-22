@@ -33,14 +33,48 @@ import {
  * in the comment, the link goes to the DM, and the comment says so.
  */
 
-/** Never answer our own comments — that is a loop conducted in public. */
-async function ownAccountId(admin: any): Promise<string | null> {
+/**
+ * Never answer our own comments — that is a loop conducted in public, under our
+ * own post, in front of everyone.
+ *
+ * THE ID CHECK ALONE WAS WRONG, and the webhook proved it. This account has TWO
+ * identifiers and /me returns both:
+ *
+ *   id      = 29022218204035425    what instagram_connection stores
+ *   user_id = 17841402150998593    what our own comments arrive as
+ *
+ * The first version compared the commenter against the stored ig_user_id, so
+ * our own reply came back with sender 17841402150998593, matched nothing, and
+ * would have been treated as a stranger worth answering. Confirmed against a
+ * real event rather than reasoned about — event 48 in instagram_events is our
+ * own comment carrying the other id.
+ *
+ * So the username is checked too, and it is the stronger signal: it is what a
+ * person would look at, it does not depend on which id form Meta chose for this
+ * particular payload, and it is already stored from the OAuth exchange. Either
+ * match is enough; both are cheap.
+ */
+async function isOurOwnComment(
+  admin: any,
+  commenterId: string,
+  username?: string | null
+): Promise<boolean> {
   const { data } = await admin
     .from("instagram_connection")
-    .select("ig_user_id")
+    .select("ig_user_id, username")
     .eq("id", 1)
     .maybeSingle();
-  return data?.ig_user_id ?? null;
+  if (!data) return false;
+
+  if (data.ig_user_id && commenterId === data.ig_user_id) return true;
+  if (
+    data.username &&
+    username &&
+    String(username).trim().toLowerCase() === String(data.username).trim().toLowerCase()
+  ) {
+    return true;
+  }
+  return false;
 }
 
 async function connection(admin: any) {
@@ -191,8 +225,7 @@ export async function handleInstagramComment(input: {
   const text = (input.text || "").trim();
   if (!text) return { handled: false, reason: "empty comment" };
 
-  const selfId = await ownAccountId(admin);
-  if (selfId && input.commenterId === selfId) {
+  if (await isOurOwnComment(admin, input.commenterId, input.username)) {
     return { handled: false, reason: "our own comment" };
   }
 
