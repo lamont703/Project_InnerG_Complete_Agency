@@ -12,11 +12,10 @@ import { trimForComment, stripLinks } from "@/lib/instagram-comments";
  * builder rather than something that can be pointed at an endpoint here. So
  * this asks, on a schedule.
  *
- * IT DRAFTS AND NEVER SENDS, and unlike Instagram that is not a policy choice —
- * it is the only option. Every GHL reply endpoint 404s (/create, /reply,
- * /{id}/reply, /{id}/replies were all tried); only reading and liking are
- * exposed. Replying exists solely in GHL's workflow builder, so a TikTok draft
- * is written here and pasted there.
+ * IT DRAFTS AND NEVER SENDS, which here is the same policy choice Instagram
+ * makes: nothing goes out until somebody presses Send. Sending itself does
+ * work — see postTikTokCommentReply — despite an earlier version of this
+ * comment claiming no reply endpoint existed.
  *
  * SAME BRAIN, SAME VOICE. It calls /api/chat on the instagram_comment channel,
  * which carries the tone rules, the reply-shape rules, the off-topic wind-down
@@ -34,19 +33,57 @@ function authorized(req: Request): boolean {
   return req.headers.get("authorization") === `Bearer ${secret}`;
 }
 
-async function draftReply(comment: string, priorCount: number): Promise<string | null> {
+/**
+ * What the post they commented under was about.
+ *
+ * WITHOUT THIS THE AGENT IS GUESSING. "can u do a bob?" under a hairstyles post
+ * is a request for a POST about bobs; the same words under a shop listing would
+ * be a question about a haircut. The agent read a real one as a service request
+ * and replied by correcting the person about what ShearQuery is — which was
+ * both wrong and slightly cold, and no rule could have fixed it, because the
+ * information needed to tell the two apart was never in front of the model.
+ */
+async function postSummaries(apiKey: string, locationId: string): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  try {
+    const r = await fetch(`https://services.leadconnectorhq.com/social-media-posting/${locationId}/posts/list`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Version: "2021-07-28",
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ type: "all", limit: "100", skip: "0" }),
+      signal: AbortSignal.timeout(20000),
+    });
+    const j = await r.json().catch(() => ({}));
+    for (const post of j?.results?.posts ?? []) {
+      if (post.postId && post.summary) map.set(String(post.postId), String(post.summary));
+    }
+  } catch {
+    /* Context is a nice-to-have; a reply without it is worse, not impossible. */
+  }
+  return map;
+}
+
+async function draftReply(comment: string, priorCount: number, postSummary?: string): Promise<string | null> {
   const secret = process.env.INTERNAL_AGENT_SECRET;
   const preface =
     priorCount === 0
       ? "[A first-time commenter on TikTok. They have never interacted with us before — assume they have never heard of ShearQuery.]"
       : `[This person has commented ${priorCount} time(s) before on TikTok. Be warmer, but do not claim to remember specifics.]`;
 
+  const context = postSummary
+    ? `\n[THE POST THEY COMMENTED UNDER SAID: "${postSummary.slice(0, 400)}"]`
+    : "";
+
   try {
     const res = await fetch(`${SITE_URL}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(secret ? { "x-internal-agent": secret } : {}) },
       body: JSON.stringify({
-        messages: [{ role: "user", content: `${preface}\n\nComment: ${comment}` }],
+        messages: [{ role: "user", content: `${preface}${context}\n\nComment: ${comment}` }],
         channel: "instagram_comment",
         memberId: null,
       }),
@@ -79,6 +116,8 @@ export async function GET(req: Request) {
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err?.message }, { status: 502 });
   }
+
+  const summaries = await postSummaries(apiKey, locationId);
 
   let drafted = 0;
   let skipped = 0;
@@ -125,7 +164,7 @@ export async function GET(req: Request) {
       prior = Math.max(0, (seen?.length ?? 1) - 1);
     }
 
-    const answer = await draftReply(c.content, prior);
+    const answer = await draftReply(c.content, prior, c.platformPostId ? summaries.get(c.platformPostId) : undefined);
     if (!answer) {
       // Left 'pending' so the page still shows it needs a human, rather than
       // marking it done and losing it.
