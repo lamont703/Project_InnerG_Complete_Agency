@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Send, X, Loader2, Zap, ZapOff, MessageCircle } from "lucide-react";
-import { sendDraftReply, discardDraft, setAutoReply } from "@/app/admin/comment-engagement/actions";
+import { Send, X, Loader2, Zap, ZapOff, MessageCircle, Copy } from "lucide-react";
+import { sendDraftReply, discardDraft, setAutoReply, markCopied } from "@/app/admin/comment-engagement/actions";
 import { COMMENT_MAX_CHARS } from "@/lib/instagram-comments";
 
 /**
@@ -23,6 +23,7 @@ import { COMMENT_MAX_CHARS } from "@/lib/instagram-comments";
 
 export interface DraftRow {
   commentId: string;
+  platform: "instagram" | "tiktok";
   username: string | null;
   commentText: string;
   replyText: string | null;
@@ -83,6 +84,28 @@ function Draft({ row }: { row: DraftRow }) {
   const [text, setText] = React.useState(row.replyText ?? "");
   const [busy, setBusy] = React.useState<null | "send" | "discard">(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [copied, setCopied] = React.useState(false);
+
+  /*
+   * Copy, then record it as handed over. Marked 'copied' rather than 'replied'
+   * because nothing was sent from here — whoever pastes it is the one who
+   * replied, and a status claiming otherwise would make the queue look clear
+   * while a TikTok comment sat unanswered.
+   */
+  const copyAndMark = async () => {
+    setBusy("send");
+    setError(null);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      setError("Could not copy — select the text above and copy it manually.");
+    }
+    const r = await markCopied(row.commentId);
+    setBusy(null);
+    if (!r.ok) setError(r.error ?? "Could not update.");
+    router.refresh();
+  };
 
   const over = text.length > COMMENT_MAX_CHARS;
 
@@ -105,6 +128,9 @@ function Draft({ row }: { row: DraftRow }) {
   return (
     <li className="rounded-2xl border border-indigo-200 bg-white p-5">
       <div className="flex items-center gap-2 mb-3 text-xs">
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 border border-slate-200 rounded px-1.5 py-0.5">
+          {row.platform}
+        </span>
         <span className="font-bold text-slate-900">@{row.username ?? "unknown"}</span>
         <span className="text-slate-400">
           {row.firstTime ? "first time" : `${row.priorComments + 1} comments`}
@@ -127,6 +153,14 @@ function Draft({ row }: { row: DraftRow }) {
         {over && " — will be trimmed to fit"}
       </p>
 
+      {row.platform === "tiktok" && (
+        <p className="mt-3 text-xs text-slate-500">
+          TikTok replies cannot be posted from here — GoHighLevel exposes reading
+          and liking comments but no reply endpoint. Copy this, then paste it in
+          the GHL inbox or Social Planner.
+        </p>
+      )}
+
       {row.dmText && (
         <p className="mt-3 text-xs text-indigo-700 flex items-start gap-1.5">
           <Send className="h-3.5 w-3.5 mt-0.5 shrink-0" />
@@ -139,16 +173,35 @@ function Draft({ row }: { row: DraftRow }) {
 
       {error && <p className="mt-2 text-xs text-rose-700">{error}</p>}
 
+      {/*
+        TIKTOK CANNOT BE SENT FROM HERE, and the button says so rather than
+        failing when pressed. Every GoHighLevel reply endpoint 404s — replying
+        exists only inside their workflow builder — so the honest action is to
+        hand over the text and record that it went. Pretending otherwise would
+        put a Send button on a page that cannot send.
+      */}
       <div className="mt-4 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={send}
-          disabled={busy !== null || !text.trim()}
-          className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
-        >
-          {busy === "send" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          Send reply
-        </button>
+        {row.platform === "tiktok" ? (
+          <button
+            type="button"
+            onClick={copyAndMark}
+            disabled={busy !== null || !text.trim()}
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
+          >
+            {busy === "send" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+            {copied ? "Copied — paste in GHL" : "Copy for GoHighLevel"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={send}
+            disabled={busy !== null || !text.trim()}
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
+          >
+            {busy === "send" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Send reply
+          </button>
+        )}
         <button
           type="button"
           onClick={discard}

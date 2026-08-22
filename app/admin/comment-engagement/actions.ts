@@ -202,3 +202,33 @@ export async function setAutoReply(enabled: boolean): Promise<{ ok: boolean; err
   revalidatePath("/admin/comment-engagement");
   return { ok: true };
 }
+
+/**
+ * A TikTok draft was copied and handed to GoHighLevel to post.
+ *
+ * NOT 'replied'. Nothing was sent from here — every GHL reply endpoint 404s and
+ * the capability lives only in their workflow builder — so whoever pastes it is
+ * the one who replied. Recording it as sent would make the queue look clear
+ * while a comment sat unanswered, which is the exact failure this page exists
+ * to prevent.
+ */
+export async function markCopied(commentId: string): Promise<{ ok: boolean; error?: string }> {
+  const email = await requireAdmin();
+  if (!email) return { ok: false, error: "Not authorized." };
+
+  const db = createAdminClient() as any;
+  const { error } = await db
+    .from("instagram_comment_replies")
+    .update({
+      status: "copied",
+      approved_by: email,
+      approved_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("comment_id", commentId)
+    .eq("status", "draft");
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/comment-engagement");
+  return { ok: true };
+}
