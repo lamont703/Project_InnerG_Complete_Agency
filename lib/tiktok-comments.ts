@@ -24,9 +24,9 @@ import "server-only";
  *     { originIds: ["<account originId>"], limit: 100 }   -> roots
  *     { originIds: [...], parentId: "<root _id>" }        -> the comments
  *
- * REPLYING IS NOT HERE BECAUSE IT IS NOT POSSIBLE. /create, /reply,
- * /{id}/reply and /{id}/replies all return 404; only /{id}/like exists. The
- * reply lives in GHL's workflow builder and nowhere else.
+ * REPLYING IS POSSIBLE — see postTikTokCommentReply at the bottom. An earlier
+ * version of this comment said it was not, on the strength of four guessed
+ * paths returning 404. That was wrong, and it nearly cost a working feature.
  */
 
 const GHL = "https://services.leadconnectorhq.com";
@@ -137,4 +137,63 @@ export async function fetchTikTokComments(input: {
   }
 
   return out.sort((a, b) => String(b.publishedAt ?? "").localeCompare(String(a.publishedAt ?? "")));
+}
+
+/**
+ * Reply to a TikTok comment, publicly, through GoHighLevel.
+ *
+ * THIS WAS WRONGLY BELIEVED IMPOSSIBLE, and the mistake is worth recording
+ * because it nearly shipped a copy-and-paste workflow around a working API.
+ * Four guessed paths — /create, /reply, /{id}/reply, /{id}/replies — all
+ * returned 404, and that was taken as proof no reply endpoint existed. The real
+ * one has no suffix at all:
+ *
+ *   POST /social-media-posting/comments/{platform}?locationId={loc}
+ *     { parentId, isParentThread, content }
+ *
+ * Found by probing the bare path and reading the schema off the 422s rather
+ * than guessing more names. A 404 means the path is wrong; only a 422 tells you
+ * the path is right.
+ *
+ * parentId IS GOHIGHLEVEL'S ID, a 24-character hex string — the `_id` on a
+ * comment, not TikTok's platformCommentId. The API validates the format, so
+ * passing TikTok's 19-digit numeric id fails with a message about HighLevel IDs
+ * rather than anything about the comment.
+ *
+ * isParentThread FALSE means this is a reply to a comment. True would make it a
+ * top-level comment on the post itself, which is not what answering somebody
+ * means.
+ */
+export async function postTikTokCommentReply(input: {
+  apiKey: string;
+  locationId: string;
+  /** GoHighLevel's 24-char comment id — NOT TikTok's platformCommentId. */
+  parentId: string;
+  content: string;
+}): Promise<{ ok: true; id?: string } | { ok: false; error: string }> {
+  const content = String(input.content || "").trim();
+  if (!content) return { ok: false, error: "empty reply" };
+  if (!/^[0-9a-f]{24}$/i.test(input.parentId)) {
+    return { ok: false, error: `parentId must be a 24-char HighLevel id, got "${input.parentId}"` };
+  }
+
+  try {
+    const r = await fetch(
+      `${GHL}/social-media-posting/comments/tiktok?locationId=${encodeURIComponent(input.locationId)}`,
+      {
+        method: "POST",
+        headers: headers(input.apiKey),
+        body: JSON.stringify({ parentId: input.parentId, isParentThread: false, content }),
+        signal: AbortSignal.timeout(20000),
+      }
+    );
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const msg = Array.isArray(body?.message) ? body.message.join("; ") : body?.message;
+      return { ok: false, error: msg || `reply failed (${r.status})` };
+    }
+    return { ok: true, id: body?.results?._id ?? body?.id };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || "reply threw" };
+  }
 }

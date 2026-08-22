@@ -7,6 +7,7 @@ import { isAdminEmail } from "@/lib/admin-allowlist";
 import { isExpired } from "@/lib/instagram-token";
 import { DISCLOSURE } from "@/lib/instagram-dm-policy";
 import { postCommentReply, sendPrivateReply, trimForComment } from "@/lib/instagram-comments";
+import { postTikTokCommentReply } from "@/lib/tiktok-comments";
 
 /**
  * Approving a draft, editing it, and turning the pause off.
@@ -50,10 +51,53 @@ export async function sendDraftReply(
     .update({ status: "pending", approved_by: email, approved_at: now, updated_at: now })
     .eq("comment_id", commentId)
     .eq("status", "draft")
-    .select("comment_id, commenter_id, comment_text, reply_text, dm_text")
+    .select("comment_id, platform, external_comment_id, commenter_id, comment_text, reply_text, dm_text")
     .maybeSingle();
 
   if (!claimed) return { ok: false, error: "Already sent, or no longer a draft." };
+
+  /*
+   * TIKTOK GOES OUT THROUGH GOHIGHLEVEL, and returns before any of the
+   * Instagram machinery below — there is no Instagram token involved, no
+   * private reply, and no DM thread to seed. parentId is GHL's own 24-char id,
+   * which the sync stored in external_comment_id; comment_id holds TikTok's
+   * numeric id and would be rejected.
+   */
+  if (claimed.platform === "tiktok") {
+    const apiKey = process.env.GHL_API_KEY;
+    const locationId = process.env.GHL_LOCATION_ID;
+    const publicText = trimForComment(editedText?.trim() || claimed.reply_text || "");
+
+    if (!apiKey || !locationId) {
+      await db.from("instagram_comment_replies").update({ status: "draft", updated_at: now }).eq("comment_id", commentId);
+      return { ok: false, error: "GoHighLevel credentials are not configured." };
+    }
+    if (!publicText) {
+      await db.from("instagram_comment_replies").update({ status: "draft", updated_at: now }).eq("comment_id", commentId);
+      return { ok: false, error: "Reply is empty." };
+    }
+
+    const sent = await postTikTokCommentReply({
+      apiKey,
+      locationId,
+      parentId: claimed.external_comment_id,
+      content: publicText,
+    });
+
+    await db
+      .from("instagram_comment_replies")
+      .update({
+        reply_text: publicText,
+        replied_at: sent.ok ? now : null,
+        reply_error: sent.ok ? null : (sent as any).error,
+        status: sent.ok ? "replied" : "draft",
+        updated_at: now,
+      })
+      .eq("comment_id", commentId);
+
+    revalidatePath("/admin/comment-engagement");
+    return sent.ok ? { ok: true } : { ok: false, error: (sent as any).error };
+  }
 
   const { data: conn } = await db
     .from("instagram_connection")

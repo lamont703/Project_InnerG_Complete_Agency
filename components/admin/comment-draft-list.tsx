@@ -153,14 +153,6 @@ function Draft({ row }: { row: DraftRow }) {
         {over && " — will be trimmed to fit"}
       </p>
 
-      {row.platform === "tiktok" && (
-        <p className="mt-3 text-xs text-slate-500">
-          TikTok replies cannot be posted from here — GoHighLevel exposes reading
-          and liking comments but no reply endpoint. Copy this, then paste it in
-          the GHL inbox or Social Planner.
-        </p>
-      )}
-
       {row.dmText && (
         <p className="mt-3 text-xs text-indigo-700 flex items-start gap-1.5">
           <Send className="h-3.5 w-3.5 mt-0.5 shrink-0" />
@@ -174,34 +166,20 @@ function Draft({ row }: { row: DraftRow }) {
       {error && <p className="mt-2 text-xs text-rose-700">{error}</p>}
 
       {/*
-        TIKTOK CANNOT BE SENT FROM HERE, and the button says so rather than
-        failing when pressed. Every GoHighLevel reply endpoint 404s — replying
-        exists only inside their workflow builder — so the honest action is to
-        hand over the text and record that it went. Pretending otherwise would
-        put a Send button on a page that cannot send.
+        ONE SEND BUTTON FOR BOTH PLATFORMS. Instagram posts through the Graph
+        API, TikTok through GoHighLevel — the action picks the route from
+        row.platform, and the person approving does not need to care which.
       */}
       <div className="mt-4 flex items-center gap-2">
-        {row.platform === "tiktok" ? (
-          <button
-            type="button"
-            onClick={copyAndMark}
-            disabled={busy !== null || !text.trim()}
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
-          >
-            {busy === "send" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
-            {copied ? "Copied — paste in GHL" : "Copy for GoHighLevel"}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={send}
-            disabled={busy !== null || !text.trim()}
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
-          >
-            {busy === "send" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Send reply
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={send}
+          disabled={busy !== null || !text.trim()}
+          className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
+        >
+          {busy === "send" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          Send reply
+        </button>
         <button
           type="button"
           onClick={discard}
