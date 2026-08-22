@@ -193,3 +193,65 @@ describe("X refresh failures", () => {
     Object.assign(process.env, noClient);
   });
 });
+
+describe("TikTok: two routes, one account", () => {
+  const conns = (nativeEnabled: boolean, ghlEnabled = true) => [
+    { platform: "tiktok", enabled: nativeEnabled, status: nativeEnabled ? "connected" : "disconnected",
+      access_token: nativeEnabled ? "t" : null, refresh_token: null, expires_at: null, account_label: null, config: {} },
+    { platform: "tiktok_ghl", enabled: ghlEnabled, status: "connected",
+      access_token: null, refresh_token: null, expires_at: null, account_label: "TikTok via GoHighLevel",
+      config: { accountId: "acct_business" } },
+  ];
+  const adminWith = (connections: unknown[]) => ({
+    from: () => ({ select: async () => ({ data: connections }), update: () => ({ eq: async () => ({}) }) }),
+  });
+
+  it("stands the GHL route down the moment native TikTok is enabled", async () => {
+    // The failure this prevents is two copies of every video on one account.
+    // Approval day should be a single flag flip, not a coordinated change.
+    const { fanOutToTargets } = await import("@/lib/admin/publisher-targets");
+    const out = await fanOutToTargets({
+      admin: adminWith(conns(true)),
+      row: { video_url: "https://example.com/a.mp4", title: "t" },
+      video: null,
+      only: ["tiktok_ghl"],
+    });
+    expect(out.tiktok_ghl).toEqual({ skipped: "native TikTok is enabled — not double-posting" });
+  });
+
+  it("does NOT block the GHL route on missing video bytes", async () => {
+    // GHL is handed a public URL and fetches the file itself, so a failed
+    // download must not stop it — that is the reason for passing a URL.
+    const { fanOutToTargets } = await import("@/lib/admin/publisher-targets");
+    const out = await fanOutToTargets({
+      admin: adminWith(conns(false)),
+      row: { video_url: "https://example.com/a.mp4", title: "t" },
+      video: null,
+      dryRun: true,
+      only: ["tiktok_ghl"],
+    });
+    expect(out.tiktok_ghl).not.toEqual({ skipped: "no video bytes available" });
+  });
+
+  it("refuses when the queued item has no public URL for GHL to fetch", async () => {
+    const { fanOutToTargets } = await import("@/lib/admin/publisher-targets");
+    const out = await fanOutToTargets({
+      admin: adminWith(conns(false)),
+      row: { video_url: null, title: "t" },
+      video: null,
+      only: ["tiktok_ghl"],
+    });
+    expect(out.tiktok_ghl).toHaveProperty("skipped");
+  });
+
+  it("says plainly when the GHL route itself is switched off", async () => {
+    const { fanOutToTargets } = await import("@/lib/admin/publisher-targets");
+    const out = await fanOutToTargets({
+      admin: adminWith(conns(false, false)),
+      row: { video_url: "https://example.com/a.mp4", title: "t" },
+      video: null,
+      only: ["tiktok_ghl"],
+    });
+    expect(out.tiktok_ghl).toEqual({ skipped: "not enabled" });
+  });
+});

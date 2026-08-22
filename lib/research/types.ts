@@ -1,0 +1,97 @@
+/**
+ * Shared shapes for the two research agents.
+ *
+ * Deliberately no I/O here so the validator can be tested without a database or
+ * a model call — the validator is where most of the value sits, because it is
+ * the thing that stops an unfalsifiable suggestion reaching the operator.
+ */
+
+export type ResearchAgent = "content" | "crm";
+export type Confidence = "high" | "medium" | "low";
+export type FindingStatus = "new" | "actioned" | "dismissed";
+
+export interface ResearchFinding {
+  id: string;
+  agent: ResearchAgent;
+  runId: string;
+  title: string;
+  suggestion: string;
+  rationale: string | null;
+  category: string | null;
+  /** The numbers the finding was reasoned from. Never empty — see validate(). */
+  evidence: Record<string, unknown>;
+  confidence: Confidence;
+  status: FindingStatus;
+  operatorNote: string | null;
+  createdAt: string;
+}
+
+/** What a run produced, before anything is written down. */
+export interface DraftFinding {
+  title: string;
+  suggestion: string;
+  rationale: string;
+  category: string;
+  evidence: Record<string, unknown>;
+  confidence: Confidence;
+}
+
+const CONFIDENCES: Confidence[] = ["high", "medium", "low"];
+
+/**
+ * Turn raw model output into findings worth showing a person.
+ *
+ * EVERY RULE HERE IS A REJECTION, NOT A REPAIR. A suggestion the model could
+ * not ground in numbers is not improved by inventing numbers for it, and a
+ * title it did not write is not improved by generating one. The failure mode
+ * this guards against is a page full of confident, unfalsifiable advice —
+ * "post more about barbering", "follow up with leads faster" — which reads like
+ * research and cannot be acted on or checked.
+ *
+ * `allowedEvidenceKeys` is the key rule: the agent may only cite numbers that
+ * were actually put in front of it. Without that check a model will happily
+ * write {"searches": 1200} for a query that was run twice, and the finding
+ * becomes a lie with a citation attached.
+ */
+export function validateFindings(
+  raw: unknown,
+  allowedEvidenceKeys: Set<string>,
+): DraftFinding[] {
+  if (!Array.isArray(raw)) return [];
+  const out: DraftFinding[] = [];
+
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+
+    const title = typeof o.title === "string" ? o.title.trim().slice(0, 160) : "";
+    const suggestion = typeof o.suggestion === "string" ? o.suggestion.trim().slice(0, 1200) : "";
+    const rationale = typeof o.rationale === "string" ? o.rationale.trim().slice(0, 1200) : "";
+    if (!title || !suggestion || !rationale) continue;
+
+    const evidence =
+      o.evidence && typeof o.evidence === "object" && !Array.isArray(o.evidence)
+        ? (o.evidence as Record<string, unknown>)
+        : null;
+    // A finding with no numbers behind it is an opinion. Opinions are cheap and
+    // this page is not for them.
+    if (!evidence || Object.keys(evidence).length === 0) continue;
+
+    // Every cited key must be one the agent was actually shown.
+    const keys = Object.keys(evidence);
+    if (!keys.every((k) => allowedEvidenceKeys.has(k))) continue;
+
+    const confidence = CONFIDENCES.includes(o.confidence as Confidence)
+      ? (o.confidence as Confidence)
+      : "low";
+
+    const category =
+      typeof o.category === "string" && o.category.trim()
+        ? o.category.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").slice(0, 40)
+        : "uncategorised";
+
+    out.push({ title, suggestion, rationale, category, evidence, confidence });
+  }
+
+  return out;
+}

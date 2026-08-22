@@ -28,6 +28,7 @@ import { publishToLinkedIn } from "@/lib/linkedin-publish";
 import { publishToX, refreshXToken } from "@/lib/x-publish";
 import { publishToGbpBrand, verifyGbpCredentials } from "@/lib/gbp-brand-publish";
 import { publishToTikTok } from "@/lib/tiktok-publish";
+import { publishToTikTokViaGhl, findGhlTikTokAccountId } from "@/lib/tiktok-ghl-publish";
 import {
   buildLinkedInCommentary,
   buildXText,
@@ -37,7 +38,7 @@ import {
   type CopyRow,
 } from "@/lib/admin/publisher-copy";
 
-export const TARGET_PLATFORMS = ["linkedin", "x", "gbp", "tiktok"] as const;
+export const TARGET_PLATFORMS = ["linkedin", "x", "gbp", "tiktok", "tiktok_ghl"] as const;
 export type PlatformKey = (typeof TARGET_PLATFORMS)[number];
 
 export const PLATFORM_LABELS: Record<PlatformKey, string> = {
@@ -45,6 +46,7 @@ export const PLATFORM_LABELS: Record<PlatformKey, string> = {
   x: "X",
   gbp: "Google Business Profile",
   tiktok: "TikTok",
+  tiktok_ghl: "TikTok (via GoHighLevel)",
 };
 
 export interface PublisherConnection {
@@ -112,11 +114,43 @@ function expired(expiresAt: string | null): boolean {
  * Deliberately checks the cheap things before any network call, so a slot is
  * not spent discovering that a connection was never authorised.
  */
-function blocker(conn: PublisherConnection | undefined, needsVideo: boolean, hasVideo: boolean): string | null {
+function blocker(
+  conn: PublisherConnection | undefined,
+  needsVideo: boolean,
+  hasVideo: boolean,
+  allConnections: PublisherConnection[] = [],
+): string | null {
   if (!conn) return "no connection row";
   if (!conn.enabled) return "not enabled";
+
+  /*
+   * TWO ROUTES, ONE TIKTOK ACCOUNT. When the native app is live the bridge
+   * stands down, and it must say THAT rather than whatever it would have
+   * complained about next.
+   *
+   * Checked here rather than at the point of publishing because it outranks
+   * every other reason: if native is handling TikTok, missing GHL credentials
+   * are irrelevant and reporting them would send someone to fix a setting that
+   * does not matter. A wrong reason is worse than no reason — it costs
+   * somebody an afternoon.
+   */
+  if (conn.platform === "tiktok_ghl" && allConnections.some((c) => c.platform === "tiktok" && c.enabled)) {
+    return "native TikTok is enabled — not double-posting";
+  }
   if (conn.status === "revoked") return "connection revoked — reconnect";
   if (needsVideo && !hasVideo) return "no video bytes available";
+
+  /*
+   * The GHL route holds no token of its own. It posts with the account-wide
+   * GHL_API_KEY and hands GHL a public URL, so the generic access_token and
+   * video-bytes checks below would block it for things it does not use.
+   */
+  if (conn.platform === "tiktok_ghl") {
+    if (!process.env.GHL_API_KEY || !process.env.GHL_LOCATION_ID) {
+      return "GHL_API_KEY / GHL_LOCATION_ID not set";
+    }
+    return null;
+  }
 
   if (conn.platform === "gbp") {
     if (!conn.refresh_token) return "not connected";
@@ -144,6 +178,8 @@ export function previewCopy(platform: PlatformKey, row: CopyRow): string {
     case "x": return buildXText(row);
     case "gbp": return buildGbpSummary(row);
     case "tiktok": return buildTikTokTitle(row);
+    // Same destination, same limits — one caption builder, not two that drift.
+    case "tiktok_ghl": return buildTikTokTitle(row);
   }
 }
 
@@ -184,7 +220,10 @@ export async function fanOutToTargets(
    */
   for (const platform of wanted) {
     const conn = byPlatform.get(platform);
-    const needsVideo = platform !== "gbp";
+    // gbp posts text. tiktok_ghl hands GHL a public URL and lets GHL fetch the
+    // bytes, so a failed download must not stop it — that is the whole point of
+    // passing a URL rather than uploading.
+    const needsVideo = platform !== "gbp" && platform !== "tiktok_ghl";
 
     /*
      * A DRY RUN JUDGES THE ROW, NOT THE DOWNLOAD. No bytes are fetched in a dry
@@ -198,7 +237,7 @@ export async function fanOutToTargets(
      * that is what a dry run checks.
      */
     const hasVideo = dryRun ? Boolean(row.video_url) : Boolean(video);
-    const why = blocker(conn, needsVideo, hasVideo);
+    const why = blocker(conn, needsVideo, hasVideo, (rows ?? []) as PublisherConnection[]);
 
     if (why) {
       outcomes[platform] = { skipped: why };
@@ -234,7 +273,7 @@ export async function fanOutToTargets(
     }
 
     try {
-      outcomes[platform] = await publishOne(platform, conn!, row, video, admin);
+      outcomes[platform] = await publishOne(platform, conn!, row, video, admin, (rows ?? []) as PublisherConnection[]);
     } catch (e) {
       // A publisher that throws rather than returning is a bug in that
       // publisher, but it must not take the remaining platforms down with it.
@@ -261,9 +300,41 @@ async function publishOne(
   conn: PublisherConnection,
   row: any,
   video: Buffer | null,
-  admin: any
+  admin: any,
+  /** Every connection, so one platform can see another's state — tiktok_ghl
+   *  has to know whether native TikTok is live before it posts. */
+  allConnections: PublisherConnection[] = []
 ): Promise<Outcome> {
   const cfg = conn.config ?? {};
+
+  if (platform === "tiktok_ghl") {
+    /*
+     * The native-wins rule lives in blocker(), which runs before this and
+     * catches it earlier with the right reason. This is the second line: a
+     * caller invoking publishOne directly still must not double-post.
+     */
+    if (allConnections.some((c) => c.platform === "tiktok" && c.enabled)) {
+      return { skipped: "native TikTok is enabled — not double-posting" };
+    }
+
+    const accountId =
+      (conn.config ?? {}).accountId || (await findGhlTikTokAccountId());
+    if (!accountId) {
+      return { skipped: "no TikTok account connected in GoHighLevel" };
+    }
+
+    const videoUrl = String((row as any).video_url ?? "");
+    if (!videoUrl) return { skipped: "no public video URL on the queued item" };
+
+    const r = await publishToTikTokViaGhl({
+      videoUrl,
+      caption: buildTikTokTitle(row),
+      accountId,
+    });
+    return r.ok
+      ? { ok: true, id: r.id, note: r.note }
+      : { ok: false, error: r.error };
+  }
 
   if (platform === "linkedin") {
     const r = await publishToLinkedIn({
