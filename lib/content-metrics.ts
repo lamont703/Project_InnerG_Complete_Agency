@@ -151,6 +151,24 @@ export async function collectInstagram(mediaIds: string[]): Promise<MetricRow[]>
 
   const out: MetricRow[] = [];
   for (const id of mediaIds) {
+    /*
+     * The media's own timestamp, for the same reason TikTok uses create_time:
+     * Instagram reports a LIFETIME total per Reel and no daily series, so the
+     * publish date is the only date the number belongs to. One extra call per
+     * Reel, and it is what turns a single collection into months of history.
+     */
+    let publishedOn = today;
+    try {
+      const meta = await fetch(
+        `https://graph.instagram.com/v21.0/${id}?fields=timestamp&access_token=${token}`,
+        { signal: AbortSignal.timeout(15000) }
+      );
+      const mj = await meta.json();
+      if (mj?.timestamp) publishedOn = isoDay(new Date(mj.timestamp));
+    } catch {
+      /* Fall back to today. A wrong-but-present date beats losing the reading. */
+    }
+
     const r = await fetch(
       `https://graph.instagram.com/v21.0/${id}/insights?metric=views,reach,likes,comments&access_token=${token}`,
       { signal: AbortSignal.timeout(20000) }
@@ -158,7 +176,7 @@ export async function collectInstagram(mediaIds: string[]): Promise<MetricRow[]>
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
       out.push({
-        platform: "instagram", metric_date: today, external_post_id: id, value: null,
+        platform: "instagram", metric_date: publishedOn, external_post_id: id, value: null,
         metric_kind: "none", unavailable_reason: j?.error?.message?.slice(0, 300) || `HTTP ${r.status}`,
       });
       continue;
@@ -168,7 +186,7 @@ export async function collectInstagram(mediaIds: string[]): Promise<MetricRow[]>
       return m ? Number(m.values?.[0]?.value ?? m.total_value?.value ?? 0) : null;
     };
     out.push({
-      platform: "instagram", metric_date: today, external_post_id: id,
+      platform: "instagram", metric_date: publishedOn, external_post_id: id,
       value: pick("views"), metric_kind: "views", is_cumulative: true,
       reach: pick("reach"), likes: pick("likes"), comments: pick("comments"),
     });
@@ -412,9 +430,34 @@ export async function collectTikTok(): Promise<MetricRow[]> {
         return out.length ? out : fail(`TikTok video.list: ${j?.error?.message || `HTTP ${r.status}`}`);
       }
       for (const v of j?.data?.videos ?? []) {
+        /*
+         * STAMPED WITH THE VIDEO'S PUBLISH DATE, NOT TODAY. TikTok reports a
+         * lifetime view count and no daily series, so the only date that means
+         * anything for it is when the video went out. Filing it under the
+         * collection date instead put every video on one day and, because the
+         * first reading of a cumulative series has to be discarded, showed
+         * nothing at all — 10,983 real views rendered as "cannot report".
+         *
+         * This also gives history for free: create_time reaches back as far as
+         * the account does, so the trend exists from the first collection
+         * rather than accumulating a day at a time.
+         */
+        /*
+         * A MISSING view_count IS SKIPPED, NOT STORED AS ZERO. TikTok omits the
+         * field for some videos on some responses — 20 of 83 in one measured
+         * run, all of them older posts — and `Number(v.view_count ?? 0)` turned
+         * "absent" into "zero", writing 0 over videos with real views and
+         * losing 1,663 of them. Skipping leaves the last good reading in place,
+         * because the row is keyed on the video id and a later collection will
+         * fill it in.
+         */
+        if (v.view_count === undefined || v.view_count === null) continue;
+
         out.push({
-          platform: "tiktok", metric_date: today, external_post_id: String(v.id),
-          value: Number(v.view_count ?? 0), metric_kind: "views", is_cumulative: true,
+          platform: "tiktok",
+          metric_date: isoDay(new Date(Number(v.create_time) * 1000)),
+          external_post_id: String(v.id),
+          value: Number(v.view_count), metric_kind: "views", is_cumulative: true,
           likes: Number(v.like_count ?? 0), comments: Number(v.comment_count ?? 0),
           shares: Number(v.share_count ?? 0),
         });

@@ -35,7 +35,13 @@ export default async function ContentInsightsPage({
 
   const sp = await searchParams;
   const granularity: Granularity = VALID_GRAIN.includes(sp.g as Granularity) ? (sp.g as Granularity) : "day";
-  const days = [30, 90, 365].includes(Number(sp.d)) ? Number(sp.d) : 90;
+  /*
+   * SIX MONTHS BY DEFAULT. The point of the page is the trend, and 90 days was
+   * short enough that a slow month read as a cliff. The cumulative platforms
+   * now carry their whole history from a single collection, so there is real
+   * data back there to look at.
+   */
+  const days = [30, 90, 180, 365].includes(Number(sp.d)) ? Number(sp.d) : 180;
 
   const data = await fetchContentInsights(granularity, days);
   const unavailable = data.series.filter((s) => s.unavailableReason);
@@ -63,10 +69,23 @@ export default async function ContentInsightsPage({
           "impressions" would be a measurement nobody took.
         */}
         <p className="mt-3 max-w-3xl rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          <strong>These are not all the same unit.</strong> YouTube and Instagram no longer report impressions
-          and answer with <em>views</em>; Google Business Profile and Search report true <em>impressions</em>.
-          Each series is labelled with what it actually is, and the combined line adds reach across platforms
-          rather than claiming one shared metric.
+          <strong>These are not all the same unit.</strong> YouTube, Instagram and TikTok no longer report
+          impressions and answer with <em>views</em>; Google Business Profile and Search report true{" "}
+          <em>impressions</em>. Each series is labelled with what it actually is, and the combined line adds
+          reach across platforms rather than claiming one shared metric.
+        </p>
+        {/*
+          The attribution rule is stated because it changes how a point is read,
+          and no axis label can carry it. YouTube, GBP and Search have genuine
+          daily series; Instagram and TikTok only ever report a lifetime total
+          per post, so their number sits on the day the post went out.
+        */}
+        <p className="mt-2 max-w-3xl rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+          <strong className="text-slate-900">Two kinds of point.</strong> YouTube, Google Business Profile and
+          Google Search report a real daily figure, so those points are activity on that day. Instagram and
+          TikTok report only a lifetime total per post, so their points sit on the day the post was published
+          and read as <em>&ldquo;reach earned by what we published then&rdquo;</em>. That is what lets TikTok show
+          history back to its first video rather than starting from the day collection began.
         </p>
 
         <div className="mt-6">
