@@ -364,13 +364,26 @@ export function profileFraction(u: number): number {
  * is concave between the nose and the chin.
  */
 const FRONT_DEPTH: readonly { u: number; d: number }[] = [
-  { u: -0.25, d: 0.7 }, // throat, well back
-  { u: -0.08, d: 0.8 },
-  { u: 0.04, d: 1.1 }, // underside of the jaw turning forward
-  { u: 0.14, d: 1.3 }, // the chin, furthest point of the lower face
-  { u: 0.3, d: 1.24 }, // mouth — the concavity between chin and nose
-  { u: 0.45, d: 1.12 },
-  { u: 0.6, d: 1.02 },
+  /*
+   * GENTLER THROUGH THE LOWER FACE THAN IT WAS.
+   *
+   * The first version climbed from 0.80 at u -0.08 to 1.30 at u 0.14 — half the
+   * ellipse's depth gained across a fifth of a head-height. That is a shelf,
+   * and it rendered as one: the chin hung off the front of the face like a
+   * jowl with a crease above it.
+   *
+   * The detail that shelf was trying to supply — chin, lips, the mouth line —
+   * now comes from bone-structure.ts, where features know about ANGLE. This
+   * curve is only the bulk plane of the face again.
+   */
+  { u: -0.25, d: 0.74 }, // throat, well back
+  { u: -0.1, d: 0.88 },
+  { u: 0.02, d: 1.08 }, // underside of the jaw turning forward
+  { u: 0.12, d: 1.2 }, // chin
+  { u: 0.26, d: 1.14 }, // mouth — a gentle concavity, not a fold
+  { u: 0.38, d: 1.16 },
+  { u: 0.5, d: 1.1 },
+  { u: 0.65, d: 1.01 },
   { u: 0.8, d: 0.94 },
   { u: 1.0, d: 0.88 }, // forehead: genuinely flatter than the back of the skull
   { u: 1.15, d: 0.92 },

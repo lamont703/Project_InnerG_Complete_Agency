@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { buildHeadMesh, referenceFrame, coverage, lengthAtU, hairlineU } from "./head-mesh";
+import {
+  buildHeadMesh,
+  referenceFrame,
+  coverage,
+  lengthAtU,
+  hairlineU,
+  RING_SEGMENTS,
+} from "./head-mesh";
 import { deriveFadePlan } from "@/lib/fade-geometry";
 import { STYLE_PRESETS } from "./request";
 
@@ -208,7 +215,7 @@ describe("the hairline", () => {
      * the wiring that was missing rather than the maths.
      */
     const m = buildHeadMesh(frame, midSkin);
-    const SEG = 96;
+    const SEG = RING_SEGMENTS;
     const ringCount = m.lengths.length / SEG;
 
     // A height inside the fade zone: above the perimeter, below the line.

@@ -198,8 +198,16 @@ describe("frontDepthFraction", () => {
     // Measured as a peak over the lower face, not at one hardcoded height —
     // the chin's exact stop moves when the profile is tuned, and a test that
     // breaks on tuning teaches you to loosen it rather than to read it.
+    /*
+     * The bar was 1.25 and is now 1.15 — deliberately, not to make a failure go
+     * away. This curve used to carry the chin, the lips and the mouth line all
+     * by itself, which it cannot do: it is a function of HEIGHT only, so
+     * anything it says applies right across the front of the head. Those live
+     * in bone-structure.ts now, where features know about angle. What is left
+     * here is the bulk plane of the face, and it should be gentler.
+     */
     const lowerFace = Array.from({ length: 60 }, (_, i) => frontDepthFraction(-0.05 + i * 0.01));
-    expect(Math.max(...lowerFace)).toBeGreaterThan(1.25); // chin projects
+    expect(Math.max(...lowerFace)).toBeGreaterThan(1.15); // chin still projects
     expect(frontDepthFraction(1.0)).toBeLessThan(0.95); // forehead is flatter
   });
 

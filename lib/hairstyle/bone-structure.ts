@@ -36,8 +36,22 @@ export interface BoneFeature {
   name: string;
   /** Height of the feature's centre at theta = 0. */
   u: number;
-  /** Half-height. The feature fades to nothing this far above and below. */
+  /** Half-height ABOVE the centre. The feature fades to nothing this far up. */
   uHalf: number;
+  /**
+   * Half-height BELOW the centre. Defaults to `uHalf` — a symmetric bump.
+   *
+   * SET IT SMALL TO MAKE AN EDGE RATHER THAN A BUMP, and that distinction is
+   * the whole reason this field exists. A symmetric window is a swelling: it
+   * rises and falls the same way, so a mandible built from one comes out as a
+   * rounded lump stuck on the side of the jaw. It reads as puffiness.
+   *
+   * A real jawline is not a swelling, it is a CORNER — the cheek plane and the
+   * under-jaw plane meeting at an angle. Making the falloff collapse quickly
+   * below the line and bleed slowly above it puts the radius change at one
+   * height, which is what an edge is.
+   */
+  uHalfBelow?: number;
   /**
    * How the centre height changes as you go round the head.
    *
@@ -137,8 +151,19 @@ export const BONE_FEATURES: readonly BoneFeature[] = [
     // ear, and it is visible from every angle including straight from behind,
     // which is the angle this renderer exists for.
     name: "mandible (jawline)",
-    u: 0.08,
-    uHalf: 0.1,
+    u: 0.14,
+    // Bleeds a long way UP into the cheek and stops abruptly BELOW: that
+    // asymmetry is the jawline. As a symmetric bump it was a jowl.
+    uHalf: 0.34,
+    /*
+     * 0.08, not 0.045. An edge wants to be sharp and the mesh cannot sample
+     * sharp: at 0.045 — under two ring spacings — the jawline rendered as a
+     * zigzag staircase across the cheek.
+     *
+     * It still reads as an edge, because what makes an edge here is the
+     * ASYMMETRY (0.08 below against 0.34 above), not the absolute sharpness.
+     */
+    uHalfBelow: 0.08,
     uSlope: 0.2,
     theta: 0.7,
     thetaHalf: 0.85,
@@ -161,7 +186,8 @@ export const BONE_FEATURES: readonly BoneFeature[] = [
     // The corner of the jaw. Sharpens the mandible where it turns up.
     name: "gonial angle",
     u: 0.34,
-    uHalf: 0.12,
+    uHalf: 0.2,
+    uHalfBelow: 0.08,
     uSlope: 0,
     theta: 1.32,
     thetaHalf: 0.36,
@@ -169,8 +195,9 @@ export const BONE_FEATURES: readonly BoneFeature[] = [
   },
   {
     name: "mental protuberance (chin)",
-    u: 0.11,
-    uHalf: 0.13,
+    u: 0.13,
+    uHalf: 0.15,
+    uHalfBelow: 0.08,
     uSlope: 0,
     theta: 0,
     thetaHalf: 0.38,
@@ -181,6 +208,49 @@ export const BONE_FEATURES: readonly BoneFeature[] = [
      * chin that already exists, not the chin itself.
      */
     amp: 0.045,
+  },
+  {
+    /*
+     * THE MOUTH, AND WHY IT HAS TO LIVE HERE.
+     *
+     * It used to be a dip in FRONT_DEPTH. That profile is a function of height
+     * alone, so the dip applied across the WHOLE front of the head and wrapped
+     * a horizontal groove round the face from one jaw corner to the other. It
+     * read as a fold in the skin, not as a mouth.
+     *
+     * A mouth is about 70 degrees wide. Only a feature that knows about angle
+     * can say that.
+     */
+    name: "oral fissure (mouth line)",
+    u: 0.26,
+    // Not thinner than the mesh can sample. At 0.05 against a ring spacing of
+    // 0.034 the mouth rendered as a row of square steps.
+    uHalf: 0.08,
+    uHalfBelow: 0.08,
+    uSlope: 0,
+    theta: 0,
+    thetaHalf: 0.36,
+    amp: -0.032,
+  },
+  {
+    // Kept small on purpose. The reference mannequins have simple closed lips
+    // with one clean line; anything more becomes an expression.
+    name: "upper lip",
+    u: 0.33,
+    uHalf: 0.08,
+    uSlope: 0,
+    theta: 0,
+    thetaHalf: 0.31,
+    amp: 0.022,
+  },
+  {
+    name: "lower lip",
+    u: 0.19,
+    uHalf: 0.085,
+    uSlope: 0,
+    theta: 0,
+    thetaHalf: 0.29,
+    amp: 0.026,
   },
   {
     // The back of the skull bulges, and it bulges high. frontDepthFraction()
@@ -223,7 +293,9 @@ export function featureWeight(f: BoneFeature, u: number, theta: number): number 
   if (ft <= 0) return 0;
   // The centre height follows the feature round the head — see uSlope.
   const centre = f.u + f.uSlope * d;
-  return ft * falloff(u - centre, f.uHalf);
+  const dv = u - centre;
+  const half = dv >= 0 ? f.uHalf : (f.uHalfBelow ?? f.uHalf);
+  return ft * falloff(dv, half);
 }
 
 /**

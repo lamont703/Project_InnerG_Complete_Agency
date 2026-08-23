@@ -68,7 +68,21 @@ export interface HeadMesh {
  * goes and where a banding artefact would be obvious. Uniform spacing wastes
  * triangles on the top of the head where nothing happens.
  */
-const RINGS_BELOW_LINE = 34;
+/*
+ * Raised from 34 for the mouth. The face now carries features measured in
+ * hundredths of a head-height, and a ring spacing of 0.034 could not resolve
+ * them: the mouth line came out as a row of square steps. Same failure the
+ * hairline feather had — a detail finer than the sampling does not render fine,
+ * it renders aliased.
+ *
+ * Then raised again from 48 to 84, for a reason worth writing down: the
+ * jawline's uSlope is 0.2, so it climbs about a third of a ring per segment and
+ * crosses a ring boundary every three segments. That period IS the sawtooth you
+ * see on the cheek. A diagonal feature needs many more rings across its
+ * transition than a horizontal one, because the staircase is set by how fast it
+ * crosses the grid, not by its width alone.
+ */
+const RINGS_BELOW_LINE = 84;
 /*
  * Raised from 14. These rings cover the line up to the apex, and above the
  * parietal ridge the surface is turning fast — 14 spread that far left the dome
@@ -84,6 +98,16 @@ const RINGS_ABOVE_LINE = 30;
  * that was too coarse for what was written on it.
  */
 const SEGMENTS = 152;
+
+/**
+ * Segments per ring, exported so tests index the mesh by the real number.
+ *
+ * head-mesh.test.ts hardcoded 96, and when this went to 152 the test kept
+ * passing arithmetic against a stale stride — reading whichever vertex happened
+ * to land there. It failed eventually, but it could as easily have gone on
+ * quietly asserting something about the wrong point on the head.
+ */
+export const RING_SEGMENTS = SEGMENTS;
 
 /** Scalp shows through below this; above it the hair reads as its own colour. */
 const SKIN = { r: 0.62, g: 0.47, b: 0.38 };
@@ -182,6 +206,16 @@ export function hairlineU(theta: number, perimeterU: number, foreheadU = 1): num
   const w =
     t <= PLATEAU ? 1 : 0.5 * (1 + Math.cos((Math.PI * (t - PLATEAU)) / (1 - PLATEAU)));
   return perimeterU + (foreheadU - perimeterU) * w;
+}
+
+/**
+ * Roughly how far apart the rings are below the fade line, in u.
+ *
+ * Exported so bone-structure.test.ts can assert every feature is wider than the
+ * mesh can sample. That check exists because this has now gone wrong twice.
+ */
+export function ringSpacingBelowLine(uLine: number): number {
+  return (uLine - MANNEQUIN_U_MIN) / RINGS_BELOW_LINE;
 }
 
 export function buildHeadMesh(frame: HeadFrame, spec: FadeSpec): HeadMesh {
