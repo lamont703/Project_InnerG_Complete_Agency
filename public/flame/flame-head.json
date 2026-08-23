@@ -1,0 +1,14 @@
+{
+ "vertexCount": 5023,
+ "triangleCount": 9976,
+ "scale": 49.2,
+ "levels": {
+  "perimeter": 0.416,
+  "earCanal": 0.536,
+  "earTop": 0.645,
+  "temple": 0.75,
+  "parietal": 0.861,
+  "vertex": 1.078
+ },
+ "attribution": "Head geometry derived from FLAME 2023 Open, (c) Max-Planck-Gesellschaft, CC-BY-4.0"
+}

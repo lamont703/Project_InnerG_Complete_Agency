@@ -1,7 +1,6 @@
 import {
   deriveFadePlan,
   guardById,
-  FADE_FRONT_HALF_ANGLE,
   AXIS_BEHIND_EAR_LINE,
   PARIETAL_ABOVE_FOREHEAD,
   VERTEX_ABOVE_FOREHEAD,
@@ -110,7 +109,13 @@ const SEGMENTS = 152;
 export const RING_SEGMENTS = SEGMENTS;
 
 /** Scalp shows through below this; above it the hair reads as its own colour. */
-const SKIN = { r: 0.62, g: 0.47, b: 0.38 };
+export interface Rgb {
+  r: number;
+  g: number;
+  b: number;
+}
+
+const SKIN: Rgb = { r: 0.62, g: 0.47, b: 0.38 };
 const HAIR = { r: 0.09, g: 0.08, b: 0.08 };
 
 /**
@@ -184,28 +189,54 @@ export function lengthAtU(plan: FadePlan, u: number, topInches: number): number 
  * The edge is deliberately NOT smoothed. A hairline is a sharp boundary; a
  * soft one reads as a smudge rather than as an edge.
  */
-export function hairlineU(theta: number, perimeterU: number, foreheadU = 1): number {
-  const wrapped = Math.atan2(Math.sin(theta), Math.cos(theta));
-  const half = (FADE_FRONT_HALF_ANGLE * Math.PI) / 180;
-  const d = Math.abs(wrapped);
-  if (d >= half) return perimeterU;
-
+export function hairlineU(
+  theta: number,
+  levels: { perimeter: number; earTop: number },
+  foreheadU: number,
+): number {
   /*
-   * A PLATEAU ACROSS THE FOREHEAD, then recession at the temples.
+   * THREE STAGES, BECAUSE A HAIRLINE IS NOT ONE CURVE.
    *
-   * This was a plain cosine over the whole sector, which starts falling
-   * immediately: 24 degrees off centre — still squarely on the forehead — put
-   * the hairline at u 0.82, BELOW the eye line. Once the head had eyes you
-   * could see it instantly, because they came out sitting in the hair.
+   * The previous version blended from the forehead straight to the fade's
+   * PERIMETER, which sits BELOW the ear. That is the wrong destination: it drags
+   * the boundary down past eye level on its way round, and on a bare mannequin
+   * you cannot see the mistake. Painted onto a head with eye sockets it puts
+   * hair across the eyes and down the temples, which is where it was found.
    *
-   * A hairline does not do that. It runs roughly level across the forehead and
-   * then sweeps back at the temples, so the falloff has to start late.
+   * What a hairline actually does:
+   *
+   *   1. runs roughly LEVEL across the forehead
+   *   2. sweeps back at the temple to meet the SIDEBURN, at about ear-top height
+   *   3. only BEHIND the ear does the fade perimeter — below the ear — take over
+   *
+   * Stage 2 is the one that was missing, and the sideburn is the landmark that
+   * was missing with it. Nothing between the eye and the ear should ever be
+   * below ear-top height.
    */
-  const PLATEAU = 0.45;
-  const t = d / half;
-  const w =
-    t <= PLATEAU ? 1 : 0.5 * (1 + Math.cos((Math.PI * (t - PLATEAU)) / (1 - PLATEAU)));
-  return perimeterU + (foreheadU - perimeterU) * w;
+  const wrapped = Math.atan2(Math.sin(theta), Math.cos(theta));
+  const d = Math.abs(wrapped);
+
+  // Straight ahead to the brow's outer end; then to the sideburn, in front of
+  // the ear; then past the ear, where the fade zone begins.
+  const BROW = 0.55;
+  const SIDEBURN = 1.05;
+  const BEHIND_EAR = 1.45;
+
+  /** Smooth 1 -> 0 with zero slope at both ends, so no stage boundary creases. */
+  const ease = (t: number) =>
+    0.5 * (1 + Math.cos(Math.PI * Math.min(1, Math.max(0, t))));
+
+  if (d <= BROW) return foreheadU;
+  if (d <= SIDEBURN) {
+    return levels.earTop + (foreheadU - levels.earTop) * ease((d - BROW) / (SIDEBURN - BROW));
+  }
+  if (d <= BEHIND_EAR) {
+    return (
+      levels.perimeter +
+      (levels.earTop - levels.perimeter) * ease((d - SIDEBURN) / (BEHIND_EAR - SIDEBURN))
+    );
+  }
+  return levels.perimeter;
 }
 
 /**
@@ -216,6 +247,71 @@ export function hairlineU(theta: number, perimeterU: number, foreheadU = 1): num
  */
 export function ringSpacingBelowLine(uLine: number): number {
   return (uLine - MANNEQUIN_U_MIN) / RINGS_BELOW_LINE;
+}
+
+/**
+ * The colour and hair length at ONE point on a scalp.
+ *
+ * EXTRACTED SO THERE IS EXACTLY ONE IMPLEMENTATION OF THE BARBER RULES. The
+ * procedural block and the FLAME head are completely different geometry, and the
+ * temptation is to reimplement the ladder, the hairline and the coverage curve
+ * for each. Two implementations means two things to keep in step, and the one
+ * nobody is looking at drifts. Both call this.
+ *
+ * It knows nothing about meshes — just a height, an angle and a plan — which is
+ * also what makes it testable without building anything.
+ */
+export interface ScalpPoint {
+  /** Height on the chin-to-forehead axis. */
+  u: number;
+  /** Angle round the head, 0 straight ahead. */
+  theta: number;
+  plan: FadePlan;
+  topInches: number;
+  /** Sideburn height — where the hairline meets the ear. */
+  earTopU: number;
+  /** Top of the forehead, where the hairline sits straight ahead. */
+  foreheadU: number;
+  /**
+   * Width of the hairline's soft edge, in u.
+   *
+   * MUST EXCEED THE MESH'S SAMPLING or it does nothing at all — a feather
+   * narrower than the gap between rows leaves every vertex fully on one side and
+   * the edge exactly as hard as before. The caller knows its own spacing, so the
+   * caller supplies this.
+   */
+  feather: number;
+  /** How much of an ear is here, 0-1. Only for meshes without modelled ears. */
+  ear?: number;
+}
+
+export function paintScalp(p: ScalpPoint): { inches: number; color: Rgb } {
+  const ear = p.ear ?? 0;
+  const levels = { perimeter: p.plan.uPerimeter, earTop: p.earTopU };
+  const line = hairlineU(p.theta, levels, p.foreheadU);
+  const hair = Math.min(1, Math.max(0, (p.u - line) / p.feather + 0.5));
+
+  const inches = lengthAtU(p.plan, p.u, p.topInches) * (1 - ear);
+
+  /*
+   * The hairline is feathered in COLOUR, not in length.
+   *
+   * Feathering the length first looked right and did nothing, because
+   * coverage() is deliberately steep at the short end — run a length ramp
+   * through it and it comes out as a step, since the colour has gone most of the
+   * way to hair before the length is a quarter up the ramp. So the ramp goes on
+   * the far side of the curve.
+   */
+  const hairColor = shade(inches);
+  const mix = (a: number, b: number, t: number) => a + (b - a) * t;
+  return {
+    inches: Math.max(0, inches * hair),
+    color: {
+      r: mix(mix(SKIN.r, hairColor.r, hair), SKIN.r, ear),
+      g: mix(mix(SKIN.g, hairColor.g, hair), SKIN.g, ear),
+      b: mix(mix(SKIN.b, hairColor.b, hair), SKIN.b, ear),
+    },
+  };
 }
 
 export function buildHeadMesh(frame: HeadFrame, spec: FadeSpec): HeadMesh {
@@ -276,77 +372,39 @@ export function buildHeadMesh(frame: HeadFrame, spec: FadeSpec): HeadMesh {
        * from one source or the mismatch is the first thing you see.
        */
       const theta = (s / SEGMENTS) * Math.PI * 2;
-      const earShape = earMask(u, theta);
-      /*
-       * SHARPER FOR PAINT THAN FOR SHAPE.
-       *
-       * The bump wants a broad, gentle mask or it creases. The colour does not:
-       * blending skin over the same broad falloff made the ear a soft pale
-       * patch that read as a bruise on the side of the head rather than as an
-       * ear. Re-curving the mask for colour only gives a solid ear with a
-       * defined edge, while the geometry underneath stays smooth.
-       */
-      const ear = (() => {
-        const t = Math.min(1, Math.max(0, (earShape - 0.2) / 0.35));
-        return t * t * (3 - 2 * t);
-      })();
-      /*
-       * Face below the hairline: no hair, so no fade.
-       *
-       * Feathered over height rather than switched. A hard boolean is the
-       * anatomically correct answer — hairlines ARE sharp — but it is evaluated
-       * per vertex, so a diagonal across the temple comes out as a staircase.
-       *
-       * THE FEATHER HAS TO EXCEED THE RING SPACING or it does nothing. At 0.015
-       * it was narrower than one ring, so every vertex still landed fully on one
-       * side or the other and the steps stayed exactly as hard as before — a
-       * softening parameter that was quietly a no-op.
-       *
-       * AND IT HAS TO WIDEN WHERE THE LINE IS STEEP. A fixed width fixed the
-       * flat stretches and left the temple as jagged as before, because there
-       * the hairline drops fast with angle: between one segment and the next it
-       * moves further than the whole feather, so the ramp never spans two
-       * vertices. Scaling it by how far the line actually moves per segment
-       * makes the smoothing follow the geometry instead of assuming it.
-       */
-      const line = hairlineU(theta, plan.uPerimeter, frame.levels.parietal - 0.1);
-      const nextLine = hairlineU(
-        theta + (Math.PI * 2) / SEGMENTS,
-        plan.uPerimeter,
-        frame.levels.parietal - 0.1,
-      );
-      const FEATHER = Math.max(0.06, Math.abs(nextLine - line) * 2);
-      const hair = Math.min(1, Math.max(0, (u - line) / FEATHER + 0.5));
-      /*
-       * BLENDED, not thresholded. A boolean `mask > 0.35` puts a hard edge in
-       * the colour no matter how smooth the mask is, and at 96 segments that
-       * edge is a visible staircase around the ear. Blending costs nothing and
-       * has no edge to alias.
-       */
-      const inches = lengthAtU(plan, u, topInches) * (1 - earShape);
-      lengths.push(Math.max(0, inches * hair));
 
       /*
-       * THE HAIRLINE IS FEATHERED IN COLOUR, NOT IN LENGTH.
-       *
-       * Feathering the length first looked right and did nothing, because
-       * coverage() is deliberately steep at the short end — the gap between
-       * bald and a #1 has to read stronger than the gap between a #3 and a #4.
-       * Run a length ramp through that curve and it comes out as a step: the
-       * colour has already gone most of the way to hair before the length is a
-       * quarter of the way up the ramp.
-       *
-       * So the ramp goes on the far side of the curve. Shade the hair at its
-       * real length, then cross-fade to skin across the edge.
+       * The ear mask is SHARPER FOR PAINT THAN FOR SHAPE. The bump wants a
+       * broad, gentle mask or it creases; blending skin over that same broad
+       * falloff made the ear a pale patch that read as a bruise. Re-curving it
+       * for colour only gives a defined ear over smooth geometry.
        */
-      const hairColor = shade(inches);
-      const mix = (a: number, bb: number, t: number) => a + (bb - a) * t;
-      const c = {
-        r: mix(mix(SKIN.r, hairColor.r, hair), SKIN.r, ear),
-        g: mix(mix(SKIN.g, hairColor.g, hair), SKIN.g, ear),
-        b: mix(mix(SKIN.b, hairColor.b, hair), SKIN.b, ear),
-      };
-      colors.push(c.r, c.g, c.b);
+      const earShape = earMask(u, theta);
+      const et = Math.min(1, Math.max(0, (earShape - 0.2) / 0.35));
+      const ear = et * et * (3 - 2 * et);
+
+      /*
+       * The feather widens where the hairline is steep. A fixed width smoothed
+       * the flat stretches and left the temple a staircase, because there the
+       * line moves further between two segments than the whole feather.
+       */
+      const hairLevels = { perimeter: plan.uPerimeter, earTop: frame.levels.earTop };
+      const foreheadU = frame.levels.parietal - 0.1;
+      const line = hairlineU(theta, hairLevels, foreheadU);
+      const nextLine = hairlineU(theta + (Math.PI * 2) / SEGMENTS, hairLevels, foreheadU);
+
+      const painted = paintScalp({
+        u,
+        theta,
+        plan,
+        topInches,
+        earTopU: frame.levels.earTop,
+        foreheadU,
+        feather: Math.max(0.06, Math.abs(nextLine - line) * 2),
+        ear,
+      });
+      lengths.push(painted.inches);
+      colors.push(painted.color.r, painted.color.g, painted.color.b);
     }
   }
 

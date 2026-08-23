@@ -107,12 +107,22 @@ describe("buildHeadMesh", () => {
   });
 
   it("renders every shipped preset without falling over", () => {
+    /*
+     * GIVEN REAL TIME ON THE CLOCK, and this is the third test to need it.
+     *
+     * Building eight 35,000-triangle meshes takes about two seconds alone and
+     * over five under a loaded suite, so it failed ONLY in the full run — which
+     * reads as flaky when it is simply slow. The mesh has tripled in size since
+     * this was written and the default 5s stopped being realistic somewhere in
+     * between. A test that passes alone and fails in CI wastes far more time
+     * than the seconds it was guarding.
+     */
     STYLE_PRESETS.forEach((p) => {
       const m = buildHeadMesh(frame, p.spec);
       expect(m.triangleCount).toBeGreaterThan(0);
       expect(Array.from(m.positions).every(Number.isFinite)).toBe(true);
     });
-  });
+  }, 30_000);
 
   it("IS CLOSED — no hole at the crown, none at the neck", () => {
     /*
@@ -172,69 +182,69 @@ describe("buildHeadMesh", () => {
 
 describe("the hairline", () => {
   const plan = deriveFadePlan(midSkin, frame.levels);
+  const L = { perimeter: plan.uPerimeter, earTop: frame.levels.earTop };
+  const FORE = frame.levels.parietal - 0.1;
+  const line = (theta: number) => hairlineU(theta, L, FORE);
 
-  it("STAYS HIGH ACROSS THE FOREHEAD before receding at the temples", () => {
+  it("NEVER DROPS BELOW EAR-TOP ANYWHERE IN FRONT OF THE EAR", () => {
     /*
-     * The regression guard for eyes-in-the-hair. A plain cosine over the whole
-     * sector starts falling at once, so a quarter of the way out — still on the
-     * forehead — the line had already dropped most of the way to the perimeter.
+     * The bug this whole rewrite exists for, and the mannequin hid it.
+     *
+     * The old curve blended the forehead straight to the fade PERIMETER, which
+     * is BELOW the ear — so on the way round it dragged the boundary past eye
+     * level. On a bare block you cannot see that. Painted onto a real head it
+     * puts hair across the eyes and down the temples, which is exactly how it
+     * was found.
+     *
+     * Nothing between straight-ahead and the ear may sit below the sideburn.
      */
-    const front = hairlineU(0, plan.uPerimeter, 1);
-    expect(hairlineU(0.3, plan.uPerimeter, 1)).toBeCloseTo(front, 6);
-    expect(hairlineU(0.42, plan.uPerimeter, 1)).toBeGreaterThan(0.95);
-    // and it must still recede by the temple, or there is no recession at all
-    expect(hairlineU(0.8, plan.uPerimeter, 1)).toBeLessThan(0.8);
+    for (let d = 0; d <= 1.05; d += 0.02) {
+      expect(line(d), `at ${d.toFixed(2)} rad`).toBeGreaterThanOrEqual(L.earTop - 1e-9);
+    }
   });
 
-  it("is high at the front and drops to the perimeter round the back", () => {
-    const front = hairlineU(0, plan.uPerimeter, 1);
-    const temple = hairlineU(0.5, plan.uPerimeter, 1);
-    const back = hairlineU(Math.PI, plan.uPerimeter, 1);
-    expect(front).toBeCloseTo(1, 6);
-    expect(back).toBeCloseTo(plan.uPerimeter, 6);
-    expect(temple).toBeLessThan(front);
-    expect(temple).toBeGreaterThan(back);
+  it("stays level across the forehead, then sweeps back", () => {
+    expect(line(0.3)).toBeCloseTo(FORE, 9); // still the forehead
+    expect(line(0.5)).toBeCloseTo(FORE, 9);
+    expect(line(0.8)).toBeLessThan(FORE); // receding at the temple
+    expect(line(1.05)).toBeCloseTo(L.earTop, 6); // meets the sideburn
+  });
+
+  it("only reaches the fade perimeter BEHIND the ear", () => {
+    expect(line(1.2)).toBeGreaterThan(L.perimeter);
+    expect(line(1.45)).toBeCloseTo(L.perimeter, 6);
+    expect(line(Math.PI)).toBeCloseTo(L.perimeter, 9);
   });
 
   it("is symmetric left and right", () => {
-    expect(hairlineU(0.7, plan.uPerimeter, 1)).toBeCloseTo(
-      hairlineU(-0.7, plan.uPerimeter, 1),
-      9,
-    );
+    expect(line(0.7)).toBeCloseTo(line(-0.7), 9);
+    expect(line(1.3)).toBeCloseTo(line(-1.3), 9);
+  });
+
+  it("has no jump at either stage boundary", () => {
+    // Three stages joined by eased blends: a discontinuity here would show as a
+    // hard notch in the hairline.
+    for (const b of [0.55, 1.05, 1.45]) {
+      expect(Math.abs(line(b + 1e-4) - line(b - 1e-4))).toBeLessThan(1e-3);
+    }
   });
 
   it("LEAVES THE FACE BARE while the back of the head at that height is not", () => {
-    /*
-     * Without this the fade runs through 360 degrees and the gradient is
-     * painted straight down the forehead and across the face. fade-geometry
-     * already names the failure for the 2D overlay — "geometrically consistent,
-     * anatomically absurd, and confidently labelled" — and the ring model here
-     * makes exactly the same assumption.
-     *
-     * Checked as a property of the built mesh, not of the helper, because it is
-     * the wiring that was missing rather than the maths.
-     */
     const m = buildHeadMesh(frame, midSkin);
     const SEG = RING_SEGMENTS;
     const ringCount = m.lengths.length / SEG;
-
-    // A height inside the fade zone: above the perimeter, below the line.
     const target = (plan.uPerimeter + plan.uLine) / 2;
     let bestRing = 0;
     let bestErr = Infinity;
     for (let r = 0; r < ringCount; r++) {
-      // Reconstruct the ring's height from its vertices' distance up the axis.
       const y = m.positions[r * SEG * 3 + 1] / frame.faceHeight + frame.axisOriginU;
       if (Math.abs(y - target) < bestErr) {
         bestErr = Math.abs(y - target);
         bestRing = r;
       }
     }
-
-    const faceLen = m.lengths[bestRing * SEG + 0]; // theta = 0 is straight ahead
-    const backLen = m.lengths[bestRing * SEG + SEG / 2]; // theta = PI is the back
-    expect(faceLen).toBe(0);
-    expect(backLen).toBeGreaterThan(0);
+    expect(m.lengths[bestRing * SEG + 0]).toBe(0); // theta = 0 is the face
+    expect(m.lengths[bestRing * SEG + SEG / 2]).toBeGreaterThan(0); // the back
   });
 });
 
