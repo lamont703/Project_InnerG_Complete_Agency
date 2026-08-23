@@ -16,6 +16,7 @@
  * Usage:
  *   node scripts/shorts/queue_entity_cards.js --dry-run
  *   node scripts/shorts/queue_entity_cards.js
+ *   node scripts/shorts/queue_entity_cards.js --source licence
  */
 require("dotenv").config({ path: ".env.local", override: true });
 const fs = require("fs");
@@ -24,7 +25,21 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 const { createClient } = require("@supabase/supabase-js");
 const ffmpeg = require("@ffmpeg-installer/ffmpeg").path;
-const { build } = require("./entity-cards");
+/**
+ * WHICH CARD MODULE TO LOAD, chosen by flag. The render/upload/queue mechanics
+ * are identical for every source — only where the figures come from differs —
+ * so a second copy of this file would be a second place to fix the next bug.
+ */
+const SOURCES = {
+  entity: "./entity-cards",
+  licence: "./licence-cards",
+};
+const which = (() => {
+  const i = process.argv.indexOf("--source");
+  return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : "entity";
+})();
+if (!SOURCES[which]) { console.error(`Unknown --source "${which}". One of: ${Object.keys(SOURCES).join(", ")}`); process.exit(1); }
+const { build } = require(SOURCES[which]);
 
 const ROOT = path.join(__dirname, "..", "..");
 const OUT_DIR = path.join(ROOT, "reference", "Podcast Visuals", "Shorts");
