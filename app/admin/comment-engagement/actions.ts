@@ -8,6 +8,7 @@ import { isExpired } from "@/lib/instagram-token";
 import { DISCLOSURE } from "@/lib/instagram-dm-policy";
 import { postCommentReply, sendPrivateReply, trimForComment } from "@/lib/instagram-comments";
 import { postTikTokCommentReply } from "@/lib/tiktok-comments";
+import { youtubeAccessToken, replyToComment } from "@/lib/youtube-comments";
 
 /**
  * Approving a draft, editing it, and turning the pause off.
@@ -55,6 +56,41 @@ export async function sendDraftReply(
     .maybeSingle();
 
   if (!claimed) return { ok: false, error: "Already sent, or no longer a draft." };
+
+  /*
+   * YOUTUBE posts through comments.insert on the publisher's own token, which
+   * already carries youtube.force-ssl. Returns before the Instagram machinery
+   * for the same reason TikTok does: no private reply, no DM thread.
+   */
+  if (claimed.platform === "youtube") {
+    const publicText = trimForComment(editedText?.trim() || claimed.reply_text || "");
+    if (!publicText) {
+      await db.from("instagram_comment_replies").update({ status: "draft", updated_at: now }).eq("comment_id", commentId);
+      return { ok: false, error: "Reply is empty." };
+    }
+    let sent: { ok: boolean; error?: string };
+    try {
+      const token = await youtubeAccessToken();
+      const r = await replyToComment({ accessToken: token, parentId: claimed.external_comment_id, text: publicText });
+      sent = r.ok ? { ok: true } : { ok: false, error: (r as any).error };
+    } catch (err: any) {
+      sent = { ok: false, error: err?.message || "youtube auth failed" };
+    }
+
+    await db
+      .from("instagram_comment_replies")
+      .update({
+        reply_text: publicText,
+        replied_at: sent.ok ? now : null,
+        reply_error: sent.ok ? null : sent.error,
+        status: sent.ok ? "replied" : "draft",
+        updated_at: now,
+      })
+      .eq("comment_id", commentId);
+
+    revalidatePath("/admin/comment-engagement");
+    return sent.ok ? { ok: true } : { ok: false, error: sent.error };
+  }
 
   /*
    * TIKTOK GOES OUT THROUGH GOHIGHLEVEL, and returns before any of the

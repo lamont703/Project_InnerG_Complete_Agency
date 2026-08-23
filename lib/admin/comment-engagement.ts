@@ -14,7 +14,7 @@ export type CommentStatus = "pending" | "draft" | "replied" | "copied" | "partia
 export interface CommentThread {
   id: string;
   /** instagram replies are posted by us; tiktok replies are pasted into GHL. */
-  platform: "instagram" | "tiktok";
+  platform: "instagram" | "tiktok" | "youtube";
   commentId: string;
   username: string | null;
   commentText: string;
@@ -77,7 +77,7 @@ export async function fetchCommentEngagement(): Promise<CommentEngagement> {
 
   const threads: CommentThread[] = (rows || []).map((r: any) => ({
     id: r.id,
-    platform: (r.platform ?? "instagram") as "instagram" | "tiktok",
+    platform: (r.platform ?? "instagram") as "instagram" | "tiktok" | "youtube",
     commentId: r.comment_id,
     username: r.commenter_username,
     commentText: r.comment_text,

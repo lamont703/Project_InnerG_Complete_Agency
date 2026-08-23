@@ -39,6 +39,10 @@
     {
       "path": "/api/cron/tiktok-comment-sync",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/youtube-comment-sync",
+      "schedule": "15 * * * *"
     }
   ]
 }

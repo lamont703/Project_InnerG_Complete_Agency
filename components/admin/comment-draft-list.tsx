@@ -23,7 +23,7 @@ import { COMMENT_MAX_CHARS } from "@/lib/instagram-comments";
 
 export interface DraftRow {
   commentId: string;
-  platform: "instagram" | "tiktok";
+  platform: "instagram" | "tiktok" | "youtube";
   username: string | null;
   commentText: string;
   replyText: string | null;
