@@ -36,6 +36,7 @@ const footerLinks = {
     { label: "Global Listing Insights", href: "/admin/listing-insights" },
     { label: "School Tour Call Queue", href: "/admin/school-tour-queue" },
     { label: "Content Publisher", href: "/admin/content-publisher" },
+    { label: "Content Insights Data", href: "/admin/content-insights" },
     /**
      * Sits next to the Content Publisher because it answers that page's first
      * question: is the account it publishes to still connected? The panel
