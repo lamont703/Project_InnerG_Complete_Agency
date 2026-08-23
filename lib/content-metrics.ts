@@ -25,8 +25,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *   instagram   views + reach, per media, LIFETIME ONLY
  *   gbp         impressions, per location, per day (no per-post breakdown)
  *   google      impressions, per site, per day    Search Console
+ *   tiktok      views + engagement, per video, LIFETIME  TikTok video.list
  *   linkedin    NOTHING — 403 ACCESS_DENIED on socialActions
- *   tiktok_ghl  likes/shares/comments, NO view count
  *
  * A PLATFORM THAT CANNOT REPORT WRITES A ROW SAYING SO. It does not write a
  * zero and it does not write nothing. A zero draws a flat line along the bottom
@@ -35,7 +35,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * carries the API's own words so the page can show them.
  */
 
-export type Platform = "youtube" | "instagram" | "gbp" | "linkedin" | "tiktok_ghl" | "x" | "google";
+export type Platform = "youtube" | "instagram" | "gbp" | "linkedin" | "tiktok" | "tiktok_ghl" | "x" | "google";
 export type MetricKind = "impressions" | "views" | "reach" | "none";
 
 export interface MetricRow {
@@ -324,49 +324,108 @@ export function collectLinkedIn(): MetricRow[] {
 }
 
 /**
- * TikTok through GoHighLevel: engagement yes, views no.
+ * TikTok views, read from TikTok directly — while GoHighLevel keeps publishing.
  *
- * GHL's post list carries `insights: {like, share, comment}` and no view or
- * impression field of any kind. Worse for attribution, publishing through GHL
- * returns `{"id": "accepted"}` rather than a TikTok post id, so even if a view
- * count existed there would be nothing to join it to. value stays null and
- * metric_kind is 'none'; the engagement numbers are still worth keeping.
+ * SEPARATING THE TWO IS THE WHOLE POINT. GoHighLevel is a good publisher and
+ * stays the publisher; it is simply a poor reporter. Its post list carries
+ * {like, share, comment} and no view count, and publishing through it returns
+ * {"id": "accepted"} instead of a TikTok post id, so there is nothing to attach
+ * a number to. TikTok's own video.list answers all of it.
+ *
+ * THE TOKEN IS IN client_db_connections, NOT publisher_connections, and that is
+ * deliberate rather than untidy. publisher_connections.tiktok stays
+ * disconnected because that row is about PUBLISHING, which needs video.publish
+ * and an approved app audit that we do not have. Reading needs video.list,
+ * which the existing connector token already carries. One capability being
+ * blocked does not block the other, and collapsing them into one row would make
+ * it look like it does.
+ *
+ * ITS LABEL LIES ABOUT WHOSE ACCOUNT IT IS. The row reads "TikTok - Lamont |
+ * Agency Owner/Educator" and tiktok_accounts says `freelancekickstart`, both
+ * written before the account was renamed. user/info on the same open_id now
+ * returns `shearquery`. The connection never broke; only the stored names went
+ * stale. Verify an account against the API, never against a label.
+ *
+ * LIFETIME, so is_cumulative. Same treatment as Instagram: the page differences
+ * consecutive readings, and the first reading of each video is dropped rather
+ * than counted in full.
  */
-export async function collectTikTokGhl(): Promise<MetricRow[]> {
+export async function collectTikTok(): Promise<MetricRow[]> {
   const today = isoDay(new Date());
-  const key = process.env.GHL_API_KEY, loc = process.env.GHL_LOCATION_ID;
   const base = {
-    platform: "tiktok_ghl" as const, metric_date: today, external_post_id: "",
+    platform: "tiktok" as const, metric_date: today, external_post_id: "",
     value: null, metric_kind: "none" as const,
   };
-  if (!key || !loc) return [{ ...base, unavailable_reason: "GoHighLevel credentials not configured" }];
+  const fail = (reason: string): MetricRow[] => [{ ...base, unavailable_reason: reason }];
+
+  const admin = createAdminClient() as any;
+  const { data } = await admin
+    .from("client_db_connections")
+    .select("sync_config")
+    .eq("db_type", "tiktok")
+    .limit(1);
+
+  const refreshToken = data?.[0]?.sync_config?.refresh_token;
+  if (!refreshToken) return fail("no TikTok connection stored");
+  if (!process.env.TIKTOK_PRODUCTION_CLIENT_KEY || !process.env.TIKTOK_PRODUCTION_CLIENT_SECRET) {
+    return fail("TIKTOK_PRODUCTION_CLIENT_KEY / _SECRET not set");
+  }
 
   try {
-    const r = await fetch(`https://services.leadconnectorhq.com/social-media-posting/${loc}/posts/list`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, Version: "2021-07-28", Accept: "application/json", "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "all", limit: "100", skip: "0" }),
-      signal: AbortSignal.timeout(20000),
+    const body = new URLSearchParams({
+      client_key: process.env.TIKTOK_PRODUCTION_CLIENT_KEY,
+      client_secret: process.env.TIKTOK_PRODUCTION_CLIENT_SECRET,
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
     });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) return [{ ...base, unavailable_reason: `GoHighLevel HTTP ${r.status}` }];
+    const tj = await (await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+      signal: AbortSignal.timeout(20000),
+    })).json();
+    if (!tj.access_token) return fail(`TikTok token refresh: ${tj.error_description || tj.error || "failed"}`);
 
-    let likes = 0, shares = 0, comments = 0, n = 0;
-    for (const p of j?.results?.posts ?? []) {
-      if (p.platform !== "tiktok" || p.status !== "published") continue;
-      likes += Number(p.insights?.like ?? 0);
-      shares += Number(p.insights?.share ?? 0);
-      comments += Number(p.insights?.comment ?? 0);
-      n++;
+    /*
+     * TikTok did NOT rotate the refresh token on redemption when this was
+     * measured — the returned value matched the stored one. That is why nothing
+     * is written back here. X behaves the opposite way and invalidates the old
+     * token, so if TikTok ever starts rotating, the symptom is every collection
+     * after the first failing to authenticate. Re-check before assuming.
+     */
+
+    const fields = "id,title,video_description,create_time,view_count,like_count,comment_count,share_count";
+    const out: MetricRow[] = [];
+    let cursor: number | undefined;
+
+    // Paged, because the account is already past 80 videos and video.list caps
+    // a page at 20. Bounded so a cursor that never terminates cannot spin.
+    for (let page = 0; page < 10; page++) {
+      const r = await fetch(`https://open.tiktokapis.com/v2/video/list/?fields=${fields}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${tj.access_token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(cursor ? { max_count: 20, cursor } : { max_count: 20 }),
+        signal: AbortSignal.timeout(25000),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || (j?.error?.code && j.error.code !== "ok")) {
+        return out.length ? out : fail(`TikTok video.list: ${j?.error?.message || `HTTP ${r.status}`}`);
+      }
+      for (const v of j?.data?.videos ?? []) {
+        out.push({
+          platform: "tiktok", metric_date: today, external_post_id: String(v.id),
+          value: Number(v.view_count ?? 0), metric_kind: "views", is_cumulative: true,
+          likes: Number(v.like_count ?? 0), comments: Number(v.comment_count ?? 0),
+          shares: Number(v.share_count ?? 0),
+        });
+      }
+      if (!j?.data?.has_more) break;
+      cursor = j.data.cursor;
     }
-    return [{
-      ...base, likes, shares, comments, is_cumulative: true,
-      unavailable_reason: n
-        ? "GoHighLevel reports likes/shares/comments for TikTok but no view or impression count"
-        : "no published TikTok posts found in GoHighLevel",
-    }];
+
+    return out.length ? out : fail("TikTok returned no videos");
   } catch (err: any) {
-    return [{ ...base, unavailable_reason: `GoHighLevel: ${err?.message || "request failed"}` }];
+    return fail(`TikTok: ${err?.message || "request failed"}`);
   }
 }
 

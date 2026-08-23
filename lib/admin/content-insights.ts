@@ -49,7 +49,9 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
   gbp: "Google Business Profile",
   google: "Google Search",
   linkedin: "LinkedIn",
-  tiktok_ghl: "TikTok",
+  tiktok: "TikTok",
+  // Retained for rows collected before TikTok was read directly.
+  tiktok_ghl: "TikTok (via GoHighLevel)",
   x: "X",
 };
 

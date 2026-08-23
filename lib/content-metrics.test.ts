@@ -40,3 +40,18 @@ describe("collectLinkedIn", () => {
     expect(collectLinkedIn()[0].value).not.toBe(0);
   });
 });
+
+describe("TikTok is read directly, not through GoHighLevel", () => {
+  /*
+   * The GHL reader was removed rather than kept as a fallback. It reported
+   * likes/shares/comments and no view count, and publishing through GHL returns
+   * {"id":"accepted"} instead of a post id — so its rows could never be joined
+   * to a video or contribute a view. Keeping it would have put a permanent
+   * "cannot report" row on the page beside the real TikTok numbers.
+   */
+  it("no longer exports a GoHighLevel metrics collector", async () => {
+    const mod = await import("./content-metrics");
+    expect("collectTikTokGhl" in mod).toBe(false);
+    expect(typeof (mod as any).collectTikTok).toBe("function");
+  });
+});

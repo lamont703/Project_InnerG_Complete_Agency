@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   collectYouTube, collectInstagram, collectGbp, collectGoogleSearch,
-  collectLinkedIn, collectTikTokGhl, saveMetrics, type MetricRow,
+  collectLinkedIn, collectTikTok, saveMetrics, type MetricRow,
 } from "@/lib/content-metrics";
 
 /**
@@ -61,10 +61,10 @@ export async function GET(req: Request) {
     collectGbp(DAYS),
     collectGoogleSearch(DAYS),
     Promise.resolve(collectLinkedIn()),
-    collectTikTokGhl(),
+    collectTikTok(),
   ]);
 
-  const names = ["youtube", "instagram", "gbp", "google", "linkedin", "tiktok_ghl"] as const;
+  const names = ["youtube", "instagram", "gbp", "google", "linkedin", "tiktok"] as const;
   const rows: MetricRow[] = [];
   const perPlatform: Record<string, number | string> = {};
 

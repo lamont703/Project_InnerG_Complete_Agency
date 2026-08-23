@@ -27,7 +27,8 @@ const COLORS: Record<string, string> = {
   gbp: "#2563eb",
   google: "#16a34a",
   linkedin: "#0369a1",
-  tiktok_ghl: "#0f172a",
+  tiktok: "#0f172a",
+  tiktok_ghl: "#94a3b8",
   x: "#64748b",
   __aggregate: "#0f172a",
 };
