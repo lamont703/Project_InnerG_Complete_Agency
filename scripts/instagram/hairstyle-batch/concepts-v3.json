@@ -1,0 +1,51 @@
+[
+ {"k":"m-designs","g":"men","h":"Six hair designs to ask for.","seed":"grid-3-designs",
+  "cat":"MEN'S clipper HAIR DESIGNS shaved into a short fade, seen from a side-back angle so the pattern is fully visible",
+  "n":["Geometric lines","Curved waves","Zigzag pattern","Cross-hatch","Starburst","Layered arcs"],
+  "fin":"Crisp razor lines cut into the hair, sharp edges, clean fade underneath."},
+
+ {"k":"m-black","g":"men","h":"Six barbershop classics.","seed":"grid-1-fades",
+  "cat":"MEN'S BLACK BARBERSHOP haircuts on textured afro hair",
+  "n":["360 waves","High-top fade","Box fade","Temple taper","Sponge twists","Line-up with a part"],
+  "fin":"Sharp line-ups, clean fades, defined wave and curl pattern."},
+
+ {"k":"m-latino","g":"men","h":"Six cuts from the Latino barbershop.","seed":"grid-1-fades",
+  "cat":"MEN'S haircuts popular in LATINO barbershops",
+  "n":["Edgar cut","Blowout taper","Textured fringe","Low taper fade","Mullet fade","Burst fade with a fringe"],
+  "fin":"Blunt straight fringe lines where the style calls for it, crisp tapers."},
+
+ {"k":"m-asian","g":"men","h":"Six cuts from the Asian barbershop.","seed":"grid-4-length",
+  "cat":"MEN'S haircuts popular in KOREAN and JAPANESE salons, on straight dark hair",
+  "n":["Two-block cut","Comma hair","Dandy perm","Textured fringe","Middle-part curtains","Buzz with a fringe"],
+  "fin":"Soft straight hair, natural fringe, no fades unless the style needs one."},
+
+ {"k":"w-african-braids","g":"women","h":"Six braided styles.","seed":"grid-w5-braids",
+  "cat":"WOMEN'S AFRICAN BRAIDED styles, shown so the parting and braid direction are clear",
+  "n":["Fulani braids","Ghana braids","Knotless box braids","Lemonade braids","Halo braid","Goddess braids"],
+  "fin":"Crisp parting lines, neat braid work, accurate braid direction for each style."},
+
+ {"k":"w-african-natural","g":"women","h":"Six natural styles.","seed":"grid-w4-curly",
+  "cat":"WOMEN'S NATURAL AFRO-TEXTURED styles, no braids",
+  "n":["Bantu knots","Afro puff","Twist-out","Wash and go","High-top afro","Hair threading"],
+  "fin":"Defined coil and curl pattern, healthy natural texture."},
+
+ {"k":"w-locs","g":"women","h":"Six loc styles.","seed":"grid-w5-braids",
+  "cat":"WOMEN'S LOC styles",
+  "n":["Starter locs","Sisterlocks","Faux locs","Butterfly locs","Goddess locs","Loc updo"],
+  "fin":"Show the difference in loc thickness and finish between each style."},
+
+ {"k":"w-korean","g":"women","h":"Six Korean salon cuts.","seed":"grid-w2-layers",
+  "cat":"WOMEN'S haircuts popular in KOREAN salons, on straight dark hair",
+  "n":["Hush cut","C-curl perm","Tassel cut","See-through bangs","Layered bob","Short wolf cut"],
+  "fin":"Soft face-framing layers, glossy straight hair, light airy fringe."},
+
+ {"k":"w-japanese","g":"women","h":"Six Japanese salon cuts.","seed":"grid-w1-bobs",
+  "cat":"WOMEN'S haircuts popular in JAPANESE salons, on straight dark hair",
+  "n":["Hime cut","Wolf cut","Straight perm","Blunt bob with fringe","Shaggy layers","Low pony with face framing"],
+  "fin":"Blunt precise cutting lines, very straight glossy hair."},
+
+ {"k":"w-south-asian","g":"women","h":"Six long-hair styles.","seed":"grid-w2-layers",
+  "cat":"WOMEN'S LONG-HAIR styles popular in SOUTH ASIAN salons, on very long thick dark hair",
+  "n":["Fishtail braid","Side braid","Bun with a braid","Half-up braid","Sleek ponytail","Long centre-part layers"],
+  "fin":"Very long thick hair, neat braid work, high shine."}
+]
