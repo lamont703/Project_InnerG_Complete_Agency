@@ -62,6 +62,9 @@ const INTERNAL_TOOL_ROUTES = [
     // in depth, because this middleware fails OPEN on an auth exception.
     "/admin/content-research",
     "/admin/crm-research",
+    // Five angles of a named person's head, held in the only private storage
+    // bucket in this project. The page re-checks isAdmin() itself.
+    "/admin/hairstyle-selector",
     "/tools/employment-match-review",
     "/tools/domain-management",
     "/tools/seo-keyword-tracker",

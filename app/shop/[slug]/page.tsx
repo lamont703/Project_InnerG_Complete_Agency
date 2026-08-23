@@ -29,6 +29,7 @@ import { CompareNearby } from "@/components/shortlist/compare-nearby";
 import { ServiceIntent } from "@/components/shortlist/service-intent";
 import { fetchComparables } from "@/lib/shortlist";
 import { cleanBusinessName, entityTitle } from "@/lib/entity-title";
+import { isShopIndexable, SHOP_INDEX_COLUMNS, NOINDEX_FOLLOW } from "@/lib/indexable";
 import {
   WIKIDATA, cityNode, entityId, faqId, faqNode, graphJson, identifiers,
   pageId, ref, regulatorFor, topics, webPageNode,
@@ -115,11 +116,14 @@ export async function generateMetadata(
    * A missing column here degrades quietly. If you add a field to the metadata
    * below, add it here in the same edit.
    */
-  const metaSelect = [
+  const metaSelect = Array.from(new Set([
     "shop_name", "city", "shop_image_url", "hiring_need", "booth_count_available",
     "nearby_areas", "rating", "total_reviews", "formatted_address", "address_state",
     "rent_type", "rent_rate",
-  ].join(",");
+    // Spread, never hand-copied: isShopIndexable reads these, and a column it
+    // cannot see comes back undefined and quietly marks a good page noindex.
+    ...SHOP_INDEX_COLUMNS,
+  ])).join(",");
   const slugUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agent_barbershop_leads?slug=eq.${resolvedParams.slug}&select=${metaSelect}`;
   const slugResponse = await fetchWithRetry(slugUrl, {
     headers: {
@@ -191,9 +195,19 @@ export async function generateMetadata(
   ]);
   const image = shop.shop_image_url || "/shop_day_card.jpg";
 
+  /*
+   * A shop earns indexing by carrying something Google Maps does not have —
+   * booth rent, an owner claim, amenities, an original write-up, open chairs.
+   * Without one it is a restatement of the Maps listing competing for the
+   * shop's own name, which is what the August 2026 spam update demoted. See
+   * lib/indexable.ts.
+   */
+  const indexable = isShopIndexable(shop);
+
   return {
     title,
     description,
+    ...(indexable ? {} : { robots: NOINDEX_FOLLOW }),
     alternates: { canonical: `${SITE_URL}/shop/${resolvedParams.slug}` },
     openGraph: {
       title,

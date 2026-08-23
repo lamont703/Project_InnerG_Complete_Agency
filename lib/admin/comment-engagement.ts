@@ -9,10 +9,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * views in this codebase.
  */
 
-export type CommentStatus = "pending" | "draft" | "replied" | "partial" | "failed" | "skipped";
+export type CommentStatus = "pending" | "draft" | "replied" | "copied" | "partial" | "failed" | "skipped";
 
 export interface CommentThread {
   id: string;
+  /** instagram replies are posted by us; tiktok replies are pasted into GHL. */
+  platform: "instagram" | "tiktok" | "youtube";
   commentId: string;
   username: string | null;
   commentText: string;
@@ -60,7 +62,7 @@ export async function fetchCommentEngagement(): Promise<CommentEngagement> {
     db
       .from("instagram_comment_replies")
       .select(
-        "id, comment_id, commenter_id, commenter_username, comment_text, reply_text, replied_at, reply_error, dm_text, dm_sent_at, dm_error, commenter_prior_comments, status, created_at"
+        "id, platform, comment_id, commenter_id, commenter_username, comment_text, reply_text, replied_at, reply_error, dm_text, dm_sent_at, dm_error, commenter_prior_comments, status, created_at"
       )
       .order("created_at", { ascending: false })
       .limit(200),
@@ -75,6 +77,7 @@ export async function fetchCommentEngagement(): Promise<CommentEngagement> {
 
   const threads: CommentThread[] = (rows || []).map((r: any) => ({
     id: r.id,
+    platform: (r.platform ?? "instagram") as "instagram" | "tiktok" | "youtube",
     commentId: r.comment_id,
     username: r.commenter_username,
     commentText: r.comment_text,
@@ -112,7 +115,7 @@ export async function fetchCommentEngagement(): Promise<CommentEngagement> {
     }))
     .filter((u: any) => u.text);
 
-  const counts = { pending: 0, draft: 0, replied: 0, partial: 0, failed: 0, skipped: 0, total: threads.length } as any;
+  const counts = { pending: 0, draft: 0, replied: 0, copied: 0, partial: 0, failed: 0, skipped: 0, total: threads.length } as any;
   threads.forEach((t) => (counts[t.status] = (counts[t.status] || 0) + 1));
 
   const byPerson = new Map<string, { username: string | null; comments: number }>();

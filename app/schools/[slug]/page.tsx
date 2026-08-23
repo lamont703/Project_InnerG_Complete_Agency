@@ -43,7 +43,7 @@ import { composeDescription, ratingClause, streetClause, percentClause } from "@
 import { PassRateAlert } from "@/components/schools/pass-rate-alert";
 import { RequestSchoolTourButton } from "@/components/request-school-tour-modal";
 import { SITE_URL } from "@/lib/site";
-import { isIndexableSchool } from "@/lib/listing-address-quality";
+import { isSchoolIndexable, NOINDEX_FOLLOW } from "@/lib/indexable";
 
 export const revalidate = 3600;
 
@@ -181,12 +181,12 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
    * same one — a sitemap that submits a noindexed URL is a contradiction
    * Search Console reports as an error.
    */
-  const indexable = isIndexableSchool(school);
+  const indexable = isSchoolIndexable(school);
 
   return {
     title,
     description,
-    ...(indexable ? {} : { robots: { index: false, follow: true } }),
+    ...(indexable ? {} : { robots: NOINDEX_FOLLOW }),
     alternates: { canonical: `${SITE_URL}/schools/${slug}` },
     openGraph: {
       title,

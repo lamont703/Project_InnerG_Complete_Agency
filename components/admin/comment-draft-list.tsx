@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Send, X, Loader2, Zap, ZapOff, MessageCircle } from "lucide-react";
-import { sendDraftReply, discardDraft, setAutoReply } from "@/app/admin/comment-engagement/actions";
+import { Send, X, Loader2, Zap, ZapOff, MessageCircle, Copy } from "lucide-react";
+import { sendDraftReply, discardDraft, setAutoReply, markCopied } from "@/app/admin/comment-engagement/actions";
 import { COMMENT_MAX_CHARS } from "@/lib/instagram-comments";
 
 /**
@@ -23,6 +23,7 @@ import { COMMENT_MAX_CHARS } from "@/lib/instagram-comments";
 
 export interface DraftRow {
   commentId: string;
+  platform: "instagram" | "tiktok" | "youtube";
   username: string | null;
   commentText: string;
   replyText: string | null;
@@ -83,6 +84,28 @@ function Draft({ row }: { row: DraftRow }) {
   const [text, setText] = React.useState(row.replyText ?? "");
   const [busy, setBusy] = React.useState<null | "send" | "discard">(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [copied, setCopied] = React.useState(false);
+
+  /*
+   * Copy, then record it as handed over. Marked 'copied' rather than 'replied'
+   * because nothing was sent from here — whoever pastes it is the one who
+   * replied, and a status claiming otherwise would make the queue look clear
+   * while a TikTok comment sat unanswered.
+   */
+  const copyAndMark = async () => {
+    setBusy("send");
+    setError(null);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      setError("Could not copy — select the text above and copy it manually.");
+    }
+    const r = await markCopied(row.commentId);
+    setBusy(null);
+    if (!r.ok) setError(r.error ?? "Could not update.");
+    router.refresh();
+  };
 
   const over = text.length > COMMENT_MAX_CHARS;
 
@@ -105,6 +128,9 @@ function Draft({ row }: { row: DraftRow }) {
   return (
     <li className="rounded-2xl border border-indigo-200 bg-white p-5">
       <div className="flex items-center gap-2 mb-3 text-xs">
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 border border-slate-200 rounded px-1.5 py-0.5">
+          {row.platform}
+        </span>
         <span className="font-bold text-slate-900">@{row.username ?? "unknown"}</span>
         <span className="text-slate-400">
           {row.firstTime ? "first time" : `${row.priorComments + 1} comments`}
@@ -139,6 +165,11 @@ function Draft({ row }: { row: DraftRow }) {
 
       {error && <p className="mt-2 text-xs text-rose-700">{error}</p>}
 
+      {/*
+        ONE SEND BUTTON FOR BOTH PLATFORMS. Instagram posts through the Graph
+        API, TikTok through GoHighLevel — the action picks the route from
+        row.platform, and the person approving does not need to care which.
+      */}
       <div className="mt-4 flex items-center gap-2">
         <button
           type="button"

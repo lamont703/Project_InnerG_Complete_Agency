@@ -17,6 +17,7 @@ import {
   webPageNode,
 } from "@/lib/schema-graph";
 import { BARBER_PUBLIC_COLUMNS } from "@/lib/public-columns";
+import { isProIndexable, NOINDEX_FOLLOW } from "@/lib/indexable";
 import Image from "next/image";
 import {MapPin, Star, CheckCircle2, GraduationCap, Scissors, Instagram, Youtube, Music2, Users, Clock, Navigation, Landmark} from "lucide-react";
 import { SITE_URL } from "@/lib/site";
@@ -104,9 +105,17 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   ]);
   const heroImage = barber.portfolio_images?.[0] || barber.booksy_gallery_urls?.[0] || barber.booksy_photo_url;
 
+  /*
+   * Indexed only with a credential or their own work — licence status, a
+   * submitted passport, an uploaded portfolio. Scraped Booksy service lists
+   * deliberately do NOT qualify; see lib/indexable.ts.
+   */
+  const indexable = isProIndexable(barber);
+
   return {
     title,
     description,
+    ...(indexable ? {} : { robots: NOINDEX_FOLLOW }),
     alternates: { canonical: `${SITE_URL}/barbers/${slug}` },
     openGraph: {
       title,

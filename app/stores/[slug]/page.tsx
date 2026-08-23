@@ -14,6 +14,7 @@ import {
   cityNode, entityId, graphJson, identifiers, pageId, ref, topics, webPageNode,
 } from "@/lib/schema-graph";
 import { STORE_PUBLIC_COLUMNS } from "@/lib/public-columns";
+import { NOINDEX_FOLLOW } from "@/lib/indexable";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import { StoreSponsoredAd } from "@/components/ads/StoreSponsoredAd";
 import Image from "next/image";
@@ -100,9 +101,17 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   ]);
   const heroImage = Array.isArray(store.google_images) ? store.google_images[0] : undefined;
 
+  /*
+   * ALWAYS noindex. Every column on both store tables is a Google Maps field,
+   * so there is no first-party data a store page could carry — and these were
+   * the clearest doorways in the data ("supreme beauty supply" 253 impressions
+   * and 0 clicks). isStoreIndexable() in lib/indexable.ts returns false by
+   * construction; when stores gain real data, change it there, not here.
+   */
   return {
     title,
     description,
+    robots: NOINDEX_FOLLOW,
     alternates: { canonical: `${SITE_URL}/stores/${slug}` },
     openGraph: {
       title,

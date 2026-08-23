@@ -7,6 +7,8 @@ import { isAdminEmail } from "@/lib/admin-allowlist";
 import { isExpired } from "@/lib/instagram-token";
 import { DISCLOSURE } from "@/lib/instagram-dm-policy";
 import { postCommentReply, sendPrivateReply, trimForComment } from "@/lib/instagram-comments";
+import { postTikTokCommentReply } from "@/lib/tiktok-comments";
+import { youtubeAccessToken, replyToComment } from "@/lib/youtube-comments";
 
 /**
  * Approving a draft, editing it, and turning the pause off.
@@ -50,10 +52,88 @@ export async function sendDraftReply(
     .update({ status: "pending", approved_by: email, approved_at: now, updated_at: now })
     .eq("comment_id", commentId)
     .eq("status", "draft")
-    .select("comment_id, commenter_id, comment_text, reply_text, dm_text")
+    .select("comment_id, platform, external_comment_id, commenter_id, comment_text, reply_text, dm_text")
     .maybeSingle();
 
   if (!claimed) return { ok: false, error: "Already sent, or no longer a draft." };
+
+  /*
+   * YOUTUBE posts through comments.insert on the publisher's own token, which
+   * already carries youtube.force-ssl. Returns before the Instagram machinery
+   * for the same reason TikTok does: no private reply, no DM thread.
+   */
+  if (claimed.platform === "youtube") {
+    const publicText = trimForComment(editedText?.trim() || claimed.reply_text || "");
+    if (!publicText) {
+      await db.from("instagram_comment_replies").update({ status: "draft", updated_at: now }).eq("comment_id", commentId);
+      return { ok: false, error: "Reply is empty." };
+    }
+    let sent: { ok: boolean; error?: string };
+    try {
+      const token = await youtubeAccessToken();
+      const r = await replyToComment({ accessToken: token, parentId: claimed.external_comment_id, text: publicText });
+      sent = r.ok ? { ok: true } : { ok: false, error: (r as any).error };
+    } catch (err: any) {
+      sent = { ok: false, error: err?.message || "youtube auth failed" };
+    }
+
+    await db
+      .from("instagram_comment_replies")
+      .update({
+        reply_text: publicText,
+        replied_at: sent.ok ? now : null,
+        reply_error: sent.ok ? null : sent.error,
+        status: sent.ok ? "replied" : "draft",
+        updated_at: now,
+      })
+      .eq("comment_id", commentId);
+
+    revalidatePath("/admin/comment-engagement");
+    return sent.ok ? { ok: true } : { ok: false, error: sent.error };
+  }
+
+  /*
+   * TIKTOK GOES OUT THROUGH GOHIGHLEVEL, and returns before any of the
+   * Instagram machinery below — there is no Instagram token involved, no
+   * private reply, and no DM thread to seed. parentId is GHL's own 24-char id,
+   * which the sync stored in external_comment_id; comment_id holds TikTok's
+   * numeric id and would be rejected.
+   */
+  if (claimed.platform === "tiktok") {
+    const apiKey = process.env.GHL_API_KEY;
+    const locationId = process.env.GHL_LOCATION_ID;
+    const publicText = trimForComment(editedText?.trim() || claimed.reply_text || "");
+
+    if (!apiKey || !locationId) {
+      await db.from("instagram_comment_replies").update({ status: "draft", updated_at: now }).eq("comment_id", commentId);
+      return { ok: false, error: "GoHighLevel credentials are not configured." };
+    }
+    if (!publicText) {
+      await db.from("instagram_comment_replies").update({ status: "draft", updated_at: now }).eq("comment_id", commentId);
+      return { ok: false, error: "Reply is empty." };
+    }
+
+    const sent = await postTikTokCommentReply({
+      apiKey,
+      locationId,
+      parentId: claimed.external_comment_id,
+      content: publicText,
+    });
+
+    await db
+      .from("instagram_comment_replies")
+      .update({
+        reply_text: publicText,
+        replied_at: sent.ok ? now : null,
+        reply_error: sent.ok ? null : (sent as any).error,
+        status: sent.ok ? "replied" : "draft",
+        updated_at: now,
+      })
+      .eq("comment_id", commentId);
+
+    revalidatePath("/admin/comment-engagement");
+    return sent.ok ? { ok: true } : { ok: false, error: (sent as any).error };
+  }
 
   const { data: conn } = await db
     .from("instagram_connection")
@@ -197,6 +277,36 @@ export async function setAutoReply(enabled: boolean): Promise<{ ok: boolean; err
     comment_auto_reply_changed_by: email,
     updated_at: new Date().toISOString(),
   });
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/comment-engagement");
+  return { ok: true };
+}
+
+/**
+ * A TikTok draft was copied and handed to GoHighLevel to post.
+ *
+ * NOT 'replied'. Nothing was sent from here — every GHL reply endpoint 404s and
+ * the capability lives only in their workflow builder — so whoever pastes it is
+ * the one who replied. Recording it as sent would make the queue look clear
+ * while a comment sat unanswered, which is the exact failure this page exists
+ * to prevent.
+ */
+export async function markCopied(commentId: string): Promise<{ ok: boolean; error?: string }> {
+  const email = await requireAdmin();
+  if (!email) return { ok: false, error: "Not authorized." };
+
+  const db = createAdminClient() as any;
+  const { error } = await db
+    .from("instagram_comment_replies")
+    .update({
+      status: "copied",
+      approved_by: email,
+      approved_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("comment_id", commentId)
+    .eq("status", "draft");
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/comment-engagement");

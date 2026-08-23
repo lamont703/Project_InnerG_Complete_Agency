@@ -25,6 +25,7 @@ import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { BookAppointmentButton } from "@/components/book-appointment-modal";
 import { servicesForEntity } from "@/lib/booking-services";
 import { SALON_PUBLIC_COLUMNS } from "@/lib/public-columns";
+import { isShopIndexable, NOINDEX_FOLLOW } from "@/lib/indexable";
 import { composeDescription, ratingClause, streetClause } from "@/lib/seo-description";
 import {MapPin, Mail, Clock, Navigation, Users, ExternalLink, Landmark, Store, CheckCircle2, ShieldCheck, Lock, Award, GraduationCap, TrendingUp, TrendingDown, ShoppingBag, Sparkles, Scissors, Info} from "lucide-react";
 import { SITE_URL } from "@/lib/site";
@@ -103,9 +104,17 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   ]);
   const heroImage = (Array.isArray(salon.google_images) && salon.google_images[0]) || salon.shop_image_url || undefined;
 
+  /*
+   * Indexed only with something Google Maps lacks — booth rent, an owner
+   * claim, amenities, an original write-up, open chairs. See lib/indexable.ts
+   * for the August 2026 spam-update measurements behind this.
+   */
+  const indexable = isShopIndexable(salon);
+
   return {
     title,
     description,
+    ...(indexable ? {} : { robots: NOINDEX_FOLLOW }),
     alternates: { canonical: `${SITE_URL}/salons/${slug}` },
     openGraph: {
       title,

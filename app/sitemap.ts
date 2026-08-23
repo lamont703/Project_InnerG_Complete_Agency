@@ -20,7 +20,10 @@ import { PAGE_SIZE as DIRECTORY_PAGE_SIZE } from '@/lib/directory-config'
 // from what the sitemap considers public.
 import { isExcludedFromSitemap } from '@/lib/public-routes'
 import { SITE_HOST } from "@/lib/site";
-import { isIndexableSchool } from "@/lib/listing-address-quality";
+import {
+  isSchoolIndexable, isShopIndexable, isProIndexable,
+  SHOP_INDEX_COLUMNS, PRO_INDEX_COLUMNS,
+} from "@/lib/indexable";
 
 export const dynamic = 'force-dynamic'
 
@@ -110,14 +113,17 @@ const getCachedSitemapData = unstable_cache(
       allEvents,
       ceProviders,
     ] = await Promise.all([
-      fetchAllRows(supabase, 'agent_barbershop_leads', 'slug, updated_at'),
+      // The extra columns are what isShopIndexable/isProIndexable read. Same
+      // trap the school queries carry below: drop one and the field arrives
+      // undefined, the predicate fails, and the section silently empties.
+      fetchAllRows(supabase, 'agent_barbershop_leads', `slug, updated_at, ${SHOP_INDEX_COLUMNS.join(', ')}`),
       fetchAllRows(supabase, 'agent_barber_school_leads', 'slug, updated_at, formatted_address, google_business_status'),
       fetchAllRows(supabase, 'agent_cosmetology_school_leads', 'slug, updated_at, formatted_address, google_business_status'),
-      fetchAllRows(supabase, 'agent_barber_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_barber_leads', `slug, updated_at, ${PRO_INDEX_COLUMNS.join(', ')}`),
       fetchAllRows(supabase, 'agent_barber_supply_store_leads', 'slug, updated_at'),
       fetchAllRows(supabase, 'agent_beauty_supply_store_leads', 'slug, updated_at'),
-      fetchAllRows(supabase, 'agent_salon_leads', 'slug, updated_at'),
-      fetchAllRows(supabase, 'agent_cosmetologist_leads', 'slug, updated_at'),
+      fetchAllRows(supabase, 'agent_salon_leads', `slug, updated_at, ${SHOP_INDEX_COLUMNS.join(', ')}`),
+      fetchAllRows(supabase, 'agent_cosmetologist_leads', `slug, updated_at, ${PRO_INDEX_COLUMNS.join(', ')}`),
       fetchAllRows(supabase, 'events', 'slug, updated_at'),
       // is_active comes along so the sitemap can submit only live providers.
       fetchAllRows(supabase, 'agent_texas_ce_provider_leads', 'slug, updated_at, is_active'),
@@ -244,7 +250,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // "just changed" on every request, giving Google no signal for which
     // pages actually need recrawling and diluting crawl budget across
     // thousands of unchanged URLs.
-    const shopProfileSitemap = allShops.map((shop: any) => ({
+    const shopProfileSitemap = allShops
+      .filter((shop: any) => isShopIndexable(shop))
+      .map((shop: any) => ({
       url: `${baseUrl}/shop/${shop.slug}`,
       lastModified: shop.updated_at ? new Date(shop.updated_at) : new Date(),
       changeFrequency: 'monthly' as const,
@@ -261,7 +269,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // The two school queries above select formatted_address SOLELY for this
       // filter. Drop the column and every school silently disappears from the
       // sitemap, because undefined fails the check.
-      .filter((school: any) => isIndexableSchool(school))
+      .filter((school: any) => isSchoolIndexable(school))
       .map((school: any) => ({
       url: `${baseUrl}/schools/${school.slug}`,
       lastModified: school.updated_at ? new Date(school.updated_at) : new Date(),
@@ -269,29 +277,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.65,
     }));
 
-    const barberProfileSitemap = allBarbers.map((barber: any) => ({
+    const barberProfileSitemap = allBarbers
+      .filter((barber: any) => isProIndexable(barber))
+      .map((barber: any) => ({
       url: `${baseUrl}/barbers/${barber.slug}`,
       lastModified: barber.updated_at ? new Date(barber.updated_at) : new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.6,
     }));
 
-    // barber supply + beauty supply, both served by the shared /stores/[slug] route
-    const storeProfileSitemap = [...barberSupplyStores, ...beautySupplyStores].map((store: any) => ({
-      url: `${baseUrl}/stores/${store.slug}`,
-      lastModified: store.updated_at ? new Date(store.updated_at) : new Date(),
-      changeFrequency: 'monthly' as const,
-      priority: 0.55,
-    }));
+    // barber supply + beauty supply, both served by the shared /stores/[slug] route.
+    //
+    // EMPTY ON PURPOSE. Every store column is a Google Maps field, so these
+    // pages carry nothing of ours and all 910 are noindex — see
+    // isStoreIndexable in lib/indexable.ts. The rows are still fetched because
+    // the counts below report them, and an empty array here keeps the sitemap
+    // agreeing with the robots directive instead of submitting URLs we refuse.
+    const storeProfileSitemap: MetadataRoute.Sitemap = [];
 
-    const salonProfileSitemap = allSalons.map((salon: any) => ({
+    const salonProfileSitemap = allSalons
+      .filter((salon: any) => isShopIndexable(salon))
+      .map((salon: any) => ({
       url: `${baseUrl}/salons/${salon.slug}`,
       lastModified: salon.updated_at ? new Date(salon.updated_at) : new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.6,
     }));
 
-    const cosmetologistProfileSitemap = allCosmetologists.map((person: any) => ({
+    const cosmetologistProfileSitemap = allCosmetologists
+      .filter((person: any) => isProIndexable(person))
+      .map((person: any) => ({
       url: `${baseUrl}/cosmetologists/${person.slug}`,
       lastModified: person.updated_at ? new Date(person.updated_at) : new Date(),
       changeFrequency: 'monthly' as const,

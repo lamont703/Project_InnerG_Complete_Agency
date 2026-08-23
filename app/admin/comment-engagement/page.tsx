@@ -60,6 +60,7 @@ export default async function CommentEngagementPage() {
         <CommentDraftList
           drafts={drafts.map((d) => ({
             commentId: d.commentId,
+            platform: d.platform,
             username: d.username,
             commentText: d.commentText,
             replyText: d.replyText,
@@ -141,6 +142,9 @@ export default async function CommentEngagementPage() {
                         <Clock className="h-3.5 w-3.5" /> Pending
                       </span>
                     )}
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 border border-slate-200 rounded px-1.5 py-0.5">
+                      {t.platform}
+                    </span>
                     <span className="text-slate-400 font-medium normal-case tracking-normal">
                       @{t.username ?? "unknown"}
                       {t.firstTime ? " · first time" : ` · ${t.priorComments + 1} comments`}

@@ -35,6 +35,14 @@
     {
       "path": "/api/cron/rebooking-agent",
       "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/tiktok-comment-sync",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/youtube-comment-sync",
+      "schedule": "15 * * * *"
     }
   ]
 }

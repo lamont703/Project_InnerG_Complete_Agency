@@ -20,6 +20,9 @@ export const BARBER_PUBLIC_COLUMNS = [
   "is_actively_looking",
   "school_name",
   "licensure_status",
+  // Read by isProIndexable (lib/indexable.ts) to decide whether this profile
+  // may be indexed. A boolean flag only — passport_number stays private.
+  "passport_submitted",
   "completed_school_hours",
   "instagram_handle",
   "tiktok_handle",
@@ -60,6 +63,10 @@ export const COSMETOLOGIST_PUBLIC_COLUMNS = [
   "booksy_cover_photo_url",
   "booksy_gallery_urls",
   "portfolio_images",
+  // Both read by isProIndexable (lib/indexable.ts). licensure_status is already
+  // public on barbers; passport_submitted is a boolean flag and NOT the number.
+  "licensure_status",
+  "passport_submitted",
   "booksy_services",
   "booksy_price_range",
   "booksy_rating",
