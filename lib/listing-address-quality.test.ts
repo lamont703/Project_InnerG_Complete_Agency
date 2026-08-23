@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hasUsableStreetAddress, isIndexableSchool } from "./listing-address-quality";
+import { hasUsableStreetAddress } from "./listing-address-quality";
 
 describe("addresses that ARE usable", () => {
   // Every one of these was wrongly rejected by an earlier version of this rule
@@ -84,24 +84,5 @@ describe("addresses that are NOT usable", () => {
   });
 });
 
-describe("isIndexableSchool", () => {
-  it("follows the address rule", () => {
-    expect(isIndexableSchool({ formatted_address: "926 W Dallas St, Conroe, TX 77301" })).toBe(true);
-    expect(isIndexableSchool({ formatted_address: "Klein, TX 77379, USA" })).toBe(false);
-  });
-
-  it("withholds a permanently closed school even with a good address", () => {
-    expect(isIndexableSchool({
-      formatted_address: "926 W Dallas St, Conroe, TX 77301",
-      google_business_status: "CLOSED_PERMANENTLY",
-    })).toBe(false);
-  });
-
-  it("re-indexes automatically once the address is repaired", () => {
-    // The reason this is a predicate and not a list of slugs.
-    const before = { formatted_address: "Joshua Independent School District, TX, USA" };
-    const after = { formatted_address: "909 S Broadway St, Joshua, TX 76058, USA" };
-    expect(isIndexableSchool(before)).toBe(false);
-    expect(isIndexableSchool(after)).toBe(true);
-  });
-});
+// isIndexableSchool moved to isSchoolIndexable in lib/indexable.ts; its tests
+// moved with it to lib/indexable.test.ts, where the outcome-data rule lives too.

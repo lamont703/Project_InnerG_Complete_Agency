@@ -13,6 +13,7 @@ import {
   REGULATORS, WIKIDATA, entityId, graphJson, pageId, ref, topics, webPageNode,
 } from "@/lib/schema-graph";
 import { COSMETOLOGIST_PUBLIC_COLUMNS } from "@/lib/public-columns";
+import { isProIndexable, NOINDEX_FOLLOW } from "@/lib/indexable";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import Image from "next/image";
 import {MapPin, Star, Sparkles, Instagram, Youtube, Music2, Users, Navigation, Landmark, GraduationCap, CheckCircle2, Clock} from "lucide-react";
@@ -106,9 +107,17 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   ]);
   const heroImage = person.portfolio_images?.[0] || person.booksy_gallery_urls?.[0] || person.booksy_photo_url;
 
+  /*
+   * Indexed only with a credential or their own work — licence status, a
+   * submitted passport, an uploaded portfolio. Scraped Booksy service lists
+   * deliberately do NOT qualify; see lib/indexable.ts.
+   */
+  const indexable = isProIndexable(person);
+
   return {
     title,
     description,
+    ...(indexable ? {} : { robots: NOINDEX_FOLLOW }),
     alternates: { canonical: `${SITE_URL}/cosmetologists/${slug}` },
     openGraph: {
       title,

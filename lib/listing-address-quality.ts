@@ -84,19 +84,9 @@ export function hasUsableStreetAddress(formattedAddress: string | null | undefin
     });
 }
 
-/**
- * Whether a school listing should be indexed and submitted in the sitemap.
- *
- * Address is the only criterion today. It is a function rather than a bare call
- * to hasUsableStreetAddress so the next reason to withhold a page — no licence,
- * permanently closed — lands in one place that both callers already consult.
+/*
+ * isIndexableSchool MOVED. It now lives as isSchoolIndexable in lib/indexable.ts,
+ * which applies the same street-address and permanently-closed tests and then
+ * adds the outcome-data requirement introduced after the August 2026 spam
+ * update. hasUsableStreetAddress below is still the address primitive it calls.
  */
-export function isIndexableSchool(school: {
-  formatted_address?: string | null;
-  google_business_status?: string | null;
-}): boolean {
-  if (!hasUsableStreetAddress(school.formatted_address)) return false;
-  // Google's own word for it. A closed school is not a page worth ranking.
-  if (String(school.google_business_status || "").toUpperCase() === "CLOSED_PERMANENTLY") return false;
-  return true;
-}
