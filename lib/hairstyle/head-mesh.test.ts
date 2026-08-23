@@ -166,6 +166,19 @@ describe("buildHeadMesh", () => {
 describe("the hairline", () => {
   const plan = deriveFadePlan(midSkin, frame.levels);
 
+  it("STAYS HIGH ACROSS THE FOREHEAD before receding at the temples", () => {
+    /*
+     * The regression guard for eyes-in-the-hair. A plain cosine over the whole
+     * sector starts falling at once, so a quarter of the way out — still on the
+     * forehead — the line had already dropped most of the way to the perimeter.
+     */
+    const front = hairlineU(0, plan.uPerimeter, 1);
+    expect(hairlineU(0.3, plan.uPerimeter, 1)).toBeCloseTo(front, 6);
+    expect(hairlineU(0.42, plan.uPerimeter, 1)).toBeGreaterThan(0.95);
+    // and it must still recede by the temple, or there is no recession at all
+    expect(hairlineU(0.8, plan.uPerimeter, 1)).toBeLessThan(0.8);
+  });
+
   it("is high at the front and drops to the perimeter round the back", () => {
     const front = hairlineU(0, plan.uPerimeter, 1);
     const temple = hairlineU(0.5, plan.uPerimeter, 1);

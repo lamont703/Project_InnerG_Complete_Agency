@@ -165,7 +165,22 @@ export function hairlineU(theta: number, perimeterU: number, foreheadU = 1): num
   const half = (FADE_FRONT_HALF_ANGLE * Math.PI) / 180;
   const d = Math.abs(wrapped);
   if (d >= half) return perimeterU;
-  const w = 0.5 * (1 + Math.cos((Math.PI * d) / half));
+
+  /*
+   * A PLATEAU ACROSS THE FOREHEAD, then recession at the temples.
+   *
+   * This was a plain cosine over the whole sector, which starts falling
+   * immediately: 24 degrees off centre — still squarely on the forehead — put
+   * the hairline at u 0.82, BELOW the eye line. Once the head had eyes you
+   * could see it instantly, because they came out sitting in the hair.
+   *
+   * A hairline does not do that. It runs roughly level across the forehead and
+   * then sweeps back at the temples, so the falloff has to start late.
+   */
+  const PLATEAU = 0.45;
+  const t = d / half;
+  const w =
+    t <= PLATEAU ? 1 : 0.5 * (1 + Math.cos((Math.PI * (t - PLATEAU)) / (1 - PLATEAU)));
   return perimeterU + (foreheadU - perimeterU) * w;
 }
 

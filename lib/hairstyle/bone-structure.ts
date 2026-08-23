@@ -65,7 +65,13 @@ export const BONE_FEATURES: readonly BoneFeature[] = [
     // The single strongest plane change on a display mannequin: a hard shelf
     // above the eyes with the forehead sloping back off it.
     name: "supraorbital ridge (brow)",
-    u: 0.95,
+    /*
+     * Lowered from 0.95. The hairline sits at u 1.0, so a brow at 0.95 left a
+     * forehead one twentieth of the face tall — which is why the head read as
+     * all jaw. Classical proportion puts the brow around two thirds of the way
+     * from chin to hairline; this is a compromise toward that.
+     */
+    u: 0.88,
     uHalf: 0.11,
     uSlope: -0.06,
     theta: 0,
@@ -76,7 +82,7 @@ export const BONE_FEATURES: readonly BoneFeature[] = [
     // Not a socket — a displacement cannot fold under the brow. It is the
     // shadowed hollow that reads as one.
     name: "orbital hollow",
-    u: 0.83,
+    u: 0.78,
     uHalf: 0.09,
     uSlope: 0,
     theta: 0.42,
@@ -112,7 +118,8 @@ export const BONE_FEATURES: readonly BoneFeature[] = [
     uSlope: 0.05,
     theta: 0.6,
     thetaHalf: 0.5,
-    amp: -0.055,
+    // Softened: against a wider mandible this was cutting a hard crease.
+    amp: -0.04,
   },
   {
     // The side of the head above the arch is FLAT on these heads, close to
@@ -134,18 +141,31 @@ export const BONE_FEATURES: readonly BoneFeature[] = [
     uHalf: 0.1,
     uSlope: 0.2,
     theta: 0.7,
-    thetaHalf: 0.8,
-    amp: 0.06,
+    thetaHalf: 0.85,
+    /*
+     * Raised from 0.06, which was nowhere near enough.
+     *
+     * The front-depth profile fixed the jaw in ONE direction — it pushed the
+     * chin forward — and left the sides at neck width, so from the front the
+     * head was a wide cranium on a narrow column with a chin poking off it. A
+     * real mandible is roughly three quarters of the head's width at the
+     * corner; the profile alone cannot supply that, because widening it there
+     * would widen the throat behind it too. This is the term that can.
+     *
+     * 0.15 overshot — it turned the jaw into a hard mask edge with a crease
+     * running from the nose to the corner. This is the compromise.
+     */
+    amp: 0.1,
   },
   {
     // The corner of the jaw. Sharpens the mandible where it turns up.
     name: "gonial angle",
     u: 0.34,
-    uHalf: 0.09,
+    uHalf: 0.12,
     uSlope: 0,
     theta: 1.32,
-    thetaHalf: 0.3,
-    amp: 0.05,
+    thetaHalf: 0.36,
+    amp: 0.08,
   },
   {
     name: "mental protuberance (chin)",
