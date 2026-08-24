@@ -30,7 +30,20 @@ const PARSE_VERSION = 1;
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GEMINI_CHAT_API_KEY;
+/*
+ * GEMINI_API_KEY ONLY — never the chat key, even as a fallback.
+ *
+ * Google rate-limits PER PROJECT, not per key, so a key is not a quota: the
+ * Cloud project behind it is. lib/gemini-keys.ts exists because a batch script
+ * run from a laptop once consumed the live chat's allowance and took it down
+ * with a 429 nobody could see. This is exactly such a script, so falling back
+ * to GEMINI_CHAT_API_KEY when the scripts project is exhausted would recreate
+ * that outage on purpose.
+ *
+ * A 429 here means the SCRIPTS project is out of quota. That is information,
+ * not an obstacle to route around.
+ */
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
 const args = process.argv.slice(2);
 const ALL = args.includes("--all");
@@ -102,7 +115,7 @@ function bodyOf(row) {
 
 (async () => {
   if (!SUPABASE_URL || !SERVICE_KEY) return console.error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY");
-  if (!GEMINI_KEY) return console.error("Missing GEMINI_API_KEY");
+  if (!GEMINI_KEY) return console.error("Missing GEMINI_API_KEY (do NOT substitute GEMINI_CHAT_API_KEY — see the note above)");
 
   const headers = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` };
   const filter = ALL ? "" : `&or=(parse_version.is.null,parse_version.lt.${PARSE_VERSION})`;
@@ -165,7 +178,16 @@ function bodyOf(row) {
 
     let parsed = null, error = null;
     try { parsed = await gemini(prompt); }
-    catch (e) { error = String(e.message || e).slice(0, 400); }
+    catch (e) {
+      error = String(e.message || e).slice(0, 400);
+      if (error.includes("429")) {
+        console.log(`— ${label}`);
+        console.log("   QUOTA EXHAUSTED on the scripts Gemini project.");
+        console.log("   Wait for the daily reset or raise the limit. Do not point this at");
+        console.log("   GEMINI_CHAT_API_KEY — that is the live chat's project.\n");
+        break;
+      }
+    }
 
     console.log(`— ${label}`);
     if (error) console.log(`   ERROR: ${error}`);

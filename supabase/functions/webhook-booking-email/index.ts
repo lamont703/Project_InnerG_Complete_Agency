@@ -49,30 +49,62 @@ export default createHandler(async ({ adminClient, body }) => {
   const logger = new Logger("webhook-booking-email");
 
   /*
-   * EVERY SHAPE IS TRIED, because GHL's inbound payload is not documented for
-   * this trigger and webhook-placement-email already had to guess across five
-   * field names for the message body. Whatever this misses is still in `raw`,
-   * which is the reason raw exists.
+   * customData IS CHECKED FIRST, and it is the only thing that can rescue this
+   * intake path.
+   *
+   * GHL's Inbound Email trigger sends a CONTACT-shaped payload: contact fields,
+   * a pile of custom fields, and `message: { body }` — no recipient, no
+   * subject, no message id. Without the recipient there is no token, and
+   * without the token an email cannot be attributed to a shop. Falling back to
+   * contact_id does not save it either: every shop's Booksy notification comes
+   * from the same noreply@ sender, so they would all collapse onto one contact.
+   *
+   * The webhook action does allow custom key/value pairs, and those arrive
+   * here under customData. So whatever merge field GHL exposes for the
+   * recipient can be mapped to `to` there and read from here.
+   *
+   * WHICH MERGE FIELD THAT IS HAS TO BE DISCOVERED, not assumed — hence
+   * reading a generous set of names. Anything that does not resolve arrives
+   * empty or literal, and either way it is visible in `raw`.
    */
+  /*
+   * KEYS ARE TRIMMED AND LOWERCASED, because they are typed by hand into a GHL
+   * form. The first probe came back with " message_id" — a leading space —
+   * which would never match a lookup for "message_id" and would have read as
+   * "GHL does not expose a message id" rather than "somebody hit the spacebar".
+   * A silent miss here is expensive: it sends you looking for a missing feature
+   * instead of a stray character.
+   */
+  const cd: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(((body as any)?.customData ?? {}) as Record<string, unknown>)) {
+    cd[String(k).trim().toLowerCase()] = v;
+  }
+
   const toAddress = firstString(
+    cd.email_to, cd.to, cd.to_address, cd.recipient, cd.message_to,
     (body as any)?.to, (body as any)?.message?.to, (body as any)?.email?.to,
     (body as any)?.recipient, (body as any)?.toEmail
   );
   const fromAddress = firstString(
+    cd.from_email, cd.from,
     (body as any)?.from, (body as any)?.message?.from, (body as any)?.email?.from,
     (body as any)?.sender, (body as any)?.fromEmail
   );
   const subject = firstString(
+    cd.email_subject, cd.subject, cd.message_subject,
     (body as any)?.subject, (body as any)?.message?.subject, (body as any)?.email?.subject
   );
   const textBody = firstString(
+    cd.email_body, cd.text, cd.body, cd.message_text,
     (body as any)?.text, (body as any)?.message?.text, (body as any)?.message?.body,
     (body as any)?.email?.text, (body as any)?.body
   );
   const htmlBody = firstString(
+    cd.html, cd.message_html, cd.email_html,
     (body as any)?.html, (body as any)?.message?.html, (body as any)?.email?.html
   );
   const providerMessageId = firstString(
+    cd.message_id, cd.messageid, cd.messageId,
     (body as any)?.messageId, (body as any)?.message?.id, (body as any)?.id,
     (body as any)?.emailMessageId
   );
@@ -82,6 +114,9 @@ export default createHandler(async ({ adminClient, body }) => {
   logger.info("Inbound booking email", {
     token, from: fromAddress, subject,
     hasText: !!textBody, hasHtml: !!htmlBody, providerMessageId,
+    // Named so a probe run can be read straight from the logs: these are the
+    // keys GHL actually delivered, whatever they resolved to.
+    customDataKeys: Object.keys(cd),
   });
 
   try {
