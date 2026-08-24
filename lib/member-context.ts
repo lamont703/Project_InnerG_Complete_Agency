@@ -404,3 +404,67 @@ export async function mergeChecklist(memberId: string, checklistKey: string, ite
   }
   return getCheckedItems(memberId, checklistKey);
 }
+
+/** One turn that happened somewhere other than this chat. */
+export interface OtherChannelTurn {
+  channel: string;
+  role: string;
+  content: string;
+  at: string;
+}
+
+/**
+ * What this member said to their agent on OTHER channels.
+ *
+ * DELIBERATELY EXCLUDES CHAT, and that is the whole reason this is separate
+ * from loadThread. The chat transcript already reaches the model — the client
+ * sends it, and loadThread restores it onto the page. Folding SMS into that same
+ * list would make a text look like something said in this window, and the agent
+ * would answer "as I mentioned above" about a message that is not above.
+ *
+ * They are different kinds of memory and have to read differently: this is
+ * "you texted me last Tuesday", not "you just said".
+ *
+ * RECENT AND FEW, on purpose. This is injected on every request, so it is
+ * capped rather than complete. Older history is a search problem, not a context
+ * problem — the same reasoning that put booth rent behind a tool instead of
+ * pre-loading every zip.
+ */
+export async function otherChannelTurns(
+  memberId: string,
+  limit = 12
+): Promise<OtherChannelTurn[]> {
+  try {
+    const admin = createAdminClient();
+    const { data: thread } = await (admin as any)
+      .from("member_agent_threads")
+      .select("id")
+      .eq("community_member_id", memberId)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!thread) return [];
+
+    const { data: rows } = await (admin as any)
+      .from("member_agent_messages")
+      .select("role, content, channel, created_at")
+      .eq("thread_id", thread.id)
+      .neq("channel", "chat")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    return (rows || [])
+      .reverse()
+      .map((r: any) => ({
+        channel: r.channel,
+        role: r.role,
+        // Trimmed: a long forwarded email would otherwise crowd out the rest of
+        // the context on every single request for the sake of one memory.
+        content: String(r.content).slice(0, 600),
+        at: r.created_at,
+      }));
+  } catch (err) {
+    console.error("[member-context] otherChannelTurns failed:", err);
+    return [];
+  }
+}
