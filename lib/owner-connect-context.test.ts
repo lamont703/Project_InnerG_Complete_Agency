@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { AUDIENCES } from "@/lib/audiences";
 
 /**
@@ -76,5 +76,38 @@ describe("student brief — pitch banned, feature not withheld", () => {
     expect(AUDIENCES.student.agentBrief).toMatch(/do NOT refuse those things when they ask/i);
     // And it must point at the same rule owners get, so the two cannot drift.
     expect(AUDIENCES.student.agentBrief).toMatch(/OWNER_CONNECT_CONTEXT RULE/);
+  });
+});
+
+/**
+ * The agent linked an unrelated Shop Site AI Customizer to an owner asking to
+ * connect Google, because it had no URL of its own and the LINKING RULE told it
+ * to link things that have one. These pin the fix.
+ */
+describe("the chat route can actually link the connect flow", () => {
+  const route = readFileSync("app/api/chat/route.ts", "utf8");
+
+  it("marks owner_connect_context URLs as linkable, overriding the profile_url rule", () => {
+    expect(route).toContain("owner_connect_context IS LINKABLE");
+  });
+
+  it("forbids substituting a different link", () => {
+    expect(route).toMatch(/NEVER substitute a different link/);
+  });
+
+  it("builds the context for signed-out visitors too", () => {
+    // Returning null without a member is what left an anonymous shop owner —
+    // the most important case — with nothing to link.
+    expect(route).toContain("ownerConnectContext(member?.id ?? null)");
+  });
+});
+
+describe("OAuth must escape the side panel", () => {
+  it("api paths open in a new tab rather than the iframe", () => {
+    // Google refuses to be framed, so /api/google-business/start inside the
+    // panel renders a blank box and the connection cannot be completed.
+    const page = readFileSync("app/search/page.tsx", "utf8");
+    expect(page).toContain("mustEscapeFrame");
+    expect(page).toMatch(/url\.startsWith\("\/api\/"\)/);
   });
 });

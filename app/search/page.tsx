@@ -795,9 +795,23 @@ function SearchContent() {
         const label = match[1];
         const url = match[2];
         const isExternal = /^https?:\/\//i.test(url);
+        /*
+         * API PATHS MUST ESCAPE THE FRAME. Everything under /api/ is an
+         * endpoint, not a page — it answers with a redirect, and the one the
+         * agent hands out most, /api/google-business/start, redirects to
+         * Google's consent screen. Google refuses to be framed (sign-in pages
+         * set frame-ancestors precisely to stop clickjacking), so opening it
+         * beside the chat renders a blank box and the connection silently
+         * cannot be completed.
+         *
+         * A new tab is the honest answer rather than a limitation: OAuth is
+         * meant to happen on the provider's own origin where the address bar is
+         * visible, which is the whole point of the consent screen.
+         */
+        const mustEscapeFrame = !isExternal && url.startsWith("/api/");
         const linkClasses = "inline-flex items-center gap-0.5 text-blue-600 font-semibold underline decoration-blue-300 underline-offset-2 hover:text-blue-800 hover:decoration-blue-500 transition-colors";
         nodes.push(
-          isExternal ? (
+          isExternal || mustEscapeFrame ? (
             <a key={`${keyPrefix}-${idx++}`} href={url} target="_blank" rel="noopener noreferrer" className={linkClasses}>
               {label}
               <ArrowUpRight className="w-3 h-3 shrink-0" />
