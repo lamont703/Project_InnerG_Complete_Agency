@@ -33,6 +33,16 @@ import { CLAIM_ENTITY_TYPES, entityPath } from "@/lib/entity-claim";
  */
 
 export interface OwnerConnectContext {
+  /**
+   * False for a visitor who is not signed in. They can still do all of this —
+   * it just starts a step earlier, and the assistant has to say so rather than
+   * talking as if an account already exists.
+   */
+  signed_in: boolean;
+  /** Where a signed-out visitor creates an account. */
+  signup_url: string;
+  /** Where an existing user signs back in. */
+  login_url: string;
   /** The listing this member has claimed, if any. */
   claimed_listing: { name: string; entity_type: string; profile_url: string | null } | null;
   google_connected: boolean;
@@ -57,10 +67,37 @@ const UNLOCKED: { label: string; url: string }[] = [
   { label: "Photos", url: "/account/gbp-photos" },
 ];
 
+const ANON: OwnerConnectContext = {
+  signed_in: false,
+  signup_url: "/membership",
+  login_url: "/login",
+  claimed_listing: null,
+  google_connected: false,
+  google_account_email: null,
+  connected_location: null,
+  connect_url: "/api/google-business/start",
+  claim_url: "/account/add-business",
+  unlocked: [],
+};
+
+/**
+ * BUILT FOR SIGNED-OUT VISITORS TOO, and that is not a detail.
+ *
+ * This returned null without a member, which left an anonymous visitor asking
+ * "can we connect to Google Business Profile" with no context AND no audience
+ * brief — the brief is keyed on member.audience, which nobody has before they
+ * sign up. The assistant answered "yes, we offer that" from general knowledge
+ * and then, having no URL, linked the nearest thing in context that had one:
+ * an unrelated Shop Site AI Customizer. Withholding the facts did not make it
+ * cautious, it made it improvise.
+ *
+ * A signed-out person is the MOST important case here — they are the shop owner
+ * who has not signed up yet, which is the entire point of the feature.
+ */
 export async function ownerConnectContext(
   memberId: string | null | undefined
-): Promise<OwnerConnectContext | null> {
-  if (!memberId) return null;
+): Promise<OwnerConnectContext> {
+  if (!memberId) return ANON;
 
   const db = createAdminClient();
 
@@ -120,6 +157,9 @@ export async function ownerConnectContext(
   const connected = Boolean(conn?.refresh_token) && conn?.status !== "revoked";
 
   return {
+    signed_in: true,
+    signup_url: "/membership",
+    login_url: "/login",
     claimed_listing: claimed,
     google_connected: connected,
     google_account_email: connected ? conn?.google_account_email ?? null : null,

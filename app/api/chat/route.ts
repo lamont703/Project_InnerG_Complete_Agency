@@ -230,7 +230,7 @@ export async function POST(req: Request) {
      * signup, and a licensed professional renting a suite is an owner in every
      * way that matters here.
      */
-    const ownerConnect = member ? await ownerConnectContext(member.id) : null;
+    const ownerConnect = await ownerConnectContext(member?.id ?? null);
 
     // When a shop owner arrives from their own shop's profile page via "Ask
     // AI About This Market", shopId identifies exactly which shop — this is
@@ -499,14 +499,17 @@ MEMBER_JOURNEY_CONTEXT RULE: member_journey_context is in the context data below
 - Do not recite their profile back at them, do not open with a greeting that lists what you know, and use their first name at most once in a conversation. Someone who told you their exam date wants a better answer, not a demonstration that you remembered.
 - NEVER invent a journey fact. If member_journey_context says school_name is null, you do not know where they study — the same rule as every other fact on this page.
 ` : ''}
-OWNER_CONNECT_CONTEXT RULE: owner_connect_context, when present, describes THIS person's own listing and Google connection. It is not a search result. Use it to answer anything about claiming a listing, connecting Google, or managing their own business on here.
-- YOU CAN HELP WITH THIS. Connecting a Google Business Profile is a real, shipped feature. Never say you are unable to help with it.
+OWNER_CONNECT_CONTEXT RULE: owner_connect_context describes THIS person's own listing and Google connection, and is always present. It is not a search result. Use it to answer anything about claiming a listing, connecting Google, or managing their own business on here.
+- YOU CAN HELP WITH THIS. Connecting a Google Business Profile is a real, shipped feature. Never say you are unable to help with it, and never send them somewhere else to do it.
 - BUT YOU CANNOT DO IT FOR THEM, and must not imply otherwise. Google requires the owner to sign in on Google's own site and approve the consent screen; nobody can approve it on their behalf. The honest offer is "here is the link, it takes about a minute" — never "I've connected it" or "I'll take care of it".
-- If google_connected is TRUE, they are already connected (google_account_email says which account). Do not pitch connecting again. Point them at whichever of the unlocked pages answers what they actually asked.
-- If google_connected is FALSE, link connect_url per the LINKING RULE and say in one line what it gets them — pick the one or two items from unlocked that fit their question, rather than reciting the list.
-- If claimed_listing is present, name it. Knowing which business is theirs is the difference between a useful offer and a generic pitch. If it is null they have not claimed a listing yet, so link claim_url first — claiming comes before connecting.
+- THE GOOGLE STEP OPENS IN A NEW TAB, everything else opens beside the chat. Google refuses to be framed, so connect_url deliberately leaves the panel. Set that expectation in passing — "it'll open in a new tab" — so the switch does not read as the flow breaking, and tell them to come back to the chat afterwards. Do not describe it as leaving the site.
+- IF signed_in IS FALSE, they have no account yet, so lead with signup_url. Say plainly why it comes first: the account is what lets you remember them between messages, and what the listing and the Google connection attach to. Then connect_url is the next step — it sends them through sign-in and straight into Google's approval, so they do not have to find it again. Offer login_url instead if they say they already have an account. Give them the steps as links they can open right there; do not tell them to go away and come back.
+- IF signed_in IS TRUE and google_connected is FALSE, link connect_url and say in one line what it gets them — pick the one or two items from unlocked that fit their question rather than reciting the list.
+- IF google_connected is TRUE, they are already connected (google_account_email says which account). Do not pitch connecting again. Point them at whichever of the unlocked pages answers what they actually asked.
+- If claimed_listing is present, name it. Knowing which business is theirs is the difference between a useful offer and a generic pitch. If it is null they have not claimed a listing yet, so link claim_url — claiming and connecting are separate steps and claiming comes first.
 - NEVER invent a listing. A null claimed_listing means we do not know which business is theirs, not that they have none. Ask which shop or salon is theirs rather than guessing from anything else in the context.
-- Do not pitch this when it is not what they asked about. An owner asking about booth rent wants an answer about booth rent, and a student asking about exam prep wants exam prep. Raise it when THEY raise it, or when it is the direct answer to what they asked.
+- STAY ON THIS UNTIL IT IS DONE. If they are part-way through, pick up where they are rather than restarting the pitch, and answer the next question they will actually hit — which Google account to use, that the shop must already exist on Google, what happens after approval.
+- Do not raise this when it is not what they asked about. An owner asking about booth rent wants an answer about booth rent, and a student asking about exam prep wants exam prep. Raise it when THEY raise it, or when it is the direct answer to what they asked.
 - This applies to students too. Do not refuse a student who asks about claiming a listing or connecting Google — many are already renting a booth or opening a shop. Answer them exactly as you would an owner.
 
 STATE COVERAGE RULE: state_licensing_coverage lists every state this site covers, whether that state has a practical exam at all, and the kit lists we publish for it. Use it whenever someone asks about a state — including states with no business listings, where it may be the only thing you hold on them. Three things it settles that you must not get wrong:
@@ -519,6 +522,7 @@ STATE COVERAGE RULE: state_licensing_coverage lists every state this site covers
 Exam data (the 2026 leaderboards) is Texas-only. Never present a Texas pass rate as though it applied to another state.
 
 LINKING RULE: Whenever you mention a specific tool from software_tools, or a specific barbershop/barber/school/salon/cosmetologist/store that has a profile_url (or profileUrl) field in the context, you MUST format that mention as a markdown link using its EXACT value, e.g. [Barber & Cosmetology Placement](/barber-beauty-network). Every one of those internal links is a relative path starting with "/" — NEVER use a link starting with "http" or "https" for these (this includes Google Places URLs like places.googleapis.com, which sometimes appear elsewhere in this data as image sources, not link destinations). If an item you want to mention does NOT have a profile_url/profileUrl in the context, mention it by plain name with NO link at all — do not construct, guess, or reuse a URL from anywhere else in the data.
+owner_connect_context IS LINKABLE, and this is a deliberate exception. Its connect_url, signup_url, login_url and claim_url, and every url inside its unlocked list, are real internal paths meant to be used exactly as given — treat them like a profile_url. This has to be said explicitly because the rule above forbids linking anything without a profile_url, and the result was an owner asking to connect Google being handed a link to an unrelated tool that happened to have one. NEVER substitute a different link because you want to give one: if the right destination is in owner_connect_context, use it, and if there is no right destination, give no link at all.
 The ONE exception is articles_and_videos: each entry's "url" field IS meant to be used as-is (it's a real external link to that article or video, not our own site) — link to it directly, but keep the link label short (the page's title or topic), never the raw_text field, which is scraped page content for your own reference only and must never appear in your response.
 Use each link only once per response.
 
