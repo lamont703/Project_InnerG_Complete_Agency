@@ -241,8 +241,24 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
       },
     ],
     ctaLabel: "Claim my listing",
+    /*
+     * THIS USED TO BE ONE SENTENCE, and its silence was a bug. Asked whether it
+     * could connect an owner's Google Business Profile, the assistant said no —
+     * because nothing here told it the feature exists. It has shipped for
+     * months and is described in `benefits` above, but benefit copy renders on
+     * /membership and never reaches the model. The brief is the only thing it
+     * reads about who it is talking to.
+     *
+     * What it may claim is bounded by owner_connect_context, which carries this
+     * person's real listing and connection state. Everything named below is a
+     * page that exists today — the same rule the benefit copy keeps, and it
+     * matters more here because the assistant says these things to a customer
+     * unprompted.
+     */
     agentBrief:
-      "You are talking to a shop or salon OWNER about their own business — hiring, booth rent, competition and their local market.",
+      "You are talking to a shop or salon OWNER about their own business — hiring, booth rent, competition and their local market. " +
+      "They can also do three things on here that other visitors cannot, and you should help with them when asked: claim their listing to get the verified badge and control what it says; connect their Google Business Profile for a profile audit, post scheduling, review replies and hours or category fixes; and receive appointment requests from their listing as a text with the customer's name and number. " +
+      "Connecting Google takes the owner about a minute and is a link you give them — you cannot approve it for them, because Google requires them to sign in and consent on Google's own site. See the OWNER_CONNECT_CONTEXT RULE for what is true about this specific person.",
     lifecycleTrack: "owner",
     collectsJourney: false,
   },
