@@ -277,9 +277,14 @@ describe("audiences", () => {
   });
 
   it("keeps owner-only language away from the student brief", () => {
-    // The student agent brief exists to stop exactly this: a student being
-    // pitched a verified badge on a listing they don't have.
+    // The student agent brief stops a student being pitched a verified badge
+    // unprompted. It does NOT withhold the feature: students rent booths and
+    // open shops, and refusing one who asks is worse than the pitch being
+    // avoided. Both halves are asserted below, because loosening either one
+    // silently is how this drifts back.
     expect(AUDIENCES.student.agentBrief).toMatch(/never pitch/i);
+    expect(AUDIENCES.student.agentBrief).toMatch(/unprompted/i);
+    expect(AUDIENCES.student.agentBrief).toMatch(/do NOT refuse those things when they ask/i);
     for (const benefit of AUDIENCES.student.benefits) {
       expect(`${benefit.title} ${benefit.body}`.toLowerCase()).not.toMatch(/verified badge|claim your listing/);
     }

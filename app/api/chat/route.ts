@@ -5,6 +5,7 @@ import { GoogleGenAI } from '@google/genai';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
 import { currentMember, memberById, getJourney, appendToThread } from '@/lib/member-context';
+import { ownerConnectContext } from '@/lib/owner-connect-context';
 import { policyForChannel } from '@/lib/agent-policy';
 import { agentJourneyContext, stateCoverageForChat } from '@/lib/member-journey';
 import { AUDIENCES } from '@/lib/audiences';
@@ -208,6 +209,28 @@ export async function POST(req: Request) {
       journeyContext = agentJourneyContext(facts, todayIso, member.firstName);
     }
     const audienceBrief = member?.audience ? AUDIENCES[member.audience].agentBrief : null;
+
+    /*
+     * EVERY SIGNED-IN AUDIENCE, INCLUDING STUDENTS.
+     *
+     * Students were excluded at first, reasoning that the student brief forbids
+     * pitching listing claims. That conflated two different things. The brief
+     * bans an UNPROMPTED pitch — a student asking about exam prep should not be
+     * steered into an owner funnel — and that guard still stands, in the brief
+     * where it belongs. It is not a reason to withhold the facts when a student
+     * ASKS, and students in this trade rent booths and open shops, frequently
+     * before the licence is even issued.
+     *
+     * Withholding the context does not make the assistant tactful, it makes it
+     * wrong: with no owner_connect_context it cannot tell a student who already
+     * connected Google from one who never has, and falls back to "I can't help
+     * with that" — the exact bug this whole change exists to fix.
+     *
+     * Nor is it limited to the 'owner' audience: people mislabel themselves at
+     * signup, and a licensed professional renting a suite is an owner in every
+     * way that matters here.
+     */
+    const ownerConnect = member ? await ownerConnectContext(member.id) : null;
 
     // When a shop owner arrives from their own shop's profile page via "Ask
     // AI About This Market", shopId identifies exactly which shop — this is
@@ -420,6 +443,7 @@ export async function POST(req: Request) {
       // leaderboard is: this JSON gets truncated at 120k characters, and who
       // the member is must never be the thing that falls off the end.
       ...(journeyContext ? { member_journey_context: journeyContext } : {}),
+      ...(ownerConnect ? { owner_connect_context: ownerConnect } : {}),
       ...(shopEcosystemContext ? { my_shop_ecosystem_report: shopEcosystemContext } : {}),
       // Near the top for the same truncation reason as the two above. Someone
       // arriving from a state page's suggested question has NO journey profile,
@@ -475,6 +499,16 @@ MEMBER_JOURNEY_CONTEXT RULE: member_journey_context is in the context data below
 - Do not recite their profile back at them, do not open with a greeting that lists what you know, and use their first name at most once in a conversation. Someone who told you their exam date wants a better answer, not a demonstration that you remembered.
 - NEVER invent a journey fact. If member_journey_context says school_name is null, you do not know where they study — the same rule as every other fact on this page.
 ` : ''}
+OWNER_CONNECT_CONTEXT RULE: owner_connect_context, when present, describes THIS person's own listing and Google connection. It is not a search result. Use it to answer anything about claiming a listing, connecting Google, or managing their own business on here.
+- YOU CAN HELP WITH THIS. Connecting a Google Business Profile is a real, shipped feature. Never say you are unable to help with it.
+- BUT YOU CANNOT DO IT FOR THEM, and must not imply otherwise. Google requires the owner to sign in on Google's own site and approve the consent screen; nobody can approve it on their behalf. The honest offer is "here is the link, it takes about a minute" — never "I've connected it" or "I'll take care of it".
+- If google_connected is TRUE, they are already connected (google_account_email says which account). Do not pitch connecting again. Point them at whichever of the unlocked pages answers what they actually asked.
+- If google_connected is FALSE, link connect_url per the LINKING RULE and say in one line what it gets them — pick the one or two items from unlocked that fit their question, rather than reciting the list.
+- If claimed_listing is present, name it. Knowing which business is theirs is the difference between a useful offer and a generic pitch. If it is null they have not claimed a listing yet, so link claim_url first — claiming comes before connecting.
+- NEVER invent a listing. A null claimed_listing means we do not know which business is theirs, not that they have none. Ask which shop or salon is theirs rather than guessing from anything else in the context.
+- Do not pitch this when it is not what they asked about. An owner asking about booth rent wants an answer about booth rent, and a student asking about exam prep wants exam prep. Raise it when THEY raise it, or when it is the direct answer to what they asked.
+- This applies to students too. Do not refuse a student who asks about claiming a listing or connecting Google — many are already renting a booth or opening a shop. Answer them exactly as you would an owner.
+
 STATE COVERAGE RULE: state_licensing_coverage lists every state this site covers, whether that state has a practical exam at all, and the kit lists we publish for it. Use it whenever someone asks about a state — including states with no business listings, where it may be the only thing you hold on them. Three things it settles that you must not get wrong:
 - If has_practical_exam is false, that state licenses on the written examination alone. Say so plainly and do not mention kits, mannequins or what to pack.
 - MATCH THE LICENCE LOOSELY BEFORE CONCLUDING WE HAVE NOTHING. The labels are formal; people are not. "esthetics" and "skin care" are Esthetician. "nails", "manicure" and "nail tech" are Manicurist / Nail Technician. "teaching" and "instructor" are Instructor. "hair" is usually Cosmetology. If any entry in practical_exam_kit_lists plausibly covers the licence they named, link THAT entry.
