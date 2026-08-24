@@ -1,0 +1,50 @@
+[
+ {
+  "k": "m-designs",
+  "h": "Six hair designs to ask for.",
+  "n": [
+   "Geometric lines",
+   "Curved waves",
+   "Zigzag pattern",
+   "Cross-hatch",
+   "Starburst",
+   "Layered arcs"
+  ]
+ },
+ {
+  "k": "m-black",
+  "h": "Six barbershop classics.",
+  "n": [
+   "360 waves",
+   "High-top fade",
+   "Box fade",
+   "Temple taper",
+   "Sponge twists",
+   "Line-up with a part"
+  ]
+ },
+ {
+  "k": "m-latino",
+  "h": "Six cuts from the Latino barbershop.",
+  "n": [
+   "Edgar cut",
+   "Blowout taper",
+   "Textured fringe",
+   "Low taper fade",
+   "Mullet fade",
+   "Burst fade with a fringe"
+  ]
+ },
+ {
+  "k": "m-asian",
+  "h": "Six cuts from the Asian barbershop.",
+  "n": [
+   "Two-block cut",
+   "Comma hair",
+   "Dandy perm",
+   "Textured fringe",
+   "Middle-part curtains",
+   "Buzz with a fringe"
+  ]
+ }
+]

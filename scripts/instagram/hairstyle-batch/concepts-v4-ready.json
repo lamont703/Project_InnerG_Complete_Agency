@@ -1,0 +1,38 @@
+[
+ {
+  "k": "w-african-braids",
+  "h": "Six braided styles.",
+  "n": [
+   "Fulani braids",
+   "Ghana braids",
+   "Knotless box braids",
+   "Lemonade braids",
+   "Halo braid",
+   "Goddess braids"
+  ]
+ },
+ {
+  "k": "w-african-natural",
+  "h": "Six natural styles.",
+  "n": [
+   "Bantu knots",
+   "Afro puff",
+   "Twist-out",
+   "Wash and go",
+   "High-top afro",
+   "Hair threading"
+  ]
+ },
+ {
+  "k": "w-locs",
+  "h": "Six loc styles.",
+  "n": [
+   "Starter locs",
+   "Sisterlocks",
+   "Faux locs",
+   "Butterfly locs",
+   "Goddess locs",
+   "Loc updo"
+  ]
+ }
+]
