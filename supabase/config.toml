@@ -212,3 +212,9 @@ entrypoint = "./functions/webhook-recruitment-sms/index.ts"
 
 [functions.webhook-claim-shop-sms]
 verify_jwt = false
+
+# Called by a GHL Workflow on inbound email, which sends no Authorization
+# header at all — the platform gateway rejected it with
+# UNAUTHORIZED_NO_AUTH_HEADER before the function code ever ran.
+[functions.webhook-booking-email]
+verify_jwt = false
