@@ -25,7 +25,7 @@
  * thumbnail carries the same message and is known to work.
  */
 
-import { internalGoogleCredentials } from "@/lib/google-internal-oauth";
+import { googleClient } from "@/lib/google-clients";
 import { writeLocalPost } from "@/lib/gbp-write";
 
 /** Google truncates a longer summary; sending one is a 400. */
@@ -57,9 +57,9 @@ export type GbpBrandPublishResult =
  * invalid_grant and reads, wrongly, as a revoked connection.
  */
 async function internalGbpAccessToken(refreshToken: string): Promise<string> {
-  const { clientId, clientSecret } = internalGoogleCredentials();
+  const { clientId, clientSecret } = googleClient("gbp_brand");
   if (!clientId || !clientSecret) {
-    throw new Error("no Google OAuth client configured for internal use");
+    throw new Error("GOOGLE_GBP_BRAND_CLIENT_ID / _SECRET are not set");
   }
 
   const res = await fetch("https://oauth2.googleapis.com/token", {

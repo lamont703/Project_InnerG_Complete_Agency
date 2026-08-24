@@ -253,9 +253,18 @@ async function connectX() {
 /* ----------------------------------------------------------------------- GBP */
 
 async function connectGbp() {
-  const clientId = internalEnv().GOOGLE_CLIENT_ID;
-  const clientSecret = internalEnv().GOOGLE_CLIENT_SECRET;
-  if (!clientId || !clientSecret) throw new Error("No internal Google OAuth client configured");
+  // THE BRAND CLIENT, not the shared internal one. Each Google purpose has its
+  // own client now, and a refresh token belongs to the client that minted it —
+  // minting this one against anything else produces a token the publisher
+  // cannot redeem, which surfaces at a publishing slot as a revoked connection.
+  const clientId = process.env.GOOGLE_GBP_BRAND_CLIENT_ID || internalEnv().GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_GBP_BRAND_CLIENT_SECRET || internalEnv().GOOGLE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    throw new Error("GOOGLE_GBP_BRAND_CLIENT_ID / _SECRET are not set");
+  }
+  if (!process.env.GOOGLE_GBP_BRAND_CLIENT_ID) {
+    console.warn("⚠ Falling back to the old shared internal client. Set GOOGLE_GBP_BRAND_CLIENT_ID.");
+  }
 
   // Same already-registered redirect the other internal scripts use. The page
   // does not need to exist; only the address bar matters.
