@@ -36,4 +36,4 @@ export * from "./chat/agency-agent.ts"
 
 // Tool Registry System
 export * from "./tools/index.ts"
-
+export * from "./agent-memory.ts"
