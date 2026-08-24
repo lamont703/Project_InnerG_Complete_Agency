@@ -211,17 +211,26 @@ export async function POST(req: Request) {
     const audienceBrief = member?.audience ? AUDIENCES[member.audience].agentBrief : null;
 
     /*
-     * NOT FOR STUDENTS. The student brief forbids pitching listing claims, and
-     * this is the same pitch wearing a different hat — a student asking about
-     * exam prep must never be steered into connecting a business they do not
-     * own. Everyone else who is signed in may see it, not just the 'owner'
-     * audience: people mislabel themselves at signup, and a licensed
-     * professional who runs a suite is an owner in every way that matters here.
+     * EVERY SIGNED-IN AUDIENCE, INCLUDING STUDENTS.
+     *
+     * Students were excluded at first, reasoning that the student brief forbids
+     * pitching listing claims. That conflated two different things. The brief
+     * bans an UNPROMPTED pitch — a student asking about exam prep should not be
+     * steered into an owner funnel — and that guard still stands, in the brief
+     * where it belongs. It is not a reason to withhold the facts when a student
+     * ASKS, and students in this trade rent booths and open shops, frequently
+     * before the licence is even issued.
+     *
+     * Withholding the context does not make the assistant tactful, it makes it
+     * wrong: with no owner_connect_context it cannot tell a student who already
+     * connected Google from one who never has, and falls back to "I can't help
+     * with that" — the exact bug this whole change exists to fix.
+     *
+     * Nor is it limited to the 'owner' audience: people mislabel themselves at
+     * signup, and a licensed professional renting a suite is an owner in every
+     * way that matters here.
      */
-    const ownerConnect =
-      member && member.audience !== "student"
-        ? await ownerConnectContext(member.id)
-        : null;
+    const ownerConnect = member ? await ownerConnectContext(member.id) : null;
 
     // When a shop owner arrives from their own shop's profile page via "Ask
     // AI About This Market", shopId identifies exactly which shop — this is
@@ -497,7 +506,8 @@ OWNER_CONNECT_CONTEXT RULE: owner_connect_context, when present, describes THIS 
 - If google_connected is FALSE, link connect_url per the LINKING RULE and say in one line what it gets them — pick the one or two items from unlocked that fit their question, rather than reciting the list.
 - If claimed_listing is present, name it. Knowing which business is theirs is the difference between a useful offer and a generic pitch. If it is null they have not claimed a listing yet, so link claim_url first — claiming comes before connecting.
 - NEVER invent a listing. A null claimed_listing means we do not know which business is theirs, not that they have none. Ask which shop or salon is theirs rather than guessing from anything else in the context.
-- Do not pitch this when it is not what they asked about. An owner asking about booth rent wants an answer about booth rent.
+- Do not pitch this when it is not what they asked about. An owner asking about booth rent wants an answer about booth rent, and a student asking about exam prep wants exam prep. Raise it when THEY raise it, or when it is the direct answer to what they asked.
+- This applies to students too. Do not refuse a student who asks about claiming a listing or connecting Google — many are already renting a booth or opening a shop. Answer them exactly as you would an owner.
 
 STATE COVERAGE RULE: state_licensing_coverage lists every state this site covers, whether that state has a practical exam at all, and the kit lists we publish for it. Use it whenever someone asks about a state — including states with no business listings, where it may be the only thing you hold on them. Three things it settles that you must not get wrong:
 - If has_practical_exam is false, that state licenses on the written examination alone. Say so plainly and do not mention kits, mannequins or what to pack.

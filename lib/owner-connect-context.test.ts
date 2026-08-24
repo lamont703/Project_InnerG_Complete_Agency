@@ -59,11 +59,22 @@ describe("owner brief", () => {
   });
 });
 
-describe("student brief still refuses the pitch", () => {
-  it("forbids pitching listing claims to a student", () => {
-    // owner_connect_context is deliberately not built for students. If this
-    // ever loosens, a student asking about exam prep gets steered into
-    // connecting a business they do not own.
+describe("student brief — pitch banned, feature not withheld", () => {
+  /*
+   * These two pull in opposite directions and both matter. The first version of
+   * this change excluded students from owner_connect_context entirely, which
+   * conflated "do not pitch" with "do not help" — and left the assistant unable
+   * to tell a student who had already connected Google from one who never had,
+   * so it fell back to "I can't help with that". That is the original bug.
+   */
+  it("still forbids the unprompted pitch", () => {
     expect(AUDIENCES.student.agentBrief).toMatch(/never pitch/i);
+    expect(AUDIENCES.student.agentBrief).toMatch(/unprompted/i);
+  });
+
+  it("does not refuse a student who asks", () => {
+    expect(AUDIENCES.student.agentBrief).toMatch(/do NOT refuse those things when they ask/i);
+    // And it must point at the same rule owners get, so the two cannot drift.
+    expect(AUDIENCES.student.agentBrief).toMatch(/OWNER_CONNECT_CONTEXT RULE/);
   });
 });
