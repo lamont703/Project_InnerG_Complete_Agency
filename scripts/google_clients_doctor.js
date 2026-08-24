@@ -44,7 +44,10 @@ const CHAIN = {
     label: "Business Profile — our own listing",
     id: ["GOOGLE_GBP_BRAND_CLIENT_ID", "GOOGLE_INTERNAL_CLIENT_ID", "GOOGLE_CLIENT_ID"],
     secret: ["GOOGLE_GBP_BRAND_CLIENT_SECRET", "GOOGLE_INTERNAL_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET"],
-    refresh: ["GOOGLE_GBP_BRAND_REFRESH_TOKEN"],
+    // NOT an env var. The brand token is stored per-connection in
+    // publisher_connections, minted by scripts/publisher_connect.js gbp.
+    // Reporting a missing env var here was a false alarm.
+    refresh: null,
   },
   youtube: {
     label: "YouTube publishing",
@@ -174,7 +177,9 @@ const SENSITIVE = /youtube|yt-analytics|adwords|webmasters|gmail|drive/;
         console.log(`                   can be concluded about the token. Fix the secret first.`);
       }
     } else {
-      console.log(`  token check    – per-user, tokens live in gbp_connections`);
+      console.log(`  token check    – ${purpose === "gbp_owner"
+        ? "per-user, tokens live in gbp_connections"
+        : "token lives in publisher_connections; run scripts/publisher_connect.js gbp"}`);
     }
     console.log("");
   }

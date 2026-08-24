@@ -2,6 +2,7 @@ import { google } from "googleapis";
 import { CodeChallengeMethod } from "google-auth-library";
 import { createHash, randomBytes } from "node:crypto";
 import { CLAIM_ENTITY_TYPES, CLAIMED_AT_TYPES } from "@/lib/entity-claim";
+import { googleClient } from "@/lib/google-clients";
 
 // Google Business Profile OAuth + API helpers. Reuses the existing Google OAuth
 // client (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) with a GBP-specific redirect
@@ -36,8 +37,34 @@ import { CLAIM_ENTITY_TYPES, CLAIMED_AT_TYPES } from "@/lib/entity-claim";
 // EVERY REFRESH TOKEN THAT CLIENT ISSUED DIES WITH IT. Rows in gbp_connections
 // keep a refresh_token that can no longer be redeemed, so each owner has to run
 // the consent flow again — a new client cannot inherit the old grants.
-//   • Add the business.manage scope to the OAuth consent screen (it's a
-//     restricted scope → needs Google verification before non-test users).
+//   • Add the business.manage scope to the OAuth consent screen.
+//
+// NO OAUTH VERIFICATION IS NEEDED, and the note that used to sit here saying
+// otherwise was wrong. It called business.manage "a restricted scope → needs
+// Google verification before non-test users", which is the kind of plausible,
+// never-checked claim this repo keeps getting burned by: it was read as a
+// blocker on letting real shop owners connect, and it is not one.
+//
+// Checked in the Google Cloud Console on 2026-08-23. All four scopes this
+// client declares — openid, userinfo.email, userinfo.profile and
+// business.manage — are listed under "Your non-sensitive scopes". Google's own
+// definition is that an unverified app is one that "requests a sensitive or
+// restricted OAuth scope", and that "non-sensitive scopes do not trigger the
+// unverified app screen" (support.google.com/cloud/answer/7454865). So there is
+// no interstitial warning, no 100-user lifetime cap, and nothing to submit.
+// The console's 10,000-grants-per-day token rate is the ordinary production
+// rate and corroborates it.
+//
+// TWO THINGS WOULD CHANGE THAT, so re-check rather than trusting this comment:
+//   • Google reclassifying business.manage. Reclassification comes with an
+//     emailed grace period before the warning screen and user cap apply.
+//   • Requesting a scope in code that is NOT declared on the consent screen.
+//     Google shows the unverified screen for scopes "you haven't selected on
+//     the OAuth consent screen configuration page" — so GBP_SCOPES below must
+//     stay a subset of what the console declares.
+//
+// The console, not this file, is the authority: it labels every declared scope
+// non-sensitive / sensitive / restricted automatically.
 
 export const GBP_SCOPES = [
   "openid",
@@ -50,11 +77,8 @@ export function gbpRedirectUri(origin: string): string {
 }
 
 export function gbpOAuthClient(origin: string) {
-  return new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    gbpRedirectUri(origin)
-  );
+  const { clientId, clientSecret } = googleClient("gbp_owner");
+  return new google.auth.OAuth2(clientId, clientSecret, gbpRedirectUri(origin));
 }
 
 /**
@@ -103,8 +127,12 @@ export async function gbpAccessToken(refreshToken: string): Promise<string> {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID || "",
-      client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+      // The OWNER client, deliberately. An owner's refresh token was minted by
+      // it and cannot be redeemed by any other — reaching for a different
+      // client here fails with invalid_client, which reads like a revoked
+      // grant and sends the owner back through consent for nothing.
+      client_id: googleClient("gbp_owner").clientId || "",
+      client_secret: googleClient("gbp_owner").clientSecret || "",
       refresh_token: refreshToken,
       grant_type: "refresh_token",
     }),
