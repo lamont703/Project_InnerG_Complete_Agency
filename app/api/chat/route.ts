@@ -5,6 +5,7 @@ import { GoogleGenAI } from '@google/genai';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
 import { currentMember, memberById, getJourney, appendToThread, otherChannelTurns, recentOutreach } from '@/lib/member-context';
+import { getViewAsContext } from '@/lib/account/view-as';
 import { ownerConnectContext } from '@/lib/owner-connect-context';
 import { policyForChannel } from '@/lib/agent-policy';
 import { agentJourneyContext, stateCoverageForChat } from '@/lib/member-journey';
@@ -160,9 +161,23 @@ export async function POST(req: Request) {
     const isInternalAgent = Boolean(
       agentSecret && req.headers.get("x-internal-agent") === agentSecret
     );
+    /*
+     * VIEW AS CHANGES WHO THIS IS, and it was not consulted here at all. An
+     * admin viewing the site as a member saw their OWN conversation and their
+     * own context — which defeats the point of the feature, since the whole
+     * question being asked is "what does the agent say to them".
+     *
+     * getViewAsContext is the authoritative answer and does its own admin
+     * check, so a stale or forged cookie on a non-admin session resolves to
+     * null rather than to somebody else's account.
+     */
+    const viewAs = isInternalAgent ? null : await getViewAsContext();
     const member = isInternalAgent
       ? await memberById(bodyMemberId)
-      : await currentMember();
+      : viewAs?.viewingAs
+        ? await memberById(viewAs.viewingAs.memberId)
+        : await currentMember();
+    const isViewingAs = Boolean(viewAs?.viewingAs);
     memberIdForUsage = member?.id ?? null;
     const limit = member ? MAX_REQUESTS_MEMBER : MAX_REQUESTS;
 
@@ -960,7 +975,18 @@ ${JSON.stringify(slimmedContext).substring(0, 120000)}
     // dangling promise here is a write that usually doesn't happen. It is
     // written post-sanitization, so what the member sees is what gets stored.
     if (member && finalText) {
-      await appendToThread(member.id, latestMessage, finalText);
+      /*
+       * NOT PERSISTED WHILE IMPERSONATING. Reading their history is the point
+       * of View As; writing to it is not. An admin testing what the agent says
+       * to a member must not leave that member a message they never sent — it
+       * would land in their thread, feed back as memory, and the agent would
+       * later refer to a conversation that never happened.
+       *
+       * So this is deliberately read-their-context, write-nothing.
+       */
+      if (!isViewingAs) {
+        await appendToThread(member.id, latestMessage, finalText);
+      }
     }
 
     // Awaited, not fired and forgotten: this is a serverless function and work
