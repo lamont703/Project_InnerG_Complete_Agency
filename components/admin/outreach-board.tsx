@@ -122,7 +122,7 @@ export function OutreachBoard({ suggestions }: { suggestions: OutreachSuggestion
                     <button
                       type="button"
                       onClick={async () => {
-                        await dismissDraft({ memberId: s.memberId, signal: s.signal });
+                        await dismissDraft({ memberId: s.memberId, signal: s.signal, channel: s.channel, body: drafts[key] ?? s.draft });
                         router.refresh();
                       }}
                       className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-rose-700"
