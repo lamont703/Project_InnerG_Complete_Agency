@@ -810,3 +810,176 @@ export async function getUpcomingEvents(
     priceInfo: r.price_info,
   }));
 }
+
+// ---------------------------------------------------------------------------
+// Open chairs — the question the Instagram bio actually tells people to ask.
+// ---------------------------------------------------------------------------
+
+export interface OpenChairListing {
+  venueType: "shop" | "salon";
+  name: string;
+  href: string;
+  city: string | null;
+  zip: string | null;
+  chairsAvailable: number;
+  /** Parsed weekly dollars, or null when the shop never told us a number. */
+  weeklyRent: number | null;
+  /** What they actually said, kept because half of it is prose we can't parse. */
+  rentRaw: string | null;
+  distanceMiles: number | null;
+}
+
+export interface OpenChairsResult {
+  requestedZip: string | null;
+  requestedCity: string | null;
+  /** False when we could not place the caller's zip — listings are then unsorted by distance. */
+  anchorResolved: boolean;
+  /** Every open chair we know about anywhere, so the model can say what it is not showing. */
+  totalOpenChairs: number;
+  totalOpenVenues: number;
+  /** True when even the closest listing is a different metro. */
+  nearestIsFar: boolean;
+  listings: OpenChairListing[];
+}
+
+const OPEN_CHAIR_COLS =
+  "shop_name, slug, city, address_zip, formatted_address, latitude, longitude, booth_count_available, rent_rate";
+
+const FAR_MILES = 25;
+
+/**
+ * Shops and salons with a chair open right now, nearest first.
+ *
+ * THIS IS NOT getRentStatsByZip. That one answers "what does rent cost around
+ * here" and, to do it, requires `rent_rate` to be non-null and returns only
+ * aggregates. Both choices are right for that question and wrong for this one:
+ * 21 of the 52 venues with an open chair have never told us a rent, and
+ * dropping them would hide 40% of the inventory the bio is advertising. A
+ * listing with no price is still a chair; it just needs asking about.
+ *
+ * ANCHORING IS THREE FALLBACKS DEEP because a caller's zip usually has no open
+ * chair in it — that is the normal case, not the edge case, since only 38 zips
+ * have any. So we place the zip using the whole directory (~5,200 geocoded
+ * venues), not just the ones hiring, and only then measure outward.
+ */
+export async function findOpenChairs(
+  supabase: SupabaseClient,
+  opts: { zip?: string | null; city?: string | null; limit?: number } = {},
+): Promise<OpenChairsResult> {
+  const zip = (opts.zip || "").trim().match(/\d{5}/)?.[0] || null;
+  const city = (opts.city || "").trim() || null;
+  const limit = Math.min(Math.max(opts.limit ?? 6, 1), 25);
+
+  const [shops, salons] = await Promise.all([
+    fetchAllRows(supabase, "agent_barbershop_leads", OPEN_CHAIR_COLS, (q) =>
+      q.gt("booth_count_available", 0),
+    ),
+    fetchAllRows(supabase, "agent_salon_leads", OPEN_CHAIR_COLS, (q) =>
+      q.gt("booth_count_available", 0),
+    ),
+  ]);
+
+  // `formatted_address` before `city`, because `city` is free text that carries
+  // stale zips: "Barberventures mobile barbershop" has city "Houston 77026"
+  // and a Google address of "919 Milam St, Houston, TX 77002" — and its
+  // coordinates put it downtown, agreeing with Google. extractZip is also more
+  // reliable on the Google form, where the zip follows "TX " rather than
+  // sitting at the end of a two-word string.
+  const rowZip = (r: any): string | null =>
+    r.address_zip || extractZip(r.formatted_address) || extractZip(r.city);
+
+  const all: (OpenChairListing & { lat: number | null; lng: number | null })[] = [
+    ...(shops as any[]).map((r) => ({ r, t: "shop" as const })),
+    ...(salons as any[]).map((r) => ({ r, t: "salon" as const })),
+  ].map(({ r, t }) => ({
+    venueType: t,
+    name: r.shop_name || "Unnamed",
+    href: `/${t === "shop" ? "shop" : "salons"}/${r.slug}`,
+    city: r.city ?? null,
+    zip: rowZip(r),
+    chairsAvailable: Number(r.booth_count_available) || 0,
+    weeklyRent: parseWeeklyRent(r.rent_rate),
+    rentRaw: r.rent_rate ?? null,
+    distanceMiles: null,
+    lat: r.latitude != null ? Number(r.latitude) : null,
+    lng: r.longitude != null ? Number(r.longitude) : null,
+  }));
+
+  const totalOpenChairs = all.reduce((n, l) => n + l.chairsAvailable, 0);
+  const totalOpenVenues = all.length;
+
+  // --- anchor ---------------------------------------------------------
+  let anchor: { lat: number; lng: number } | null = null;
+
+  const centroid = (pts: { lat: number | null; lng: number | null }[]) => {
+    const ok = pts.filter((p) => p.lat != null && p.lng != null) as { lat: number; lng: number }[];
+    if (!ok.length) return null;
+    return {
+      lat: ok.reduce((s, p) => s + p.lat, 0) / ok.length,
+      lng: ok.reduce((s, p) => s + p.lng, 0) / ok.length,
+    };
+  };
+
+  if (zip) {
+    // 1. Any venue in the directory in that zip — a real centroid for the zip.
+    //
+    // Matched against the ADDRESS TEXT, not `address_zip`. That column exists
+    // on both tables and is populated on 3 of 2,541 shops and 1 of 2,672
+    // salons — near-empty, but not empty enough to look broken, so an
+    // `.eq("address_zip", zip)` probe returns zero rows and silently degrades
+    // to an unranked list. `zip` is regex-checked to five digits above, which
+    // is what makes interpolating it into the filter safe.
+    if (!anchor) {
+      const probes = await Promise.all(
+        ["agent_barbershop_leads", "agent_salon_leads"].map(async (t) => {
+          const { data } = await (supabase.from(t) as any)
+            .select("latitude, longitude")
+            .or(`formatted_address.ilike.%${zip}%,city.ilike.%${zip}%`)
+            .not("latitude", "is", null)
+            .limit(40);
+          return (data || []).map((d: any) => ({ lat: Number(d.latitude), lng: Number(d.longitude) }));
+        }),
+      );
+      anchor = centroid(probes.flat());
+    }
+    // 2. Failing that, the listings that claim the zip. Deliberately SECOND:
+    // anchoring on the open-chair rows themselves is circular — with one such
+    // row the anchor becomes that shop and it reports itself 0.0mi away, which
+    // reads as precision and is nothing of the kind.
+    if (!anchor) anchor = centroid(all.filter((l) => l.zip === zip));
+  }
+  // 3. City text, when there is no usable zip at all.
+  if (!anchor && city) {
+    const needle = city.toLowerCase();
+    anchor = centroid(all.filter((l) => (l.city || "").toLowerCase().includes(needle)));
+  }
+
+  // --- rank -----------------------------------------------------------
+  let listings = all;
+  if (anchor) {
+    listings = all.map((l) => ({
+      ...l,
+      distanceMiles:
+        l.lat != null && l.lng != null
+          ? Math.round(haversineMiles(anchor!.lat, anchor!.lng, l.lat, l.lng) * 10) / 10
+          : null,
+    }));
+    // Unplaceable rows sort last rather than vanishing.
+    listings.sort((a, b) => (a.distanceMiles ?? 9e9) - (b.distanceMiles ?? 9e9));
+  } else {
+    listings = [...all].sort((a, b) => b.chairsAvailable - a.chairsAvailable);
+  }
+
+  const top = listings.slice(0, limit).map(({ lat, lng, ...rest }) => rest);
+  const nearest = top.find((l) => l.distanceMiles != null)?.distanceMiles ?? null;
+
+  return {
+    requestedZip: zip,
+    requestedCity: city,
+    anchorResolved: anchor != null,
+    totalOpenChairs,
+    totalOpenVenues,
+    nearestIsFar: nearest != null && nearest > FAR_MILES,
+    listings: top,
+  };
+}

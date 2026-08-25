@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
+import { computeShopEcosystemReport, getRentStatsByZip, findOpenChairs, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
 import { currentMember, memberById, getJourney, appendToThread, otherChannelTurns, recentOutreach } from '@/lib/member-context';
 import { getViewAsContext } from '@/lib/account/view-as';
 import { memberPerformanceContext } from '@/lib/member-performance-context';
@@ -555,6 +555,8 @@ MEMBER_JOURNEY_CONTEXT RULE: member_journey_context is in the context data below
 - NEVER invent a journey fact. If member_journey_context says school_name is null, you do not know where they study — the same rule as every other fact on this page.
 ` : ''}
 MY_PERFORMANCE RULE: my_performance holds THIS member's own numbers — their listing traffic, their booking requests and their ad placements. It is not a search result and not the directory average. Use it whenever they ask how they are doing, whether something is working, or what any of those three features is for.
+- gbp_audit IS THE ONLY SOURCE FOR THEIR GOOGLE PROFILE SCORE. It carries the current score, its grade, when it was measured and the previous score. If a number appears anywhere else in the context — in an email we sent them, in something they wrote — it is history, not their score today. Answering with a figure lifted from a notification is how you tell somebody their score is 75 when the page in front of them says 88.
+- IF gbp_audit IS ABSENT they have not connected Google or have never run the audit. Say that and point at owner_connect_context, rather than reaching for any number you can find.
 - ANSWER WITH THEIR NUMBERS, NOT A DESCRIPTION OF THE FEATURE. "You had 340 visits last month, up from 280" is the answer. "Listing Insights shows your traffic" is a brochure.
 - direction IS ALREADY COMPUTED — use it and do not recompute from the two figures. If it says "not_enough_history" then say there is not enough history yet rather than comparing against a zero.
 - A MISSING SECTION MEANS NOTHING IS SET UP, NOT ZERO PERFORMANCE. If booking_requests is absent they have had no requests or have not claimed a listing; if ads is absent they are not running any. Say which, and say what would change it — never report an absent section as poor results.
@@ -578,6 +580,7 @@ RECENT_OUTREACH RULE: recent_outreach is what ShearQuery has SENT this member �
 - USE IT ONLY WHEN IT ANSWERS WHAT THEY ASKED. If someone asks how to get more Saturday bookings and they were offered a profile audit twice without taking it, that offer is the answer and worth raising. If they ask about booth rent, it is not. Opportunistic, never promotional — the same rule as OWNER_CONNECT_CONTEXT.
 - IF THEY ASK WHAT WE HAVE SENT THEM, answer from this plainly and completely. That is a fair question about their own account and there is nothing to be coy about.
 - NEVER REPRODUCE THE MARKETING WORDING. You have a label, not the copy. Say what the offer was about in your own words.
+- NEVER TAKE A FACT OUT OF ONE OF THESE LABELS. They are truncated subject lines from messages sent weeks ago, and any figure inside one is a snapshot of that day — a score, a count, a price. Reading "Score 75" out of an August email and reporting it as their score today is exactly the error this line exists to prevent. Current numbers live in my_performance and nowhere else.
 
 OWNER_CONNECT_CONTEXT RULE: owner_connect_context describes THIS person's own listing and Google connection, and is always present. It is not a search result. Use it to answer anything about claiming a listing, connecting Google, or managing their own business on here.
 - YOU CAN HELP WITH THIS. Connecting a Google Business Profile is a real, shipped feature. Never say you are unable to help with it, and never send them somewhere else to do it.
@@ -617,6 +620,20 @@ RADII ARE FIXED: my_shop_ecosystem_report.radii holds the fixed per-section radi
 SCHOOL_DISTRICT_NAME RULE: barbershops, salons, professionals, and cosmetologists in the general lookup context (not just my_shop_ecosystem_report) may include a school_district_name field — mention it when relevant (e.g. comparing two shops' neighborhoods, or a "what area is this in" question), same community-identity framing as above.
 
 SCHOOL_DISTRICT_BARBERSHOP_RANKINGS RULE: This is a direct ranked list of school districts by average barbershop rating (shop_count and hiring_shop_count are also included), already sorted best-to-worst, for "which school district/area has the best barbershops" style questions — only districts with at least 3 rated shops are included, so small-sample outliers aren't cherry-picked. Use this instead of trying to infer district quality from the handful of individual barbershops elsewhere in the context. IMPORTANT: entries here have NO profile_url — there is no page on this site for browsing by school district. Mention district names as plain text only, exactly like any other item without a profile_url per the LINKING RULE above — do not invent, guess, or construct a URL for a school district under any circumstances (e.g. never write something like "/school-districts/...").
+
+FIND_OPEN_CHAIRS TOOL RULE: WHICH VENUES HAVE A CHAIR FREE IS NOT IN THE CONTEXT BELOW, AND YOU MUST NOT ANSWER IT FROM THERE. The barbershops and salons arrays are a partial, location-agnostic sample carrying no trustworthy availability figure and no distance from the person asking. Answering an availability question out of them produces a confidently wrong total — measured, not hypothetical: it reported "372 open chairs across 28 venues" when the real inventory was 202 across 52, and listed a shop 7 miles away as the nearest while three sat within 1.6 miles. ANY question about a chair, booth, station or space being open, available, free or for rent — however short — REQUIRES a find_open_chairs call before you answer. If you have not called it, you do not know.
+THIS IS ALSO THE QUESTION THE INSTAGRAM BIO TELLS PEOPLE TO ASK. The bio says: DM "open chairs near 77026". So a message that is nothing but a zip code, or "any chairs", or "who's renting", is a complete question — call find_open_chairs with whatever location is in it and answer. NEVER ask them to rephrase, and never reply that you need more detail before looking: a person who messaged an account that advertised an answer must get one.
+- "NEAR" MEANS NEAR, NOT IN, AND THIS IS THE ONE THAT GOES WRONG. Only 38 zips have any open chair, so a zip with none of its own IS THE NORMAL CASE — the tool has already handled it by anchoring on that zip and measuring outward. A shop one mile away in the next zip is a CORRECT and welcome answer to "open chairs near 77026". IF THE TOOL RETURNED ANY LISTINGS, NEVER REPLY THAT WE HAVE NOTHING IN THAT ZIP; give the nearest few with their distances. Saying "no barbershops in 77026 on file" while holding three listings within two miles is the single worst answer available: it is false, and it turns the person away from inventory that was sitting right there. Say we have nothing ONLY when listings is empty, or anchorResolved is false.
+- A BARE ZIP, OR A SHORT PHRASE WITH ONE IN IT, IS A COMPLETE QUESTION. "open chairs near 77026" is the exact wording our Instagram bio prints, so it will arrive verbatim and often. Call the tool, answer with the nearest listings, full stop.
+- NEVER SAY "NEAREST" WHEN distanceMiles IS null. With no anchor the list is ordered by how many chairs each venue has, not by distance, so calling them nearest is simply false — you do not know where the person is. Call them the biggest, or just "shops with space", and ask where they are.
+- NO LOCATION AT ALL? CALL IT ANYWAY, WITH NO ARGUMENTS. Then say what exists and where — "202 open chairs across 52 shops, mostly Houston" — and ask for their zip to narrow it. Never ask for a zip before telling them what we have: on Instagram a stranger gets three free messages, and spending the first one collecting input rather than giving an answer is how the conversation ends.
+- IF YOU SAY "SEVERAL", LIST SEVERAL. Three or four, not one.
+- IT IS NOT get_rent_stats_by_zip. That tool returns median/min/max PRICE for a zip and no listings; this one returns the actual venues with a chair free. "What's rent like in 77099" is that tool. "Any open chairs in 77099" is this one. If someone asks both, call both.
+- weeklyRent: null MEANS THEY NEVER TOLD US A PRICE. It does not mean free, and it does not mean cheap. Say "rent not listed — worth asking them" and move on. Do not skip a listing for having no price; 21 of the venues with a free chair have no rent on file and they are real chairs.
+- USE distanceMiles, because it is why the answer is trustworthy. "1 mile away" is the thing that makes them act. Round it as given.
+- anchorResolved: false MEANS WE COULD NOT PLACE THEIR LOCATION — usually somewhere we have no listings at all. Then the listings are NOT near them and are sorted by size instead. Say plainly that we have nothing in their area yet, say where the inventory actually is (totalOpenChairs across totalOpenVenues, currently Houston and Dallas), and do not present a Houston shop to someone in California as if it were nearby. nearestIsFar: true is the same warning in a place we do cover — lead with the distance.
+- LINK EVERY LISTING with its href per the LINKING RULE.
+- KEEP IT TO 3 OR 4. Name the nearest few with chairs, rent and distance. totalOpenChairs is the whole inventory, so it is fair to close with how many more there are — but do not list them.
 
 GET_RENT_STATS_BY_ZIP TOOL RULE: Booth rent is NOT in the context above for any zip code — it only exists as free text on individual shop records, never pre-aggregated. If asked about rent, pricing, or affordability for a specific zip code (e.g. "what's rent like in 77099," "which zip has the highest rent"), call get_rent_stats_by_zip with that zip rather than guessing or saying you don't have the data. If the tool returns null, say plainly that there's no rent data on file for that zip — don't invent a number. sampleSize in the result is often small (rent is rarely reported) — if it's 1 or 2, say so explicitly (e.g. "based on the one shop with rent data on file") rather than presenting it as a reliable market rate. This tool only accepts one zip at a time — for a "which zip is highest" question, you may need to call it for a few specific zips mentioned in conversation, but don't call it more than 3-4 times in one turn.
 
@@ -671,6 +688,18 @@ ${JSON.stringify(slimmedContext).substring(0, 120000)}
     // rest of the (already-tuned) fixed-context approach untouched.
     const RENT_STATS_TOOL = {
       functionDeclarations: [
+        {
+          name: 'find_open_chairs',
+          description: "List barbershops and salons that have a booth/chair OPEN RIGHT NOW, nearest first, with how many chairs, the weekly rent when we know it, and a link. This is the inventory question — 'any open chairs near me', 'who's renting a booth in 77026', 'which shops are hiring', 'where can I rent a chair'. Distinct from get_rent_stats_by_zip, which returns price statistics and no listings. Pass whatever location was given; both arguments are optional.",
+          parametersJsonSchema: {
+            type: 'object',
+            properties: {
+              zip: { type: 'string', description: "A 5-digit US zip code if one was given, e.g. '77026'." },
+              city: { type: 'string', description: "A city name, e.g. 'Houston'. Use when a city was named but no zip." },
+              limit: { type: 'number', description: "How many listings to return. Defaults to 6. Use 3-4 when replying on Instagram, where answers must be short." },
+            },
+          },
+        },
         {
           name: 'get_rent_stats_by_zip',
           description: "Look up booth rent statistics (median/min/max weekly rent in USD, sample size, and shop/salon counts) for a specific 5-digit zip code. This data is never pre-loaded into context for any zip — call this tool whenever rent/pricing/affordability for a specific zip comes up.",
@@ -906,7 +935,13 @@ ${JSON.stringify(slimmedContext).substring(0, 120000)}
       const functionResponseParts = await Promise.all(
         response.functionCalls.map(async (fc) => {
           let result: any = null;
-          if (fc.name === 'get_rent_stats_by_zip') {
+          if (fc.name === 'find_open_chairs') {
+            result = await findOpenChairs(supabase as any, {
+              zip: fc.args?.zip as string | undefined,
+              city: fc.args?.city as string | undefined,
+              limit: fc.args?.limit as number | undefined,
+            });
+          } else if (fc.name === 'get_rent_stats_by_zip') {
             const zip = fc.args?.zip as string | undefined;
             result = zip ? await getRentStatsByZip(supabase as any, zip) : null;
           } else if (fc.name === 'find_professional_employment') {
