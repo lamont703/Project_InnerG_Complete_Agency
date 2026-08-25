@@ -32,6 +32,25 @@ import { aggregateCampaigns, ctrLabel, PLACEMENT_LABELS, type AdCampaign } from 
 
 export interface MemberPerformanceContext {
   listing: { name: string; profile_url: string } | null;
+  /**
+   * The CURRENT Google Business Profile audit score, read from the newest
+   * stored snapshot — the same number the audit page renders.
+   *
+   * This exists because the agent was answering "how is my Google profile
+   * doing" with 75 while the UI showed 88. It had no live figure, so it took
+   * one out of a monitoring EMAIL sitting in memory from 1 August, whose first
+   * seventy characters read "...INNER G COMPLETE AGENCY Score 75 (+". A number
+   * that appears in a stale notification is not a fact about today, and
+   * without a real one to hand the model will find something that looks like
+   * one.
+   */
+  gbp_audit: {
+    score: number;
+    grade: string;
+    measured_at: string;
+    previous_score: number | null;
+    page_url: string;
+  } | null;
   listing_insights: {
     months_covered: number;
     visits_total: number;
@@ -72,6 +91,30 @@ export async function memberPerformanceContext(
       .select("entity_type, entity_id")
       .eq("community_member_id", memberId)
       .maybeSingle();
+
+    /*
+     * Read from the snapshot table rather than re-running the audit. Running it
+     * costs Google API calls on a page the member is waiting on, and the stored
+     * snapshot is by definition the number they were last shown — which is the
+     * one they will quote back.
+     */
+    let gbpAudit: MemberPerformanceContext["gbp_audit"] = null;
+    {
+      const { data: snaps } = await (db.from("gbp_audit_snapshots") as any)
+        .select("score, grade, created_at")
+        .eq("community_member_id", memberId)
+        .order("created_at", { ascending: false })
+        .limit(2);
+      if (snaps?.length) {
+        gbpAudit = {
+          score: snaps[0].score,
+          grade: snaps[0].grade,
+          measured_at: snaps[0].created_at,
+          previous_score: snaps.length > 1 ? snaps[1].score : null,
+          page_url: "/account/gbp-audit",
+        };
+      }
+    }
 
     let listing: MemberPerformanceContext["listing"] = null;
     let insights: MemberPerformanceContext["listing_insights"] = null;
@@ -183,8 +226,8 @@ export async function memberPerformanceContext(
       }
     }
 
-    if (!listing && !insights && !bookings && !ads) return null;
-    return { listing, listing_insights: insights, booking_requests: bookings, ads };
+    if (!listing && !insights && !bookings && !ads && !gbpAudit) return null;
+    return { listing, gbp_audit: gbpAudit, listing_insights: insights, booking_requests: bookings, ads };
   } catch (err) {
     console.error("[member-performance] failed:", err);
     return null;
