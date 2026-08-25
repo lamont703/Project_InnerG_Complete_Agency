@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Mail, MessageSquare, Send, Check, AlertTriangle, Clock } from "lucide-react";
+import { Mail, MessageSquare, Send, Check, AlertTriangle, Clock, Sparkles, RotateCw, X, Save } from "lucide-react";
 import type { OutreachSuggestion } from "@/lib/admin/member-outreach";
-import { sendOutreach } from "@/app/admin/member-outreach/actions";
+import { sendOutreach, saveDraftEdit, dismissDraft, regenerateDraft } from "@/app/admin/member-outreach/actions";
 
 /**
  * Drafted messages, one card each, editable before they go.
@@ -49,10 +49,25 @@ export function OutreachBoard({ suggestions }: { suggestions: OutreachSuggestion
                 <p className="text-sm font-black text-slate-900">{s.name}</p>
                 <p className="text-[11px] text-slate-500">{s.reason}</p>
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
-                <Icon className="h-3 w-3" />
-                {s.channel}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
+                  <Icon className="h-3 w-3" />
+                  {s.channel}
+                </span>
+                {/* Whether a model wrote this or quota was out. A fallback draft
+                    must never be mistaken for a considered one. */}
+                <span
+                  title={s.origin === "ai" ? "Written for this member" : "Fallback template — generation was unavailable"}
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                    s.origin === "ai"
+                      ? "border-indigo-100 bg-indigo-50 text-indigo-700"
+                      : "border-amber-200 bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  <Sparkles className="h-3 w-3" />
+                  {s.origin === "ai" ? (s.edited ? "edited" : "written") : "template"}
+                </span>
+              </div>
             </div>
 
             {s.lastOutreachAt && (
@@ -74,10 +89,49 @@ export function OutreachBoard({ suggestions }: { suggestions: OutreachSuggestion
               className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-[13px] leading-relaxed text-slate-800 disabled:opacity-60"
             />
 
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <span className="text-[10px] text-slate-400">
-                {s.channel === "sms" ? s.phone || s.contactId : s.email}
-              </span>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-slate-400">
+                  {s.channel === "sms" ? s.phone || s.contactId : s.email}
+                </span>
+                {status !== "sent" && (
+                  <>
+                    {(drafts[key] ?? "") !== s.draft && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await saveDraftEdit({ memberId: s.memberId, signal: s.signal, channel: s.channel, body: drafts[key] ?? "", subject: s.subject });
+                          router.refresh();
+                        }}
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 hover:text-slate-900"
+                      >
+                        <Save className="h-3 w-3" /> keep edit
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setState((v) => ({ ...v, [key]: "sending" }));
+                        await regenerateDraft({ memberId: s.memberId, signal: s.signal });
+                        router.refresh();
+                      }}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 hover:text-slate-900"
+                    >
+                      <RotateCw className="h-3 w-3" /> rewrite
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await dismissDraft({ memberId: s.memberId, signal: s.signal });
+                        router.refresh();
+                      }}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-rose-700"
+                    >
+                      <X className="h-3 w-3" /> not now
+                    </button>
+                  </>
+                )}
+              </div>
 
               {status === "sent" ? (
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
@@ -91,6 +145,7 @@ export function OutreachBoard({ suggestions }: { suggestions: OutreachSuggestion
                     setState((v) => ({ ...v, [key]: "sending" }));
                     const res = await sendOutreach({
                       memberId: s.memberId,
+                      signal: s.signal,
                       channel: s.channel,
                       message: drafts[key] ?? s.draft,
                       subject: s.subject,

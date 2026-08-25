@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import { Navbar } from "@/components/layout/navbar";
-import { outreachSuggestions, signalLabel } from "@/lib/admin/member-outreach";
+import { outreachSuggestions, signalLabel, stepLabel } from "@/lib/admin/member-outreach";
 import { OutreachBoard } from "@/components/admin/outreach-board";
 import { Send } from "lucide-react";
 
@@ -43,8 +43,10 @@ export default async function MemberOutreachPage() {
         <p className="mb-8 max-w-2xl text-sm text-slate-500">
           Every one of these is here because something happened — an offer followed and
           abandoned, a listing claimed without Google connected. Nothing is queued because
-          time has passed. Read the draft, change it to sound like you, then send.
-          Anyone contacted in the last 10 days is left out.
+          time has passed. Each draft is written for that member from what we know about
+          their business and pushes them to one next step, never a list of features.
+          Read it, change it to sound like you, then send. Anyone contacted in the last 10
+          days is left out, and a draft you edit is kept and never rewritten.
         </p>
 
         {Object.keys(bySignal).length > 0 && (
@@ -55,6 +57,14 @@ export default async function MemberOutreachPage() {
                 className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold text-slate-600"
               >
                 {signalLabel(signal as any)} · {count}
+              </span>
+            ))}
+            {[...new Set(suggestions.map((s) => s.step))].map((step) => (
+              <span
+                key={step}
+                className="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-[11px] font-bold text-indigo-700"
+              >
+                → {stepLabel(step)}
               </span>
             ))}
           </div>

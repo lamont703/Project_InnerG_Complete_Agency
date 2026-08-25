@@ -1,5 +1,8 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { CLAIM_ENTITY_TYPES } from "@/lib/entity-claim";
+import { nextStep, STEP_BRIEFS, type FunnelStep } from "@/lib/admin/outreach-funnel";
+import { generateDraft } from "@/lib/admin/outreach-draft";
 
 /**
  * Who is worth reaching out to, and what to say.
@@ -49,9 +52,26 @@ export interface OutreachSuggestion {
   channel: OutreachChannel;
   subject?: string;
   draft: string;
+  /** Which step of the funnel this message is pushing toward. */
+  step: FunnelStep;
+  /** 'ai' when a model wrote it, 'template' when generation was unavailable. */
+  origin: "ai" | "template";
+  /** True once a human has changed the wording — a regenerate must not lose it. */
+  edited: boolean;
   /** Last time anything was sent to them, so nobody gets chased. */
   lastOutreachAt: string | null;
 }
+
+/**
+ * A draft is rewritten if it is older than this.
+ *
+ * The facts inside it go stale even though the text does not: "no opening hours
+ * on file" stops being true the moment they add them, and sending it then is
+ * worse than sending nothing. Two weeks is short enough that a claim about a
+ * listing is probably still right and long enough that nothing regenerates for
+ * the sake of it.
+ */
+const DRAFT_STALE_DAYS = 14;
 
 /**
  * Nothing is suggested for someone contacted within this window.
@@ -62,6 +82,22 @@ export interface OutreachSuggestion {
  * because yesterday's send is not visible here is how that happens.
  */
 const QUIET_DAYS = 10;
+
+/**
+ * Which step of the funnel each signal is really about.
+ *
+ * The two are not the same thing and conflating them was the first version's
+ * flaw: a signal is an observation ("clicked and stopped"), a step is a
+ * destination ("connect Google"). Somebody who clicked an audit email and
+ * somebody who simply never connected Google both need the same ASK — the
+ * click only changes how warm the moment is.
+ */
+const SIGNAL_STEP: Record<OutreachSignal, FunnelStep> = {
+  clicked_no_action: "connect_google",
+  claimed_not_connected: "connect_google",
+  no_listing_claimed: "claim_listing",
+  never_contacted: "claim_listing",
+};
 
 const SIGNAL_LABEL: Record<OutreachSignal, string> = {
   clicked_no_action: "Clicked an offer and stopped",
@@ -123,13 +159,15 @@ export async function outreachSuggestions(): Promise<OutreachSuggestion[]> {
 
   const [membersRes, linksRes, gbpRes, threadsRes] = await Promise.all([
     (db.from("community_members") as any).select("id, first_name, last_name, email, phone, contact_id, audience, created_at"),
-    (db.from("community_member_entity_links") as any).select("community_member_id"),
+    (db.from("community_member_entity_links") as any).select("community_member_id, entity_type, entity_id"),
     (db.from("gbp_connections") as any).select("community_member_id, status"),
     (db.from("member_agent_threads") as any).select("id, community_member_id"),
   ]);
 
   const members = membersRes?.data ?? [];
-  const claimed = new Set((linksRes?.data ?? []).map((r: any) => r.community_member_id));
+  const linkByMember = new Map<string, { entity_type: string; entity_id: string }>(
+    (linksRes?.data ?? []).map((r: any) => [r.community_member_id, r])
+  );
   const connected = new Set(
     (gbpRes?.data ?? []).filter((r: any) => r.status !== "revoked").map((r: any) => r.community_member_id)
   );
@@ -138,80 +176,210 @@ export async function outreachSuggestions(): Promise<OutreachSuggestion[]> {
   );
 
   const threadIds = [...threadByMember.values()];
-  // Everything we have ever SENT, with how far it got. One query rather than
-  // one per member — this page is a list, and N+1 here would show.
   const { data: sent } = threadIds.length
     ? await (db.from("member_agent_messages") as any)
-        .select("thread_id, delivery_status, created_at, content")
+        .select("thread_id, delivery_status, created_at, source, content, role")
         .in("thread_id", threadIds)
-        .in("source", ["ghl_workflow", "ghl_bulk", "ghl_notification", "agent_outbound"])
         .order("created_at", { ascending: false })
     : { data: [] };
 
   const lastSentByThread = new Map<string, string>();
   const clickedByThread = new Set<string>();
+  const wordsByThread = new Map<string, string[]>();
   for (const row of sent ?? []) {
-    if (!lastSentByThread.has(row.thread_id)) lastSentByThread.set(row.thread_id, row.created_at);
-    if (row.delivery_status === "clicked") clickedByThread.add(row.thread_id);
+    const isOutreach = ["ghl_workflow", "ghl_bulk", "ghl_notification", "agent_outbound"].includes(row.source);
+    if (isOutreach) {
+      if (!lastSentByThread.has(row.thread_id)) lastSentByThread.set(row.thread_id, row.created_at);
+      if (row.delivery_status === "clicked") clickedByThread.add(row.thread_id);
+    } else if (row.role === "user") {
+      // THEIR OWN WORDS, which beat any fact we hold about their listing.
+      // Newest first here, reversed below so the model reads them in order.
+      const list = wordsByThread.get(row.thread_id) ?? [];
+      if (list.length < 4) { list.push(String(row.content).slice(0, 180)); wordsByThread.set(row.thread_id, list); }
+    }
   }
 
+  /*
+   * The claimed entity, read per type. Name, city, rating and review count are
+   * what let a message open with something true about THEIR business instead of
+   * a sentence about ours — which is the whole difference between this and a
+   * mail merge.
+   */
+  const businessByMember = new Map<string, any>();
+  await Promise.all(
+    [...linkByMember.entries()].map(async ([memberId, link]) => {
+      const cfg = CLAIM_ENTITY_TYPES.find((c) => c.key === link.entity_type);
+      if (!cfg) return;
+      const { data } = await (db.from(cfg.table) as any)
+        .select(`${cfg.nameCol}, city, rating, total_reviews, google_category, website, site_config`)
+        .eq("id", link.entity_id)
+        .maybeSingle();
+      if (!data) return;
+      businessByMember.set(memberId, {
+        name: data[cfg.nameCol] ?? null,
+        city: data.city ?? null,
+        rating: data.rating ?? null,
+        reviews: data.total_reviews ?? null,
+        category: data.google_category ?? null,
+        hasWebsite: Boolean(data.website),
+        hasHours: Boolean(data.site_config?.hours?.length),
+      });
+    })
+  );
+
+  // Drafts already written. One query, then generation only for what is missing.
+  const { data: cached } = await (db.from("member_outreach_drafts") as any)
+    .select("*")
+    .eq("status", "pending");
+  const draftKey = (m: string, sig: string) => `${m}|${sig}`;
+  const cachedByKey = new Map<string, any>((cached ?? []).map((d: any) => [draftKey(d.community_member_id, d.signal), d]));
+
   const quietCutoff = Date.now() - QUIET_DAYS * 86400_000;
-  const out: OutreachSuggestion[] = [];
+  const staleCutoff = Date.now() - DRAFT_STALE_DAYS * 86400_000;
+
+  const pending: Array<{ member: any; signal: OutreachSignal; reason: string; step: FunnelStep; channel: OutreachChannel }> = [];
 
   for (const m of members) {
-    const name = `${m.first_name || ""} ${m.last_name || ""}`.trim();
     const threadId = threadByMember.get(m.id) ?? null;
     const lastOutreachAt = threadId ? lastSentByThread.get(threadId) ?? null : null;
-
-    // Recently contacted — leave them alone. See QUIET_DAYS.
     if (lastOutreachAt && new Date(lastOutreachAt).getTime() > quietCutoff) continue;
-
-    // Students are never pitched owner features. Same line the agent brief
-    // draws: a student asking about exam prep must not be steered into a
-    // business funnel, and that holds harder for outbound than for a reply.
     if (m.audience === "student") continue;
 
-    let signal: OutreachSignal | null = null;
-    let reason = "";
+    const claimed = linkByMember.has(m.id);
+    const step = nextStep({
+      claimed,
+      googleConnected: connected.has(m.id),
+      // Neither is observable yet — the audit writes no per-member record and
+      // booking requests are on by default once claimed. Treated as done so the
+      // funnel never suggests a step it cannot verify.
+      auditRun: true,
+      bookingRequests: true,
+    });
+    if (!step) continue;
 
+    let signal: OutreachSignal;
+    let reason: string;
     if (threadId && clickedByThread.has(threadId)) {
       signal = "clicked_no_action";
       reason = "Followed a link in something we sent and did not come back.";
-    } else if (claimed.has(m.id) && !connected.has(m.id)) {
+    } else if (claimed) {
       signal = "claimed_not_connected";
       reason = "Has claimed a listing but has never connected Google Business Profile.";
-    } else if (!claimed.has(m.id)) {
-      signal = "no_listing_claimed";
-      reason = "Signed up but has not claimed a listing, so nothing on the site is theirs yet.";
     } else if (!lastOutreachAt) {
       signal = "never_contacted";
-      reason = "Nothing has ever been sent to them.";
+      reason = "Nothing has ever been sent to them, and nothing on the site is theirs yet.";
+    } else {
+      signal = "no_listing_claimed";
+      reason = "Signed up but has not claimed a listing, so nothing on the site is theirs yet.";
     }
 
-    if (!signal) continue;
-
-    const { channel, subject, draft } = draftFor(signal, name);
-    // A channel with no address is not a suggestion, it is a dead end.
+    const channel: OutreachChannel = step === "claim_listing" ? "email" : "sms";
     if (channel === "sms" && !m.phone && !m.contact_id) continue;
     if (channel === "email" && !m.email) continue;
 
-    out.push({
-      memberId: m.id,
-      name: name || m.email || m.id.slice(0, 8),
-      email: m.email ?? null,
-      phone: m.phone ?? null,
-      contactId: m.contact_id ?? null,
-      signal,
-      reason,
-      channel,
-      subject,
-      draft,
-      lastOutreachAt,
-    });
+    pending.push({ member: m, signal, reason, step, channel });
   }
 
-  // Strongest signal first: somebody who clicked is a warmer moment than
-  // somebody who has simply not got round to claiming.
+  /*
+   * Generated ONCE per (member, signal), then read from the table. A page load
+   * costs nothing after the first; only a newly-qualifying member costs a call.
+   * Generation runs in parallel because a serial pass over a dozen members is
+   * seconds of blank page, and it falls back to the template on any failure —
+   * quota is finite and a page that renders nothing is worse than plain copy.
+   */
+  const out = await Promise.all(
+    pending.map(async (p) => {
+      const key = draftKey(p.member.id, p.signal);
+      const hit = cachedByKey.get(key);
+      const fresh = hit && new Date(hit.generated_at).getTime() > staleCutoff;
+      // An edited draft is never regenerated, however old. Somebody chose those
+      // words, and silently replacing them is the fastest way to stop anyone
+      // bothering to edit.
+      if (hit && (fresh || hit.edited)) {
+        return toSuggestion(p, hit.body, hit.subject, hit.origin, hit.edited, lastOutreachFor(p, threadByMember, lastSentByThread));
+      }
+
+      const name = `${p.member.first_name || ""} ${p.member.last_name || ""}`.trim();
+      const fallback = draftFor(p.signal, name);
+      const threadId = threadByMember.get(p.member.id) ?? null;
+
+      const generated = await generateDraft({
+        firstName: firstName(name),
+        channel: p.channel,
+        step: p.step,
+        reason: p.reason,
+        business: businessByMember.get(p.member.id) ?? null,
+        theirWords: (threadId ? wordsByThread.get(threadId) ?? [] : []).slice().reverse(),
+      });
+
+      const body = generated?.body ?? fallback.draft;
+      const subject = generated?.subject ?? fallback.subject;
+      const origin: "ai" | "template" = generated ? "ai" : "template";
+
+      // Only a generated draft is stored. Caching the template would make the
+      // fallback permanent for anyone unlucky enough to load the page while
+      // quota was out.
+      if (generated) {
+        await (db.from("member_outreach_drafts") as any).upsert(
+          {
+            community_member_id: p.member.id,
+            signal: p.signal,
+            channel: p.channel,
+            subject: subject ?? null,
+            body,
+            origin,
+            status: "pending",
+            generated_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "community_member_id,signal" }
+        );
+      }
+
+      return toSuggestion(p, body, subject, origin, false, lastOutreachFor(p, threadByMember, lastSentByThread));
+    })
+  );
+
   const ORDER: OutreachSignal[] = ["clicked_no_action", "claimed_not_connected", "never_contacted", "no_listing_claimed"];
   return out.sort((a, b) => ORDER.indexOf(a.signal) - ORDER.indexOf(b.signal));
+}
+
+function lastOutreachFor(
+  p: { member: any },
+  threadByMember: Map<string, string>,
+  lastSentByThread: Map<string, string>
+): string | null {
+  const t = threadByMember.get(p.member.id);
+  return t ? lastSentByThread.get(t) ?? null : null;
+}
+
+function toSuggestion(
+  p: { member: any; signal: OutreachSignal; reason: string; step: FunnelStep; channel: OutreachChannel },
+  body: string,
+  subject: string | null | undefined,
+  origin: "ai" | "template",
+  edited: boolean,
+  lastOutreachAt: string | null
+): OutreachSuggestion {
+  const name = `${p.member.first_name || ""} ${p.member.last_name || ""}`.trim();
+  return {
+    memberId: p.member.id,
+    name: name || p.member.email || p.member.id.slice(0, 8),
+    email: p.member.email ?? null,
+    phone: p.member.phone ?? null,
+    contactId: p.member.contact_id ?? null,
+    signal: p.signal,
+    reason: p.reason,
+    channel: p.channel,
+    subject: subject ?? undefined,
+    draft: body,
+    step: p.step,
+    origin,
+    edited,
+    lastOutreachAt,
+  };
+}
+
+export function stepLabel(step: FunnelStep): string {
+  return STEP_BRIEFS[step].label;
 }
