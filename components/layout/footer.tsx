@@ -36,6 +36,7 @@ const footerLinks = {
     { label: "Global Listing Insights", href: "/admin/listing-insights" },
     { label: "School Tour Call Queue", href: "/admin/school-tour-queue" },
     { label: "Content Publisher", href: "/admin/content-publisher" },
+    { label: "Instagram Carousels", href: "/admin/instagram-carousels" },
     { label: "Content Insights Data", href: "/admin/content-insights" },
     /**
      * Sits next to the Content Publisher because it answers that page's first
@@ -51,6 +52,7 @@ const footerLinks = {
     { label: "Comment Engagement", href: "/admin/comment-engagement" },
     { label: "Connectors (Instagram, YouTube, GHL)", href: "/admin/connectors" },
     { label: "Rebooking Agent", href: "/admin/rebooking" },
+    { label: "Member Engagement Outreach", href: "/admin/member-outreach" },
     { label: "Content Research Agent", href: "/admin/content-research" },
     { label: "CRM Research Agent", href: "/admin/crm-research" },
     { label: "HairStyle Selector", href: "/admin/hairstyle-selector" },
