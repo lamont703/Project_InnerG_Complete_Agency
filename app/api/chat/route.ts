@@ -96,9 +96,20 @@ function sanitizeMarkdownLinks(text: string, validLinks: Set<string>): string {
 // replaced ($0.30 / $2.50) — see MODEL_PRICING in lib/ai-usage.ts, and keep the
 // two in step or the cost dashboard quietly starts reporting fiction.
 //
-// NOT changed anywhere else. lib/gbp-description.ts and lib/gbp-review-replies.ts
-// still call gemini-2.5-flash on the OLD shared project, where it remains
-// available. Changing them would be a migration nobody asked for.
+// EVERYTHING ELSE FOLLOWED ON 2026-08-25. That earlier note said the other call
+// sites should stay on gemini-2.5-flash because changing them "would be a
+// migration nobody asked for". What forced it was quota, not preference: the
+// grandfathered project is on the free tier at 20 requests per DAY per model,
+// and roughly sixty call sites were sharing that one ceiling. Features simply
+// stopped working, silently, whenever the day's allowance went.
+//
+// gemini-3.1-flash-lite works on EVERY key we hold — old shared, ShearQuery
+// Production and Development alike — which is the property that matters: a
+// feature can now be moved to a different project without also being rewritten.
+// The old model can only ever run on the grandfathered project.
+//
+// The daily cap is per PROJECT PER MODEL, so the change alone bought fresh
+// quota even where the key did not change.
 const CHAT_MODEL = 'gemini-3.1-flash-lite';
 
 export async function POST(req: Request) {

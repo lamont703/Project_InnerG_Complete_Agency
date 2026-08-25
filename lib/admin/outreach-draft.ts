@@ -50,7 +50,7 @@ export interface GeneratedDraft {
   body: string;
 }
 
-const MODEL = "gemini-2.5-flash";
+const MODEL = "gemini-3.1-flash-lite";
 
 function buildPrompt(ctx: DraftContext): string {
   const brief = STEP_BRIEFS[ctx.step];

@@ -464,7 +464,7 @@ Return ONLY valid JSON: an array of objects, each { "index": <0-based position i
   let response;
   try {
     response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: { responseMimeType: "application/json" },
     });
