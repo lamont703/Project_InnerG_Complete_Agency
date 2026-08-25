@@ -56,10 +56,27 @@ export async function sendOutreach(input: {
     sent = await sendGhlEmail({
       email: input.email,
       subject: input.subject || "ShearQuery",
-      // Plain text arrives with its line breaks intact only if they are made
-      // into markup — a draft written with blank lines otherwise lands as one
-      // paragraph.
-      html: body.split("\n").map((l) => (l.trim() ? `<p>${l}</p>` : "")).join(""),
+      /*
+       * Plain text arrives with its line breaks intact only if they are made
+       * into markup — a draft written with blank lines otherwise lands as one
+       * paragraph.
+       *
+       * AND THE URL HAS TO BE ANCHORED. Some clients auto-detect a bare URL and
+       * some do not, and the ones that do not show the owner a string to retype.
+       * The whole message exists to get them to that page, so it cannot depend
+       * on the mail client being helpful.
+       */
+      html: body
+        .split("\n")
+        .map((l) =>
+          l.trim()
+            ? `<p>${l.replace(
+                /(https?:\/\/[^\s<]+)/g,
+                '<a href="$1">$1</a>'
+              )}</p>`
+            : ""
+        )
+        .join(""),
       name: input.name ?? undefined,
       contactId: input.contactId ?? undefined,
     });
