@@ -1,0 +1,202 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>carousel reel</title>
+<style>
+/*
+ * A comic carousel, re-cut as a 9:16 Reel.
+ *
+ * SAME PALETTE AS carousel_card.html AND brand_image.html — #ffd166, #06070a,
+ * #94a3b8, the purple dashed rules. A Reel and a carousel from the same story
+ * land in the same grid, and drift between them is the most visible kind.
+ *
+ * WHAT CHANGES WHEN A CAROUSEL BECOMES A REEL, and it is not just the aspect
+ * ratio. A carousel is PULLED — the viewer swipes, so they set the pace and a
+ * static card is fine. A Reel is PUSHED — it plays whether or not they are
+ * reading, and the only question every frame has to answer is "why not swipe".
+ * Three consequences, and all three are structural rather than decorative:
+ *
+ *   1. NO CARD COUNTER. The carousel wants "03 / 10" because it tells a swiper
+ *      how much is left. A Reel must never show it: telling someone there are
+ *      seven more cards hands them seven reasons to leave. This is the one
+ *      element that has to be actively DELETED when porting, not restyled.
+ *
+ *   2. NOTHING IS EVER STILL. A frame that does not move reads as a photograph,
+ *      and a photograph in a video feed reads as "nothing is happening". Lines
+ *      arrive staggered, and the whole frame drifts a few percent across each
+ *      card, so no two frames are identical even mid-hold.
+ *
+ *   3. NO INTRO. Frame one is the hook. A logo sting spends the audience before
+ *      the hook has had a chance to land.
+ *
+ * TIMING IS COMPUTED FROM WORD COUNT, not fixed per card — see reel_carousel.js.
+ * A four-word card held as long as a twenty-word card is dead air on one and a
+ * cut-off on the other, and dead air is the single most reliable way to lose
+ * someone at second three.
+ */
+html, body { margin: 0; background: #06070a; overflow: hidden; }
+
+.stage {
+  position: relative; width: var(--w); height: var(--h);
+  background: #06070a; overflow: hidden;
+  font-family: "Helvetica Neue", Inter, system-ui, sans-serif; color: #f1f5f9;
+}
+
+/* The drift. Applied to a wrapper so the rules and wordmark travel with the
+   copy — a frame where the furniture is pinned and only the text moves reads
+   as a slide deck, which is the thing being avoided. */
+.drift { position: absolute; inset: 0; transform-origin: 50% 45%; }
+
+.rule {
+  position: absolute; left: var(--pad); right: var(--pad);
+  height: calc(var(--u) * 0.006);
+  background: repeating-linear-gradient(90deg, #a855f7 0, #a855f7 calc(var(--u) * 0.030),
+    transparent calc(var(--u) * 0.030), transparent calc(var(--u) * 0.060));
+  opacity: .55;
+}
+/*
+ * SAFE AREAS, NOT SYMMETRY.
+ *
+ * The carousel frame is symmetrical because a feed image is shown whole. A Reel
+ * is not: Instagram draws the username, the caption and the audio strip over
+ * roughly the bottom fifth, and the like/comment/share rail over the right
+ * edge. Furniture placed by eye ends up behind that UI — the wordmark
+ * disappears entirely and the bottom rule cuts through the caption, which looks
+ * like a mistake rather than a brand.
+ *
+ * So the bottom is pushed well clear while the top stays where it was; the top
+ * of a Reel carries almost no chrome.
+ */
+.rule.top    { top: calc(var(--u) * 0.150); }
+.rule.bottom { bottom: calc(var(--u) * 0.296); }
+
+.chip {
+  position: absolute; left: var(--pad); top: calc(var(--u) * 0.196);
+  border: calc(var(--u) * 0.0035) solid #6b5a1f; border-radius: 999px;
+  padding: calc(var(--u) * 0.014) calc(var(--u) * 0.032);
+  font-size: calc(var(--u) * 0.030); font-weight: 900; letter-spacing: .13em;
+  text-transform: uppercase; color: #ffd166; white-space: nowrap;
+}
+
+.copy {
+  position: absolute; left: var(--pad); right: var(--pad);
+  top: 27%; bottom: 32%;
+  display: flex; flex-direction: column; justify-content: center;
+  gap: calc(var(--u) * 0.034);
+}
+.copy p { margin: 0; text-wrap: balance; will-change: transform, opacity; }
+
+.k-body p { font-size: calc(var(--u) * 0.062); font-weight: 700; line-height: 1.22; letter-spacing: -0.014em; color: #e2e8f0; }
+.k-say  p { font-size: calc(var(--u) * 0.062); font-weight: 600; line-height: 1.24; letter-spacing: -0.012em; color: #cbd5e1; font-style: italic; }
+.k-shout p { font-size: calc(var(--u) * 0.112); font-weight: 900; line-height: 1.00; letter-spacing: -0.030em; text-transform: uppercase; color: #f8fafc; }
+
+/* The ask keeps the amber mark the whole brand already uses for "answer this". */
+.qrow { display: flex; align-items: flex-start; gap: calc(var(--u) * 0.026); }
+.qmark {
+  flex: none; margin-top: calc(var(--u) * 0.006);
+  width: calc(var(--u) * 0.086); height: calc(var(--u) * 0.086); border-radius: 999px;
+  background: #ffd166; color: #06070a; font-weight: 900; font-size: calc(var(--u) * 0.050);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.brand {
+  position: absolute; left: var(--pad); bottom: calc(var(--u) * 0.231);
+  display: flex; align-items: center; gap: calc(var(--u) * 0.016);
+  font-size: calc(var(--u) * 0.028); font-weight: 900; letter-spacing: .13em;
+  color: #94a3b8; text-transform: uppercase;
+}
+</style>
+
+<div class="stage" id="stage">
+  <div class="drift" id="drift">
+    <div class="rule top"></div>
+    <div class="chip" id="chip">Shop Talk</div>
+    <div class="copy" id="copy"></div>
+    <div class="rule bottom"></div>
+    <div class="brand">
+      <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="2.4" stroke-linecap="round">
+        <path d="M4 5 L20 19"/><path d="M20 5 L4 19"/><circle cx="12" cy="12" r="1.6" fill="#ffd166" stroke="none"/>
+      </svg>
+      <span>shearquery.com</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const q = new URLSearchParams(location.search);
+  const W = +(q.get("w") || 1080), H = +(q.get("h") || 1920);
+  const stage = document.getElementById("stage");
+  stage.style.setProperty("--w", W + "px");
+  stage.style.setProperty("--h", H + "px");
+  stage.style.setProperty("--u", Math.min(W, H) + "px");
+  stage.style.setProperty("--pad", (Math.min(W, H) * 0.080) + "px");
+  document.getElementById("chip").textContent = q.get("chip") || "Shop Talk";
+
+  // Cards arrive with their durations already computed, so the renderer and the
+  // page cannot disagree about how long anything is on screen.
+  const DECK = JSON.parse(q.get("deck") || "[]");
+  const TOTAL = DECK.reduce((a, c) => a + c.secs, 0);
+
+  const copy = document.getElementById("copy");
+  const drift = document.getElementById("drift");
+  let mounted = -1;
+
+  function mount(i) {
+    const card = DECK[i];
+    copy.className = "copy k-" + card.kind;
+    copy.innerHTML = "";
+    const holder = card.ask ? document.createElement("div") : copy;
+    for (const line of card.lines) {
+      const p = document.createElement("p");
+      p.textContent = line;
+      holder.appendChild(p);
+    }
+    if (card.ask) {
+      const row = document.createElement("div");
+      row.className = "qrow";
+      const mark = document.createElement("div");
+      mark.className = "qmark";
+      mark.textContent = "?";
+      row.appendChild(mark);
+      row.appendChild(holder);
+      copy.appendChild(row);
+    }
+    mounted = i;
+  }
+
+  /**
+   * Drive the whole reel from one normalised time, 0..1.
+   *
+   * Everything is a pure function of t — no timers, no animation state. The
+   * renderer screenshots frames as fast as it can rather than in real time, so
+   * anything driven by a clock would render as a stutter or not at all.
+   */
+  window.__setT = (t) => {
+    const now = t * TOTAL;
+    let acc = 0, idx = 0, local = 0;
+    for (let i = 0; i < DECK.length; i++) {
+      if (now < acc + DECK[i].secs || i === DECK.length - 1) { idx = i; local = now - acc; break; }
+      acc += DECK[i].secs;
+    }
+    if (idx !== mounted) mount(idx);
+
+    const card = DECK[idx];
+    const p = Math.max(0, Math.min(1, local / card.secs));
+
+    // Frame drift: a slow push across each card, reset on the cut. Small enough
+    // to be invisible as motion and large enough that no two frames match.
+    drift.style.transform = `scale(${(1.0 + 0.035 * p).toFixed(4)})`;
+
+    // Lines arrive staggered rather than together, so the eye has somewhere to
+    // go for the first third of every card instead of a wall of text.
+    const lines = copy.querySelectorAll("p");
+    lines.forEach((el, li) => {
+      const start = li * 0.10;
+      const k = Math.max(0, Math.min(1, (p - start) / 0.16));
+      const ease = 1 - Math.pow(1 - k, 3);
+      el.style.opacity = String(ease);
+      el.style.transform = `translateY(${((1 - ease) * Math.min(W, H) * 0.030).toFixed(2)}px)`;
+    });
+  };
+
+  window.__total = () => TOTAL;
+</script>

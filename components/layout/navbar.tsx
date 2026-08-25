@@ -431,9 +431,9 @@ export function Navbar() {
           >
             <Link
               href="/search"
-              onClick={() => trackCTAClick({ cta_label: 'Search ShearQuery', page: 'Navbar', destination: '/search' })}
+              onClick={() => trackCTAClick({ cta_label: 'Launch ShearQuery', page: 'Navbar', destination: '/search' })}
             >
-              Search ShearQuery
+              Launch ShearQuery
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </Button>
@@ -581,10 +581,10 @@ export function Navbar() {
                   href="/search"
                   onClick={() => {
                     setIsMobileOpen(false);
-                    trackCTAClick({ cta_label: 'Search ShearQuery (Mobile)', page: 'Navbar', destination: '/search' });
+                    trackCTAClick({ cta_label: 'Launch ShearQuery (Mobile)', page: 'Navbar', destination: '/search' });
                   }}
                 >
-                  Search ShearQuery
+                  Launch ShearQuery
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </Button>

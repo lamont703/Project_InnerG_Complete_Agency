@@ -120,7 +120,11 @@ function bodyOf(row) {
   const headers = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` };
   const filter = ALL ? "" : `&or=(parse_version.is.null,parse_version.lt.${PARSE_VERSION})`;
   const rows = await fetch(
-    `${SUPABASE_URL}/rest/v1/booking_emails?select=*&order=received_at.asc&limit=${LIMIT}${filter}`,
+    // NEWEST FIRST. Quota is the scarce resource here, not emails — and the
+    // most recent message is almost always the one being investigated. Oldest
+    // first spent the day's remaining calls on stale test messages before ever
+    // reaching the real booking that prompted the run.
+    `${SUPABASE_URL}/rest/v1/booking_emails?select=*&order=received_at.desc&limit=${LIMIT}${filter}`,
     { headers }
   ).then((r) => r.json());
 
