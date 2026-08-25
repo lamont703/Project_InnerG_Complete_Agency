@@ -4,7 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
-import { currentMember, memberById, getJourney, appendToThread } from '@/lib/member-context';
+import { currentMember, memberById, getJourney, appendToThread, otherChannelTurns } from '@/lib/member-context';
 import { ownerConnectContext } from '@/lib/owner-connect-context';
 import { policyForChannel } from '@/lib/agent-policy';
 import { agentJourneyContext, stateCoverageForChat } from '@/lib/member-journey';
@@ -232,6 +232,13 @@ export async function POST(req: Request) {
      */
     const ownerConnect = await ownerConnectContext(member?.id ?? null);
 
+    /*
+     * What they said to their agent somewhere OTHER than this chat. The chat
+     * transcript already arrives with the request; this is the SMS and email
+     * half that used to be invisible here.
+     */
+    const otherChannels = member ? await otherChannelTurns(member.id) : [];
+
     // When a shop owner arrives from their own shop's profile page via "Ask
     // AI About This Market", shopId identifies exactly which shop — this is
     // a direct geospatial computation (haversine + free-text rent parsing),
@@ -444,6 +451,7 @@ export async function POST(req: Request) {
       // the member is must never be the thing that falls off the end.
       ...(journeyContext ? { member_journey_context: journeyContext } : {}),
       ...(ownerConnect ? { owner_connect_context: ownerConnect } : {}),
+      ...(otherChannels.length ? { recent_other_channels: otherChannels } : {}),
       ...(shopEcosystemContext ? { my_shop_ecosystem_report: shopEcosystemContext } : {}),
       // Near the top for the same truncation reason as the two above. Someone
       // arriving from a state page's suggested question has NO journey profile,
@@ -499,6 +507,13 @@ MEMBER_JOURNEY_CONTEXT RULE: member_journey_context is in the context data below
 - Do not recite their profile back at them, do not open with a greeting that lists what you know, and use their first name at most once in a conversation. Someone who told you their exam date wants a better answer, not a demonstration that you remembered.
 - NEVER invent a journey fact. If member_journey_context says school_name is null, you do not know where they study — the same rule as every other fact on this page.
 ` : ''}
+RECENT_OTHER_CHANNELS RULE: recent_other_channels, when present, is what THIS member said to you — and what you replied — on channels other than this chat, most often SMS. Each entry has a channel, a role, the text and a timestamp.
+- IT IS NOT PART OF THIS CONVERSATION. Never say "as I mentioned above" or "as you just said" about one of these. They happened elsewhere and possibly days ago. Refer to them for what they are: "you texted me last week that...".
+- USE IT WITHOUT BEING ASKED, the same as member_journey_context. Someone who told you their booth rent by text should not be asked for it again in chat — being asked twice is the whole reason this exists.
+- role 'human' means a person on our team wrote it, not you. Do not claim you said it.
+- IT IS A RECENT SLICE, NOT EVERYTHING. Do not say "you have never mentioned that" on the strength of this — you are seeing a handful of the latest turns, not their whole history. Absence here is not evidence.
+- NEVER REPEAT IT BACK AS A SUMMARY. Do not open by listing what they told you elsewhere. Use it to give a better answer, exactly as with their journey.
+
 OWNER_CONNECT_CONTEXT RULE: owner_connect_context describes THIS person's own listing and Google connection, and is always present. It is not a search result. Use it to answer anything about claiming a listing, connecting Google, or managing their own business on here.
 - YOU CAN HELP WITH THIS. Connecting a Google Business Profile is a real, shipped feature. Never say you are unable to help with it, and never send them somewhere else to do it.
 - BUT YOU CANNOT DO IT FOR THEM, and must not imply otherwise. Google requires the owner to sign in on Google's own site and approve the consent screen; nobody can approve it on their behalf. The honest offer is "here is the link, it takes about a minute" — never "I've connected it" or "I'll take care of it".

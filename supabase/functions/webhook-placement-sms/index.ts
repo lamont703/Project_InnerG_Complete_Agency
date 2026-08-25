@@ -12,7 +12,7 @@
  *   - Each turn: { role: "agent"|"user", content, timestamp }
  */
 
-import { createHandler, Logger, okResponse, GhlProvider } from "../_shared/lib/index.ts"
+import { createHandler, Logger, okResponse, GhlProvider, recordAgentMessage} from "../_shared/lib/index.ts"
 
 const GHL_API_BASE = "https://services.leadconnectorhq.com"
 
@@ -64,6 +64,23 @@ export default createHandler(async ({ adminClient, body }) => {
   // 1. Parse GHL payload
   const contactId = body.contactId || body.contact_id || body.contact?.id
   const incomingMessage = body.message?.body || body.message_body || body.body || body.message
+
+  /*
+   * FILE THE MEMBER'S OWN WORDS, if this texter is a member at all.
+   *
+   * Most people on this line are prospects, and recordAgentMessage returns
+   * without writing for them — the member check is inside it so no caller can
+   * forget it. Awaited but never fatal: it cannot throw, and a missing memory
+   * must never cost somebody their reply.
+   */
+  await recordAgentMessage({
+    adminClient,
+    contactId,
+    channel: "sms",
+    role: "user",
+    content: String(incomingMessage ?? ""),
+    source: "placement_sms",
+  })
 
   if (!contactId || !incomingMessage) {
     logger.warn("Incomplete GHL SMS payload", { contactId, hasMessage: !!incomingMessage })
@@ -285,6 +302,22 @@ Write ONLY your next reply text:`
   // 7. Send reply via GHL SMS
   const ghl = new GhlProvider(ghlApiKey)
   await ghl.sendMessage({ contactId, type: "SMS", message: agentReply })
+
+  /*
+   * BOTH SIDES, OR NEITHER IS USEFUL. A memory holding only what the member
+   * said reads like a list of demands with no answers — and the agent would
+   * later contradict advice it had already given, because it cannot see that it
+   * gave it. Recorded AFTER the send: a reply that never reached them is not
+   * something to remember saying.
+   */
+  await recordAgentMessage({
+    adminClient,
+    contactId,
+    channel: "sms",
+    role: "model",
+    content: String(agentReply ?? ""),
+    source: "placement_sms",
+  })
 
   logger.info("Placement SMS reply dispatched", { contactId })
 
