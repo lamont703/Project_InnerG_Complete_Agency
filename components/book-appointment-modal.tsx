@@ -275,7 +275,7 @@ export function BookAppointmentButton({
 
   /*
    * THE TOKEN, NOT A LITERAL — same reasoning as the claim CTA. This has to
-   * match "Search ShearQuery" in the navbar, which is bg-primary. A hardcoded
+   * match "Launch ShearQuery" in the navbar, which is bg-primary. A hardcoded
    * blue matches today and drifts the first time the brand colour moves, in a
    * component rendered on four page types.
    *

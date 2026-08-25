@@ -111,13 +111,20 @@ export function HeroSection() {
         </p>
 
         {/* The most-read line on the site, and the one a Google OAuth reviewer
-            reads first — it has to say what the app DOES. The previous version
-            ("The barber, beauty & wellness intelligence layer") described a
-            category, not a function, which is what got the homepage flagged for
-            not explaining the app. Kept in sync with the metadata description in
-            app/layout.tsx and the footer blurb. */}
+            reads first.
+            
+            IT IS A POSITIONING LINE AGAIN, deliberately, as of 2026-08-24. Worth
+            knowing that an earlier positioning line ("The barber, beauty &
+            wellness intelligence layer") is what got the homepage flagged for
+            not explaining the app, and the fix at the time was to name the
+            directory outright. The page still explains itself below the fold and
+            in the title tag; if those go, this line is alone and the flag is
+            plausible again.
+            
+            The footer blurb in components/layout/footer.tsx still carries the
+            older directory wording and has NOT been changed. */}
         <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-white sm:text-xl text-balance">
-          Search verified barbershops, salons, schools, and supply stores — and claim your business listing.
+          An AI Agent for your entire barber, beauty and wellness career.
         </p>
 
 
@@ -131,7 +138,7 @@ export function HeroSection() {
           >
             <Link href="/search">
               <Search className="h-4 w-4" />
-              Search ShearQuery
+              Launch ShearQuery
             </Link>
           </Button>
         </div>
