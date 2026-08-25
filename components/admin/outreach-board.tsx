@@ -73,7 +73,12 @@ export function OutreachBoard({ suggestions }: { suggestions: OutreachSuggestion
             {s.lastOutreachAt && (
               <p className="mt-2 inline-flex items-center gap-1 text-[10px] text-slate-400">
                 <Clock className="h-3 w-3" />
-                last contacted {new Date(s.lastOutreachAt).toLocaleDateString()}
+                {/* NOT toLocaleDateString(). It renders in the server's locale
+                    and timezone during SSR and the browser's on hydration, so the
+                    two strings differ and React bails out of the whole subtree —
+                    that is the "Minified React error #418" this page was throwing.
+                    An ISO slice is the same characters everywhere. */}
+                last contacted {s.lastOutreachAt.slice(0, 10)}
               </p>
             )}
 

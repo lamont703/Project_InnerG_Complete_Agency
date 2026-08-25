@@ -1,5 +1,6 @@
 import "server-only";
 import { STEP_BRIEFS, type FunnelStep } from "@/lib/admin/outreach-funnel";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Writing one outreach message with a model, grounded in what we know.
@@ -50,7 +51,7 @@ export interface GeneratedDraft {
   body: string;
 }
 
-const MODEL = "gemini-2.5-flash";
+const MODEL = "gemini-3.1-flash-lite";
 
 function buildPrompt(ctx: DraftContext): string {
   const brief = STEP_BRIEFS[ctx.step];
@@ -64,11 +65,25 @@ function buildPrompt(ctx: DraftContext): string {
   if (b?.hasHours === false) facts.push("No opening hours on file");
   if (b?.hasWebsite === false) facts.push("No website on file");
 
+  /*
+   * ABSOLUTE, ALWAYS. The funnel stores relative paths because the app renders
+   * them, but these are read in a text message or a mail client with no base
+   * URL to resolve against — "/account/add-business" is not a link anywhere
+   * outside the site, it is a string.
+   */
+  const url = `${SITE_URL}${brief.href}`;
+
   return `You write one short outreach message from ShearQuery to a barbershop or salon owner.
 
 THE ONE THING YOU ARE ASKING THEM TO DO
 ${brief.label} — so they can ${brief.benefit}. It takes ${brief.effort}.
 Do not mention any other feature. One ask, nothing else.
+
+WHERE THEY GO TO DO IT
+${url}
+This link MUST appear in the message, exactly as written, and it must be the
+only link. A message that asks somebody to do something and does not say where
+is asking them to go and find it, which is the point most people stop.
 
 WHAT WE KNOW ABOUT THEM (use only what helps; never state a fact not listed here)
 Name: ${ctx.firstName}
@@ -82,8 +97,8 @@ RULES
 - Write the way one person texts another. No marketing voice, no exclamation marks, no "unlock", "leverage", "empower", "seamless", "elevate".
 - Never promise anything not described above.
 - ${ctx.channel === "sms"
-    ? "SMS: under 320 characters, no subject line, no greeting block, no sign-off."
-    : "Email: under 120 words. Return a subject line under 8 words on the FIRST line, then a blank line, then the body. Sign off as Lamont."}
+    ? `SMS: under 320 characters INCLUDING the link, no subject line, no greeting block, no sign-off. Put the link at the end on its own line, with nothing after it — a URL followed by more words gets mangled by phones that auto-detect links.`
+    : "Email: under 120 words. Return a subject line under 8 words on the FIRST line, then a blank line, then the body. Put the link on its own line. Sign off as Lamont."}
 - If their own words are given above and one is relevant, refer to it naturally. That is worth more than any fact about their listing.
 
 Return only the message. No preamble, no quotes around it.`;

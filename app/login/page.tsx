@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useState, Suspense, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useTheme } from "next-themes"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, Mail, Lock, Sparkles, Loader2, AlertCircle } from "lucide-react"
@@ -18,6 +19,23 @@ import { cn } from "@/lib/utils"
 import { BarberRegisterForm } from "@/components/forms/BarberRegisterForm"
 
 function LoginContent() {
+    /*
+     * PINNED LIGHT, the same way app/page.tsx pins the homepage.
+     *
+     * Every colour on this page already comes from a semantic token —
+     * bg-background, text-foreground, text-muted-foreground — so it followed
+     * whatever theme the visitor arrived with, and someone coming from a dark
+     * marketing page landed on a dark login. Forcing the palette is the fix
+     * rather than rewriting each class: the tokens resolve correctly under
+     * .light, and the inputs, placeholders and borders come along with them.
+     *
+     * setTheme AND the class together, because the class alone styles this tree
+     * while next-themes still believes it is dark — which shows up the moment
+     * anything outside this subtree renders, and on the next navigation.
+     */
+    const { setTheme } = useTheme()
+    useEffect(() => { setTheme("light") }, [setTheme])
+
     const [isLoading, setIsLoading] = useState(false)
     const [isRegisterView, setIsRegisterView] = useState(false)
     const router = useRouter()
@@ -63,7 +81,7 @@ function LoginContent() {
     }
 
     return (
-        <main className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        <main className="min-h-screen light bg-slate-50 text-slate-900 flex flex-col items-center justify-center p-6 relative overflow-hidden">
             <div className="absolute top-1/4 -left-32 h-96 w-96 bg-primary/10 rounded-full blur-3xl opacity-50" />
             <div className="absolute bottom-1/4 -right-32 h-96 w-96 bg-accent/8 rounded-full blur-3xl opacity-50" />
 
@@ -201,8 +219,10 @@ function LoginContent() {
 }
 
 export default function LoginPage() {
+    // The fallback is pinned too, or the page flashes the visitor's theme for a
+    // frame before the real one mounts.
     return (
-        <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <Suspense fallback={<div className="min-h-screen light bg-slate-50" />}>
             <LoginContent />
         </Suspense>
     )

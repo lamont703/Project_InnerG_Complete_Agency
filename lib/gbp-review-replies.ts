@@ -164,7 +164,7 @@ export async function draftReply(
     const { GoogleGenAI } = await import("@google/genai");
     const ai = new GoogleGenAI({ apiKey });
     const res = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: draftPrompt(review, businessName),
     });
     const text = (res.text || "").trim().replace(/^["']|["']$/g, "");

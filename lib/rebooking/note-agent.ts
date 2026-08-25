@@ -34,7 +34,7 @@ import type { InactiveReason } from "./notes";
  */
 
 /**
- * NOT gemini-2.5-flash, which the older call sites in this repo still use.
+ * gemini-3.1-flash-lite, as every call site in this repo now does.
  *
  * The free-tier quota is per project PER MODEL — 20 requests a day on
  * 2.5-flash, and that bucket was already exhausted by the other features here,

@@ -170,7 +170,7 @@ ${sourceText.slice(0, 20000) || "(no linked TDLR pages could be retrieved)"}
 === END UNTRUSTED SOURCE PAGES ===`
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
