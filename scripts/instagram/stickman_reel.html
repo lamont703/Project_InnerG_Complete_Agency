@@ -1,0 +1,338 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>stickman reel</title>
+<style>
+  html, body { margin: 0; background: #06070a; overflow: hidden; }
+  canvas { display: block; }
+</style>
+<canvas id="c"></canvas>
+<script>
+/*
+ * The comic carousel, staged as stick figures. No voice, no music.
+ *
+ * WHY FIGURES INSTEAD OF TYPE. The text reel has no motion a viewer can track,
+ * so it fakes some with a 3.5% drift. A figure that turns, counts or slumps
+ * gives the eye something real, and bodies hold attention that words do not.
+ * It also works MUTED, which is how most of this is watched — a format that
+ * needs no sound is not a compromise here, it is the point.
+ *
+ * CANVAS, NOT SVG. Every figure is generated from joint angles rather than
+ * drawn, so there is no path data to hand-author and a new pose is six numbers.
+ *
+ * EVERYTHING IS A PURE FUNCTION OF t. The renderer screenshots frames as fast
+ * as it can rather than in real time, so anything driven by a clock or a
+ * requestAnimationFrame would render as a stutter or not at all.
+ */
+
+const q = new URLSearchParams(location.search);
+const W = +(q.get("w") || 1080), H = +(q.get("h") || 1920);
+const DECK = JSON.parse(q.get("deck") || "[]");
+const CHIP = q.get("chip") || "Shop Talk";
+const TOTAL = DECK.reduce((a, c) => a + c.secs, 0);
+
+const cv = document.getElementById("c");
+cv.width = W; cv.height = H;
+const g = cv.getContext("2d");
+
+const INK = "#f1f5f9", DIM = "#94a3b8", AMBER = "#ffd166", GROUND = "#06070a", PURPLE = "#a855f7";
+const U = Math.min(W, H);
+
+/* ---------- small maths ---------- */
+const lerp = (a, b, t) => a + (b - a) * t;
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+/* ---------- the rig ----------
+ * A figure is a hip point, a scale, and eight joint angles. Angles are radians
+ * from straight DOWN, clockwise positive, so 0 is a limb hanging and Math.PI is
+ * a limb pointing straight up. Keeping one convention for every joint is what
+ * makes a pose readable as six numbers instead of a diagram.
+ */
+function seg(x, y, ang, len) {
+  return [x + Math.sin(ang) * len, y + Math.cos(ang) * len];
+}
+
+const POSES = {
+  stand:  { torso: 0.00, head: 0.00, aL: [0.22, 0.12], aR: [-0.22, -0.12], lL: [0.10, 0.02], lR: [-0.10, -0.02] },
+  count:  { torso: -0.08, head: -0.18, aL: [2.35, 0.55], aR: [-0.20, -0.10], lL: [0.10, 0.02], lR: [-0.12, -0.02] },
+  cut:    { torso: -0.06, head: -0.10, aL: [2.55, 1.05], aR: [2.10, 0.85], lL: [0.12, 0.02], lR: [-0.14, -0.02] },
+  slump:  { torso: 0.30, head: 0.34, aL: [0.05, 0.30], aR: [-0.05, -0.30], lL: [0.06, 0.02], lR: [-0.06, -0.02] },
+  sit:    { torso: 0.05, head: 0.02, aL: [0.55, 0.30], aR: [-0.55, -0.30], lL: [1.45, 0.05], lR: [-1.45, -0.05] },
+  wait:   { torso: 0.10, head: 0.14, aL: [0.30, 0.55], aR: [-0.30, -0.55], lL: [1.40, 0.10], lR: [-1.40, -0.10] },
+};
+
+function blendPose(a, b, t) {
+  const o = {};
+  for (const k of ["torso", "head"]) o[k] = lerp(a[k], b[k], t);
+  for (const k of ["aL", "aR", "lL", "lR"]) o[k] = [lerp(a[k][0], b[k][0], t), lerp(a[k][1], b[k][1], t)];
+  return o;
+}
+
+/**
+ * Draw one figure.
+ *
+ * `breath` is a tiny continuous bob applied to the torso length. It exists
+ * because a figure holding a pose perfectly still for four seconds reads as a
+ * frozen frame, and a frozen frame in a video feed reads as nothing happening.
+ */
+function figure(x, groundY, s, pose, breath, opts = {}) {
+  // A seated figure's hip belongs at seat height, not a leg-length above the
+  // floor — otherwise it stands behind the chair with its legs stuck out.
+  if (opts.seatedAt !== undefined) groundY = opts.seatedAt + 0.92 * s;
+  const LEG = 0.92 * s, TORSO = (0.72 + breath * 0.012) * s, ARM = 0.40 * s, FORE = 0.36 * s;
+  const SHIN = LEG * 0.5, THIGH = LEG * 0.5;
+  const hipY = groundY - LEG;
+  const [nx, ny] = seg(x, hipY, pose.torso + Math.PI, TORSO);
+
+  g.strokeStyle = opts.color || INK;
+  g.lineWidth = (opts.weight || 0.030) * s;
+  g.lineCap = "round";
+  g.lineJoin = "round";
+
+  const bone = (x1, y1, ang, len) => {
+    const [x2, y2] = seg(x1, y1, ang, len);
+    g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+    return [x2, y2];
+  };
+
+  // legs from the hip, arms from the neck
+  let [kx, ky] = bone(x, hipY, pose.lL[0], THIGH); bone(kx, ky, pose.lL[0] + pose.lL[1], SHIN);
+  [kx, ky] = bone(x, hipY, pose.lR[0], THIGH);     bone(kx, ky, pose.lR[0] + pose.lR[1], SHIN);
+  g.beginPath(); g.moveTo(x, hipY); g.lineTo(nx, ny); g.stroke();
+  /*
+   * Arms hang from SHOULDERS, a little below and either side of the neck — not
+   * from the neck point itself. Hung from the neck, a raised arm passes
+   * straight through the head, which is the first thing anyone notices and
+   * reads as broken rather than stylised.
+   */
+  const sh = 0.10 * s;
+  const shy = ny + 0.06 * s;
+  let [ex, ey] = bone(nx - sh, shy, pose.aL[0], ARM); const handL = bone(ex, ey, pose.aL[0] + pose.aL[1], FORE);
+  [ex, ey] = bone(nx + sh, shy, pose.aR[0], ARM);     bone(ex, ey, pose.aR[0] + pose.aR[1], FORE);
+
+  // head
+  const hr = 0.20 * s;
+  const [hx, hy] = seg(nx, ny, pose.torso + pose.head + Math.PI, hr * 1.25);
+  g.beginPath(); g.arc(hx, hy, hr, 0, Math.PI * 2); g.stroke();
+
+  return { neck: [nx, ny], head: [hx, hy - hr], hand: handL };
+}
+
+/* ---------- the set ---------- */
+function drawSet(beat, benchCount, tIn) {
+  const floorY = H * 0.78;
+  // floor
+  g.strokeStyle = "#1e2430"; g.lineWidth = U * 0.006;
+  g.beginPath(); g.moveTo(W * 0.04, floorY); g.lineTo(W * 0.96, floorY); g.stroke();
+
+  // mirror on the wall
+  g.strokeStyle = "#1a2130"; g.lineWidth = U * 0.005;
+  g.strokeRect(W * 0.10, H * 0.44, W * 0.26, H * 0.16);
+
+  // the chair
+  const chairX = W * 0.30;
+  g.strokeStyle = "#2a3342"; g.lineWidth = U * 0.010;
+  g.beginPath();
+  g.moveTo(chairX - U * 0.09, floorY);
+  g.lineTo(chairX - U * 0.09, floorY - U * 0.16);
+  g.lineTo(chairX + U * 0.07, floorY - U * 0.16);
+  g.stroke();
+  g.beginPath(); g.moveTo(chairX, floorY - U * 0.16); g.lineTo(chairX, floorY); g.stroke();
+
+  // the bench, and whoever is on it
+  if (benchCount > 0) {
+    const bx = W * 0.60, by = floorY;
+    g.strokeStyle = "#2a3342"; g.lineWidth = U * 0.010;
+    g.beginPath(); g.moveTo(bx - U * 0.05, by - U * 0.10); g.lineTo(W * 0.95, by - U * 0.10); g.stroke();
+    for (let i = 0; i < Math.min(benchCount, 6); i++) {
+      const fx = bx + i * U * 0.075;
+      if (fx > W * 0.95) break;
+      // Each waiter breathes on its own phase so the row is not a chorus line.
+      const b = Math.sin(tIn * 2.4 + i * 1.7);
+      figure(fx, by, U * 0.135, POSES.wait, b, { color: "#5c6a7d", weight: 0.026, seatedAt: by - U * 0.10 });
+    }
+  }
+  return { floorY, chairX };
+}
+
+function phone(x, y, s, buzz) {
+  const shake = Math.sin(buzz * 34) * s * 0.05 * (buzz > 0 ? 1 : 0);
+  g.save(); g.translate(x + shake, y);
+  g.strokeStyle = AMBER; g.lineWidth = s * 0.10; g.lineJoin = "round";
+  g.beginPath(); g.roundRect(-s * 0.28, -s * 0.5, s * 0.56, s, s * 0.12); g.stroke();
+  g.globalAlpha = 0.30 + 0.30 * Math.abs(Math.sin(buzz * 20));
+  g.beginPath(); g.arc(0, 0, s * 0.95, 0, Math.PI * 2); g.stroke();
+  g.restore(); g.globalAlpha = 1;
+}
+
+/* ---------- text ---------- */
+function wrap(text, maxW, font) {
+  g.font = font;
+  const words = text.split(/\s+/);
+  const lines = []; let line = "";
+  for (const w of words) {
+    const probe = line ? line + " " + w : w;
+    if (g.measureText(probe).width > maxW && line) { lines.push(line); line = w; }
+    else line = probe;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+/**
+ * A speech bubble with a tail pointing at whoever said it.
+ *
+ * The tail is the whole reason to draw a bubble rather than caption the line:
+ * with four figures on screen, a caption says something was said and a tail
+ * says who said it, and the joke usually depends on which.
+ */
+function bubble(text, anchor, reveal) {
+  const font = `700 ${U * 0.052}px "Helvetica Neue", Inter, system-ui, sans-serif`;
+  const maxW = W * 0.72;
+  const lines = wrap(text, maxW, font);
+  const lh = U * 0.066;
+  const padX = U * 0.045, padY = U * 0.040;
+  let bw = 0;
+  for (const l of lines) bw = Math.max(bw, g.measureText(l).width);
+  bw += padX * 2;
+  const bh = lines.length * lh + padY * 2 - (lh - U * 0.052);
+
+  let bx = Math.min(Math.max(anchor[0] - bw / 2, W * 0.05), W * 0.95 - bw);
+  const by = anchor[1] - bh - U * 0.10;
+
+  const k = easeOut(clamp01(reveal));
+  g.save();
+  g.translate(bx + bw / 2, by + bh);
+  g.scale(0.86 + 0.14 * k, 0.86 + 0.14 * k);
+  g.globalAlpha = k;
+  g.translate(-(bx + bw / 2), -(by + bh));
+
+  g.fillStyle = "#f8fafc";
+  g.beginPath(); g.roundRect(bx, by, bw, bh, U * 0.030); g.fill();
+  // tail
+  g.beginPath();
+  g.moveTo(anchor[0] - U * 0.022, by + bh - 1);
+  g.lineTo(anchor[0], anchor[1] - U * 0.045);
+  g.lineTo(anchor[0] + U * 0.026, by + bh - 1);
+  g.closePath(); g.fill();
+
+  g.fillStyle = "#0b0f14"; g.font = font; g.textBaseline = "top";
+  lines.forEach((l, i) => g.fillText(l, bx + padX, by + padY + i * lh));
+  g.restore(); g.globalAlpha = 1;
+}
+
+function narration(lines, reveal, big) {
+  /*
+   * Narration SHRINKS when a card is wordy rather than growing downward into
+   * the scene. The copy was written for carousel cards, which have a whole
+   * frame each; the same lines over an animated set have maybe a third of one.
+   * Overflowing looked like a layout bug and hid the figures.
+   */
+  const words = lines.join(" ").split(/\s+/).length;
+  const squeeze = words > 22 ? 0.76 : words > 14 ? 0.87 : 1;
+  const size = (big ? U * 0.108 : U * 0.058) * (big ? 1 : squeeze);
+  const font = `${big ? 900 : 700} ${size}px "Helvetica Neue", Inter, system-ui, sans-serif`;
+  const lh = size * (big ? 1.04 : 1.26);
+  const all = [];
+  for (const raw of lines) for (const l of wrap(big ? raw.toUpperCase() : raw, W * 0.84, font)) all.push(l);
+  // Clear of the chip, which sits at U*0.196 and is roughly U*0.064 tall.
+  const startY = big ? H * 0.40 - (all.length * lh) / 2 : U * 0.300;
+  g.font = font; g.textBaseline = "top"; g.fillStyle = big ? "#f8fafc" : "#e2e8f0";
+  all.forEach((l, i) => {
+    const k = easeOut(clamp01((reveal - i * 0.10) / 0.18));
+    g.save(); g.globalAlpha = k;
+    g.fillText(l, W * 0.08, startY + i * lh + (1 - k) * U * 0.030);
+    g.restore();
+  });
+  g.globalAlpha = 1;
+}
+
+function furniture() {
+  // The same dashed rules and wordmark as every other surface, kept clear of
+  // Instagram's caption and action-rail overlays.
+  const pad = W * 0.08;
+  const dash = () => { g.setLineDash([U * 0.030, U * 0.030]); g.strokeStyle = PURPLE; g.globalAlpha = 0.55; g.lineWidth = U * 0.006; };
+  dash(); g.beginPath(); g.moveTo(pad, U * 0.150); g.lineTo(W - pad, U * 0.150); g.stroke();
+  g.beginPath(); g.moveTo(pad, H - U * 0.296); g.lineTo(W - pad, H - U * 0.296); g.stroke();
+  g.setLineDash([]); g.globalAlpha = 1;
+
+  g.font = `900 ${U * 0.030}px "Helvetica Neue", Inter, system-ui, sans-serif`;
+  g.textBaseline = "middle";
+  const cy = U * 0.196 + U * 0.022;
+  g.strokeStyle = "#6b5a1f"; g.lineWidth = U * 0.0035;
+  const label = CHIP.toUpperCase();
+  const tw = g.measureText(label).width;
+  g.beginPath(); g.roundRect(pad, cy - U * 0.032, tw + U * 0.064, U * 0.064, 999); g.stroke();
+  g.fillStyle = AMBER; g.fillText(label, pad + U * 0.032, cy);
+
+  g.fillStyle = DIM;
+  g.fillText("SHEARQUERY.COM", pad + U * 0.055, H - U * 0.231);
+  g.strokeStyle = AMBER; g.lineWidth = U * 0.007; g.lineCap = "round";
+  const mx = pad + U * 0.020, my = H - U * 0.231, r = U * 0.017;
+  g.beginPath(); g.moveTo(mx - r, my - r); g.lineTo(mx + r, my + r);
+  g.moveTo(mx + r, my - r); g.lineTo(mx - r, my + r); g.stroke();
+}
+
+/* ---------- the frame ---------- */
+window.__setT = (t) => {
+  const now = t * TOTAL;
+  let acc = 0, idx = 0, local = 0;
+  for (let i = 0; i < DECK.length; i++) {
+    if (now < acc + DECK[i].secs || i === DECK.length - 1) { idx = i; local = now - acc; break; }
+    acc += DECK[i].secs;
+  }
+  const card = DECK[idx];
+  const p = clamp01(local / card.secs);
+  const prev = DECK[Math.max(0, idx - 1)];
+
+  g.fillStyle = GROUND; g.fillRect(0, 0, W, H);
+
+  if (card.beat === "reveal") {
+    narration(card.lines, p / 0.5, true);
+    if (card.ask) {
+      g.fillStyle = AMBER;
+      g.beginPath(); g.arc(W * 0.08 + U * 0.043, H * 0.40 - U * 0.150, U * 0.043, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#06070a"; g.font = `900 ${U * 0.050}px "Helvetica Neue", sans-serif`;
+      g.textBaseline = "middle"; g.textAlign = "center";
+      g.fillText("?", W * 0.08 + U * 0.043, H * 0.40 - U * 0.150);
+      g.textAlign = "left";
+    }
+    furniture();
+    return;
+  }
+
+  // Poses cross-fade over the first third of a card, so a change of beat reads
+  // as a movement rather than as a jump cut on the body.
+  const poseFor = (b) => (b === "counting" ? POSES.count : b === "cutting" ? POSES.cut : b === "slump" ? POSES.slump : POSES.stand);
+  const blend = easeInOut(clamp01(p / 0.34));
+  const barberPose = blendPose(poseFor(prev.beat === "reveal" ? "idle" : prev.beat), poseFor(card.beat), idx === 0 ? 1 : blend);
+
+  const set = drawSet(card.beat, card.bench || 0, now);
+  const breath = Math.sin(now * 2.1);
+
+  // client in the chair, unless everyone has gone
+  if (card.beat !== "alone") {
+    figure(set.chairX - U * 0.005, set.floorY, U * 0.165, POSES.sit, Math.sin(now * 1.7),
+      { color: "#5c6a7d", weight: 0.026, seatedAt: set.floorY - U * 0.155 });
+  }
+
+  const barberX = W * 0.20;
+  const anchors = figure(barberX, set.floorY, U * 0.235, barberPose, breath, {});
+
+  let phoneAnchor = null;
+  if (card.beat === "phoneBuzz" || card.speaker === "phone") {
+    const px = W * 0.76, py = H * 0.40;
+    phone(px, py, U * 0.085, now);
+    phoneAnchor = [px, py - U * 0.085];
+  }
+
+  if (card.speaker === "phone" && phoneAnchor) bubble(card.lines.join(" "), phoneAnchor, p / 0.28);
+  else if (card.speaker === "barber") bubble(card.lines.join(" "), anchors.head, p / 0.28);
+  else narration(card.lines, p / 0.5, false);
+
+  furniture();
+};
+
+window.__total = () => TOTAL;
+</script>

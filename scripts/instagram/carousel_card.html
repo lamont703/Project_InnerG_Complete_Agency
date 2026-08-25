@@ -1,0 +1,192 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>carousel card</title>
+<style>
+/*
+ * One card of a ShearQuery comic carousel.
+ *
+ * THE PALETTE AND THE FURNITURE ARE LIFTED FROM brand_image.html, NOT RE-PICKED.
+ * #ffd166 for the mark, #06070a for the ground, #94a3b8 for the wordmark,
+ * #a855f7 for the dashed rules. That file says why, and it is worth repeating:
+ * re-choosing "roughly that gold" is how two surfaces drift apart over a few
+ * months, and a carousel that sits next to a Reel cover in the same grid is
+ * exactly where drift shows.
+ *
+ * WHAT IS DIFFERENT HERE, and why. A data post frames a picture. A comic card
+ * has no picture — the type IS the image. So the middle of the frame is a copy
+ * block that centres itself rather than a contained <img>, and the size of the
+ * type is set by which KIND of beat the card is carrying, not by a fixed scale.
+ *
+ * THREE KINDS, BECAUSE A DECK OF ONE KIND IS A BILLBOARD.
+ *   shout - the hook and the punchlines. Condensed, uppercase, enormous.
+ *   body  - narration. Normal weight, comfortable leading.
+ *   say   - dialogue. Quoted, lighter colour, so a reader can hear it as speech.
+ * Alternating them is the rhythm of the swipe.
+ *
+ * THE COUNTER IS NOT DECORATION. A reader who cannot see how much is left does
+ * not start swiping. It sits where the date sits on a data post, so the two
+ * formats keep the same silhouette.
+ */
+html, body { margin: 0; background: #06070a; overflow: hidden; }
+
+.frame {
+  position: relative; width: var(--w); height: var(--h);
+  background: #06070a; overflow: hidden;
+  font-family: "Helvetica Neue", Inter, system-ui, sans-serif; color: #f1f5f9;
+}
+
+/* Dashed rules, same device as the data cards. */
+.rule {
+  position: absolute; left: var(--pad); right: var(--pad);
+  height: calc(var(--u) * 0.006);
+  background: repeating-linear-gradient(90deg, #a855f7 0, #a855f7 calc(var(--u) * 0.030),
+    transparent calc(var(--u) * 0.030), transparent calc(var(--u) * 0.060));
+  opacity: .55;
+}
+.rule.top    { top: calc(var(--u) * 0.055); }
+.rule.bottom { bottom: calc(var(--u) * 0.088); }
+
+.eyebrow {
+  position: absolute; left: var(--pad); right: var(--pad); top: calc(var(--u) * 0.082);
+  display: flex; align-items: center; gap: calc(var(--u) * 0.022);
+}
+.chip {
+  border: calc(var(--u) * 0.0035) solid #6b5a1f; border-radius: 999px;
+  padding: calc(var(--u) * 0.014) calc(var(--u) * 0.032);
+  font-size: calc(var(--u) * 0.030); font-weight: 900; letter-spacing: .13em;
+  text-transform: uppercase; color: #ffd166; white-space: nowrap;
+}
+.counter {
+  font-size: calc(var(--u) * 0.030); font-weight: 900; letter-spacing: .13em;
+  text-transform: uppercase; color: #6b7789; margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * THE COPY BLOCK SIZES ITSELF, laid out by flow inside a centred box.
+ *
+ * brand_image.html records the bug this avoids: two absolutely-positioned lines
+ * held only while the copy fitted, and a longer line grew into its neighbour.
+ * Centring a flex column between the rules means a two-line card and a
+ * six-line card both sit correctly without anyone tuning an offset.
+ */
+.copy {
+  position: absolute; left: var(--pad); right: var(--pad);
+  top: calc(var(--u) * 0.150); bottom: calc(var(--u) * 0.150);
+  display: flex; flex-direction: column; justify-content: center;
+  gap: calc(var(--u) * 0.030);
+}
+.copy p { margin: 0; text-wrap: balance; }
+
+.k-body p {
+  font-size: calc(var(--u) * 0.052); font-weight: 700; line-height: 1.24;
+  letter-spacing: -0.012em; color: #e2e8f0;
+}
+.k-say p {
+  font-size: calc(var(--u) * 0.052); font-weight: 600; line-height: 1.26;
+  letter-spacing: -0.010em; color: #cbd5e1; font-style: italic;
+}
+.k-say p::before { content: "“"; }
+.k-say p::after  { content: "”"; }
+.k-shout p {
+  font-size: calc(var(--u) * 0.094); font-weight: 900; line-height: 1.02;
+  letter-spacing: -0.028em; text-transform: uppercase; color: #f8fafc;
+}
+
+/* The ask. Reuses the amber question mark from the data posts verbatim — it is
+   already the site's "answer this" signal, and inventing a second one would
+   teach the audience two things where one was working. */
+.ask {
+  display: flex; align-items: flex-start; gap: calc(var(--u) * 0.024);
+  margin-top: calc(var(--u) * 0.012);
+}
+.qmark {
+  flex: none; margin-top: calc(var(--u) * 0.004);
+  width: calc(var(--u) * 0.078); height: calc(var(--u) * 0.078); border-radius: 999px;
+  background: #ffd166; color: #06070a; font-weight: 900; font-size: calc(var(--u) * 0.046);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Only on card one. A carousel nobody swipes is a single post with wasted work. */
+.swipe {
+  position: absolute; right: var(--pad); bottom: calc(var(--u) * 0.040);
+  font-size: calc(var(--u) * 0.028); font-weight: 900; letter-spacing: .13em;
+  text-transform: uppercase; color: #ffd166;
+}
+
+.brand {
+  position: absolute; left: var(--pad); bottom: calc(var(--u) * 0.040);
+  display: flex; align-items: center; gap: calc(var(--u) * 0.016);
+  font-size: calc(var(--u) * 0.028); font-weight: 900; letter-spacing: .13em;
+  color: #94a3b8; text-transform: uppercase;
+}
+</style>
+
+<div class="frame" id="f">
+  <div class="rule top"></div>
+
+  <div class="eyebrow">
+    <span class="chip" id="chip">Shop Talk</span>
+    <span class="counter" id="counter">01 / 11</span>
+  </div>
+
+  <div class="copy" id="copy"></div>
+
+  <div class="rule bottom"></div>
+
+  <div class="brand">
+    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="2.4" stroke-linecap="round">
+      <path d="M4 5 L20 19"/><path d="M20 5 L4 19"/><circle cx="12" cy="12" r="1.6" fill="#ffd166" stroke="none"/>
+    </svg>
+    <span id="brand">shearquery.com</span>
+  </div>
+
+  <div class="swipe" id="swipe" style="display:none">Swipe →</div>
+</div>
+
+<script>
+  const q = new URLSearchParams(location.search);
+  const w = +(q.get("w") || 1080), h = +(q.get("h") || 1350);
+  const f = document.getElementById("f");
+  f.style.setProperty("--w", w + "px");
+  f.style.setProperty("--h", h + "px");
+  // Scale off the SHORT side, exactly as the data cards do: the width is what
+  // everything has to fit across, whatever the frame's height happens to be.
+  f.style.setProperty("--u", Math.min(w, h) + "px");
+  f.style.setProperty("--pad", (Math.min(w, h) * 0.070) + "px");
+
+  const set = (id, k) => { const v = q.get(k); if (v) document.getElementById(id).textContent = v; };
+  ["chip", "counter", "brand"].forEach((k) => set(k, k));
+
+  const kind = q.get("kind") || "body";
+  const copy = document.getElementById("copy");
+  copy.className = "copy k-" + kind;
+
+  // Lines arrive JSON-encoded. Separate l1/l2/l3 params would cap the card at
+  // however many somebody guessed, and the copy is not written yet.
+  let lines = [];
+  try { lines = JSON.parse(q.get("lines") || "[]"); } catch (e) { lines = []; }
+  for (const line of lines) {
+    const p = document.createElement("p");
+    p.textContent = line;
+    copy.appendChild(p);
+  }
+
+  if (q.get("ask") === "1") {
+    const wrap = document.createElement("div");
+    wrap.className = "ask";
+    const mark = document.createElement("div");
+    mark.className = "qmark";
+    mark.textContent = "?";
+    wrap.appendChild(mark);
+    // Move the copy inside the ask row so the mark sits beside the question
+    // rather than under it.
+    const held = Array.from(copy.querySelectorAll("p"));
+    const col = document.createElement("div");
+    held.forEach((p) => col.appendChild(p));
+    wrap.appendChild(col);
+    copy.appendChild(wrap);
+  }
+
+  if (q.get("first") === "1") document.getElementById("swipe").style.display = "block";
+</script>

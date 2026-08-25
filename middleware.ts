@@ -53,6 +53,9 @@ const INTERNAL_TOOL_ROUTES = [
     // action behind it, because this middleware fails OPEN on an auth
     // exception and a write surface cannot rely on it alone.
     "/admin/content-publisher",
+    // Drafts real messages to real members and can send them. Gated here AND
+    // by isAdmin() in the page, because this list fails OPEN.
+    "/admin/member-outreach",
     // Renders haircut clients' names, phone numbers, email addresses and
     // lifetime spend, so the page re-checks isAdmin() itself — this entry is
     // defence in depth, because this middleware fails OPEN on an auth exception.
@@ -65,6 +68,11 @@ const INTERNAL_TOOL_ROUTES = [
     // Five angles of a named person's head, held in the only private storage
     // bucket in this project. The page re-checks isAdmin() itself.
     "/admin/hairstyle-selector",
+    /*
+     * Unpublished copy, and a button that posts to the live account. Gated
+     * here AND by isAdmin() in the page, because this list fails OPEN.
+     */
+    "/admin/instagram-carousels",
     "/tools/employment-match-review",
     "/tools/domain-management",
     "/tools/seo-keyword-tracker",
