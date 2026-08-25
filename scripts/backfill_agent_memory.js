@@ -52,10 +52,60 @@ async function ghlJson(path) {
  * and recording that as 'model' would teach the agent it said things it never
  * said. That distinction is why the role check now allows 'human'.
  */
+function directionOf(m) {
+  return m?.meta?.email?.direction || m?.direction || (m?.source ? "outbound" : "inbound");
+}
+
 function roleOf(m) {
-  const direction = m?.meta?.email?.direction || m?.direction;
-  if (direction === "inbound") return "user";
-  return m?.source === "app" || m?.lastOutboundMessageAction === "manual" ? "human" : "model";
+  if (directionOf(m) === "inbound") return "user";
+  // Outbound from GHL is either a person typing in the inbox or an automation.
+  // Neither is the chat agent, so neither is 'model' — calling an automated
+  // drip 'model' would teach the agent it wrote marketing copy it never wrote.
+  return "human";
+}
+
+/**
+ * WHERE THIS TURN CAME FROM, which decides whether it is conversation at all.
+ *
+ * Reading the real import made the problem obvious: alongside genuine two-way
+ * messages sat a marketing drip — "Most people looking for a shop like yours
+ * decide on Google before they ever visit" — and product notifications like
+ * "we've passed your request to Ryan Anderson Stylist". Left in memory, the
+ * agent would one day say "as I mentioned, most people decide on Google", which
+ * is a nurture sequence replayed as though it were a conversation. That single
+ * sentence would cost more trust than the whole feature earns.
+ *
+ * GHL tags the sender, and that is a structural signal rather than a guess at
+ * the text:
+ *   workflow      an automation sent it        -> never conversation
+ *   bulk_actions  a bulk send                  -> never conversation
+ *   app           typed in the inbox, OR a transactional notification
+ *   (none)        inbound, so the member spoke -> always conversation
+ *
+ * 'app' needed a second signal, and reading three members' real histories
+ * supplied it: THE CHANNEL DECIDES.
+ *
+ *   Barber To The Stars, SMS   "Im not interested in making a profile"
+ *                              "Can I talk to someone" / "Sure. I'll call now."
+ *   Stephen, email             "WELCOME, STEPHEN. Your membership is active."
+ *   Matthew, email             "your business has been linked to your account."
+ *
+ * Outbound 'app' on SMS is a person typing in the GHL inbox — real conversation.
+ * Outbound 'app' on EMAIL is the product sending a receipt. Every email in that
+ * bucket across three members was transactional.
+ *
+ * The rule is imperfect and knowingly so: a person occasionally does write an
+ * email from the inbox, and that one gets filed as a notification. The error is
+ * accepted because the costs are lopsided — a human email misread as a receipt
+ * is a lost nuance, while a receipt misread as a human message lets the agent
+ * say "as I mentioned" about a welcome email it never wrote.
+ */
+function sourceTag(m) {
+  if (directionOf(m) === "inbound") return "ghl_inbound";
+  const src = String(m?.source || "").toLowerCase();
+  if (src === "workflow") return "ghl_workflow";
+  if (src === "bulk_actions" || src === "campaign") return "ghl_bulk";
+  return channelOf(m) === "email" ? "ghl_notification" : "ghl_app";
 }
 
 function channelOf(m) {
@@ -155,16 +205,23 @@ async function threadFor(memberId) {
 
         if (SHOW_ONLY) { mine++; continue; }
 
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/member_agent_messages`, {
+        /*
+         * UPSERT, not insert. A plain insert made a re-run a no-op, which was
+         * right when only the rows mattered. Now the CLASSIFICATION can improve
+         * — and an import you cannot correct in place is one you would have to
+         * delete and redo, on live memory. merge-duplicates resolves on the
+         * (channel, external_id) index and rewrites the tag.
+         */
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/member_agent_messages?on_conflict=channel,external_id`, {
           method: "POST",
-          headers: { ...sb, "Content-Type": "application/json" },
+          headers: { ...sb, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
           body: JSON.stringify({
             thread_id: threadId,
             role: roleOf(m),
             content: content.slice(0, 4000),
             channel,
             external_id: m.id,
-            source: "ghl_backfill",
+            source: sourceTag(m),
             // GHL's own timestamp, not now() — otherwise a year of history
             // imports as though it all happened this afternoon, and "recent"
             // stops meaning anything.
@@ -172,7 +229,7 @@ async function threadFor(memberId) {
           }),
         });
         if (res.ok) mine++;
-        else if (res.status === 409 || (await res.text()).includes("23505")) dupes++;
+        else { const t = await res.text(); if (t.includes("23505")) dupes++; else if (mine === 0) console.log(`   write failed: ${t.slice(0,120)}`); }
       }
     }
 

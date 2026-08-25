@@ -450,6 +450,26 @@ export async function otherChannelTurns(
       .select("role, content, channel, created_at")
       .eq("thread_id", thread.id)
       .neq("channel", "chat")
+      /*
+       * AUTOMATED SENDS ARE NOT CONVERSATION, and leaving them in was the first
+       * real fault the imported history exposed. A marketing drip — "Most
+       * people looking for a shop like yours decide on Google before they ever
+       * visit" — sitting in memory means the agent can one day say "as I
+       * mentioned, most people decide on Google", replaying a nurture sequence
+       * as though it were something the two of them discussed. One sentence
+       * like that costs more trust than this whole feature earns.
+       *
+       * ghl_notification joins them for the same reason. Reading three real
+       * histories showed every outbound email the product sent — welcome
+       * messages, "your business has been linked", "we passed your request on"
+       * — arriving tagged as though a person had written it. One member's
+       * entire window was those receipts and nothing else.
+       *
+       * Tagged rather than deleted at import, so the activity stays queryable —
+       * "you shortlisted three salons last week" is useful, just not as
+       * something anybody said.
+       */
+      .not("source", "in", '("ghl_workflow","ghl_bulk","ghl_notification")')
       .order("created_at", { ascending: false })
       .limit(limit);
 
