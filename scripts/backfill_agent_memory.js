@@ -203,6 +203,30 @@ async function threadFor(memberId) {
         const content = textOf(m);
         if (!channel || !content) continue;
 
+        /*
+         * DELIVERY STATUS COSTS A SECOND HOP, so it is only fetched where it
+         * exists and means something: outbound email. GHL keeps it on
+         * /conversations/messages/email/{id} and not on the conversation
+         * message, the same split that hid the recipient address.
+         *
+         * "Offered twice" and "offered twice, clicked once, never finished"
+         * are different facts about different people. The second is worth an
+         * extra call; the first is barely worth surfacing.
+         */
+        let deliveryStatus = null;
+        if (channel === "email" && directionOf(m) === "outbound") {
+          try {
+            const emailId = m?.meta?.email?.messageIds?.[0];
+            if (emailId) {
+              const em = await ghlJson(`/conversations/messages/email/${emailId}`);
+              const rec = em?.emailMessage ?? em?.message ?? em;
+              deliveryStatus = rec?.status ?? null;
+            }
+          } catch {
+            // A status we could not read is not a reason to lose the message.
+          }
+        }
+
         if (SHOW_ONLY) { mine++; continue; }
 
         /*
@@ -222,6 +246,8 @@ async function threadFor(memberId) {
             channel,
             external_id: m.id,
             source: sourceTag(m),
+            delivery_status: deliveryStatus,
+            status_checked_at: deliveryStatus ? new Date().toISOString() : null,
             // GHL's own timestamp, not now() — otherwise a year of history
             // imports as though it all happened this afternoon, and "recent"
             // stops meaning anything.

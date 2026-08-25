@@ -515,6 +515,11 @@ export interface OutreachRecord {
   kind: string;
   at: string;
   times: number;
+  /**
+   * The furthest this offer got with them: delivered, opened or clicked. Null
+   * where the provider never said — SMS mostly, and anything not yet checked.
+   */
+  engagement: string | null;
 }
 
 /**
@@ -532,10 +537,17 @@ export interface OutreachRecord {
  * voice, and an assistant that starts sounding like a brochure has lost the
  * thing that made it worth asking.
  *
- * SENT IS A WEAK SIGNAL. This says a message went out, not that it was read.
- * "Offered twice, never taken up" is worth knowing precisely because it might
- * mean they are not interested — the rule below has to stop the agent reading
- * it as a queue of things to pitch.
+ * SENT ALONE IS A WEAK SIGNAL, WHICH IS WHY ENGAGEMENT IS HERE. "Offered
+ * twice" conflates two completely different people: one who never opened the
+ * email, and one who clicked the link and stopped. The first mostly means the
+ * message did not land. The second is the strongest prompt the agent has —
+ * someone who clicked a profile-audit link and never ran the audit is a real
+ * moment, not a guess.
+ *
+ * THE BEST OUTCOME WINS when the same thing went out more than once. Three
+ * sends where one was clicked is "they clicked it", not "they ignored it
+ * twice" — the interested moment is the fact worth carrying, and averaging it
+ * away would lose exactly the signal this was added for.
  */
 export async function recentOutreach(
   memberId: string,
@@ -548,11 +560,14 @@ export async function recentOutreach(
 
     const { data: rows } = await (admin as any)
       .from("member_agent_messages")
-      .select("channel, content, created_at")
+      .select("channel, content, created_at, delivery_status")
       .eq("thread_id", threadId)
       .in("source", ["ghl_workflow", "ghl_bulk", "ghl_notification", "agent_outbound"])
       .order("created_at", { ascending: false })
       .limit(limit);
+
+    // Ordered worst to best, so collapsing many sends keeps the furthest one.
+    const RANK: Record<string, number> = { delivered: 1, opened: 2, clicked: 3 };
 
     /*
      * Collapsed by what was sent, not listed one by one. The same offer going
@@ -564,9 +579,14 @@ export async function recentOutreach(
     for (const r of rows || []) {
       const kind = String(r.content).replace(/\s+/g, " ").trim().slice(0, 70);
       const key = `${r.channel}|${kind}`;
+      const status = r.delivery_status ?? null;
       const seen = byKind.get(key);
-      if (seen) seen.times += 1;
-      else byKind.set(key, { channel: r.channel, kind, at: r.created_at, times: 1 });
+      if (seen) {
+        seen.times += 1;
+        if ((RANK[status ?? ""] ?? 0) > (RANK[seen.engagement ?? ""] ?? 0)) seen.engagement = status;
+      } else {
+        byKind.set(key, { channel: r.channel, kind, at: r.created_at, times: 1, engagement: status });
+      }
     }
     return [...byKind.values()];
   } catch (err) {
