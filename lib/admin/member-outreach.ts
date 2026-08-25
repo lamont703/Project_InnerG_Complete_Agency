@@ -74,6 +74,16 @@ export interface OutreachSuggestion {
 const DRAFT_STALE_DAYS = 14;
 
 /**
+ * How long "not now" lasts.
+ *
+ * Not forever, because "not now" is not "never" — a member set aside today may
+ * be exactly the right person to contact in a month, and a permanent dismissal
+ * would quietly shrink the queue every time somebody skipped a card. Not a day
+ * either, or the button does nothing useful.
+ */
+const DISMISS_DAYS = 30;
+
+/**
  * Nothing is suggested for someone contacted within this window.
  *
  * Rebooking's cadence file refuses to surface anyone under 14 days late for the
@@ -228,9 +238,13 @@ export async function outreachSuggestions(): Promise<OutreachSuggestion[]> {
   );
 
   // Drafts already written. One query, then generation only for what is missing.
-  const { data: cached } = await (db.from("member_outreach_drafts") as any)
-    .select("*")
-    .eq("status", "pending");
+  /*
+   * EVERY status, not just pending. Reading only 'pending' meant a dismissed
+   * draft was invisible here, so the member surfaced again on the next load
+   * with a freshly generated message — which is exactly what "not now" is
+   * supposed to prevent.
+   */
+  const { data: cached } = await (db.from("member_outreach_drafts") as any).select("*");
   const draftKey = (m: string, sig: string) => `${m}|${sig}`;
   const cachedByKey = new Map<string, any>((cached ?? []).map((d: any) => [draftKey(d.community_member_id, d.signal), d]));
 
@@ -273,6 +287,20 @@ export async function outreachSuggestions(): Promise<OutreachSuggestion[]> {
       reason = "Signed up but has not claimed a listing, so nothing on the site is theirs yet.";
     }
 
+    /*
+     * A card that was dismissed or already sent does not come back, and this
+     * check is the reason "not now" works at all. It reads the SAME cache the
+     * drafts come from — which had to start returning every status, because
+     * fetching only 'pending' made a dismissed row invisible and the member
+     * reappeared with a freshly written message.
+     */
+    const prior = cachedByKey.get(draftKey(m.id, signal));
+    if (prior && prior.status !== "pending") {
+      const when = prior.dismissed_at ?? prior.sent_at ?? prior.updated_at;
+      const age = when ? Date.now() - new Date(when).getTime() : Infinity;
+      if (age < DISMISS_DAYS * 86400_000) continue;
+    }
+
     const channel: OutreachChannel = step === "claim_listing" ? "email" : "sms";
     if (channel === "sms" && !m.phone && !m.contact_id) continue;
     if (channel === "email" && !m.email) continue;
@@ -295,7 +323,7 @@ export async function outreachSuggestions(): Promise<OutreachSuggestion[]> {
       // An edited draft is never regenerated, however old. Somebody chose those
       // words, and silently replacing them is the fastest way to stop anyone
       // bothering to edit.
-      if (hit && (fresh || hit.edited)) {
+      if (hit && hit.status === "pending" && (fresh || hit.edited)) {
         return toSuggestion(p, hit.body, hit.subject, hit.origin, hit.edited, lastOutreachFor(p, threadByMember, lastSentByThread));
       }
 
@@ -320,7 +348,7 @@ export async function outreachSuggestions(): Promise<OutreachSuggestion[]> {
       // fallback permanent for anyone unlucky enough to load the page while
       // quota was out.
       if (generated) {
-        await (db.from("member_outreach_drafts") as any).upsert(
+        const { error: saveError } = await (db.from("member_outreach_drafts") as any).upsert(
           {
             community_member_id: p.member.id,
             signal: p.signal,
@@ -334,6 +362,15 @@ export async function outreachSuggestions(): Promise<OutreachSuggestion[]> {
           },
           { onConflict: "community_member_id,signal" }
         );
+        /*
+         * LOUD, because silence here cost a debugging session. The upsert was
+         * failing with 42P10 against a partial index; the draft still rendered,
+         * so nothing looked wrong — the table simply stayed empty, every load
+         * regenerated, and dismissals had no row to attach to.
+         */
+        if (saveError) {
+          console.error("[member-outreach] draft not saved — it will regenerate every load:", saveError.message);
+        }
       }
 
       return toSuggestion(p, body, subject, origin, false, lastOutreachFor(p, threadByMember, lastSentByThread));

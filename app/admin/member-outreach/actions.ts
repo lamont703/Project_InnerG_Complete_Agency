@@ -143,7 +143,7 @@ export async function saveDraftEdit(input: {
 
   try {
     const db = createAdminClient();
-    await (db.from("member_outreach_drafts") as any).upsert(
+    const { error } = await (db.from("member_outreach_drafts") as any).upsert(
       {
         community_member_id: input.memberId,
         signal: input.signal,
@@ -157,6 +157,7 @@ export async function saveDraftEdit(input: {
       },
       { onConflict: "community_member_id,signal" }
     );
+    if (error) return { ok: false, error: error.message };
   } catch (e) {
     return { ok: false, error: String((e as Error)?.message ?? e) };
   }
@@ -172,15 +173,37 @@ export async function saveDraftEdit(input: {
  * 'pending' rows — so the record stays as history and the suggestion does not
  * come back on the next load.
  */
-export async function dismissDraft(input: { memberId: string; signal: string }): Promise<SendResult> {
+export async function dismissDraft(input: {
+  memberId: string;
+  signal: string;
+  channel?: "sms" | "email";
+  body?: string;
+}): Promise<SendResult> {
   if (!(await isAdmin())) return { ok: false, error: "Not authorized." };
   try {
     const db = createAdminClient();
-    await (db.from("member_outreach_drafts") as any)
-      .update({ status: "dismissed", dismissed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq("community_member_id", input.memberId)
-      .eq("signal", input.signal)
-      .eq("status", "pending");
+    /*
+     * UPSERT, NOT UPDATE. This was an update, which silently did nothing
+     * whenever no draft row existed — and none did, because the upsert that
+     * should have written them was failing on a partial index. So "not now"
+     * appeared broken: the card came straight back on the next load.
+     *
+     * A dismissal has to be recordable on its own. Whether a draft was ever
+     * stored is our problem, not a reason to ignore somebody saying no.
+     */
+    const { error } = await (db.from("member_outreach_drafts") as any).upsert(
+      {
+        community_member_id: input.memberId,
+        signal: input.signal,
+        channel: input.channel ?? "sms",
+        body: input.body ?? "(dismissed before a draft was stored)",
+        status: "dismissed",
+        dismissed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "community_member_id,signal" }
+    );
+    if (error) return { ok: false, error: error.message };
   } catch (e) {
     return { ok: false, error: String((e as Error)?.message ?? e) };
   }
