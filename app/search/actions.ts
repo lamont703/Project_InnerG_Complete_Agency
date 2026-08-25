@@ -5,7 +5,8 @@ import { GoogleGenAI } from "@google/genai";
 import { parseWeeklyRent } from "@/lib/shop-ecosystem";
 import { AD_ENTITY_TYPES } from "@/lib/ad-campaigns";
 import { rotateEligible } from "@/lib/ad-rotation";
-import { currentMember, getJourney, loadThread } from "@/lib/member-context";
+import { currentMember, memberById, getJourney, loadThread } from "@/lib/member-context";
+import { getViewAsContext } from "@/lib/account/view-as";
 import { chatBannerLine, isJourneyStarted } from "@/lib/member-journey";
 
 // rent_rate is free text ("$175/week", "40% for 5 months then $300/wk",
@@ -1005,7 +1006,20 @@ export async function getAiModeMemberContext(): Promise<{
   /** Set when the journey is thin enough to be worth finishing. */
   setupHref: string | null;
 }> {
-  const member = await currentMember();
+  /*
+   * WHOSE CHAT IS THIS. View As was not consulted here, so an admin switching
+   * to a member kept seeing their OWN conversation restored into the feed —
+   * which is the opposite of what the feature is for, and misleading in the
+   * worst way: it looks like the member has a long history when they have
+   * none.
+   *
+   * getViewAsContext does its own admin check, so a stale cookie on a
+   * non-admin session resolves to null rather than to somebody else's thread.
+   */
+  const viewAs = await getViewAsContext();
+  const member = viewAs.viewingAs
+    ? await memberById(viewAs.viewingAs.memberId)
+    : await currentMember();
   if (!member) return { isMember: false, firstName: null, messages: [], journeyLine: null, setupHref: null };
 
   const [thread, facts] = await Promise.all([loadThread(member.id), getJourney(member.id)]);

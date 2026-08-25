@@ -5,6 +5,8 @@ import { GoogleGenAI } from '@google/genai';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
 import { currentMember, memberById, getJourney, appendToThread, otherChannelTurns, recentOutreach } from '@/lib/member-context';
+import { getViewAsContext } from '@/lib/account/view-as';
+import { memberPerformanceContext } from '@/lib/member-performance-context';
 import { ownerConnectContext } from '@/lib/owner-connect-context';
 import { policyForChannel } from '@/lib/agent-policy';
 import { agentJourneyContext, stateCoverageForChat } from '@/lib/member-journey';
@@ -160,9 +162,23 @@ export async function POST(req: Request) {
     const isInternalAgent = Boolean(
       agentSecret && req.headers.get("x-internal-agent") === agentSecret
     );
+    /*
+     * VIEW AS CHANGES WHO THIS IS, and it was not consulted here at all. An
+     * admin viewing the site as a member saw their OWN conversation and their
+     * own context — which defeats the point of the feature, since the whole
+     * question being asked is "what does the agent say to them".
+     *
+     * getViewAsContext is the authoritative answer and does its own admin
+     * check, so a stale or forged cookie on a non-admin session resolves to
+     * null rather than to somebody else's account.
+     */
+    const viewAs = isInternalAgent ? null : await getViewAsContext();
     const member = isInternalAgent
       ? await memberById(bodyMemberId)
-      : await currentMember();
+      : viewAs?.viewingAs
+        ? await memberById(viewAs.viewingAs.memberId)
+        : await currentMember();
+    const isViewingAs = Boolean(viewAs?.viewingAs);
     memberIdForUsage = member?.id ?? null;
     const limit = member ? MAX_REQUESTS_MEMBER : MAX_REQUESTS;
 
@@ -256,6 +272,17 @@ export async function POST(req: Request) {
      * was something the two of them discussed.
      */
     const outreach = member ? await recentOutreach(member.id) : [];
+
+    /*
+     * Their own numbers — listing traffic, booking requests, ad placements.
+     * Three pages already hold this and none of it reached the model, so an
+     * owner asking how their listing was doing got a general answer about the
+     * directory: the least useful moment to be generic, since it is the one
+     * question only we can answer for them.
+     */
+    const performance = member
+      ? await memberPerformanceContext(member.id, (member as any).userId ?? null)
+      : null;
 
     // When a shop owner arrives from their own shop's profile page via "Ask
     // AI About This Market", shopId identifies exactly which shop — this is
@@ -471,6 +498,7 @@ export async function POST(req: Request) {
       ...(ownerConnect ? { owner_connect_context: ownerConnect } : {}),
       ...(otherChannels.length ? { recent_other_channels: otherChannels } : {}),
       ...(outreach.length ? { recent_outreach: outreach } : {}),
+      ...(performance ? { my_performance: performance } : {}),
       ...(shopEcosystemContext ? { my_shop_ecosystem_report: shopEcosystemContext } : {}),
       // Near the top for the same truncation reason as the two above. Someone
       // arriving from a state page's suggested question has NO journey profile,
@@ -526,6 +554,14 @@ MEMBER_JOURNEY_CONTEXT RULE: member_journey_context is in the context data below
 - Do not recite their profile back at them, do not open with a greeting that lists what you know, and use their first name at most once in a conversation. Someone who told you their exam date wants a better answer, not a demonstration that you remembered.
 - NEVER invent a journey fact. If member_journey_context says school_name is null, you do not know where they study — the same rule as every other fact on this page.
 ` : ''}
+MY_PERFORMANCE RULE: my_performance holds THIS member's own numbers — their listing traffic, their booking requests and their ad placements. It is not a search result and not the directory average. Use it whenever they ask how they are doing, whether something is working, or what any of those three features is for.
+- ANSWER WITH THEIR NUMBERS, NOT A DESCRIPTION OF THE FEATURE. "You had 340 visits last month, up from 280" is the answer. "Listing Insights shows your traffic" is a brochure.
+- direction IS ALREADY COMPUTED — use it and do not recompute from the two figures. If it says "not_enough_history" then say there is not enough history yet rather than comparing against a zero.
+- A MISSING SECTION MEANS NOTHING IS SET UP, NOT ZERO PERFORMANCE. If booking_requests is absent they have had no requests or have not claimed a listing; if ads is absent they are not running any. Say which, and say what would change it — never report an absent section as poor results.
+- EACH SECTION CARRIES ITS page_url. Link it per the LINKING RULE when you point them at the detail; these are real internal pages exactly like owner_connect_context's.
+- NEVER INVENT A COMPARISON. There is no industry benchmark in here. "That's above average for a barbershop" is not something you know.
+- most_recent DELIBERATELY OMITS PHONE AND EMAIL. Those are on the booking requests page and are not needed to answer a question about how many came in.
+
 RECENT_OTHER_CHANNELS RULE: recent_other_channels, when present, is what THIS member said to you — and what you replied — on channels other than this chat, most often SMS. Each entry has a channel, a role, the text and a timestamp.
 - IT IS NOT PART OF THIS CONVERSATION. Never say "as I mentioned above" or "as you just said" about one of these. They happened elsewhere and possibly days ago. Refer to them for what they are: "you texted me last week that...".
 - USE IT WITHOUT BEING ASKED, the same as member_journey_context. Someone who told you their booth rent by text should not be asked for it again in chat — being asked twice is the whole reason this exists.
@@ -960,7 +996,18 @@ ${JSON.stringify(slimmedContext).substring(0, 120000)}
     // dangling promise here is a write that usually doesn't happen. It is
     // written post-sanitization, so what the member sees is what gets stored.
     if (member && finalText) {
-      await appendToThread(member.id, latestMessage, finalText);
+      /*
+       * NOT PERSISTED WHILE IMPERSONATING. Reading their history is the point
+       * of View As; writing to it is not. An admin testing what the agent says
+       * to a member must not leave that member a message they never sent — it
+       * would land in their thread, feed back as memory, and the agent would
+       * later refer to a conversation that never happened.
+       *
+       * So this is deliberately read-their-context, write-nothing.
+       */
+      if (!isViewingAs) {
+        await appendToThread(member.id, latestMessage, finalText);
+      }
     }
 
     // Awaited, not fired and forgotten: this is a serverless function and work
