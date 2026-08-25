@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
 import { currentMember, memberById, getJourney, appendToThread, otherChannelTurns, recentOutreach } from '@/lib/member-context';
 import { getViewAsContext } from '@/lib/account/view-as';
+import { memberPerformanceContext } from '@/lib/member-performance-context';
 import { ownerConnectContext } from '@/lib/owner-connect-context';
 import { policyForChannel } from '@/lib/agent-policy';
 import { agentJourneyContext, stateCoverageForChat } from '@/lib/member-journey';
@@ -272,6 +273,17 @@ export async function POST(req: Request) {
      */
     const outreach = member ? await recentOutreach(member.id) : [];
 
+    /*
+     * Their own numbers — listing traffic, booking requests, ad placements.
+     * Three pages already hold this and none of it reached the model, so an
+     * owner asking how their listing was doing got a general answer about the
+     * directory: the least useful moment to be generic, since it is the one
+     * question only we can answer for them.
+     */
+    const performance = member
+      ? await memberPerformanceContext(member.id, (member as any).userId ?? null)
+      : null;
+
     // When a shop owner arrives from their own shop's profile page via "Ask
     // AI About This Market", shopId identifies exactly which shop — this is
     // a direct geospatial computation (haversine + free-text rent parsing),
@@ -486,6 +498,7 @@ export async function POST(req: Request) {
       ...(ownerConnect ? { owner_connect_context: ownerConnect } : {}),
       ...(otherChannels.length ? { recent_other_channels: otherChannels } : {}),
       ...(outreach.length ? { recent_outreach: outreach } : {}),
+      ...(performance ? { my_performance: performance } : {}),
       ...(shopEcosystemContext ? { my_shop_ecosystem_report: shopEcosystemContext } : {}),
       // Near the top for the same truncation reason as the two above. Someone
       // arriving from a state page's suggested question has NO journey profile,
@@ -541,6 +554,14 @@ MEMBER_JOURNEY_CONTEXT RULE: member_journey_context is in the context data below
 - Do not recite their profile back at them, do not open with a greeting that lists what you know, and use their first name at most once in a conversation. Someone who told you their exam date wants a better answer, not a demonstration that you remembered.
 - NEVER invent a journey fact. If member_journey_context says school_name is null, you do not know where they study — the same rule as every other fact on this page.
 ` : ''}
+MY_PERFORMANCE RULE: my_performance holds THIS member's own numbers — their listing traffic, their booking requests and their ad placements. It is not a search result and not the directory average. Use it whenever they ask how they are doing, whether something is working, or what any of those three features is for.
+- ANSWER WITH THEIR NUMBERS, NOT A DESCRIPTION OF THE FEATURE. "You had 340 visits last month, up from 280" is the answer. "Listing Insights shows your traffic" is a brochure.
+- direction IS ALREADY COMPUTED — use it and do not recompute from the two figures. If it says "not_enough_history" then say there is not enough history yet rather than comparing against a zero.
+- A MISSING SECTION MEANS NOTHING IS SET UP, NOT ZERO PERFORMANCE. If booking_requests is absent they have had no requests or have not claimed a listing; if ads is absent they are not running any. Say which, and say what would change it — never report an absent section as poor results.
+- EACH SECTION CARRIES ITS page_url. Link it per the LINKING RULE when you point them at the detail; these are real internal pages exactly like owner_connect_context's.
+- NEVER INVENT A COMPARISON. There is no industry benchmark in here. "That's above average for a barbershop" is not something you know.
+- most_recent DELIBERATELY OMITS PHONE AND EMAIL. Those are on the booking requests page and are not needed to answer a question about how many came in.
+
 RECENT_OTHER_CHANNELS RULE: recent_other_channels, when present, is what THIS member said to you — and what you replied — on channels other than this chat, most often SMS. Each entry has a channel, a role, the text and a timestamp.
 - IT IS NOT PART OF THIS CONVERSATION. Never say "as I mentioned above" or "as you just said" about one of these. They happened elsewhere and possibly days ago. Refer to them for what they are: "you texted me last week that...".
 - USE IT WITHOUT BEING ASKED, the same as member_journey_context. Someone who told you their booth rent by text should not be asked for it again in chat — being asked twice is the whole reason this exists.
