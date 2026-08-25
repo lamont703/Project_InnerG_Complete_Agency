@@ -429,27 +429,43 @@ export interface OtherChannelTurn {
  * capped rather than complete. Older history is a search problem, not a context
  * problem — the same reasoning that put booth rent behind a tool instead of
  * pre-loading every zip.
+ *
+ * THE CAP IS PER CHANNEL, NOT OVERALL, and that took a live answer to notice. A
+ * single global limit meant a busy SMS thread filled every slot and older email
+ * fell off entirely, so the agent said "I do not have access to any email
+ * conversations" while three inbound emails sat in the table. A quiet channel
+ * must not be starved by a loud one — the whole point is that the agent knows
+ * a channel exists at all.
  */
+async function latestThreadId(admin: any, memberId: string): Promise<string | null> {
+  const { data } = await admin
+    .from("member_agent_threads")
+    .select("id")
+    .eq("community_member_id", memberId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+const CONVERSATION_CHANNELS = ["sms", "email", "instagram"] as const;
+
 export async function otherChannelTurns(
   memberId: string,
-  limit = 12
+  perChannel = 8
 ): Promise<OtherChannelTurn[]> {
   try {
     const admin = createAdminClient();
-    const { data: thread } = await (admin as any)
-      .from("member_agent_threads")
-      .select("id")
-      .eq("community_member_id", memberId)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!thread) return [];
+    const threadId = await latestThreadId(admin, memberId);
+    if (!threadId) return [];
 
-    const { data: rows } = await (admin as any)
-      .from("member_agent_messages")
-      .select("role, content, channel, created_at")
-      .eq("thread_id", thread.id)
-      .neq("channel", "chat")
+    const perChannelRows = await Promise.all(
+      CONVERSATION_CHANNELS.map(async (ch) => {
+        const { data } = await (admin as any)
+          .from("member_agent_messages")
+          .select("role, content, channel, created_at")
+          .eq("thread_id", threadId)
+          .eq("channel", ch)
       /*
        * AUTOMATED SENDS ARE NOT CONVERSATION, and leaving them in was the first
        * real fault the imported history exposed. A marketing drip — "Most
@@ -469,12 +485,16 @@ export async function otherChannelTurns(
        * "you shortlisted three salons last week" is useful, just not as
        * something anybody said.
        */
-      .not("source", "in", '("ghl_workflow","ghl_bulk","ghl_notification")')
-      .order("created_at", { ascending: false })
-      .limit(limit);
+          .not("source", "in", '("ghl_workflow","ghl_bulk","ghl_notification")')
+          .order("created_at", { ascending: false })
+          .limit(perChannel);
+        return data || [];
+      })
+    );
 
-    return (rows || [])
-      .reverse()
+    return perChannelRows
+      .flat()
+      .sort((a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)))
       .map((r: any) => ({
         channel: r.channel,
         role: r.role,
@@ -485,6 +505,72 @@ export async function otherChannelTurns(
       }));
   } catch (err) {
     console.error("[member-context] otherChannelTurns failed:", err);
+    return [];
+  }
+}
+
+/** One thing ShearQuery sent this member. Not a conversation turn. */
+export interface OutreachRecord {
+  channel: string;
+  kind: string;
+  at: string;
+  times: number;
+}
+
+/**
+ * What ShearQuery has SENT this member — offers, nurture, product notices.
+ *
+ * SEPARATE FROM CONVERSATION, DELIBERATELY, and the distinction is the whole
+ * design. Knowing an offer was made is a fact about where somebody is; treating
+ * it as something the two of them discussed is how an agent ends up saying "as
+ * I mentioned, most people decide on Google before they visit" about a drip
+ * campaign. The first is useful. The second costs more trust than the feature
+ * earns.
+ *
+ * IT CARRIES THE SHAPE, NOT THE COPY. A subject-length label and a count, never
+ * the marketing body. Full copy in context leaks its phrasing into the agent's
+ * voice, and an assistant that starts sounding like a brochure has lost the
+ * thing that made it worth asking.
+ *
+ * SENT IS A WEAK SIGNAL. This says a message went out, not that it was read.
+ * "Offered twice, never taken up" is worth knowing precisely because it might
+ * mean they are not interested — the rule below has to stop the agent reading
+ * it as a queue of things to pitch.
+ */
+export async function recentOutreach(
+  memberId: string,
+  limit = 20
+): Promise<OutreachRecord[]> {
+  try {
+    const admin = createAdminClient();
+    const threadId = await latestThreadId(admin, memberId);
+    if (!threadId) return [];
+
+    const { data: rows } = await (admin as any)
+      .from("member_agent_messages")
+      .select("channel, content, created_at")
+      .eq("thread_id", threadId)
+      .in("source", ["ghl_workflow", "ghl_bulk", "ghl_notification", "agent_outbound"])
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    /*
+     * Collapsed by what was sent, not listed one by one. The same offer going
+     * out three times is ONE fact with a count — "offered three times, never
+     * taken up" — and three separate entries would read as three topics while
+     * burying the repetition that is the actual signal.
+     */
+    const byKind = new Map<string, OutreachRecord>();
+    for (const r of rows || []) {
+      const kind = String(r.content).replace(/\s+/g, " ").trim().slice(0, 70);
+      const key = `${r.channel}|${kind}`;
+      const seen = byKind.get(key);
+      if (seen) seen.times += 1;
+      else byKind.set(key, { channel: r.channel, kind, at: r.created_at, times: 1 });
+    }
+    return [...byKind.values()];
+  } catch (err) {
+    console.error("[member-context] recentOutreach failed:", err);
     return [];
   }
 }

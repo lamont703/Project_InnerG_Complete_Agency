@@ -4,7 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
-import { currentMember, memberById, getJourney, appendToThread, otherChannelTurns } from '@/lib/member-context';
+import { currentMember, memberById, getJourney, appendToThread, otherChannelTurns, recentOutreach } from '@/lib/member-context';
 import { ownerConnectContext } from '@/lib/owner-connect-context';
 import { policyForChannel } from '@/lib/agent-policy';
 import { agentJourneyContext, stateCoverageForChat } from '@/lib/member-journey';
@@ -239,6 +239,13 @@ export async function POST(req: Request) {
      */
     const otherChannels = member ? await otherChannelTurns(member.id) : [];
 
+    /*
+     * What we SENT them, as facts rather than conversation. Kept apart from the
+     * turns above so the agent can know an offer was made without believing it
+     * was something the two of them discussed.
+     */
+    const outreach = member ? await recentOutreach(member.id) : [];
+
     // When a shop owner arrives from their own shop's profile page via "Ask
     // AI About This Market", shopId identifies exactly which shop — this is
     // a direct geospatial computation (haversine + free-text rent parsing),
@@ -452,6 +459,7 @@ export async function POST(req: Request) {
       ...(journeyContext ? { member_journey_context: journeyContext } : {}),
       ...(ownerConnect ? { owner_connect_context: ownerConnect } : {}),
       ...(otherChannels.length ? { recent_other_channels: otherChannels } : {}),
+      ...(outreach.length ? { recent_outreach: outreach } : {}),
       ...(shopEcosystemContext ? { my_shop_ecosystem_report: shopEcosystemContext } : {}),
       // Near the top for the same truncation reason as the two above. Someone
       // arriving from a state page's suggested question has NO journey profile,
@@ -511,8 +519,16 @@ RECENT_OTHER_CHANNELS RULE: recent_other_channels, when present, is what THIS me
 - IT IS NOT PART OF THIS CONVERSATION. Never say "as I mentioned above" or "as you just said" about one of these. They happened elsewhere and possibly days ago. Refer to them for what they are: "you texted me last week that...".
 - USE IT WITHOUT BEING ASKED, the same as member_journey_context. Someone who told you their booth rent by text should not be asked for it again in chat — being asked twice is the whole reason this exists.
 - role 'human' means a person on our team wrote it, not you. Do not claim you said it.
-- IT IS A RECENT SLICE, NOT EVERYTHING. Do not say "you have never mentioned that" on the strength of this — you are seeing a handful of the latest turns, not their whole history. Absence here is not evidence.
+- IT IS A RECENT SLICE, NOT EVERYTHING. Do not say "you have never mentioned that" on the strength of this — you are seeing a handful of the latest turns per channel, not their whole history. Absence here is not evidence.
+- NEVER SAY YOU HAVE NO ACCESS TO A CHANNEL because you see nothing from it here. Saying "I do not have access to any email conversations" when the window simply held none is a claim about your capabilities, and it is false — you would have seen email if there were recent email. Say what is true instead: nothing from that channel is in the recent slice.
 - NEVER REPEAT IT BACK AS A SUMMARY. Do not open by listing what they told you elsewhere. Use it to give a better answer, exactly as with their journey.
+
+RECENT_OUTREACH RULE: recent_outreach is what ShearQuery has SENT this member — offers, nurture emails, product notices — with a short label, a date and how many times it went out. It is NOT conversation and must never be described as one.
+- NEVER SAY "AS I MENTIONED" OR "WE DISCUSSED" ABOUT ANY OF IT. Nobody discussed it; a system sent it. Treat it the way you would treat knowing which page they visited.
+- IT SAYS SENT, NOT READ. A message going out three times and nothing happening may well mean they are not interested. Do not read the list as a queue of things to pitch.
+- USE IT ONLY WHEN IT ANSWERS WHAT THEY ASKED. If someone asks how to get more Saturday bookings and they were offered a profile audit twice without taking it, that offer is the answer and worth raising. If they ask about booth rent, it is not. Opportunistic, never promotional — the same rule as OWNER_CONNECT_CONTEXT.
+- IF THEY ASK WHAT WE HAVE SENT THEM, answer from this plainly and completely. That is a fair question about their own account and there is nothing to be coy about.
+- NEVER REPRODUCE THE MARKETING WORDING. You have a label, not the copy. Say what the offer was about in your own words.
 
 OWNER_CONNECT_CONTEXT RULE: owner_connect_context describes THIS person's own listing and Google connection, and is always present. It is not a search result. Use it to answer anything about claiming a listing, connecting Google, or managing their own business on here.
 - YOU CAN HELP WITH THIS. Connecting a Google Business Profile is a real, shipped feature. Never say you are unable to help with it, and never send them somewhere else to do it.
