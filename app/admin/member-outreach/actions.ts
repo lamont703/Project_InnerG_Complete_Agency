@@ -29,6 +29,7 @@ export type SendResult = { ok: true } | { ok: false; error: string };
 
 export async function sendOutreach(input: {
   memberId: string;
+  signal: string;
   channel: "sms" | "email";
   message: string;
   subject?: string;
@@ -101,6 +102,111 @@ export async function sendOutreach(input: {
      */
   }
 
+  /*
+   * The cached draft is retired once it has gone out. Without this the same
+   * suggestion returns on the next load — the ten-day quiet period would
+   * eventually suppress it, but only once the send is visible as outreach, and
+   * a card reappearing minutes after being sent is how somebody sends twice.
+   */
+  try {
+    const db = createAdminClient();
+    await (db.from("member_outreach_drafts") as any)
+      .update({ status: "sent", sent_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("community_member_id", input.memberId)
+      .eq("signal", input.signal)
+      .eq("status", "pending");
+  } catch {
+    /* Already delivered. A stale card is a far smaller problem than a resend. */
+  }
+
+  revalidatePath("/admin/member-outreach");
+  return { ok: true };
+}
+
+/**
+ * Keep an edit without sending it.
+ *
+ * A draft someone reworded must survive the page reload, and must never be
+ * regenerated afterwards — silently replacing somebody's wording is the fastest
+ * way to stop anyone bothering to edit at all.
+ */
+export async function saveDraftEdit(input: {
+  memberId: string;
+  signal: string;
+  channel: "sms" | "email";
+  body: string;
+  subject?: string;
+}): Promise<SendResult> {
+  if (!(await isAdmin())) return { ok: false, error: "Not authorized." };
+  const body = (input.body || "").trim();
+  if (!body) return { ok: false, error: "Nothing to save." };
+
+  try {
+    const db = createAdminClient();
+    await (db.from("member_outreach_drafts") as any).upsert(
+      {
+        community_member_id: input.memberId,
+        signal: input.signal,
+        channel: input.channel,
+        subject: input.subject ?? null,
+        body,
+        origin: "ai",
+        status: "pending",
+        edited: true,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "community_member_id,signal" }
+    );
+  } catch (e) {
+    return { ok: false, error: String((e as Error)?.message ?? e) };
+  }
+
+  revalidatePath("/admin/member-outreach");
+  return { ok: true };
+}
+
+/**
+ * Set this one aside.
+ *
+ * Dismissed rather than deleted, and the partial unique index only covers
+ * 'pending' rows — so the record stays as history and the suggestion does not
+ * come back on the next load.
+ */
+export async function dismissDraft(input: { memberId: string; signal: string }): Promise<SendResult> {
+  if (!(await isAdmin())) return { ok: false, error: "Not authorized." };
+  try {
+    const db = createAdminClient();
+    await (db.from("member_outreach_drafts") as any)
+      .update({ status: "dismissed", dismissed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("community_member_id", input.memberId)
+      .eq("signal", input.signal)
+      .eq("status", "pending");
+  } catch (e) {
+    return { ok: false, error: String((e as Error)?.message ?? e) };
+  }
+  revalidatePath("/admin/member-outreach");
+  return { ok: true };
+}
+
+/**
+ * Throw this wording away and write it again.
+ *
+ * Deletes the cached row rather than regenerating inline: the page's own
+ * generation path already knows how to write one, and having a second place
+ * that composes drafts is how the two drift.
+ */
+export async function regenerateDraft(input: { memberId: string; signal: string }): Promise<SendResult> {
+  if (!(await isAdmin())) return { ok: false, error: "Not authorized." };
+  try {
+    const db = createAdminClient();
+    await (db.from("member_outreach_drafts") as any)
+      .delete()
+      .eq("community_member_id", input.memberId)
+      .eq("signal", input.signal)
+      .eq("status", "pending");
+  } catch (e) {
+    return { ok: false, error: String((e as Error)?.message ?? e) };
+  }
   revalidatePath("/admin/member-outreach");
   return { ok: true };
 }
