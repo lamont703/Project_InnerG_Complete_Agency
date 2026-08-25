@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { computeShopEcosystemReport, getRentStatsByZip, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
+import { computeShopEcosystemReport, getRentStatsByZip, findOpenChairs, findProfessionalEmployment, getTopVenuesByWorkerCount, getWorkersAtVenue, getConfirmationStats, listUnconfirmedMatches, getEmploymentMatchOverview, getSchoolExamStats, getStatewideExamStats, findStudentExamRecord, getSchoolRankingsByRegion, getTopSchoolsByPassRate, getSchoolTestTakers, getUpcomingEvents } from '@/lib/shop-ecosystem';
 import { currentMember, memberById, getJourney, appendToThread, otherChannelTurns, recentOutreach } from '@/lib/member-context';
 import { getViewAsContext } from '@/lib/account/view-as';
 import { memberPerformanceContext } from '@/lib/member-performance-context';
@@ -621,6 +621,20 @@ SCHOOL_DISTRICT_NAME RULE: barbershops, salons, professionals, and cosmetologist
 
 SCHOOL_DISTRICT_BARBERSHOP_RANKINGS RULE: This is a direct ranked list of school districts by average barbershop rating (shop_count and hiring_shop_count are also included), already sorted best-to-worst, for "which school district/area has the best barbershops" style questions — only districts with at least 3 rated shops are included, so small-sample outliers aren't cherry-picked. Use this instead of trying to infer district quality from the handful of individual barbershops elsewhere in the context. IMPORTANT: entries here have NO profile_url — there is no page on this site for browsing by school district. Mention district names as plain text only, exactly like any other item without a profile_url per the LINKING RULE above — do not invent, guess, or construct a URL for a school district under any circumstances (e.g. never write something like "/school-districts/...").
 
+FIND_OPEN_CHAIRS TOOL RULE: WHICH VENUES HAVE A CHAIR FREE IS NOT IN THE CONTEXT BELOW, AND YOU MUST NOT ANSWER IT FROM THERE. The barbershops and salons arrays are a partial, location-agnostic sample carrying no trustworthy availability figure and no distance from the person asking. Answering an availability question out of them produces a confidently wrong total — measured, not hypothetical: it reported "372 open chairs across 28 venues" when the real inventory was 202 across 52, and listed a shop 7 miles away as the nearest while three sat within 1.6 miles. ANY question about a chair, booth, station or space being open, available, free or for rent — however short — REQUIRES a find_open_chairs call before you answer. If you have not called it, you do not know.
+THIS IS ALSO THE QUESTION THE INSTAGRAM BIO TELLS PEOPLE TO ASK. The bio says: DM "open chairs near 77026". So a message that is nothing but a zip code, or "any chairs", or "who's renting", is a complete question — call find_open_chairs with whatever location is in it and answer. NEVER ask them to rephrase, and never reply that you need more detail before looking: a person who messaged an account that advertised an answer must get one.
+- "NEAR" MEANS NEAR, NOT IN, AND THIS IS THE ONE THAT GOES WRONG. Only 38 zips have any open chair, so a zip with none of its own IS THE NORMAL CASE — the tool has already handled it by anchoring on that zip and measuring outward. A shop one mile away in the next zip is a CORRECT and welcome answer to "open chairs near 77026". IF THE TOOL RETURNED ANY LISTINGS, NEVER REPLY THAT WE HAVE NOTHING IN THAT ZIP; give the nearest few with their distances. Saying "no barbershops in 77026 on file" while holding three listings within two miles is the single worst answer available: it is false, and it turns the person away from inventory that was sitting right there. Say we have nothing ONLY when listings is empty, or anchorResolved is false.
+- A BARE ZIP, OR A SHORT PHRASE WITH ONE IN IT, IS A COMPLETE QUESTION. "open chairs near 77026" is the exact wording our Instagram bio prints, so it will arrive verbatim and often. Call the tool, answer with the nearest listings, full stop.
+- NEVER SAY "NEAREST" WHEN distanceMiles IS null. With no anchor the list is ordered by how many chairs each venue has, not by distance, so calling them nearest is simply false — you do not know where the person is. Call them the biggest, or just "shops with space", and ask where they are.
+- NO LOCATION AT ALL? CALL IT ANYWAY, WITH NO ARGUMENTS. Then say what exists and where — "202 open chairs across 52 shops, mostly Houston" — and ask for their zip to narrow it. Never ask for a zip before telling them what we have: on Instagram a stranger gets three free messages, and spending the first one collecting input rather than giving an answer is how the conversation ends.
+- IF YOU SAY "SEVERAL", LIST SEVERAL. Three or four, not one.
+- IT IS NOT get_rent_stats_by_zip. That tool returns median/min/max PRICE for a zip and no listings; this one returns the actual venues with a chair free. "What's rent like in 77099" is that tool. "Any open chairs in 77099" is this one. If someone asks both, call both.
+- weeklyRent: null MEANS THEY NEVER TOLD US A PRICE. It does not mean free, and it does not mean cheap. Say "rent not listed — worth asking them" and move on. Do not skip a listing for having no price; 21 of the venues with a free chair have no rent on file and they are real chairs.
+- USE distanceMiles, because it is why the answer is trustworthy. "1 mile away" is the thing that makes them act. Round it as given.
+- anchorResolved: false MEANS WE COULD NOT PLACE THEIR LOCATION — usually somewhere we have no listings at all. Then the listings are NOT near them and are sorted by size instead. Say plainly that we have nothing in their area yet, say where the inventory actually is (totalOpenChairs across totalOpenVenues, currently Houston and Dallas), and do not present a Houston shop to someone in California as if it were nearby. nearestIsFar: true is the same warning in a place we do cover — lead with the distance.
+- LINK EVERY LISTING with its href per the LINKING RULE.
+- KEEP IT TO 3 OR 4. Name the nearest few with chairs, rent and distance. totalOpenChairs is the whole inventory, so it is fair to close with how many more there are — but do not list them.
+
 GET_RENT_STATS_BY_ZIP TOOL RULE: Booth rent is NOT in the context above for any zip code — it only exists as free text on individual shop records, never pre-aggregated. If asked about rent, pricing, or affordability for a specific zip code (e.g. "what's rent like in 77099," "which zip has the highest rent"), call get_rent_stats_by_zip with that zip rather than guessing or saying you don't have the data. If the tool returns null, say plainly that there's no rent data on file for that zip — don't invent a number. sampleSize in the result is often small (rent is rarely reported) — if it's 1 or 2, say so explicitly (e.g. "based on the one shop with rent data on file") rather than presenting it as a reliable market rate. This tool only accepts one zip at a time — for a "which zip is highest" question, you may need to call it for a few specific zips mentioned in conversation, but don't call it more than 3-4 times in one turn.
 
 FIND_PROFESSIONAL_EMPLOYMENT TOOL RULE: For "where does [person's name] work" style questions (e.g. from a school confirming a graduate's placement), ALWAYS call find_professional_employment with whatever name was given — a full name, a first name only, or a nickname are all valid inputs, and the tool itself is built to fuzzy-match a real name against booking-platform handles that often don't look like a real name at all ("KamKutz" for "Kam"). Do NOT decline or ask for a "full name" before trying — that defeats the entire point of the tool, which exists precisely because names on file often aren't full "First Last" names. Call it first; only ask a clarifying question afterward if the tool actually returns an empty array. This is a GEOCODED INFERENCE, not a confirmed fact, so results are ranked candidates, never a certainty. Always state the confidenceScore in plain terms (e.g. "high confidence" for 70+, "low confidence, worth double-checking" below 40) and name it as unconfirmed — never say flatly "X works at Y." If multiple candidates come back, say so explicitly rather than picking one silently — the name may match more than one person. If the tool returns an empty array, say plainly that no match was found on file — don't guess or invent a shop/salon name. Each result includes professionalHref/venueHref (hyperlink both per the LINKING RULE, either can be null if that entity type has no profile page) and professionalAddress/venueAddress (either can also be null — if a follow-up question asks for an address and the field is null, say plainly that you don't have an address on file for that one; never fill in a plausible-looking address that isn't literally the value returned).
@@ -674,6 +688,18 @@ ${JSON.stringify(slimmedContext).substring(0, 120000)}
     // rest of the (already-tuned) fixed-context approach untouched.
     const RENT_STATS_TOOL = {
       functionDeclarations: [
+        {
+          name: 'find_open_chairs',
+          description: "List barbershops and salons that have a booth/chair OPEN RIGHT NOW, nearest first, with how many chairs, the weekly rent when we know it, and a link. This is the inventory question — 'any open chairs near me', 'who's renting a booth in 77026', 'which shops are hiring', 'where can I rent a chair'. Distinct from get_rent_stats_by_zip, which returns price statistics and no listings. Pass whatever location was given; both arguments are optional.",
+          parametersJsonSchema: {
+            type: 'object',
+            properties: {
+              zip: { type: 'string', description: "A 5-digit US zip code if one was given, e.g. '77026'." },
+              city: { type: 'string', description: "A city name, e.g. 'Houston'. Use when a city was named but no zip." },
+              limit: { type: 'number', description: "How many listings to return. Defaults to 6. Use 3-4 when replying on Instagram, where answers must be short." },
+            },
+          },
+        },
         {
           name: 'get_rent_stats_by_zip',
           description: "Look up booth rent statistics (median/min/max weekly rent in USD, sample size, and shop/salon counts) for a specific 5-digit zip code. This data is never pre-loaded into context for any zip — call this tool whenever rent/pricing/affordability for a specific zip comes up.",
@@ -909,7 +935,13 @@ ${JSON.stringify(slimmedContext).substring(0, 120000)}
       const functionResponseParts = await Promise.all(
         response.functionCalls.map(async (fc) => {
           let result: any = null;
-          if (fc.name === 'get_rent_stats_by_zip') {
+          if (fc.name === 'find_open_chairs') {
+            result = await findOpenChairs(supabase as any, {
+              zip: fc.args?.zip as string | undefined,
+              city: fc.args?.city as string | undefined,
+              limit: fc.args?.limit as number | undefined,
+            });
+          } else if (fc.name === 'get_rent_stats_by_zip') {
             const zip = fc.args?.zip as string | undefined;
             result = zip ? await getRentStatsByZip(supabase as any, zip) : null;
           } else if (fc.name === 'find_professional_employment') {
