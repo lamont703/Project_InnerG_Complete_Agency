@@ -40,9 +40,14 @@ type Step = "idle" | "department" | "phone" | "calling" | "done" | "error";
 export function CallSchoolButton({
   routingId,
   schoolName,
+  source = "page",
+  className,
 }: {
   routingId: string;
   schoolName: string;
+  /** Distinguishes the banner from any other entry point in pixel_events. */
+  source?: string;
+  className?: string;
 }) {
   const [step, setStep] = useState<Step>("idle");
   const [intent, setIntent] = useState<string | null>(null);
@@ -59,6 +64,7 @@ export function CallSchoolButton({
       routing_id: routingId,
       school_name: schoolName,
       department: intent,
+      source,
     });
     try {
       const res = await fetch("/api/voice/callback", {
@@ -73,6 +79,7 @@ export function CallSchoolButton({
           school_name: schoolName,
           department: intent,
           call_sid: json.callSid ?? null,
+          source,
         });
         setStep("done");
         return;
@@ -82,6 +89,7 @@ export function CallSchoolButton({
         school_name: schoolName,
         department: intent,
         reason: json?.error ?? "unknown",
+        source,
       });
       setStep("error");
       setMessage(
@@ -97,6 +105,7 @@ export function CallSchoolButton({
         school_name: schoolName,
         department: intent,
         reason: "network",
+        source,
       });
       setStep("error");
       setMessage("We couldn't place the call. Please try again.");
@@ -120,10 +129,10 @@ export function CallSchoolButton({
         <button
           type="button"
           onClick={() => {
-            track("school_call_opened", { routing_id: routingId, school_name: schoolName });
+            track("school_call_opened", { routing_id: routingId, school_name: schoolName, source });
             setStep("department");
           }}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+          className={className ?? "flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"}
         >
           <Phone className="h-4 w-4" />
           Call {schoolName}
@@ -143,6 +152,7 @@ export function CallSchoolButton({
                     routing_id: routingId,
                     school_name: schoolName,
                     department: d.value,
+                    source,
                   });
                   setIntent(d.value);
                   setStep("phone");

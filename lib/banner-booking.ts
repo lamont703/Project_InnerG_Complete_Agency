@@ -175,6 +175,16 @@ export interface BannerTourTarget {
   entityName: string;
   phone: string | null;
   website: string | null;
+  /**
+   * The school's call-routing row, when it has one.
+   *
+   * The banner offers a CALL now rather than a tour, and a call needs the
+   * routing id, not the school id — routing is what knows the destination and
+   * carries the labels the whisper uses. Null means this school has no usable
+   * phone on file, and the banner falls through to the directory CTA rather
+   * than showing a button that cannot dial.
+   */
+  routingId: string | null;
 }
 
 const SCHOOL_TABLES = ["agent_barber_school_leads", "agent_cosmetology_school_leads"] as const;
@@ -194,11 +204,18 @@ export async function getBannerTourTarget(pathname: string): Promise<BannerTourT
         .maybeSingle();
       const row = data as Record<string, any> | null;
       if (row?.school_name) {
+        const { data: routing } = await admin
+          .from("school_call_routing")
+          .select("id")
+          .eq("school_id", row.id)
+          .eq("status", "active")
+          .maybeSingle();
         return {
           entityId: String(row.id),
           entityName: String(row.school_name),
           phone: row.phone ?? null,
           website: row.website ?? null,
+          routingId: (routing as any)?.id ?? null,
         };
       }
     }
