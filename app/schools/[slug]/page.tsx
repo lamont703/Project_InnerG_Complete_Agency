@@ -28,7 +28,8 @@ import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { composeDescription, ratingClause, streetClause, percentClause } from "@/lib/seo-description";
 import { PassRateAlert } from "@/components/schools/pass-rate-alert";
 import { RequestSchoolTourButton } from "@/components/request-school-tour-modal";
-import { schoolTrackingNumber, formatUsNumber } from "@/lib/voice/school-tracking-number";
+import { schoolCallConfig } from "@/lib/voice/school-tracking-number";
+import { CallSchoolButton } from "@/components/schools/call-school-button";
 import { SITE_URL } from "@/lib/site";
 import { isSchoolIndexable, NOINDEX_FOLLOW } from "@/lib/indexable";
 
@@ -361,7 +362,7 @@ const TODAY_INDEX = (new Date().getDay() + 6) % 7; // 0 = Monday, matches Google
 export default async function SchoolProfilePage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
   const school = await getSchool(slug);
-  const callNumber = school ? await schoolTrackingNumber(String(school.id)) : null;
+  const callConfig = school ? await schoolCallConfig(String(school.id)) : null;
 
   if (!school) notFound();
   if (school._resolvedByLegacyId) permanentRedirect(`/schools/${school.slug}`);
@@ -634,28 +635,25 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                   fallbackWebsite={websiteHref}
                 />
                 {/*
-                  Calling is back, and it does not undo the decision above.
-                  Call was removed because it handed the lead away invisibly —
-                  the conversation happened somewhere we could not see, so the
-                  directory could prove nothing and charge for nothing. A
-                  tracked number removes that objection rather than reversing
-                  the reasoning: the call is measured, the school is told where
-                  it came from, and the tour request stays the primary CTA.
+                  Calling is back, and it does not undo the decision that
+                  removed it. Call went away for handing the lead over
+                  invisibly — the conversation happened somewhere we could not
+                  see, so the directory could prove nothing and charge for
+                  nothing. This routes through us, so the call is measured and
+                  the school is told where it came from.
 
-                  Only rendered when this school has a number of its own.
-                  Publishing the shared number here would be worse than no
-                  button: the agent could not tell which school the caller came
-                  from and would have to ask them to repeat what the page they
-                  are looking at already says.
+                  A CALLBACK RATHER THAN A tel: LINK, for a reason that is not
+                  a preference: a phone call carries only a caller ID and a
+                  dialled number, so tapping to dial cannot tell the agent which
+                  school's page the tap came from. Collecting the school and the
+                  department here means neither is ever guessed, and it works on
+                  desktop, where tel: does nothing at all.
                 */}
-                {callNumber && (
-                  <a
-                    href={`tel:${callNumber}`}
-                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
-                  >
-                    <Phone className="h-4 w-4" />
-                    Call {school.school_name} · {formatUsNumber(callNumber)}
-                  </a>
+                {callConfig && (
+                  <CallSchoolButton
+                    routingId={callConfig.routingId}
+                    schoolName={school.school_name}
+                  />
                 )}
               </div>
 

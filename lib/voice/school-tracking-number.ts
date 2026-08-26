@@ -14,6 +14,27 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * Returns null freely: a school without one still works through the shared
  * number, it just gets asked.
  */
+export interface SchoolCallConfig {
+  routingId: string;
+  trackingNumber: string | null;
+}
+
+/** Everything a school page needs to offer a call, or null if it offers none. */
+export async function schoolCallConfig(schoolId: string): Promise<SchoolCallConfig | null> {
+  try {
+    const db = createAdminClient();
+    const { data } = await (db.from("school_call_routing") as any)
+      .select("id, tracking_number")
+      .eq("school_id", schoolId)
+      .eq("status", "active")
+      .maybeSingle();
+    if (!data?.id) return null;
+    return { routingId: data.id, trackingNumber: data.tracking_number ?? null };
+  } catch {
+    return null;
+  }
+}
+
 export async function schoolTrackingNumber(schoolId: string): Promise<string | null> {
   try {
     const db = createAdminClient();
