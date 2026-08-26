@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   matchSchool, classifyIntent, buildWhisper, isBillable, confirmationLine,
-  resolveSchoolByDialedNumber, normaliseUsPhone, spellNumber,
+  resolveSchoolByDialedNumber, normaliseUsPhone,
   MIN_BILLABLE_SECONDS, WHISPER_LEAD_PAUSE_SECONDS, type SchoolRoute,
 } from "./routing";
 
@@ -172,24 +172,13 @@ describe("normaliseUsPhone", () => {
   });
 });
 
-describe("spellNumber", () => {
-  it("reads digits out one at a time", () => {
-    // Run them together and text-to-speech says "seven billion seven hundred…",
-    // which is useless to somebody writing a number down.
-    expect(spellNumber("+17705551234")).toBe("7 7 0. 5 5 5. 1 2 3 4");
-  });
-});
-
-describe("buildWhisper with a callback number", () => {
-  it("speaks the student's number, since the school cannot see it", () => {
-    // Twilio will not present a caller ID we do not own, so on a callback the
-    // school sees OUR number. This is how they get the student's.
-    const w = buildWhisper(houston, "financial_aid", "+17705551234");
-    expect(w).toContain("Callback number");
-    expect(w).toContain("7 7 0. 5 5 5. 1 2 3 4");
-  });
-
-  it("omits it entirely when there is none", () => {
-    expect(buildWhisper(houston, "financial_aid")).not.toContain("Callback");
+describe("buildWhisper", () => {
+  it("never reads a phone number aloud", () => {
+    // Ten digits spoken to somebody without a pen, moments before a live
+    // conversation, is not a way to deliver a phone number. If a school needs
+    // it, it should arrive as something they can read.
+    const w = buildWhisper(houston, "financial_aid");
+    expect(w).not.toMatch(/\d/);
+    expect(w.toLowerCase()).not.toContain("callback");
   });
 });
