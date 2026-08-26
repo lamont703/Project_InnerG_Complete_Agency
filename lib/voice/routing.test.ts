@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   matchSchool, classifyIntent, buildWhisper, isBillable, confirmationLine,
-  resolveSchoolByDialedNumber,
+  resolveSchoolByDialedNumber, normaliseUsPhone, spellNumber,
   MIN_BILLABLE_SECONDS, WHISPER_LEAD_PAUSE_SECONDS, type SchoolRoute,
 } from "./routing";
 
@@ -154,5 +154,39 @@ describe("billing reads the dialled leg", () => {
     // school leg is time a human at the school actually spent.
     expect(isBillable({ answered: true, dialDurationSeconds: 5, matchedBy: "confident" })).toBe(false);
     expect(isBillable({ answered: true, dialDurationSeconds: MIN_BILLABLE_SECONDS, matchedBy: "confident" })).toBe(true);
+  });
+});
+
+describe("normaliseUsPhone", () => {
+  it("accepts the shapes people actually type", () => {
+    for (const v of ["7705551234", "(770) 555-1234", "770-555-1234", "1 770 555 1234", "+17705551234"])
+      expect(normaliseUsPhone(v)).toBe("+17705551234");
+  });
+
+  it("rejects anything else, because this guards an endpoint that spends money", () => {
+    for (const v of ["", "555", "not a phone", "+447700900123", null, undefined])
+      expect(normaliseUsPhone(v as any)).toBeNull();
+  });
+});
+
+describe("spellNumber", () => {
+  it("reads digits out one at a time", () => {
+    // Run them together and text-to-speech says "seven billion seven hundred…",
+    // which is useless to somebody writing a number down.
+    expect(spellNumber("+17705551234")).toBe("7 7 0. 5 5 5. 1 2 3 4");
+  });
+});
+
+describe("buildWhisper with a callback number", () => {
+  it("speaks the student's number, since the school cannot see it", () => {
+    // Twilio will not present a caller ID we do not own, so on a callback the
+    // school sees OUR number. This is how they get the student's.
+    const w = buildWhisper(houston, "financial_aid", "+17705551234");
+    expect(w).toContain("Callback number");
+    expect(w).toContain("7 7 0. 5 5 5. 1 2 3 4");
+  });
+
+  it("omits it entirely when there is none", () => {
+    expect(buildWhisper(houston, "financial_aid")).not.toContain("Callback");
   });
 });

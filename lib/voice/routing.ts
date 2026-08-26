@@ -163,14 +163,45 @@ export function matchSchool(transcript: string | null | undefined, routes: Schoo
  * Short on purpose. Every word is silence on the student's end, and the school
  * only needs two facts: who sent this, and what it is about.
  */
-export function buildWhisper(route: SchoolRoute, intent: DepartmentIntent | null): string {
+export function buildWhisper(
+  route: SchoolRoute,
+  intent: DepartmentIntent | null,
+  callbackNumber?: string | null,
+): string {
   const parts = ["Shear Query lead."];
   if (intent) {
     const label = route.departmentLabels?.[intent] || intent.replace(/_/g, " ");
     parts.push(`${sentence(label)}.`);
   }
   parts.push(`${sentence(PROGRAM_WORD[route.schoolType])}.`);
+  // On a callback the school sees OUR number, because Twilio will not let an
+  // outbound call present a number we do not own. Speaking the student's number
+  // gives the school a way to ring them back, which the caller ID would
+  // otherwise have provided for free.
+  if (callbackNumber) parts.push(`Callback number, ${spellNumber(callbackNumber)}.`);
   return parts.join(" ");
+}
+
+/**
+ * "+17705551234" -> "7 7 0. 5 5 5. 1 2 3 4."
+ *
+ * Digit by digit with pauses. Text-to-speech reads a run of digits as a
+ * quantity — "seven billion seven hundred..." — which is unusable to somebody
+ * trying to write a number down.
+ */
+export function spellNumber(e164: string): string {
+  const d = e164.replace(/\D/g, "");
+  const n = d.length === 11 && d.startsWith("1") ? d.slice(1) : d;
+  if (n.length !== 10) return n.split("").join(" ");
+  return `${n.slice(0, 3).split("").join(" ")}. ${n.slice(3, 6).split("").join(" ")}. ${n.slice(6).split("").join(" ")}`;
+}
+
+/** US/Canada E.164, or null. Guards a public endpoint that spends money. */
+export function normaliseUsPhone(input: string | null | undefined): string | null {
+  const d = (input || "").replace(/\D/g, "");
+  if (d.length === 10) return `+1${d}`;
+  if (d.length === 11 && d.startsWith("1")) return `+${d}`;
+  return null;
 }
 
 function sentence(value: string): string {
