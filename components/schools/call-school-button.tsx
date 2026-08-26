@@ -16,6 +16,19 @@ import { Phone, Loader2, CheckCircle2 } from "lucide-react";
  * choice: a tap is instant, silent, needs no microphone permission, and is
  * never misheard.
  */
+/**
+ * Fires into pixel_events via the global tracker, same shape AdTracker uses.
+ * Silent when the pixel has not loaded — a missing analytics call must never be
+ * the reason somebody cannot phone a school.
+ */
+function track(event: string, meta: Record<string, unknown>) {
+  try {
+    (window as any).innerG?.track?.(event, meta);
+  } catch {
+    /* pixel not loaded — ignore */
+  }
+}
+
 const DEPARTMENTS = [
   { value: "admissions", label: "Admissions" },
   { value: "financial_aid", label: "Financial Aid" },
@@ -39,6 +52,14 @@ export function CallSchoolButton({
   async function placeCall() {
     setStep("calling");
     setMessage(null);
+    // Fired BEFORE the request, so the funnel records the intent to call even
+    // when the call itself fails. Without this a Twilio outage would look like
+    // nobody wanted to call.
+    track("school_call_requested", {
+      routing_id: routingId,
+      school_name: schoolName,
+      department: intent,
+    });
     try {
       const res = await fetch("/api/voice/callback", {
         method: "POST",
@@ -47,9 +68,21 @@ export function CallSchoolButton({
       });
       const json = await res.json();
       if (json?.ok) {
+        track("school_call_connected", {
+          routing_id: routingId,
+          school_name: schoolName,
+          department: intent,
+          call_sid: json.callSid ?? null,
+        });
         setStep("done");
         return;
       }
+      track("school_call_failed", {
+        routing_id: routingId,
+        school_name: schoolName,
+        department: intent,
+        reason: json?.error ?? "unknown",
+      });
       setStep("error");
       setMessage(
         json?.error === "rate_limited"
@@ -59,6 +92,12 @@ export function CallSchoolButton({
             : "We couldn't place the call. Please try again.",
       );
     } catch {
+      track("school_call_failed", {
+        routing_id: routingId,
+        school_name: schoolName,
+        department: intent,
+        reason: "network",
+      });
       setStep("error");
       setMessage("We couldn't place the call. Please try again.");
     }
@@ -80,7 +119,10 @@ export function CallSchoolButton({
       {step === "idle" && (
         <button
           type="button"
-          onClick={() => setStep("department")}
+          onClick={() => {
+            track("school_call_opened", { routing_id: routingId, school_name: schoolName });
+            setStep("department");
+          }}
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
         >
           <Phone className="h-4 w-4" />
@@ -97,6 +139,11 @@ export function CallSchoolButton({
                 key={d.value}
                 type="button"
                 onClick={() => {
+                  track("school_call_department", {
+                    routing_id: routingId,
+                    school_name: schoolName,
+                    department: d.value,
+                  });
                   setIntent(d.value);
                   setStep("phone");
                 }}
