@@ -321,6 +321,7 @@ export function ScrollCTA() {
                 routingId={tour.routingId!}
                 schoolName={tour.entityName}
                 source="banner"
+                className={ctaCls}
               />
             </div>
           ) : (
