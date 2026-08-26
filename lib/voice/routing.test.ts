@@ -63,21 +63,24 @@ describe("classifyIntent", () => {
 });
 
 describe("buildWhisper", () => {
-  it("names the source, the department and the program", () => {
-    expect(buildWhisper(houston, "financial_aid")).toBe("Shear Query lead. Financial aid. Barber program.");
+  it("says it as a sentence a person can parse while picking up", () => {
+    expect(buildWhisper(houston, "financial_aid"))
+      .toBe("I have a student calling for financial aid. Connecting you now from ShearQuery.");
   });
 
   it("uses the school's own vocabulary for the department", () => {
     // The school hears its word, not our canonical enum.
-    expect(buildWhisper(career, "financial_aid")).toBe("Shear Query lead. Bursar. Cosmetology program.");
+    expect(buildWhisper(career, "financial_aid")).toContain("calling for bursar");
   });
 
   it("still identifies the source when intent is unknown", () => {
-    expect(buildWhisper(houston, null)).toBe("Shear Query lead. Barber program.");
+    expect(buildWhisper(houston, null))
+      .toBe("I have a student calling. Connecting you now from ShearQuery.");
   });
 
   it("stays short — every word is silence on the student's end", () => {
-    expect(buildWhisper(houston, "admissions").split(/\s+/).length).toBeLessThanOrEqual(9);
+    // Longer than the old fragments and deliberately so, but still one breath.
+    expect(buildWhisper(houston, "admissions").split(/\s+/).length).toBeLessThanOrEqual(14);
   });
 });
 

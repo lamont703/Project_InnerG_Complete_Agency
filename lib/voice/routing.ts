@@ -160,30 +160,32 @@ export function matchSchool(transcript: string | null | undefined, routes: Schoo
 /**
  * What the school hears before the caller is bridged in.
  *
- * Short on purpose. Every word is silence on the student's end, and the school
- * only needs two facts: who sent this, and what it is about.
+ * A SENTENCE, not a label. The earlier version fired fragments — "Shear Query
+ * lead. Financial aid. Barber program." — which is dense to parse in the two
+ * seconds somebody has between picking up and speaking. A person answering a
+ * phone is listening for meaning, not scanning a field list.
+ *
+ * The callback number is appended rather than replaced because on the web
+ * callback the school sees OUR number: Twilio will not present a caller ID for
+ * a number we do not own. Without this line they have no way to ring the
+ * student back, so it stays even though it lengthens the whisper.
  */
 export function buildWhisper(
   route: SchoolRoute,
   intent: DepartmentIntent | null,
   callbackNumber?: string | null,
 ): string {
-  const parts = ["Shear Query lead."];
-  if (intent) {
-    const label = route.departmentLabels?.[intent] || intent.replace(/_/g, " ");
-    parts.push(`${sentence(label)}.`);
-  }
-  parts.push(`${sentence(PROGRAM_WORD[route.schoolType])}.`);
-  // On a callback the school sees OUR number, because Twilio will not let an
-  // outbound call present a number we do not own. Speaking the student's number
-  // gives the school a way to ring them back, which the caller ID would
-  // otherwise have provided for free.
+  const label = intent ? route.departmentLabels?.[intent] || intent.replace(/_/g, " ") : null;
+  const opening = label
+    ? `I have a student calling for ${label}.`
+    : `I have a student calling.`;
+  const parts = [opening, "Connecting you now from ShearQuery."];
   if (callbackNumber) parts.push(`Callback number, ${spellNumber(callbackNumber)}.`);
   return parts.join(" ");
 }
 
 /**
- * "+17705551234" -> "7 7 0. 5 5 5. 1 2 3 4."
+ * "+17705551234" -> "7 7 0. 5 5 5. 1 2 3 4"
  *
  * Digit by digit with pauses. Text-to-speech reads a run of digits as a
  * quantity — "seven billion seven hundred..." — which is unusable to somebody
