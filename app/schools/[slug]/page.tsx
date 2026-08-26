@@ -27,9 +27,6 @@ import { WriteReviewButton } from "@/components/shared/write-review-button";
 import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { composeDescription, ratingClause, streetClause, percentClause } from "@/lib/seo-description";
 import { PassRateAlert } from "@/components/schools/pass-rate-alert";
-import { RequestSchoolTourButton } from "@/components/request-school-tour-modal";
-import { schoolCallConfig } from "@/lib/voice/school-tracking-number";
-import { CallSchoolButton } from "@/components/schools/call-school-button";
 import { SITE_URL } from "@/lib/site";
 import { isSchoolIndexable, NOINDEX_FOLLOW } from "@/lib/indexable";
 
@@ -362,7 +359,6 @@ const TODAY_INDEX = (new Date().getDay() + 6) % 7; // 0 = Monday, matches Google
 export default async function SchoolProfilePage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
   const school = await getSchool(slug);
-  const callConfig = school ? await schoolCallConfig(String(school.id)) : null;
 
   if (!school) notFound();
   if (school._resolvedByLegacyId) permanentRedirect(`/schools/${school.slug}`);
@@ -627,36 +623,19 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                 has the direct route; they just have the route AND we have the
                 lead, instead of only the former.
               */}
-              <div className="mt-3 max-w-sm">
-                <RequestSchoolTourButton
-                  schoolId={String(school.id)}
-                  schoolName={school.school_name}
-                  fallbackPhone={school.phone}
-                  fallbackWebsite={websiteHref}
-                />
-                {/*
-                  Calling is back, and it does not undo the decision that
-                  removed it. Call went away for handing the lead over
-                  invisibly — the conversation happened somewhere we could not
-                  see, so the directory could prove nothing and charge for
-                  nothing. This routes through us, so the call is measured and
-                  the school is told where it came from.
+              {/*
+                NO CTA IN THE PAGE BODY, deliberately.
 
-                  A CALLBACK RATHER THAN A tel: LINK, for a reason that is not
-                  a preference: a phone call carries only a caller ID and a
-                  dialled number, so tapping to dial cannot tell the agent which
-                  school's page the tap came from. Collecting the school and the
-                  department here means neither is ever guessed, and it works on
-                  desktop, where tel: does nothing at all.
-                */}
-                {callConfig && (
-                  <CallSchoolButton
-                    routingId={callConfig.routingId}
-                    schoolName={school.school_name}
-                  />
-                )}
-              </div>
+                Request a School Tour lived here and asked for the biggest
+                commitment on the page — driving to a campus — from visitors who
+                are mostly still deciding whether the career is for them. It
+                also competed with the call button beside it, and two CTAs
+                arguing at the top of a page is how both lose.
 
+                The call now lives in the scroll banner, which arrives when
+                somebody has finished reading rather than before they have
+                started.
+              */}
               <div className="flex flex-wrap items-center gap-2 mt-3">
                 {school.rating && (
                   <span className="inline-flex items-center gap-1 text-sm font-bold text-slate-900">

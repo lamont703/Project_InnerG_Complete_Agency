@@ -12,7 +12,7 @@ import type { EntityBottomBannerAd } from "@/lib/profile-ad";
 import type { BannerBookingTarget, BannerTourTarget } from "@/lib/banner-booking";
 import { isBookableEntityPath, isSchoolTourPath } from "@/lib/bookable-routes";
 import { BookAppointmentButton } from "@/components/book-appointment-modal";
-import { RequestSchoolTourButton } from "@/components/request-school-tour-modal";
+import { CallSchoolButton } from "@/components/schools/call-school-button";
 
 /**
  * WHAT THE BANNER OFFERS, decided by ROUTE first and not by a priority list:
@@ -117,12 +117,15 @@ export function ScrollCTA() {
   if (pathname.startsWith("/schools")) {
     typeLabel = "schools";
     targetTab = "Schools";
-    // Points at the tour, because that is what the button now does. The old
-    // copy sent readers to the search engine while the CTA beside it opened a
-    // calendar, which is the kind of mismatch nobody reports and everybody
-    // bounces off. Falls back to the directory CTA only when the school cannot
-    // be resolved, and generic copy is fine in that case.
-    hookText = "Want to see this school in person? Book a campus tour, Monday to Friday.";
+    // Points at the call, because that is what the button now does. The copy
+    // and the CTA beside it have to describe the same action — a hook selling a
+    // campus tour above a button that dials admissions is the kind of mismatch
+    // nobody reports and everybody bounces off.
+    //
+    // Falls back to the directory CTA when the school has no routing row, which
+    // means no usable phone number; generic copy is right in that case, because
+    // there is nothing to call.
+    hookText = "Have a question about enrolling? We'll connect you to this school by phone.";
   } else if (pathname.startsWith("/salons")) {
     typeLabel = "salons";
     targetTab = "Salons";
@@ -297,7 +300,7 @@ export function ScrollCTA() {
                 className={ctaCls}
               />
             </div>
-          ) : tour ? (
+          ) : tour?.routingId ? (
             <div className="flex items-center gap-3">
               {/*
                 Deliberately BELOW the ad branch, unlike Book Appointment.
@@ -314,13 +317,10 @@ export function ScrollCTA() {
                 pixel_events, so the banner can be credited or cut on its own
                 numbers.
               */}
-              <RequestSchoolTourButton
-                schoolId={tour.entityId}
+              <CallSchoolButton
+                routingId={tour.routingId!}
                 schoolName={tour.entityName}
-                fallbackPhone={tour.phone}
-                fallbackWebsite={tour.website}
-                trackingId="school_tour_banner"
-                className={ctaCls}
+                source="banner"
               />
             </div>
           ) : (
