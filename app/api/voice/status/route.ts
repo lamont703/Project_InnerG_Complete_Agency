@@ -19,6 +19,20 @@ import { isBillable, type MatchConfidence } from "@/lib/voice/routing";
  */
 export const dynamic = "force-dynamic";
 
+/**
+ * 204 is a NULL-BODY status. Constructing a Response with a body — and `""` is
+ * a body, not the absence of one — throws a TypeError, which surfaces as a 500
+ * and looks for all the world like the database failed.
+ *
+ * That is exactly how it presented: a correctly-signed request returned 500
+ * while a forged one returned 403, because the rejection path returns a
+ * response that HAS a body and never reaches this line. The route had never
+ * once succeeded.
+ */
+function noContent() {
+  return new NextResponse(null, { status: 204 });
+}
+
 export async function POST(req: NextRequest) {
   const params = await formParams(req).catch(() => ({}) as Record<string, string>);
   if (
@@ -34,7 +48,7 @@ export async function POST(req: NextRequest) {
   }
 
   const callSid = params.CallSid;
-  if (!callSid) return new NextResponse("", { status: 204 });
+  if (!callSid) return noContent();
 
   const status = params.CallStatus || null;
   const duration = params.CallDuration ? Number(params.CallDuration) : null;
@@ -69,5 +83,5 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     console.error("[voice/status] could not record completion", e);
   }
-  return new NextResponse("", { status: 204 });
+  return noContent();
 }
