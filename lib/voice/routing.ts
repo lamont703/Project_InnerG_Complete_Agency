@@ -11,6 +11,8 @@ export type MatchConfidence = "confident" | "guess" | "fallback";
 
 export interface SchoolRoute {
   id: string;
+  /** This school's own inbound number, when it has one. */
+  trackingNumber: string | null;
   schoolType: "barber" | "cosmetology";
   schoolName: string;
   greetingName: string;
@@ -36,6 +38,52 @@ export const WHISPER_LEAD_PAUSE_SECONDS = 2;
 
 /** Answered calls shorter than this are not leads, they are wrong numbers. */
 export const MIN_BILLABLE_SECONDS = 90;
+
+/**
+ * Which school did they dial?
+ *
+ * The whole point of per-school numbers: the answer arrives with the call, so
+ * the first question can be about the department rather than "who are you
+ * trying to reach". Returns null for the shared number, which is not a failure
+ * — it just means we have to ask.
+ */
+export function resolveSchoolByDialedNumber(
+  dialed: string | null | undefined,
+  routes: SchoolRoute[],
+): SchoolRoute | null {
+  const n = normaliseNumber(dialed);
+  if (!n) return null;
+  return routes.find((r) => normaliseNumber(r.trackingNumber) === n) || null;
+}
+
+/** Digits only, so +1832… and 1832… and (832)… all compare equal. */
+function normaliseNumber(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return null;
+  return digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+}
+
+/**
+ * What the caller hears before the phone starts ringing.
+ *
+ * Said out loud on purpose: a caller who is told where they are going will wait
+ * through the ring, and one who is not assumes the call dropped. It also gives
+ * them a chance to notice we got it wrong while correcting it is still cheap.
+ */
+export function confirmationLine(route: SchoolRoute, intent: DepartmentIntent | null): string {
+  const where = intent
+    ? route.departmentLabels?.[intent] || intent.replace(/_/g, " ")
+    : "the front desk";
+  return `Got it. Connecting you to ${where} at ${route.greetingName}. One moment.`;
+}
+
+/** The three departments, in the order the prompt should offer them. */
+export const DEPARTMENT_PROMPT_ORDER: DepartmentIntent[] = [
+  "admissions",
+  "financial_aid",
+  "education",
+];
 
 const PROGRAM_WORD: Record<SchoolRoute["schoolType"], string> = {
   barber: "barber program",
@@ -132,7 +180,15 @@ function sentence(value: string): string {
 
 export interface BillableInput {
   answered: boolean;
-  durationSeconds: number | null;
+  /**
+   * Duration of the leg to the SCHOOL, not of the inbound call.
+   *
+   * The inbound leg is answered at the greeting now that a prompt runs before
+   * the dial, so its duration carries the agent conversation and the ringing —
+   * twenty to thirty seconds nobody should be charged for. Only the dialled leg
+   * measures time a human at the school actually spent on the phone.
+   */
+  dialDurationSeconds: number | null;
   matchedBy: MatchConfidence;
 }
 
@@ -147,5 +203,5 @@ export interface BillableInput {
 export function isBillable(input: BillableInput): boolean {
   if (!input.answered) return false;
   if (input.matchedBy !== "confident") return false;
-  return (input.durationSeconds ?? 0) >= MIN_BILLABLE_SECONDS;
+  return (input.dialDurationSeconds ?? 0) >= MIN_BILLABLE_SECONDS;
 }

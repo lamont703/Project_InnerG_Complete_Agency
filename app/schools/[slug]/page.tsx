@@ -7,21 +7,7 @@ import {
 } from "@/lib/schema-graph";
 import { buildEntityBreadcrumbJsonLd } from "@/lib/breadcrumb-jsonld";
 import Link from "next/link";
-import {
-  MapPin,
-  Star,
-  CheckCircle2,
-  GraduationCap,
-  Clock,
-  Navigation,
-  DollarSign,
-  TrendingUp,
-  Award,
-  Users,
-  BookOpen,
-  Scissors,
-  Store,
-} from "lucide-react";
+import { Award, BookOpen, CheckCircle2, Clock, DollarSign, GraduationCap, MapPin, Navigation, Phone, Scissors, Star, Store, TrendingUp, Users } from "lucide-react";
 import { BackToSearchLink } from "@/components/shared/back-to-search-link";
 import { DynamicBackButton } from "@/components/shared/dynamic-back-button";
 import { Navbar } from "@/components/layout/navbar";
@@ -42,6 +28,7 @@ import { getApprovedReviews, computeReviewStats } from "@/lib/reviews";
 import { composeDescription, ratingClause, streetClause, percentClause } from "@/lib/seo-description";
 import { PassRateAlert } from "@/components/schools/pass-rate-alert";
 import { RequestSchoolTourButton } from "@/components/request-school-tour-modal";
+import { schoolTrackingNumber, formatUsNumber } from "@/lib/voice/school-tracking-number";
 import { SITE_URL } from "@/lib/site";
 import { isSchoolIndexable, NOINDEX_FOLLOW } from "@/lib/indexable";
 
@@ -374,6 +361,7 @@ const TODAY_INDEX = (new Date().getDay() + 6) % 7; // 0 = Monday, matches Google
 export default async function SchoolProfilePage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
   const school = await getSchool(slug);
+  const callNumber = school ? await schoolTrackingNumber(String(school.id)) : null;
 
   if (!school) notFound();
   if (school._resolvedByLegacyId) permanentRedirect(`/schools/${school.slug}`);
@@ -645,6 +633,30 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                   fallbackPhone={school.phone}
                   fallbackWebsite={websiteHref}
                 />
+                {/*
+                  Calling is back, and it does not undo the decision above.
+                  Call was removed because it handed the lead away invisibly —
+                  the conversation happened somewhere we could not see, so the
+                  directory could prove nothing and charge for nothing. A
+                  tracked number removes that objection rather than reversing
+                  the reasoning: the call is measured, the school is told where
+                  it came from, and the tour request stays the primary CTA.
+
+                  Only rendered when this school has a number of its own.
+                  Publishing the shared number here would be worse than no
+                  button: the agent could not tell which school the caller came
+                  from and would have to ask them to repeat what the page they
+                  are looking at already says.
+                */}
+                {callNumber && (
+                  <a
+                    href={`tel:${callNumber}`}
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                  >
+                    <Phone className="h-4 w-4" />
+                    Call {school.school_name} · {formatUsNumber(callNumber)}
+                  </a>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2 mt-3">
