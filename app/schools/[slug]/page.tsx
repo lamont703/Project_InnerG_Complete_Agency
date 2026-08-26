@@ -19,6 +19,8 @@ import { deriveExamState, examPrepInfo } from "@/lib/exam-prep";
 import { SCHOOL_PUBLIC_COLUMNS } from "@/lib/public-columns";
 import { SearchVisibilityCard } from "@/components/shared/search-visibility-card";
 import { AiSchoolCompanionCta } from "@/components/schools/ai-school-companion-cta";
+import { CallSchoolButton } from "@/components/schools/call-school-button";
+import { schoolCallConfig } from "@/lib/voice/school-tracking-number";
 import { isEntityClaimed } from "@/lib/entity-claim";
 import { ReviewsSection } from "@/components/shared/reviews-section";
 import { GoogleReviews } from "@/components/shared/google-reviews";
@@ -359,6 +361,7 @@ const TODAY_INDEX = (new Date().getDay() + 6) % 7; // 0 = Monday, matches Google
 export default async function SchoolProfilePage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
   const school = await getSchool(slug);
+  const callConfig = school ? await schoolCallConfig(String(school.id)) : null;
 
   if (!school) notFound();
   if (school._resolvedByLegacyId) permanentRedirect(`/schools/${school.slug}`);
@@ -568,6 +571,28 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                     licence track — free.
                   </p>
                 </div>
+
+                {/*
+                  Beneath the companion, not beside it. These are two different
+                  moments — one is "help me decide", the other is "put me
+                  through" — and stacking them keeps that order rather than
+                  making a visitor choose between them at a glance.
+
+                  Absent for the 23 schools with no usable phone on file: a call
+                  button that cannot dial is worse than no button.
+
+                  source="page" is what separates these clicks from the banner's
+                  in pixel_events, so either entry point can be judged alone.
+                */}
+                {callConfig && (
+                  <div>
+                    <CallSchoolButton
+                      routingId={callConfig.routingId}
+                      schoolName={school.school_name}
+                      source="page"
+                    />
+                  </div>
+                )}
 
                 {isClaimed ? (
                   <span className="inline-flex w-fit items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1.5 rounded-lg font-bold text-xs">
