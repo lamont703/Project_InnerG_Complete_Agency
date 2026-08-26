@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   if (!route) return NextResponse.json({ ok: false, error: "unknown_school" }, { status: 404 });
 
   const origin = new URL(req.url).origin;
-  const whisper = buildWhisper(route, intent, phone);
+  const whisper = buildWhisper(route, intent);
 
   const form = new URLSearchParams({
     To: phone,

@@ -165,37 +165,17 @@ export function matchSchool(transcript: string | null | undefined, routes: Schoo
  * seconds somebody has between picking up and speaking. A person answering a
  * phone is listening for meaning, not scanning a field list.
  *
- * The callback number is appended rather than replaced because on the web
- * callback the school sees OUR number: Twilio will not present a caller ID for
- * a number we do not own. Without this line they have no way to ring the
- * student back, so it stays even though it lengthens the whisper.
+ * NO CALLBACK NUMBER. It was here because on the web callback the school sees
+ * our number rather than the student's, so this was their only route back. It
+ * was also the worst possible way to deliver one: ten digits read aloud to
+ * somebody who is not holding a pen, immediately before a live conversation
+ * starts. If a school needs the number, it should arrive as a message they can
+ * read, not as something they must transcribe.
  */
-export function buildWhisper(
-  route: SchoolRoute,
-  intent: DepartmentIntent | null,
-  callbackNumber?: string | null,
-): string {
+export function buildWhisper(route: SchoolRoute, intent: DepartmentIntent | null): string {
   const label = intent ? route.departmentLabels?.[intent] || intent.replace(/_/g, " ") : null;
-  const opening = label
-    ? `I have a student calling for ${label}.`
-    : `I have a student calling.`;
-  const parts = [opening, "Connecting you now from ShearQuery."];
-  if (callbackNumber) parts.push(`Callback number, ${spellNumber(callbackNumber)}.`);
-  return parts.join(" ");
-}
-
-/**
- * "+17705551234" -> "7 7 0. 5 5 5. 1 2 3 4"
- *
- * Digit by digit with pauses. Text-to-speech reads a run of digits as a
- * quantity — "seven billion seven hundred..." — which is unusable to somebody
- * trying to write a number down.
- */
-export function spellNumber(e164: string): string {
-  const d = e164.replace(/\D/g, "");
-  const n = d.length === 11 && d.startsWith("1") ? d.slice(1) : d;
-  if (n.length !== 10) return n.split("").join(" ");
-  return `${n.slice(0, 3).split("").join(" ")}. ${n.slice(3, 6).split("").join(" ")}. ${n.slice(6).split("").join(" ")}`;
+  const opening = label ? `I have a student calling for ${label}.` : `I have a student calling.`;
+  return `${opening} Connecting you now from ShearQuery.`;
 }
 
 /** US/Canada E.164, or null. Guards a public endpoint that spends money. */
