@@ -1,17 +1,18 @@
 import { describe, it, expect } from "vitest";
 import {
-  matchSchool, classifyIntent, buildWhisper, isBillable,
+  matchSchool, classifyIntent, buildWhisper, isBillable, confirmationLine,
+  resolveSchoolByDialedNumber,
   MIN_BILLABLE_SECONDS, WHISPER_LEAD_PAUSE_SECONDS, type SchoolRoute,
 } from "./routing";
 
 const houston: SchoolRoute = {
-  id: "h", schoolType: "barber", schoolName: "Houston Barber School",
+  id: "h", trackingNumber: "+13465551111", schoolType: "barber", schoolName: "Houston Barber School",
   greetingName: "Houston Barber School", destinationNumber: "+12818210681", mainNumber: "+12818210681",
   voiceMatchPhrases: ["houston barber", "houston barber school"],
   departmentLabels: { admissions: "admissions", financial_aid: "financial aid", education: "student services" },
 };
 const career: SchoolRoute = {
-  id: "c", schoolType: "cosmetology", schoolName: "Career Schools Of Texas",
+  id: "c", trackingNumber: null, schoolType: "cosmetology", schoolName: "Career Schools Of Texas",
   greetingName: "Career Schools of Texas", destinationNumber: "+18327424451", mainNumber: "+18327424451",
   voiceMatchPhrases: ["career schools", "houston"],
   departmentLabels: { financial_aid: "bursar" },
@@ -81,7 +82,7 @@ describe("buildWhisper", () => {
 });
 
 describe("isBillable", () => {
-  const ok = { answered: true, durationSeconds: MIN_BILLABLE_SECONDS, matchedBy: "confident" as const };
+  const ok = { answered: true, dialDurationSeconds: MIN_BILLABLE_SECONDS, matchedBy: "confident" as const };
   it("bills an answered, long-enough, confidently-matched call", () => {
     expect(isBillable(ok)).toBe(true);
   });
@@ -89,8 +90,8 @@ describe("isBillable", () => {
     expect(isBillable({ ...ok, answered: false })).toBe(false);
   });
   it("does not bill under the threshold", () => {
-    expect(isBillable({ ...ok, durationSeconds: MIN_BILLABLE_SECONDS - 1 })).toBe(false);
-    expect(isBillable({ ...ok, durationSeconds: null })).toBe(false);
+    expect(isBillable({ ...ok, dialDurationSeconds: MIN_BILLABLE_SECONDS - 1 })).toBe(false);
+    expect(isBillable({ ...ok, dialDurationSeconds: null })).toBe(false);
   });
   it("does not bill a call whose school we only guessed", () => {
     // With one shared number the school is an inference. Charging for a guess
@@ -105,5 +106,53 @@ describe("whisper timing", () => {
     // Regression guard: the first live test lost half the message because it
     // started before the phone reached the tester's ear.
     expect(WHISPER_LEAD_PAUSE_SECONDS).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("resolveSchoolByDialedNumber", () => {
+  it("identifies the school from the number dialled", () => {
+    expect(resolveSchoolByDialedNumber("+13465551111", routes)?.id).toBe("h");
+  });
+
+  it("compares on digits, so formatting differences do not matter", () => {
+    // Twilio sends E.164; a human types anything. Both must resolve.
+    for (const v of ["3465551111", "13465551111", "(346) 555-1111", "+1 346 555 1111"])
+      expect(resolveSchoolByDialedNumber(v, routes)?.id).toBe("h");
+  });
+
+  it("returns null for the shared number rather than picking a school", () => {
+    // Not a failure — it means the school has to be asked for.
+    expect(resolveSchoolByDialedNumber("+13465887680", routes)).toBeNull();
+    expect(resolveSchoolByDialedNumber(null, routes)).toBeNull();
+  });
+
+  it("never matches a school that has no number of its own", () => {
+    expect(resolveSchoolByDialedNumber("", routes)?.id).toBeUndefined();
+  });
+});
+
+describe("confirmationLine", () => {
+  it("names the department and the school before the phone rings", () => {
+    expect(confirmationLine(houston, "financial_aid"))
+      .toBe("Got it. Connecting you to financial aid at Houston Barber School. One moment.");
+  });
+
+  it("uses the school's own word for the department", () => {
+    expect(confirmationLine(career, "financial_aid")).toContain("bursar");
+  });
+
+  it("still commits to a destination when the department is unknown", () => {
+    // Saying nothing here is what makes a caller think the line dropped.
+    expect(confirmationLine(houston, null)).toContain("front desk");
+  });
+});
+
+describe("billing reads the dialled leg", () => {
+  it("ignores how long the caller spent talking to the agent", () => {
+    // The inbound leg is answered at the greeting now that a prompt runs before
+    // the dial, so its duration includes the agent and the ringing. Only the
+    // school leg is time a human at the school actually spent.
+    expect(isBillable({ answered: true, dialDurationSeconds: 5, matchedBy: "confident" })).toBe(false);
+    expect(isBillable({ answered: true, dialDurationSeconds: MIN_BILLABLE_SECONDS, matchedBy: "confident" })).toBe(true);
   });
 });

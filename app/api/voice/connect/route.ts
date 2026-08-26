@@ -2,20 +2,21 @@ import type { NextRequest } from "next/server";
 import { twiml, escapeXml } from "@/lib/twiml";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formParams, requestUrlForSignature, twilioSignatureIsValid } from "@/lib/voice/signature";
-import { buildWhisper, classifyIntent, matchSchool, type SchoolRoute } from "@/lib/voice/routing";
+import { loadRoutes } from "@/lib/voice/load-routes";
+import {
+  buildWhisper, classifyIntent, confirmationLine, matchSchool,
+  resolveSchoolByDialedNumber, type MatchConfidence,
+} from "@/lib/voice/routing";
 
 /**
- * Decide, record, bridge.
+ * Decide, say it out loud, record, bridge.
  *
- * The whisper is computed HERE and stored, not rebuilt on the whisper leg.
- * Two reasons: the child leg would have to re-derive state it was never given,
- * and when a school disputes a lead the exact sentence they were played is a
- * row rather than a reconstruction.
- *
- * callerId is deliberately NOT set, so the school sees the STUDENT's number.
- * That loses attribution on any callback the school makes directly — an
- * accepted cost: a school that cannot ring a lead back churns faster than the
- * lost attribution is worth.
+ * ONE RETRY, THEN PROCEED. The first version re-prompted whenever it was
+ * unsure, and a live call spent seventy-one seconds in that loop before the
+ * caller gave up — the caller heard "sorry, I didn't catch that" repeatedly and
+ * concluded the line was broken. A caller who cannot be understood twice is
+ * better served by a human at the front desk than by a third attempt, so the
+ * retry is counted in the query string and the second pass always connects.
  */
 export const dynamic = "force-dynamic";
 
@@ -32,101 +33,103 @@ export async function POST(req: NextRequest) {
     console.warn("[voice/connect] unverified Twilio signature — continuing");
   }
 
-  const origin = new URL(req.url).origin;
+  const url = new URL(req.url);
+  const origin = url.origin;
+  const retried = url.searchParams.get("r") === "1";
   const transcript = params.SpeechResult || "";
   const callSid = params.CallSid || "";
 
   const db = createAdminClient();
-  const { data } = await (db.from("school_call_routing") as any)
-    .select("id, school_type, school_name, greeting_name, destination_number, main_number, voice_match_phrases, department_labels")
-    .eq("status", "active");
+  const routes = await loadRoutes(db).catch(() => []);
 
-  const routes: SchoolRoute[] = (data || []).map((r: any) => ({
-    id: r.id,
-    schoolType: r.school_type,
-    schoolName: r.school_name,
-    greetingName: r.greeting_name,
-    destinationNumber: r.destination_number,
-    mainNumber: r.main_number,
-    voiceMatchPhrases: r.voice_match_phrases || [],
-    departmentLabels: r.department_labels || {},
-  }));
-
-  const match = matchSchool(transcript, routes);
+  // The dialled number wins over anything spoken: it is a fact, not a guess.
+  const dialed = resolveSchoolByDialedNumber(params.To, routes);
+  const spoken = dialed ? null : matchSchool(transcript, routes);
+  const route = dialed || spoken?.route || null;
+  const matchedBy: MatchConfidence = dialed ? "confident" : (spoken?.matchedBy ?? "fallback");
   const intent = classifyIntent(transcript);
 
-  // Nothing matched. Do not guess a school and do not hang up on someone who
-  // rang a number we advertised — say so plainly and let them try again.
-  if (!match.route) {
-    // RECORD THE MISS. The first live call produced no row at all, because only
-    // successful matches were written — which meant the one field that explains
-    // a failure, the raw transcript, existed only for calls that worked. An
-    // empty SpeechResult and a good transcript we failed to match are different
-    // problems with different fixes, and without this row they look identical.
+  const record = async (extra: Record<string, unknown>) => {
     try {
       await (db.from("school_calls") as any).upsert(
         {
-          routing_id: null,
           provider_call_id: callSid,
           from_number: params.From || null,
           to_number: params.To || null,
-          school_matched_by: "fallback",
-          department_intent: intent,
           intent_captured: transcript.slice(0, 500) || "(no speech recognised)",
-          source_context: {
-            unmatched: true,
-            speech_confidence: params.Confidence ?? null,
-            heard_anything: Boolean(transcript.trim()),
-          },
           started_at: new Date().toISOString(),
+          ...extra,
         },
         { onConflict: "provider_call_id" },
       );
     } catch (e) {
-      console.error("[voice/connect] could not record unmatched attempt", e);
+      console.error("[voice/connect] could not record", e);
+    }
+  };
+
+  // No school at all, on the shared number. Ask once more, then give up
+  // honestly rather than looping.
+  if (!route) {
+    await record({
+      routing_id: null,
+      school_matched_by: "fallback",
+      department_intent: intent,
+      source_context: { unmatched: true, retried, heard_anything: Boolean(transcript.trim()) },
+    });
+    if (retried) {
+      return twiml(
+        `<Response><Say voice="Polly.Joanna">Sorry, I could not connect you. Please try again, or use the phone number on the school's page.</Say><Hangup/></Response>`,
+      );
     }
     return twiml(
       `<Response>` +
         `<Gather input="speech" speechTimeout="auto" actionOnEmptyResult="true" ` +
-          `action="${escapeXml(`${origin}/api/voice/connect`)}" method="POST">` +
-          `<Say voice="Polly.Joanna">Sorry, I did not catch which school. Please say the school name.</Say>` +
+          `action="${escapeXml(`${origin}/api/voice/connect?r=1`)}" method="POST">` +
+          `<Say voice="Polly.Joanna">Sorry, I did not catch that. Which school are you calling?</Say>` +
         `</Gather>` +
-        `<Say voice="Polly.Joanna">Sorry, I could not connect you. Please try again.</Say>` +
+        `<Say voice="Polly.Joanna">Sorry, I could not connect you.</Say><Hangup/>` +
       `</Response>`,
     );
   }
 
-  const whisper = buildWhisper(match.route, intent);
-
-  // Recorded BEFORE the bridge so a call that drops mid-connect still leaves a
-  // trace. /status fills in duration and billability when the leg ends.
-  try {
-    await (db.from("school_calls") as any).upsert(
-      {
-        routing_id: match.route.id,
-        provider_call_id: callSid,
-        from_number: params.From || null,
-        to_number: params.To || null,
-        routed_to: match.route.destinationNumber,
-        school_matched_by: match.matchedBy,
-        department_intent: intent,
-        intent_captured: transcript.slice(0, 500),
-        whisper_text: whisper,
-        source_context: { matched_phrase: match.matchedPhrase, speech_confidence: params.Confidence ?? null },
-        started_at: new Date().toISOString(),
-      },
-      { onConflict: "provider_call_id" },
+  // School known, department not. Worth one clarifying question, because the
+  // department is the entire value of the whisper — but only one.
+  if (!intent && !retried) {
+    return twiml(
+      `<Response>` +
+        `<Gather input="speech" speechTimeout="auto" actionOnEmptyResult="true" ` +
+          `action="${escapeXml(`${origin}/api/voice/connect?r=1`)}" method="POST">` +
+          `<Say voice="Polly.Joanna">Sure. Is that admissions, financial aid, or something for current students?</Say>` +
+        `</Gather>` +
+      `</Response>`,
     );
-  } catch (e) {
-    // Never fail a live call over a logging problem.
-    console.error("[voice/connect] could not record call", e);
   }
 
+  const whisper = buildWhisper(route, intent);
+  await record({
+    routing_id: route.id,
+    school_matched_by: matchedBy,
+    department_intent: intent,
+    confirmed_department: intent ? (route.departmentLabels?.[intent] || intent) : null,
+    routed_to: route.destinationNumber,
+    whisper_text: whisper,
+    source_context: {
+      resolved_by: dialed ? "dialed_number" : "speech",
+      matched_phrase: spoken?.matchedPhrase ?? null,
+      speech_confidence: params.Confidence ?? null,
+      retried,
+    },
+  });
+
+  // Said aloud before the ring: a caller told where they are going will wait
+  // through it, and one who is not assumes the call dropped.
+  const dialAction = `${origin}/api/voice/completed`;
   const whisperUrl = `${origin}/api/voice/whisper?c=${encodeURIComponent(callSid)}`;
   return twiml(
     `<Response>` +
-      `<Dial answerOnBridge="true" timeout="25">` +
-        `<Number url="${escapeXml(whisperUrl)}">${escapeXml(match.route.destinationNumber)}</Number>` +
+      `<Say voice="Polly.Joanna">${escapeXml(confirmationLine(route, intent))}</Say>` +
+      `<Dial answerOnBridge="true" timeout="25" action="${escapeXml(dialAction)}" method="POST">` +
+        `<Number url="${escapeXml(whisperUrl)}">${escapeXml(route.destinationNumber)}</Number>` +
       `</Dial>` +
     `</Response>`,
   );
