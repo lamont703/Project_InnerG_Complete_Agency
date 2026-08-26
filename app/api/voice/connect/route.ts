@@ -58,6 +58,33 @@ export async function POST(req: NextRequest) {
   // Nothing matched. Do not guess a school and do not hang up on someone who
   // rang a number we advertised — say so plainly and let them try again.
   if (!match.route) {
+    // RECORD THE MISS. The first live call produced no row at all, because only
+    // successful matches were written — which meant the one field that explains
+    // a failure, the raw transcript, existed only for calls that worked. An
+    // empty SpeechResult and a good transcript we failed to match are different
+    // problems with different fixes, and without this row they look identical.
+    try {
+      await (db.from("school_calls") as any).upsert(
+        {
+          routing_id: null,
+          provider_call_id: callSid,
+          from_number: params.From || null,
+          to_number: params.To || null,
+          school_matched_by: "fallback",
+          department_intent: intent,
+          intent_captured: transcript.slice(0, 500) || "(no speech recognised)",
+          source_context: {
+            unmatched: true,
+            speech_confidence: params.Confidence ?? null,
+            heard_anything: Boolean(transcript.trim()),
+          },
+          started_at: new Date().toISOString(),
+        },
+        { onConflict: "provider_call_id" },
+      );
+    } catch (e) {
+      console.error("[voice/connect] could not record unmatched attempt", e);
+    }
     return twiml(
       `<Response>` +
         `<Gather input="speech" speechTimeout="auto" actionOnEmptyResult="true" ` +
