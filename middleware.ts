@@ -39,6 +39,11 @@ const INTERNAL_TOOL_ROUTES = [
     "/ad-performance",
     "/admin/ad-campaigns",
     "/admin/listing-insights",
+    // Prototype with invented data, but it looks exactly like a real credit
+    // report on a named person — the last thing that should be reachable
+    // without a login. The page re-checks isAdmin() itself; this is defence in
+    // depth, because this middleware fails OPEN on an auth exception.
+    "/admin/credit-report",
     "/admin/listing-report",
     // The queue renders customers' names, phones and emails. The page and the
     // route handler both re-check isAdmin() — this entry is defence in depth,

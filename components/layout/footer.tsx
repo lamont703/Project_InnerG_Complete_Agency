@@ -34,6 +34,7 @@ const footerLinks = {
     { label: "Community ↔ Entity Links", href: "/admin/community-entity-links" },
     { label: "Pixel Analytics", href: "/pixel-analytics" },
     { label: "Global Listing Insights", href: "/admin/listing-insights" },
+    { label: "ShearQuery Credit Report", href: "/admin/credit-report" },
     { label: "School Tour Call Queue", href: "/admin/school-tour-queue" },
     { label: "Content Publisher", href: "/admin/content-publisher" },
     { label: "Instagram Carousels", href: "/admin/instagram-carousels" },
