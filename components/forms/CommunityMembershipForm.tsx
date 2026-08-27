@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { ArrowRight, Loader2, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
-import { audienceFromParam } from "@/lib/audiences"
+import { audienceFromParam, type AudienceId } from "@/lib/audiences"
 import { toast } from "sonner"
 
 /**
@@ -51,9 +51,24 @@ export interface CommunityMembershipFormProps {
    * different direction.
    */
   source?: string
+  /**
+   * Who this doorway serves, when the page already knows.
+   *
+   * Unlike `source`, the QUERY PARAM WINS over this prop, and the asymmetry is
+   * deliberate. `source` is the component's own knowledge — which page rendered
+   * it — and no query string can know that better. `audience` is a claim about
+   * the PERSON, and someone who followed a `?for=` link has asserted it about
+   * themselves; that should beat a page's default.
+   *
+   * Without this, every signup from a page with no `?for=` in the URL resolved
+   * to DEFAULT_AUDIENCE ("professional") and was routed to /search. Someone
+   * three questions into a state-board practice exam is a student, and the
+   * student route is /account/journey — the setup that turns the account on.
+   */
+  audience?: AudienceId
 }
 
-export function CommunityMembershipForm({ source }: CommunityMembershipFormProps = {}) {
+export function CommunityMembershipForm({ source, audience }: CommunityMembershipFormProps = {}) {
   // Claim context handed over by ClaimShopButton. When present, signup also
   // links this member to the entity so the "Claimed" badge turns on.
   const searchParams = useSearchParams()
@@ -83,7 +98,7 @@ export function CommunityMembershipForm({ source }: CommunityMembershipFormProps
   // Which audience's copy they read on the way in. Resolved through the
   // registry so an unknown or not-yet-launched value can't be written to the
   // member row straight from a query string.
-  const signupAudience = audienceFromParam(searchParams.get("for"))
+  const signupAudience = audienceFromParam(searchParams.get("for") ?? audience)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
