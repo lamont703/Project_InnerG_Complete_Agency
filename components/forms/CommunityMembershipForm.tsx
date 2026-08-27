@@ -40,7 +40,20 @@ function track(event: string, payload: Record<string, unknown>) {
 // same credentials) but deliberately simpler — one fixed membership tier,
 // no school/role selection, since the only benefit right now is search
 // visibility, not a business dashboard.
-export function CommunityMembershipForm() {
+export interface CommunityMembershipFormProps {
+  /**
+   * Which doorway rendered this form.
+   *
+   * The ?src= query param covers links INTO /membership, but this form is also
+   * rendered directly on /login, where there is no query string to read. Without
+   * this prop every login-door signup would record a null source — which is the
+   * exact gap the comment on signupSource describes, just arriving from a
+   * different direction.
+   */
+  source?: string
+}
+
+export function CommunityMembershipForm({ source }: CommunityMembershipFormProps = {}) {
   // Claim context handed over by ClaimShopButton. When present, signup also
   // links this member to the entity so the "Claimed" badge turns on.
   const searchParams = useSearchParams()
@@ -62,7 +75,7 @@ export function CommunityMembershipForm() {
    * attributed, because every entry point links to the same /membership URL —
    * so "is AI Mode a funnel?" has been unanswerable rather than answered badly.
    */
-  const signupSource = searchParams.get("src")
+  const signupSource = source ?? searchParams.get("src")
   const wantsConnect = nextIntent === "connect"
   const destination = (fallback: string) =>
     wantsConnect ? "/api/google-business/start" : fallback

@@ -375,23 +375,49 @@
     // visibilitychange->visible, so returning to the tab still allows a
     // later, genuinely separate departure to track again (SPA feel).
     let pageLeaveTracked = false;
+    /*
+     * How many times THIS view has been departed.
+     *
+     * The reset on visibilitychange->visible above is deliberate — someone who
+     * tabs away and comes back should be able to produce a genuinely separate
+     * departure. But it means one distracted visitor emits a page_leave per
+     * blur, and real data shows six for a single /login view (durations 3, 13,
+     * 15, 23, 25, 57).
+     *
+     * That is a correctness problem, not just noise. Core Web Vitals are
+     * measured ONCE PER DOCUMENT — repeating lcp/cls/inp on every re-departure
+     * reports the same measurement six times as six independent samples. The
+     * sentinel agent needs only CWV_MIN_SAMPLES (5) to publish a verdict on a
+     * page, so one person alt-tabbing can satisfy the whole threshold alone.
+     *
+     * So the vitals ride on the FIRST departure only. Later ones still carry
+     * duration (the last is the true total) and say which they are, so a
+     * consumer averaging durations can drop the intermediate ones instead of
+     * silently averaging a visitor's own partial times together.
+     */
+    let pageLeaveIndex = 0;
     const handlePageLeave = (urlOverride, titleOverride) => {
         if (!pageLeaveTracked) {
             pageLeaveTracked = true;
+            const firstLeave = pageLeaveIndex === 0;
             const durationSeconds = Math.round((Date.now() - pageLoadTime) / 1000);
+            pageLeaveIndex += 1;
             track("page_leave", {
                 duration_seconds: durationSeconds,
                 nav_type: navType,
+                // 0 is the real departure; anything higher is a return-and-leave
+                // on the same view. Vitals are null on those by design.
+                leave_index: firstLeave ? 0 : pageLeaveIndex - 1,
                 // Only a hard navigation has Vitals that belong to this URL.
                 // null is skipped by every consumer (the sentinel agent tests
                 // typeof === "number" and needs CWV_MIN_SAMPLES to render a
                 // verdict), so a soft-navigated page now gets no CWV verdict
                 // instead of confidently getting the previous page's one.
-                lcp_ms: navType === "hard" ? lcpValue : null,
-                cls: navType === "hard" && clsSupported
+                lcp_ms: firstLeave && navType === "hard" ? lcpValue : null,
+                cls: firstLeave && navType === "hard" && clsSupported
                     ? Math.round(clsValue * 1000) / 1000
                     : null,
-                inp_ms: navType === "hard" ? inpValue : null,
+                inp_ms: firstLeave && navType === "hard" ? inpValue : null,
             }, {
                 url: typeof urlOverride === "string" ? urlOverride : viewUrl,
                 title: typeof titleOverride === "string" ? titleOverride : viewTitle,
@@ -428,6 +454,8 @@
         navType = "soft";
         currentReferrer = prevUrl;
         pageLeaveTracked = false;
+        // A new view earns a new first departure, so its vitals are reported.
+        pageLeaveIndex = 0;
         scrollDepthsTracked = { 50: false, 90: false };
         // The browser measures LCP, CLS and INP once per document and does not
         // re-measure them for a soft navigation. Clearing them is what stops

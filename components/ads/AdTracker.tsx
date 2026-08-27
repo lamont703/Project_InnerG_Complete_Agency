@@ -36,9 +36,56 @@ export interface AdTrackerProps {
   children: React.ReactNode;
 }
 
+/*
+ * ONE VIEWABLE IMPRESSION PER ADVERTISER PER PAGE VIEW.
+ *
+ * A store page renders ads from two components that cannot see each other:
+ * scroll-cta.tsx serves "entity_bottom_banner" and StoreSponsoredAd.tsx serves
+ * "barber_supply_profile". They pick campaigns independently, so both can land
+ * on the SAME advertiser — real traffic shows creative
+ * "caldwells-cuts-houston-77015" counted twice on one view of one page, under
+ * two different campaign ids.
+ *
+ * That is a billing problem, not cosmetics: an advertiser paying per impression
+ * is charged twice for being seen once. Neither component can fix it alone,
+ * because neither knows the other exists. AdTracker is the single choke point
+ * they both pass through, so the claim lives here.
+ *
+ * THE DUPLICATE IS COUNTED, NOT SILENTLY DROPPED. It emits
+ * ad_impression_suppressed instead, so "how often do we double-serve?" stays
+ * answerable. A dedupe you cannot measure is indistinguishable from a bug that
+ * stopped happening.
+ *
+ * The ad still RENDERS. Whether the same advertiser should appear twice on one
+ * page is a product decision about the rotation, not something to fix by
+ * hiding markup after layout.
+ */
+const claimedCreatives = new Map<string, string>();
+let claimedPath: string | null = null;
+
+/** First tracker to claim a creative on this page view owns its impression. */
+function claimCreative(creative: string | undefined, owner: string): boolean {
+  if (!creative) return true; // unattributed demo ads never collide
+  const path = typeof window !== "undefined" ? window.location.pathname : "";
+  // A new page means a new set of claims. Comparing the path rather than
+  // listening for navigation keeps this correct through soft routing without
+  // needing a subscription that could leak.
+  if (path !== claimedPath) {
+    claimedPath = path;
+    claimedCreatives.clear();
+  }
+  const holder = claimedCreatives.get(creative);
+  if (holder && holder !== owner) return false;
+  claimedCreatives.set(creative, owner);
+  return true;
+}
+
 export function AdTracker({ placement, adType, creative, scope, campaignId, className, children }: AdTrackerProps) {
   const ref = useRef<HTMLDivElement>(null);
   const impressionFired = useRef(false);
+  // Identifies THIS tracker, so re-entering its own effect re-claims rather
+  // than suppressing itself.
+  const ownerId = useRef(Math.random().toString(36).slice(2));
 
   const meta = () => ({
     placement,
@@ -70,7 +117,11 @@ export function AdTracker({ placement, adType, creative, scope, campaignId, clas
             dwell = setTimeout(() => {
               if (!impressionFired.current) {
                 impressionFired.current = true;
-                send("ad_impression");
+                send(
+                  claimCreative(creative, ownerId.current)
+                    ? "ad_impression"
+                    : "ad_impression_suppressed",
+                );
                 observer.disconnect();
               }
             }, 1000);
