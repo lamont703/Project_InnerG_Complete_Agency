@@ -10,17 +10,25 @@
 // can't be reused here. Mirrors scripts/google_ads_oauth_setup.js exactly,
 // same already-registered redirect URI, different scope.
 require("dotenv").config({ path: ".env.local" });
-const { internalEnv } = require('./_google_internal_oauth');
+const { announce } = require('./_google_clients');
 const readline = require("readline");
 
-const clientId = internalEnv().GOOGLE_CLIENT_ID;
-const clientSecret = internalEnv().GOOGLE_CLIENT_SECRET;
+/*
+ * Resolved BY PURPOSE, not from GOOGLE_CLIENT_ID.
+ *
+ * This script used internalEnv().GOOGLE_CLIENT_ID, which resolves the
+ * INTERNAL client — while the application reads this service through
+ * googleClient("gsc"), which resolves its own client. The two are
+ * different, so every token this script minted was issued by a client the
+ * app never uses: dead on arrival, with nothing failing at mint time.
+ *
+ * announce() prints the client before the browser opens, so a mismatch is
+ * visible rather than discovered days later as "TOKEN DEAD".
+ */
+const creds = announce("gsc");
+const clientId = creds.clientId;
+const clientSecret = creds.clientSecret;
 const REDIRECT_URI = "http://localhost:3000/youtube/callback";
-
-if (!clientId || !clientSecret) {
-  console.error("Missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in .env.local");
-  process.exit(1);
-}
 
 const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
 authUrl.searchParams.append("client_id", clientId);
