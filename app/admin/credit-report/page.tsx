@@ -35,14 +35,27 @@ const TONE: Record<string, { chip: string; bar: string; ring: string }> = {
 
 const CELL: Record<PaymentStatus, string> = {
   on_time: "bg-emerald-500",
+  caught_up: "bg-sky-400",
   late: "bg-amber-400",
   missed: "bg-rose-500",
-  no_record: "bg-slate-200",
+  // Excused reads as neutral, never as a gap: a week off is not a missed
+  // payment and must not look like one at a glance.
+  excused: "bg-slate-200 ring-1 ring-inset ring-slate-300",
+  no_record: "bg-slate-100",
 };
 
-function monthLabel(m: string) {
-  const [y, mo] = m.split("-");
-  return `${["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][Number(mo)]} ${y.slice(2)}`;
+const STATUS_WORD: Record<PaymentStatus, string> = {
+  on_time: "Paid on time",
+  caught_up: "Caught up the next week",
+  late: "Late",
+  missed: "Not paid",
+  excused: "Week off — nothing owed",
+  no_record: "No record",
+};
+
+function weekLabel(d: string) {
+  const dt = new Date(`${d}T00:00:00Z`);
+  return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
 export default async function CreditReportPrototypePage() {
@@ -92,10 +105,10 @@ export default async function CreditReportPrototypePage() {
 
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              ["Months on file", String(report.monthsOnFile)],
+              ["Weeks on file", String(report.weeksCounted)],
               ["Shops", String(report.shopCount)],
-              ["Paid on time", String(report.onTimeCount)],
-              ["Late months", String(report.latePayments)],
+              ["Current streak", `${report.currentStreak} wks`],
+              ["Late or unpaid", String(report.lateCount + report.missedCount)],
             ].map(([k, v]) => (
               <div key={k} className="rounded-lg border border-slate-200 p-3">
                 <div className="text-lg font-bold text-slate-900">{v}</div>
@@ -118,8 +131,8 @@ export default async function CreditReportPrototypePage() {
           <h2 className="text-lg font-bold text-slate-900">How much this number is worth</h2>
           <p className="mt-1 text-sm text-slate-600">
             Confidence is reported separately from the score, because they answer different
-            questions. Two on-time months and twenty are both &ldquo;100% on time&rdquo;; only one of
-            them is evidence.
+            questions. Eight clean weeks and eighty are both &ldquo;100% on time&rdquo;; only one of them is
+            evidence.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {(["thin", "moderate", "strong"] as const).map((c) => (
@@ -173,63 +186,69 @@ export default async function CreditReportPrototypePage() {
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900">Payment history</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Every shop, every month. Booth rent only — this does not track anything else you pay.
+            One square per rent week, every shop. Booth rent only — this tracks nothing else you pay.
           </p>
           <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-600">
-            {[
-              ["bg-emerald-500", "On time"],
-              ["bg-amber-400", "Late"],
-              ["bg-rose-500", "Missed"],
-              ["bg-slate-200", "No record"],
-            ].map(([c, l]) => (
-              <span key={l} className="inline-flex items-center gap-1.5">
-                <span className={`h-3 w-3 rounded-sm ${c}`} /> {l}
+            {(["on_time", "caught_up", "late", "missed", "excused"] as PaymentStatus[]).map((k) => (
+              <span key={k} className="inline-flex items-center gap-1.5">
+                <span className={`h-3 w-3 rounded-sm ${CELL[k]}`} /> {STATUS_WORD[k]}
               </span>
             ))}
           </div>
 
+          {report.weeksExcused > 0 && (
+            <p className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
+              <span className="font-semibold">{report.weeksExcused} weeks off are excluded entirely</span>{" "}
+              — holidays, sick leave, and weeks the shop was shut. Nothing was owed, so they count
+              neither for nor against. A record that treated those as missed payments would mark
+              somebody down for being ill.
+            </p>
+          )}
+
           <div className="mt-5 space-y-6">
-            {report.tradelines.map((t) => (
-              <div key={t.shopName} className="rounded-xl border border-slate-200 p-4">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <div>
-                    <h3 className="font-bold text-slate-900">{t.shopName}</h3>
-                    <p className="text-xs text-slate-500">
-                      {t.city} · ${t.rentPerWeek}/week · {monthLabel(t.startedAt)} –{" "}
-                      {t.endedAt ? monthLabel(t.endedAt) : "present"}
-                    </p>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-600">
-                    {t.months.filter((m) => m.status === "on_time").length}/{t.months.length} on time
-                  </span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-1">
-                  {t.months.map((m) => (
-                    <div key={m.month} className="text-center">
-                      <div
-                        className={`h-7 w-7 rounded-sm ${CELL[m.status]}`}
-                        title={`${monthLabel(m.month)} — ${m.status.replace("_", " ")}${
-                          m.daysLate ? ` (${m.daysLate} days late)` : ""
-                        }`}
-                      />
-                      <div className="mt-1 text-[9px] leading-none text-slate-400">
-                        {monthLabel(m.month).slice(0, 3)}
-                      </div>
+            {report.tradelines.map((t) => {
+              const counted = t.weeks.filter((w) => w.status !== "excused" && w.status !== "no_record");
+              const clean = counted.filter((w) => w.status === "on_time").length;
+              const rough = t.weeks.some((w) => w.status === "late" || w.status === "missed");
+              return (
+                <div key={t.shopName} className="rounded-xl border border-slate-200 p-4">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div>
+                      <h3 className="font-bold text-slate-900">{t.shopName}</h3>
+                      <p className="text-xs text-slate-500">
+                        {t.city} · ${t.rentPerWeek}/week, due {t.dueDay} · {weekLabel(t.startedAt)} –{" "}
+                        {t.endedAt ? weekLabel(t.endedAt) : "present"}
+                      </p>
                     </div>
-                  ))}
-                </div>
-                {t.months.some((m) => m.status === "late") && (
-                  <p className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 p-2.5 text-xs text-amber-900">
-                    <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    <span>
-                      Three late months in a row, then back on time — and this shop closed that
-                      December. Clustered lates usually mark something happening around the barber,
-                      not a habit. Ask.
+                    <span className="text-xs font-semibold text-slate-600">
+                      {clean}/{counted.length} weeks clean
                     </span>
-                  </p>
-                )}
-              </div>
-            ))}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-[3px]">
+                    {t.weeks.map((w) => (
+                      <div
+                        key={w.weekStart}
+                        className={`h-4 w-4 rounded-sm ${CELL[w.status]}`}
+                        title={`Week of ${weekLabel(w.weekStart)} — ${STATUS_WORD[w.status]}${
+                          w.daysLate ? ` (${w.daysLate} days)` : ""
+                        }${w.note ? ` · ${w.note}` : ""}`}
+                      />
+                    ))}
+                  </div>
+                  {rough && (
+                    <p className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 p-2.5 text-xs text-amber-900">
+                      <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        A run of late weeks and one unpaid, then back on time — and this shop
+                        announced its closure during that stretch. On a weekly cycle a bad month
+                        shows up as four squares, which looks far worse at a glance than it is.
+                        Clustered lates usually mark something happening around the barber. Ask.
+                      </span>
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
 

@@ -1,32 +1,45 @@
-import type { Tradeline, PaymentMonth, PaymentStatus } from "./model";
+import type { Tradeline, PaymentWeek, PaymentStatus } from "./model";
 
 /**
  * INVENTED DATA. Nobody named here exists and no payment below happened.
  *
- * The subject is deliberately not spotless. A mock where everything is on time
- * proves the layout renders and nothing else — the hard question this product
- * has to answer is what a shop should do with a record that has a rough patch
- * in it, and a demo that never shows one quietly ducks it.
+ * Written to contain every shape a shop owner has to interpret, because a demo
+ * where every week is clean proves the layout renders and ducks the question
+ * the product exists to answer:
  *
- * So: three years, three shops, and a cluster of late months that lines up with
- * a shop change. That is the most common real shape and the one most likely to
- * be misread as unreliability.
+ *   - a run of on-time weeks (the ordinary case)
+ *   - excused weeks for a holiday and a week the shop was shut
+ *   - a caught-up week, paid double the following Monday
+ *   - a cluster of late weeks that lines up with a shop closing
+ *
+ * That last one is the shape most likely to be misread as unreliability, and
+ * the one a score alone will always get wrong.
  */
-function months(spec: Array<[string, PaymentStatus, number | null]>, amount: number): PaymentMonth[] {
-  return spec.map(([month, status, daysLate]) => ({ month, status, daysLate, amount }));
+
+/** Monday-dated weeks, counting forward from a start. */
+function weeksFrom(start: string, count: number): string[] {
+  const out: string[] = [];
+  const d = new Date(`${start}T00:00:00Z`);
+  for (let i = 0; i < count; i++) {
+    out.push(d.toISOString().slice(0, 10));
+    d.setUTCDate(d.getUTCDate() + 7);
+  }
+  return out;
 }
 
-const seq = (start: string, count: number): string[] => {
-  const [y0, m0] = start.split("-").map(Number);
-  return Array.from({ length: count }, (_, i) => {
-    const m = m0 + i;
-    const y = y0 + Math.floor((m - 1) / 12);
-    return `${y}-${String(((m - 1) % 12) + 1).padStart(2, "0")}`;
+function build(
+  start: string,
+  count: number,
+  amount: number,
+  overrides: Record<number, [PaymentStatus, number | null, string | null]> = {},
+): PaymentWeek[] {
+  return weeksFrom(start, count).map((weekStart, i) => {
+    const o = overrides[i];
+    return o
+      ? { weekStart, status: o[0], daysLate: o[1], amount: o[0] === "excused" ? null : amount, note: o[2] }
+      : { weekStart, status: "on_time" as const, daysLate: null, amount, note: null };
   });
-};
-
-const clean = (start: string, count: number, amount: number): PaymentMonth[] =>
-  months(seq(start, count).map((m) => [m, "on_time", null] as [string, PaymentStatus, null]), amount);
+}
 
 export const MOCK_TRADELINES: Tradeline[] = [
   {
@@ -34,39 +47,48 @@ export const MOCK_TRADELINES: Tradeline[] = [
     shopSlug: null,
     city: "Houston, TX",
     rentPerWeek: 175,
-    startedAt: "2026-01",
+    dueDay: "Monday",
+    startedAt: "2026-01-05",
     endedAt: null,
-    months: clean("2026-01", 8, 700),
+    weeks: build("2026-01-05", 34, 175, {
+      11: ["excused", null, "Shop closed — Easter week"],
+      19: ["caught_up", 7, "Paid double the following Monday"],
+      27: ["excused", null, "Agreed week off"],
+      28: ["excused", null, "Agreed week off"],
+    }),
   },
   {
     shopName: "Kings & Queens Barber & Hair",
     shopSlug: null,
     city: "Houston, TX",
     rentPerWeek: 165,
-    startedAt: "2025-02",
-    endedAt: "2025-12",
-    months: [
-      ...clean("2025-02", 7, 660),
-      // The rough patch, and it has a cause: the shop was closing.
-      ...months(
-        [
-          ["2025-09", "late", 6],
-          ["2025-10", "late", 11],
-          ["2025-11", "late", 4],
-        ],
-        660,
-      ),
-      ...clean("2025-12", 1, 660),
-    ],
+    dueDay: "Monday",
+    startedAt: "2025-01-06",
+    endedAt: "2025-12-29",
+    weeks: build("2025-01-06", 51, 165, {
+      // The rough patch. The shop was winding down and the chairs emptied out.
+      33: ["late", 3, null],
+      34: ["late", 5, null],
+      35: ["late", 2, null],
+      36: ["missed", null, "Shop announced closure"],
+      37: ["late", 4, null],
+      20: ["excused", null, "Sick leave"],
+      21: ["excused", null, "Sick leave"],
+    }),
   },
   {
     shopName: "Southside Cuts",
     shopSlug: null,
     city: "Houston, TX",
     rentPerWeek: 150,
-    startedAt: "2024-03",
-    endedAt: "2025-01",
-    months: clean("2024-03", 11, 600),
+    dueDay: "Friday",
+    startedAt: "2024-03-04",
+    endedAt: "2024-12-30",
+    weeks: build("2024-03-04", 44, 150, {
+      8: ["late", 1, null],
+      30: ["excused", null, "Holiday"],
+      31: ["excused", null, "Holiday"],
+    }),
   },
 ];
 
