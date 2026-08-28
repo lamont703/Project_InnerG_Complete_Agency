@@ -3,12 +3,12 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { currentMember } from "@/lib/member-context";
-import { enrollShop, enrollmentForMember } from "@/lib/credit-report/store";
+import { enrollShop, enrollmentForMember, claimedListings } from "@/lib/credit-report/store";
 
 /**
- * Enrol a shop in credit reporting.
+ * Enroll a shop in credit reporting.
  *
- * REQUIRES AN ACCOUNT, and not for the usual reason. The enrolment itself
+ * REQUIRES AN ACCOUNT, and not for the usual reason. The enrollment itself
  * would be fine as an anonymous row — we have a phone and an email. What
  * cannot be anonymous is everything after it: this shop will be making written
  * statements about named people's payment behaviour, and every one of those
@@ -16,6 +16,8 @@ import { enrollShop, enrollmentForMember } from "@/lib/credit-report/store";
  * A dispute against a row nobody owns has nowhere to go.
  */
 export async function enrollShopAction(input: {
+  shopId?: string | null;
+  shopType?: "shop" | "salon" | null;
   shopName: string;
   address: string;
   email: string;
@@ -65,7 +67,27 @@ export async function enrollShopAction(input: {
     ip = null;
   }
 
+  /*
+   * The listing is re-verified against the member's own claims rather than
+   * trusted from the form. A shopId arriving in a request body is a claim
+   * about ownership, and attaching payment reporting to a listing somebody
+   * does not own would publish a record under another shop's name.
+   */
+  let shopId: string | null = null;
+  let shopType: "shop" | "salon" | null = null;
+  if (input.shopId) {
+    const mine = await claimedListings(member.id);
+    const hit = mine.find((l) => l.entityId === input.shopId);
+    if (!hit) {
+      return { ok: false, error: "That listing is not claimed by this account." };
+    }
+    shopId = hit.entityId;
+    shopType = hit.entityType;
+  }
+
   const res = await enrollShop(member.id, {
+    shopId,
+    shopType,
     shopName: input.shopName.trim(),
     address: input.address.trim(),
     email: input.email.trim(),
@@ -75,7 +97,7 @@ export async function enrollShopAction(input: {
     consentIp: ip,
   });
 
-  if (!res.ok) return { ok: false, error: res.error ?? "Could not enrol that shop." };
+  if (!res.ok) return { ok: false, error: res.error ?? "Could not enroll that shop." };
 
   revalidatePath("/account/credit-reporting");
   return { ok: true };

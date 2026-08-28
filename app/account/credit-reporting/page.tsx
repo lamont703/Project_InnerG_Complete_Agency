@@ -49,6 +49,15 @@ export default async function CreditReportingPage() {
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
             {enrollment.shopName} · reporting every {enrollment.checkinIntervalDays} days · rent due{" "}
             {enrollment.dueDay}
+            {" · "}
+            {enrollment.shopId ? (
+              <span className="font-bold text-emerald-700">linked to your listing</span>
+            ) : (
+              /* Said plainly rather than left blank: an owner who thinks their
+                 listing is attached and finds out later that the record says a
+                 bare name has been misled by silence. */
+              <span className="font-bold text-amber-700">by name only — no listing linked</span>
+            )}
           </p>
         </header>
 

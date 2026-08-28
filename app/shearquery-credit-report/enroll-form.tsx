@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import type { ClaimedListing } from "@/lib/credit-report/store";
 import { enrollShopAction } from "./actions";
 
 const DUE_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -11,7 +12,13 @@ const FIELD =
   "w-full rounded-xl border-2 border-slate-100 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-blue-500";
 const LABEL = "text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1";
 
-export function EnrollForm({ signedIn }: { signedIn: boolean }) {
+export function EnrollForm({
+  signedIn,
+  listings,
+}: {
+  signedIn: boolean;
+  listings: ClaimedListing[];
+}) {
   const [pending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,6 +30,22 @@ export function EnrollForm({ signedIn }: { signedIn: boolean }) {
   const [shopLicenseNumber, setShopLicenseNumber] = useState("");
   const [dueDay, setDueDay] = useState("Monday");
   const [consented, setConsented] = useState(false);
+  const [shopId, setShopId] = useState<string>("");
+
+  /*
+   * Picking a listing PREFILLS the name and address rather than replacing the
+   * fields. The listing is what Google knows; the owner may well have a better
+   * version of their own address, and locking it would make the good data
+   * uneditable to fix the bad.
+   */
+  const pickListing = (id: string) => {
+    setShopId(id);
+    const hit = listings.find((l) => l.entityId === id);
+    if (hit) {
+      setShopName(hit.name);
+      if (hit.address) setAddress(hit.address);
+    }
+  };
 
   if (!signedIn) {
     return (
@@ -72,6 +95,8 @@ export function EnrollForm({ signedIn }: { signedIn: boolean }) {
     setError(null);
     startTransition(async () => {
       const res = await enrollShopAction({
+        shopId: shopId || null,
+        shopType: listings.find((l) => l.entityId === shopId)?.entityType ?? null,
         shopName,
         address,
         email,
@@ -87,6 +112,29 @@ export function EnrollForm({ signedIn }: { signedIn: boolean }) {
 
   return (
     <form onSubmit={submit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      {listings.length > 0 ? (
+        <div className="space-y-1.5">
+          <label htmlFor="cr-listing" className={LABEL}>Which of your listings is this?</label>
+          <select id="cr-listing" value={shopId} onChange={(e) => pickListing(e.target.value)} className={FIELD}>
+            <option value="">Not linked to a listing</option>
+            {listings.map((l) => (
+              <option key={l.entityId} value={l.entityId}>
+                {l.name}{l.address ? ` — ${l.address}` : ""}
+              </option>
+            ))}
+          </select>
+          <p className="ml-1 text-[11px] leading-relaxed text-slate-500">
+            Linking ties the payment record to your verified listing, so a barber&apos;s report names
+            a real shop rather than a line of text. You can enroll without it.
+          </p>
+        </div>
+      ) : (
+        <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-[11px] leading-relaxed text-slate-500">
+          This account has no claimed shop or salon listing, so the enrollment will be by name only.
+          That works — but claiming your listing first ties the record to a verified shop.
+        </p>
+      )}
+
       <div className="space-y-1.5">
         <label htmlFor="cr-shop" className={LABEL}>Shop name</label>
         <input id="cr-shop" required value={shopName} onChange={(e) => setShopName(e.target.value)} className={FIELD} placeholder="Northside Barber Co." />
@@ -155,7 +203,7 @@ export function EnrollForm({ signedIn }: { signedIn: boolean }) {
         disabled={pending}
         className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
       >
-        {pending ? (<><Loader2 className="h-4 w-4 animate-spin" /> Enrolling…</>) : "Enrol my shop"}
+        {pending ? (<><Loader2 className="h-4 w-4 animate-spin" /> Enrolling…</>) : "Enroll my shop"}
       </button>
       <p className="text-center text-[11px] text-slate-500">Free. No card.</p>
     </form>

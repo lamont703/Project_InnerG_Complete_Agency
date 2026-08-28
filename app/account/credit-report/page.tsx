@@ -67,7 +67,7 @@ export default async function MyCreditReportPage(props: {
               Nothing on your record yet
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-slate-600">
-              This fills up when a shop you rent from enrols and adds you, then confirms your
+              This fills up when a shop you rent from enrolls and adds you, then confirms your
               payments every couple of weeks. You cannot start it yourself — that is deliberate,
               because a payment record you wrote about yourself would be worth nothing to the next
               shop that reads it.
@@ -83,7 +83,7 @@ export default async function MyCreditReportPage(props: {
             <p className="mt-5 text-sm text-slate-500">
               Own a shop?{" "}
               <Link href="/shearquery-credit-report" className="font-bold text-blue-700 hover:underline">
-                Enrol it and start reporting
+                Enroll it and start reporting
               </Link>
               .
             </p>

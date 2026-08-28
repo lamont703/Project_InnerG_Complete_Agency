@@ -14,6 +14,7 @@ import {
 
 import { Navbar } from "@/components/layout/navbar";
 import { currentMember } from "@/lib/member-context";
+import { claimedListings } from "@/lib/credit-report/store";
 import { MIN_WEEKS_TO_SCORE, BANDS } from "@/lib/credit-report/model";
 import { SITE_URL } from "@/lib/site";
 import { EnrollForm } from "./enroll-form";
@@ -45,7 +46,7 @@ export const dynamic = "force-dynamic";
 const OWNER_STEPS = [
   {
     icon: ClipboardList,
-    title: "Enrol the shop once",
+    title: "Enroll the shop once",
     body: "Shop name, address, email, the number we should text, and your establishment licence. Two minutes, and nothing to install.",
   },
   {
@@ -90,6 +91,8 @@ const WORKER_STEPS = [
 
 export default async function CreditReportOnboardingPage() {
   const member = await currentMember();
+  // Only their own claimed listings are ever offered — see claimedListings().
+  const listings = member ? await claimedListings(member.id) : [];
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 light text-slate-900">
@@ -190,10 +193,10 @@ export default async function CreditReportOnboardingPage() {
             </p>
           </section>
 
-          {/* Enrolment. */}
-          <section id="enrol" className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-5">
+          {/* Enrollment. */}
+          <section id="enroll" className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-5">
             <div className="lg:col-span-2">
-              <h2 className="text-2xl font-black tracking-tight text-slate-950">Enrol your shop</h2>
+              <h2 className="text-2xl font-black tracking-tight text-slate-950">Enroll your shop</h2>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
                 This is the owner&apos;s side. Barbers and cosmetologists do not sign up here —
                 you are invited by the shop you rent from.
@@ -213,7 +216,7 @@ export default async function CreditReportOnboardingPage() {
               </div>
             </div>
             <div className="lg:col-span-3">
-              <EnrollForm signedIn={Boolean(member)} />
+              <EnrollForm signedIn={Boolean(member)} listings={listings} />
             </div>
           </section>
 

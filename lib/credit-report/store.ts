@@ -19,9 +19,19 @@ import type { PaymentStatus, PaymentWeek, Tradeline } from "./model";
  * decides what a late week is worth is a second answer to the same question.
  */
 
+export interface ClaimedListing {
+  entityType: "shop" | "salon";
+  entityId: string;
+  name: string;
+  address: string | null;
+}
+
 export interface Enrollment {
   id: string;
   memberId: string | null;
+  /** The claimed directory listing, when the shop has one. */
+  shopId: string | null;
+  shopType: "shop" | "salon" | null;
   shopName: string;
   address: string;
   email: string;
@@ -61,16 +71,18 @@ function token(): string {
 }
 
 // ---------------------------------------------------------------------------
-// Enrolment
+// Enrollment
 // ---------------------------------------------------------------------------
 
 const ENROLLMENT_COLS =
-  "id, member_id, shop_name, address, email, sms_phone, shop_license_number, shop_license_state, due_day, checkin_interval_days, last_checkin_at, next_checkin_at, status";
+  "id, member_id, shop_id, shop_type, shop_name, address, email, sms_phone, shop_license_number, shop_license_state, due_day, checkin_interval_days, last_checkin_at, next_checkin_at, status";
 
 function toEnrollment(r: any): Enrollment {
   return {
     id: r.id,
     memberId: r.member_id ?? null,
+    shopId: r.shop_id ?? null,
+    shopType: r.shop_type ?? null,
     shopName: r.shop_name,
     address: r.address,
     email: r.email,
@@ -96,6 +108,9 @@ export async function enrollmentForMember(memberId: string): Promise<Enrollment 
 }
 
 export interface EnrollInput {
+  /** Set when the owner picked one of their claimed listings. */
+  shopId?: string | null;
+  shopType?: "shop" | "salon" | null;
   shopName: string;
   address: string;
   email: string;
@@ -111,7 +126,7 @@ export async function enrollShop(
   input: EnrollInput
 ): Promise<{ ok: boolean; id?: string; error?: string }> {
   /*
-   * The first check-in is scheduled at enrolment rather than by a job that
+   * The first check-in is scheduled at enrollment rather than by a job that
    * scans for shops with no next_checkin_at. A row that is due but has never
    * been given a date is indistinguishable from one that is not due yet, and
    * the failure is silent: the shop simply never hears from us.
@@ -123,6 +138,8 @@ export async function enrollShop(
     .from("credit_report_shops")
     .insert({
       member_id: memberId,
+      shop_id: input.shopId ?? null,
+      shop_type: input.shopId ? input.shopType ?? "shop" : null,
       shop_name: input.shopName,
       address: input.address,
       email: input.email,
@@ -154,6 +171,42 @@ export async function updateEnrollment(
 
   const { error } = await admin().from("credit_report_shops").update(row).eq("id", id);
   return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+/**
+ * The shop and salon listings this member has already claimed.
+ *
+ * Read from community_member_entity_links — the same table the claim flow
+ * writes — so the picker can only ever offer listings whose ownership has
+ * already been established. Letting somebody attach their payment reporting to
+ * an arbitrary listing id would let one shop publish a record under another
+ * shop's name.
+ */
+export async function claimedListings(memberId: string): Promise<ClaimedListing[]> {
+  const { data: links } = await admin()
+    .from("community_member_entity_links")
+    .select("entity_type, entity_id")
+    .eq("community_member_id", memberId)
+    .in("entity_type", ["shop", "salon"]);
+
+  const out: ClaimedListing[] = [];
+  for (const l of links ?? []) {
+    const table = l.entity_type === "salon" ? "agent_salon_leads" : "agent_barbershop_leads";
+    const { data } = await admin()
+      .from(table)
+      .select("id, shop_name, formatted_address")
+      .eq("id", l.entity_id)
+      .maybeSingle();
+    if (data) {
+      out.push({
+        entityType: l.entity_type,
+        entityId: data.id,
+        name: data.shop_name,
+        address: data.formatted_address ?? null,
+      });
+    }
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -206,8 +259,16 @@ export async function addWorker(
     .from("shop_roster")
     .insert({
       enrollment_id: enrollment.id,
-      shop_id: enrollment.id, // no claimed listing required to report
-      shop_type: "shop",
+      /*
+       * The LISTING, or nothing. This used to be `enrollment.id` — a value
+       * that satisfied NOT NULL and pointed at the wrong table entirely, so a
+       * join to agent_barbershop_leads would have quietly matched no rows
+       * instead of failing. 20260828040000 drops the NOT NULL so "we do not
+       * know" can be recorded as not knowing. enrollment_id above is how you
+       * reach the shop either way.
+       */
+      shop_id: enrollment.shopId,
+      shop_type: enrollment.shopId ? enrollment.shopType ?? "shop" : null,
       barber_name: input.name,
       barber_phone: input.phone || null,
       rent_per_week: input.rentPerWeek ?? null,
@@ -267,7 +328,7 @@ export async function weeksFor(rosterId: string): Promise<PaymentWeek[]> {
  * choose between an inaccurate record and no record.
  *
  * `reportedByPhone` carries the attribution that migration insisted on. A
- * correction made on the web is attributed to the enrolment's SMS number,
+ * correction made on the web is attributed to the enrollment's SMS number,
  * because that is the shop making the statement either way.
  */
 export async function upsertWeek(

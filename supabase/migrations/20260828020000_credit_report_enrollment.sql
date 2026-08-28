@@ -1,4 +1,4 @@
--- ShearQuery Credit Report: enrolment, worker identity, and sharing.
+-- ShearQuery Credit Report: enrollment, worker identity, and sharing.
 --
 -- 20260827020000_shop_roster.sql already models the relationship (shop_roster),
 -- the payment record (rent_weeks) and the SMS state machine
@@ -6,7 +6,7 @@
 -- required before a shop can sign itself up rather than be sent a message:
 --
 --   1. THE SHOP AS A PARTY. roster_conversations knows a shop_id and a phone
---      because it was built for outbound SMS. Enrolment is a different fact:
+--      because it was built for outbound SMS. Enrollment is a different fact:
 --      who agreed, on what number, at what address, under which licence.
 --   2. THE WORKER AS A PERSON. shop_roster carries a name and a resolved TDLR
 --      licence. It has no phone, and no link to an account — so an invited
@@ -15,13 +15,13 @@
 --      hands it over". That needs a token the worker creates and can revoke.
 
 -- ---------------------------------------------------------------------------
--- 1. Enrolment
+-- 1. Enrollment
 -- ---------------------------------------------------------------------------
 create table if not exists public.credit_report_shops (
   id                uuid primary key default gen_random_uuid(),
 
-  -- The claimed listing this enrolment belongs to, when there is one. Nullable
-  -- on purpose: a shop can enrol before claiming, and refusing them until the
+  -- The claimed listing this enrollment belongs to, when there is one. Nullable
+  -- on purpose: a shop can enroll before claiming, and refusing them until the
   -- listing is sorted loses the signup for a reason they did not cause.
   shop_id           uuid,
   shop_type         text check (shop_type in ('shop','salon')),
@@ -62,7 +62,7 @@ create table if not exists public.credit_report_shops (
   updated_at        timestamptz not null default now()
 );
 
--- One enrolment per listing, but only where a listing is set — two shops that
+-- One enrollment per listing, but only where a listing is set — two shops that
 -- have not claimed yet must not collide on NULL.
 create unique index if not exists credit_report_shops_listing_idx
   on public.credit_report_shops (shop_id, shop_type)
@@ -78,8 +78,8 @@ create index if not exists credit_report_shops_due_idx
 -- 2. The worker on the roster
 -- ---------------------------------------------------------------------------
 
--- Which enrolment put this person on a roster. shop_roster.shop_id points at a
--- LISTING and existed before enrolment did, so this is additive rather than a
+-- Which enrollment put this person on a roster. shop_roster.shop_id points at a
+-- LISTING and existed before enrollment did, so this is additive rather than a
 -- replacement.
 alter table public.shop_roster
   add column if not exists enrollment_id uuid
@@ -107,7 +107,7 @@ alter table public.shop_roster
 alter table public.shop_roster
   add column if not exists rent_per_week numeric(10,2);
 
--- Lateness is measured from the shop's due day, so it belongs to the enrolment
+-- Lateness is measured from the shop's due day, so it belongs to the enrollment
 -- rather than the person.
 alter table public.credit_report_shops
   add column if not exists due_day text not null default 'Monday'

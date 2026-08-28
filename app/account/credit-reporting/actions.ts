@@ -17,8 +17,8 @@ import {
  * Owner-side writes.
  *
  * ONE GATE, USED BY EVERY ACTION. `ownedEnrollment()` resolves the signed-in
- * member and returns their enrolment, and `ownedRoster()` additionally proves a
- * roster row belongs to it. Nothing here takes an enrolment id from the client.
+ * member and returns their enrollment, and `ownedRoster()` additionally proves a
+ * roster row belongs to it. Nothing here takes an enrollment id from the client.
  *
  * That matters more here than almost anywhere else in this codebase: a write
  * that skipped the check would let one shop mark another shop's barber down as
