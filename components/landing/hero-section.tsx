@@ -124,7 +124,7 @@ export function HeroSection() {
             The footer blurb in components/layout/footer.tsx still carries the
             older directory wording and has NOT been changed. */}
         <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-white sm:text-xl text-balance">
-          An AI Agent for your entire barber, beauty and wellness career.
+          An AI Agent for your entire barber, beauty and wellness business.
         </p>
 
 

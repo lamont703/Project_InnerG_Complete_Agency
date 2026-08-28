@@ -918,7 +918,7 @@ function SearchContent() {
                   <span className="text-black">Shear</span><span className="text-blue-600">Query</span>
                 </h1>
                 <p className={`text-muted-foreground px-2 transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-sm sm:text-base opacity-0 h-0 overflow-hidden' : 'text-sm sm:text-xl opacity-100 h-auto'}`}>
-                  An AI Agent for your entire barber, beauty and wellness career.
+                  An AI Agent for your entire barber, beauty and wellness business.
                 </p>
               </div>
 
