@@ -284,13 +284,45 @@ export async function addWorker(
   return { ok: true, id: data.id, inviteToken: invite };
 }
 
+export async function rosterById(rosterId: string): Promise<RosterEntry | null> {
+  const { data } = await admin().from("shop_roster").select(ROSTER_COLS).eq("id", rosterId).maybeSingle();
+  return data ? toRoster(data) : null;
+}
+
+/**
+ * Mint or refresh an invite token and stamp the send.
+ *
+ * Called after the SMS is ACCEPTED, never before. Stamping invited_at first
+ * would start the resend cooldown on a message that never left, so a failed
+ * send would lock the owner out of retrying for fifteen minutes.
+ */
+export async function markInvited(rosterId: string, inviteToken: string): Promise<void> {
+  await admin()
+    .from("shop_roster")
+    .update({ invite_token: inviteToken, invited_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", rosterId);
+}
+
+/** A fresh token for a row that has none — a worker added without a number. */
+export function newInviteToken(): string {
+  return token();
+}
+
 export async function updateWorker(
   rosterId: string,
   patch: { name?: string; phone?: string | null; rentPerWeek?: number | null; status?: "active" | "ended"; endedAt?: string | null }
 ): Promise<{ ok: boolean; error?: string }> {
   const row: any = { updated_at: new Date().toISOString() };
   if (patch.name !== undefined) row.barber_name = patch.name;
-  if (patch.phone !== undefined) row.barber_phone = patch.phone || null;
+  if (patch.phone !== undefined) {
+    row.barber_phone = patch.phone || null;
+    /*
+     * A CHANGED NUMBER RESETS THE RESEND COOLDOWN. The common reason to edit a
+     * phone is that the first one was wrong, and making somebody wait fifteen
+     * minutes to retry after fixing a typo punishes the correction.
+     */
+    row.invited_at = null;
+  }
   if (patch.rentPerWeek !== undefined) row.rent_per_week = patch.rentPerWeek;
   if (patch.status !== undefined) row.status = patch.status;
   if (patch.endedAt !== undefined) row.ended_at = patch.endedAt || null;

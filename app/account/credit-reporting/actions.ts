@@ -10,8 +10,12 @@ import {
   addWorker,
   updateWorker,
   upsertWeek,
+  rosterById,
+  markInvited,
+  newInviteToken,
   type Enrollment,
 } from "@/lib/credit-report/store";
+import { sendInviteSms, cooldownRemainingMs } from "@/lib/credit-report/invite";
 
 /**
  * Owner-side writes.
@@ -66,12 +70,14 @@ export async function updateShopAction(patch: {
   return { ok: true };
 }
 
+export type InviteOutcome = "sent" | "no_phone" | "not_configured" | "failed";
+
 export async function addWorkerAction(input: {
   name: string;
   phone?: string;
   rentPerWeek?: string;
   startedAt?: string;
-}): Promise<{ ok: boolean; inviteToken?: string | null; error?: string }> {
+}): Promise<{ ok: boolean; inviteToken?: string | null; invite?: InviteOutcome; error?: string }> {
   const owned = await ownedEnrollment();
   if (!owned) return DENIED;
   if (!input.name?.trim()) return { ok: false, error: "A name is required." };
@@ -89,8 +95,89 @@ export async function addWorkerAction(input: {
   });
   if (!res.ok) return { ok: false, error: res.error };
 
+  /*
+   * The invite goes out here, not in addWorker(). The store writes rows; a
+   * store function that also sent texts would make every future caller —
+   * including an import or a backfill — a silent mass-texting risk.
+   *
+   * A FAILED SEND IS NOT A FAILED ADD. The roster row is real either way, the
+   * shop can still report on it, and rolling it back would lose the owner's
+   * work because a carrier was unreachable. The outcome is reported so the UI
+   * can say what actually happened instead of implying a text landed.
+   */
+  let invite: InviteOutcome = "no_phone";
+  if (res.inviteToken && input.phone?.trim()) {
+    const sent = await sendInviteSms({
+      shopName: owned.enrollment.shopName,
+      barberName: input.name.trim(),
+      phone: input.phone.trim(),
+      token: res.inviteToken,
+    });
+    invite = sent.ok ? "sent" : sent.skipped ? "not_configured" : "failed";
+    if (sent.ok) await markInvited(res.id!, res.inviteToken);
+  }
+
   revalidatePath("/account/credit-reporting");
-  return { ok: true, inviteToken: res.inviteToken ?? null };
+  return { ok: true, inviteToken: res.inviteToken ?? null, invite };
+}
+
+/**
+ * Send the invite again.
+ *
+ * FOUR REFUSALS, each for a different reason worth telling the owner apart:
+ * no number to text, already claimed (so there is nothing to claim), still
+ * inside the cooldown, or the send itself failed. A single "couldn't resend"
+ * would leave them guessing which.
+ */
+export async function resendInviteAction(
+  rosterId: string
+): Promise<{ ok: boolean; error?: string; retryInSeconds?: number }> {
+  const enrollment = await ownedRoster(rosterId);
+  if (!enrollment) return DENIED;
+
+  const worker = await rosterById(rosterId);
+  if (!worker) return { ok: false, error: "That person is not on your roster." };
+
+  if (worker.claimedAt) {
+    return { ok: false, error: `${worker.barberName} has already claimed this record.` };
+  }
+  if (!worker.barberPhone) {
+    return { ok: false, error: "Add a mobile number for them first — there is nowhere to send it." };
+  }
+
+  const wait = cooldownRemainingMs(worker.invitedAt);
+  if (wait > 0) {
+    return {
+      ok: false,
+      retryInSeconds: Math.ceil(wait / 1000),
+      error: `Already sent recently. You can send again in ${Math.ceil(wait / 60000)} min.`,
+    };
+  }
+
+  // A row added before the number existed has no token yet. Mint one rather
+  // than refusing — the alternative is deleting and re-adding the person,
+  // which would throw away their payment history.
+  const token = worker.inviteToken ?? newInviteToken();
+
+  const sent = await sendInviteSms({
+    shopName: enrollment.shopName,
+    barberName: worker.barberName,
+    phone: worker.barberPhone,
+    token,
+  });
+
+  if (!sent.ok) {
+    return {
+      ok: false,
+      error: sent.skipped
+        ? "Texting is not configured on this deployment yet."
+        : sent.error || "Could not send that text.",
+    };
+  }
+
+  await markInvited(rosterId, token);
+  revalidatePath("/account/credit-reporting");
+  return { ok: true };
 }
 
 export async function updateWorkerAction(

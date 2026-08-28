@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Check, Copy, Loader2, Plus, Store, UserPlus, History, AlertCircle } from "lucide-react";
+import { Check, Copy, Loader2, Plus, Store, UserPlus, History, AlertCircle, Send } from "lucide-react";
 import type { PaymentStatus, PaymentWeek } from "@/lib/credit-report/model";
 import type { Enrollment, RosterEntry } from "@/lib/credit-report/store";
 import { weeksBetween, weekLabel, mondayOf } from "@/lib/credit-report/weeks";
-import { addWorkerAction, setWeekAction, updateShopAction, updateWorkerAction } from "./actions";
+import { addWorkerAction, resendInviteAction, setWeekAction, updateShopAction, updateWorkerAction } from "./actions";
 
 export interface WorkerWithWeeks extends RosterEntry {
   weeks: PaymentWeek[];
@@ -134,6 +134,7 @@ function ShopDetails({ enrollment }: { enrollment: Enrollment }) {
 function AddWorker() {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [outcome, setOutcome] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [rent, setRent] = useState("");
@@ -144,11 +145,26 @@ function AddWorker() {
     startTransition(async () => {
       const res = await addWorkerAction({ name, phone, rentPerWeek: rent, startedAt });
       if (res.ok) {
+        /*
+         * "Sent", never "delivered". lib/ghl-sms.ts is explicit that a text to
+         * a landline is accepted by GHL and dropped by the carrier, and a lot
+         * of numbers in this trade are landlines. Telling an owner it arrived
+         * would have them waiting on a claim that is never coming.
+         */
+        setOutcome(
+          res.invite === "sent"
+            ? `Invite text sent to ${phone}. If they don't get it, use Resend on their card.`
+            : res.invite === "no_phone"
+              ? "Added. No number on file, so no invite went out — they cannot claim the record until you add one."
+              : res.invite === "not_configured"
+                ? "Added, but texting is not configured on this deployment, so no invite went out."
+                : "Added, but the invite text could not be sent. Check the number and use Resend."
+        );
         setName("");
         setPhone("");
         setRent("");
         setStartedAt("");
-      } else setError(res.error ?? "Could not add.");
+      } else { setOutcome(null); setError(res.error ?? "Could not add."); }
     });
   };
 
@@ -182,6 +198,11 @@ function AddWorker() {
       </div>
 
       {error && <p className="mt-4 text-sm font-semibold text-rose-700">{error}</p>}
+      {outcome && (
+        <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          {outcome}
+        </p>
+      )}
 
       <button
         onClick={add}
@@ -255,6 +276,7 @@ function WorkerCard({ worker, origin }: { worker: WorkerWithWeeks; origin: strin
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [resend, setResend] = useState<{ ok: boolean; text: string } | null>(null);
 
   const byWeek = useMemo(() => {
     const m = new Map<string, PaymentWeek>();
@@ -290,7 +312,9 @@ function WorkerCard({ worker, origin }: { worker: WorkerWithWeeks; origin: strin
               </span>
             ) : worker.barberPhone ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-black text-amber-900">
-                Invite not accepted yet
+                {worker.invitedAt
+                  ? `Invite sent ${weekLabel(worker.invitedAt.slice(0, 10))} — not accepted yet`
+                  : "No invite sent yet"}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-black text-slate-600">
@@ -300,6 +324,26 @@ function WorkerCard({ worker, origin }: { worker: WorkerWithWeeks; origin: strin
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
+          {/* Resend, for the ordinary case: they never saw the first one.
+              Hidden once claimed, because there is nothing left to claim. */}
+          {!worker.claimedAt && (
+            <button
+              onClick={() =>
+                startTransition(async () => {
+                  const res = await resendInviteAction(worker.id);
+                  setResend({
+                    ok: !!res.ok,
+                    text: res.ok ? `Invite re-sent to ${worker.barberPhone}.` : res.error ?? "Could not resend.",
+                  });
+                })
+              }
+              disabled={pending}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Resend invite
+            </button>
+          )}
           {inviteUrl && (
             <button
               onClick={async () => {
@@ -335,6 +379,16 @@ function WorkerCard({ worker, origin }: { worker: WorkerWithWeeks; origin: strin
           )}
         </div>
       </div>
+
+      {resend && (
+        <p
+          className={`mt-3 rounded-lg px-3 py-2 text-xs font-semibold ${
+            resend.ok ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"
+          }`}
+        >
+          {resend.text}
+        </p>
+      )}
 
       {open && (
         <div className="mt-5 border-t border-slate-100 pt-4">
