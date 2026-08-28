@@ -1,0 +1,152 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { currentMember } from "@/lib/member-context";
+import type { PaymentStatus } from "@/lib/credit-report/model";
+import {
+  enrollmentForMember,
+  updateEnrollment,
+  addWorker,
+  updateWorker,
+  upsertWeek,
+  type Enrollment,
+} from "@/lib/credit-report/store";
+
+/**
+ * Owner-side writes.
+ *
+ * ONE GATE, USED BY EVERY ACTION. `ownedEnrollment()` resolves the signed-in
+ * member and returns their enrolment, and `ownedRoster()` additionally proves a
+ * roster row belongs to it. Nothing here takes an enrolment id from the client.
+ *
+ * That matters more here than almost anywhere else in this codebase: a write
+ * that skipped the check would let one shop mark another shop's barber down as
+ * unpaid. The damage would not be a broken page — it would be a false statement
+ * about a real person, sitting in a record they show to employers.
+ */
+
+async function ownedEnrollment(): Promise<{ member: { id: string }; enrollment: Enrollment } | null> {
+  const member = await currentMember();
+  if (!member) return null;
+  const enrollment = await enrollmentForMember(member.id);
+  if (!enrollment) return null;
+  return { member, enrollment };
+}
+
+async function ownedRoster(rosterId: string): Promise<Enrollment | null> {
+  const owned = await ownedEnrollment();
+  if (!owned) return null;
+  const admin = createAdminClient() as any;
+  const { data } = await admin
+    .from("shop_roster")
+    .select("id, enrollment_id")
+    .eq("id", rosterId)
+    .maybeSingle();
+  if (!data || data.enrollment_id !== owned.enrollment.id) return null;
+  return owned.enrollment;
+}
+
+const DENIED = { ok: false as const, error: "You do not have a shop enrolled, or that record is not yours." };
+
+export async function updateShopAction(patch: {
+  shopName?: string;
+  address?: string;
+  email?: string;
+  smsPhone?: string;
+  shopLicenseNumber?: string;
+  dueDay?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const owned = await ownedEnrollment();
+  if (!owned) return DENIED;
+
+  const res = await updateEnrollment(owned.enrollment.id, patch);
+  if (!res.ok) return { ok: false, error: res.error };
+  revalidatePath("/account/credit-reporting");
+  return { ok: true };
+}
+
+export async function addWorkerAction(input: {
+  name: string;
+  phone?: string;
+  rentPerWeek?: string;
+  startedAt?: string;
+}): Promise<{ ok: boolean; inviteToken?: string | null; error?: string }> {
+  const owned = await ownedEnrollment();
+  if (!owned) return DENIED;
+  if (!input.name?.trim()) return { ok: false, error: "A name is required." };
+
+  const rent = input.rentPerWeek ? Number(input.rentPerWeek) : null;
+  if (rent != null && (!Number.isFinite(rent) || rent < 0)) {
+    return { ok: false, error: "Weekly rent has to be a number." };
+  }
+
+  const res = await addWorker(owned.enrollment, {
+    name: input.name.trim(),
+    phone: input.phone?.trim() || null,
+    rentPerWeek: rent,
+    startedAt: input.startedAt || null,
+  });
+  if (!res.ok) return { ok: false, error: res.error };
+
+  revalidatePath("/account/credit-reporting");
+  return { ok: true, inviteToken: res.inviteToken ?? null };
+}
+
+export async function updateWorkerAction(
+  rosterId: string,
+  patch: { name?: string; phone?: string | null; rentPerWeek?: string | null; status?: "active" | "ended" }
+): Promise<{ ok: boolean; error?: string }> {
+  if (!(await ownedRoster(rosterId))) return DENIED;
+
+  const rent =
+    patch.rentPerWeek === undefined ? undefined : patch.rentPerWeek ? Number(patch.rentPerWeek) : null;
+  if (rent != null && rent !== undefined && (!Number.isFinite(rent) || rent < 0)) {
+    return { ok: false, error: "Weekly rent has to be a number." };
+  }
+
+  const res = await updateWorker(rosterId, {
+    name: patch.name,
+    phone: patch.phone,
+    rentPerWeek: rent as number | null | undefined,
+    status: patch.status,
+    // Ending a placement dates it today rather than leaving it open, so the
+    // report can say when somebody left rather than implying they never did.
+    endedAt: patch.status === "ended" ? new Date().toISOString().slice(0, 10) : undefined,
+  });
+  if (!res.ok) return { ok: false, error: res.error };
+  revalidatePath("/account/credit-reporting");
+  return { ok: true };
+}
+
+/**
+ * Record or correct one week for one barber.
+ *
+ * CORRECTION IS THE NORMAL CASE, NOT THE EXCEPTION. An owner reconstructing
+ * six months from memory will get some of it wrong, and a system that only
+ * appends forces a choice between an inaccurate record and no record. Setting
+ * a week back to "no_record" deletes the row entirely — an owner who realises
+ * they never actually knew must be able to say so, rather than being stuck
+ * choosing between paid and unpaid.
+ */
+export async function setWeekAction(
+  rosterId: string,
+  week: { weekStart: string; status: PaymentStatus; daysLate?: number | null; note?: string | null }
+): Promise<{ ok: boolean; error?: string }> {
+  const enrollment = await ownedRoster(rosterId);
+  if (!enrollment) return DENIED;
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(week.weekStart)) {
+    return { ok: false, error: "That week is not a valid date." };
+  }
+  // A record cannot be written about a week that has not happened.
+  if (new Date(`${week.weekStart}T00:00:00Z`).getTime() > Date.now()) {
+    return { ok: false, error: "That week hasn't happened yet." };
+  }
+
+  const res = await upsertWeek(rosterId, week, enrollment.smsPhone);
+  if (!res.ok) return { ok: false, error: res.error };
+  revalidatePath("/account/credit-reporting");
+  revalidatePath("/account/credit-report");
+  return { ok: true };
+}
