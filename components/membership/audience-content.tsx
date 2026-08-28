@@ -11,7 +11,7 @@ import {
   ArrowRight,
   type LucideIcon,
 } from "lucide-react";
-import { LIVE_AUDIENCES, type Audience, type AudienceBenefit } from "@/lib/audiences";
+import { LIVE_AUDIENCES, membershipPath, type Audience, type AudienceBenefit } from "@/lib/audiences";
 
 /**
  * How an audience is drawn. Nothing here decides WHICH audience — that is the
@@ -47,7 +47,9 @@ const ICONS: Record<AudienceBenefit["icon"], LucideIcon> = {
 export type SwitcherVariant = "path" | "query";
 
 export function audienceHref(a: Audience, variant: SwitcherVariant): string {
-  if (variant === "path" && a.landing) return `/membership/${a.landing.path}`;
+  // One definition of the path shape, in the registry, so a slug change
+  // reaches the switcher and the five link sites together.
+  if (variant === "path" && a.landing) return membershipPath(a.id);
   return `/membership?for=${a.id}`;
 }
 

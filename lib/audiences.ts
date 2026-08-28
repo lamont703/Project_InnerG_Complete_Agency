@@ -442,6 +442,28 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
  * different questions.
  */
 /**
+ * The right URL to send someone to sign up as a given audience.
+ *
+ * USE THIS RATHER THAN WRITING THE PATH. Five call sites hardcoding
+ * "/membership/students" is five things to find when a slug changes, and the
+ * failure is a 404 that nobody notices because the old URL still works for
+ * everyone who kept the query form.
+ *
+ * Degrades to `?for=` for an audience with no landing page, so a caller cannot
+ * produce a 404 by asking for one that does not exist yet — `school` today.
+ */
+export function membershipPath(id: AudienceId, extra?: Record<string, string>): string {
+  const a = AUDIENCES[id];
+  const q = new URLSearchParams(extra ?? {});
+  if (a.landing) {
+    const s = q.toString();
+    return `/membership/${a.landing.path}${s ? `?${s}` : ""}`;
+  }
+  q.set("for", id);
+  return `/membership?${q.toString()}`;
+}
+
+/**
  * Audiences with their own page under /membership.
  *
  * Derived, never hand-listed — a hand-listed copy is one more thing to forget

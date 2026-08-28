@@ -42,23 +42,29 @@ function track(event: string, payload: Record<string, unknown>) {
 // visibility, not a business dashboard.
 export interface CommunityMembershipFormProps {
   /**
-   * Which doorway rendered this form.
+   * Which doorway rendered this form, when no ?src= says otherwise.
    *
-   * The ?src= query param covers links INTO /membership, but this form is also
-   * rendered directly on /login, where there is no query string to read. Without
-   * this prop every login-door signup would record a null source — which is the
-   * exact gap the comment on signupSource describes, just arriving from a
-   * different direction.
+   * The ?src= param covers links INTO /membership, but this form is also
+   * rendered directly on /login and on the audience landing pages, where there
+   * may be no query string at all. Without this prop those signups record a
+   * null source.
+   *
+   * AN EXPLICIT ?src= WINS OVER THIS PROP. That reverses what this comment said
+   * when the prop was introduced ("no query string can know which page rendered
+   * it better"), and the reversal is the point: /membership/students passes
+   * source="membership-students", so under the old precedence a link carrying
+   * ?src=ai_mode had its attribution silently replaced by the page's own
+   * default — destroying exactly the signal this prop exists to preserve. Both
+   * fields name the surface that sent someone; the more specific one should
+   * win, and that is always the parameter.
    */
   source?: string
   /**
    * Who this doorway serves, when the page already knows.
    *
-   * Unlike `source`, the QUERY PARAM WINS over this prop, and the asymmetry is
-   * deliberate. `source` is the component's own knowledge — which page rendered
-   * it — and no query string can know that better. `audience` is a claim about
-   * the PERSON, and someone who followed a `?for=` link has asserted it about
-   * themselves; that should beat a page's default.
+   * The QUERY PARAM WINS over this prop, as it does for `source`. Someone who
+   * followed a `?for=` link asserted an audience about themselves, and that
+   * beats a page's default.
    *
    * Without this, every signup from a page with no `?for=` in the URL resolved
    * to DEFAULT_AUDIENCE ("professional") and was routed to /search. Someone
@@ -90,7 +96,7 @@ export function CommunityMembershipForm({ source, audience }: CommunityMembershi
    * attributed, because every entry point links to the same /membership URL —
    * so "is AI Mode a funnel?" has been unanswerable rather than answered badly.
    */
-  const signupSource = source ?? searchParams.get("src")
+  const signupSource = searchParams.get("src") ?? source
   const wantsConnect = nextIntent === "connect"
   const destination = (fallback: string) =>
     wantsConnect ? "/api/google-business/start" : fallback
