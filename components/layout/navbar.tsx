@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
-import { Menu, X, ArrowRight, ChevronDown, LogOut, User as UserIcon, LayoutGrid, Store, BarChart3, TrendingUp, Search, GraduationCap, CalendarCheck, BookOpen } from "lucide-react"
+import { Menu, X, ArrowRight, ChevronDown, LogOut, User as UserIcon, LayoutGrid, Store, BarChart3, TrendingUp, Search, GraduationCap, CalendarCheck, BookOpen, Timer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { trackNavClick, trackCTAClick } from "@/lib/analytics"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -409,6 +409,14 @@ export function Navbar() {
                         <BookOpen className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                         Texas Barber Exam Prep
                       </Link>
+                      <Link
+                        href="/account/mock-exam"
+                        onClick={() => setIsAccountOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-foreground transition-colors"
+                      >
+                        <Timer className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        Texas Class A Barber Mock Exam
+                      </Link>
                     </div>
                     <ViewAsMenuItem
                       isAdmin={viewAs.isAdmin}
@@ -588,6 +596,14 @@ export function Navbar() {
                 >
                   <BookOpen className="h-3.5 w-3.5 shrink-0" />
                   Texas Barber Exam Prep
+                </Link>
+                <Link
+                  href="/account/mock-exam"
+                  onClick={(e) => handleNavClick(e, "/account/mock-exam")}
+                  className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
+                >
+                  <Timer className="h-3.5 w-3.5 shrink-0" />
+                  Texas Class A Barber Mock Exam
                 </Link>
                 <ViewAsMenuItem
                   isAdmin={viewAs.isAdmin}
