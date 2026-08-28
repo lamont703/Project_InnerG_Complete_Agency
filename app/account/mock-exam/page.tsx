@@ -21,6 +21,17 @@ import { MockExamConsole } from "@/features/student/components/MockExamConsole";
  * is written against those tokens (bg-background, text-muted-foreground) —
  * so wrapping is the whole fix and the dashboard is untouched.
  *
+ * THE WRAPPER CARRIES bg-background ITSELF, and that is not decoration. The
+ * console's shells are `max-w-5xl mx-auto` / `max-w-6xl mx-auto`, so their
+ * light background is a centred COLUMN. Everything either side of it is
+ * <body>, which globals.css paints with `@apply bg-background` — and body sits
+ * OUTSIDE this `.light` element, so it resolves against :root's dark token.
+ * The result was a light exam in black gutters.
+ *
+ * It uses the same `bg-background` token the console uses rather than a
+ * near-match like bg-slate-50, because "nearly the same colour" is what makes
+ * two panels look like two panels. Same token, same value, one screen.
+ *
  * The header is passed as a slot rather than rendered here, because the
  * console has to place it inside each of its own full-screen shells and add
  * the padding that clears it. Navbar is `fixed top-0`, so it occupies no
@@ -53,7 +64,7 @@ export default async function AccountMockExamPage() {
   if (!member) redirect(membershipPath("student"));
 
   return (
-    <div className="light">
+    <div className="light bg-background min-h-screen">
       <MockExamConsole siteHeader={<Navbar />} />
     </div>
   );
