@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { Navbar } from "@/components/layout/navbar";
 import { membershipPath } from "@/lib/audiences";
 import { currentMember } from "@/lib/member-context";
 import { MockExamConsole } from "@/features/student/components/MockExamConsole";
@@ -12,10 +13,24 @@ import { MockExamConsole } from "@/features/student/components/MockExamConsole";
  * provisioned by /api/barber/register — the model being retired. The console
  * itself is shared; that route still exists and still passes its slug.
  *
- * NO NAVBAR, unlike every other /account page. This is a timed 100-question
- * simulation and the console owns a full-screen shell on purpose. Site chrome
- * around an exam is the wrong call, and the console's own exit button already
- * leads back to /account/exam-prep when there is no project.
+ * LIGHT THEME AND THE SITE HEADER, matching /account/exam-prep.
+ *
+ * The console is shared with the dashboard, which is dark, so neither theme
+ * can be baked into it. `.light` in globals.css redefines --background,
+ * --foreground and the rest of the token set, and every colour in the console
+ * is written against those tokens (bg-background, text-muted-foreground) —
+ * so wrapping is the whole fix and the dashboard is untouched.
+ *
+ * The header is passed as a slot rather than rendered here, because the
+ * console has to place it inside each of its own full-screen shells and add
+ * the padding that clears it. Navbar is `fixed top-0`, so it occupies no
+ * layout height and content would otherwise start underneath it.
+ *
+ * ONE SCREEN DELIBERATELY HAS NO HEADER: the running simulation. That is a
+ * 90-minute timed exam in its own two-pane, overflow-hidden layout, and a
+ * fixed site nav across the top of it both compresses the layout and puts
+ * "leave this page" one stray tap from a candidate mid-exam. Briefing,
+ * loading and results all carry it.
  *
  * NO PROJECT IS PASSED, which is the whole point: mock_exams.project_id has
  * been nullable since migration 165, so an exam that belongs to a person
@@ -37,5 +52,9 @@ export default async function AccountMockExamPage() {
   // not an error.
   if (!member) redirect(membershipPath("student"));
 
-  return <MockExamConsole />;
+  return (
+    <div className="light">
+      <MockExamConsole siteHeader={<Navbar />} />
+    </div>
+  );
 }

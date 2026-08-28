@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { 
     ShieldCheck, 
@@ -40,9 +40,24 @@ interface MockExamConsoleProps {
      * exam with no portal behind it is a row the schema already allows.
      */
     projectSlug?: string
+    /**
+     * Site chrome to render above the console, as a slot.
+     *
+     * A SLOT RATHER THAN A BOOLEAN because the two callers want opposite
+     * things and neither should be hardcoded here: /account/mock-exam passes
+     * <Navbar /> so it matches /account/exam-prep, and the dashboard passes
+     * nothing because it already has DashboardHeader around it.
+     *
+     * When present, every shell below gets top padding — the navbar is
+     * `fixed top-0` (navbar.tsx), so it occupies no layout height and content
+     * would otherwise start underneath it. Desktop already clears it via
+     * lg:p-24; this is really about mobile, where the shells only have p-4.
+     */
+    siteHeader?: ReactNode
 }
 
-export function MockExamConsole({ projectSlug }: MockExamConsoleProps) {
+export function MockExamConsole({ projectSlug, siteHeader }: MockExamConsoleProps) {
+    const headerPad = siteHeader ? "pt-24 md:pt-28" : ""
     const router = useRouter()
     
     const [mode, setMode] = useState<'briefing' | 'simulation' | 'results'>('briefing')
@@ -158,10 +173,13 @@ export function MockExamConsole({ projectSlug }: MockExamConsoleProps) {
 
     if (isLoading) {
         return (
+            <>
+            {siteHeader}
             <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
                 <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
                 <p className="text-muted-foreground text-sm font-black uppercase tracking-widest italic">Synchronizing Neural Forecast...</p>
             </div>
+            </>
         )
     }
 
@@ -188,7 +206,9 @@ export function MockExamConsole({ projectSlug }: MockExamConsoleProps) {
     if (mode === 'results') {
         const isPass = (results?.score || 0) >= 70
         return (
-            <div className="min-h-screen bg-background p-4 md:p-12 lg:p-24 flex flex-col items-center max-w-6xl mx-auto pb-40 md:pb-32">
+            <>
+            {siteHeader}
+            <div className={`min-h-screen bg-background p-4 md:p-12 lg:p-24 ${headerPad} flex flex-col items-center max-w-6xl mx-auto pb-40 md:pb-32`}>
                 {/* Result Header */}
                 <div className="flex flex-col items-center mb-8 md:mb-16 text-center">
                     <div className={cn(
@@ -296,11 +316,14 @@ export function MockExamConsole({ projectSlug }: MockExamConsoleProps) {
                     </Button>
                 </div>
             </div>
+            </>
         )
     }
 
     return (
-        <div className="min-h-screen bg-background p-4 md:p-12 lg:p-24 flex flex-col items-center max-w-5xl mx-auto pb-40 md:pb-24">
+        <>
+        {siteHeader}
+        <div className={`min-h-screen bg-background p-4 md:p-12 lg:p-24 ${headerPad} flex flex-col items-center max-w-5xl mx-auto pb-40 md:pb-24`}>
             {/* Header Area */}
             <div className="w-full mb-8 md:mb-12 text-center">
                 <div className="inline-flex h-12 w-12 md:h-16 md:w-16 items-center justify-center rounded-xl md:rounded-2xl bg-primary/10 border border-primary/20 mb-6">
@@ -412,5 +435,6 @@ export function MockExamConsole({ projectSlug }: MockExamConsoleProps) {
                 </Button>
             </div>
         </div>
+        </>
     )
 }
