@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
-import { Menu, X, ArrowRight, ChevronDown, LogOut, User as UserIcon, LayoutGrid, Store, BarChart3, TrendingUp, Search, GraduationCap, CalendarCheck } from "lucide-react"
+import { Menu, X, ArrowRight, ChevronDown, LogOut, User as UserIcon, LayoutGrid, Store, BarChart3, TrendingUp, Search, GraduationCap, CalendarCheck, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { trackNavClick, trackCTAClick } from "@/lib/analytics"
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -392,6 +392,23 @@ export function Navbar() {
                           My Licence Journey
                         </Link>
                       )}
+                      {/* NOT gated on isStudent, unlike the journey above.
+                          This is the only route to the AI exam prep now that
+                          the per-user /dashboard portals are being retired, and
+                          the note above says why hiding a capability behind an
+                          audience flag is the wrong instinct: somebody can be
+                          both, and plenty of licensed barbers study for a
+                          second licence. It is a free practice deck; the cost
+                          of showing it to an owner who does not want it is one
+                          line of menu. */}
+                      <Link
+                        href="/account/exam-prep"
+                        onClick={() => setIsAccountOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-foreground transition-colors"
+                      >
+                        <BookOpen className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        Texas Barber Exam Prep
+                      </Link>
                     </div>
                     <ViewAsMenuItem
                       isAdmin={viewAs.isAdmin}
@@ -564,6 +581,14 @@ export function Navbar() {
                     My Licence Journey
                   </Link>
                 )}
+                <Link
+                  href="/account/exam-prep"
+                  onClick={(e) => handleNavClick(e, "/account/exam-prep")}
+                  className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/50"
+                >
+                  <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                  Texas Barber Exam Prep
+                </Link>
                 <ViewAsMenuItem
                   isAdmin={viewAs.isAdmin}
                   onClick={() => {

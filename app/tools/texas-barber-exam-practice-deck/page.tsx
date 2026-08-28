@@ -322,7 +322,7 @@ export default function PublicSwipeDeckPage() {
                     <h2 className="text-4xl font-black uppercase italic tracking-tighter text-slate-950 leading-none">Baseline Audit Complete</h2>
                     <p className="text-slate-600 font-bold leading-relaxed px-4 max-w-sm mx-auto">
                       You scored <span className="text-primary text-2xl px-1">{score} / {practiceQuestions.length}</span>. 
-                      Our <strong>Aesthetic Intelligence</strong> has identified specific knowledge gaps in your profile. Access the Enhanced Prep to resolve these gaps.
+                      Our <strong>ShearQuery Intelligence</strong> has identified specific knowledge gaps in your profile. Access the Enhanced Prep to resolve these gaps.
                     </p>
                 </div>
                 
@@ -481,8 +481,8 @@ export default function PublicSwipeDeckPage() {
                       </h2>
                       <p className="text-slate-500 font-bold text-xs lg:text-sm tracking-tight px-2 lg:px-4 mx-auto max-w-xs">
                         {isLoginView 
-                          ? "Login to resume your personalized Aesthetic Intelligence training." 
-                          : "Complete your profile and let AI train you with Aesthetic Intelligence."}
+                          ? "Login to resume your personalized ShearQuery Intelligence training." 
+                          : "Complete your profile and let AI train you with ShearQuery Intelligence."}
                       </p>
                     </div>
                   </div>
