@@ -13,7 +13,7 @@ import { storedAudience } from "@/lib/audiences";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { firstName, lastName, email, phone, password, claimEntityType, claimEntityId } = body;
+    const { firstName, lastName, email, phone, password, claimEntityType, claimEntityId, creditInvite } = body;
 
     // Which audience they signed up as. Validated against the registry rather
     // than trusted — it arrives from a query string via the form — and stored
@@ -163,6 +163,51 @@ export async function POST(req: Request) {
       }
     }
 
+    /*
+     * A booth-rent invite followed all the way from the text into signup.
+     *
+     * The shop texted this person a token before they had an account. Without
+     * this block, creating the account would land them on /search and the
+     * invite would be orphaned — they would have to find the original text
+     * again and tap it a second time, on the same device, still signed in.
+     *
+     * Claimed here rather than left for the page so it happens exactly once,
+     * inside the request that created the member. And it FAILS QUIETLY: the
+     * membership is real either way, the record is still claimable from the
+     * link, and an invite problem must never cost somebody their account.
+     */
+    let creditInviteClaimed = false;
+    if (creditInvite && typeof creditInvite === "string") {
+      try {
+        const { data: member } = await (adminSupabase as any)
+          .from("community_members")
+          .select("id")
+          .eq("user_id", authUser.id)
+          .maybeSingle();
+
+        if (member) {
+          const { data: row } = await (adminSupabase as any)
+            .from("shop_roster")
+            .select("id, member_id")
+            .eq("invite_token", creditInvite)
+            .maybeSingle();
+
+          // An already-claimed row is left alone. Re-pointing it at whoever
+          // signed up last would hand one person's payment history to another.
+          if (row && !row.member_id) {
+            const { error } = await (adminSupabase as any)
+              .from("shop_roster")
+              .update({ member_id: member.id, claimed_at: new Date().toISOString(), invite_token: null })
+              .eq("id", row.id);
+            if (!error) creditInviteClaimed = true;
+            else console.error("[CommunityRegister] Credit invite claim failed:", error.message);
+          }
+        }
+      } catch (e: any) {
+        console.warn("[CommunityRegister] Credit invite claim threw:", e?.message);
+      }
+    }
+
     // Push the member into GoHighLevel.
     //
     // Runs last, after the claim is resolved, so the contact carries the right
@@ -248,7 +293,11 @@ export async function POST(req: Request) {
       // who just signed up has an account that has changed nothing yet, and
       // the minute it takes to say state/licence/exam date is what turns it
       // on. Claim still wins if somehow both are present.
+      creditInviteClaimed,
       redirect:
+        // The invite wins: somebody who arrived from a shop's text came here
+        // for one thing, and it is not the search page.
+        (creditInviteClaimed ? "/account/credit-report?claimed=1" : null) ||
         claimRedirect ||
         (memberAudience === "student"
           ? "/account/journey?welcome=1"
