@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Info } from "lucide-react";
+import { Info, LogIn, ShieldCheck, UserPlus } from "lucide-react";
 
 import { Navbar } from "@/components/layout/navbar";
 import { membershipPath } from "@/lib/audiences";
 import { currentMember } from "@/lib/member-context";
 import { buildReport, MIN_WEEKS_TO_SCORE } from "@/lib/credit-report/model";
-import { tradelinesForMember, listShares } from "@/lib/credit-report/store";
+import { tradelinesForMember, listShares, inviteContext } from "@/lib/credit-report/store";
 import { CreditReportView } from "@/components/credit-report/report-view";
 import { SITE_URL } from "@/lib/site";
 import { SharePanel } from "./share-panel";
@@ -35,10 +35,84 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function MyCreditReportPage(props: {
-  searchParams: Promise<{ invite?: string }>;
+  searchParams: Promise<{ invite?: string; claimed?: string }>;
 }) {
-  const { invite } = await props.searchParams;
+  const { invite, claimed } = await props.searchParams;
   const member = await currentMember();
+
+  /*
+   * SIGNED OUT WITH AN INVITE IS ITS OWN CASE, and it is the common one:
+   * somebody taps a link in a text on a phone they are not signed in on.
+   *
+   * The old behaviour redirected to /membership/professionals and DROPPED THE
+   * TOKEN — so a barber who already had an account was bounced to a signup
+   * page for an account they already had, and the invite was gone. Signing in
+   * afterwards landed them nowhere near their record, and the shop's text
+   * looked broken.
+   *
+   * Both routes out of here carry the token, so it survives whichever one they
+   * need.
+   */
+  if (!member && invite) {
+    const context = await inviteContext(invite);
+    const back = `/account/credit-report?invite=${encodeURIComponent(invite)}`;
+
+    return (
+      <div className="min-h-screen bg-slate-50 light text-slate-900">
+        <Navbar />
+        <main className="mx-auto max-w-lg px-4 pb-20 pt-24">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <ShieldCheck className="h-8 w-8 text-emerald-600" />
+            <h1 className="mt-4 text-2xl font-black tracking-tight text-slate-950">
+              {context
+                ? `${context.shopName} started a payment record for you`
+                : "Claim your payment record"}
+            </h1>
+
+            {context?.alreadyClaimed ? (
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                This record has already been claimed. If that was you, sign in and it is on your
+                account. If it was not, tell the shop — they can see who claimed it.
+              </p>
+            ) : (
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                Sign in to claim it and it becomes yours: the shop can keep reporting weeks, but
+                from then on you are the only person who can show it to anybody. Nobody can look it
+                up.
+              </p>
+            )}
+
+            <div className="mt-6 space-y-3">
+              {/* Sign in FIRST. Most people tapping this already have an
+                  account — being shown "create an account" when you have one
+                  is how you end up with a duplicate-email error instead of
+                  your record. */}
+              <Link
+                href={`/login?redirect=${encodeURIComponent(back)}`}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition-colors hover:bg-blue-700"
+              >
+                <LogIn className="h-4 w-4" />
+                Sign in to claim it
+              </Link>
+              <Link
+                href={`/membership/professionals?invite=${encodeURIComponent(invite)}&src=credit-invite`}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition-colors hover:bg-slate-50"
+              >
+                <UserPlus className="h-4 w-4" />
+                I don&apos;t have an account yet
+              </Link>
+            </div>
+
+            <p className="mt-6 text-xs leading-relaxed text-slate-500">
+              Not expecting this? It means a shop entered your name and number. Ignore it and
+              nothing happens — an unclaimed record cannot be shown to anyone.
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (!member) redirect(membershipPath("professional"));
 
   const [tradelines, shares] = await Promise.all([
@@ -53,6 +127,19 @@ export default async function MyCreditReportPage(props: {
     <div className="min-h-screen bg-slate-50 light text-slate-900">
       <Navbar />
       <main className="mx-auto max-w-4xl px-4 pb-20 pt-24">
+        {/* Signup claimed it on their behalf (see /api/community/register), so
+            say so — arriving at a page that just works, with no acknowledgement
+            that the thing you followed a text for actually happened, reads as
+            if it did not. */}
+        {claimed && !invite && (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+            <p className="font-black text-emerald-900">Your record is yours now.</p>
+            <p className="mt-1 text-sm leading-relaxed text-emerald-800">
+              The shop can keep reporting weeks. Only you can share it, and nobody can look it up.
+            </p>
+          </div>
+        )}
+
         {invite && <ClaimBanner token={invite} />}
 
         {tradelines.length === 0 ? (

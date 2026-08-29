@@ -90,6 +90,13 @@ export function CommunityMembershipForm({ source, audience }: CommunityMembershi
   // Whitelisted to a known destination rather than redirecting to whatever the
   // query string says: an arbitrary post-signup redirect is a phishing
   // primitive, and this form is exactly the kind of page worth abusing.
+  /*
+   * A booth-rent invite carried in from a shop's text. Passed straight to the
+   * register route, which claims it inside the same request that creates the
+   * member — otherwise signup lands them on /search and the invite is
+   * orphaned until they find the original text again.
+   */
+  const creditInvite = searchParams.get("invite")
   const nextIntent = searchParams.get("next")
   /*
    * Which surface produced this signup. Seven members exist and not one can be
@@ -232,7 +239,7 @@ export function CommunityMembershipForm({ source, audience }: CommunityMembershi
       const response = await fetch("/api/community/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, claimEntityType, claimEntityId, audience: signupAudience, signupSource }),
+        body: JSON.stringify({ ...formData, claimEntityType, claimEntityId, creditInvite, audience: signupAudience, signupSource }),
       })
 
       const data = await response.json()

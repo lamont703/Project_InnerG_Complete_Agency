@@ -522,6 +522,43 @@ export async function recordShareView(shareId: string, currentCount: number): Pr
     .eq("id", shareId);
 }
 
+export interface InviteContext {
+  shopName: string;
+  barberName: string;
+  alreadyClaimed: boolean;
+}
+
+/**
+ * Who an invite is from, resolvable WITHOUT a session.
+ *
+ * Needed because the person tapping the link is, more often than not, not
+ * signed in on that device — and a page that says "sign in to see who invited
+ * you" is asking somebody to authenticate before telling them why.
+ *
+ * WHAT THIS DISCLOSES to whoever holds the token: a shop name and a first
+ * name. That is acceptable because the token was texted to the person it names
+ * — it is the same information the SMS already contained. It exposes no
+ * payment history, no score, and nothing about any other barber. Anyone
+ * without the token gets null.
+ */
+export async function inviteContext(inviteToken: string): Promise<InviteContext | null> {
+  const { data } = await admin()
+    .from("shop_roster")
+    .select("barber_name, claimed_at, credit_report_shops ( shop_name )")
+    .eq("invite_token", inviteToken)
+    .maybeSingle();
+
+  if (!data) return null;
+  const shop = Array.isArray(data.credit_report_shops)
+    ? data.credit_report_shops[0]
+    : data.credit_report_shops;
+  return {
+    shopName: shop?.shop_name ?? "A shop",
+    barberName: data.barber_name,
+    alreadyClaimed: Boolean(data.claimed_at),
+  };
+}
+
 /** Claim an invited roster row. The token is the proof; it is single-use. */
 export async function claimInvite(
   inviteToken: string,
