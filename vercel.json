@@ -47,6 +47,10 @@
     {
       "path": "/api/cron/content-metrics",
       "schedule": "20 8 * * *"
+    },
+    {
+      "path": "/api/cron/credit-report-checkin",
+      "schedule": "0 17 * * *"
     }
   ]
 }
