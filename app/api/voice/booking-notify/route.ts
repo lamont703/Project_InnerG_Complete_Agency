@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { twiml } from "@/lib/twiml";
 import { formParams, requestUrlForSignature, twilioSignatureIsValid } from "@/lib/voice/signature";
-import { bookingVoiceScript, bookingVoiceTwiml } from "@/lib/bookings/voice-script";
+import { bookingVoiceScript, bookingVoiceTwiml, resolveVoice } from "@/lib/bookings/voice-script";
 
 /**
  * What Twilio plays when the outbound booking call connects.
@@ -73,6 +73,15 @@ async function handle(req: Request) {
       })
     : "the requested date";
 
+  /*
+   * A voice may be named in the URL, validated against the whitelist. Unlike
+   * the words — which are read from the row precisely so a URL cannot dictate
+   * them — this is a rendering choice from a fixed set, and being able to
+   * change it without a deploy is what makes comparing voices cost a phone
+   * call instead of a release.
+   */
+  const voice = resolveVoice(url.searchParams.get("voice"));
+
   return twiml(
     bookingVoiceTwiml(
       bookingVoiceScript({
@@ -82,7 +91,8 @@ async function handle(req: Request) {
         serviceName: b.service_name || "an appointment",
         prettyDate,
         requestedTime: b.requested_time || "the requested time",
-      })
+      }),
+      voice
     )
   );
 }

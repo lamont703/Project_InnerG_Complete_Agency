@@ -108,6 +108,43 @@ export function bookingVoiceScript(i: VoiceScriptInput): string[] {
   ];
 }
 
+/**
+ * Voices <Say> is allowed to use.
+ *
+ * A WHITELIST, not a free string, even though a voice name is a rendering
+ * choice rather than content. The TwiML endpoint reads this from the query
+ * string so a voice can be A/B tested with a phone call instead of a deploy —
+ * and anything reachable from a URL that reaches Twilio gets validated, on
+ * principle, before it is worth arguing about whether this particular value
+ * could do harm.
+ *
+ * An unknown name is not an error Twilio reports usefully: it falls back to a
+ * default or throws an application error mid-call, and the symptom is a voice
+ * you did not choose or dead air.
+ */
+export const ALLOWED_VOICES = [
+  "Polly.Joanna",
+  "Polly.Joanna-Neural",
+  "Polly.Danielle-Neural",
+  "Polly.Ruth-Neural",
+  "Polly.Matthew-Neural",
+  "Polly.Stephen-Neural",
+] as const;
+
+export type AllowedVoice = (typeof ALLOWED_VOICES)[number];
+
+/**
+ * The default stays the standard voice until a neural one has been heard on a
+ * real call. Making an unverified voice the default risks every call at once;
+ * testing it through the parameter risks one.
+ */
+export const DEFAULT_VOICE: AllowedVoice = "Polly.Joanna";
+
+export function resolveVoice(raw: string | null | undefined): AllowedVoice {
+  const hit = (ALLOWED_VOICES as readonly string[]).find((v) => v === raw);
+  return (hit as AllowedVoice) ?? DEFAULT_VOICE;
+}
+
 function escapeXml(v: string): string {
   return v
     .replace(/&/g, "&amp;")
@@ -124,9 +161,9 @@ function escapeXml(v: string): string {
  * half-second is the person saying "hello", and on a machine it is the tail of
  * the greeting. Speaking into either loses the sentence that says who we are.
  */
-export function bookingVoiceTwiml(lines: string[]): string {
+export function bookingVoiceTwiml(lines: string[], voice: AllowedVoice = DEFAULT_VOICE): string {
   const speech = lines
-    .map((l) => `  <Say voice="Polly.Joanna">${escapeXml(l)}</Say>\n  <Pause length="1"/>`)
+    .map((l) => `  <Say voice="${voice}">${escapeXml(l)}</Say>\n  <Pause length="1"/>`)
     .join("\n");
   /*
    * NO <?xml?> DECLARATION HERE. lib/twiml.ts prepends one, and a document with

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   spokenPhone, bookingVoiceScript, bookingVoiceTwiml, withinCallWindow,
-  CALL_WINDOW_CENTRAL,
+  CALL_WINDOW_CENTRAL, resolveVoice, DEFAULT_VOICE, ALLOWED_VOICES,
 } from "./voice-script";
 
 describe("spokenPhone", () => {
@@ -135,5 +135,33 @@ describe("withinCallWindow", () => {
     const [open, close] = CALL_WINDOW_CENTRAL;
     expect(open - 2).toBeGreaterThanOrEqual(9);  // Pacific never before 9am
     expect(close + 1).toBeLessThanOrEqual(19);   // Eastern never past 7pm
+  });
+});
+
+describe("resolveVoice", () => {
+  it("accepts a whitelisted voice", () => {
+    expect(resolveVoice("Polly.Joanna-Neural")).toBe("Polly.Joanna-Neural");
+  });
+
+  /*
+   * The reason this is a whitelist. Twilio does not report an unknown voice
+   * usefully — it falls back silently or throws an application error mid-call,
+   * so the symptom is a voice nobody chose, or dead air.
+   */
+  it("falls back to the default for anything unknown", () => {
+    expect(resolveVoice("Polly.Nonexistent")).toBe(DEFAULT_VOICE);
+    expect(resolveVoice(null)).toBe(DEFAULT_VOICE);
+    expect(resolveVoice("")).toBe(DEFAULT_VOICE);
+    expect(resolveVoice('"><Say>owned</Say>')).toBe(DEFAULT_VOICE);
+  });
+
+  // The default is the standard voice until a neural one is heard on a real
+  // call: an unverified default risks every call, the parameter risks one.
+  it("defaults to a voice that is on the list", () => {
+    expect(ALLOWED_VOICES).toContain(DEFAULT_VOICE);
+  });
+
+  it("renders the chosen voice into the TwiML", () => {
+    expect(bookingVoiceTwiml(["hi"], "Polly.Matthew-Neural")).toContain('voice="Polly.Matthew-Neural"');
   });
 });
