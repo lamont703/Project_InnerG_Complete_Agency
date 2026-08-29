@@ -33,41 +33,14 @@ require("dotenv").config({ path: ".env.local" });
 // The chain is duplicated from lib/google-clients.ts rather than imported,
 // because that file is TypeScript and this must run under plain node like every
 // other script here. Keep the two in step — the canonical name is index 0.
-const CHAIN = {
-  gbp_owner: {
-    label: "Business Profile — owner connect (customer-facing)",
-    id: ["GOOGLE_GBP_OWNER_CLIENT_ID", "GOOGLE_CLIENT_ID"],
-    secret: ["GOOGLE_GBP_OWNER_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET"],
-    refresh: null, // per-user; tokens live in gbp_connections
-  },
-  gbp_brand: {
-    label: "Business Profile — our own listing",
-    id: ["GOOGLE_GBP_BRAND_CLIENT_ID", "GOOGLE_INTERNAL_CLIENT_ID", "GOOGLE_CLIENT_ID"],
-    secret: ["GOOGLE_GBP_BRAND_CLIENT_SECRET", "GOOGLE_INTERNAL_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET"],
-    // NOT an env var. The brand token is stored per-connection in
-    // publisher_connections, minted by scripts/publisher_connect.js gbp.
-    // Reporting a missing env var here was a false alarm.
-    refresh: null,
-  },
-  youtube: {
-    label: "YouTube publishing",
-    id: ["GOOGLE_YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_ID", "GOOGLE_INTERNAL_CLIENT_ID"],
-    secret: ["GOOGLE_YOUTUBE_CLIENT_SECRET", "YOUTUBE_CLIENT_SECRET", "GOOGLE_INTERNAL_CLIENT_SECRET"],
-    refresh: ["GOOGLE_YOUTUBE_REFRESH_TOKEN", "YOUTUBE_REFRESH_TOKEN"],
-  },
-  gsc: {
-    label: "Search Console",
-    id: ["GOOGLE_GSC_CLIENT_ID", "GOOGLE_INTERNAL_CLIENT_ID", "GOOGLE_CLIENT_ID"],
-    secret: ["GOOGLE_GSC_CLIENT_SECRET", "GOOGLE_INTERNAL_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET"],
-    refresh: ["GOOGLE_GSC_REFRESH_TOKEN"],
-  },
-  ads: {
-    label: "Google Ads",
-    id: ["GOOGLE_ADS_CLIENT_ID", "GOOGLE_INTERNAL_CLIENT_ID", "GOOGLE_CLIENT_ID"],
-    secret: ["GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_INTERNAL_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET"],
-    refresh: ["GOOGLE_ADS_REFRESH_TOKEN"],
-  },
-};
+/*
+ * The chain lives in scripts/_google_clients.js, shared with the setup
+ * scripts that MINT tokens. It used to be copied here, which meant the
+ * doctor could report a purpose as healthy while gsc_oauth_setup.js minted
+ * against a different client — the two disagreeing was invisible precisely
+ * because each held its own copy.
+ */
+const { CHAIN } = require("./_google_clients");
 
 const PROBE_REDIRECT = "https://shearquery.com/api/google-business/callback";
 

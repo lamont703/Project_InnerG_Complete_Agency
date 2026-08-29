@@ -1,19 +1,13 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { Sparkles } from "lucide-react";
+import { audienceFromParam, AUDIENCES } from "@/lib/audiences";
 import {
-  Sparkles,
-  BadgeCheck,
-  Users,
-  CheckCircle2,
-  Calendar,
-  MapPin,
-  GraduationCap,
-  BarChart3,
-  type LucideIcon,
-} from "lucide-react";
-import { audienceFromParam, AUDIENCES, LIVE_AUDIENCES, type AudienceBenefit } from "@/lib/audiences";
+  AudienceHeading,
+  AudienceSwitcher,
+  AudienceBenefitList,
+} from "./audience-content";
 
 /**
  * The membership page, addressed to whoever actually arrived.
@@ -37,17 +31,6 @@ import { audienceFromParam, AUDIENCES, LIVE_AUDIENCES, type AudienceBenefit } fr
  * rather than spawning a set of near-duplicate URLs for Google to choose
  * between.
  */
-
-const ICONS: Record<AudienceBenefit["icon"], LucideIcon> = {
-  sparkles: Sparkles,
-  "badge-check": BadgeCheck,
-  users: Users,
-  "check-circle": CheckCircle2,
-  calendar: Calendar,
-  "map-pin": MapPin,
-  "graduation-cap": GraduationCap,
-  "bar-chart": BarChart3,
-};
 
 export function MembershipHeading() {
   const params = useSearchParams();
@@ -103,20 +86,7 @@ export function MembershipHeading() {
     );
   }
 
-  const a = AUDIENCES[audienceFromParam(params.get("for"))];
-
-  return (
-    <>
-      <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-3 py-1 mb-4">
-        <Sparkles className="w-3 h-3" />
-        {a.eyebrow}
-      </span>
-      <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-950 leading-tight mb-4">
-        {a.headline}
-      </h1>
-      <p className="text-slate-600 text-base sm:text-lg leading-relaxed">{a.subhead}</p>
-    </>
-  );
+  return <AudienceHeading audience={AUDIENCES[audienceFromParam(params.get("for"))]} />;
 }
 
 export function MembershipBenefits() {
@@ -134,49 +104,11 @@ export function MembershipBenefits() {
 
   return (
     <div className="space-y-6">
-      {/* The switcher is the honest way to serve several audiences off one
-          URL: someone who followed a student link but owns a shop can say so
-          in one tap, instead of bouncing off copy aimed at somebody else.
-          Hidden mid-claim — they already told us why they're here. */}
-      {!isClaiming && (
-        <div className="flex flex-wrap gap-2">
-          {LIVE_AUDIENCES.map((a) => {
-            const isActive = a.id === activeId;
-            return (
-              <Link
-                key={a.id}
-                href={`/membership?for=${a.id}`}
-                scroll={false}
-                className={`rounded-full border px-3.5 py-1.5 text-xs font-bold transition-colors ${
-                  isActive
-                    ? "border-blue-600 bg-blue-600 text-white"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {a.label}
-              </Link>
-            );
-          })}
-        </div>
-      )}
-
-      {active.benefits.map((benefit) => {
-        const Icon = ICONS[benefit.icon];
-        return (
-          <div
-            key={benefit.title}
-            className="flex gap-4 p-5 sm:p-6 rounded-2xl border border-slate-200 bg-white shadow-sm"
-          >
-            <div className="h-11 w-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
-              <Icon className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-sm font-black text-slate-900 mb-1.5">{benefit.title}</h2>
-              <p className="text-sm text-slate-600 leading-relaxed">{benefit.body}</p>
-            </div>
-          </div>
-        );
-      })}
+      {/* Hidden mid-claim — they already told us why they're here. On the hub
+          the switcher stays in `query` form so every existing ?for= link, ad
+          and email keeps landing exactly where it used to. */}
+      {!isClaiming && <AudienceSwitcher activeId={activeId} variant="query" />}
+      <AudienceBenefitList audience={active} />
     </div>
   );
 }

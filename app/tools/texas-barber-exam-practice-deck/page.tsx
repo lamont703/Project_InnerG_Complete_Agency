@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { ORG_ID, WEBSITE_ID, faqId, graph, ref, topics } from "@/lib/schema-graph"
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { motion, AnimatePresence } from "framer-motion"
@@ -19,9 +19,7 @@ import {
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { BarberSchoolSelector } from "@/components/forms/BarberSchoolSelector"
-import { BarberRegisterForm } from "@/components/forms/BarberRegisterForm"
-import { toast } from "sonner"
+import { CommunityMembershipForm } from "@/components/forms/CommunityMembershipForm"
 import { Navbar } from "@/components/layout/navbar"
 import {
   trackExamSessionStart,
@@ -219,12 +217,6 @@ export default function PublicSwipeDeckPage() {
   const currentQuestion = practiceQuestions[currentIndex]
   const isCorrect = currentQuestion?.options.find(o => o.id === selectedOptionId)?.isCorrect
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.info("Institutional authentication initializing...");
-    window.location.href = "/login";
-  };
-
   const handleOptionSelect = (optionId: string) => {
     if (gameState === "feedback") return
     setSelectedOptionId(optionId)
@@ -330,7 +322,7 @@ export default function PublicSwipeDeckPage() {
                     <h2 className="text-4xl font-black uppercase italic tracking-tighter text-slate-950 leading-none">Baseline Audit Complete</h2>
                     <p className="text-slate-600 font-bold leading-relaxed px-4 max-w-sm mx-auto">
                       You scored <span className="text-primary text-2xl px-1">{score} / {practiceQuestions.length}</span>. 
-                      Our <strong>Aesthetic Intelligence</strong> has identified specific knowledge gaps in your profile. Access the Enhanced Prep to resolve these gaps.
+                      Our <strong>ShearQuery Intelligence</strong> has identified specific knowledge gaps in your profile. Access the Enhanced Prep to resolve these gaps.
                     </p>
                 </div>
                 
@@ -489,8 +481,8 @@ export default function PublicSwipeDeckPage() {
                       </h2>
                       <p className="text-slate-500 font-bold text-xs lg:text-sm tracking-tight px-2 lg:px-4 mx-auto max-w-xs">
                         {isLoginView 
-                          ? "Login to resume your personalized Aesthetic Intelligence training." 
-                          : "Complete your profile and let AI train you with Aesthetic Intelligence."}
+                          ? "Login to resume your personalized ShearQuery Intelligence training." 
+                          : "Complete your profile and let AI train you with ShearQuery Intelligence."}
                       </p>
                     </div>
                   </div>
@@ -504,35 +496,67 @@ export default function PublicSwipeDeckPage() {
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: 20 }}
                         >
-                          <BarberRegisterForm onSuccess={(url) => window.location.href = url} />
+                          {/*
+                            * The SAME form /membership and /login render — not a
+                            * copy that matches them today. This gate used to be
+                            * BarberRegisterForm, which demanded a barber school
+                            * from a fixed list plus a professional role before it
+                            * would accept anyone, then provisioned a per-user
+                            * dashboard project and redirected to /dashboard/<slug>.
+                            *
+                            * That is nine fields deep, and the pixel caught what it
+                            * costs: a visitor answered three questions, met this
+                            * gate, tapped the submit button nine seconds later and
+                            * left four seconds after that. Nine seconds is not long
+                            * enough to pick a school and fill eight more fields, so
+                            * the tap was someone testing what was behind the wall.
+                            *
+                            * audience="student" is load-bearing, not decoration.
+                            * With no ?for= in the URL the audience resolves to the
+                            * default ("professional") and /api/community/register
+                            * routes to /search — for somebody who is three questions
+                            * into a state-board practice exam. Students route to
+                            * /account/journey, which is the setup that makes the
+                            * account worth having.
+                            */}
+                          <Suspense fallback={<div className="h-64" />}>
+                            <CommunityMembershipForm source="practice-deck-barber" audience="student" />
+                          </Suspense>
                         </motion.div>
                       ) : (
-                        <form className="space-y-4" onSubmit={handleLogin}>
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</label>
-                            <input 
-                                type="email" 
-                                required 
-                                placeholder="barber@example.com" 
-                                className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-4 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none text-slate-900" 
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Password</label>
-                            <input 
-                                type="password" 
-                                required 
-                                placeholder="••••••••" 
-                                className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-4 text-sm font-bold focus:border-primary focus:ring-0 transition-all outline-none text-slate-900" 
-                            />
-                          </div>
-                          <div className="pt-4">
-                            <Button className="w-full bg-slate-950 text-white hover:bg-primary py-7 lg:py-8 text-sm font-black uppercase tracking-[0.3em] rounded-xl lg:rounded-2xl transition-all shadow-xl">
-                                Login to Dashboard
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                          </div>
-                        </form>
+                        /*
+                         * A HAND-OFF, NOT A FORM. This used to render email and
+                         * password fields bound to nothing at all: handleLogin
+                         * read neither, discarded both and hard-redirected to
+                         * /login. Everyone who signed in here typed their
+                         * credentials twice — the second time on the page that
+                         * could actually use them — after entering a password
+                         * into a form that threw it away.
+                         *
+                         * Sign-in lives at /login and nowhere else. ?redirect=
+                         * brings them back to the deck, so the hand-off costs
+                         * them nothing.
+                         */
+                        <motion.div
+                          key="login"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          className="space-y-5"
+                        >
+                          <p className="text-center text-xs font-bold leading-relaxed text-slate-500 px-2">
+                            Sign in on the members page and we&apos;ll bring you straight back to your practice deck.
+                          </p>
+                          <Button
+                            asChild
+                            className="w-full bg-slate-950 text-white hover:bg-primary py-7 lg:py-8 text-sm font-black uppercase tracking-[0.3em] rounded-xl lg:rounded-2xl transition-all shadow-xl"
+                          >
+                            <Link href="/login?redirect=%2Ftools%2Ftexas-barber-exam-practice-deck">
+                              Continue to Sign In
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </motion.div>
                       )}
                     </AnimatePresence>
  

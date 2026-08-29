@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import { createServerClient } from "@/lib/supabase/server"
 
 // PSI State Board Blueprint (Approximate Weights for 100 Questions)
 const BLUEPRINT = [
@@ -17,11 +18,31 @@ export async function POST(req: NextRequest) {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         )
 
-        const { studentId, projectId, predictedScore } = await req.json()
-
-        if (!studentId || !projectId) {
-            return NextResponse.json({ error: "Missing identity context" }, { status: 400 })
+        /*
+         * IDENTITY COMES FROM THE SESSION, NEVER THE BODY.
+         *
+         * This route holds the service-role key, which bypasses RLS. It used
+         * to take `studentId` from the request JSON, so any caller could POST
+         * someone else's user id and open a mock exam in their name — and the
+         * row would look, to every policy and report downstream, exactly like
+         * one they sat themselves.
+         *
+         * Any studentId still in the body is ignored rather than rejected, so
+         * an older client that keeps sending it does not break.
+         */
+        const session = await createServerClient()
+        const { data: { user } } = await session.auth.getUser()
+        if (!user) {
+            return NextResponse.json({ error: "Not signed in" }, { status: 401 })
         }
+        const studentId = user.id
+
+        const { projectId = null, predictedScore } = await req.json()
+        /*
+         * projectId is OPTIONAL. mock_exams.project_id has been nullable since
+         * migration 165 — it was only this guard that made a dashboard project
+         * mandatory, which is what kept the exam locked inside a portal.
+         */
 
         // 1. Generate the 100-Question Blueprint
         let allQuestions: any[] = []
@@ -65,7 +86,7 @@ export async function POST(req: NextRequest) {
             .from('mock_exams' as any) as any)
             .insert({
                 student_id: studentId,
-                project_id: projectId,
+                project_id: projectId ?? null,
                 status: 'started',
                 questions: shuffledBlueprint,
                 predicted_score: parseInt(predictedScore) || 0,

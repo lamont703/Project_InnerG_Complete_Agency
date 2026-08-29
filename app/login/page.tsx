@@ -16,7 +16,25 @@ import { loginSchema, type LoginInput } from "@/lib/validations/auth"
 import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
-import { BarberRegisterForm } from "@/components/forms/BarberRegisterForm"
+/*
+ * THE SAME FORM /membership USES, not a second one that looks like it.
+ *
+ * This rendered BarberRegisterForm, which asks for a barber school and a
+ * professional role and provisions a dashboard tenant named after the school.
+ * Two problems with that here. The school list is 283 hardcoded Texas schools,
+ * so anyone else is blocked at a required field; and the block was announced by
+ * a toast that auto-dismisses, so by the second attempt the reason was gone.
+ * Real traffic shows one visitor clicking the submit button five times in 26
+ * seconds and leaving.
+ *
+ * BarberRegisterForm is still right where it lives — the scholarship fund and
+ * the exam practice deck, where the school IS the point. It just was not right
+ * as the general front door.
+ *
+ * Sharing the component rather than matching it is deliberate. Two forms that
+ * agree today drift by the next change; one form cannot.
+ */
+import { CommunityMembershipForm } from "@/components/forms/CommunityMembershipForm"
 
 function LoginContent() {
     /*
@@ -121,7 +139,7 @@ function LoginContent() {
 
                 <div className="glass-panel-strong rounded-[2.5rem] p-8 lg:p-10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] border-white/5">
                     {isRegisterView ? (
-                        <BarberRegisterForm onSuccess={(url) => router.push(url)} />
+                        <CommunityMembershipForm source="login" />
                     ) : (
                         <form onSubmit={handleSubmit(onLoginSubmit)} className="space-y-6">
                             <div className="space-y-2">

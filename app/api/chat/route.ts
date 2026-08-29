@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { membershipPath } from '@/lib/audiences';
 import { GoogleGenAI } from '@google/genai';
 
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -191,7 +192,7 @@ export async function POST(req: Request) {
             // limit" is a door closing; the account is the door.
             : `That's your ${MAX_REQUESTS} free answers for today. A free account gives you ${MAX_REQUESTS_MEMBER} a day — and once it knows your state, licence track and exam date, it stops answering in general and starts answering about your exam.`,
           // Lets the client show a real signup path instead of a dead end.
-          upgradeHref: member ? null : '/membership?for=student&src=ai_mode_guard',
+          upgradeHref: member ? null : membershipPath("student", { src: "ai_mode_guard" }),
           // Lets the client fire a distinct event, so guard-shown can be
           // measured against signups the same way the in-chat offer is.
           reason: member ? 'member_daily_limit' : 'anonymous_limit',

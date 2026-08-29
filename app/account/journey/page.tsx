@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { membershipPath } from "@/lib/audiences";
 import { ArrowUpRight, CalendarDays, CircleDot, Check, Clock, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 
 import { Navbar } from "@/components/layout/navbar";
@@ -43,7 +44,7 @@ export default async function JourneyPage() {
   // Not signed in is not an error here — it's the signup funnel. Everything on
   // this page only exists for someone with an account, so the honest response
   // is the page that explains why you'd want one.
-  if (!member) redirect("/membership?for=student");
+  if (!member) redirect(membershipPath("student"));
 
   const facts = await getJourney(member.id);
   const today = new Date().toISOString().split("T")[0];

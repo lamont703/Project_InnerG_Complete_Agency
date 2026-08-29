@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect, useRef, Suspense } from "react";
 import { Search, MapPin, Building, Phone, Briefcase, Users, Star, Target, Globe, AppWindow, PlayCircle, GraduationCap, Store, ChevronDown, ArrowUpRight, Send, CheckCircle2, Loader2, CalendarDays, BadgeCheck, X } from "lucide-react";
 import { searchBarbershops, getSponsoredSearchEntities, getAiModeMemberContext, type SponsoredSearchEntity } from "./actions";
+import { membershipPath } from "@/lib/audiences";
 import { requestEmploymentVerification } from "@/app/tools/employment-match-review/actions";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -918,7 +919,7 @@ function SearchContent() {
                   <span className="text-black">Shear</span><span className="text-blue-600">Query</span>
                 </h1>
                 <p className={`text-muted-foreground px-2 transition-all duration-700 ${results.length > 0 || query.trim().length > 0 ? 'text-sm sm:text-base opacity-0 h-0 overflow-hidden' : 'text-sm sm:text-xl opacity-100 h-auto'}`}>
-                  An AI Agent for your entire barber, beauty and wellness career.
+                  An AI Agent for your entire barber, beauty and wellness business.
                 </p>
               </div>
 
@@ -1284,7 +1285,7 @@ function SearchContent() {
                       answering in general and starts answering about your exam.
                     </p>
                     <Link
-                      href="/membership?for=student&src=ai_mode"
+                      href={membershipPath("student", { src: "ai_mode" })}
                       data-ig-click="ai_mode_signup_offer"
                       onClick={() => (window as any).innerG?.track?.('ai_chat_signup_invite_clicked')}
                       className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-black text-white hover:bg-blue-700 transition-colors"

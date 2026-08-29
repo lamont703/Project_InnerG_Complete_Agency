@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { membershipPath } from "@/lib/audiences"
 import { CheckCircle2, Circle, Cloud, Printer, RotateCcw, Tag, TagIcon } from "lucide-react"
 import { DownloadPdfButton } from "@/components/tools/download-pdf-button"
 import { syncChecklist, toggleChecklistItem, resetChecklist } from "@/components/tools/checklist-actions"
@@ -191,7 +192,7 @@ export function KitChecklist({ groups }: { groups: KitGroup[] }) {
             This list lives on this device only.
           </span>
           <Link
-            href="/membership?for=student"
+            href={membershipPath("student")}
             onClick={() => (window as any).innerG?.track?.("kit_checklist_signup_invite_clicked", { checked: doneCount })}
             className="text-xs font-black text-blue-700 underline underline-offset-2"
           >

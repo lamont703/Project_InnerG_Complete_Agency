@@ -57,6 +57,36 @@ export interface AudienceBenefit {
   body: string;
 }
 
+/**
+ * The extra content an audience needs to stand up as its own page.
+ *
+ * PRESENCE OF THIS FIELD IS WHAT GRANTS A URL. It is deliberately not derived
+ * from `status`: `service_customer` is live and must NOT have a landing page,
+ * because that audience is inferred server-side from a completed booking and
+ * never visits /membership. A door nobody walks through is still a door to
+ * maintain.
+ *
+ * WHY THE FAQS AND LINKS ARE REQUIRED HERE RATHER THAN OPTIONAL. Google
+ * clusters pages when "the primary content [is] very similar" and then picks
+ * one to show — so five URLs that differ only by a headline, sharing a form and
+ * a benefits shell, are the same near-duplicate problem the query-string
+ * approach had, just moved from `?for=` to a path. Making this content part of
+ * the type means an audience page that has nothing of its own to say cannot be
+ * expressed.
+ *   https://developers.google.com/search/docs/crawling-indexing/canonicalization
+ */
+export interface AudienceLanding {
+  /** Segment under /membership. `/membership/students`, etc. */
+  path: string;
+  /** This page's own title and description — it is a landing page, not a variant. */
+  metaTitle: string;
+  metaDescription: string;
+  /** Questions this audience actually asks. Primary content unique to this page. */
+  faqs: { q: string; a: string }[];
+  /** Real routes worth sending this audience to. Verified to exist. */
+  nextLinks: { href: string; label: string; body: string }[];
+}
+
 export interface Audience {
   id: AudienceId;
   /**
@@ -85,6 +115,11 @@ export interface Audience {
   lifecycleTrack: "student" | "owner" | null;
   /** Does signup collect a journey (see lib/member-journey.ts)? */
   collectsJourney: boolean;
+  /**
+   * Own page under /membership, if this audience has enough of its own to say.
+   * Absent means it is reachable by `?for=` only.
+   */
+  landing?: AudienceLanding;
 }
 
 export const AUDIENCES: Record<AudienceId, Audience> = {
@@ -168,6 +203,43 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
       "Read member_journey_context for who they are and where they are in the process, and prefer the answer that is specific to their state, licence track, school and exam date over a general one.",
     lifecycleTrack: "student",
     collectsJourney: true,
+    landing: {
+      path: "students",
+      metaTitle: "Free Account for Barber & Cosmetology Students — Track Your Licence",
+      metaDescription:
+        "A free ShearQuery account for barber and cosmetology students. Tell it your school and exam date once and get pass rates, kit lists and milestones timed to you.",
+      faqs: [
+        {
+          q: "Do I need a licence to make an account?",
+          a: "No. This is built for the part before the licence — school, exam prep and the job hunt that starts the day you pass. You can create an account on your first day of school or before you have picked one.",
+        },
+        {
+          q: "What happens after I sign up?",
+          a: "You are asked for your state, your licence track, your school and roughly when you sit the exam. That takes about a minute and it is what turns the account on — everything after it is timed off those four answers.",
+        },
+        {
+          q: "Is it really free?",
+          a: "Yes. No card, no trial period. The account stays free.",
+        },
+      ],
+      nextLinks: [
+        {
+          href: "/tools/texas-barber-exam-practice-deck",
+          label: "Texas barber written exam practice",
+          body: "Practice questions in the style PSI uses on the Class A Barber written exam.",
+        },
+        {
+          href: "/texas-school-leaderboard",
+          label: "Texas school pass rates",
+          body: "First-attempt pass rates by school — the figure schools tend not to lead with.",
+        },
+        {
+          href: "/texas-barber-state-board-practical-exam-kit-list",
+          label: "Practical exam kit list",
+          body: "What to physically bring on the day of the Texas practical exam.",
+        },
+      ],
+    }
   },
 
   professional: {
@@ -204,6 +276,38 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
       "You are talking to a licensed barber, stylist or beauty professional. Their questions are usually about where to work — booth rent, commission, which shops are hiring, what a chair costs in a given ZIP — and about keeping their licence current (renewal, continuing education).",
     lifecycleTrack: null,
     collectsJourney: false,
+    landing: {
+      path: "professionals",
+      metaTitle: "Free Membership for Licensed Barbers & Stylists — Verified Badge",
+      metaDescription:
+        "A free ShearQuery membership for licensed barbers, stylists and beauty professionals. Claim your profile, earn the verified badge and be findable by shops that are hiring.",
+      faqs: [
+        {
+          q: "What does the verified badge actually do?",
+          a: "It shows on your entity page as a signal that the profile is owner-verified rather than scraped — for clients deciding where to go, and for shop owners deciding who to call.",
+        },
+        {
+          q: "I already have a profile here I did not create. Is that a problem?",
+          a: "No, that is the normal case. The directory is built from public records, so most profiles exist before their owner arrives. Claiming one takes it over rather than creating a duplicate.",
+        },
+        {
+          q: "Will you contact me about work?",
+          a: "We do not broker jobs. The account makes you findable and lets you see booth rent and hiring activity yourself; who reaches out is between you and them.",
+        },
+      ],
+      nextLinks: [
+        {
+          href: "/search",
+          label: "Search the directory",
+          body: "Find your own listing, or look at shops and salons near you.",
+        },
+        {
+          href: "/compare-shops",
+          label: "Compare shops",
+          body: "Side by side on the things that decide where you take a chair.",
+        },
+      ],
+    }
   },
 
   owner: {
@@ -264,6 +368,38 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
       "Connecting Google takes the owner about a minute and is a link you give them — you cannot approve it for them, because Google requires them to sign in and consent on Google's own site. See the OWNER_CONNECT_CONTEXT RULE for what is true about this specific person.",
     lifecycleTrack: "owner",
     collectsJourney: false,
+    landing: {
+      path: "owners",
+      metaTitle: "Free Membership for Barbershop & Salon Owners — Claim Your Listing",
+      metaDescription:
+        "A free ShearQuery membership for barbershop and salon owners. Claim your listing, take appointment requests, and see the talent pipeline and competition around your address.",
+      faqs: [
+        {
+          q: "How do appointment requests reach me?",
+          a: "A customer requests one from your listing and you get a text with their name and number. You answer with a single Y or N. Requests you miss get chased on your behalf, and the customer is told either way.",
+        },
+        {
+          q: "Do I have to connect Google?",
+          a: "No. Connecting a Google Business Profile is read-only and optional — it is what makes the market report specific to your address. The listing, the badge and appointment requests all work without it.",
+        },
+        {
+          q: "What does it cost?",
+          a: "Nothing. No card and no trial. Advertising is a separate, optional product and is never a condition of claiming your listing.",
+        },
+      ],
+      nextLinks: [
+        {
+          href: "/compare-shops",
+          label: "Compare shops",
+          body: "See how the shops around you present themselves.",
+        },
+        {
+          href: "/texas-school-leaderboard",
+          label: "Texas school pass rates",
+          body: "Where the licensed talent near you is actually coming from.",
+        },
+      ],
+    }
   },
 
   school: {
@@ -305,6 +441,39 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
  * purpose rather than deriving this list from `status` — the two answer
  * different questions.
  */
+/**
+ * The right URL to send someone to sign up as a given audience.
+ *
+ * USE THIS RATHER THAN WRITING THE PATH. Five call sites hardcoding
+ * "/membership/students" is five things to find when a slug changes, and the
+ * failure is a 404 that nobody notices because the old URL still works for
+ * everyone who kept the query form.
+ *
+ * Degrades to `?for=` for an audience with no landing page, so a caller cannot
+ * produce a 404 by asking for one that does not exist yet — `school` today.
+ */
+export function membershipPath(id: AudienceId, extra?: Record<string, string>): string {
+  const a = AUDIENCES[id];
+  const q = new URLSearchParams(extra ?? {});
+  if (a.landing) {
+    const s = q.toString();
+    return `/membership/${a.landing.path}${s ? `?${s}` : ""}`;
+  }
+  q.set("for", id);
+  return `/membership?${q.toString()}`;
+}
+
+/**
+ * Audiences with their own page under /membership.
+ *
+ * Derived, never hand-listed — a hand-listed copy is one more thing to forget
+ * when an audience goes live. Order follows LIVE_AUDIENCES so the switcher
+ * reads the same everywhere.
+ */
+export function landingAudiences(): Audience[] {
+  return LIVE_AUDIENCES.filter((a) => a.landing);
+}
+
 export const LIVE_AUDIENCES: Audience[] = [
   AUDIENCES.student,
   AUDIENCES.professional,

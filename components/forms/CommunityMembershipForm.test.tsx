@@ -84,3 +84,40 @@ describe("CommunityMembershipForm — post-signup destination", () => {
     expect(screen.queryByText(/Next: connecting your Google Business Profile/i)).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Which surface gets the credit for a signup.
+ *
+ * This exists because the bug it pins was shipped and only caught while
+ * repointing links. The audience landing pages pass source="membership-students"
+ * on every render, so under the original precedence (prop first) an inbound
+ * /membership/students?src=ai_mode recorded "membership-students" and the
+ * ai_mode attribution vanished — silently, into a field nobody reads until they
+ * ask "is AI Mode a funnel?" and get the wrong answer.
+ */
+describe("CommunityMembershipForm — signup attribution", () => {
+  const bodyOf = () => JSON.parse((globalThis.fetch as any).mock.calls[0][1].body);
+
+  it("credits an explicit ?src= over the page's own default", async () => {
+    params = new URLSearchParams("src=ai_mode");
+    render(<CommunityMembershipForm source="membership-students" />);
+    await signUp();
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    expect(bodyOf().signupSource).toBe("ai_mode");
+  });
+
+  it("falls back to the page's default when no ?src= is present", async () => {
+    render(<CommunityMembershipForm source="membership-students" />);
+    await signUp();
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    expect(bodyOf().signupSource).toBe("membership-students");
+  });
+
+  it("records the audience the page declared, and lets ?for= override it", async () => {
+    params = new URLSearchParams("for=owner");
+    render(<CommunityMembershipForm source="membership-students" audience="student" />);
+    await signUp();
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    expect(bodyOf().audience).toBe("owner");
+  });
+});

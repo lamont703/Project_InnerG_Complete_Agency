@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { membershipPath } from "@/lib/audiences"
 import {
   AlertTriangle,
   ArrowRight,
@@ -436,7 +437,7 @@ export function KitPacker({ kit, siblings }: { kit: PracticalKit; siblings: Prac
             Save what you keep forgetting.
           </span>
           <Link
-            href="/membership?for=student"
+            href={membershipPath("student")}
             onClick={() =>
               trackKitPackerSignupInvite({
                 licence: kit.slug,

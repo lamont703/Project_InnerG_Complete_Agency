@@ -47,10 +47,27 @@ type Question = {
 }
 
 interface EnhancedTexasBarberExamDeckProps {
-    projectSlug: string;
+    /**
+     * The dashboard project this deck is embedded in, when it is embedded in
+     * one. OPTIONAL because /account/exam-prep renders the same deck with no
+     * project behind it — a member has an account, not a provisioned portal,
+     * and that is the direction the whole app is moving.
+     */
+    projectSlug?: string;
+    /**
+     * The member's school, supplied by the caller when there is no project to
+     * read one from.
+     *
+     * It has to arrive as a prop rather than be looked up here: the school
+     * lives on member_journeys, which has RLS enabled and NO policies, so it
+     * is readable by the service role only. This is a client component. A
+     * fetch from here returns empty rows rather than an error, which would
+     * look like "no school on file" forever.
+     */
+    initialSchoolId?: string | null;
 }
 
-export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarberExamDeckProps) {
+export function EnhancedTexasBarberExamDeck({ projectSlug, initialSchoolId = null }: EnhancedTexasBarberExamDeckProps) {
   const router = useRouter()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
@@ -63,7 +80,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
   const [isProcessingAI, setIsProcessingAI] = useState(false)
 
   const [userId, setUserId] = useState<string | null>(null)
-  const [schoolId, setSchoolId] = useState<string | null>(null)
+  const [schoolId, setSchoolId] = useState<string | null>(initialSchoolId)
   const [sessionId, setSessionId] = useState<string>("")
   const [questionStartTime, setQuestionStartTime] = useState<number>(0)
   const [hasChangedAnswer, setHasChangedAnswer] = useState(false)
@@ -85,13 +102,17 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
       if (session?.user) {
          setUserId(session.user.id)
          
-         const { data: projectData } = await (supabase.from("projects") as any)
-            .select("school_id")
-            .eq("slug", projectSlug)
-            .maybeSingle()
-         
-         if (projectData?.school_id) {
-            setSchoolId(projectData.school_id)
+         // Only when embedded in a dashboard project. Without a slug the
+         // school came in as a prop and there is nothing to look up.
+         if (projectSlug) {
+           const { data: projectData } = await (supabase.from("projects") as any)
+              .select("school_id")
+              .eq("slug", projectSlug)
+              .maybeSingle()
+
+           if (projectData?.school_id) {
+              setSchoolId(projectData.school_id)
+           }
          }
       }
 
@@ -282,7 +303,7 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
       exam_mode: isPsiMode ? 'psi_simulation' : 'standard'
     })
 
-    if (userId && currentQuestion?.rawDomain && projectSlug) {
+    if (userId && currentQuestion?.rawDomain) {
         console.log(`📊 [BRAIN SIGNAL] Attempting to log Telemetry for Domain: ${currentQuestion.rawDomain} (Question ID: ${currentQuestion.id})`);
         const supabase = createBrowserClient();
         
@@ -292,7 +313,12 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
         const insertPayload: any = {
             student_id: userId,
             school_id: schoolId,
-            portal_slug: projectSlug,
+            // NOT NULL in migration 153, and no foreign key — it is a label
+            // for where the answer was given, not a reference. "account" is
+            // what /account/exam-prep answers look like. Requiring a project
+            // slug here is what would have silently dropped every answer given
+            // outside a dashboard.
+            portal_slug: projectSlug ?? "account",
             domain: currentQuestion.rawDomain,
             is_correct: correct,
             time_spent_ms: timeSpentMs,
@@ -646,12 +672,18 @@ export function EnhancedTexasBarberExamDeck({ projectSlug }: EnhancedTexasBarber
                         >
                             Synthesize Next Cycle
                         </Button>
+                        {/* Only inside a dashboard — this is the one control
+                            that points at the old portal UI, and there is no
+                            /account equivalent yet. Rendering it without a
+                            project would push to /dashboard/undefined/metrics. */}
+                        {projectSlug && (
                         <Button 
                             onClick={() => router.push(`/dashboard/${projectSlug}/metrics`)}
                             className="h-14 md:h-16 lg:h-18 w-full bg-primary text-white hover:bg-primary/90 text-[10px] sm:text-xs md:text-sm lg:text-base font-black uppercase tracking-wider md:tracking-widest rounded-2xl transition-all shadow-xl shadow-primary/20 px-4 md:px-8 whitespace-normal leading-tight flex items-center justify-center text-center"
                         >
                             Analyze Learning Gaps
                         </Button>
+                        )}
                     </div>
                 </motion.div>
                 ) : (

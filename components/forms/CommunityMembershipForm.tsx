@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { ArrowRight, Loader2, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
-import { audienceFromParam } from "@/lib/audiences"
+import { audienceFromParam, type AudienceId } from "@/lib/audiences"
 import { toast } from "sonner"
 
 /**
@@ -40,7 +40,41 @@ function track(event: string, payload: Record<string, unknown>) {
 // same credentials) but deliberately simpler — one fixed membership tier,
 // no school/role selection, since the only benefit right now is search
 // visibility, not a business dashboard.
-export function CommunityMembershipForm() {
+export interface CommunityMembershipFormProps {
+  /**
+   * Which doorway rendered this form, when no ?src= says otherwise.
+   *
+   * The ?src= param covers links INTO /membership, but this form is also
+   * rendered directly on /login and on the audience landing pages, where there
+   * may be no query string at all. Without this prop those signups record a
+   * null source.
+   *
+   * AN EXPLICIT ?src= WINS OVER THIS PROP. That reverses what this comment said
+   * when the prop was introduced ("no query string can know which page rendered
+   * it better"), and the reversal is the point: /membership/students passes
+   * source="membership-students", so under the old precedence a link carrying
+   * ?src=ai_mode had its attribution silently replaced by the page's own
+   * default — destroying exactly the signal this prop exists to preserve. Both
+   * fields name the surface that sent someone; the more specific one should
+   * win, and that is always the parameter.
+   */
+  source?: string
+  /**
+   * Who this doorway serves, when the page already knows.
+   *
+   * The QUERY PARAM WINS over this prop, as it does for `source`. Someone who
+   * followed a `?for=` link asserted an audience about themselves, and that
+   * beats a page's default.
+   *
+   * Without this, every signup from a page with no `?for=` in the URL resolved
+   * to DEFAULT_AUDIENCE ("professional") and was routed to /search. Someone
+   * three questions into a state-board practice exam is a student, and the
+   * student route is /account/journey — the setup that turns the account on.
+   */
+  audience?: AudienceId
+}
+
+export function CommunityMembershipForm({ source, audience }: CommunityMembershipFormProps = {}) {
   // Claim context handed over by ClaimShopButton. When present, signup also
   // links this member to the entity so the "Claimed" badge turns on.
   const searchParams = useSearchParams()
@@ -62,7 +96,7 @@ export function CommunityMembershipForm() {
    * attributed, because every entry point links to the same /membership URL —
    * so "is AI Mode a funnel?" has been unanswerable rather than answered badly.
    */
-  const signupSource = searchParams.get("src")
+  const signupSource = searchParams.get("src") ?? source
   const wantsConnect = nextIntent === "connect"
   const destination = (fallback: string) =>
     wantsConnect ? "/api/google-business/start" : fallback
@@ -70,7 +104,7 @@ export function CommunityMembershipForm() {
   // Which audience's copy they read on the way in. Resolved through the
   // registry so an unknown or not-yet-launched value can't be written to the
   // member row straight from a query string.
-  const signupAudience = audienceFromParam(searchParams.get("for"))
+  const signupAudience = audienceFromParam(searchParams.get("for") ?? audience)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({

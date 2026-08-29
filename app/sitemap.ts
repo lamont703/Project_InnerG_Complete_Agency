@@ -19,6 +19,7 @@ import { PAGE_SIZE as DIRECTORY_PAGE_SIZE } from '@/lib/directory-config'
 // now lives in lib/public-routes.ts so the Markdown (.md) layer can't drift
 // from what the sitemap considers public.
 import { isExcludedFromSitemap } from '@/lib/public-routes'
+import { landingAudiences } from '@/lib/audiences'
 import { SITE_HOST } from "@/lib/site";
 import {
   isSchoolIndexable, isShopIndexable, isProIndexable,
@@ -72,7 +73,19 @@ function getRoutes(dir: string, baseRoute: string = ''): string[] {
 const getCachedSitemapData = unstable_cache(
   async () => {
     const appDir = path.join(process.cwd(), 'app')
-    const rawRoutes = getRoutes(appDir)
+    /*
+     * getRoutes() skips any directory starting with '[', which is right for
+     * entity routes — their URLs come from the database below, not the
+     * filesystem. But /membership/[audience] is a dynamic segment whose values
+     * are a fixed, build-time list, so nothing else in this file would ever
+     * emit them and the walk alone would leave three real pages out of the
+     * sitemap entirely. Sourced from the registry so a new audience appears
+     * here the moment it gets a landing page.
+     */
+    const rawRoutes = [
+      ...getRoutes(appDir),
+      ...landingAudiences().map((a) => `/membership/${a.landing!.path}`),
+    ]
     const uniqueRoutes = Array.from(new Set(rawRoutes)).filter(
       (route) => !isExcludedFromSitemap(route)
     )

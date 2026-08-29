@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import { createServerClient } from "@/lib/supabase/server"
 
 export async function POST(req: NextRequest) {
     try {
@@ -14,6 +15,18 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Missing exam context" }, { status: 400 })
         }
 
+        /*
+         * An exam id alone used to be enough. This route reads with the
+         * service-role key, so anyone who could guess or obtain an id could
+         * pull back another person's score and cognitive analysis. The caller
+         * now has to be the student the exam belongs to.
+         */
+        const session = await createServerClient()
+        const { data: { user } } = await session.auth.getUser()
+        if (!user) {
+            return NextResponse.json({ error: "Not signed in" }, { status: 401 })
+        }
+
         // 1. Fetch the completed exam data
         const { data: exam, error: fetchError } = await (supabase
             .from('mock_exams' as any) as any)
@@ -25,6 +38,12 @@ export async function POST(req: NextRequest) {
             .single() as any
 
         if (fetchError || !exam) throw new Error("Could not find exam record")
+
+        // Same 404 either way: "not yours" must not be distinguishable from
+        // "does not exist", or this becomes a way to probe which ids are real.
+        if (exam.student_id !== user.id) {
+            return NextResponse.json({ error: "Could not find exam record" }, { status: 404 })
+        }
 
         // 2. High-Fidelity Mock Autopsy Data
         const isPass = (exam.final_score || 0) >= 70
