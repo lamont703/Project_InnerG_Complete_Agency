@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
 
   const { data: entity, error: entityError } = await db
     .from(src.table)
-    .select(`id, slug, phone, contact_id, ${src.nameCol}, ${src.websiteCol}, ${src.extraCols}`)
+    .select(`id, slug, phone, email, contact_id, ${src.nameCol}, ${src.websiteCol}, ${src.extraCols}`)
     .eq("id", entityId)
     .maybeSingle();
 
@@ -325,6 +325,46 @@ export async function POST(request: NextRequest) {
     notifyErrors.push(`sms threw: ${err?.message}`);
   }
 
+  /*
+   * LAST RESORT WHEN THE TEXT COULD NOT GO. The usual cause is a landline —
+   * GHL reports it as "DND is active for SMS" — and a landline is a permanent
+   * condition, not a blip, so retrying the same channel achieves nothing.
+   *
+   * DO NOT MISTAKE THIS FOR A FIX. 26 of 2,541 barbershops have an email on
+   * file: about 1%. It is worth trying because it costs one call and is the
+   * only other channel we hold, not because it will usually work. The status
+   * below is what actually carries the problem to a human.
+   */
+  let bizEmailOk = false;
+  if (!smsOk && e.email) {
+    try {
+      const res = await sendGhlEmail({
+        email: e.email,
+        name: entityName || undefined,
+        subject: `Appointment request${entityName ? ` for ${entityName}` : ""}`,
+        html:
+          `<p><strong>${customerName || "A customer"}</strong> requested an appointment.</p>` +
+          `<p><strong>${match.name}</strong><br>${prettyDate} at ${requestedTime}</p>` +
+          `<p>Phone: <a href="tel:${customerPhone}">${customerPhone}</a><br>Email: ${customerEmail}</p>` +
+          (customerNotes ? `<p>Note: ${customerNotes}</p>` : "") +
+          `<p>This is a request, not a booking — contact them to confirm.</p>` +
+          `<p>We tried to text you and could not, so this email is the only copy you have.</p>`,
+      });
+      bizEmailOk = res.ok;
+      if (!res.ok) notifyErrors.push(`biz email: ${res.error || "unknown"}`);
+    } catch (err: any) {
+      notifyErrors.push(`biz email threw: ${err?.message}`);
+    }
+  }
+
+  /*
+   * Did ANY channel reach them. Everything below turns on this, including what
+   * the customer is told — which is the part that was wrong before: they were
+   * emailed "we've passed your request on, they'll call you" whether or not
+   * anybody had been passed anything.
+   */
+  const businessReached = smsOk || bizEmailOk;
+
   const listingUrl = e.slug
     ? `${SITE_URL}/${entityType === "shop" ? "shop" : entityType === "salon" ? "salons" : entityType === "barber" ? "barbers" : "cosmetologists"}/${e.slug}`
     : SITE_URL;
@@ -335,14 +375,31 @@ export async function POST(request: NextRequest) {
       email: customerEmail,
       name: customerName || undefined,
       subject: `Your appointment request${entityName ? ` — ${entityName}` : ""}`,
-      html:
-        `<p>Thanks${customerName ? `, ${customerName}` : ""} — we've passed your request to ` +
-        `<strong>${entityName || "the business"}</strong>.</p>` +
-        `<p><strong>${match.name}</strong><br>${prettyDate} at ${requestedTime}</p>` +
-        `<p>They'll contact you on ${customerPhone} to confirm. This is a request, not a ` +
-        `confirmed appointment — the time is yours only once they say so.</p>` +
-        (e.phone ? `<p>Want to reach them now? <a href="tel:${e.phone}">${e.phone}</a></p>` : "") +
-        `<p><a href="${listingUrl}">View the listing</a></p>`,
+      html: businessReached
+        ? `<p>Thanks${customerName ? `, ${customerName}` : ""} — we've passed your request to ` +
+          `<strong>${entityName || "the business"}</strong>.</p>` +
+          `<p><strong>${match.name}</strong><br>${prettyDate} at ${requestedTime}</p>` +
+          `<p>They'll contact you on ${customerPhone} to confirm. This is a request, not a ` +
+          `confirmed appointment — the time is yours only once they say so.</p>` +
+          (e.phone ? `<p>Want to reach them now? <a href="tel:${e.phone}">${e.phone}</a></p>` : "") +
+          `<p><a href="${listingUrl}">View the listing</a></p>`
+        /*
+         * THE HONEST VERSION. Saying "we passed it on" when nothing was passed
+         * on leaves somebody waiting for a call that is not coming, and makes
+         * the shop look like it ignored them. If the shop has a phone we hand
+         * it over and tell them to ring it — that is the only next step that
+         * actually works.
+         */
+        : `<p>Thanks${customerName ? `, ${customerName}` : ""} — we have your request for ` +
+          `<strong>${entityName || "the business"}</strong>.</p>` +
+          `<p><strong>${match.name}</strong><br>${prettyDate} at ${requestedTime}</p>` +
+          `<p><strong>We could not reach them electronically.</strong> Their number does not accept ` +
+          `text messages, so nothing has been sent to them yet` +
+          (e.phone
+            ? ` — the fastest thing you can do is call them on <a href="tel:${e.phone}">${e.phone}</a>.</p>`
+            : `.</p>`) +
+          `<p>We're following up from our side too. Nothing is booked until they confirm.</p>` +
+          `<p><a href="${listingUrl}">View the listing</a></p>`,
     });
     emailOk = res.ok;
     if (!res.ok) notifyErrors.push(`email: ${res.error || "unknown"}`);
@@ -355,8 +412,11 @@ export async function POST(request: NextRequest) {
   await db
     .from("booking_requests")
     .update({
-      status: smsOk ? "notified" : "new",
-      notified_business_at: smsOk ? new Date().toISOString() : null,
+      // 'unreachable' rather than 'new': no channel worked, retrying the same
+      // ones will not change that, and a row left as 'new' is invisible to
+      // booking-followup and reads like a race we are about to win.
+      status: businessReached ? "notified" : "unreachable",
+      notified_business_at: businessReached ? new Date().toISOString() : null,
       notified_customer_at: emailOk ? new Date().toISOString() : null,
       notify_error: notifyErrors.length ? notifyErrors.join("; ").slice(0, 2000) : null,
       updated_at: new Date().toISOString(),
