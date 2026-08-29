@@ -51,6 +51,10 @@
     {
       "path": "/api/cron/credit-report-checkin",
       "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/booking-voice-followup",
+      "schedule": "0 17,22 * * 2-6"
     }
   ]
 }
