@@ -431,6 +431,222 @@ export async function tradelinesForMember(memberId: string): Promise<Tradeline[]
 }
 
 // ---------------------------------------------------------------------------
+// Fortnightly check-in
+// ---------------------------------------------------------------------------
+
+export interface Checkin {
+  id: string;
+  enrollmentId: string;
+  token: string;
+  periodStart: string;
+  periodEnd: string;
+  completedAt: string | null;
+  expiresAt: string;
+}
+
+function toCheckin(r: any): Checkin {
+  return {
+    id: r.id,
+    enrollmentId: r.enrollment_id,
+    token: r.token,
+    periodStart: r.period_start,
+    periodEnd: r.period_end,
+    completedAt: r.completed_at ?? null,
+    expiresAt: r.expires_at,
+  };
+}
+
+/** Active enrollments whose next check-in is due. */
+export async function dueEnrollments(limit = 200): Promise<Enrollment[]> {
+  const { data } = await admin()
+    .from("credit_report_shops")
+    .select(ENROLLMENT_COLS)
+    .eq("status", "active")
+    .lte("next_checkin_at", new Date().toISOString())
+    .order("next_checkin_at")
+    .limit(limit);
+  return (data ?? []).map(toEnrollment);
+}
+
+export async function createCheckin(
+  enrollmentId: string,
+  period: { start: string; end: string },
+  ttlDays: number,
+  stalePrompts: number
+): Promise<Checkin | null> {
+  const expires = new Date(Date.now() + ttlDays * 86_400_000).toISOString();
+  const { data, error } = await admin()
+    .from("credit_report_checkins")
+    .insert({
+      enrollment_id: enrollmentId,
+      token: token(),
+      period_start: period.start,
+      period_end: period.end,
+      expires_at: expires,
+      stale_prompts: stalePrompts,
+    })
+    .select("*")
+    .single();
+  if (error) {
+    console.error("[credit-report] createCheckin failed:", error.message);
+    return null;
+  }
+  return toCheckin(data);
+}
+
+export async function markCheckinSent(
+  id: string,
+  status: { sms: string; email: string }
+): Promise<void> {
+  await admin()
+    .from("credit_report_checkins")
+    .update({ sms_status: status.sms, email_status: status.email })
+    .eq("id", id);
+}
+
+/**
+ * Move the shop to its next check-in.
+ *
+ * Advanced from NOW rather than from the previous due date. A deployment that
+ * was down for a week would otherwise come back and fire every missed check-in
+ * at once — several texts in a minute to a shop that did nothing wrong.
+ */
+export async function scheduleNextCheckin(enrollmentId: string, intervalDays: number): Promise<void> {
+  const next = new Date(Date.now() + intervalDays * 86_400_000).toISOString();
+  await admin()
+    .from("credit_report_shops")
+    .update({ last_checkin_at: new Date().toISOString(), next_checkin_at: next })
+    .eq("id", enrollmentId);
+}
+
+/**
+ * Resolve a check-in link.
+ *
+ * Unknown and expired return null identically — the holder of a bad link is
+ * not told which, for the same reason a share token is not.
+ */
+export async function resolveCheckin(
+  checkinToken: string
+): Promise<{ checkin: Checkin; enrollment: Enrollment } | null> {
+  const { data } = await admin()
+    .from("credit_report_checkins")
+    .select("*")
+    .eq("token", checkinToken)
+    .maybeSingle();
+  if (!data) return null;
+  if (new Date(data.expires_at).getTime() < Date.now()) return null;
+
+  const { data: en } = await admin()
+    .from("credit_report_shops")
+    .select(ENROLLMENT_COLS)
+    .eq("id", data.enrollment_id)
+    .maybeSingle();
+  if (!en) return null;
+
+  if (!data.opened_at) {
+    await admin()
+      .from("credit_report_checkins")
+      .update({ opened_at: new Date().toISOString() })
+      .eq("id", data.id);
+  }
+  return { checkin: toCheckin(data), enrollment: toEnrollment(en) };
+}
+
+export async function completeCheckin(id: string): Promise<void> {
+  await admin()
+    .from("credit_report_checkins")
+    .update({ completed_at: new Date().toISOString() })
+    .eq("id", id);
+}
+
+export interface RosterActivity extends RosterEntry {
+  /** Most recent rent_weeks.reported_at, if any. */
+  lastReportedAt: string | null;
+  createdAt: string;
+  presenceAskedAt: string | null;
+  presenceConfirmedAt: string | null;
+  /** Week starts already recorded, so the check-in only asks what is missing. */
+  answeredWeeks: string[];
+  /** week_start -> status, so a recorded week renders pre-selected rather than vanishing. */
+  weekStatus: Record<string, PaymentStatus>;
+}
+
+/**
+ * Active roster plus the activity the check-in needs to decide what to ask.
+ *
+ * THROWS ON A QUERY ERROR RATHER THAN RETURNING AN EMPTY ROSTER, and that is
+ * the whole reason this comment exists. Every other read in this file degrades
+ * to `?? []`, which is right for a page — an empty list renders as "nobody
+ * here". It is exactly wrong for the check-in cron: a failed select became a
+ * roster of zero, which became "nothing outstanding", which became a cheerful
+ * `{ ok: true, skipped: 1 }` while the real reason was a missing column. Every
+ * shop on the system would have been silently skipped, forever, and the job
+ * would have reported success every night.
+ *
+ * Caught per-enrollment by the cron, so one broken shop does not stop the rest.
+ */
+export async function rosterActivity(enrollmentId: string): Promise<RosterActivity[]> {
+  const { data, error } = await admin()
+    .from("shop_roster")
+    .select(ROSTER_COLS + ", created_at, presence_asked_at, presence_confirmed_at")
+    .eq("enrollment_id", enrollmentId)
+    .eq("status", "active")
+    .order("barber_name");
+  if (error) throw new Error(`rosterActivity(${enrollmentId}): ${error.message}`);
+
+  const out: RosterActivity[] = [];
+  for (const r of data ?? []) {
+    const { data: weeks } = await admin()
+      .from("rent_weeks")
+      .select("week_start, status, reported_at")
+      .eq("roster_id", r.id)
+      .order("reported_at", { ascending: false });
+    const weekStatus: Record<string, PaymentStatus> = {};
+    for (const w of weeks ?? []) weekStatus[w.week_start] = w.status as PaymentStatus;
+    out.push({
+      ...toRoster(r),
+      createdAt: r.created_at,
+      presenceAskedAt: r.presence_asked_at ?? null,
+      presenceConfirmedAt: r.presence_confirmed_at ?? null,
+      lastReportedAt: weeks?.[0]?.reported_at ?? null,
+      answeredWeeks: (weeks ?? []).map((w: any) => w.week_start),
+      weekStatus,
+    });
+  }
+  return out;
+}
+
+export async function markPresenceAsked(rosterIds: string[]): Promise<void> {
+  if (!rosterIds.length) return;
+  await admin()
+    .from("shop_roster")
+    .update({ presence_asked_at: new Date().toISOString() })
+    .in("id", rosterIds);
+}
+
+/**
+ * The owner's answer to "is this person still renting a chair?".
+ *
+ * A "no" ENDS the placement and dates it today rather than deleting anything.
+ * The weeks they did pay stay on their record and follow them to the next
+ * chair — that is the entire point of the product, and a roster tidy-up must
+ * never erase somebody's history.
+ */
+export async function setPresence(rosterId: string, stillHere: boolean): Promise<{ ok: boolean; error?: string }> {
+  const patch: any = {
+    presence_confirmed_at: new Date().toISOString(),
+    presence_asked_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  if (!stillHere) {
+    patch.status = "ended";
+    patch.ended_at = new Date().toISOString().slice(0, 10);
+  }
+  const { error } = await admin().from("shop_roster").update(patch).eq("id", rosterId);
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+// ---------------------------------------------------------------------------
 // Sharing
 // ---------------------------------------------------------------------------
 
