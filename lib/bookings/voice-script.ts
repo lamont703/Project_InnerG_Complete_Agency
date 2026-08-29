@@ -128,8 +128,14 @@ export function bookingVoiceTwiml(lines: string[]): string {
   const speech = lines
     .map((l) => `  <Say voice="Polly.Joanna">${escapeXml(l)}</Say>\n  <Pause length="1"/>`)
     .join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
+  /*
+   * NO <?xml?> DECLARATION HERE. lib/twiml.ts prepends one, and a document with
+   * two prologs is malformed — which Twilio surfaces as a generic "application
+   * error" on the call rather than a parse error, so the symptom is dead air on
+   * an answered call and nothing useful in any log. That helper's own comment
+   * warns about this class of failure; this is it.
+   */
+  return `<Response>
   <Pause length="1"/>
 ${speech}
   <Hangup/>

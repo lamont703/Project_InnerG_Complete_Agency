@@ -40,7 +40,7 @@ async function handle(req: Request) {
   if (!ok) console.warn("[voice/booking-notify] unverified Twilio signature — speaking anyway");
 
   if (!callId) {
-    return twiml(`<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`);
+    return twiml(`<Response><Hangup/></Response>`);
   }
 
   const admin = createAdminClient() as any;
@@ -51,7 +51,7 @@ async function handle(req: Request) {
     .maybeSingle();
 
   if (!call) {
-    return twiml(`<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`);
+    return twiml(`<Response><Hangup/></Response>`);
   }
 
   const { data: b } = await admin
@@ -61,7 +61,7 @@ async function handle(req: Request) {
     .maybeSingle();
 
   if (!b) {
-    return twiml(`<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`);
+    return twiml(`<Response><Hangup/></Response>`);
   }
 
   const prettyDate = b.requested_date
