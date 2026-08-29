@@ -84,6 +84,18 @@ describe("bookingVoiceTwiml", () => {
   it("hangs up rather than leaving the line open", () => {
     expect(bookingVoiceTwiml(["x"])).toContain("<Hangup/>");
   });
+
+  /*
+   * The bug this pins cost nothing only because it was caught before a call
+   * was placed. lib/twiml.ts prepends the XML declaration; emitting a second
+   * one makes the document malformed, and Twilio reports malformed TwiML as a
+   * generic "application error" — the caller hears dead air and no log says
+   * why.
+   */
+  it("emits no XML declaration, because twiml() adds it", () => {
+    expect(bookingVoiceTwiml(["x"])).not.toContain("<?xml");
+    expect(bookingVoiceTwiml(["x"]).trimStart().startsWith("<Response>")).toBe(true);
+  });
 });
 
 describe("withinCallWindow", () => {
