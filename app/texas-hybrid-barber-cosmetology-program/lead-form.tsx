@@ -8,7 +8,7 @@ import { CheckCircle2, Loader2, PhoneCall } from "lucide-react";
  *
  * FIVE FIELDS, ALL REQUIRED, AND NOTHING ELSE. Every extra question on a form
  * aimed at a school owner is a reason to close the tab, and none of the
- * obvious extras — enrolment size, which courses, current LMS — is needed to
+ * obvious extras — enrollment size, which courses, current LMS — is needed to
  * make the call. They are better answered ON the call, by someone who can ask
  * follow-ups, than guessed at in a text box.
  *
@@ -47,12 +47,13 @@ export function HybridLeadForm() {
         </h3>
         <p className="mt-3 text-sm leading-relaxed text-emerald-800">
           A ShearQuery rep will call <strong>{phone}</strong> to talk through what a hybrid
-          programme would look like at {schoolName}.
+          program would look like at {schoolName}.
         </p>
         <p className="mt-3 text-sm leading-relaxed text-emerald-800">
           On that call you&apos;ll get a live demo of a possible hybrid interface for your school.
           It is built around your data and your goals, so it takes shape as we talk rather than
           being a canned slideshow — come with your course mix and what you are trying to fix.
+          No two of these are the same, which is why we scope before we quote.
         </p>
       </div>
     );
@@ -133,10 +134,10 @@ export function HybridLeadForm() {
 
       <button type="submit" disabled={pending}
         className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white transition-colors hover:bg-blue-700 disabled:opacity-50">
-        {pending ? <><Loader2 className="h-4 w-4 animate-spin" /> Sending…</> : <><PhoneCall className="h-4 w-4" /> Request my callback</>}
+        {pending ? <><Loader2 className="h-4 w-4 animate-spin" /> Sending…</> : <><PhoneCall className="h-4 w-4" /> Request Callback or Demo</>}
       </button>
-      <p className="text-center text-[11px] text-slate-500">
-        No account, no card. One phone call.
+      <p className="text-center text-[11px] leading-relaxed text-slate-500">
+        One phone call. We scope the work to your school before anyone talks numbers.
       </p>
     </form>
   );

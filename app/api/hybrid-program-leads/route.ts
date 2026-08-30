@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { sendGhlSms } from "@/lib/ghl-sms";
 
 /**
- * A school asking about a hybrid programme.
+ * A school asking about a hybrid program.
  *
  * SAME ORDERING DISCIPLINE AS app/api/bookings and app/api/school-tours: the
  * row is written before anything else can fail, and the visitor is only told
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     try {
       const res = await sendGhlSms({
         message:
-          `New hybrid programme lead\n` +
+          `New hybrid program lead\n` +
           `${schoolName} (${state})\n` +
           `${contactName}\n${phone}\n${email}\n` +
           `They expect a call within 24 hours.`,

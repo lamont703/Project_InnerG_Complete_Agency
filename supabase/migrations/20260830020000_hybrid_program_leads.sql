@@ -1,4 +1,4 @@
--- Schools asking about a hybrid (part-distance) programme.
+-- Schools asking about a hybrid (part-distance) program.
 --
 -- A CALLBACK QUEUE, NOT A SIGNUP. Nothing is provisioned by a row here. The
 -- page promises one thing — a ShearQuery rep phones back within 24 hours with

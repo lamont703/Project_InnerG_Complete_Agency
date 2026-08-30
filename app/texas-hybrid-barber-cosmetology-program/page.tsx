@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, ClipboardCheck, GraduationCap, Monitor, ScrollText, Users } from "lucide-react";
+import { AlertTriangle, ClipboardCheck, GraduationCap, HelpCircle, Monitor, PhoneCall, ScrollText, Users } from "lucide-react";
 
 import { Navbar } from "@/components/layout/navbar";
 import { SITE_URL } from "@/lib/site";
@@ -10,6 +10,7 @@ import {
   RULE_CITATION,
   RULE_URL,
   RULE_VERIFIED_ON,
+  HYBRID_FAQS,
   SCHOOL_OBLIGATIONS,
   TDLR_DISTANCE_URL,
   TDLR_SCHOOL_APPLY_URL,
@@ -17,7 +18,7 @@ import {
 import { HybridLeadForm } from "./lead-form";
 
 /**
- * Hybrid programmes for Texas barber and cosmetology schools.
+ * Hybrid programs for Texas barber and cosmetology schools.
  *
  * THE PAGE REFUSES THE OBVIOUS PITCH, and that is the point. "Take your school
  * online" is what every vendor says and Texas does not allow it: 16 TAC
@@ -57,7 +58,7 @@ export default function TexasHybridProgramPage() {
               For Texas school owners and administrators
             </span>
             <h1 className="text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl">
-              You can move half your programme online. Not all of it — and that&apos;s the offer.
+              Your competitors are enrolling students who will never sit in your classroom
             </h1>
             <p className="mt-5 text-base leading-relaxed text-slate-600 sm:text-lg">
               Texas caps distance education at <strong>{DISTANCE_PERCENT_CAP}% of each course</strong>,
@@ -65,9 +66,27 @@ export default function TexasHybridProgramPage() {
               they will take your school fully online is selling you something TDLR will not approve.
             </p>
             <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
-              What is genuinely available is a hybrid programme that goes right up to the line: for a
+              What is genuinely available is a hybrid program that goes right up to the line: for a
               Class A barber course, <strong>500 of the 1,000 hours</strong> delivered as distance
               theory, on an approved curriculum, with hour accounting an inspector will accept.
+            </p>
+
+            {/* The hero CTA. An owner who already knows they want this should
+                not have to scroll past the whole legal argument to say so —
+                the argument is for the ones who still need convincing. */}
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <a href="#callback"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-black text-white transition-colors hover:bg-blue-700">
+                <PhoneCall className="h-4 w-4" />
+                Request Callback or Demo
+              </a>
+              <a href="#hours"
+                className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-6 py-3.5 text-sm font-black text-slate-700 transition-colors hover:bg-slate-50">
+                See the hour caps
+              </a>
+            </div>
+            <p className="mt-3 text-xs text-slate-500">
+              A ShearQuery rep calls you back within 24 hours.
             </p>
           </header>
 
@@ -106,7 +125,7 @@ export default function TexasHybridProgramPage() {
           </section>
 
           {/* The caps, from the registry. */}
-          <section className="mt-12">
+          <section id="hours" className="mt-12 scroll-mt-24">
             <h2 className="flex items-center gap-2 text-2xl font-black tracking-tight text-slate-950">
               <ScrollText className="h-5 w-5 text-slate-400" />
               How many hours you can actually move, by course
@@ -154,7 +173,7 @@ export default function TexasHybridProgramPage() {
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
               This is the part schools underestimate. The {DISTANCE_PERCENT_CAP}% is a number to plan
               around; these are ongoing duties an inspector checks — and they are why moving theory
-              online is a programme change rather than a software purchase.
+              online is a program change rather than a software purchase.
             </p>
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {SCHOOL_OBLIGATIONS.map((o) => (
@@ -173,6 +192,24 @@ export default function TexasHybridProgramPage() {
             </p>
           </section>
 
+          {/* A second CTA, placed here on purpose: a reader who has got through
+              the rule and the obligations has just understood this is real work
+              rather than a plugin, and that is the moment they want a person. */}
+          <section className="mt-8 rounded-2xl border border-blue-200 bg-blue-50 p-6 text-center sm:p-8">
+            <h2 className="text-xl font-black tracking-tight text-blue-950">
+              Want to know what this looks like for your courses?
+            </h2>
+            <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-blue-900">
+              Tell us your school and a rep will walk you through the hour split for your exact
+              course mix, on a call, with a working interface in front of you.
+            </p>
+            <a href="#callback"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-black text-white transition-colors hover:bg-blue-700">
+              <PhoneCall className="h-4 w-4" />
+              Request Callback or Demo
+            </a>
+          </section>
+
           {/* What we'd actually build, kept honest about what is not decided. */}
           <section className="mt-12 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <h2 className="flex items-center gap-2 text-2xl font-black tracking-tight text-slate-950">
@@ -187,14 +224,15 @@ export default function TexasHybridProgramPage() {
             <p className="mt-3 text-sm leading-relaxed text-slate-600">
               We are not going to pretend it is a finished product you can switch on this week. What
               it looks like depends on your course mix, what you already run, and what you are
-              actually trying to fix — enrolment, completion, pass rates, or the hour paperwork
-              itself. That is the conversation, and it is why this ends in a phone call rather than a
-              free trial.
+              actually trying to fix — enrollment, completion, pass rates, or the hour paperwork
+              itself. No two of these engagements are the same, which is why it ends in a
+              conversation rather than a price list: what your school needs scoped is not what the
+              school across town needs scoped.
             </p>
           </section>
 
           {/* CTA */}
-          <section id="callback" className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-5">
+          <section id="callback" className="mt-12 scroll-mt-24 grid grid-cols-1 gap-8 lg:grid-cols-5">
             <div className="lg:col-span-2">
               <h2 className="flex items-center gap-2 text-2xl font-black tracking-tight text-slate-950">
                 <Users className="h-5 w-5 text-slate-400" />
@@ -226,6 +264,36 @@ export default function TexasHybridProgramPage() {
             </div>
             <div className="lg:col-span-3">
               <HybridLeadForm />
+            </div>
+          </section>
+
+          {/* FAQs last: somebody still reading has an unanswered worry, and
+              the worries are all about risk rather than features. */}
+          <section className="mt-12">
+            <h2 className="flex items-center gap-2 text-2xl font-black tracking-tight text-slate-950">
+              <HelpCircle className="h-5 w-5 text-slate-400" />
+              What school owners ask us
+            </h2>
+            <dl className="mt-5 space-y-3">
+              {HYBRID_FAQS.map((f) => (
+                <div key={f.q} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                  <dt className="text-base font-black text-slate-900">{f.q}</dt>
+                  <dd className="mt-2 text-sm leading-relaxed text-slate-600">{f.a}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+              <p className="text-sm font-bold text-slate-900">Still deciding?</p>
+              <p className="mx-auto mt-1.5 max-w-lg text-sm leading-relaxed text-slate-600">
+                The fastest way to find out whether this is worth doing at your school is twenty
+                minutes on the phone with someone who has read the rule.
+              </p>
+              <a href="#callback"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-black text-white transition-colors hover:bg-blue-700">
+                <PhoneCall className="h-4 w-4" />
+                Request Callback or Demo
+              </a>
             </div>
           </section>
 

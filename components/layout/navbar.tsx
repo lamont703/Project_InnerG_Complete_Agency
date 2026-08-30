@@ -15,10 +15,11 @@ import { ViewAsMenuItem, ViewAsPicker, useViewAs } from "@/components/layout/vie
 const navLinks = [
   { label: "AI Lab", href: "/ai-solutions" },
   { label: "Membership", href: "/membership" },
-  // Points at the free audit rather than the service page: a nav click is cold,
-  // and the audit gives a shop owner their own score before asking for anything.
-  // Pricing is one click on from there.
-  { label: "Google Profile", href: "/google-business-profile-audit" },
+  // The school-side offer. It replaced the Google Profile audit here, which
+  // moved to /ai-solutions where it sits under the two roles it is actually
+  // for — a nav slot reaches everybody, and that audit only ever spoke to shop
+  // owners and stylists.
+  { label: "Hybrid Programs", href: "/texas-hybrid-barber-cosmetology-program" },
   { label: "Advertise", href: "/media-kit" },
 ]
 

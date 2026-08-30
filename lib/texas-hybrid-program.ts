@@ -70,7 +70,7 @@ export const COURSE_CAPS: CourseCap[] = [
  *
  * These are the part schools underestimate. The 50% is a number to plan
  * around; these are ongoing operational duties that an inspector checks, and
- * they are why "put the theory online" is a programme change rather than a
+ * they are why "put the theory online" is a program change rather than a
  * software purchase.
  */
 export const SCHOOL_OBLIGATIONS: { title: string; body: string }[] = [
@@ -85,7 +85,7 @@ export const SCHOOL_OBLIGATIONS: { title: string; body: string }[] = [
       "For theory, an instructor may participate through distance education. Distance education hours are the only hours that can be completed without an instructor physically present.",
   },
   {
-    title: "Approval comes first, per programme",
+    title: "Approval comes first, per program",
     body:
       "Distance education is a section of the curriculum application, submitted per course. An inspector verifies the Certificate of Approval — and a new curriculum application is required if the approved distance hours change at all.",
   },
@@ -100,3 +100,60 @@ export const SCHOOL_OBLIGATIONS: { title: string; body: string }[] = [
 export function distanceHoursFor(course: string): CourseCap | undefined {
   return COURSE_CAPS.find((c) => c.course === course);
 }
+
+/**
+ * The objections a school owner actually raises, and honest answers.
+ *
+ * WRITTEN AS OBJECTIONS, NOT FEATURES. "What is a hybrid program?" is a
+ * question nobody with a school to run is asking. "Will TDLR approve this",
+ * "does it cost me practical time", "what happens at my next inspection" and
+ * "who does the work" are the four that decide whether they take the call, and
+ * three of them are risk questions rather than product questions.
+ *
+ * ANSWERS THAT ADMIT A COST ARE MORE PERSUASIVE THAN ANSWERS THAT DO NOT. A
+ * school owner has been sold "fully online" before and knows it is not true; a
+ * page that concedes the approval work and the 50% ceiling reads as the one
+ * that has actually done this.
+ */
+export interface Faq {
+  q: string;
+  a: string;
+}
+
+export const HYBRID_FAQS: Faq[] = [
+  {
+    q: "Will TDLR approve this, or am I risking my school license?",
+    a:
+      "Distance education is already permitted and already has a form: it is a section of the curriculum application, submitted per course. Nothing here asks you to do something novel or to seek an exception. What it does ask is that the hours are designed to the cap before you apply, because a curriculum that designates more than 50% as distance theory is the version that gets refused.",
+  },
+  {
+    q: "Does moving theory online cost me practical instruction time?",
+    a:
+      "No — it protects it. The practical hours are unchanged and must stay on campus with an instructor physically present. What changes is that theory stops competing with the clinic floor for room and instructor time, which is usually the constraint a school is actually fighting.",
+  },
+  {
+    q: "What happens at my next inspection?",
+    a:
+      "An inspector verifies the Certificate of Approval and checks that distance hours are documented per student, verified the same way regular attendance is, and reported electronically. That record-keeping is the part schools underestimate, so it is the part we build first. If you cannot evidence the hours, the hours are the problem — not the delivery.",
+  },
+  {
+    q: "We already have an LMS. Why would we need you?",
+    a:
+      "If your LMS tracks hours in a form TDLR accepts and enforces your approved cap per course, you may not. Most do not — they were built for semesters and credits, not clock hours with a regulatory ceiling and a practical component that can never be remote. The gap is usually accounting, not video hosting.",
+  },
+  {
+    q: "How much of the work falls on my staff?",
+    a:
+      "The curriculum application is yours to file — we will not sign it and could not. What we take on is the build and the hour accounting behind it. Where your staff time goes is one of the things the call is for, because it depends on what you already have.",
+  },
+  {
+    q: "What does it cost?",
+    a:
+      "It depends on your course mix, what you already run, and what you are trying to fix, and we would rather tell you that than post a number that turns out to be wrong for you. No two of these engagements are the same. The call is where it gets scoped, and if it is not worth doing we will say so.",
+  },
+  {
+    q: "We are not in Texas. Does any of this apply?",
+    a:
+      "The 50% cap and the per-course hours on this page are Texas law and do not travel. Other states differ sharply — some allow distance hours with a different ceiling, some allow none. Tell us your state on the form and we will tell you what your board actually permits before we talk about anything else.",
+  },
+];
