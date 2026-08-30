@@ -53,3 +53,33 @@ describe("the hero call to action", () => {
     expect(src).not.toContain("nothing to install. Reports to nobody");
   });
 });
+
+describe("mid-page calls to action", () => {
+  it("adds two, so the owner pitch is not one long scroll to a single form", () => {
+    // The pitch runs six sections between the hero button and the form.
+    // Somebody convinced by section three should not have to scroll past three
+    // more to act on it.
+    expect((src.match(/<CtaBand/g) ?? []).length).toBe(2);
+  });
+
+  it("places one after the FAQ, where the page used to end on its best reader", () => {
+    const faq = src.indexOf("Questions</h2>");
+    const notThis = src.indexOf("What this is not");
+    const band = src.indexOf("<CtaBand", faq);
+    expect(faq).toBeGreaterThan(-1);
+    expect(band).toBeGreaterThan(faq);
+    expect(band).toBeLessThan(notThis);
+  });
+
+  it("keeps every ask pointed at the same anchor", () => {
+    // Three buttons render, from TWO href literals: the hero's own, and one
+    // inside CtaBand which is used twice. Counting occurrences in the source
+    // and expecting three was this test's own mistake, and worth leaving a note
+    // about — a shared component means rendered count and source count are
+    // different numbers, and asserting the wrong one fails on correct code.
+    expect((src.match(/href="#enroll"/g) ?? []).length).toBe(2);
+    // The one inside CtaBand is what makes both mid-page bands point home.
+    const band = src.slice(src.indexOf("function CtaBand"));
+    expect(band.slice(0, band.indexOf("}\n\n"))).toContain('href="#enroll"');
+  });
+});

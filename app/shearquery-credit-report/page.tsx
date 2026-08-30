@@ -208,6 +208,36 @@ const HERO = {
   },
 } as const;
 
+
+/**
+ * A mid-page ask, deliberately quieter than the hero.
+ *
+ * Two of these sit between the hero button and the form because the owner
+ * pitch runs six sections long — why, what the worker gets, the sample report,
+ * how little work it is, both sides, and the privacy promise. Somebody
+ * convinced by section three should not have to scroll past three more to act
+ * on it, and somebody who read all twelve questions at the bottom should not
+ * reach the end of the page with nothing to click.
+ *
+ * Styled DOWN on purpose. A second hero competes with the first and makes the
+ * page feel like it is badgering; this is a line and a button, placed where the
+ * argument has just finished making a point.
+ */
+function CtaBand({ line, cta }: { line: string; cta: string }) {
+  return (
+    <div className="mt-10 flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-5 text-center sm:flex-row sm:justify-between sm:text-left">
+      <p className="text-sm font-bold text-slate-700">{line}</p>
+      <a
+        href="#enroll"
+        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+      >
+        {cta}
+        <ArrowRight className="h-4 w-4" />
+      </a>
+    </div>
+  );
+}
+
 export default async function CreditReportOnboardingPage({
   searchParams,
 }: {
@@ -336,6 +366,11 @@ export default async function CreditReportOnboardingPage({
               </p>
             </div>
           </section>
+
+          <CtaBand
+            line="That is the whole job — one text every two weeks, one tap each."
+            cta="Enroll your shop or salon"
+          />
 
           {/* Worker second. */}
           <section className="mt-14">
@@ -511,6 +546,11 @@ export default async function CreditReportOnboardingPage({
               ))}
             </dl>
           </section>
+
+          <CtaBand
+            line="Nothing else to work out. Two minutes, and the record starts this week."
+            cta="Enroll your shop or salon"
+          />
 
           <section className="mt-14 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <h2 className="text-xl font-black tracking-tight text-slate-950">What this is not</h2>
