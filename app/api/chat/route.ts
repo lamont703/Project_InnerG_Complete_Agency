@@ -10,6 +10,8 @@ import { getViewAsContext } from '@/lib/account/view-as';
 import { memberPerformanceContext } from '@/lib/member-performance-context';
 import { ownerConnectContext } from '@/lib/owner-connect-context';
 import { policyForChannel } from '@/lib/agent-policy';
+import { SITE_URL } from '@/lib/site';
+import { OFF_WEB_TEXT_CHANNELS, absolutizeLinksForMessaging } from '@/lib/chat-links';
 import { agentJourneyContext, stateCoverageForChat } from '@/lib/member-journey';
 import { AUDIENCES } from '@/lib/audiences';
 import { slimContext, contextChars } from '@/lib/chat-context-slim';
@@ -1036,7 +1038,13 @@ ${JSON.stringify(slimmedContext).substring(0, 120000)}
     const newCount = usageCount + 1;
     const nextReset = resetTime && new Date() > new Date(resetTime) ? resetTime : new Date(Date.now() + RATE_LIMIT_RESET_HOURS * 60 * 60 * 1000).toISOString();
 
-    const finalText = response.text ? sanitizeMarkdownLinks(response.text, validLinks) : response.text;
+    const sanitized = response.text ? sanitizeMarkdownLinks(response.text, validLinks) : response.text;
+    // Absolutise AFTER sanitising, so only links that survived validation get a
+    // domain put in front of them.
+    const finalText =
+      sanitized && OFF_WEB_TEXT_CHANNELS.has(channel)
+        ? absolutizeLinksForMessaging(sanitized, validLinks)
+        : sanitized;
 
     // Persist the exchange for signed-in members only. Anonymous chats stay in
     // sessionStorage exactly as before and are never written to the database —
