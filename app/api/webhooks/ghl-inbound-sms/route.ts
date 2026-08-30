@@ -371,7 +371,16 @@ export async function POST(req: NextRequest) {
        * two callers cannot disagree about what a late yes means.
        */
       const kind: ResolutionKind =
-        nextStatus === "declined" ? "declined" : slotGone ? "booked_late" : "booked";
+        nextStatus === "declined"
+          // A late NO needs the same distinction as a late yes. The ordinary
+          // declined copy credits the business with answering quickly, which
+          // reads badly about a slot that went by yesterday.
+          ? slotGone
+            ? "declined_late"
+            : "declined"
+          : slotGone
+            ? "booked_late"
+            : "booked";
       const outcome = await notifyCustomerOnce(admin, target as any, kind, now);
       notified = outcome.sent ? kind : (outcome.reason ?? "not_sent");
     } catch (err: any) {

@@ -102,3 +102,60 @@ export async function enrollShopAction(input: {
   revalidatePath("/account/credit-reporting");
   return { ok: true };
 }
+
+/**
+ * Join the waitlist for reporting beyond ShearQuery.
+ *
+ * DELIBERATELY DOES NOT REQUIRE AN ACCOUNT, unlike enrolment. Enrolling means
+ * making written statements about named people, so it must be attributable.
+ * Asking to be told when bureau reporting exists is a question, not a claim
+ * about anybody — putting a signup wall in front of a question would cost
+ * answers and protect nothing.
+ *
+ * It also does not touch the enrolment tables. A waitlist row must never be
+ * mistaken for a shop that is reporting: one is reporting today, the other
+ * asked about something that does not exist yet.
+ */
+export async function joinReportingWaitlistAction(input: {
+  shopName: string;
+  contactName?: string;
+  email: string;
+  phone?: string;
+  city?: string;
+  chairCount?: number | null;
+  bureaus: string[];
+  notes?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const shopName = (input.shopName || "").trim();
+  const email = (input.email || "").trim();
+  if (!shopName) return { ok: false, error: "Add your shop name." };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { ok: false, error: "That email doesn't look right." };
+  }
+
+  const ALLOWED = ["experian", "equifax", "transunion", "dnb"];
+  const bureaus = (input.bureaus || []).filter((b) => ALLOWED.includes(b));
+
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const member = await currentMember();
+    const { error } = await (createAdminClient().from("credit_reporting_waitlist") as any).insert({
+      shop_name: shopName,
+      contact_name: input.contactName?.trim() || null,
+      email,
+      phone: input.phone?.trim() || null,
+      city: input.city?.trim() || null,
+      chair_count: Number.isFinite(input.chairCount as number) ? input.chairCount : null,
+      bureaus,
+      notes: input.notes?.trim() || null,
+      source: member ? "landing_page_member" : "landing_page",
+    });
+    if (error) throw error;
+  } catch (e) {
+    console.error("[credit-report] waitlist insert failed", e);
+    return { ok: false, error: "Couldn't save that. Try again in a moment." };
+  }
+
+  revalidatePath("/shearquery-credit-report");
+  return { ok: true };
+}

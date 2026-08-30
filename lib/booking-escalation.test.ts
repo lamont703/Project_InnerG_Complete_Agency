@@ -265,3 +265,36 @@ describe("phone_call rows are never auto-texted", () => {
     expect(nextAction(legacy, now).kind).toBe("nudge_business");
   });
 });
+
+describe("a decline that arrives after the slot", () => {
+  /*
+   * The gap this closes: only a late YES was checked. A late NO fell through to
+   * the ordinary declined copy, which tells the customer the business "answered
+   * quickly, which is worth something" — about a time that passed yesterday.
+   */
+  it("distinguishes a late decline from a timely one", () => {
+    const base = {
+      id: "1", status: "declined", notified_business_at: "2026-08-27T10:00:00Z",
+      escalated_at: null, resolution_notified_at: null,
+      requested_date: "2026-08-28", requested_time: "2:30 PM",
+      notify_channel: "sms",
+    } as any;
+
+    // Two days after the slot.
+    expect(nextAction(base, new Date("2026-08-30T12:00:00Z")).kind).toBe("tell_customer_declined_late");
+
+    // Two days before it.
+    expect(
+      nextAction({ ...base, requested_date: "2026-09-05" }, new Date("2026-09-03T12:00:00Z")).kind
+    ).toBe("tell_customer_declined");
+  });
+
+  it("still says nothing twice", () => {
+    const told = {
+      id: "1", status: "declined", notified_business_at: "2026-08-27T10:00:00Z",
+      escalated_at: null, resolution_notified_at: "2026-08-29T10:00:00Z",
+      requested_date: "2026-08-28", requested_time: "2:30 PM", notify_channel: "sms",
+    } as any;
+    expect(nextAction(told, new Date("2026-08-30T12:00:00Z")).kind).toBe("wait");
+  });
+});

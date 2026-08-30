@@ -29,7 +29,7 @@ import { sendGhlEmail } from "@/lib/ghl-email";
  * caller can log them.
  */
 
-export type ResolutionKind = "declined" | "no_response" | "booked" | "booked_late";
+export type ResolutionKind = "declined" | "declined_late" | "no_response" | "booked" | "booked_late";
 
 export interface ResolutionRow {
   id: string;
@@ -123,6 +123,34 @@ export function resolutionEmail(r: ResolutionRow, kind: ResolutionKind) {
         `<p>That time has already passed, so we would not treat this as a confirmed ` +
         `appointment. They are clearly willing to take you though — the quickest thing is to ` +
         `call them and pick a new time directly.</p>` +
+        call +
+        `<p><a href="${listingUrl(r)}">View the listing</a></p>`,
+    };
+  }
+
+  /*
+   * Declined, and the slot had already gone.
+   *
+   * The ordinary declined copy praises the business for answering quickly.
+   * That is true when it is true, and jarring when the time passed yesterday —
+   * it reads as a site that does not know what day it is, in a message whose
+   * whole job is to be trusted about a date.
+   *
+   * Two facts, both said plainly: they said no, and the time had gone anyway.
+   * Leaving the second out invites the reader to think the slot was live until
+   * the shop killed it, which would make them angrier at the shop than the
+   * facts support.
+   */
+  if (kind === "declined_late") {
+    return {
+      subject: `${who} can't take ${when} — and that time has passed`,
+      html:
+        `<p>${r.customer_name ? `${r.customer_name}, ` : ""}<strong>${who}</strong> has come back ` +
+        `about your request for <strong>${when}</strong>, and they can't take it.</p>` +
+        `<p>That time has already passed either way, so there is nothing to cancel — but we would ` +
+        `rather tell you than leave you wondering what happened.</p>` +
+        `<p>If you still want to go to them, the quickest thing is to call and pick a new time ` +
+        `directly.</p>` +
         call +
         `<p><a href="${listingUrl(r)}">View the listing</a></p>`,
     };
