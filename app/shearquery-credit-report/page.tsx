@@ -10,6 +10,7 @@ import {
   Lock,
   CheckCircle2,
   PhoneCall,
+  ArrowRight,
 } from "lucide-react";
 
 import { Navbar } from "@/components/layout/navbar";
@@ -175,7 +176,46 @@ const WORKER_STEPS = [
   },
 ];
 
-export default async function CreditReportOnboardingPage() {
+/**
+ * TWO OPENINGS, ONE PAGE, ONE CANONICAL URL.
+ *
+ * The default hero is written in the worker's voice — "paying your booth rent
+ * on time should be worth something" — which is the honest frame for the
+ * injustice and the wrong first sentence for a shop owner arriving from a cold
+ * text. They read a headline about somebody else's problem and leave.
+ *
+ * ?for=owner swaps the opening only. Everything below it is identical, because
+ * the rest of the page has to serve both audiences whichever door they came
+ * through: an owner still needs to see what they are handing a worker, and a
+ * worker still needs to see where the record comes from.
+ *
+ * A SEARCH PARAM RATHER THAN A SECOND PAGE, so there is one URL to rank, one
+ * canonical, and no thin duplicate for Google to choose between. The canonical
+ * already points at the bare path, so ?for=owner consolidates into it.
+ */
+const HERO = {
+  worker: {
+    eyebrow: "Free for shops, salons and the people who rent from them",
+    title: "Paying your booth rent on time should be worth something",
+    body: "Right now it is worth nothing. A barber or stylist can pay every Monday for three years, move to another shop or salon, and arrive with no way to prove it. The ShearQuery Credit Report is the record that follows them — built by the shop or salon, owned by the worker.",
+    cta: "Enroll your shop or salon",
+  },
+  owner: {
+    eyebrow: "Free for shops and salons · two minutes to set up",
+    title: "Get your booth rent paid on time",
+    body: "Chasing rent every week is the part of running a shop nobody warns you about. When a barber or stylist knows the week goes on a record they carry to their next chair, it changes how they treat it — and you get a way to see who actually pays before you hand over a chair.",
+    cta: "Enroll your shop or salon — free",
+  },
+} as const;
+
+export default async function CreditReportOnboardingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = (await searchParams) ?? {};
+  const hero = params.for === "owner" ? HERO.owner : HERO.worker;
+
   const member = await currentMember();
   // Only their own claimed listings are ever offered — see claimedListings().
   const listings = member ? await claimedListings(member.id) : [];
@@ -189,15 +229,40 @@ export default async function CreditReportOnboardingPage() {
           <header className="mx-auto max-w-3xl text-center">
             <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">
               <ShieldCheck className="h-3 w-3" />
-              Free for shops, salons and the people who rent from them
+              {hero.eyebrow}
             </span>
             <h1 className="text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl">
-              Paying your booth rent on time should be worth something
+              {hero.title}
             </h1>
-            <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
-              Right now it is worth nothing. A barber or stylist can pay every Monday for three
-              years, move to another shop or salon, and arrive with no way to prove it. The ShearQuery Credit Report is the record
-              that follows them — built by the shop or salon, owned by the worker.
+            <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">{hero.body}</p>
+
+            {/*
+              A CTA IN THE HERO, jumping past everything below it.
+
+              The page is ordered to persuade somebody who is not yet convinced,
+              and this button is for the person who already is — arriving from a
+              text they asked for, or coming back a second time. Making them
+              scroll through seven sections of argument they have already
+              accepted is its own way of losing them. Nobody who needs the
+              argument is denied it; the button simply does not require it.
+            */}
+            <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <a
+                href="#enroll"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3.5 text-sm font-black text-white shadow-lg transition hover:bg-slate-800 sm:w-auto"
+              >
+                {hero.cta}
+                <ArrowRight className="h-4 w-4" />
+              </a>
+              <a
+                href="#how"
+                className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 px-6 py-3.5 text-sm font-bold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 sm:w-auto"
+              >
+                See how it works
+              </a>
+            </div>
+            <p className="mt-3 text-xs text-slate-500">
+              No card, no contract, nothing to install. Reports to nobody outside ShearQuery.
             </p>
           </header>
 
@@ -241,7 +306,7 @@ export default async function CreditReportOnboardingPage() {
           {/* Owner first: nothing exists until a shop reports it. */}
           <section className="mt-14">
             <div className="mb-6 flex flex-wrap items-baseline gap-3">
-              <h2 className="text-2xl font-black tracking-tight text-slate-950">If you own the shop or salon</h2>
+              <h2 id="how" className="scroll-mt-24 text-2xl font-black tracking-tight text-slate-950">If you own the shop or salon</h2>
               <span className="text-sm font-bold text-slate-500">Four steps, then a text every two weeks</span>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -366,7 +431,7 @@ export default async function CreditReportOnboardingPage() {
           </section>
 
           {/* Enrollment. */}
-          <section id="enroll" className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-5">
+          <section id="enroll" className="scroll-mt-24 mt-14 grid grid-cols-1 gap-8 lg:grid-cols-5">
             <div className="lg:col-span-2">
               <h2 className="text-2xl font-black tracking-tight text-slate-950">Enroll your shop or salon</h2>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
