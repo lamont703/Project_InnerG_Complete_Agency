@@ -58,17 +58,22 @@ export default function TexasHybridProgramPage() {
               For Texas school owners and administrators
             </span>
             <h1 className="text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl">
-              Your competitors are enrolling students who will never sit in your classroom
+              The students you&apos;re losing can&apos;t be on campus five days a week
             </h1>
             <p className="mt-5 text-base leading-relaxed text-slate-600 sm:text-lg">
-              Texas caps distance education at <strong>{DISTANCE_PERCENT_CAP}% of each course</strong>,
-              theory only. Practical hours can never be delivered remotely. Any vendor telling you
-              they will take your school fully online is selling you something TDLR will not approve.
+              The person working full time, the parent doing school runs, the applicant an hour up
+              the highway — they do not turn down your program because it is bad. They turn it down
+              because they cannot be in a chair on your floor every weekday for a year.
             </p>
             <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
-              What is genuinely available is a hybrid program that goes right up to the line: for a
-              Class A barber course, <strong>500 of the 1,000 hours</strong> delivered as distance
-              theory, on an approved curriculum, with hour accounting an inspector will accept.
+              Texas already lets you take half of that off the table. Up to{" "}
+              <strong>{DISTANCE_PERCENT_CAP}% of every course</strong> can be delivered as distance
+              theory — <strong>500 of the 1,000 hours</strong> on a Class A barber course. The half
+              that stays on campus is the practical half, which is the half worth showing up for.
+            </p>
+            <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
+              What it is not is an online school. Practical hours can never be delivered remotely,
+              and any vendor telling you otherwise is selling something TDLR will refuse to approve.
             </p>
 
             {/* The hero CTA. An owner who already knows they want this should
