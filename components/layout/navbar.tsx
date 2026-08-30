@@ -15,11 +15,20 @@ import { ViewAsMenuItem, ViewAsPicker, useViewAs } from "@/components/layout/vie
 const navLinks = [
   { label: "AI Lab", href: "/ai-solutions" },
   { label: "Membership", href: "/membership" },
-  // Points at the free audit rather than the service page: a nav click is cold,
-  // and the audit gives a shop owner their own score before asking for anything.
-  // Pricing is one click on from there.
-  { label: "Google Profile", href: "/google-business-profile-audit" },
-  { label: "Advertise", href: "/media-kit" },
+  // The school-side offer. It replaced the Google Profile audit here, which
+  // moved to /ai-solutions where it sits under the two roles it is actually
+  // for — a nav slot reaches everybody, and that audit only ever spoke to shop
+  // owners and stylists.
+  { label: "Hybrid Programs", href: "/texas-hybrid-barber-cosmetology-program" },
+  // Advertise gave up this slot to Credit Reporting. A nav slot reaches
+  // everybody, and the media kit only ever spoke to businesses already sold on
+  // buying attention here — the same reasoning that moved the Google Profile
+  // audit out of this list.
+  //
+  // Advertise is NOT gone: it is still in the footer under Company, and
+  // /account/ad-performance links straight to it for anyone already running a
+  // campaign. Those are the two places a would-be advertiser actually looks.
+  { label: "Credit Reporting", href: "/shearquery-credit-report" },
 ]
 
 /**

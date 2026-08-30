@@ -25,6 +25,14 @@ const solutions = [
     roles: ["School Administrators", "Compliance Directors"]
   },
   {
+    title: "Google Business Profile Audit",
+    label: "Local Search Visibility",
+    description: "Score your own Google listing the way a customer searching nearby actually sees it — what is missing, what is wrong, and which gaps cost you the calls. Moved here from the top navigation so it sits with the people it is for.",
+    icon: Globe,
+    href: "/google-business-profile-audit",
+    roles: ["Shop Owners", "Barbers & Stylists"]
+  },
+  {
     title: "Barbershop & Salon Comparison Tool",
     label: "Booth Rent & Chair Comparison",
     description: "Compare shops and salons side by side on booth rent, chairs available, ratings and who's hiring — then drill into any city to see what a chair actually costs before you commit.",

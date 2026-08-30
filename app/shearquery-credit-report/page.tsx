@@ -205,10 +205,14 @@ const WORKER_STEPS = [
 /**
  * TWO OPENINGS, ONE PAGE, ONE CANONICAL URL.
  *
- * The default hero is written in the worker's voice — "paying your booth rent
- * on time should be worth something" — which is the honest frame for the
- * injustice and the wrong first sentence for a shop owner arriving from a cold
- * text. They read a headline about somebody else's problem and leave.
+ * The default hero is written from the worker's side — "paying booth rent on
+ * time should be worth something" — which is the honest frame for the injustice
+ * and still the wrong first sentence for a shop owner arriving from a cold text.
+ * They read a headline about somebody else's problem and leave.
+ *
+ * It says "booth rent" rather than "your booth rent" so it does not pick a
+ * reader: the possessive addressed the barber directly, on a page an owner is
+ * equally likely to land on first.
  *
  * ?for=owner swaps the opening only. Everything below it is identical, because
  * the rest of the page has to serve both audiences whichever door they came
@@ -222,7 +226,7 @@ const WORKER_STEPS = [
 const HERO = {
   worker: {
     eyebrow: "Free for shops, salons and the people who rent from them",
-    title: "Paying your booth rent on time should be worth something",
+    title: "Paying booth rent on time should be worth something",
     body: "Right now it is worth nothing. A barber or stylist can pay every Monday for three years, move to another shop or salon, and arrive with no way to prove it. The ShearQuery Credit Report is the record that follows them — built by the shop or salon, owned by the worker.",
     cta: "Enroll your shop or salon",
   },
