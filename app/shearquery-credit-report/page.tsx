@@ -18,6 +18,7 @@ import { currentMember } from "@/lib/member-context";
 import { claimedListings } from "@/lib/credit-report/store";
 import { MIN_WEEKS_TO_SCORE, BANDS } from "@/lib/credit-report/model";
 import { SITE_URL } from "@/lib/site";
+import { graphJson, faqNode, breadcrumbNode, entityId, ref, ORG_ID, WEBSITE_ID } from "@/lib/schema-graph";
 import { EnrollForm } from "./enroll-form";
 import { WaitlistForm } from "./waitlist-form";
 import { ReportPreview } from "@/components/credit-report/report-preview";
@@ -41,6 +42,31 @@ export const metadata: Metadata = {
   title: "ShearQuery Credit Report — Booth Rent Payment History for Shops, Salons & Suites",
   description:
     "Build a payment record for booth and suite rent. Shops and salons confirm who paid with one tap every two weeks; barbers, stylists and cosmetologists own the record and choose who sees it.",
+  keywords: [
+    "booth rent payment history",
+    "barber credit report",
+    "booth rent reporting",
+    "salon suite rent reporting",
+    "barber rent payment record",
+    "report booth rent to credit bureau",
+    "chair rent tracking for shop owners",
+    "cosmetologist rent payment history",
+    "does booth rent build credit",
+  ],
+  openGraph: {
+    title: "Booth rent that finally counts for something",
+    description:
+      "Shops and salons confirm who paid with one tap a fortnight. Barbers, stylists and cosmetologists own the record and carry it to their next chair. Free.",
+    url: `${SITE_URL}/shearquery-credit-report`,
+    type: "website",
+    siteName: "ShearQuery",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Booth rent that finally counts for something",
+    description:
+      "One tap a fortnight for the shop. A payment record the worker owns and carries to their next chair.",
+  },
   alternates: { canonical: `${SITE_URL}/shearquery-credit-report` },
 };
 
@@ -255,6 +281,55 @@ export default async function CreditReportOnboardingPage({
       <Navbar />
 
       <main className="flex-1 px-4 pb-20 pt-24 sm:px-6">
+        {/*
+          STRUCTURED DATA, and one honest note about the FAQ half of it.
+
+          Google REMOVED the FAQ rich result entirely in May 2026, having already
+          restricted it to authoritative government and health sites in September
+          2023. So FAQPage markup here earns no rich result and this is not why it
+          is present. It stays because the answer engines and AI crawlers this
+          site publishes a .md layer for do read JSON-LD, and twelve questions
+          with plain answers is the most machine-readable form the page has.
+          Checked against Google's own docs rather than recalled — the repo has a
+          standing rule about that, and this is exactly the claim it exists to
+          catch.
+
+          The Service node is the part that does work in Search: it says what
+          this is, who provides it, and that it costs nothing.
+        */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: graphJson(
+              {
+                "@type": "Service",
+                "@id": entityId("/shearquery-credit-report"),
+                name: "ShearQuery Credit Report",
+                serviceType: "Booth rent payment reporting",
+                description:
+                  "A booth and suite rent payment record built by the shop or salon and owned by the barber, stylist or cosmetologist who earned it.",
+                provider: ref(ORG_ID),
+                isPartOf: ref(WEBSITE_ID),
+                areaServed: { "@type": "Country", name: "United States" },
+                audience: {
+                  "@type": "BusinessAudience",
+                  name: "Barbershops, salons and suite operators",
+                },
+                offers: {
+                  "@type": "Offer",
+                  price: "0",
+                  priceCurrency: "USD",
+                  description: "Free. Reporting beyond ShearQuery is waitlisted and not yet available.",
+                },
+              },
+              faqNode("/shearquery-credit-report", FAQ.map((f) => ({ q: f.q, a: f.a })), entityId("/shearquery-credit-report")),
+              breadcrumbNode("/shearquery-credit-report", [
+                { name: "ShearQuery", path: "/" },
+                { name: "ShearQuery Credit Report", path: "/shearquery-credit-report" },
+              ]),
+            ),
+          }}
+        />
         <div className="mx-auto max-w-5xl">
           <header className="mx-auto max-w-3xl text-center">
             <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">
