@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Ban, Loader2, Monitor, School } from "lucide-react";
+import { Ban, Loader2, Monitor, PenLine, School } from "lucide-react";
 import { voidPunchAction } from "./actions";
 
 export interface LedgerRow {
@@ -16,6 +16,8 @@ export interface LedgerRow {
   blockLabel: string | null;
   source: string;
   validated: boolean;
+  validatedBy: string | null;
+  validatedAt: string | null;
   voidedAt: string | null;
   voidedBy: string | null;
   voidReason: string | null;
@@ -29,6 +31,11 @@ export interface LedgerRow {
  * the correction belongs next to the thing it corrected — that adjacency is the
  * whole explanation. A trail with the corrections filtered out is just a
  * different set of numbers with nothing to account for them.
+ *
+ * A SIGNED DISTANCE HOUR NAMES ITS SIGNER, right on the row. "validated" as a
+ * bare badge would be the weaker record — the point of the signature is that
+ * somebody specific stands behind it, and a badge that hides the name reads as
+ * though the system validated the hour, which it did not.
  *
  * VOIDING ASKS FOR A REASON AND WILL NOT PROCEED WITHOUT ONE. A void with no
  * explanation is indistinguishable from a quiet deletion, which is the exact
@@ -91,10 +98,17 @@ export function LedgerClient({ rows }: { rows: LedgerRow[] }) {
                   {r.blockLabel && (<><span>·</span><span>{r.blockLabel}</span></>)}
                   <span>·</span>
                   <span>{r.source}</span>
-                  {r.modality === "distance" && !r.validated && !dead && (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-900">
-                      not validated
-                    </span>
+                  {r.modality === "distance" && !dead && (
+                    r.validated ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-black text-emerald-900">
+                        <PenLine className="h-2.5 w-2.5" />
+                        signed{r.validatedBy ? ` — ${r.validatedBy}` : ""}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-900">
+                        not validated
+                      </span>
+                    )
                   )}
                 </p>
               </div>

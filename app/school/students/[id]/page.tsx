@@ -9,7 +9,7 @@ import {
   campusGaps, distanceCaps, ledger, localWallClock, toHours,
   writtenExamEligible, MAX_BUSINESS_DAYS_BETWEEN_CAMPUS,
 } from "@/lib/school/hours";
-import { studentDetail } from "@/lib/school/store";
+import { signaturesFor, studentDetail } from "@/lib/school/store";
 import { LedgerClient, type LedgerRow } from "./ledger-client";
 
 /**
@@ -71,6 +71,8 @@ export default async function StudentLedgerPage(props: { params: Promise<{ id: s
   const fmtTime = (iso: string) =>
     new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 
+  const signatures = await signaturesFor(d.student.id);
+
   const rows: LedgerRow[] = d.punches
     .map((p: any) => ({
       id: p.id,
@@ -84,6 +86,8 @@ export default async function StudentLedgerPage(props: { params: Promise<{ id: s
       blockLabel: p.scheduleBlockId ? d.blockLabels[p.scheduleBlockId] ?? null : null,
       source: p.source ?? "kiosk",
       validated: Boolean(p.validatedAt),
+      validatedBy: signatures[p.id]?.name ?? null,
+      validatedAt: p.validatedAt ?? null,
       voidedAt: p.voidedAt, voidedBy: p.voidedBy ?? null, voidReason: p.voidReason ?? null,
     }))
     .reverse(); // newest first: a correction is nearly always to a recent punch
@@ -137,7 +141,11 @@ export default async function StudentLedgerPage(props: { params: Promise<{ id: s
               <p className="text-sm leading-relaxed text-amber-900">
                 <strong>{toHours(l.unvalidatedDistanceMinutes).toFixed(1)} online hours have no instructor validation.</strong>{" "}
                 NACCAS VI.02 wants measurable, instructor-validated participation for distance hours
-                specifically — so these are a compliance question, not a bookkeeping one.
+                specifically — so these are a compliance question, not a bookkeeping one.{" "}
+                <Link href="/school/validation" className="font-black underline underline-offset-2">
+                  Sign for them
+                </Link>
+                .
               </p>
             </div>
           )}

@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import Link from "next/link";
-import { Clock } from "lucide-react";
+import { Clock, PenLine } from "lucide-react";
 
 import { Navbar } from "@/components/layout/navbar";
 import { distanceCaps, ledger, toHours } from "@/lib/school/hours";
-import { firstSchool, programsFor, roster } from "@/lib/school/store";
+import { firstSchool, pendingValidation, programsFor, roster } from "@/lib/school/store";
 import { RosterClient, type RosterRow } from "./roster-client";
 
 /**
@@ -57,7 +57,11 @@ export default async function RosterPage() {
     );
   }
 
-  const [entries, programs] = await Promise.all([roster(school.id), programsFor(school.id)]);
+  const [entries, programs, unsigned] = await Promise.all([
+    roster(school.id),
+    programsFor(school.id),
+    pendingValidation(school.id),
+  ]);
 
   const rows: RosterRow[] = entries.map((e) => {
     const l = ledger(e.punches);
@@ -87,13 +91,27 @@ export default async function RosterPage() {
               {school.name} · {rows.length} {rows.length === 1 ? "student" : "students"}
             </p>
           </div>
-          <Link
-            href="/school/clock"
-            className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50"
-          >
-            <Clock className="h-4 w-4" />
-            Open the clock
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            {/* Shown only when there is something to do. A permanent "Sign-off"
+                button reading zero teaches people to ignore it, which is the
+                one thing a compliance queue cannot afford. */}
+            {unsigned.length > 0 && (
+              <Link
+                href="/school/validation"
+                className="inline-flex items-center gap-2 rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-black text-amber-900 hover:bg-amber-100"
+              >
+                <PenLine className="h-4 w-4" />
+                {unsigned.length} online {unsigned.length === 1 ? "session" : "sessions"} to sign
+              </Link>
+            )}
+            <Link
+              href="/school/clock"
+              className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50"
+            >
+              <Clock className="h-4 w-4" />
+              Open the clock
+            </Link>
+          </div>
         </header>
 
         <RosterClient rows={rows} programs={programs} />

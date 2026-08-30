@@ -337,3 +337,164 @@ export async function voidPunch(args: {
   }).eq("id", args.punchId).is("voided_at", null);
   return error ? { ok: false, error: error.message } : { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Instructors, and validating distance hours
+// ---------------------------------------------------------------------------
+
+export interface Instructor {
+  id: string;
+  name: string;
+  licenseNumber: string | null;
+  active: boolean;
+}
+
+export async function instructorsFor(schoolId: string): Promise<Instructor[]> {
+  const { data } = await admin()
+    .from("sis_instructors")
+    .select("id, name, license_number, active")
+    .eq("school_id", schoolId).eq("active", true).order("name");
+  return (data ?? []).map((r: any) => ({
+    id: r.id, name: r.name, licenseNumber: r.license_number ?? null, active: r.active,
+  }));
+}
+
+export async function addInstructor(args: {
+  schoolId: string; name: string; licenseNumber?: string | null; email?: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!args.name.trim()) return { ok: false, error: "A name is required." };
+  const { error } = await admin().from("sis_instructors").insert({
+    school_id: args.schoolId, name: args.name.trim(),
+    license_number: args.licenseNumber?.trim() || null,
+    email: args.email?.trim() || null,
+  });
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+export interface PendingValidation {
+  punchId: string;
+  studentId: string;
+  studentName: string;
+  date: string;
+  punchedInAt: string;
+  punchedOutAt: string;
+  minutes: number;
+  segment: string;
+  blockLabel: string | null;
+}
+
+/**
+ * Distance hours nobody has signed for.
+ *
+ * CLOSED PUNCHES ONLY. A student still on the clock has not finished the
+ * session, and signing for participation that is still happening is signing for
+ * something nobody has seen the end of.
+ *
+ * DISTANCE ONLY. Campus hours are witnessed by an instructor being in the room;
+ * VI.02 element 1 is specifically about the ones that are not.
+ *
+ * OLDEST FIRST. The queue is a backlog, and the oldest unsigned hour is both
+ * the one closest to being indefensible and the one an instructor is least
+ * likely to remember — which is an argument for signing promptly, and for the
+ * page saying how old the oldest one is.
+ */
+export async function pendingValidation(schoolId: string, limit = 200): Promise<PendingValidation[]> {
+  const { data: students } = await admin()
+    .from("sis_students").select("id, first_name, last_name").eq("school_id", schoolId);
+  if (!students?.length) return [];
+  const names = new Map<string, string>(
+    students.map((s: any) => [s.id, `${s.first_name} ${s.last_name}`])
+  );
+
+  const { data, error } = await admin()
+    .from("sis_punches")
+    .select("id, student_id, punched_in_at, punched_out_at, segment, schedule_block_id")
+    .in("student_id", [...names.keys()])
+    .eq("modality", "distance")
+    .is("validated_at", null)
+    .is("voided_at", null)
+    .not("punched_out_at", "is", null)
+    .order("punched_in_at")
+    .limit(limit);
+  if (error) throw new Error(`pendingValidation: ${error.message}`);
+
+  const { data: blocks } = await admin()
+    .from("sis_schedule_blocks").select("id, label").eq("school_id", schoolId);
+  const labels = new Map<string, string>((blocks ?? []).map((b: any) => [b.id, b.label]));
+
+  return (data ?? []).map((r: any) => ({
+    punchId: r.id,
+    studentId: r.student_id,
+    studentName: names.get(r.student_id) ?? "Unknown",
+    date: r.punched_in_at.slice(0, 10),
+    punchedInAt: r.punched_in_at,
+    punchedOutAt: r.punched_out_at,
+    minutes: Math.round(
+      (new Date(r.punched_out_at).getTime() - new Date(r.punched_in_at).getTime()) / 60000
+    ),
+    segment: r.segment,
+    blockLabel: r.schedule_block_id ? labels.get(r.schedule_block_id) ?? null : null,
+  }));
+}
+
+/**
+ * Sign for a set of distance hours.
+ *
+ * WRITES validated_by AND validated_at TOGETHER, which the CHECK constraint in
+ * 20260831020000 also enforces: a validated_at with no validator is the shape a
+ * careless bulk update leaves behind, and it would read as signed.
+ *
+ * ONLY EVER SIGNS UNSIGNED PUNCHES — the `is("validated_at", null)` filter
+ * means a second signature can never overwrite the first. The earliest
+ * signature is the one that was actually given.
+ */
+export async function validatePunches(args: {
+  punchIds: string[]; instructorId: string;
+}): Promise<{ ok: boolean; signed?: number; error?: string }> {
+  if (!args.punchIds.length) return { ok: false, error: "Nothing selected." };
+  const { data, error } = await admin()
+    .from("sis_punches")
+    .update({ validated_at: new Date().toISOString(), validated_by: args.instructorId })
+    .in("id", args.punchIds)
+    .is("validated_at", null)
+    .is("voided_at", null)
+    .select("id");
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, signed: data?.length ?? 0 };
+}
+
+/**
+ * Who signed for which punch, for one student.
+ *
+ * DELIBERATELY NOT PART OF THE Punch TYPE. lib/school/hours.ts is a pure engine
+ * and it only ever asks WHETHER an hour is validated — the name of the person
+ * who signed changes no total it computes. Threading the name through it would
+ * add a field the engine never reads, and the next person maintaining it would
+ * reasonably assume it mattered.
+ */
+export async function signaturesFor(
+  studentId: string
+): Promise<Record<string, { name: string; at: string }>> {
+  const { data } = await admin()
+    .from("sis_punches")
+    .select("id, validated_at, validated_by")
+    .eq("student_id", studentId)
+    .not("validated_by", "is", null);
+  if (!data?.length) return {};
+
+  const ids = [...new Set(data.map((r: any) => r.validated_by))];
+  const { data: people } = await admin()
+    .from("sis_instructors").select("id, name").in("id", ids);
+  const names = new Map<string, string>((people ?? []).map((p: any) => [p.id, p.name]));
+
+  const out: Record<string, { name: string; at: string }> = {};
+  for (const r of data as any[]) {
+    out[r.id] = {
+      // A deleted instructor row leaves the punch signed but unattributable.
+      // Saying so is better than dropping the signature or inventing a name.
+      name: names.get(r.validated_by) ?? "an instructor no longer on file",
+      at: r.validated_at,
+    };
+  }
+  return out;
+}
