@@ -83,3 +83,30 @@ describe("mid-page calls to action", () => {
     expect(band.slice(0, band.indexOf("}\n\n"))).toContain('href="#enroll"');
   });
 });
+
+describe("SEO, social and the LLM layer", () => {
+  it("ships OpenGraph and Twitter cards, not just a title", () => {
+    expect(src).toContain("openGraph:");
+    expect(src).toContain('card: "summary_large_image"');
+  });
+
+  it("describes the service in structured data", () => {
+    // The Service node is the part that does work in Search: what this is, who
+    // provides it, and that it costs nothing.
+    expect(src).toContain('"@type": "Service"');
+    expect(src).toContain('priceCurrency: "USD"');
+  });
+
+  it("carries FAQ markup for machine readers, not for a Google rich result", () => {
+    // Google removed the FAQ rich result in May 2026, having restricted it to
+    // authoritative government and health sites in September 2023. Checked
+    // against their docs rather than recalled. It stays because answer engines
+    // and the crawlers this site publishes a .md layer for do read JSON-LD.
+    expect(src).toContain("faqNode(");
+    expect(src).toContain("May 2026");
+  });
+
+  it("keeps ONE canonical after all the metadata", () => {
+    expect((src.match(/canonical:/g) ?? []).length).toBe(1);
+  });
+});
