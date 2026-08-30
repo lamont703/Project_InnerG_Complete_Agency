@@ -1,17 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import { enrollStudent, firstSchool, programsFor } from "@/lib/school/store";
 
 /**
  * Enrollment, from the front desk.
  *
- * NOT PUBLIC. /school/roster is staff-facing and this action writes a real
- * student record — the moment there is an auth boundary around the school
- * console, it goes here first. It is called out rather than left implicit
- * because the kiosk next door is deliberately unauthenticated, and the two must
- * not be confused: that one can only clock somebody in, this one creates a
- * person.
+ * CHECKS AUTH ITSELF. A server action is a POST to a route, so the middleware
+ * gate on /school/roster does cover it — but that middleware fails open, and
+ * this action creates a person. A write surface cannot rely on a gate that
+ * fails open.
  */
 export async function enrollStudentAction(input: {
   programId: string;
@@ -20,6 +19,8 @@ export async function enrollStudentAction(input: {
   email?: string;
   phone?: string;
 }): Promise<{ ok: boolean; clockCode?: string; error?: string }> {
+  if (!(await isAdmin())) return { ok: false, error: "Not authorized." };
+
   const school = await firstSchool();
   if (!school) return { ok: false, error: "No school is set up." };
 

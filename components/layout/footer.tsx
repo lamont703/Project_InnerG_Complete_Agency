@@ -39,6 +39,7 @@ const footerLinks = {
     { label: "Content Publisher", href: "/admin/content-publisher" },
     { label: "Instagram Carousels", href: "/admin/instagram-carousels" },
     { label: "Content Insights Data", href: "/admin/content-insights" },
+    { label: "School Roster", href: "/school/roster" },
     /**
      * Sits next to the Content Publisher because it answers that page's first
      * question: is the account it publishes to still connected? The panel

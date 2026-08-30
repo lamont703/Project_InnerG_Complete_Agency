@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import { AlertTriangle, ArrowLeft, CalendarClock, GraduationCap } from "lucide-react";
 
 import { Navbar } from "@/components/layout/navbar";
@@ -49,6 +50,10 @@ function Meter({ used, cap, label }: { used: number; cap: number; label: string 
 }
 
 export default async function StudentLedgerPage(props: { params: Promise<{ id: string }> }) {
+  // Gated in middleware AND here. This page renders one named person's full
+  // attendance history and offers to void it — and the middleware fails open.
+  if (!(await isAdmin())) notFound();
+
   const { id } = await props.params;
   const d = await studentDetail(id);
   if (!d) notFound();

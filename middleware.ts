@@ -65,6 +65,20 @@ const INTERNAL_TOOL_ROUTES = [
     // lifetime spend, so the page re-checks isAdmin() itself — this entry is
     // defence in depth, because this middleware fails OPEN on an auth exception.
     "/admin/rebooking",
+    // The school console. THE KIOSK IS DELIBERATELY NOT LISTED: /school/clock
+    // and /api/school/clock are used by students at a door, unauthenticated, by
+    // design — a blanket "/school" prefix here would lock the school out of its
+    // own attendance. Those two are safe open because a clock code can only
+    // clock somebody in or out; it reads no transcript and exposes no other
+    // student.
+    //
+    // These two are a different risk. The roster lists every student and
+    // CREATES people; the ledger can VOID an hour record, which is the most
+    // consequential write in the system. Both pages re-check isAdmin()
+    // themselves, because this middleware fails OPEN on an auth exception and a
+    // write surface cannot rely on it alone.
+    "/school/roster",
+    "/school/students",
     // Both research agents render traffic patterns, CRM segment sizes and
     // revenue. Each page re-checks isAdmin() itself — these entries are defence
     // in depth, because this middleware fails OPEN on an auth exception.

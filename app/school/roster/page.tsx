@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import Link from "next/link";
 import { Clock } from "lucide-react";
 
@@ -16,11 +18,15 @@ import { RosterClient, type RosterRow } from "./roster-client";
  * transcript. One definition of an hour, used everywhere, is worth more than
  * the query time.
  *
- * STAFF-FACING, AND NOT YET GATED. There is no auth boundary around the school
- * console yet; when there is, this page and app/school/roster/actions.ts are
- * where it goes. Saying so here because the kiosk next door is deliberately
- * open and the two must never be confused — that one can only clock somebody
- * in, this one lists every student and creates people.
+ * GATED TWICE, ON PURPOSE. middleware.ts lists /school/roster among the
+ * internal tools behind the password screen, and this page re-checks isAdmin()
+ * — because that middleware FAILS OPEN on an auth exception, which is exactly
+ * the condition under which a page listing every student would otherwise be
+ * served to anybody.
+ *
+ * The kiosk next door is deliberately NOT gated and the two must never be
+ * confused: /school/clock can only clock somebody in or out, while this page
+ * lists every student and creates people.
  */
 export const metadata: Metadata = {
   title: "Roster",
@@ -30,6 +36,10 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RosterPage() {
+  // 404 rather than 403: an unauthorised visitor learns nothing about whether
+  // this page exists.
+  if (!(await isAdmin())) notFound();
+
   const school = await firstSchool();
 
   if (!school) {
