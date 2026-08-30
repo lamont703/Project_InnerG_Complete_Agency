@@ -505,6 +505,15 @@ export async function POST(req: Request) {
       // arriving from a state page's suggested question has NO journey profile,
       // so this is the only thing that lets the assistant answer for a state
       // other than Texas instead of refusing.
+      credit_reporting: {
+        what: "ShearQuery Credit Report — a booth and suite rent payment record kept BY ShearQuery. The shop or salon confirms who paid with one tap every two weeks; the barber, stylist or cosmetologist owns the record and chooses who sees it.",
+        cost: "Free.",
+        who_enrolls: "The shop or salon owner enrols. Workers are added by name — no licence number needed, we resolve it.",
+        who_owns_it: "The worker. Nobody can look anybody up; a record is shared, never queried.",
+        score: "0 to 100, not 300 to 850. A MINIMUM of eight weeks of confirmed payments before any score is shown — below that the history is there with no number, because eight weeks of nothing is no evidence rather than a low score. The record itself has no end: it runs for as many weeks and as many shops as somebody works.",
+        bureaus: "NOT LIVE. Reporting to Dun & Bradstreet, Experian, Equifax and TransUnion is waitlisted, pending licensing. Nothing recorded today reaches any bureau and no date is promised.",
+        page_url: "/shearquery-credit-report",
+      },
       state_licensing_coverage: stateCoverageForChat(),
       texas_2026_exam_school_leaderboard: withProfileUrl(testingLeaderboard, '/schools'),
       texas_2026_cosmetology_exam_school_leaderboard: withProfileUrl(cosmetologyTestingLeaderboard, '/schools'),
@@ -635,6 +644,13 @@ THIS IS ALSO THE QUESTION THE INSTAGRAM BIO TELLS PEOPLE TO ASK. The bio says: D
 - anchorResolved: false MEANS WE COULD NOT PLACE THEIR LOCATION — usually somewhere we have no listings at all. Then the listings are NOT near them and are sorted by size instead. Say plainly that we have nothing in their area yet, say where the inventory actually is (totalOpenChairs across totalOpenVenues, currently Houston and Dallas), and do not present a Houston shop to someone in California as if it were nearby. nearestIsFar: true is the same warning in a place we do cover — lead with the distance.
 - LINK EVERY LISTING with its href per the LINKING RULE.
 - KEEP IT TO 3 OR 4. Name the nearest few with chairs, rent and distance. totalOpenChairs is the whole inventory, so it is fair to close with how many more there are — but do not list them.
+
+CREDIT_REPORTING RULE: credit_reporting is in the context below. Our Instagram bio ends "DM your zip, or \"rent\" to get started", so a message that is nothing but "rent" — or "rent report", "reporting", "credit report", "get started" — is somebody arriving from that bio and asking about the PAYMENT RECORD. Answer with what it is, that it is free, and link page_url.
+- "RENT" ALONE MEANS THE REPORTING. A bare keyword is a bio click, not a question about prices. But "what's rent in 77026", "how much is booth rent", "cheapest rent near me" are PRICE questions however the word appears — those go to get_rent_stats_by_zip, and a chair-availability question goes to find_open_chairs. Same word, three different asks; read the sentence, not the word.
+- IF YOU CANNOT TELL, ASK IN ONE LINE. "Do you mean what rent costs around here, or the payment record?" is better than confidently answering the wrong one.
+- SAY IT THE RIGHT WAY ROUND: it is a ShearQuery record, not a bureau report. Asked and left to improvise, the agent has answered "it is not used for credit reporting", which contradicts the product's own name and makes it sound like nothing. The true sentence is "it is ShearQuery's own record — it does not go to Experian, Equifax, TransUnion or Dun & Bradstreet."
+- NEVER SAY IT REPORTS TO A CREDIT BUREAU. It does not. Dun & Bradstreet, Experian, Equifax and TransUnion are a WAITLIST, pending licensing, with no date. Telling a shop their barbers are being reported to Experian, or a barber that their rent is on their credit file, is false and is the single worst thing you could say about this product. The score is out of 100 and touches nobody's credit.
+- THE OWNER ENROLS, THE WORKER OWNS IT. If a barber or stylist asks how to get one, the honest answer is that their shop has to enrol — they cannot start it alone — and they are welcome to send their shop the link.
 
 GET_RENT_STATS_BY_ZIP TOOL RULE: Booth rent is NOT in the context above for any zip code — it only exists as free text on individual shop records, never pre-aggregated. If asked about rent, pricing, or affordability for a specific zip code (e.g. "what's rent like in 77099," "which zip has the highest rent"), call get_rent_stats_by_zip with that zip rather than guessing or saying you don't have the data. If the tool returns null, say plainly that there's no rent data on file for that zip — don't invent a number. sampleSize in the result is often small (rent is rarely reported) — if it's 1 or 2, say so explicitly (e.g. "based on the one shop with rent data on file") rather than presenting it as a reliable market rate. This tool only accepts one zip at a time — for a "which zip is highest" question, you may need to call it for a few specific zips mentioned in conversation, but don't call it more than 3-4 times in one turn.
 
