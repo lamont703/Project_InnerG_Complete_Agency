@@ -18,6 +18,8 @@ import { claimedListings } from "@/lib/credit-report/store";
 import { MIN_WEEKS_TO_SCORE, BANDS } from "@/lib/credit-report/model";
 import { SITE_URL } from "@/lib/site";
 import { EnrollForm } from "./enroll-form";
+import { WaitlistForm } from "./waitlist-form";
+import { ReportPreview } from "@/components/credit-report/report-preview";
 
 /**
  * How the ShearQuery Credit Report works, and where a shop signs up.
@@ -42,6 +44,90 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
+
+const WHY_SHOPS = [
+  {
+    title: "Rent turns up on time",
+    body: "A barber who knows the week is going on a record they carry to their next chair treats it differently from one who knows it disappears when they leave. That is the whole mechanism, and it works because the record is portable, not because it is punitive.",
+  },
+  {
+    title: "You hire on evidence",
+    body: "Handing someone a chair is a financial decision made on a conversation and a gut feel. A worker who brings a year of confirmed weeks has shown you something no interview can, and one with no record is not a red flag — most people start there.",
+  },
+  {
+    title: "You attract the good ones",
+    body: "Barbers who always pay currently get nothing for it. Be the shop that gives them a record they own and you become the shop the reliable ones want to rent from. No other shop in your city is offering this.",
+  },
+];
+
+const LEVELS = [
+  {
+    name: "Level one — the ShearQuery record",
+    live: true,
+    body: "Confirmed booth rent weeks, a score out of 100, and a history the worker owns and shares. Free, live today, and it reports to nobody outside ShearQuery.",
+  },
+  {
+    name: "Level two — Dun & Bradstreet",
+    live: false,
+    body: "Business credit, for shops and for booth renters who operate as a business. Reaching a business file is a different obligation from reaching a consumer one, which is why it is listed separately rather than lumped in.",
+  },
+  {
+    name: "Level three — Experian, Equifax, TransUnion",
+    live: false,
+    body: "The consumer bureaus, where booth rent would sit alongside a car payment or a phone bill. This is the level that would let paying rent on a chair build a real credit file — and the level with the heaviest obligations, because a record that can cost somebody a mortgage has to be right.",
+  },
+];
+
+const FAQ = [
+  {
+    q: "Is it legal for me to report on my barbers?",
+    a: "You are recording payments on your own chairs, which is bookkeeping you are already entitled to do. What makes it safe to share is the design: the worker sees every entry as it lands, can dispute any of it, and nothing is visible to anyone else unless they choose to share it. Nothing goes to a credit bureau today. If and when it does, each worker will have to agree separately — that is a different product with different rules, and we will not slide people into it quietly.",
+  },
+  {
+    q: "Will my barbers be upset about this?",
+    a: "Show them the page. The ones who pay every week have been getting nothing for it, and this is the first thing that gives them credit for it — portable, theirs, and useful the next time they want a better chair. The ones who do not pay are the reason you are here. If a barber objects to a record they can see, dispute and control, that is worth knowing before you hand them a chair.",
+  },
+  {
+    q: "How much work is this really?",
+    a: "One text every two weeks. It lists your roster and asks who was late — you tap the ones who were, or reply that everyone was fine. Nothing to install, no app, no spreadsheet. If texting is not your thing our voice agent asks the same questions on a call.",
+  },
+  {
+    q: "What if I forget, or I am too busy that week?",
+    a: "Nothing happens. A week nobody answers about is recorded as nothing at all — not as paid, and not as missed. We would rather have a record with gaps than one that quietly invented four fifths of itself from silence.",
+  },
+  {
+    q: "What if I get one wrong?",
+    a: "Fix it. The worker can also dispute it, which flags the week and asks you to confirm. Every entry carries the number it was reported from, so a mistake is traceable and correctable rather than permanent.",
+  },
+  {
+    q: "Can I look up a barber before I rent them a chair?",
+    a: "No, and that is deliberate. There is no lookup and no searchable database — a shop only ever sees its own chairs. A worker shares their record with you the way they would hand over a reference. Building something shops could query behind a worker's back is exactly the product we are refusing to build.",
+  },
+  {
+    q: "What if a barber leaves owing me money?",
+    a: "The weeks you reported stay on their record and follow them to the next shop. That is the point of tying the record to a licence rather than to your shop: a history that dies when somebody walks out of the door deters nobody.",
+  },
+  {
+    q: "What does it cost?",
+    a: "The ShearQuery record is free and we intend to keep it that way. Reporting out to Dun & Bradstreet or the consumer bureaus will be a paid plan when it exists — that level carries real licensing and dispute costs. Waitlisted shops go first.",
+  },
+  {
+    q: "When will you report to Experian, Equifax and TransUnion?",
+    a: "We are not giving a date, because the honest answer depends on licensing rather than on engineering. Furnishing data to a consumer bureau means accuracy procedures, dispute investigation and the obligations that come with them. We would rather be late than be the reason somebody's record is wrong.",
+  },
+  {
+    q: "What if my barber does not have a licence number handy?",
+    a: "You do not need one. Give us their name and we resolve the licence ourselves from the state records — 99% of names are unique inside a county. Where two people genuinely share a name we ask rather than guess.",
+  },
+  {
+    q: "What about weeks someone is off sick or on holiday?",
+    a: "Mark them excused and they leave the record entirely — they count neither for nor against. A system that scored somebody down for being ill would deserve everything it got.",
+  },
+  {
+    q: "Does this affect my barber's actual credit score?",
+    a: "Not today, in any way at all. The ShearQuery score is out of 100 rather than 300 to 850 precisely so nobody mistakes it for a FICO score. It reports to no bureau and touches no credit file.",
+  },
+];
 
 const OWNER_STEPS = [
   {
@@ -238,6 +324,124 @@ export default async function CreditReportOnboardingPage() {
                   <dd className="mt-1.5 text-sm leading-relaxed text-slate-600">
                     {b.meaning} {b.guidance}
                   </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          {/* ---------------------------------------------------------------
+              WHY A SHOP DOES THIS, and it is three things, not one. Rent
+              arriving on time is the obvious one; the other two are what make
+              it worth an owner's fortnight.
+          ---------------------------------------------------------------- */}
+          <section className="mt-14">
+            <h2 className="text-2xl font-black tracking-tight text-slate-950">
+              Three reasons shops do this
+            </h2>
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              {WHY_SHOPS.map((w) => (
+                <div key={w.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <h3 className="text-base font-black text-slate-900">{w.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{w.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-14 grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+            <div>
+              <h2 className="text-2xl font-black tracking-tight text-slate-950">
+                What your barbers get
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                A record they own and carry to their next chair. This is the half that makes the
+                whole thing work: a barber who pays every week finally has something to show for
+                it, so the record is worth protecting rather than something being done to them.
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                They see every entry as it lands, they can dispute any of it, and nobody can look
+                them up. They choose who sees it.
+              </p>
+            </div>
+            <ReportPreview />
+          </section>
+
+          {/* ---------------------------------------------------------------
+              THE LADDER. Level one is live. Everything above it is not, and
+              this section exists to say so plainly rather than to imply
+              otherwise with logos. An owner who signs up believing their
+              barbers are being reported to Experian today has been misled, and
+              the barbers even more so.
+          ---------------------------------------------------------------- */}
+          <section className="mt-14">
+            <h2 className="text-2xl font-black tracking-tight text-slate-950">Where this is going</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
+              Booth rent is one of the largest bills a barber pays and it counts for nothing
+              anywhere. Rent on an apartment can build a credit file; rent on a chair cannot. The
+              plan is to change that — one level at a time, and only when each level is licensed.
+            </p>
+
+            <div className="mt-6 space-y-4">
+              {LEVELS.map((l) => (
+                <div
+                  key={l.name}
+                  className={`rounded-2xl border p-5 sm:p-6 ${
+                    l.live ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${
+                        l.live ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-600"
+                      }`}
+                    >
+                      {l.live ? "Live now · free" : "Not available yet"}
+                    </span>
+                    <h3 className="text-base font-black text-slate-900">{l.name}</h3>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{l.body}</p>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900">
+              <span className="font-black">To be plain about it:</span> ShearQuery reports to
+              ShearQuery. Nothing you record here reaches Experian, Equifax, TransUnion or Dun &amp;
+              Bradstreet today, and we are not promising a date. Furnishing data to a consumer
+              bureau carries licensing and dispute obligations we intend to meet before we do it,
+              not after. When it opens it will be a paid plan, waitlisted shops first — and because
+              it changes a private reference into something that follows a person, every worker
+              will have to agree to it separately.
+            </p>
+          </section>
+
+          <section id="waitlist" className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-5">
+            <div className="lg:col-span-2">
+              <h2 className="text-2xl font-black tracking-tight text-slate-950">
+                Join the bureau waitlist
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                Tell us which bureaus matter to you and we will write when that level is licensed
+                and open. Waitlisted shops go first.
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                You do not need to wait for it. Enrolling above starts the record today, free, and
+                every week you log now is a week of history your barbers already have when the
+                rest arrives.
+              </p>
+            </div>
+            <div className="lg:col-span-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <WaitlistForm />
+            </div>
+          </section>
+
+          <section className="mt-14">
+            <h2 className="text-2xl font-black tracking-tight text-slate-950">Questions</h2>
+            <dl className="mt-5 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
+              {FAQ.map((f) => (
+                <div key={f.q} className="p-5 sm:p-6">
+                  <dt className="text-sm font-black text-slate-900">{f.q}</dt>
+                  <dd className="mt-2 text-sm leading-relaxed text-slate-600">{f.a}</dd>
                 </div>
               ))}
             </dl>
