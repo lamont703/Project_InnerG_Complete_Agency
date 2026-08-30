@@ -84,15 +84,22 @@ async function handle(req: Request) {
 
   return twiml(
     bookingVoiceTwiml(
-      bookingVoiceScript({
-        shopName: b.entity_name || "your shop",
-        customerName: b.customer_name || "",
-        customerPhone: b.customer_phone || "",
-        serviceName: b.service_name || "an appointment",
+      bookingVoiceScript(
+        {
+          shopName: b.entity_name || "your shop",
+          customerName: b.customer_name || "",
+          customerPhone: b.customer_phone || "",
+          serviceName: b.service_name || "an appointment",
         prettyDate,
-        requestedTime: b.requested_time || "the requested time",
-      }),
-      voice
+          requestedTime: b.requested_time || "the requested time",
+        },
+        // The keypad is offered on every call. On voicemail nobody presses
+        // anything and the line reads as a harmless instruction; the one case
+        // where a person IS on the line stops being a dead end.
+        { offerKeypad: true }
+      ),
+      voice,
+      `${new URL(req.url).origin}/api/voice/booking-response?call=${callId}&voice=${encodeURIComponent(voice)}`
     )
   );
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   spokenPhone, bookingVoiceScript, bookingVoiceTwiml, withinCallWindow,
-  CALL_WINDOW_CENTRAL, resolveVoice, DEFAULT_VOICE, ALLOWED_VOICES,
+  CALL_WINDOW_EASTERN, resolveVoice, DEFAULT_VOICE, ALLOWED_VOICES,
 } from "./voice-script";
 
 describe("spokenPhone", () => {
@@ -99,42 +99,44 @@ describe("bookingVoiceTwiml", () => {
 });
 
 describe("withinCallWindow", () => {
-  // 2026-09-01 is a Tuesday. 17:00 UTC = 12:00 Central (CDT).
-  it("allows a Tuesday midday Central", () => {
-    expect(withinCallWindow(new Date("2026-09-01T17:00:00Z"))).toBe(true);
+  // 2026-09-01 is a Tuesday. 16:00 UTC = 12:00 Eastern (EDT).
+  it("allows midday Eastern", () => {
+    expect(withinCallWindow(new Date("2026-09-01T16:00:00Z"))).toBe(true);
+  });
+
+  it("refuses before it opens", () => {
+    expect(withinCallWindow(new Date("2026-09-01T13:00:00Z"))).toBe(false); // 09:00 ET
+  });
+
+  it("opens exactly at 10 and closes exactly at 19", () => {
+    expect(withinCallWindow(new Date("2026-09-01T14:00:00Z"))).toBe(true);  // 10:00 ET
+    expect(withinCallWindow(new Date("2026-09-01T22:59:00Z"))).toBe(true);  // 18:59 ET
+    expect(withinCallWindow(new Date("2026-09-01T23:00:00Z"))).toBe(false); // 19:00 ET
   });
 
   /*
-   * The case the window exists for: 9am Central is 7am Pacific. Calling a
-   * California shop then is how an automated number gets blocked.
+   * All seven days, by the site owner's decision. Barbershops keep their own
+   * hours and plenty trade on Sunday, so a weekday-only rule would skip the
+   * days some of them are busiest.
    */
-  it("refuses before the window opens", () => {
-    expect(withinCallWindow(new Date("2026-09-01T14:00:00Z"))).toBe(false); // 09:00 Central
-  });
-
-  it("refuses after it closes", () => {
-    expect(withinCallWindow(new Date("2026-09-02T01:00:00Z"))).toBe(false); // 20:00 Central
-  });
-
-  it("refuses Sunday and Monday, when most shops are shut", () => {
-    expect(withinCallWindow(new Date("2026-08-30T17:00:00Z"))).toBe(false); // Sunday
-    expect(withinCallWindow(new Date("2026-08-31T17:00:00Z"))).toBe(false); // Monday
+  it("calls on Sunday and Monday too", () => {
+    expect(withinCallWindow(new Date("2026-08-30T16:00:00Z"))).toBe(true); // Sunday
+    expect(withinCallWindow(new Date("2026-08-31T16:00:00Z"))).toBe(true); // Monday
   });
 
   /*
-   * Derived through Intl rather than a fixed offset. A hardcoded -6 would be an
-   * hour wrong for eight months a year, and an hour wrong at this window's edge
-   * is a 10am call.
+   * Derived through Intl, not a fixed offset. A hardcoded -5 would be an hour
+   * wrong for eight months a year, and an hour wrong at the open edge is a 9am
+   * call. 2026-11-03 is after the change, so Eastern is EST (UTC-5).
    */
   it("follows daylight saving across the November change", () => {
-    expect(withinCallWindow(new Date("2026-11-03T17:00:00Z"))).toBe(true);  // 11:00 CST, Tue
-    expect(withinCallWindow(new Date("2026-11-03T16:00:00Z"))).toBe(false); // 10:00 CST, Tue
+    expect(withinCallWindow(new Date("2026-11-03T15:00:00Z"))).toBe(true);  // 10:00 EST
+    expect(withinCallWindow(new Date("2026-11-03T14:00:00Z"))).toBe(false); // 09:00 EST
   });
 
-  it("has a window that is safe in every continental timezone", () => {
-    const [open, close] = CALL_WINDOW_CENTRAL;
-    expect(open - 2).toBeGreaterThanOrEqual(9);  // Pacific never before 9am
-    expect(close + 1).toBeLessThanOrEqual(19);   // Eastern never past 7pm
+  it("is a nine-hour window", () => {
+    const [open, close] = CALL_WINDOW_EASTERN;
+    expect(close - open).toBe(9);
   });
 });
 
@@ -163,5 +165,60 @@ describe("resolveVoice", () => {
 
   it("renders the chosen voice into the TwiML", () => {
     expect(bookingVoiceTwiml(["hi"], "Polly.Matthew-Neural")).toContain('voice="Polly.Matthew-Neural"');
+  });
+});
+
+describe("keypad prompt and Gather", () => {
+  const input = {
+    shopName: "Greater Jerusalem Barber", customerName: "Dana Reed",
+    customerPhone: "7702805711", serviceName: "Haircut",
+    prettyDate: "Monday, August 31", requestedTime: "2:00 PM",
+  };
+
+  it("offers the keypad only when asked", () => {
+    expect(bookingVoiceScript(input).join(" ")).not.toMatch(/press 1/i);
+    expect(bookingVoiceScript(input, { offerKeypad: true }).join(" ")).toMatch(/press 1.*press 2/i);
+  });
+
+  /*
+   * The prompt sits BEFORE the number is repeated and before the opt-out.
+   * Somebody who has decided presses immediately; everything after it is for
+   * somebody who has not.
+   */
+  it("puts the prompt before the repeated number, not last", () => {
+    const lines = bookingVoiceScript(input, { offerKeypad: true });
+    const prompt = lines.findIndex((l) => /press 1/i.test(l));
+    const repeat = lines.findIndex((l) => /Once more/i.test(l));
+    const optout = lines.findIndex((l) => /STOP/i.test(l));
+    expect(prompt).toBeGreaterThan(0);
+    expect(prompt).toBeLessThan(repeat);
+    expect(repeat).toBeLessThan(optout);
+  });
+
+  /*
+   * The message goes INSIDE the Gather so a digit can be pressed at any point,
+   * not only after the opt-out line has played out.
+   */
+  it("wraps the whole message in the Gather", () => {
+    const x = bookingVoiceTwiml(["one", "two"], DEFAULT_VOICE, "https://x/r?call=1");
+    const g = x.indexOf("<Gather"), end = x.indexOf("</Gather>");
+    expect(g).toBeGreaterThan(-1);
+    expect(x.indexOf("one")).toBeGreaterThan(g);
+    expect(x.indexOf("two")).toBeLessThan(end);
+  });
+
+  // Voicemail: no digit ever comes, the Gather times out, the call ends. The
+  // message was still left.
+  it("still hangs up after the Gather, so voicemail is unaffected", () => {
+    expect(bookingVoiceTwiml(["x"], DEFAULT_VOICE, "https://x/r")).toContain("<Hangup/>");
+  });
+
+  it("omits the Gather entirely when no url is given", () => {
+    expect(bookingVoiceTwiml(["x"], DEFAULT_VOICE)).not.toContain("<Gather");
+  });
+
+  it("escapes the action url rather than trusting it into the XML", () => {
+    const x = bookingVoiceTwiml(["x"], DEFAULT_VOICE, 'https://x/r?a=1&b=2');
+    expect(x).toContain("a=1&amp;b=2");
   });
 });

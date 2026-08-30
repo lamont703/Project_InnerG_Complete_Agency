@@ -123,7 +123,7 @@ export async function GET(req: Request) {
   if (!withinCallWindow(now) && !force) {
     return NextResponse.json({
       ok: true,
-      skipped: "outside the calling window (11:00–18:00 US Central, Tue–Sat)",
+      skipped: "outside the calling window (10:00–19:00 US Eastern, every day)",
       placed: 0,
     });
   }
