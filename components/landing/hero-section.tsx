@@ -141,21 +141,6 @@ export function HeroSection() {
               Launch ShearQuery
             </Link>
           </Button>
-          {/* Secondary, and deliberately not competing with the primary: this
-              speaks to school owners, who are a small share of homepage traffic
-              but the highest-value share. Outline rather than filled so the
-              search CTA stays the obvious first action for everyone else. */}
-          <Button
-            size="lg"
-            variant="outline"
-            className="gap-2 border-2 px-8 py-6 text-base transition-all duration-300"
-            asChild
-          >
-            <Link href="/texas-hybrid-barber-cosmetology-program/demo">
-              <GraduationCap className="h-4 w-4" />
-              See the Hybrid Program Demo
-            </Link>
-          </Button>
         </div>
 
         {/* Core Pillars */}

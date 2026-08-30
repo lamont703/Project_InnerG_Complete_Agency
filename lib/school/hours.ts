@@ -290,3 +290,89 @@ export const WRITTEN_EXAM_ELIGIBLE_FRACTION = 0.9;
 export function writtenExamEligible(l: Ledger, program: Program): boolean {
   return toHours(l.totalMinutes) >= program.totalHours * WRITTEN_EXAM_ELIGIBLE_FRACTION;
 }
+
+// ---------------------------------------------------------------------------
+// The schedule
+// ---------------------------------------------------------------------------
+
+export interface ScheduleBlock {
+  id: string;
+  label: string;
+  /** 0 = Sunday, matching Date#getDay. */
+  weekday: number;
+  startsMinute: number;
+  endsMinute: number;
+  kind: HourKind;
+  modality: Modality;
+  segment: Segment;
+  instructorId: string | null;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+}
+
+/**
+ * Local wall-clock weekday and minute-of-day, in the school's timezone.
+ *
+ * A block is "09:00 Tuesday", which is a wall-clock fact. Comparing it against
+ * a UTC instant directly would shift every class by an hour for half the year,
+ * so the instant is converted into the school's local frame first and the
+ * comparison happens there.
+ */
+export function localWallClock(now: Date, timeZone: string): { weekday: number; minute: number; date: string } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone, weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(now);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(get("weekday"));
+  // Intl renders midnight as "24" in some locales under hour12:false.
+  const hour = Number(get("hour")) % 24;
+  return {
+    weekday,
+    minute: hour * 60 + Number(get("minute")),
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+  };
+}
+
+/**
+ * The block running right now, or null.
+ *
+ * NULL IS A REAL ANSWER, not a failure. Nothing is scheduled at 6am on a
+ * Sunday, and the honest response to a student tapping in then is to say so —
+ * not to invent a default hour type. "The schedule decides" means the schedule
+ * also decides when nothing is happening.
+ *
+ * If blocks overlap, the one that STARTS LATEST wins. Overlap is a timetabling
+ * mistake rather than a feature, but a deterministic answer beats an arbitrary
+ * one, and the later block is the more specific in every real case observed
+ * (a clinic session carved out of a longer lab).
+ */
+export function blockAt(
+  blocks: ScheduleBlock[],
+  now: Date,
+  timeZone: string
+): ScheduleBlock | null {
+  const { weekday, minute, date } = localWallClock(now, timeZone);
+  const live = blocks.filter(
+    (b) =>
+      b.weekday === weekday &&
+      minute >= b.startsMinute &&
+      minute < b.endsMinute &&
+      b.effectiveFrom <= date &&
+      (b.effectiveTo === null || b.effectiveTo >= date)
+  );
+  if (live.length === 0) return null;
+  return live.reduce((a, b) => (b.startsMinute > a.startsMinute ? b : a));
+}
+
+/** "9:00 AM – 12:00 PM", for a kiosk that has to be readable across a room. */
+export function blockWindow(b: ScheduleBlock): string {
+  const fmt = (m: number) => {
+    const h24 = Math.floor(m / 60);
+    const mm = String(m % 60).padStart(2, "0");
+    const ampm = h24 < 12 ? "AM" : "PM";
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    return `${h12}:${mm} ${ampm}`;
+  };
+  return `${fmt(b.startsMinute)} \u2013 ${fmt(b.endsMinute)}`;
+}

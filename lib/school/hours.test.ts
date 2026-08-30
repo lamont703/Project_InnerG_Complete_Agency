@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   ledger, punchMinutes, canClockIn, distanceCaps, minutesInMonth,
-  roundForReport, writtenExamEligible, toHours, type Punch, type Program,
+  roundForReport, writtenExamEligible, toHours, blockAt, localWallClock, blockWindow,
+  type Punch, type Program, type ScheduleBlock,
 } from "./hours";
 
 const CLASS_A: Program = {
@@ -217,5 +218,68 @@ describe("reporting helpers", () => {
   it("flags written-exam eligibility at 90% of the program", () => {
     expect(writtenExamEligible({ totalMinutes: 899 * 60 } as any, CLASS_A)).toBe(false);
     expect(writtenExamEligible({ totalMinutes: 900 * 60 } as any, CLASS_A)).toBe(true);
+  });
+});
+
+describe("the schedule decides", () => {
+  const block = (over: Partial<ScheduleBlock> = {}): ScheduleBlock => ({
+    id: "b1", label: "Core theory", weekday: 2, startsMinute: 9 * 60, endsMinute: 12 * 60,
+    kind: "theory", modality: "campus", segment: "core",
+    instructorId: "I-1", effectiveFrom: "2026-01-01", effectiveTo: null, ...over,
+  });
+
+  /*
+   * A block is a wall-clock fact — "09:00 Tuesday". Comparing it against a UTC
+   * instant directly would shift every class by an hour for half the year, so
+   * the instant is converted into the school's frame first.
+   */
+  it("reads the weekday and minute in the school's timezone", () => {
+    // 15:00 UTC on Tue 1 Sep 2026 = 10:00 in Chicago.
+    const w = localWallClock(new Date("2026-09-01T15:00:00Z"), "America/Chicago");
+    expect(w.weekday).toBe(2);
+    expect(w.minute).toBe(600);
+    expect(w.date).toBe("2026-09-01");
+  });
+
+  it("finds the block that is running", () => {
+    const b = blockAt([block()], new Date("2026-09-01T15:00:00Z"), "America/Chicago");
+    expect(b?.label).toBe("Core theory");
+  });
+
+  it("is exclusive at the end, so a block ending at noon is over at noon", () => {
+    expect(blockAt([block()], new Date("2026-09-01T17:00:00Z"), "America/Chicago")).toBeNull();
+  });
+
+  it("ignores a block scheduled for another day", () => {
+    expect(blockAt([block({ weekday: 3 })], new Date("2026-09-01T15:00:00Z"), "America/Chicago")).toBeNull();
+  });
+
+  // Superseding a block must not delete it: the old one is what explains an
+  // old punch.
+  it("respects effective dates in both directions", () => {
+    const now = new Date("2026-09-01T15:00:00Z");
+    expect(blockAt([block({ effectiveFrom: "2026-10-01" })], now, "America/Chicago")).toBeNull();
+    expect(blockAt([block({ effectiveTo: "2026-08-31" })], now, "America/Chicago")).toBeNull();
+    expect(blockAt([block({ effectiveTo: "2026-09-01" })], now, "America/Chicago")).not.toBeNull();
+  });
+
+  /*
+   * Null is a real answer. Nothing runs at 6am Sunday and the honest response
+   * is to say so rather than invent a default hour type.
+   */
+  it("returns null when nothing is scheduled", () => {
+    expect(blockAt([block()], new Date("2026-09-06T11:00:00Z"), "America/Chicago")).toBeNull();
+  });
+
+  it("prefers the later-starting block when two overlap", () => {
+    const long = block({ id: "long", label: "Open lab", startsMinute: 8 * 60, endsMinute: 16 * 60 });
+    const carved = block({ id: "carved", label: "Clinic floor", startsMinute: 10 * 60, endsMinute: 12 * 60 });
+    const b = blockAt([long, carved], new Date("2026-09-01T16:00:00Z"), "America/Chicago"); // 11:00 CDT
+    expect(b?.id).toBe("carved");
+  });
+
+  it("renders a window a kiosk can show", () => {
+    expect(blockWindow(block())).toBe("9:00 AM – 12:00 PM");
+    expect(blockWindow(block({ startsMinute: 0, endsMinute: 13 * 60 + 5 }))).toBe("12:00 AM – 1:05 PM");
   });
 });

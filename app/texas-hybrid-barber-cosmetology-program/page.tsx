@@ -85,11 +85,10 @@ export default function TexasHybridProgramPage() {
                 <PhoneCall className="h-4 w-4" />
                 Request Callback or Demo
               </a>
-              <Link href="/texas-hybrid-barber-cosmetology-program/demo"
+              <a href="#hours"
                 className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-6 py-3.5 text-sm font-black text-slate-700 transition-colors hover:bg-slate-50">
-                <Monitor className="h-4 w-4" />
-                See it running
-              </Link>
+                See the hour caps
+              </a>
             </div>
             <p className="mt-3 text-xs text-slate-500">
               A ShearQuery rep calls you back within 24 hours.
