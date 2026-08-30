@@ -178,11 +178,13 @@ export async function GET(req: Request) {
     const kind: ResolutionKind =
       action.kind === "tell_customer_declined"
         ? "declined"
-        : action.kind === "tell_customer_booked"
-          ? "booked"
-          : action.kind === "tell_customer_booked_late"
-            ? "booked_late"
-            : "no_response";
+        : action.kind === "tell_customer_declined_late"
+          ? "declined_late"
+          : action.kind === "tell_customer_booked"
+            ? "booked"
+            : action.kind === "tell_customer_booked_late"
+              ? "booked_late"
+              : "no_response";
 
     /*
      * The send, the stamp and the once-only guarantee all live in

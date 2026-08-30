@@ -63,6 +63,8 @@ export type EscalationAction =
   | { kind: "release_customer" }
   /** The business declined. The customer is still sitting in silence. */
   | { kind: "tell_customer_declined" }
+  /** Declined, and the slot had already passed anyway. Different news. */
+  | { kind: "tell_customer_declined_late" }
   /** The business said yes. Nothing has told the customer that yet. */
   | { kind: "tell_customer_booked" }
   /**
@@ -86,8 +88,20 @@ export function nextAction(row: EscalationRow, now: Date): EscalationAction {
   // A business that answered has done its part. Telling the customer is the
   // only thing left, and it outranks every timing rule below.
   if (row.status === "declined") {
-    return row.resolution_notified_at
-      ? { kind: "wait", why: "declined, customer already told" }
+    if (row.resolution_notified_at) return { kind: "wait", why: "declined, customer already told" };
+    /*
+     * A NO CAN ARRIVE TOO LATE, exactly as a yes can — and until this branch
+     * only the yes was checked. The ordinary declined copy tells the customer
+     * "they answered quickly, which is worth something", which is a strange
+     * thing to read about a slot that went by yesterday, and reads as the site
+     * not knowing what day it is.
+     *
+     * Both facts matter and they are different: the business said no, AND the
+     * time has gone regardless. Saying only the first invites someone to think
+     * the slot was still live until the shop killed it.
+     */
+    return slotHasPassedEverywhere(row.requested_date, row.requested_time, now)
+      ? { kind: "tell_customer_declined_late" }
       : { kind: "tell_customer_declined" };
   }
 
