@@ -140,3 +140,111 @@ export async function closePunch(punchId: string, at: Date): Promise<{ ok: boole
     .eq("id", punchId).is("punched_out_at", null);
   return error ? { ok: false, error: error.message } : { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Roster
+// ---------------------------------------------------------------------------
+
+export interface RosterEntry {
+  student: StudentRow;
+  programName: string;
+  program: Program;
+  punches: Punch[];
+  /** Set while the student is on the clock right now. */
+  onClockSince: string | null;
+}
+
+/**
+ * Every student at a school, with enough history to compute their standing.
+ *
+ * READS EVERY PUNCH FOR EVERY STUDENT, which is fine at a school's scale (a
+ * few hundred students against a few thousand punches each) and would not be
+ * at a district's. Written this way on purpose rather than with a clever
+ * aggregate: the totals then come from lib/school/hours.ts, which is the same
+ * code the kiosk and the ledger use, so a roster figure can never disagree with
+ * a transcript. When this gets slow, the fix is a materialised total that is
+ * still derived from these punches — not a second definition of an hour.
+ */
+export async function roster(schoolId: string): Promise<RosterEntry[]> {
+  const { data: students, error } = await admin()
+    .from("sis_students")
+    .select("id, school_id, program_id, first_name, last_name, clock_code, status")
+    .eq("school_id", schoolId)
+    .order("last_name");
+  if (error) throw new Error(`roster(${schoolId}): ${error.message}`);
+  if (!students?.length) return [];
+
+  const { data: programs } = await admin()
+    .from("sis_programs")
+    .select("id, name, total_hours, core_hours, specialty_hours, core_distance_cap, specialty_distance_cap")
+    .eq("school_id", schoolId);
+  const byProgram = new Map<string, any>((programs ?? []).map((p: any) => [p.id, p]));
+
+  const { data: allPunches, error: pErr } = await admin()
+    .from("sis_punches").select(PUNCH_COLS + ", student_id")
+    .in("student_id", students.map((s: any) => s.id))
+    .order("punched_in_at");
+  if (pErr) throw new Error(`roster punches: ${pErr.message}`);
+
+  const byStudent = new Map<string, Punch[]>();
+  for (const r of allPunches ?? []) {
+    const list = byStudent.get(r.student_id) ?? [];
+    list.push(toPunch(r));
+    byStudent.set(r.student_id, list);
+  }
+
+  return students.map((s: any) => {
+    const p = byProgram.get(s.program_id);
+    const punches = byStudent.get(s.id) ?? [];
+    const open = punches.find((x) => !x.punchedOutAt && !x.voidedAt) ?? null;
+    return {
+      student: {
+        id: s.id, schoolId: s.school_id, programId: s.program_id,
+        firstName: s.first_name, lastName: s.last_name,
+        clockCode: s.clock_code, status: s.status,
+      },
+      programName: p?.name ?? "Unknown program",
+      program: {
+        totalHours: p?.total_hours ?? 0, coreHours: p?.core_hours ?? 0,
+        specialtyHours: p?.specialty_hours ?? 0,
+        coreDistanceCap: p?.core_distance_cap ?? null,
+        specialtyDistanceCap: p?.specialty_distance_cap ?? null,
+      },
+      punches,
+      onClockSince: open?.punchedInAt ?? null,
+    };
+  });
+}
+
+export async function programsFor(schoolId: string): Promise<{ id: string; name: string }[]> {
+  const { data } = await admin().from("sis_programs").select("id, name").eq("school_id", schoolId).order("name");
+  return (data ?? []).map((p: any) => ({ id: p.id, name: p.name }));
+}
+
+/**
+ * Enrol a student.
+ *
+ * THE CLOCK CODE IS GENERATED, NOT CHOSEN. A person picking their own would
+ * pick their birth year, and the code is the only credential the kiosk has.
+ * Four digits is short enough to tap at a door and long enough that the
+ * uniqueness index does the rest — a collision retries rather than failing,
+ * because a front desk enrolling somebody should never see a database error.
+ */
+export async function enrolStudent(args: {
+  schoolId: string; programId: string;
+  firstName: string; lastName: string; email?: string | null; phone?: string | null;
+  enrolledOn: string;
+}): Promise<{ ok: boolean; clockCode?: string; error?: string }> {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const code = String(Math.floor(1000 + Math.random() * 9000));
+    const { error } = await admin().from("sis_students").insert({
+      school_id: args.schoolId, program_id: args.programId,
+      first_name: args.firstName, last_name: args.lastName,
+      email: args.email || null, phone: args.phone || null,
+      clock_code: code, enrolled_on: args.enrolledOn,
+    });
+    if (!error) return { ok: true, clockCode: code };
+    if (!/duplicate key|unique/i.test(error.message)) return { ok: false, error: error.message };
+  }
+  return { ok: false, error: "Could not allocate a clock code. Try again." };
+}
