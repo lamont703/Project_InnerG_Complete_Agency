@@ -111,6 +111,8 @@ export async function GET(req: Request) {
   const overrideTo = url.searchParams.get("to");
   /** Ignore the calling window. Only meaningful alongside `to`. */
   const force = url.searchParams.get("force") === "1";
+  /** Passed through to the TwiML endpoint, which validates it. Testing only. */
+  const voice = url.searchParams.get("voice");
 
   const from = process.env.TWILIO_PHONE_NUMBER;
   if (!from) {
@@ -190,7 +192,9 @@ export async function GET(req: Request) {
     const res = await placeCall({
       to,
       from,
-      twimlUrl: `${SITE_URL}/api/voice/booking-notify?call=${call.id}`,
+      twimlUrl:
+        `${SITE_URL}/api/voice/booking-notify?call=${call.id}` +
+        (voice ? `&voice=${encodeURIComponent(voice)}` : ""),
       statusUrl: `${SITE_URL}/api/voice/booking-status?call=${call.id}`,
     });
 
