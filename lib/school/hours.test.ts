@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   ledger, punchMinutes, canClockIn, distanceCaps, minutesInMonth,
   roundForReport, writtenExamEligible, toHours, blockAt, localWallClock, blockWindow,
+  campusDates, campusGaps,
   type Punch, type Program, type ScheduleBlock,
 } from "./hours";
 
@@ -281,5 +282,54 @@ describe("the schedule decides", () => {
   it("renders a window a kiosk can show", () => {
     expect(blockWindow(block())).toBe("9:00 AM – 12:00 PM");
     expect(blockWindow(block({ startsMinute: 0, endsMinute: 13 * 60 + 5 }))).toBe("12:00 AM – 1:05 PM");
+  });
+});
+
+describe("the campus clock", () => {
+  const TZC = "America/Chicago";
+  const campus = (date: string) =>
+    punch({ punchedInAt: `${date}T15:00:00Z`, punchedOutAt: `${date}T20:00:00Z`, modality: "campus" });
+
+  it("derives campus days from punches rather than a stored field", () => {
+    expect(campusDates([campus("2026-09-01"), campus("2026-09-01"), campus("2026-09-03")], TZC))
+      .toEqual(["2026-09-01", "2026-09-03"]);
+  });
+
+  it("ignores distance and voided punches", () => {
+    const d = punch({ punchedInAt: "2026-09-02T15:00:00Z", punchedOutAt: "2026-09-02T20:00:00Z", modality: "distance" });
+    const v = { ...campus("2026-09-04"), voidedAt: "2026-09-05T10:00:00Z" };
+    expect(campusDates([d, v], TZC)).toEqual([]);
+  });
+
+  it("finds no gap when a student attends regularly", () => {
+    const days = ["2026-09-01", "2026-09-08", "2026-09-15", "2026-09-22"].map(campus);
+    expect(campusGaps(days, { enrolledOn: "2026-08-31", asOf: "2026-09-23", timeZone: TZC })).toEqual([]);
+  });
+
+  it("catches a long absence between two visits", () => {
+    const days = [campus("2026-09-01"), campus("2026-10-15")];
+    const gaps = campusGaps(days, { enrolledOn: "2026-08-31", asOf: "2026-10-16", timeZone: TZC });
+    expect(gaps.length).toBe(1);
+    expect(gaps[0].businessDays).toBeGreaterThan(10);
+  });
+
+  /*
+   * The absence at the START is the one most likely to matter and the easiest
+   * to miss, because there is no earlier visit to anchor it. Running the window
+   * from enrollment is what catches a student who never turned up at all.
+   */
+  it("catches a student who enrolled and never appeared", () => {
+    const gaps = campusGaps([], { enrolledOn: "2026-08-01", asOf: "2026-09-30", timeZone: TZC });
+    expect(gaps.length).toBeGreaterThan(0);
+    expect(gaps[0].from).toBe("2026-08-01");
+  });
+
+  // Federal holidays are excluded, so a gap over Thanksgiving is not counted
+  // as if those were working days.
+  it("counts business days, not raw weekdays", () => {
+    const gaps = campusGaps([campus("2026-11-20"), campus("2026-12-07")],
+      { enrolledOn: "2026-11-19", asOf: "2026-12-08", timeZone: TZC });
+    const raw = gaps[0]?.businessDays ?? 0;
+    expect(raw).toBeLessThan(13);
   });
 });

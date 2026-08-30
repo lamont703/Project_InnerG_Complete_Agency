@@ -55,7 +55,7 @@ const FAQS = [
   },
   {
     q: "How often must a distance education student be physically on campus?",
-    a: "At least once every 10 business days, for the length of a scheduled class day, and the interval must be set out in the enrolment contract. This is element 3 of NACCAS Policy VI.02 and it is a hard floor — a student cannot go a fortnight without a full day on campus.",
+    a: "At least once every 10 business days, for the length of a scheduled class day, and the interval must be set out in the enrollment contract. This is element 3 of NACCAS Policy VI.02 and it is a hard floor — a student cannot go a fortnight without a full day on campus.",
   },
   {
     q: "Can graded assessments be taken online?",
@@ -67,7 +67,7 @@ const FAQS = [
   },
   {
     q: "What disclosure must students sign before enrolling?",
-    a: "A disclaimer that academic achievement earned via distance education may not be accepted for reciprocity or eligible for licensure in other states. Element 5 requires it be provided prior to enrolment and that a signed and dated copy be held in the student file. Alabama's 2026 rule restates this requirement almost word for word.",
+    a: "A disclaimer that academic achievement earned via distance education may not be accepted for reciprocity or eligible for licensure in other states. Element 5 requires it be provided prior to enrollment and that a signed and dated copy be held in the student file. Alabama's 2026 rule restates this requirement almost word for word.",
   },
   {
     q: "How does NACCAS Policy VI.02 interact with my state's rules?",
@@ -180,7 +180,7 @@ export default function NaccasDistanceEducationPage() {
               "Hours reported electronically per student in the manner the department prescribes — TDLR",
               "Instructor interaction validated by measurable participation — NACCAS element 1",
               "All GPA-bearing assessment taken physically on campus — NACCAS element 2",
-              "Student on campus at least once every 10 business days, per the enrolment contract — NACCAS element 3",
+              "Student on campus at least once every 10 business days, per the enrollment contract — NACCAS element 3",
               "Distance component identified separately on every transcript — NACCAS element 4",
               "Signed, dated reciprocity disclaimer in every student file — NACCAS element 5",
             ].map((s) => (

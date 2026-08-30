@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { CheckCircle2, Loader2, Radio, UserPlus } from "lucide-react";
-import { enrolStudentAction } from "./actions";
+import { enrollStudentAction } from "./actions";
 
 export interface RosterRow {
   id: string;
@@ -63,12 +63,12 @@ export function RosterClient({
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const res = await enrolStudentAction(f);
+      const res = await enrollStudentAction(f);
       if (res.ok && res.clockCode) {
         setIssued({ name: `${f.firstName} ${f.lastName}`.trim(), code: res.clockCode });
         setF({ ...f, firstName: "", lastName: "", email: "", phone: "" });
         setOpen(false);
-      } else setError(res.error ?? "Could not enrol.");
+      } else setError(res.error ?? "Could not enroll.");
     });
   };
 
@@ -111,7 +111,7 @@ export function RosterClient({
         </div>
       )}
 
-      {/* Enrol */}
+      {/* Enroll */}
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         {!open ? (
           <button
@@ -119,11 +119,11 @@ export function RosterClient({
             className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-black text-white hover:bg-slate-800"
           >
             <UserPlus className="h-4 w-4" />
-            Enrol a student
+            Enroll a student
           </button>
         ) : (
           <form onSubmit={submit} className="space-y-4">
-            <h2 className="text-lg font-black text-slate-900">Enrol a student</h2>
+            <h2 className="text-lg font-black text-slate-900">Enroll a student</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <input required placeholder="First name" value={f.firstName}
                 onChange={(e) => setF({ ...f, firstName: e.target.value })}
@@ -147,7 +147,7 @@ export function RosterClient({
               <button type="submit" disabled={pending}
                 className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white hover:bg-blue-700 disabled:opacity-50">
                 {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Enrol and issue a code
+                Enroll and issue a code
               </button>
               <button type="button" onClick={() => setOpen(false)}
                 className="rounded-xl border-2 border-slate-200 px-5 py-2.5 text-sm font-black text-slate-600 hover:bg-slate-50">

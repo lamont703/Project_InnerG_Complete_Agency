@@ -536,7 +536,7 @@ export default async function SchoolProfilePage(props: { params: Promise<{ slug:
                 THE PRIMARY CTA NOW SPEAKS TO WHO IS ACTUALLY READING. 877 unique
                 visitors reached school pages; 8 clicked "Claim your school".
                 That CTA addresses an administrator on a page read by students
-                choosing where to enrol — the same mismatch /membership had.
+                choosing where to enroll — the same mismatch /membership had.
 
                 Claiming is DEMOTED, NOT REMOVED: those 8 clicks are the only
                 inbound channel for schools as customers, and an admin who finds

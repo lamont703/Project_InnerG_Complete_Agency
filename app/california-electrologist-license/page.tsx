@@ -34,7 +34,7 @@ import { questionsForSlug } from "@/lib/agent-invite-questions";
  * misdemeanour. So the licence whose entire purpose is permanent hair removal
  * is statutorily confined to a needle while laser hair removal advertises
  * everywhere. Anyone considering this licence needs that stated plainly before
- * they enrol, not after.
+ * they enroll, not after.
  */
 
 const EXAM = caExam("electrologist");
@@ -168,7 +168,7 @@ export default function CaliforniaElectrologistLicensePage() {
             </p>
             <p className="mt-3 text-sm leading-relaxed text-rose-950/90">
               That is not a footnote about this licence &mdash; it is the market it operates in, and
-              it belongs in the decision to enrol rather than in a surprise afterwards.
+              it belongs in the decision to enroll rather than in a surprise afterwards.
             </p>
           </div>
         </section>

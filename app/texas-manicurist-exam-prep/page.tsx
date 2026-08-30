@@ -45,7 +45,7 @@ const FAQS = [
   },
   {
     q: "When do I become eligible for the Texas manicurist exam?",
-    a: "Specialty courses must be completed and your enrolment dropped before written eligibility generates. Practical eligibility only follows after you have completed the required program hours under Rule 83.202, been dropped, AND passed the written exam. Allow 48–72 hours after your hours are reported for eligibility to reach PSI.",
+    a: "Specialty courses must be completed and your enrollment dropped before written eligibility generates. Practical eligibility only follows after you have completed the required program hours under Rule 83.202, been dropped, AND passed the written exam. Allow 48–72 hours after your hours are reported for eligibility to reach PSI.",
   },
   {
     q: "Where can I check the official manicurist exam requirements?",

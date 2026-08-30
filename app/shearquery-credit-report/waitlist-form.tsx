@@ -7,7 +7,7 @@ import { joinReportingWaitlistAction } from "./actions";
 /**
  * Ask to be told when reporting reaches the bureaus.
  *
- * NO ACCOUNT REQUIRED, unlike enrolment. Enrolling means making written
+ * NO ACCOUNT REQUIRED, unlike enrollment. Enrolling means making written
  * statements about named people and has to be attributable; asking a question
  * about something that does not exist yet is not a claim about anybody, and a
  * signup wall in front of a question costs answers and protects nothing.
@@ -33,7 +33,7 @@ export function WaitlistForm() {
           <p className="font-black">You&apos;re on the list.</p>
           <p className="mt-1">
             We&apos;ll write when bureau reporting is licensed and open — not before, and with no
-            date promised. Meanwhile you can enrol above and start building the record inside
+            date promised. Meanwhile you can enroll above and start building the record inside
             ShearQuery today, free.
           </p>
         </div>

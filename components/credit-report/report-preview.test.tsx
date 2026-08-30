@@ -6,7 +6,7 @@ import { MOCK_TRADELINES } from "@/lib/credit-report/mock";
  * The public sample must be produced by the real scorer.
  *
  * A marketing page showing a number the product could never produce is the
- * quiet kind of dishonesty — nobody notices until an owner enrols, sees a
+ * quiet kind of dishonesty — nobody notices until an owner enrolls, sees a
  * different shape of report, and stops trusting the rest of the page.
  */
 describe("the sample report on the landing page", () => {

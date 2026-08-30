@@ -1,4 +1,4 @@
-import { MONTHLY_HOUR_CAP } from "@/lib/compliance-binder";
+import { MAX_BUSINESS_DAYS_BETWEEN_CAMPUS, MONTHLY_HOUR_CAP, businessDaysBetween } from "@/lib/compliance-binder";
 
 /**
  * Turning punches into hours, and deciding what a student is allowed to do next.
@@ -376,3 +376,62 @@ export function blockWindow(b: ScheduleBlock): string {
   };
   return `${fmt(b.startsMinute)} \u2013 ${fmt(b.endsMinute)}`;
 }
+
+// ---------------------------------------------------------------------------
+// The campus clock
+// ---------------------------------------------------------------------------
+
+/**
+ * The dates a student was physically on campus, in the school's timezone.
+ *
+ * Derived from punches rather than stored. A "campus day" is not a field
+ * anybody maintains — it is a consequence of somebody having clocked in on
+ * site, and deriving it means it can never drift from the attendance it is
+ * supposed to summarise.
+ */
+export function campusDates(punches: Punch[], timeZone: string): string[] {
+  const days = new Set<string>();
+  for (const p of punches) {
+    if (p.voidedAt || p.modality !== "campus") continue;
+    days.add(localWallClock(new Date(p.punchedInAt), timeZone).date);
+  }
+  return [...days].sort();
+}
+
+export interface CampusGap {
+  from: string;
+  to: string;
+  businessDays: number;
+}
+
+/**
+ * Stretches where a student went too long without setting foot on campus.
+ *
+ * NACCAS VI.02 element 3 requires the student physically present at least once
+ * every 10 business days. This is the check nobody computes, because it is a
+ * calendar calculation over attendance rather than a number in a column — a
+ * school with immaculate records still cannot answer it without joining
+ * attendance to a business-day calendar that excludes federal holidays.
+ *
+ * The window runs from enrollment to `asOf`, not just between visits, so a
+ * student who enrolled six weeks ago and has never appeared shows a gap. The
+ * absence at the start is the one most likely to matter and the easiest to
+ * miss, because there is no "from" visit to anchor it.
+ */
+export function campusGaps(
+  punches: Punch[],
+  args: { enrolledOn: string; asOf: string; timeZone: string }
+): CampusGap[] {
+  const days = campusDates(punches, args.timeZone);
+  const marks = [args.enrolledOn, ...days, args.asOf];
+  const out: CampusGap[] = [];
+  for (let i = 0; i < marks.length - 1; i++) {
+    const n = businessDaysBetween(marks[i], marks[i + 1]);
+    if (n > MAX_BUSINESS_DAYS_BETWEEN_CAMPUS) {
+      out.push({ from: marks[i], to: marks[i + 1], businessDays: n });
+    }
+  }
+  return out;
+}
+
+export { MAX_BUSINESS_DAYS_BETWEEN_CAMPUS, MONTHLY_HOUR_CAP };

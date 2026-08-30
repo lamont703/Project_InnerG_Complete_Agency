@@ -133,7 +133,7 @@ export const OBLIGATIONS: Obligation[] = [
     requirement: "Student physically on campus at least once every 10 business days",
     authority: "NACCAS",
     evidence: "A presence timeline per student with gap analysis",
-    gap: "Nothing computes this. It requires joining attendance to the calendar and to the enrolment contract, then finding the longest gap.",
+    gap: "Nothing computes this. It requires joining attendance to the calendar and to the enrollment contract, then finding the longest gap.",
   },
   {
     requirement: "All GPA-bearing assessment taken physically on campus",

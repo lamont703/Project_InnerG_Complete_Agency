@@ -97,7 +97,7 @@ export default function QuestionsToAskPage() {
       <Navbar />
       <main className="mx-auto max-w-3xl px-4 sm:px-6 pt-28 pb-16">
         <p className="mb-3 text-xs font-black uppercase tracking-[0.25em] text-indigo-600">
-          Before you enrol
+          Before you enroll
         </p>
         <h1 className="mb-4 text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl">
           Three questions to ask a barber or cosmetology school

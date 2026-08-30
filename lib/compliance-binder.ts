@@ -128,7 +128,7 @@ export interface GapFinding {
 
 /**
  * Every stretch where the student went more than 10 business days without a
- * full day on campus. Measured from enrolment, because the clock starts then —
+ * full day on campus. Measured from enrollment, because the clock starts then —
  * a student who never attends has the longest gap of all, and a check that only
  * looked between visits would score them perfect.
  */
@@ -283,7 +283,7 @@ export function runChecks(s: Student, asOf: string): Check[] {
     severity: s.disclaimerSignedOn ? "pass" : "fail",
     detail: s.disclaimerSignedOn
       ? `Signed ${s.disclaimerSignedOn}, before the first distance hour.`
-      : "Required before enrolment, signed and dated, held in the student file.",
+      : "Required before enrollment, signed and dated, held in the student file.",
   });
 
   return checks;

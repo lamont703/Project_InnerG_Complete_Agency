@@ -222,7 +222,7 @@ export async function programsFor(schoolId: string): Promise<{ id: string; name:
 }
 
 /**
- * Enrol a student.
+ * Enroll a student.
  *
  * THE CLOCK CODE IS GENERATED, NOT CHOSEN. A person picking their own would
  * pick their birth year, and the code is the only credential the kiosk has.
@@ -230,7 +230,7 @@ export async function programsFor(schoolId: string): Promise<{ id: string; name:
  * uniqueness index does the rest — a collision retries rather than failing,
  * because a front desk enrolling somebody should never see a database error.
  */
-export async function enrolStudent(args: {
+export async function enrollStudent(args: {
   schoolId: string; programId: string;
   firstName: string; lastName: string; email?: string | null; phone?: string | null;
   enrolledOn: string;
@@ -247,4 +247,93 @@ export async function enrolStudent(args: {
     if (!/duplicate key|unique/i.test(error.message)) return { ok: false, error: error.message };
   }
   return { ok: false, error: "Could not allocate a clock code. Try again." };
+}
+
+// ---------------------------------------------------------------------------
+// One student, in full
+// ---------------------------------------------------------------------------
+
+export interface StudentDetail {
+  student: StudentRow;
+  school: SchoolRow;
+  programName: string;
+  program: Program;
+  enrolledOn: string;
+  punches: Punch[];
+  /** Label per block id, so a punch can name the class it was taken under. */
+  blockLabels: Record<string, string>;
+}
+
+export async function studentDetail(studentId: string): Promise<StudentDetail | null> {
+  const { data: s } = await admin()
+    .from("sis_students")
+    .select("id, school_id, program_id, first_name, last_name, clock_code, status, enrolled_on")
+    .eq("id", studentId).maybeSingle();
+  if (!s) return null;
+
+  const [school, prog, punches, blocks] = await Promise.all([
+    schoolById(s.school_id),
+    admin().from("sis_programs")
+      .select("name, total_hours, core_hours, specialty_hours, core_distance_cap, specialty_distance_cap")
+      .eq("id", s.program_id).maybeSingle(),
+    // Voids INCLUDED. The engine ignores them for totals and the ledger has to
+    // show them — a correction trail with the corrections filtered out is just
+    // a different set of numbers with nothing to explain them.
+    admin().from("sis_punches").select(PUNCH_COLS + ", schedule_block_id, source, voided_by, void_reason")
+      .eq("student_id", studentId).order("punched_in_at"),
+    scheduleFor(s.program_id),
+  ]);
+  if (!school || !prog.data) return null;
+
+  const blockLabels: Record<string, string> = {};
+  for (const b of blocks) blockLabels[b.id] = b.label;
+
+  return {
+    student: {
+      id: s.id, schoolId: s.school_id, programId: s.program_id,
+      firstName: s.first_name, lastName: s.last_name,
+      clockCode: s.clock_code, status: s.status,
+    },
+    school,
+    enrolledOn: s.enrolled_on,
+    programName: prog.data.name,
+    program: {
+      totalHours: prog.data.total_hours, coreHours: prog.data.core_hours,
+      specialtyHours: prog.data.specialty_hours,
+      coreDistanceCap: prog.data.core_distance_cap,
+      specialtyDistanceCap: prog.data.specialty_distance_cap,
+    },
+    punches: (punches.data ?? []).map((r: any) => ({
+      ...toPunch(r),
+      scheduleBlockId: r.schedule_block_id ?? null,
+      source: r.source,
+      voidedBy: r.voided_by ?? null,
+      voidReason: r.void_reason ?? null,
+    })) as any,
+    blockLabels,
+  };
+}
+
+/**
+ * Void a punch.
+ *
+ * THE ROW IS NEVER EDITED AND NEVER DELETED. Its timestamps stay exactly as
+ * they were recorded and it gains a reason and an author, so the trail reads
+ * "this was wrong, here is who said so, here is why" rather than silently
+ * becoming a different fact. That is the entire reason the record is worth
+ * anything to an inspector.
+ *
+ * A REASON IS REQUIRED. A void with no explanation is indistinguishable from a
+ * deletion after the fact, which is the thing this design exists to prevent.
+ */
+export async function voidPunch(args: {
+  punchId: string; reason: string; by: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!args.reason.trim()) return { ok: false, error: "A reason is required." };
+  const { error } = await admin().from("sis_punches").update({
+    voided_at: new Date().toISOString(),
+    voided_by: args.by,
+    void_reason: args.reason.trim().slice(0, 500),
+  }).eq("id", args.punchId).is("voided_at", null);
+  return error ? { ok: false, error: error.message } : { ok: true };
 }

@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { enrolStudent, firstSchool, programsFor } from "@/lib/school/store";
+import { enrollStudent, firstSchool, programsFor } from "@/lib/school/store";
 
 /**
- * Enrolment, from the front desk.
+ * Enrollment, from the front desk.
  *
  * NOT PUBLIC. /school/roster is staff-facing and this action writes a real
  * student record — the moment there is an auth boundary around the school
@@ -13,7 +13,7 @@ import { enrolStudent, firstSchool, programsFor } from "@/lib/school/store";
  * not be confused: that one can only clock somebody in, this one creates a
  * person.
  */
-export async function enrolStudentAction(input: {
+export async function enrollStudentAction(input: {
   programId: string;
   firstName: string;
   lastName: string;
@@ -35,7 +35,7 @@ export async function enrolStudentAction(input: {
     return { ok: false, error: "Choose a program." };
   }
 
-  const res = await enrolStudent({
+  const res = await enrollStudent({
     schoolId: school.id,
     programId: input.programId,
     firstName, lastName,

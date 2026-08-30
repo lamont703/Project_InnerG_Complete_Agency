@@ -165,7 +165,7 @@ export function buildSchoolOutreachEmail(
 
   // A five-candidate cohort is a real number and a fragile one. Saying so is
   // what makes the rest of the message credible to someone who knows their own
-  // enrolment better than we do.
+  // enrollment better than we do.
   if (school.writtenTestTakers != null && school.writtenTestTakers < 10) {
     lines.push("");
     lines.push(

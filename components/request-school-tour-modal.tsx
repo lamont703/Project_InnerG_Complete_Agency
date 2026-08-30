@@ -27,7 +27,7 @@ import {
  * WHY A TOUR AND NOT AN APPLICATION. Search Console says ~95% of visitors to
  * these pages arrive searching ONE school by name: they have already narrowed
  * and are checking it out. Across 23,792 impressions there were FIVE cost
- * queries and ZERO enrolment queries. An Apply CTA would compete with the
+ * queries and ZERO enrollment queries. An Apply CTA would compete with the
  * school's own site and lose; a tour is the step those visitors are actually
  * at, and it is one the directory can own.
  *

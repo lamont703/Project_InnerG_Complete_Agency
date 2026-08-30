@@ -32,8 +32,8 @@ const STAGES = (courseName: string, hours: number) => [
     icon: FileText,
     title: "Eligibility",
     body: [
-      `Students in the ${courseName} course become eligible for the written exam once ${hours} hours have been earned and reported. Specialty courses — manicurist, esthetician, eyelash extension — must be completed and the enrolment dropped first.`,
-      "Practical eligibility only generates after you have completed the required program hours under Rule 83.202, had your enrolment dropped, AND passed the written exam.",
+      `Students in the ${courseName} course become eligible for the written exam once ${hours} hours have been earned and reported. Specialty courses — manicurist, esthetician, eyelash extension — must be completed and the enrollment dropped first.`,
+      "Practical eligibility only generates after you have completed the required program hours under Rule 83.202, had your enrollment dropped, AND passed the written exam.",
       "Allow 48–72 hours after hours are reported for eligibility to reach PSI.",
     ],
     tip: "Make sure your school has an email on file for you — that is how PSI sends the notice of eligibility, and it is the fastest route to updates.",
@@ -42,7 +42,7 @@ const STAGES = (courseName: string, hours: number) => [
     icon: CalendarCheck,
     title: "Scheduling with PSI",
     body: [
-      "Once TDLR approves, PSI emails you scheduling instructions. If no email address was given at enrolment, it arrives by postcard.",
+      "Once TDLR approves, PSI emails you scheduling instructions. If no email address was given at enrollment, it arrives by postcard.",
       "Create your account at PSI Online using your TDLR ID (specialty permit number), last name, country of residence and email. Your exam only appears in the portal once eligibility has generated.",
       "Retaking? Log in, open the Manage tab, find your most recent attempt and select Retake beneath it.",
     ],
