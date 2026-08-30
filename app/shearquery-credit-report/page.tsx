@@ -262,7 +262,7 @@ export default async function CreditReportOnboardingPage({
               </a>
             </div>
             <p className="mt-3 text-xs text-slate-500">
-              No card, no contract, nothing to install. Reports to nobody outside ShearQuery.
+              No card, no contract, nothing to install.
             </p>
           </header>
 

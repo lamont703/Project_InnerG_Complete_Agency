@@ -40,10 +40,16 @@ describe("the hero call to action", () => {
     expect(src).toContain('id="how"');
   });
 
-  it("says the price and the limit next to the button", () => {
-    // The two objections that stop a click: what will this cost me, and where
-    // does this data go.
+  it("answers the cost objection next to the button", () => {
+    // "Reports to nobody outside ShearQuery" used to sit here too. It came out
+    // of the hero because it argues with the thing the page is now selling: a
+    // reader who has just been shown a ladder up to Experian and Equifax does
+    // not need "reports to nobody" as the second line they read.
+    //
+    // The claim itself is NOT gone — it is still stated plainly in the bureau
+    // section and again under "What this is not", which is where somebody
+    // asking that question will actually be looking.
     expect(src).toContain("No card, no contract");
-    expect(src).toContain("Reports to nobody outside ShearQuery");
+    expect(src).not.toContain("nothing to install. Reports to nobody");
   });
 });
