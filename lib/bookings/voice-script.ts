@@ -7,20 +7,18 @@
  */
 
 /**
- * The calling window, in US Central, as [openHour, closeHour) on a 24h clock.
+ * The calling window, in US EASTERN, as [openHour, closeHour) on a 24h clock.
  *
- * CENTRAL BECAUSE THE DIRECTORY IS TEXAS-FIRST, and 11–18 Central rather than
- * 9–17 because it has to be defensible in every continental timezone at once:
- * it is 09:00–16:00 Pacific and 12:00–19:00 Eastern. A 9am Central call is 7am
- * in California, which is how an automated call gets a number blocked.
+ * 10:00–19:00 Eastern, every day, set by the site owner.
  *
- * Narrower than strictly necessary in Texas, on purpose. Calling a shop an hour
- * late costs nothing; calling one at seven in the morning costs the number.
+ * Worth knowing rather than arguing about: 10am Eastern is 7am Pacific, so a
+ * West Coast shop can be called early in its morning. Texas — the directory's
+ * centre of gravity — sees 09:00–18:00, which is squarely reasonable.
  */
-export const CALL_WINDOW_CENTRAL: [number, number] = [11, 18];
+export const CALL_WINDOW_EASTERN: [number, number] = [10, 19];
 
-/** No Sunday calls, and no Monday calls — most barbershops are shut. */
-export const CALL_DAYS = [2, 3, 4, 5, 6] as const; // Tue–Sat, 0 = Sunday
+/** Every day. Barbershops keep their own hours and plenty trade on Sunday. */
+export const CALL_DAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 
 /** Two attempts, then it is a human's problem. */
 export const MAX_ATTEMPTS = 2;
@@ -31,14 +29,14 @@ export const RETRY_AFTER_MS = 4 * 60 * 60 * 1000;
 /**
  * Is now inside the window?
  *
- * Central time is derived with Intl rather than a fixed UTC offset, so it
- * follows daylight saving without a table to maintain. A hardcoded -6 would be
- * an hour wrong for eight months of the year — and an hour wrong at the edge of
- * this window is a 10am call.
+ * Eastern is derived with Intl rather than a fixed UTC offset, so it follows
+ * daylight saving without a table to maintain. A hardcoded -5 would be an hour
+ * wrong for eight months of the year — and an hour wrong at the open edge is a
+ * 9am call.
  */
 export function withinCallWindow(now: Date): boolean {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Chicago",
+    timeZone: "America/New_York",
     hour: "numeric",
     hour12: false,
     weekday: "short",
@@ -48,7 +46,7 @@ export function withinCallWindow(now: Date): boolean {
   const weekday = parts.find((p) => p.type === "weekday")?.value ?? "";
   const dayIndex = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekday);
 
-  const [open, close] = CALL_WINDOW_CENTRAL;
+  const [open, close] = CALL_WINDOW_EASTERN;
   return (CALL_DAYS as readonly number[]).includes(dayIndex) && hour >= open && hour < close;
 }
 
@@ -95,7 +93,10 @@ export function spokenPhone(raw: string): string {
  * THE NUMBER IS SAID TWICE, at the natural points a listener reaches for a pen:
  * once in the detail, once at the end.
  */
-export function bookingVoiceScript(i: VoiceScriptInput): string[] {
+export function bookingVoiceScript(
+  i: VoiceScriptInput,
+  opts: { offerKeypad?: boolean } = {}
+): string[] {
   const phone = spokenPhone(i.customerPhone);
   return [
     `Hello, this is ShearQuery calling for ${i.shopName}.`,
@@ -103,6 +104,19 @@ export function bookingVoiceScript(i: VoiceScriptInput): string[] {
     `${i.customerName || "A customer"} asked for ${i.serviceName}, on ${i.prettyDate}, at ${i.requestedTime}.`,
     `Their phone number is ${phone}.`,
     `This is a request, not a confirmed booking. Please call them back to confirm the time.`,
+    /*
+     * THE KEYPAD PROMPT SITS IN THE MIDDLE, not at the end. A person who has
+     * decided presses immediately, and everything after this is for somebody
+     * who has not — so the callback number is repeated AFTER it rather than
+     * before, and the opt-out stays last where it belongs.
+     *
+     * On voicemail nobody presses anything and this reads as a harmless
+     * instruction. That is the right trade: the message still works, and the
+     * one case where a person is on the line stops being a dead end.
+     */
+    ...(opts.offerKeypad
+      ? [`If you can take this appointment, press 1. If you cannot, press 2.`]
+      : []),
     `Once more, that number is ${phone}.`,
     `To stop these calls, reply STOP to any ShearQuery text, or visit shear query dot com. Thank you.`,
   ];
@@ -161,7 +175,22 @@ function escapeXml(v: string): string {
  * half-second is the person saying "hello", and on a machine it is the tail of
  * the greeting. Speaking into either loses the sentence that says who we are.
  */
-export function bookingVoiceTwiml(lines: string[], voice: AllowedVoice = DEFAULT_VOICE): string {
+/**
+ * @param gatherUrl When set, the whole message is wrapped in a <Gather> so a
+ *   digit can be pressed AT ANY POINT during it, not only at the end. Somebody
+ *   who already knows their diary should not have to sit through the opt-out
+ *   line to answer.
+ *
+ *   On voicemail no digit ever arrives, the Gather times out, and the call
+ *   falls through to Hangup — so the message is left exactly as before. The
+ *   only cost is the timeout's silence on the recording, which is why it is
+ *   short.
+ */
+export function bookingVoiceTwiml(
+  lines: string[],
+  voice: AllowedVoice = DEFAULT_VOICE,
+  gatherUrl?: string
+): string {
   const speech = lines
     .map((l) => `  <Say voice="${voice}">${escapeXml(l)}</Say>\n  <Pause length="1"/>`)
     .join("\n");
@@ -172,6 +201,16 @@ export function bookingVoiceTwiml(lines: string[], voice: AllowedVoice = DEFAULT
    * an answered call and nothing useful in any log. That helper's own comment
    * warns about this class of failure; this is it.
    */
+  if (gatherUrl) {
+    return `<Response>
+  <Pause length="1"/>
+  <Gather input="dtmf" numDigits="1" timeout="5" action="${escapeXml(gatherUrl)}" method="POST">
+${speech}
+  </Gather>
+  <Hangup/>
+</Response>`;
+  }
+
   return `<Response>
   <Pause length="1"/>
 ${speech}

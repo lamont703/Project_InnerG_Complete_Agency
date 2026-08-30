@@ -54,7 +54,7 @@
     },
     {
       "path": "/api/cron/booking-voice-followup",
-      "schedule": "0 17,22 * * 2-6"
+      "schedule": "0 16,21 * * *"
     }
   ]
 }
