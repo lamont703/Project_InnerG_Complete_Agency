@@ -37,9 +37,9 @@ import { ReportPreview } from "@/components/credit-report/report-preview";
  * this is a reference a worker chooses to hand over.
  */
 export const metadata: Metadata = {
-  title: "ShearQuery Credit Report — Booth Rent Payment History for Barbers & Salons",
+  title: "ShearQuery Credit Report — Booth Rent Payment History for Shops, Salons & Suites",
   description:
-    "Build a payment record for booth rent. Shops confirm who paid with one tap every two weeks; barbers and cosmetologists own the record and choose who sees it.",
+    "Build a payment record for booth and suite rent. Shops and salons confirm who paid with one tap every two weeks; barbers, stylists and cosmetologists own the record and choose who sees it.",
   alternates: { canonical: `${SITE_URL}/shearquery-credit-report` },
 };
 
@@ -48,7 +48,7 @@ export const dynamic = "force-dynamic";
 const WHY_SHOPS = [
   {
     title: "Rent turns up on time",
-    body: "A barber who knows the week is going on a record they carry to their next chair treats it differently from one who knows it disappears when they leave. That is the whole mechanism, and it works because the record is portable, not because it is punitive.",
+    body: "A barber or cosmetologist who knows the week is going on a record they carry to their next chair treats it differently from one who knows it disappears when they leave. That is the whole mechanism, and it works because the record is portable, not because it is punitive.",
   },
   {
     title: "You hire on evidence",
@@ -56,7 +56,7 @@ const WHY_SHOPS = [
   },
   {
     title: "You attract the good ones",
-    body: "Barbers who always pay currently get nothing for it. Be the shop that gives them a record they own and you become the shop the reliable ones want to rent from. No other shop in your city is offering this.",
+    body: "Barbers and cosmetologists who always pay currently get nothing for it. Be the shop or salon that gives them a record they own and you become the one the reliable ones want to rent from. Nobody else in your city is offering this.",
   },
 ];
 
@@ -80,11 +80,11 @@ const LEVELS = [
 
 const FAQ = [
   {
-    q: "Is it legal for me to report on my barbers?",
-    a: "You are recording payments on your own chairs, which is bookkeeping you are already entitled to do. What makes it safe to share is the design: the worker sees every entry as it lands, can dispute any of it, and nothing is visible to anyone else unless they choose to share it. Nothing goes to a credit bureau today. If and when it does, each worker will have to agree separately — that is a different product with different rules, and we will not slide people into it quietly.",
+    q: "Is it legal for me to report on my barbers or stylists?",
+    a: "You are recording payments on your own chairs and suites, which is bookkeeping you are already entitled to do. What makes it safe to share is the design: the worker sees every entry as it lands, can dispute any of it, and nothing is visible to anyone else unless they choose to share it. Nothing goes to a credit bureau today. If and when it does, each worker will have to agree separately — that is a different product with different rules, and we will not slide people into it quietly.",
   },
   {
-    q: "Will my barbers be upset about this?",
+    q: "Will my barbers and stylists be upset about this?",
     a: "Show them the page. The ones who pay every week have been getting nothing for it, and this is the first thing that gives them credit for it — portable, theirs, and useful the next time they want a better chair. The ones who do not pay are the reason you are here. If a barber objects to a record they can see, dispute and control, that is worth knowing before you hand them a chair.",
   },
   {
@@ -100,11 +100,11 @@ const FAQ = [
     a: "Fix it. The worker can also dispute it, which flags the week and asks you to confirm. Every entry carries the number it was reported from, so a mistake is traceable and correctable rather than permanent.",
   },
   {
-    q: "Can I look up a barber before I rent them a chair?",
-    a: "No, and that is deliberate. There is no lookup and no searchable database — a shop only ever sees its own chairs. A worker shares their record with you the way they would hand over a reference. Building something shops could query behind a worker's back is exactly the product we are refusing to build.",
+    q: "Can I look somebody up before I rent them a chair or suite?",
+    a: "No, and that is deliberate. There is no lookup and no searchable database — a shop only ever sees its own chairs. A worker shares their record with you the way they would hand over a reference. Same for salons and suites. Building something shops could query behind a worker's back is exactly the product we are refusing to build.",
   },
   {
-    q: "What if a barber leaves owing me money?",
+    q: "What if a barber or stylist leaves owing me money?",
     a: "The weeks you reported stay on their record and follow them to the next shop. That is the point of tying the record to a licence rather than to your shop: a history that dies when somebody walks out of the door deters nobody.",
   },
   {
@@ -116,7 +116,7 @@ const FAQ = [
     a: "We are not giving a date, because the honest answer depends on licensing rather than on engineering. Furnishing data to a consumer bureau means accuracy procedures, dispute investigation and the obligations that come with them. We would rather be late than be the reason somebody's record is wrong.",
   },
   {
-    q: "What if my barber does not have a licence number handy?",
+    q: "What if I do not have their licence number handy?",
     a: "You do not need one. Give us their name and we resolve the licence ourselves from the state records — 99% of names are unique inside a county. Where two people genuinely share a name we ask rather than guess.",
   },
   {
@@ -124,7 +124,7 @@ const FAQ = [
     a: "Mark them excused and they leave the record entirely — they count neither for nor against. A system that scored somebody down for being ill would deserve everything it got.",
   },
   {
-    q: "Does this affect my barber's actual credit score?",
+    q: "Does this affect their actual credit score?",
     a: "Not today, in any way at all. The ShearQuery score is out of 100 rather than 300 to 850 precisely so nobody mistakes it for a FICO score. It reports to no bureau and touches no credit file.",
   },
 ];
@@ -133,7 +133,7 @@ const OWNER_STEPS = [
   {
     icon: ClipboardList,
     title: "Enroll the shop once",
-    body: "Shop name, address, email, the number we should text, and your establishment licence. Two minutes, and nothing to install.",
+    body: "Shop or salon name, address, email, the number we should text, and your establishment licence. Two minutes, and nothing to install.",
   },
   {
     icon: Users,
@@ -189,22 +189,59 @@ export default async function CreditReportOnboardingPage() {
           <header className="mx-auto max-w-3xl text-center">
             <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">
               <ShieldCheck className="h-3 w-3" />
-              Free for shops and workers
+              Free for shops, salons and the people who rent from them
             </span>
             <h1 className="text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl">
               Paying your booth rent on time should be worth something
             </h1>
             <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
-              Right now it is worth nothing. A barber can pay every Monday for three years, move
-              shops, and arrive with no way to prove it. The ShearQuery Credit Report is the record
-              that follows them — built by the shop, owned by the worker.
+              Right now it is worth nothing. A barber or stylist can pay every Monday for three
+              years, move to another shop or salon, and arrive with no way to prove it. The ShearQuery Credit Report is the record
+              that follows them — built by the shop or salon, owned by the worker.
             </p>
           </header>
+
+          {/* ---------------------------------------------------------------
+              WHY A SHOP DOES THIS, and it is three things, not one. Rent
+              arriving on time is the obvious one; the other two are what make
+              it worth an owner's fortnight.
+          ---------------------------------------------------------------- */}
+          <section className="mt-14">
+            <h2 className="text-2xl font-black tracking-tight text-slate-950">
+              Three reasons shops and salons do this
+            </h2>
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              {WHY_SHOPS.map((w) => (
+                <div key={w.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <h3 className="text-base font-black text-slate-900">{w.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{w.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-14 grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+            <div>
+              <h2 className="text-2xl font-black tracking-tight text-slate-950">
+                What your barbers and stylists get
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                A record they own and carry to their next chair. This is the half that makes the
+                whole thing work: a barber who pays every week finally has something to show for
+                it, so the record is worth protecting rather than something being done to them.
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                They see every entry as it lands, they can dispute any of it, and nobody can look
+                them up. They choose who sees it.
+              </p>
+            </div>
+            <ReportPreview />
+          </section>
 
           {/* Owner first: nothing exists until a shop reports it. */}
           <section className="mt-14">
             <div className="mb-6 flex flex-wrap items-baseline gap-3">
-              <h2 className="text-2xl font-black tracking-tight text-slate-950">If you own the shop</h2>
+              <h2 className="text-2xl font-black tracking-tight text-slate-950">If you own the shop or salon</h2>
               <span className="text-sm font-bold text-slate-500">Four steps, then a text every two weeks</span>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -279,93 +316,6 @@ export default async function CreditReportOnboardingPage() {
             </p>
           </section>
 
-          {/* Enrollment. */}
-          <section id="enroll" className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-5">
-            <div className="lg:col-span-2">
-              <h2 className="text-2xl font-black tracking-tight text-slate-950">Enroll your shop</h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                This is the owner&apos;s side. Barbers and cosmetologists do not sign up here —
-                you are invited by the shop you rent from.
-              </p>
-              <div className="mt-5 space-y-3">
-                {[
-                  "Free, and always will be",
-                  "One text every two weeks",
-                  "Reply STOP and it ends",
-                  "Correct any week, any time",
-                ].map((t) => (
-                  <div key={t} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-                    {t}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="lg:col-span-3">
-              <EnrollForm signedIn={Boolean(member)} listings={listings} />
-            </div>
-          </section>
-
-          {/* What the bands mean — read from the model so the marketing page
-              cannot drift from the thing that actually scores. */}
-          <section className="mt-14">
-            <h2 className="text-2xl font-black tracking-tight text-slate-950">What the number means</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              Scored 0–100, not 300–850. Borrowing the range of a real credit score would imply a
-              comparability that does not exist.
-            </p>
-            <dl className="mt-5 space-y-3">
-              {BANDS.map((b) => (
-                <div key={b.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <dt className="flex flex-wrap items-baseline gap-x-3">
-                    <span className="text-sm font-black text-slate-900">{b.label}</span>
-                    <span className="text-xs font-bold text-slate-400">{b.range}</span>
-                  </dt>
-                  <dd className="mt-1.5 text-sm leading-relaxed text-slate-600">
-                    {b.meaning} {b.guidance}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-
-          {/* ---------------------------------------------------------------
-              WHY A SHOP DOES THIS, and it is three things, not one. Rent
-              arriving on time is the obvious one; the other two are what make
-              it worth an owner's fortnight.
-          ---------------------------------------------------------------- */}
-          <section className="mt-14">
-            <h2 className="text-2xl font-black tracking-tight text-slate-950">
-              Three reasons shops do this
-            </h2>
-            <div className="mt-5 grid gap-4 sm:grid-cols-3">
-              {WHY_SHOPS.map((w) => (
-                <div key={w.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <h3 className="text-base font-black text-slate-900">{w.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{w.body}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="mt-14 grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
-            <div>
-              <h2 className="text-2xl font-black tracking-tight text-slate-950">
-                What your barbers get
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                A record they own and carry to their next chair. This is the half that makes the
-                whole thing work: a barber who pays every week finally has something to show for
-                it, so the record is worth protecting rather than something being done to them.
-              </p>
-              <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                They see every entry as it lands, they can dispute any of it, and nobody can look
-                them up. They choose who sees it.
-              </p>
-            </div>
-            <ReportPreview />
-          </section>
-
           {/* ---------------------------------------------------------------
               THE LADDER. Level one is live. Everything above it is not, and
               this section exists to say so plainly rather than to imply
@@ -415,6 +365,33 @@ export default async function CreditReportOnboardingPage() {
             </p>
           </section>
 
+          {/* Enrollment. */}
+          <section id="enroll" className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-5">
+            <div className="lg:col-span-2">
+              <h2 className="text-2xl font-black tracking-tight text-slate-950">Enroll your shop or salon</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                This is the owner&apos;s side. Barbers and cosmetologists do not sign up here —
+                you are invited by the shop you rent from.
+              </p>
+              <div className="mt-5 space-y-3">
+                {[
+                  "Free, and always will be",
+                  "One text every two weeks",
+                  "Reply STOP and it ends",
+                  "Correct any week, any time",
+                ].map((t) => (
+                  <div key={t} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                    {t}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="lg:col-span-3">
+              <EnrollForm signedIn={Boolean(member)} listings={listings} />
+            </div>
+          </section>
+
           <section id="waitlist" className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-5">
             <div className="lg:col-span-2">
               <h2 className="text-2xl font-black tracking-tight text-slate-950">
@@ -433,6 +410,29 @@ export default async function CreditReportOnboardingPage() {
             <div className="lg:col-span-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <WaitlistForm />
             </div>
+          </section>
+
+          {/* What the bands mean — read from the model so the marketing page
+              cannot drift from the thing that actually scores. */}
+          <section className="mt-14">
+            <h2 className="text-2xl font-black tracking-tight text-slate-950">What the number means</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              Scored 0–100, not 300–850. Borrowing the range of a real credit score would imply a
+              comparability that does not exist.
+            </p>
+            <dl className="mt-5 space-y-3">
+              {BANDS.map((b) => (
+                <div key={b.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <dt className="flex flex-wrap items-baseline gap-x-3">
+                    <span className="text-sm font-black text-slate-900">{b.label}</span>
+                    <span className="text-xs font-bold text-slate-400">{b.range}</span>
+                  </dt>
+                  <dd className="mt-1.5 text-sm leading-relaxed text-slate-600">
+                    {b.meaning} {b.guidance}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </section>
 
           <section className="mt-14">
