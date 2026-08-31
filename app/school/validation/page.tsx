@@ -6,6 +6,8 @@ import { ArrowLeft } from "lucide-react";
 import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import { Navbar } from "@/components/layout/navbar";
 import { firstSchool, instructorsFor, pendingValidation } from "@/lib/school/store";
+import { activityMinutesFor, progressForPunches } from "@/lib/school/learning-store";
+import { participation } from "@/lib/school/learning";
 import { ValidationClient, type QueueRow } from "./validation-client";
 
 /**
@@ -47,6 +49,19 @@ export default async function ValidationPage() {
     instructorsFor(school.id),
   ]);
 
+  /*
+   * THE EVIDENCE BEHIND EACH SESSION, fetched in two queries for the whole
+   * queue rather than per row. Before this existed an instructor was asked to
+   * sign for "a timer ran for three hours", which is not something a person can
+   * responsibly put their name to. Now they see how many of those minutes had
+   * somebody at the keyboard and what coursework came out of it.
+   */
+  const punchIds = queue.map((q) => q.punchId);
+  const [minutes, progress] = await Promise.all([
+    activityMinutesFor(punchIds),
+    progressForPunches(punchIds),
+  ]);
+
   const today = Date.now();
   const rows: QueueRow[] = queue.map((q) => ({
     punchId: q.punchId,
@@ -58,6 +73,21 @@ export default async function ValidationPage() {
     segment: q.segment,
     blockLabel: q.blockLabel,
     ageDays: Math.max(0, Math.floor((today - new Date(q.punchedOutAt).getTime()) / 86_400_000)),
+    evidence: participation({
+      clockedMinutes: q.minutes,
+      minuteStamps: minutes[q.punchId] ?? [],
+      /*
+       * EMPTY ON PURPOSE, and it means `sectionsTotal` comes back 0 — so this
+       * view must never render it as a denominator. A session has no total:
+       * "4 of 12" would be the lesson's total, and a student can spread one
+       * lesson over three evenings or cover three lessons in one. The
+       * meaningful figure per session is how much was done IN it, which is
+       * `sectionsCompleted`, and that is the only one shown.
+       */
+      sections: [],
+      progress,
+      punchId: q.punchId,
+    }),
   }));
 
   const totalHours = rows.reduce((n, r) => n + r.minutes, 0) / 60;
@@ -83,6 +113,13 @@ export default async function ValidationPage() {
             : `${totalHours.toFixed(1)} online hours across ${rows.length} ${rows.length === 1 ? "session" : "sessions"} are waiting for an instructor to confirm the student took part.`}{" "}
           Campus hours are not listed — an instructor was in the room for those. This is the one
           NACCAS asks a school to be able to evidence separately.
+        </p>
+        <p className="mt-3 max-w-2xl text-xs leading-relaxed text-slate-500">
+          Each session shows how many of its minutes had somebody actually working and what
+          coursework came out of them. <strong>The supported / thin labels are this school&apos;s
+          own thresholds, not a regulator&apos;s</strong> — neither NACCAS nor TDLR sets a
+          percentage. They sort what deserves a closer look; they decide nothing, and a thin
+          session is a reason to ask rather than a reason to refuse.
         </p>
 
         <div className="mt-8">

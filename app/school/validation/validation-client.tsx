@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { CheckCircle2, Loader2, PenLine, Plus, ShieldAlert } from "lucide-react";
+import type { Participation } from "@/lib/school/learning";
 import { addInstructorAction, validateAction } from "./actions";
 
 export interface QueueRow {
@@ -15,6 +16,7 @@ export interface QueueRow {
   segment: string;
   blockLabel: string | null;
   ageDays: number;
+  evidence: Participation;
 }
 
 export interface InstructorOption {
@@ -24,6 +26,50 @@ export interface InstructorOption {
 }
 
 const hm = (m: number) => `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
+
+const GRADE: Record<Participation["grade"], { label: string; className: string }> = {
+  supported:      { label: "supported",     className: "bg-emerald-100 text-emerald-900" },
+  thin:           { label: "thin",          className: "bg-amber-100 text-amber-900" },
+  "no-coursework":{ label: "no coursework", className: "bg-rose-100 text-rose-900" },
+  "too-short":    { label: "very short",    className: "bg-slate-100 text-slate-600" },
+};
+
+/**
+ * What actually happened in a session, under the times.
+ *
+ * SHOWS BOTH NUMBERS AND NEVER MERGES THEM. The punch is the hour record and
+ * stays it; the engaged minutes are how much of that hour had somebody at the
+ * keyboard. An instructor who only saw one of them would be signing blind — and
+ * one who saw a single blended figure would be signing for a number nobody
+ * measured.
+ *
+ * The grade is a school policy, not a regulator's threshold, and the queue says
+ * so above. It sorts attention; it decides nothing.
+ */
+function Evidence({ e }: { e: Participation }) {
+  const g = GRADE[e.grade];
+  return (
+    <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+      <span className={`rounded-full px-2 py-0.5 font-black ${g.className}`}>{g.label}</span>
+      <span className="tabular-nums">
+        {hm(e.engagedMinutes)} active of {hm(e.clockedMinutes)}
+        {e.engagementRatio !== null && ` (${Math.round(e.engagementRatio * 100)}%)`}
+      </span>
+      <span>·</span>
+      <span className="tabular-nums">
+        {e.sectionsCompleted} {e.sectionsCompleted === 1 ? "section" : "sections"}
+      </span>
+      {e.checksAnswered > 0 && (
+        <>
+          <span>·</span>
+          <span className="tabular-nums">
+            {e.checksCorrect}/{e.checksAnswered} checks right
+          </span>
+        </>
+      )}
+    </span>
+  );
+}
 
 /**
  * The distance-hours signature queue.
@@ -300,6 +346,7 @@ export function ValidationClient({
                           <span className="ml-2 text-xs text-slate-500">
                             {r.segment} theory{r.blockLabel ? ` · ${r.blockLabel}` : ""}
                           </span>
+                          <Evidence e={r.evidence} />
                         </span>
                         {r.ageDays >= 14 && (
                           <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-900">

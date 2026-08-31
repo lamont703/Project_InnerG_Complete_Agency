@@ -1,6 +1,11 @@
 import "server-only";
+
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Punch, Program, ScheduleBlock } from "./hours";
+// One generator, imported rather than copied. Two token functions in two files
+// is two places for the byte length to drift, and the one that shrinks is the
+// one nobody notices.
+import { claimToken } from "./learning-store";
 
 /**
  * Reads and writes for the school system of record.
@@ -234,16 +239,29 @@ export async function enrollStudent(args: {
   schoolId: string; programId: string;
   firstName: string; lastName: string; email?: string | null; phone?: string | null;
   enrolledOn: string;
-}): Promise<{ ok: boolean; clockCode?: string; error?: string }> {
+}): Promise<{ ok: boolean; clockCode?: string; claimToken?: string; error?: string }> {
   for (let attempt = 0; attempt < 6; attempt++) {
     const code = String(Math.floor(1000 + Math.random() * 9000));
+    /*
+     * TWO CREDENTIALS, DELIBERATELY DIFFERENT SIZES, because they are used in
+     * places with very different defences.
+     *
+     * The clock code is four digits and belongs at the door, where guessing it
+     * means standing in the building typing wrong numbers at a screen in front
+     * of staff. The claim token opens a student's account over the open
+     * internet, where ten thousand guesses is a shell loop, so it is 20 random
+     * bytes. Issuing one credential for both jobs would have meant either an
+     * unusable kiosk or a guessable account.
+     */
+    const claim = claimToken();
     const { error } = await admin().from("sis_students").insert({
       school_id: args.schoolId, program_id: args.programId,
       first_name: args.firstName, last_name: args.lastName,
       email: args.email || null, phone: args.phone || null,
       clock_code: code, enrolled_on: args.enrolledOn,
+      claim_token: claim,
     });
-    if (!error) return { ok: true, clockCode: code };
+    if (!error) return { ok: true, clockCode: code, claimToken: claim };
     if (!/duplicate key|unique/i.test(error.message)) return { ok: false, error: error.message };
   }
   return { ok: false, error: "Could not allocate a clock code. Try again." };

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import Link from "next/link";
-import { Clock, PenLine } from "lucide-react";
+import { BookOpen, Clock, PenLine } from "lucide-react";
 
 import { Navbar } from "@/components/layout/navbar";
 import { distanceCaps, ledger, toHours } from "@/lib/school/hours";
@@ -104,6 +104,13 @@ export default async function RosterPage() {
                 {unsigned.length} online {unsigned.length === 1 ? "session" : "sessions"} to sign
               </Link>
             )}
+            <Link
+              href="/school/lessons"
+              className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50"
+            >
+              <BookOpen className="h-4 w-4" />
+              Lessons
+            </Link>
             <Link
               href="/school/clock"
               className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50"

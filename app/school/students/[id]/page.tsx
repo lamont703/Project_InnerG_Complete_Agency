@@ -10,6 +10,9 @@ import {
   writtenExamEligible, MAX_BUSINESS_DAYS_BETWEEN_CAMPUS,
 } from "@/lib/school/hours";
 import { signaturesFor, studentDetail } from "@/lib/school/store";
+import { portalStateFor } from "@/lib/school/learning-store";
+import { SITE_URL } from "@/lib/site";
+import { PortalAccess } from "./portal-access";
 import { LedgerClient, type LedgerRow } from "./ledger-client";
 
 /**
@@ -71,7 +74,10 @@ export default async function StudentLedgerPage(props: { params: Promise<{ id: s
   const fmtTime = (iso: string) =>
     new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 
-  const signatures = await signaturesFor(d.student.id);
+  const [signatures, claim] = await Promise.all([
+    signaturesFor(d.student.id),
+    portalStateFor(d.student.id),
+  ]);
 
   const rows: LedgerRow[] = d.punches
     .map((p: any) => ({
@@ -132,6 +138,14 @@ export default async function StudentLedgerPage(props: { params: Promise<{ id: s
           <Meter used={toHours(l.coreDistanceMinutes)} cap={caps.core} label="Core distance" />
           <Meter used={toHours(l.specialtyDistanceMinutes)} cap={caps.specialty} label="Specialty distance" />
         </section>
+
+        <div className="mt-5">
+          <PortalAccess
+            studentId={d.student.id}
+            claimUrl={claim.token ? `${SITE_URL}/student?claim=${claim.token}` : null}
+            claimedAt={claim.claimedAt}
+          />
+        </div>
 
         {/* The things a school needs to see coming. */}
         <section className="mt-5 space-y-3">

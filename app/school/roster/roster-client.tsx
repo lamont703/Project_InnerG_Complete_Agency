@@ -53,7 +53,7 @@ export function RosterClient({
 }) {
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
-  const [issued, setIssued] = useState<{ name: string; code: string } | null>(null);
+  const [issued, setIssued] = useState<{ name: string; code: string; claimUrl: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [f, setF] = useState({ programId: programs[0]?.id ?? "", firstName: "", lastName: "", email: "", phone: "" });
 
@@ -65,7 +65,11 @@ export function RosterClient({
     startTransition(async () => {
       const res = await enrollStudentAction(f);
       if (res.ok && res.clockCode) {
-        setIssued({ name: `${f.firstName} ${f.lastName}`.trim(), code: res.clockCode });
+        setIssued({
+          name: `${f.firstName} ${f.lastName}`.trim(),
+          code: res.clockCode,
+          claimUrl: res.claimToken ? `${window.location.origin}/student?claim=${res.claimToken}` : null,
+        });
         setF({ ...f, firstName: "", lastName: "", email: "", phone: "" });
         setOpen(false);
       } else setError(res.error ?? "Could not enroll.");
@@ -108,6 +112,26 @@ export function RosterClient({
           <p className="mt-2 text-xs leading-relaxed text-emerald-700">
             Write it down or give it to them now — this is the only time it is shown here.
           </p>
+
+          {/* Two credentials, two jobs, and saying which is which here saves a
+              student trying their four-digit code on the website and a member of
+              staff concluding the site is broken. */}
+          {issued.claimUrl && (
+            <div className="mt-4 border-t border-emerald-200 pt-4">
+              <p className="text-sm font-black text-emerald-900">And their account link</p>
+              <p className="mt-1 text-xs leading-relaxed text-emerald-800">
+                Text or email this to them. It sets up their student account so they can see their
+                own hours and work through the online lessons. The clock code above is only for the
+                screen at the door.
+              </p>
+              <code className="mt-2 block overflow-x-auto rounded-lg bg-white px-3 py-2 text-xs text-emerald-900">
+                {issued.claimUrl}
+              </code>
+              <p className="mt-2 text-xs text-emerald-700">
+                It is on their student page too, if you need it again.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

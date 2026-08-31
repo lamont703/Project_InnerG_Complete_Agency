@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import { voidPunch } from "@/lib/school/store";
+import { issueClaimToken } from "@/lib/school/learning-store";
 
 /**
  * Voiding a punch, from the ledger.
@@ -29,4 +30,25 @@ export async function voidPunchAction(
   revalidatePath(`/school/students/${punchId}`);
   revalidatePath("/school/roster");
   return { ok: true };
+}
+
+/**
+ * Issue (or re-issue) the link a student uses to set up their account.
+ *
+ * RE-ISSUING REPLACES THE OLD LINK. That is the point: the commonest reason to
+ * need one is that the first went to a wrong number or a dead phone, and
+ * leaving both live would mean the wrong recipient could still claim the record.
+ * issueClaimToken() refuses outright once a record has been claimed, so this
+ * cannot be used to take an account away from the student holding it.
+ */
+export async function issueClaimLinkAction(
+  studentId: string
+): Promise<{ ok: boolean; token?: string; error?: string }> {
+  if (!(await isAdmin())) return { ok: false, error: "Not authorized." };
+  const token = await issueClaimToken(studentId);
+  if (!token) {
+    return { ok: false, error: "This student has already set up their account, so a new link would do nothing." };
+  }
+  revalidatePath(`/school/students/${studentId}`);
+  return { ok: true, token };
 }

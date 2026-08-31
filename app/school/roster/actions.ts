@@ -18,7 +18,7 @@ export async function enrollStudentAction(input: {
   lastName: string;
   email?: string;
   phone?: string;
-}): Promise<{ ok: boolean; clockCode?: string; error?: string }> {
+}): Promise<{ ok: boolean; clockCode?: string; claimToken?: string; error?: string }> {
   if (!(await isAdmin())) return { ok: false, error: "Not authorized." };
 
   const school = await firstSchool();

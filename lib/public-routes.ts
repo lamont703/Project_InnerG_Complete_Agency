@@ -31,6 +31,25 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
   // array first, so a prefix here is excluded from BOTH surfaces and the two
   // answers cannot drift apart again.
   '/account',
+  // The school operating system and the student portal.
+  //
+  // The sitemap builder CRAWLS THE FILESYSTEM, so every page.tsx under app/
+  // is advertised unless a prefix here says otherwise — and this array also
+  // gates the `.md` layer, so an omission publishes twice.
+  //
+  // /school/roster, /school/validation and /school/lessons are behind the
+  // internal-tools gate and would render nothing to a crawler, but a private
+  // console has no business being offered to Google in the first place.
+  //
+  // /school/clock is the one that actually mattered: the kiosk is
+  // deliberately UNGATED so students can clock in at a door, so advertising
+  // it in the sitemap was handing search engines a public clock-in terminal
+  // whose only credential is four digits.
+  //
+  // /student is per-student state — somebody's own hour record — and belongs
+  // here for exactly the reason /account does.
+  '/school',
+  '/student',
   '/accept-invite',
   '/forgot-password',
   '/reset-password',
