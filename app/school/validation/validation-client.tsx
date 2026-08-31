@@ -56,8 +56,18 @@ function Evidence({ e }: { e: Participation }) {
         {e.engagementRatio !== null && ` (${Math.round(e.engagementRatio * 100)}%)`}
       </span>
       <span>·</span>
+      {/*
+        WORKED IS THE PARTICIPATION FIGURE and completed is the progress one.
+        Shown separately because they answer different questions: a student
+        revising a lesson they finished last week works everything and completes
+        nothing, and collapsing the two into one number made that session look
+        empty. "4 worked" and "0 new" is the honest reading.
+      */}
       <span className="tabular-nums">
-        {e.sectionsCompleted} {e.sectionsCompleted === 1 ? "section" : "sections"}
+        {e.sectionsWorked > 0
+          ? `${e.sectionsWorked} ${e.sectionsWorked === 1 ? "section" : "sections"} worked`
+          : "no section recorded"}
+        {e.sectionsCompleted > 0 && `, ${e.sectionsCompleted} new`}
       </span>
       {e.checksAnswered > 0 && (
         <>

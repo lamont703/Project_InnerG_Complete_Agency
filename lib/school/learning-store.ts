@@ -418,33 +418,65 @@ export async function endLessonSession(args: {
  * not currently living in, because the value here comes from the server clock.
  */
 export async function recordActivityMinute(args: {
-  studentId: string; punchId: string; now: Date;
+  studentId: string; punchId: string; sectionId?: string | null; now: Date;
 }): Promise<{ ok: boolean }> {
   const owned = await admin()
-    .from("sis_punches").select("id")
+    .from("sis_punches").select("id, schedule_block_id")
     .eq("id", args.punchId).eq("student_id", args.studentId)
     .is("punched_out_at", null).is("voided_at", null)
     .maybeSingle();
   if (!owned.data) return { ok: false };
+
+  /*
+   * THE SECTION IS VERIFIED AGAINST THE PUNCH'S OWN CLASS, not just checked for
+   * existence. A section id arrives from the browser, and without this a
+   * student sitting in Monday's online theory could post section ids from a
+   * lesson belonging to a different block and have them counted as work done
+   * in this one. Checking it belongs to a lesson on the same schedule block is
+   * what makes the evidence about the hour it is attached to.
+   */
+  let sectionId: string | null = null;
+  if (args.sectionId && owned.data.schedule_block_id) {
+    const { data: ok } = await admin()
+      .from("sis_lesson_sections")
+      .select("id, sis_lessons!inner(schedule_block_id)")
+      .eq("id", args.sectionId)
+      .eq("sis_lessons.schedule_block_id", owned.data.schedule_block_id)
+      .maybeSingle();
+    sectionId = ok ? args.sectionId : null;
+  }
 
   const minute = new Date(args.now);
   minute.setUTCSeconds(0, 0);
 
   const { error } = await admin()
     .from("sis_activity_minutes")
-    .insert({ punch_id: args.punchId, minute_at: minute.toISOString() });
+    .insert({ punch_id: args.punchId, minute_at: minute.toISOString(), section_id: sectionId });
   // A duplicate is the normal case, not a failure — it means the heartbeat
   // fired twice inside one minute, which is what a 20-second interval does.
   if (error && !/duplicate key|unique/i.test(error.message)) return { ok: false };
   return { ok: true };
 }
 
-export async function activityMinutesFor(punchIds: string[]): Promise<Record<string, string[]>> {
+export interface PunchActivity {
+  minutes: string[];
+  sections: (string | null)[];
+}
+
+export async function activityMinutesFor(
+  punchIds: string[]
+): Promise<Record<string, PunchActivity>> {
   if (!punchIds.length) return {};
-  const out: Record<string, string[]> = {};
+  const out: Record<string, PunchActivity> = {};
   const { data } = await admin()
-    .from("sis_activity_minutes").select("punch_id, minute_at").in("punch_id", punchIds);
-  for (const r of data ?? []) (out[r.punch_id] ??= []).push(r.minute_at);
+    .from("sis_activity_minutes")
+    .select("punch_id, minute_at, section_id")
+    .in("punch_id", punchIds);
+  for (const r of (data ?? []) as any[]) {
+    const a = (out[r.punch_id] ??= { minutes: [], sections: [] });
+    a.minutes.push(r.minute_at);
+    a.sections.push(r.section_id ?? null);
+  }
   return out;
 }
 

@@ -335,7 +335,12 @@ export default async function StudentPage(props: {
             <p className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs leading-relaxed text-slate-500">
               It is {DAYS[wall.weekday]} and none of your classes are running, so opening a lesson
               now will let you read it but will not earn hours. Hours only count during your
-              scheduled class time — that is the rule your school reports against, not ours.
+              scheduled class time — that is the rule your school reports against, not ours.{" "}
+              <strong className="text-slate-700">
+                Reading ahead costs you nothing:
+              </strong>{" "}
+              a lesson you have already finished still counts in full when you go back through it
+              during class, so a full progress bar is not a reason to stay away.
             </p>
           )}
         </section>

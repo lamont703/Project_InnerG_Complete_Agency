@@ -75,7 +75,8 @@ export default async function ValidationPage() {
     ageDays: Math.max(0, Math.floor((today - new Date(q.punchedOutAt).getTime()) / 86_400_000)),
     evidence: participation({
       clockedMinutes: q.minutes,
-      minuteStamps: minutes[q.punchId] ?? [],
+      minuteStamps: minutes[q.punchId]?.minutes ?? [],
+      activitySections: minutes[q.punchId]?.sections ?? [],
       /*
        * EMPTY ON PURPOSE, and it means `sectionsTotal` comes back 0 — so this
        * view must never render it as a denominator. A session has no total:

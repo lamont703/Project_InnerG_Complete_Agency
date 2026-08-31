@@ -22,6 +22,9 @@ import {
  *      supplied — otherwise minutes could be posted against an old session.
  *   3. WHEN. The minute is stamped from the server clock. A client-supplied
  *      timestamp is a client-supplied hour.
+ *   4. WHICH SECTION. The id is accepted from the body but verified against the
+ *      punch's own schedule block before it is stored, so a section from
+ *      another class cannot be counted as work done in this one.
  *
  * The most it can do is assert "somebody with this session cookie is at the
  * keyboard right now", which is exactly the claim being measured. It cannot
@@ -30,7 +33,7 @@ import {
  */
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+export async function POST(req: Request) {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false }, { status: 401 });
@@ -44,8 +47,20 @@ export async function POST() {
   // console and out of ours.
   if (!open) return NextResponse.json({ ok: true, recorded: false });
 
+  /*
+   * The section is a hint, not a claim. It is verified against the punch's own
+   * schedule block downstream, and a body that fails to parse costs the minute
+   * its section rather than the whole heartbeat — being on an unknown section
+   * is still being at the keyboard.
+   */
+  let sectionId: string | null = null;
+  try {
+    const body = await req.json();
+    if (typeof body?.sectionId === "string") sectionId = body.sectionId;
+  } catch {}
+
   const res = await recordActivityMinute({
-    studentId: student.id, punchId: open.id, now: new Date(),
+    studentId: student.id, punchId: open.id, sectionId, now: new Date(),
   });
   return NextResponse.json({ ok: true, recorded: res.ok });
 }

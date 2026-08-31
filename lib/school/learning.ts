@@ -64,7 +64,22 @@ export interface Participation {
   engagedMinutes: number;
   /** null when the session is too short for the ratio to mean anything. */
   engagementRatio: number | null;
+  /**
+   * Sections finished for the first time IN this session. Zero is normal for a
+   * student revising, and on its own says nothing bad about the session.
+   */
   sectionsCompleted: number;
+  /**
+   * Distinct sections the student actually spent minutes on during this
+   * session, whether or not they were new.
+   *
+   * THIS IS THE PARTICIPATION FIGURE. A student who read the whole lesson
+   * before class and then worked through it again during class completes
+   * nothing and works everything — and it was the completion count alone that
+   * used to decide the grade, which meant reading ahead made a real session
+   * look empty.
+   */
+  sectionsWorked: number;
   sectionsTotal: number;
   checksAnswered: number;
   checksCorrect: number;
@@ -101,6 +116,12 @@ export function engagedMinutes(minuteStamps: string[], clockedMinutes: number): 
 export function participation(args: {
   clockedMinutes: number;
   minuteStamps: string[];
+  /**
+   * Section id per recorded minute, null where the heartbeat had no section in
+   * view. Same length and order as minuteStamps is NOT required — this is read
+   * as a set, not a pairing.
+   */
+  activitySections?: (string | null)[];
   sections: LessonSection[];
   progress: SectionProgress[];
   /** Only progress recorded during THIS punch counts toward this session. */
@@ -111,12 +132,21 @@ export function participation(args: {
 
   const mine = args.progress.filter((p) => p.punchId === args.punchId);
   const answered = mine.filter((p) => p.answerIndex !== null);
+  const worked = new Set((args.activitySections ?? []).filter((x): x is string => Boolean(x)));
 
   const ratio = clocked >= MIN_MINUTES_FOR_RATIO ? engaged / clocked : null;
 
+  /*
+   * WORKED OR COMPLETED, EITHER COUNTS AS COURSEWORK. Requiring a completion
+   * was the bug: a student revising a lesson they had already finished
+   * completes nothing, and the session was graded as though they had done
+   * nothing. Revision is participation.
+   */
+  const didSomething = worked.size > 0 || mine.length > 0;
+
   let grade: EvidenceGrade;
   if (clocked < MIN_MINUTES_FOR_RATIO) grade = "too-short";
-  else if (mine.length === 0) grade = "no-coursework";
+  else if (!didSomething) grade = "no-coursework";
   else if (ratio !== null && ratio >= ENGAGEMENT_FLOOR) grade = "supported";
   else grade = "thin";
 
@@ -125,6 +155,7 @@ export function participation(args: {
     engagedMinutes: engaged,
     engagementRatio: ratio,
     sectionsCompleted: mine.length,
+    sectionsWorked: worked.size,
     sectionsTotal: args.sections.length,
     checksAnswered: answered.length,
     checksCorrect: answered.filter((p) => p.correct === true).length,

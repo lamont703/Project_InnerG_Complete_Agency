@@ -186,3 +186,79 @@ describe("lessonStanding", () => {
     expect(s.sectionsCompleted).toBe(2);
   });
 });
+
+describe("participation — revision counts, which is the read-ahead fix", () => {
+  const sections = [section("a", 0), section("b", 1), section("c", 2)];
+
+  it("grades a student revising a finished lesson as supported, not empty", () => {
+    /*
+     * The exact case found in live data: the student completed every section
+     * before class, so this session completes nothing. Under the old rule that
+     * graded as "no-coursework" and the instructor saw three hours of nothing.
+     */
+    const p = participation({
+      clockedMinutes: 180,
+      minuteStamps: beats(160),
+      activitySections: ["a", "a", "b", "b", "c"],
+      sections,
+      progress: [done("a", "earlier"), done("b", "earlier"), done("c", "earlier")],
+      punchId: "p1",
+    });
+    expect(p.sectionsCompleted).toBe(0);
+    expect(p.sectionsWorked).toBe(3);
+    expect(p.grade).toBe("supported");
+  });
+
+  it("counts distinct sections, not minutes spent on them", () => {
+    const p = participation({
+      clockedMinutes: 180, minuteStamps: beats(160),
+      activitySections: Array(140).fill("a").concat(Array(20).fill("b")),
+      sections, progress: [], punchId: "p1",
+    });
+    expect(p.sectionsWorked).toBe(2);
+  });
+
+  it("ignores heartbeats with no section in view", () => {
+    const p = participation({
+      clockedMinutes: 180, minuteStamps: beats(160),
+      activitySections: [null, null, null],
+      sections, progress: [], punchId: "p1",
+    });
+    expect(p.sectionsWorked).toBe(0);
+    expect(p.grade).toBe("no-coursework");
+  });
+
+  it("still flags a session with engagement but nothing worked or completed", () => {
+    // Somebody with the tab open and moving the mouse, on no section at all.
+    const p = participation({
+      clockedMinutes: 180, minuteStamps: beats(170),
+      activitySections: [], sections, progress: [], punchId: "p1",
+    });
+    expect(p.grade).toBe("no-coursework");
+  });
+
+  it("treats a completion with no recorded activity as coursework", () => {
+    // Older sessions have no section ids on their heartbeats. They must not
+    // regress to "no-coursework" now that the column exists.
+    const p = participation({
+      clockedMinutes: 180, minuteStamps: beats(150),
+      sections, progress: [done("a", "p1")], punchId: "p1",
+    });
+    expect(p.sectionsWorked).toBe(0);
+    expect(p.sectionsCompleted).toBe(1);
+    expect(p.grade).toBe("supported");
+  });
+
+  it("does not let a section worked in another session count here", () => {
+    // activitySections is always passed for ONE punch, so this is really a
+    // guard on the caller — asserted so a future caller that passes the whole
+    // school's activity fails here rather than inflating every session.
+    const p = participation({
+      clockedMinutes: 180, minuteStamps: beats(150),
+      activitySections: ["a"], sections,
+      progress: [done("b", "other-punch")], punchId: "p1",
+    });
+    expect(p.sectionsWorked).toBe(1);
+    expect(p.sectionsCompleted).toBe(0);
+  });
+});

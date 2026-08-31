@@ -39,6 +39,12 @@ const IDLE_AFTER_MS = 120_000;
  * is a heartbeat that measures the browser, and the whole point of the number
  * is that it does not.
  *
+ * REVISION COUNTS. The heartbeat reports which section is open, so a student
+ * working back through a lesson they already finished produces real evidence
+ * even though they complete nothing new. Grading on completions alone made a
+ * genuine three-hour session look empty for anybody who had read ahead — which
+ * is the well-behaved thing to do, and was being punished for it.
+ *
  * IT IS EVIDENCE, NOT ENFORCEMENT. Nothing here blocks, locks or logs anybody
  * out. Idle time simply stops accruing engaged minutes, the punch keeps running
  * until the student finishes it, and an instructor sees both figures. The
@@ -79,6 +85,15 @@ export function LessonClient({
     return () => events.forEach((e) => window.removeEventListener(e, bump));
   }, []);
 
+  /*
+   * The section the heartbeat reports, held in a ref so changing section does
+   * not tear down and restart the interval — a student stepping through six
+   * sections would otherwise reset the timer six times and post far fewer
+   * minutes than they actually worked.
+   */
+  const currentSection = useRef<string | null>(null);
+  currentSection.current = state[i]?.id ?? null;
+
   useEffect(() => {
     if (!inSession) return;
     const beat = () => {
@@ -87,7 +102,11 @@ export function LessonClient({
       // Deliberately unawaited and unreported: a dropped heartbeat costs one
       // minute of evidence, and an error message about it would be noise in
       // the middle of a lesson.
-      fetch("/api/school/activity", { method: "POST" }).catch(() => {});
+      fetch("/api/school/activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sectionId: currentSection.current }),
+      }).catch(() => {});
     };
     beat();
     const t = setInterval(beat, HEARTBEAT_MS);
@@ -180,7 +199,7 @@ export function LessonClient({
           <p className="mt-1 text-xs leading-relaxed text-slate-500">
             {windowOpen
               ? "Start a session and the time you spend here counts toward your program."
-              : "You can read this any time. Hours only count during your scheduled class, so reading now is study, not credit."}
+              : "You can read this any time, and reading ahead is a good idea. It just doesn't earn hours — those only count during your scheduled class. Come back then and work through it again; going over it a second time counts in full, so nothing is wasted by reading now."}
           </p>
           {windowOpen && (
             <button
@@ -317,12 +336,24 @@ export function LessonClient({
         </div>
       </article>
 
+      {finishedAll && !inSession && !windowOpen && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <p className="font-black text-slate-900">You&apos;ve read the whole lesson.</p>
+          <p className="mt-1 text-sm leading-relaxed text-slate-600">
+            None of it earned hours, because your class wasn&apos;t running. Come back{" "}
+            {windowLabel} and go through it again — a second pass during class counts fully, and
+            your instructor sees the work either way.
+          </p>
+        </div>
+      )}
+
       {finishedAll && inSession && (
         <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5">
           <p className="font-black text-emerald-900">That&apos;s the whole lesson.</p>
           <p className="mt-1 text-sm leading-relaxed text-emerald-800">
-            Finish your session so your hours are recorded. Leaving the tab open does not add more —
-            your school sees how long you were actually working.
+            Go back over anything you want — time spent revising counts the same. When you&apos;re
+            done, finish your session so your hours are recorded. Leaving the tab open does not add
+            more: your school sees how long you were actually working.
           </p>
           <button
             onClick={finish}
