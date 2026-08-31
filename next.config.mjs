@@ -118,10 +118,16 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/api/pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
     "/api/events/extract": ["./node_modules/@sparticuz/chromium/bin/**"],
-    // Externalising keeps Turbopack out of it; this is what actually ships the
-    // binary. Without it the route deploys and fails at runtime with ENOENT on
-    // a path that exists perfectly well locally.
-    "/api/admin/video-editor": ["./node_modules/@ffmpeg-installer/**"],
+    // NO ffmpeg ENTRY HERE, deliberately. Including the binary made the
+    // video-editor function 307.94MB against a 250MB limit and the deploy was
+    // rejected — the base function is already around 230MB and ffmpeg is ~78MB
+    // on Linux. Shipping only linux-x64 would not have helped: that is all it
+    // was shipping.
+    //
+    // So the Video Cutter is a LOCAL tool. That is not much of a loss: on the
+    // hosted function the upload caps near 100MB and the run at 300s, which
+    // makes it marginal for anything longer than a clip. The route detects the
+    // missing binary and says so plainly instead of failing with ENOENT.
   },
 
   // The full `puppeteer` package bundles its own ~170MB Chromium download and

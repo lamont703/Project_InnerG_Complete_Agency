@@ -40,9 +40,10 @@ export default async function VideoEditorPage() {
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            <span className="font-bold">Best run locally.</span> On the deployed site the upload caps
-            at about 100MB and rendering must finish inside 5 minutes. Running against your own dev
-            server has neither limit, so that is the place for anything long or high-resolution.
+            <span className="font-bold">This runs locally only.</span> ffmpeg is not deployed with the
+            site — bundling it puts the function over Vercel&apos;s 250MB limit — so rendering here
+            will tell you to switch. Start the dev server and use it from there, where there is no
+            upload cap and no time limit either.
           </p>
         </div>
 

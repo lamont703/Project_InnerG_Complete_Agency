@@ -59,8 +59,21 @@ function ffmpegPath(): string {
     process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg",
   );
   if (existsSync(candidate)) return candidate;
-  // Last resort: whatever is on PATH. Fails loudly rather than silently.
+  // Last resort: whatever is on PATH.
   return "ffmpeg";
+}
+
+/**
+ * Is there an ffmpeg we can actually run?
+ *
+ * The binary is NOT shipped to Vercel — bundling it made this function 308MB
+ * against a 250MB limit. So on the hosted site there is nothing to run, and the
+ * honest thing is to say that rather than let ffmpeg fail with ENOENT and
+ * surface as "ffmpeg failed: spawn ffmpeg ENOENT", which reads like a bug.
+ */
+function ffmpegAvailable(): boolean {
+  const p = ffmpegPath();
+  return p !== "ffmpeg" || Boolean(process.env.FFMPEG_PATH);
 }
 
 /** ffmpeg prints duration to stderr; there is no ffprobe in this repo. */
@@ -78,6 +91,17 @@ async function probeDuration(file: string): Promise<number | null> {
 export async function POST(req: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ ok: false, error: "not_authorised" }, { status: 403 });
+  }
+
+  if (!ffmpegAvailable()) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Video rendering only runs locally. The ffmpeg binary is not deployed — it would put this function over Vercel's 250MB limit. Run the dev server and use the tool from there.",
+      },
+      { status: 503 },
+    );
   }
 
   let dir: string | null = null;
