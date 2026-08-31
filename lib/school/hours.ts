@@ -435,3 +435,84 @@ export function campusGaps(
 }
 
 export { MAX_BUSINESS_DAYS_BETWEEN_CAMPUS, MONTHLY_HOUR_CAP };
+
+// ---------------------------------------------------------------------------
+// When a session must end
+// ---------------------------------------------------------------------------
+
+/**
+ * The moment a punch opened under `block` stops being creditable.
+ *
+ * THE RULE IS THE TIMETABLE, NOT A TIMEOUT. A session cannot run past the end
+ * of the class it was opened under, because after that the class is over — the
+ * block is what says the hour is core theory taken at a distance, and there is
+ * nothing to attribute a 9:30pm minute of a 9pm class to. Picking an arbitrary
+ * "sessions expire after N hours" instead would be inventing a number the
+ * school never agreed to and that no rule supports.
+ *
+ * RETURNS null WHEN THERE IS NO BLOCK, and that is a real answer rather than a
+ * fallback. An admin-entered or imported punch has no scheduled end, so nothing
+ * here can honestly say when it should have closed. Guessing would write a
+ * fabricated clock-out into an hour record; the caller surfaces it for a human
+ * instead.
+ *
+ * WORKS IN THE SCHOOL'S WALL CLOCK. The block says "ends at minute 1260" — 9pm
+ * where the school is, which is a different instant in June and December.
+ * Reconstructing it from the punch-in date in the school's timezone is the only
+ * way to land on the right instant across a daylight-saving change.
+ */
+export function sessionMustEndAt(
+  punchedInAt: Date,
+  block: ScheduleBlock | null,
+  timeZone: string
+): Date | null {
+  if (!block) return null;
+
+  const local = localWallClock(punchedInAt, timeZone);
+
+  /*
+   * A punch that began before its block's start is credited to the block's end
+   * on the SAME calendar day — the student arrived early for a class that then
+   * ran and ended. A punch that began after the end belongs to a block that was
+   * already over when it opened, which the kiosk would not have issued; it is
+   * treated the same way rather than being pushed to the next day, because
+   * moving it forward would invent a session that never happened.
+   */
+  const [y, m, d] = local.date.split("-").map(Number);
+
+  // Walk from a UTC guess to the instant whose local wall clock matches the
+  // block's end. Two passes settle it: the first lands within an hour or so,
+  // the second corrects for the offset at that instant, which is what makes a
+  // DST boundary come out right instead of an hour off.
+  let guess = new Date(Date.UTC(y, m - 1, d, 0, block.endsMinute, 0, 0));
+  for (let i = 0; i < 2; i++) {
+    const at = localWallClock(guess, timeZone);
+    const drift = block.endsMinute - at.minute;
+    if (drift === 0 && at.date === local.date) break;
+    guess = new Date(guess.getTime() + drift * 60_000);
+    // A drift correction can move the guess across midnight; pull it back onto
+    // the punch's own day so a late-evening block never lands on the next one.
+    const after = localWallClock(guess, timeZone);
+    if (after.date !== local.date) {
+      const days = (Date.parse(`${local.date}T00:00:00Z`) - Date.parse(`${after.date}T00:00:00Z`)) / 86_400_000;
+      guess = new Date(guess.getTime() + days * 86_400_000);
+    }
+  }
+  return guess;
+}
+
+/**
+ * Whether an open punch has outlived its class, as of `now`.
+ *
+ * A punch with no block is never stale here — see sessionMustEndAt(). It is not
+ * "fine", it is "not this function's to judge".
+ */
+export function isStale(
+  punchedInAt: Date,
+  block: ScheduleBlock | null,
+  timeZone: string,
+  now: Date
+): boolean {
+  const end = sessionMustEndAt(punchedInAt, block, timeZone);
+  return end !== null && now.getTime() > end.getTime();
+}

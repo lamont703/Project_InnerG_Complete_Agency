@@ -16,6 +16,7 @@ export interface LedgerRow {
   blockLabel: string | null;
   source: string;
   validated: boolean;
+  autoClosed: boolean;
   validatedBy: string | null;
   validatedAt: string | null;
   voidedAt: string | null;
@@ -31,6 +32,11 @@ export interface LedgerRow {
  * the correction belongs next to the thing it corrected — that adjacency is the
  * whole explanation. A trail with the corrections filtered out is just a
  * different set of numbers with nothing to account for them.
+ *
+ * AN AUTO-CLOSED PUNCH SAYS SO. Nobody clocked out; the system ended it at the
+ * end of the scheduled class. The clock-out time is real either way, so a bare
+ * timestamp would read as a student who happened to tap out at exactly 9:00:00
+ * — which is a stronger claim than anybody can make about that hour.
  *
  * A SIGNED DISTANCE HOUR NAMES ITS SIGNER, right on the row. "validated" as a
  * bare badge would be the weaker record — the point of the signature is that
@@ -98,6 +104,14 @@ export function LedgerClient({ rows }: { rows: LedgerRow[] }) {
                   {r.blockLabel && (<><span>·</span><span>{r.blockLabel}</span></>)}
                   <span>·</span>
                   <span>{r.source}</span>
+                  {r.autoClosed && !dead && (
+                    <span
+                      className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-black text-slate-700"
+                      title="Nobody clocked out. The system closed this at the end of the scheduled class."
+                    >
+                      auto-closed
+                    </span>
+                  )}
                   {r.modality === "distance" && !dead && (
                     r.validated ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-black text-emerald-900">

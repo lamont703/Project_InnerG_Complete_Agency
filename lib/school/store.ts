@@ -2,6 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Punch, Program, ScheduleBlock } from "./hours";
+import { sessionMustEndAt } from "./hours";
 // One generator, imported rather than copied. Two token functions in two files
 // is two places for the byte length to drift, and the one that shrinks is the
 // one nobody notices.
@@ -77,7 +78,7 @@ function toPunch(r: any): Punch {
 }
 
 const PUNCH_COLS =
-  "id, punched_in_at, punched_out_at, kind, modality, segment, instructor_id, validated_at, voided_at";
+  "id, punched_in_at, punched_out_at, kind, modality, segment, instructor_id, validated_at, voided_at, auto_closed_at";
 
 /**
  * Every punch for a student, voids included.
@@ -109,12 +110,25 @@ export async function scheduleFor(programId: string): Promise<ScheduleBlock[]> {
   }));
 }
 
-export async function openPunchFor(studentId: string): Promise<Punch | null> {
+/**
+ * The one open punch for a student, with the block it was opened under.
+ *
+ * CARRIES scheduleBlockId, WHICH THE ENGINE'S Punch TYPE DOES NOT. That is on
+ * purpose in both directions: lib/school/hours.ts never needs to know which
+ * block a punch came from to total it, so the field would be dead weight in the
+ * engine — but a caller closing this punch needs it, because the class end is
+ * what caps the clock-out.
+ */
+export async function openPunchFor(
+  studentId: string
+): Promise<(Punch & { scheduleBlockId: string | null }) | null> {
   const { data } = await admin()
-    .from("sis_punches").select(PUNCH_COLS)
+    .from("sis_punches").select(`${PUNCH_COLS}, schedule_block_id`)
     .eq("student_id", studentId).is("punched_out_at", null).is("voided_at", null)
     .maybeSingle();
-  return data ? toPunch(data) : null;
+  return data
+    ? { ...toPunch(data), scheduleBlockId: (data as any).schedule_block_id ?? null }
+    : null;
 }
 
 export async function insertPunch(args: {
@@ -325,6 +339,7 @@ export async function studentDetail(studentId: string): Promise<StudentDetail | 
       ...toPunch(r),
       scheduleBlockId: r.schedule_block_id ?? null,
       source: r.source,
+      autoClosedAt: r.auto_closed_at ?? null,
       voidedBy: r.voided_by ?? null,
       voidReason: r.void_reason ?? null,
     })) as any,
@@ -515,4 +530,162 @@ export async function signaturesFor(
     };
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Sessions nobody closed
+// ---------------------------------------------------------------------------
+
+export interface StaleSession {
+  punchId: string;
+  studentId: string;
+  studentName: string;
+  punchedInAt: string;
+  block: ScheduleBlock | null;
+  /** Null when there is no block to say when it should have ended. */
+  mustEndAt: string | null;
+}
+
+/**
+ * Every open punch in a school, with the block that says when it should end.
+ *
+ * RETURNS BLOCKLESS PUNCHES TOO, deliberately. They cannot be closed
+ * automatically — nothing can honestly say when they should have ended — but
+ * they are exactly the ones that will silently lock a student out, so they are
+ * reported rather than filtered away. A caller that only wants the closable
+ * ones filters on mustEndAt; a caller that wants to warn a human does not.
+ *
+ * THROWS on a query error rather than returning []. An empty list here reads as
+ * "nothing to close", and a cron that reports success while every session stays
+ * open is the failure mode this codebase has already been bitten by once.
+ */
+export async function openSessions(
+  schoolId: string,
+  opts: { studentId?: string } = {}
+): Promise<StaleSession[]> {
+  let sq = admin().from("sis_students").select("id, first_name, last_name").eq("school_id", schoolId);
+  if (opts.studentId) sq = sq.eq("id", opts.studentId);
+  const { data: students, error: se } = await sq;
+  if (se) throw new Error(`openSessions students: ${se.message}`);
+  if (!students?.length) return [];
+
+  const names = new Map<string, string>(
+    students.map((s: any) => [s.id, `${s.first_name} ${s.last_name}`])
+  );
+
+  const { data, error } = await admin()
+    .from("sis_punches")
+    .select("id, student_id, punched_in_at, schedule_block_id")
+    .in("student_id", [...names.keys()])
+    .is("punched_out_at", null)
+    .is("voided_at", null);
+  if (error) throw new Error(`openSessions punches: ${error.message}`);
+  if (!data?.length) return [];
+
+  const blocks = await scheduleForSchool(schoolId);
+  const byId = new Map(blocks.map((b) => [b.id, b]));
+
+  return data.map((r: any) => ({
+    punchId: r.id,
+    studentId: r.student_id,
+    studentName: names.get(r.student_id) ?? "Unknown",
+    punchedInAt: r.punched_in_at,
+    block: r.schedule_block_id ? byId.get(r.schedule_block_id) ?? null : null,
+    mustEndAt: null, // filled by the caller, which owns the clock
+  }));
+}
+
+/** Every block in a school, across all its programs. */
+export async function scheduleForSchool(schoolId: string): Promise<ScheduleBlock[]> {
+  const { data } = await admin()
+    .from("sis_schedule_blocks")
+    .select("id, label, weekday, starts_minute, ends_minute, kind, modality, segment, instructor_id, effective_from, effective_to")
+    .eq("school_id", schoolId);
+  return (data ?? []).map((b: any) => ({
+    id: b.id, label: b.label, weekday: b.weekday,
+    startsMinute: b.starts_minute, endsMinute: b.ends_minute,
+    kind: b.kind, modality: b.modality, segment: b.segment,
+    instructorId: b.instructor_id ?? null,
+    effectiveFrom: b.effective_from, effectiveTo: b.effective_to ?? null,
+  }));
+}
+
+/**
+ * Close a punch at the end of its class, and record that the system did it.
+ *
+ * WRITES BOTH FIELDS TOGETHER. auto_closed_at is what stops this looking like a
+ * student who clocked out at exactly 9:00:00pm, which is the false impression a
+ * bare punched_out_at would leave.
+ *
+ * ONLY EVER CLOSES AN OPEN PUNCH. The `is null` guard means two cron runs
+ * racing, or a cron racing a student clicking finish, cannot overwrite a real
+ * clock-out with a generated one — the person wins, because they were there.
+ */
+export async function autoClosePunch(args: {
+  punchId: string; at: Date;
+}): Promise<{ ok: boolean; closed: boolean; error?: string }> {
+  const { data, error } = await admin()
+    .from("sis_punches")
+    .update({ punched_out_at: args.at.toISOString(), auto_closed_at: new Date().toISOString() })
+    .eq("id", args.punchId)
+    .is("punched_out_at", null)
+    .is("voided_at", null)
+    .select("id");
+  if (error) return { ok: false, closed: false, error: error.message };
+  return { ok: true, closed: Boolean(data?.length) };
+}
+
+export interface StaleSweep {
+  closed: number;
+  /** Still running because their class has not ended yet. Normal. */
+  running: number;
+  /** Open, but with no block to say when they should end. Needs a human. */
+  unclosable: StaleSession[];
+}
+
+/**
+ * Close every session that has outlived its class.
+ *
+ * WHAT GOES WRONG WITHOUT IT, precisely. The kiosk does clock a stale punch
+ * out — but at the moment of the next tap, so a student who forgot to clock out
+ * on Tuesday evening is credited from Tuesday morning to Wednesday morning. It
+ * is an over-credit, not a lockout, and the lockout arrives second: a couple of
+ * those and the 184-hour monthly ceiling in §83.72(w) refuses every further
+ * punch for the rest of the month. Closing at the end of the class is what
+ * makes the recorded hour the hour the timetable actually offered.
+ *
+ * THE ONE PLACE THE RULE LIVES. Both the nightly cron and the clock-in path
+ * call this, rather than each deciding for itself what "stale" means — two
+ * implementations of a rule are two answers, and the one that drifts is the one
+ * that runs less often.
+ *
+ * SAFE TO RUN AT ANY MOMENT, including in the middle of a class: a session
+ * whose block has not ended is left alone, and closing is guarded on the punch
+ * still being open, so a student clicking finish at the same instant wins.
+ *
+ * DOES NOT TOUCH BLOCKLESS PUNCHES. It returns them instead. Inventing a
+ * clock-out for a punch with no scheduled end would write a fabricated time
+ * into an hour record, which is worse than the lockout it would relieve.
+ */
+export async function closeStaleSessions(
+  schoolId: string,
+  timeZone: string,
+  now: Date = new Date(),
+  opts: { studentId?: string } = {}
+): Promise<StaleSweep> {
+  const open = await openSessions(schoolId, opts);
+  const sweep: StaleSweep = { closed: 0, running: 0, unclosable: [] };
+
+  for (const s of open) {
+    const end = sessionMustEndAt(new Date(s.punchedInAt), s.block, timeZone);
+    if (end === null) { sweep.unclosable.push(s); continue; }
+    if (now.getTime() <= end.getTime()) { sweep.running++; continue; }
+
+    const res = await autoClosePunch({ punchId: s.punchId, at: end });
+    // A failed close is not silently swallowed: the caller needs to know the
+    // student is still locked out.
+    if (!res.ok) throw new Error(`closeStaleSessions ${s.punchId}: ${res.error}`);
+    if (res.closed) sweep.closed++;
+  }
+  return sweep;
 }

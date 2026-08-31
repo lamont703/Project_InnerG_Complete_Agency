@@ -55,6 +55,10 @@
     {
       "path": "/api/cron/booking-voice-followup",
       "schedule": "0 16,21 * * *"
+    },
+    {
+      "path": "/api/cron/school-sessions",
+      "schedule": "5 * * * *"
     }
   ]
 }

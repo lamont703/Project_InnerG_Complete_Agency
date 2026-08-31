@@ -92,6 +92,7 @@ export default async function StudentLedgerPage(props: { params: Promise<{ id: s
       blockLabel: p.scheduleBlockId ? d.blockLabels[p.scheduleBlockId] ?? null : null,
       source: p.source ?? "kiosk",
       validated: Boolean(p.validatedAt),
+      autoClosed: Boolean(p.autoClosedAt),
       validatedBy: signatures[p.id]?.name ?? null,
       validatedAt: p.validatedAt ?? null,
       voidedAt: p.voidedAt, voidedBy: p.voidedBy ?? null, voidReason: p.voidReason ?? null,

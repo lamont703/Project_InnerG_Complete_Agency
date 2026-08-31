@@ -1,9 +1,23 @@
 import { describe, it, expect } from "vitest";
 import {
-  ledger, punchMinutes, canClockIn, distanceCaps, minutesInMonth,
-  roundForReport, writtenExamEligible, toHours, blockAt, localWallClock, blockWindow,
-  campusDates, campusGaps,
-  type Punch, type Program, type ScheduleBlock,
+  blockAt,
+  blockWindow,
+  campusDates,
+  campusGaps,
+  canClockIn,
+  distanceCaps,
+  isStale,
+  ledger,
+  localWallClock,
+  minutesInMonth,
+  punchMinutes,
+  roundForReport,
+  sessionMustEndAt,
+  toHours,
+  type Program,
+  type Punch,
+  type ScheduleBlock,
+  writtenExamEligible,
 } from "./hours";
 
 const CLASS_A: Program = {
@@ -331,5 +345,105 @@ describe("the campus clock", () => {
       { enrolledOn: "2026-11-19", asOf: "2026-12-08", timeZone: TZC });
     const raw = gaps[0]?.businessDays ?? 0;
     expect(raw).toBeLessThan(13);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// When a session must end
+// ---------------------------------------------------------------------------
+
+describe("sessionMustEndAt", () => {
+  const CHICAGO = "America/Chicago";
+  const mondayOnline: ScheduleBlock = {
+    id: "b1",
+    label: "Core theory (online)",
+    weekday: 1,
+    startsMinute: 18 * 60,
+    endsMinute: 21 * 60,
+    kind: "theory",
+    modality: "distance",
+    segment: "core",
+    instructorId: null,
+    effectiveFrom: "2026-01-01",
+    effectiveTo: null,
+  };
+
+  /** The block's end read back as a wall clock in the school's timezone. */
+  const wall = (d: Date) =>
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: CHICAGO, hour: "2-digit", minute: "2-digit", hour12: false,
+      year: "numeric", month: "2-digit", day: "2-digit",
+    }).format(d);
+
+  it("ends a Monday evening session at 21:00 local", () => {
+    // 2026-09-07 is a Monday. Clock in at 18:05 Chicago = 23:05 UTC.
+    const inAt = new Date("2026-09-07T23:05:00Z");
+    const end = sessionMustEndAt(inAt, mondayOnline, CHICAGO)!;
+    expect(wall(end)).toContain("21:00");
+    expect(wall(end)).toContain("09/07/2026");
+  });
+
+  it("stays on the punch's own day for a late block", () => {
+    // Clocked in at 20:55 local, five minutes before the end.
+    const inAt = new Date("2026-09-08T01:55:00Z");
+    const end = sessionMustEndAt(inAt, mondayOnline, CHICAGO)!;
+    expect(wall(end)).toContain("09/07/2026");
+    expect(wall(end)).toContain("21:00");
+  });
+
+  it("lands on 21:00 local across a daylight-saving change", () => {
+    // 2026-11-01 is the US fall-back Sunday; the 2nd is the Monday after, when
+    // Chicago is UTC-6 rather than UTC-5. A fixed offset would be an hour out.
+    const inAt = new Date("2026-11-03T00:05:00Z"); // 18:05 Chicago on Nov 2
+    const end = sessionMustEndAt(inAt, mondayOnline, CHICAGO)!;
+    expect(wall(end)).toContain("21:00");
+    expect(wall(end)).toContain("11/02/2026");
+  });
+
+  it("returns null with no block, rather than guessing a timeout", () => {
+    expect(sessionMustEndAt(new Date("2026-09-07T23:05:00Z"), null, CHICAGO)).toBeNull();
+  });
+
+  it("handles a morning block in a different timezone", () => {
+    const morning: ScheduleBlock = {
+      ...mondayOnline, id: "b2", weekday: 2,
+      startsMinute: 9 * 60, endsMinute: 12 * 60, modality: "campus",
+    };
+    const inAt = new Date("2026-09-08T13:02:00Z"); // 09:02 Chicago, a Tuesday
+    const end = sessionMustEndAt(inAt, morning, CHICAGO)!;
+    expect(wall(end)).toContain("12:00");
+    expect(wall(end)).toContain("09/08/2026");
+  });
+});
+
+describe("isStale", () => {
+  const CHICAGO = "America/Chicago";
+  const block: ScheduleBlock = {
+    id: "b1", label: "Core theory (online)", weekday: 1,
+    startsMinute: 18 * 60, endsMinute: 21 * 60,
+    kind: "theory", modality: "distance", segment: "core",
+    instructorId: null, effectiveFrom: "2026-01-01", effectiveTo: null,
+  };
+  const inAt = new Date("2026-09-07T23:05:00Z"); // 18:05 Chicago
+
+  it("is not stale during the class", () => {
+    expect(isStale(inAt, block, CHICAGO, new Date("2026-09-08T01:00:00Z"))).toBe(false);
+  });
+
+  it("is not stale exactly at the end", () => {
+    // 21:00 Chicago = 02:00 UTC. The boundary belongs to the class.
+    expect(isStale(inAt, block, CHICAGO, new Date("2026-09-08T02:00:00Z"))).toBe(false);
+  });
+
+  it("is stale a minute after the end", () => {
+    expect(isStale(inAt, block, CHICAGO, new Date("2026-09-08T02:01:00Z"))).toBe(true);
+  });
+
+  it("is stale the next morning, which is the case that locks a student out", () => {
+    expect(isStale(inAt, block, CHICAGO, new Date("2026-09-08T14:00:00Z"))).toBe(true);
+  });
+
+  it("never calls a blockless punch stale", () => {
+    expect(isStale(inAt, null, CHICAGO, new Date("2027-01-01T00:00:00Z"))).toBe(false);
   });
 });

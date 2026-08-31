@@ -385,7 +385,17 @@ export async function openSessionFor(studentId: string): Promise<{
     : null;
 }
 
-/** Close a session. Scoped by student so one student cannot close another's. */
+/**
+ * Close a session.
+ *
+ * SCOPED BY STUDENT so one student cannot close another's.
+ *
+ * NEVER CREDITS PAST THE END OF THE CLASS. A student who clicks finish at
+ * 10:30pm on a class that ended at 9 gets 9pm, because that is when the class
+ * they were in stopped existing. The caller passes the capped time; this
+ * function does not second-guess it, but the cap is why `at` is a parameter
+ * rather than being read from a clock in here.
+ */
 export async function endLessonSession(args: {
   studentId: string; punchId: string; at: Date;
 }): Promise<{ ok: boolean; error?: string }> {

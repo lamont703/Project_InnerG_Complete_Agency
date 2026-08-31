@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerClient } from "@/lib/supabase/server";
-import { firstSchool, programById, punchesFor } from "@/lib/school/store";
+import { closeStaleSessions, firstSchool, programById, punchesFor, scheduleForSchool } from "@/lib/school/store";
+import { sessionMustEndAt } from "@/lib/school/hours";
 import {
   claimStudent,
   completeSection,
@@ -55,6 +56,16 @@ export async function startSessionAction(
     return { ok: false, error: "That lesson isn't part of your program." };
   }
 
+  /*
+   * SWEEP FIRST, same as the kiosk. A session abandoned last Monday would
+   * otherwise still be open, and canClockIn refuses while one is — so the
+   * student would be told to "finish that one first" about a session they have
+   * no memory of, and finishing it now would credit them a week of hours.
+   */
+  await closeStaleSessions(school.id, school.timezone, new Date(), {
+    studentId: ctx.student.id,
+  });
+
   const [punches, program] = await Promise.all([
     punchesFor(ctx.student.id),
     programById(ctx.student.programId),
@@ -76,8 +87,23 @@ export async function endSessionAction(): Promise<{ ok: boolean; error?: string 
   const open = await openSessionFor(ctx.student.id);
   if (!open) return { ok: true }; // Already closed. The student's intent is satisfied.
 
+  /*
+   * CAPPED AT THE END OF THE CLASS. Clicking finish at 10:30pm on a class that
+   * ran to 9 must not credit an extra ninety minutes — the same rule the sweep
+   * applies, applied here so a student who does the right thing and clicks the
+   * button is not credited more than one who forgets.
+   */
+  const now = new Date();
+  const school = await firstSchool();
+  const blocks = school ? await scheduleForSchool(school.id) : [];
+  const block = open.scheduleBlockId
+    ? blocks.find((b) => b.id === open.scheduleBlockId) ?? null
+    : null;
+  const mustEnd = school ? sessionMustEndAt(new Date(open.punchedInAt), block, school.timezone) : null;
+  const at = mustEnd && now.getTime() > mustEnd.getTime() ? mustEnd : now;
+
   const res = await endLessonSession({
-    studentId: ctx.student.id, punchId: open.id, at: new Date(),
+    studentId: ctx.student.id, punchId: open.id, at,
   });
   revalidatePath("/student");
   return res;
