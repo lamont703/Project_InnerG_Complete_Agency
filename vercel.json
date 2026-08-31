@@ -58,7 +58,7 @@
     },
     {
       "path": "/api/cron/school-sessions",
-      "schedule": "5 * * * *"
+      "schedule": "0 5 * * *"
     }
   ]
 }

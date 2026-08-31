@@ -9,14 +9,20 @@ import { closeStaleSessions, firstSchool } from "@/lib/school/store";
  * lessons until a member of staff intervenes. This runs hourly and closes each
  * one at the end of the class it was opened under.
  *
- * HOURLY, NOT NIGHTLY. A student who abandons Tuesday morning theory should be
- * able to clock into Tuesday afternoon practical, and a nightly sweep would
- * leave them locked out for the rest of the day.
+ * NIGHTLY, AT 05:00 UTC — 11pm or midnight in Chicago, safely after the latest
+ * block on the timetable ends at 9pm, so nothing still legitimately running is
+ * swept.
  *
- * IT IS ALSO NOT THE ONLY DEFENCE. The clock endpoint sweeps before it decides,
- * so a student is unblocked even if this cron is failing — a lockout that
- * depends on a scheduled job running is a lockout that happens the week the job
- * breaks.
+ * THIS CRON IS THE BACKSTOP, NOT THE MAIN DEFENCE, which is why nightly is
+ * enough. The kiosk, the lesson start and the student's own finish button each
+ * sweep that student before they act, so anybody who comes back is fixed the
+ * moment they touch anything — a student who abandons Tuesday morning theory
+ * and returns at 1pm has it closed by their own tap, not by this.
+ *
+ * What is left for this to catch is the session nobody returns to: a student
+ * who stops coming, or who never taps again. Those cost nothing by waiting
+ * until the end of the day, and a job that runs once is a job whose failures
+ * are visible rather than lost in twenty-three successful runs.
  *
  * REPORTS WHAT IT COULD NOT DO. Punches with no schedule block have no
  * defensible end time, so they are counted and named rather than closed at some
