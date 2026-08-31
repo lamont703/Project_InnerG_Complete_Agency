@@ -81,6 +81,7 @@ const INTERNAL_TOOL_ROUTES = [
     "/school/students",
     "/school/validation",
     "/school/lessons",
+    "/school/instructors",
     // Both research agents render traffic patterns, CRM segment sizes and
     // revenue. Each page re-checks isAdmin() itself — these entries are defence
     // in depth, because this middleware fails OPEN on an auth exception.

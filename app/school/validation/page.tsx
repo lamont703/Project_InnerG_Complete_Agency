@@ -122,6 +122,13 @@ export default async function ValidationPage() {
           percentage. They sort what deserves a closer look; they decide nothing, and a thin
           session is a reason to ask rather than a reason to refuse.
         </p>
+        <p className="mt-3 max-w-2xl rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs leading-relaxed text-sky-900">
+          Signing here is <strong>asserting on an instructor&apos;s behalf</strong>, and is recorded
+          as such — unless you are yourself the instructor you pick. An instructor with their own
+          account signs at <Link href="/instructor" className="font-black underline underline-offset-2">/instructor</Link>,
+          which produces the stronger record and needs no console password. Set them up on{" "}
+          <Link href="/school/instructors" className="font-black underline underline-offset-2">Instructors</Link>.
+        </p>
 
         <div className="mt-8">
           <ValidationClient rows={rows} instructors={instructors} />

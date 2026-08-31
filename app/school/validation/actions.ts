@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import { addInstructor, firstSchool, validatePunches } from "@/lib/school/store";
+import { instructorForUser } from "@/lib/school/learning-store";
+import { createServerClient } from "@/lib/supabase/server";
 
 /**
  * Signing for distance hours.
@@ -24,7 +26,21 @@ export async function validateAction(
   if (!(await isAdmin())) return { ok: false, error: "Not authorized." };
   if (!instructorId) return { ok: false, error: "Choose who is signing for these hours." };
 
-  const res = await validatePunches({ punchIds, instructorId });
+  /*
+   * THE METHOD IS DERIVED, NOT DECLARED. If the person at the console is
+   * themselves the instructor being named — which is the normal case at a small
+   * school where the owner teaches — the signature is genuinely theirs and is
+   * recorded as such. Anyone signing for somebody else is recorded as having
+   * asserted it. Neither is refused; they are simply not the same fact, and
+   * letting the console choose its own label would make the distinction
+   * decorative.
+   */
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const self = user ? await instructorForUser(user.id) : null;
+  const method = self && self.id === instructorId ? "instructor" : "asserted_by_admin";
+
+  const res = await validatePunches({ punchIds, instructorId, method });
   if (!res.ok) return res;
 
   revalidatePath("/school/validation");

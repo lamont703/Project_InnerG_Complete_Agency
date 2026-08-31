@@ -50,6 +50,7 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
   // here for exactly the reason /account does.
   '/school',
   '/student',
+  '/instructor',
   '/accept-invite',
   '/forgot-password',
   '/reset-password',

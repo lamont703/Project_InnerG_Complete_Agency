@@ -638,3 +638,175 @@ export async function setLessonPublished(
     .eq("id", lessonId);
   return error ? { ok: false, error: error.message } : { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Instructor accounts
+// ---------------------------------------------------------------------------
+
+export interface InstructorIdentity {
+  id: string;
+  schoolId: string;
+  name: string;
+  licenseNumber: string | null;
+  active: boolean;
+}
+
+/** The instructor record attached to a signed-in user, or null. */
+export async function instructorForUser(userId: string): Promise<InstructorIdentity | null> {
+  const { data } = await admin()
+    .from("sis_instructors")
+    .select("id, school_id, name, license_number, active")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    id: data.id, schoolId: data.school_id, name: data.name,
+    licenseNumber: data.license_number ?? null, active: data.active,
+  };
+}
+
+/**
+ * Attach a signed-in user to an instructor record.
+ *
+ * REFUSES A USER WHO IS ALREADY A STUDENT HERE. One person is one role at this
+ * school: a student who could also sign off distance hours could sign off their
+ * own, which is the single worst thing this system could permit. The database
+ * cannot express a uniqueness rule spanning two tables, so it is enforced here
+ * — and it is checked before the token is spent, so a mis-sent link does not
+ * burn itself on a refusal.
+ */
+export async function claimInstructor(args: {
+  token: string;
+  userId: string;
+}): Promise<{ ok: boolean; instructorId?: string; error?: string }> {
+  const alreadyStudent = await studentForUser(args.userId);
+  if (alreadyStudent) {
+    return {
+      ok: false,
+      error: "This account is already enrolled as a student here, so it can't also be an instructor. Sign in with a different account.",
+    };
+  }
+  const alreadyInstructor = await instructorForUser(args.userId);
+  if (alreadyInstructor) {
+    return { ok: false, error: "This account is already linked to an instructor record." };
+  }
+
+  const { data: target } = await admin()
+    .from("sis_instructors").select("id, user_id")
+    .eq("claim_token", args.token).maybeSingle();
+  if (!target) return { ok: false, error: "That link is not valid. Ask the school for a new one." };
+  if (target.user_id) return { ok: false, error: "That link has already been used." };
+
+  const { data, error } = await admin()
+    .from("sis_instructors")
+    .update({ user_id: args.userId, claimed_at: new Date().toISOString() })
+    .eq("id", target.id)
+    .is("user_id", null)
+    .select("id");
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: "That link has already been used." };
+  return { ok: true, instructorId: target.id };
+}
+
+export async function issueInstructorClaimToken(instructorId: string): Promise<string | null> {
+  const t = claimToken();
+  const { error } = await admin()
+    .from("sis_instructors").update({ claim_token: t })
+    .eq("id", instructorId).is("user_id", null);
+  return error ? null : t;
+}
+
+export async function instructorPortalState(
+  instructorId: string
+): Promise<{ token: string | null; claimedAt: string | null }> {
+  const { data } = await admin()
+    .from("sis_instructors").select("claim_token, user_id, claimed_at")
+    .eq("id", instructorId).maybeSingle();
+  if (!data) return { token: null, claimedAt: null };
+  if (data.user_id) return { token: null, claimedAt: data.claimed_at ?? null };
+  return { token: data.claim_token ?? null, claimedAt: null };
+}
+
+// ---------------------------------------------------------------------------
+// Managing instructors, and who teaches what
+// ---------------------------------------------------------------------------
+
+export interface InstructorRow {
+  id: string;
+  name: string;
+  licenseNumber: string | null;
+  email: string | null;
+  active: boolean;
+  claimedAt: string | null;
+  claimToken: string | null;
+  /** Blocks this instructor is down to teach. */
+  blocks: { id: string; label: string; weekday: number; startsMinute: number; endsMinute: number; modality: string }[];
+}
+
+export async function instructorRoster(schoolId: string): Promise<InstructorRow[]> {
+  const { data, error } = await admin()
+    .from("sis_instructors")
+    .select("id, name, license_number, email, active, claimed_at, claim_token, user_id")
+    .eq("school_id", schoolId)
+    .order("active", { ascending: false })
+    .order("name");
+  if (error) throw new Error(`instructorRoster: ${error.message}`);
+  if (!data?.length) return [];
+
+  const { data: blocks } = await admin()
+    .from("sis_schedule_blocks")
+    .select("id, label, weekday, starts_minute, ends_minute, modality, instructor_id")
+    .eq("school_id", schoolId)
+    .not("instructor_id", "is", null);
+
+  const byInstructor = new Map<string, InstructorRow["blocks"]>();
+  for (const b of (blocks ?? []) as any[]) {
+    const list = byInstructor.get(b.instructor_id) ?? [];
+    list.push({
+      id: b.id, label: b.label, weekday: b.weekday,
+      startsMinute: b.starts_minute, endsMinute: b.ends_minute, modality: b.modality,
+    });
+    byInstructor.set(b.instructor_id, list);
+  }
+
+  return (data as any[]).map((r) => ({
+    id: r.id, name: r.name, licenseNumber: r.license_number ?? null,
+    email: r.email ?? null, active: r.active,
+    claimedAt: r.claimed_at ?? null,
+    // Never handed out once claimed — the link is spent and showing it again
+    // only invites somebody to paste it somewhere.
+    claimToken: r.user_id ? null : r.claim_token ?? null,
+    blocks: byInstructor.get(r.id) ?? [],
+  }));
+}
+
+export async function setInstructorActive(
+  instructorId: string, active: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  /*
+   * DEACTIVATES RATHER THAN DELETES, always. Every signature this person gave
+   * points at this row, and deleting it would turn each of those into "an
+   * instructor no longer on file" — unpicking hours that were properly signed
+   * at the time. Somebody leaving the school does not un-teach the classes.
+   */
+  const { error } = await admin()
+    .from("sis_instructors").update({ active }).eq("id", instructorId);
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+/** Put an instructor on a timetable block, or take them off it with null. */
+export async function assignBlockInstructor(args: {
+  blockId: string; instructorId: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await admin()
+    .from("sis_schedule_blocks")
+    .update({ instructor_id: args.instructorId })
+    .eq("id", args.blockId);
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+export async function blocksForInstructor(instructorId: string): Promise<string[]> {
+  const { data } = await admin()
+    .from("sis_schedule_blocks").select("id").eq("instructor_id", instructorId);
+  return (data ?? []).map((b: any) => b.id);
+}

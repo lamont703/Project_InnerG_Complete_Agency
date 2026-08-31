@@ -39,6 +39,7 @@ const PRIVATE_PREFIXES = [
   "/account",
   "/school",
   "/student",
+  "/instructor",
   "/login",
   "/select-portal",
   "/internal-lock",

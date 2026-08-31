@@ -394,14 +394,21 @@ export async function instructorsFor(schoolId: string): Promise<Instructor[]> {
 
 export async function addInstructor(args: {
   schoolId: string; name: string; licenseNumber?: string | null; email?: string | null;
-}): Promise<{ ok: boolean; error?: string }> {
+}): Promise<{ ok: boolean; id?: string; claimToken?: string; error?: string }> {
   if (!args.name.trim()) return { ok: false, error: "A name is required." };
-  const { error } = await admin().from("sis_instructors").insert({
+  // Minted at creation, like a student's. An instructor added without one has
+  // to be found again later and issued a link as a second step, which is the
+  // step that does not happen.
+  const token = claimToken();
+  const { data, error } = await admin().from("sis_instructors").insert({
     school_id: args.schoolId, name: args.name.trim(),
     license_number: args.licenseNumber?.trim() || null,
     email: args.email?.trim() || null,
-  });
-  return error ? { ok: false, error: error.message } : { ok: true };
+    claim_token: token,
+  }).select("id").single();
+  return error
+    ? { ok: false, error: error.message }
+    : { ok: true, id: data.id, claimToken: token };
 }
 
 export interface PendingValidation {
@@ -431,7 +438,11 @@ export interface PendingValidation {
  * likely to remember — which is an argument for signing promptly, and for the
  * page saying how old the oldest one is.
  */
-export async function pendingValidation(schoolId: string, limit = 200): Promise<PendingValidation[]> {
+export async function pendingValidation(
+  schoolId: string,
+  limit = 200,
+  opts: { blockIds?: string[] } = {}
+): Promise<PendingValidation[]> {
   const { data: students } = await admin()
     .from("sis_students").select("id, first_name, last_name").eq("school_id", schoolId);
   if (!students?.length) return [];
@@ -455,7 +466,19 @@ export async function pendingValidation(schoolId: string, limit = 200): Promise<
     .from("sis_schedule_blocks").select("id, label").eq("school_id", schoolId);
   const labels = new Map<string, string>((blocks ?? []).map((b: any) => [b.id, b.label]));
 
-  return (data ?? []).map((r: any) => ({
+  /*
+   * SCOPED TO THE CALLER'S OWN CLASSES WHEN ASKED. An instructor signs for what
+   * they taught, so their queue is filtered to their assigned blocks. Filtered
+   * here rather than in the query because an empty blockIds array means "this
+   * instructor teaches nothing", which must yield nothing — whereas an
+   * `.in("schedule_block_id", [])` is the kind of thing that has been known to
+   * match everything depending on the client.
+   */
+  const scoped = opts.blockIds
+    ? (data ?? []).filter((r: any) => r.schedule_block_id && opts.blockIds!.includes(r.schedule_block_id))
+    : (data ?? []);
+
+  return scoped.map((r: any) => ({
     punchId: r.id,
     studentId: r.student_id,
     studentName: names.get(r.student_id) ?? "Unknown",
@@ -482,12 +505,24 @@ export async function pendingValidation(schoolId: string, limit = 200): Promise<
  * signature is the one that was actually given.
  */
 export async function validatePunches(args: {
-  punchIds: string[]; instructorId: string;
+  punchIds: string[];
+  instructorId: string;
+  /**
+   * How the signature was given. 'instructor' means the named person was signed
+   * in; 'asserted_by_admin' means somebody with console access signed on their
+   * behalf. Required rather than defaulted — a default would silently record
+   * the stronger claim for every caller that forgot to say.
+   */
+  method: "instructor" | "asserted_by_admin";
 }): Promise<{ ok: boolean; signed?: number; error?: string }> {
   if (!args.punchIds.length) return { ok: false, error: "Nothing selected." };
   const { data, error } = await admin()
     .from("sis_punches")
-    .update({ validated_at: new Date().toISOString(), validated_by: args.instructorId })
+    .update({
+      validated_at: new Date().toISOString(),
+      validated_by: args.instructorId,
+      validated_method: args.method,
+    })
     .in("id", args.punchIds)
     .is("validated_at", null)
     .is("voided_at", null)
@@ -507,10 +542,10 @@ export async function validatePunches(args: {
  */
 export async function signaturesFor(
   studentId: string
-): Promise<Record<string, { name: string; at: string }>> {
+): Promise<Record<string, { name: string; at: string; method: string | null }>> {
   const { data } = await admin()
     .from("sis_punches")
-    .select("id, validated_at, validated_by")
+    .select("id, validated_at, validated_by, validated_method")
     .eq("student_id", studentId)
     .not("validated_by", "is", null);
   if (!data?.length) return {};
@@ -520,13 +555,14 @@ export async function signaturesFor(
     .from("sis_instructors").select("id, name").in("id", ids);
   const names = new Map<string, string>((people ?? []).map((p: any) => [p.id, p.name]));
 
-  const out: Record<string, { name: string; at: string }> = {};
+  const out: Record<string, { name: string; at: string; method: string | null }> = {};
   for (const r of data as any[]) {
     out[r.id] = {
       // A deleted instructor row leaves the punch signed but unattributable.
       // Saying so is better than dropping the signature or inventing a name.
       name: names.get(r.validated_by) ?? "an instructor no longer on file",
       at: r.validated_at,
+      method: r.validated_method ?? null,
     };
   }
   return out;

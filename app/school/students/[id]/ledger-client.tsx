@@ -18,6 +18,7 @@ export interface LedgerRow {
   validated: boolean;
   autoClosed: boolean;
   validatedBy: string | null;
+  validatedMethod: string | null;
   validatedAt: string | null;
   voidedAt: string | null;
   voidedBy: string | null;
@@ -42,6 +43,12 @@ export interface LedgerRow {
  * bare badge would be the weaker record — the point of the signature is that
  * somebody specific stands behind it, and a badge that hides the name reads as
  * though the system validated the hour, which it did not.
+ *
+ * "SIGNED" AND "SIGNED FOR" ARE DIFFERENT CLAIMS and are shown differently.
+ * The first is the instructor, signed in, confirming their own class. The
+ * second is somebody at the console asserting it on their behalf — legitimate,
+ * frequently necessary, and not the same evidence. Rendering both as "signed"
+ * would quietly upgrade the weaker one every time.
  *
  * VOIDING ASKS FOR A REASON AND WILL NOT PROCEED WITHOUT ONE. A void with no
  * explanation is indistinguishable from a quiet deletion, which is the exact
@@ -114,9 +121,23 @@ export function LedgerClient({ rows }: { rows: LedgerRow[] }) {
                   )}
                   {r.modality === "distance" && !dead && (
                     r.validated ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-black text-emerald-900">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black ${
+                          r.validatedMethod === "instructor"
+                            ? "bg-emerald-100 text-emerald-900"
+                            : "bg-sky-100 text-sky-900"
+                        }`}
+                        title={
+                          r.validatedMethod === "instructor"
+                            ? "The named instructor was signed in and signed for this."
+                            : r.validatedMethod === "asserted_by_admin"
+                              ? "Somebody with console access signed on this instructor's behalf."
+                              : "Signed before the record distinguished the two."
+                        }
+                      >
                         <PenLine className="h-2.5 w-2.5" />
-                        signed{r.validatedBy ? ` — ${r.validatedBy}` : ""}
+                        {r.validatedMethod === "asserted_by_admin" ? "signed for" : "signed"}
+                        {r.validatedBy ? ` — ${r.validatedBy}` : ""}
                       </span>
                     ) : (
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-900">
