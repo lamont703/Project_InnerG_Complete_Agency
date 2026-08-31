@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isAdmin } from "@/app/admin/ad-campaigns/auth";
@@ -33,12 +34,33 @@ export const dynamic = "force-dynamic";
 
 const run = promisify(execFile);
 
+/**
+ * The ffmpeg binary, found on disk rather than imported.
+ *
+ * Not a workaround for anything — importing @ffmpeg-installer would work. This
+ * is simply narrower: no module reference for a bundler to analyse, and
+ * FFMPEG_PATH wins when set, so a host with its own ffmpeg needs no rebuild.
+ * next.config's outputFileTracingIncludes is what ships the bundled binary.
+ *
+ * (An earlier version of this comment blamed the package for breaking the
+ * production build. It did not. The build died on a committed symlink under
+ * venv/, and this route was merely the first one to touch the filesystem and
+ * make Turbopack walk the project directory. See .gitignore.)
+ */
 function ffmpegPath(): string {
-  // Resolved at call time: the package picks a per-platform binary, and
-  // importing it at module scope would break the build on a machine whose
-  // platform package is not installed.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  return require("@ffmpeg-installer/ffmpeg").path;
+  if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
+  const plat = process.platform === "win32" ? "win32" : process.platform;
+  const arch = process.arch;
+  const candidate = join(
+    process.cwd(),
+    "node_modules",
+    "@ffmpeg-installer",
+    `${plat}-${arch}`,
+    process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg",
+  );
+  if (existsSync(candidate)) return candidate;
+  // Last resort: whatever is on PATH. Fails loudly rather than silently.
+  return "ffmpeg";
 }
 
 /** ffmpeg prints duration to stderr; there is no ffprobe in this repo. */

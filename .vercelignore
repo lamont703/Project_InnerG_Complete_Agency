@@ -1,0 +1,16 @@
+# Never upload the Python virtualenv.
+#
+# It is ~900MB of nothing the site needs, and it contains venv/bin/python — a
+# symlink pointing outside the project root. Turbopack walked into it while
+# resolving @ffmpeg-installer's computed require and the build died with
+# "Symlink venv/bin/python is invalid, it points out of the filesystem root",
+# blaming the route that triggered the walk rather than the symlink.
+#
+# Excluding it here fixes the upload cost and removes the landmine for whatever
+# resolves a directory next.
+venv/
+__pycache__/
+*.pyc
+
+# Local scratch that has no business in a deployment.
+experiments/

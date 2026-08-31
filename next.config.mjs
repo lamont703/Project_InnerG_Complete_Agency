@@ -99,6 +99,15 @@ const nextConfig = {
     "googleapis",
     "@sparticuz/chromium",
     "puppeteer-core",
+    // Same class of problem, found by breaking the build. @ffmpeg-installer
+    // resolves its per-platform binary with a computed require, so Turbopack
+    // cannot see the target statically and falls back to walking the directory
+    // as a DirAssetReference. That walk reached venv/bin/python — a symlink
+    // pointing outside the project root — and the build died with
+    // "Symlink venv/bin/python is invalid", naming the video-editor route and
+    // saying nothing about ffmpeg.
+    "@ffmpeg-installer/ffmpeg",
+    "fluent-ffmpeg",
   ],
 
   // Externalizing alone is not enough. Both routes reach the package through a
@@ -109,6 +118,10 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/api/pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
     "/api/events/extract": ["./node_modules/@sparticuz/chromium/bin/**"],
+    // Externalising keeps Turbopack out of it; this is what actually ships the
+    // binary. Without it the route deploys and fails at runtime with ENOENT on
+    // a path that exists perfectly well locally.
+    "/api/admin/video-editor": ["./node_modules/@ffmpeg-installer/**"],
   },
 
   // The full `puppeteer` package bundles its own ~170MB Chromium download and
