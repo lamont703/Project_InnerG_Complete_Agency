@@ -15,6 +15,7 @@ const footerLinks = {
     { label: "Compare Barber & Cosmetology Schools (Pass Rates)", href: "/compare-schools" },
     { label: "Barbershop Apprentice Jobs Houston", href: "/barbershop-apprentice-jobs-houston" },
     { label: "ShearQuery Credit Report (Booth Rent Reporting)", href: "/shearquery-credit-report" },
+    { label: "Booth Rental Agreement: What It Must Cover", href: "/booth-rental-agreement" },
     { label: "Barber Booth Rent & Chairs for Rent Houston", href: "/barber-booth-rent-houston" },
     { label: "Salon Suites for Rent Houston", href: "/salon-suites-for-rent-houston" },
     { label: "Texas Barber & Cosmetology Industry Events", href: "/events" },
