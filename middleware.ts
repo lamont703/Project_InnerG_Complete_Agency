@@ -48,7 +48,6 @@ const INTERNAL_TOOL_ROUTES = [
     // isAdmin() and so does the route — this entry is defence in depth, because
     // this middleware fails OPEN on an auth exception.
     "/admin/video-editor",
-    "/api/admin/video-editor",
     "/admin/listing-report",
     // The queue renders customers' names, phones and emails. The page and the
     // route handler both re-check isAdmin() — this entry is defence in depth,
@@ -214,6 +213,20 @@ export default async function proxy(request: NextRequest) {
 
     // Bypass auth checks for public API tools to prevent unnecessary Supabase calls and 403 logs
     if (pathname.startsWith('/api/tools/')) {
+        return NextResponse.next()
+    }
+
+    // Video uploads. This route receives a multipart body of arbitrary size and
+    // parses it with request.formData(), and running that through middleware
+    // breaks it: the upload arrives at the handler unparseable and fails with
+    // "Failed to parse body as FormData" — a message that points at the parser
+    // rather than at the thing standing in front of it. Reported from a real
+    // upload against the dev server.
+    //
+    // Nothing is given up. The entry in INTERNAL_TOOL_ROUTES was defence in
+    // depth; the route calls isAdmin() itself before it reads a single byte,
+    // and so does the page.
+    if (pathname === '/api/admin/video-editor') {
         return NextResponse.next()
     }
 

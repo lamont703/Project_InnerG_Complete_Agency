@@ -67,6 +67,17 @@ const nextConfig = {
 
   experimental: {
     serverActions: {
+      /*
+       * Left at 10mb. Raising it to 1024mb was tried and changed nothing: the
+       * request body is still cut at exactly 10,485,760 bytes, with middleware
+       * bypassed and with formData replaced by a raw stream. The ceiling is in
+       * the Next runtime, not here.
+       *
+       * Recorded because it looks like the obvious dial and it is not. See
+       * app/api/admin/video-editor/route.ts, which now detects the truncation
+       * rather than shipping half a video, and scripts/cut_video.js, which has
+       * no ceiling at all.
+       */
       bodySizeLimit: '10mb',
     },
     // Inline the stylesheet into the HTML instead of linking it.

@@ -68,10 +68,20 @@ export function VideoEditor() {
     setError(null);
     setDone(null);
     try {
-      const fd = new FormData();
-      fd.append("video", file);
-      fd.append("cuts", JSON.stringify(cuts));
-      const res = await fetch("/api/admin/video-editor", { method: "POST", body: fd });
+      // The file IS the body. FormData buffers the whole upload server-side and
+      // gives up past about 10MB with "Failed to parse body as FormData" — a
+      // 10MB ceiling on a video tool is no tool at all. The cut list and the
+      // filename go in the query string, where they cost nothing.
+      const qs = new URLSearchParams({
+        name: file.name,
+        bytes: String(file.size),
+        cuts: JSON.stringify(cuts),
+      });
+      const res = await fetch(`/api/admin/video-editor?${qs}`, {
+        method: "POST",
+        body: file,
+        headers: { "Content-Type": "application/octet-stream" },
+      });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || `Failed (${res.status})`);

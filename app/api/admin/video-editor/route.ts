@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { existsSync, createWriteStream } from "node:fs";
+import { pipeline } from "node:stream/promises";
+import { Readable } from "node:stream";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isAdmin } from "@/app/admin/ad-campaigns/auth";
@@ -106,12 +108,23 @@ export async function POST(req: Request) {
 
   let dir: string | null = null;
   try {
-    const form = await req.formData();
-    const file = form.get("video");
-    const cutsRaw = String(form.get("cuts") || "[]");
-    if (!(file instanceof File) || file.size === 0) {
-      return NextResponse.json({ ok: false, error: "No video received." }, { status: 400 });
-    }
+    /*
+     * THE FILE ARRIVES AS THE RAW BODY, NOT AS MULTIPART.
+     *
+     * request.formData() buffers the whole upload in memory and gives up past
+     * roughly 10MB with "Failed to parse body as FormData" — an error that
+     * names the parser and says nothing about size. Measured: a 7MB file parsed,
+     * a 16MB file did not. Since a video editor whose ceiling is 10MB is not a
+     * video editor, multipart had to go.
+     *
+     * The body is now the file itself, streamed straight to disk, and the small
+     * stuff — the cut list and the filename — rides in the query string where
+     * it costs nothing to read. No buffering, no multipart parsing, no ceiling.
+     */
+    const url = new URL(req.url);
+    const name = url.searchParams.get("name") || "video.mp4";
+    const expectedBytes = Number(url.searchParams.get("bytes") || 0);
+    const cutsRaw = url.searchParams.get("cuts") || "[]";
 
     let cuts: Range[];
     try {
@@ -121,11 +134,42 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Could not read the cut list." }, { status: 400 });
     }
 
+    if (!req.body) {
+      return NextResponse.json({ ok: false, error: "No video received." }, { status: 400 });
+    }
+
     dir = await mkdtemp(join(tmpdir(), "sq-video-"));
-    const ext = (file.name.match(/\.[a-z0-9]+$/i)?.[0] || ".mp4").toLowerCase();
+    const ext = (name.match(/\.[a-z0-9]+$/i)?.[0] || ".mp4").toLowerCase();
     const input = join(dir, `in${ext}`);
     const output = join(dir, "out.mp4");
-    await writeFile(input, Buffer.from(await file.arrayBuffer()));
+    // Streamed, so a large file never sits in memory in one piece.
+    await pipeline(Readable.fromWeb(req.body as any), createWriteStream(input));
+
+    /*
+     * TRUNCATION IS SILENT, SO IT HAS TO BE CHECKED.
+     *
+     * The Next runtime cuts a request body at exactly 10,485,760 bytes. It does
+     * not error — the stream simply ends, ffmpeg happily encodes the first 10MB,
+     * and the download is a video that plays and is missing most of itself.
+     * Measured: 16MB and 32MB uploads both arrived as exactly 10MB.
+     *
+     * Neither serverActions.bodySizeLimit nor bypassing middleware changes it.
+     * So the ceiling is accepted and made loud: the client says how many bytes
+     * it sent, and a mismatch stops here.
+     */
+    const written = (await stat(input)).size;
+    if (expectedBytes && written < expectedBytes) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            `Only ${(written / 1024 / 1024).toFixed(1)}MB of ${(expectedBytes / 1024 / 1024).toFixed(1)}MB arrived — ` +
+            `uploads through the browser are capped at 10MB by the framework, and it truncates silently. ` +
+            `For a file this size use: node scripts/cut_video.js`,
+        },
+        { status: 413 },
+      );
+    }
 
     const duration = await probeDuration(input);
     if (!duration) {
@@ -168,7 +212,7 @@ export async function POST(req: Request) {
     return new NextResponse(new Uint8Array(out), {
       headers: {
         "Content-Type": "video/mp4",
-        "Content-Disposition": `attachment; filename="${file.name.replace(/\.[^.]+$/, "")}-edited.mp4"`,
+        "Content-Disposition": `attachment; filename="${name.replace(/\.[^.]+$/, "")}-edited.mp4"`,
         "X-Original-Duration": duration.toFixed(2),
         "X-Result-Duration": kept.toFixed(2),
         "X-Segments-Kept": String(keep.length),

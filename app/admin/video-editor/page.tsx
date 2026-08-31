@@ -40,10 +40,16 @@ export default async function VideoEditorPage() {
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            <span className="font-bold">This runs locally only.</span> ffmpeg is not deployed with the
-            site — bundling it puts the function over Vercel&apos;s 250MB limit — so rendering here
-            will tell you to switch. Start the dev server and use it from there, where there is no
-            upload cap and no time limit either.
+            <span className="font-bold">Local dev server only, and under 10MB.</span> ffmpeg is not
+            deployed with the site (it would put the function over Vercel&apos;s 250MB limit), and
+            browser uploads are capped at 10MB by the framework — which truncates silently, so this
+            page checks and refuses rather than handing you half a video.
+            <br />
+            <span className="font-bold">Anything bigger:</span>{" "}
+            <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">
+              node scripts/cut_video.js clip.mp4 10-25 1:40-2:05
+            </code>{" "}
+            — reads from disk, no limit at all.
           </p>
         </div>
 
