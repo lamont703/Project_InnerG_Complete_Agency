@@ -37,6 +37,7 @@ const footerLinks = {
     { label: "Pixel Analytics", href: "/pixel-analytics" },
     { label: "Global Listing Insights", href: "/admin/listing-insights" },
     { label: "School Tour Call Queue", href: "/admin/school-tour-queue" },
+    { label: "Video Cutter", href: "/admin/video-editor" },
     { label: "Content Publisher", href: "/admin/content-publisher" },
     { label: "Instagram Carousels", href: "/admin/instagram-carousels" },
     { label: "Content Insights Data", href: "/admin/content-insights" },

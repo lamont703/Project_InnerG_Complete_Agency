@@ -44,6 +44,11 @@ const INTERNAL_TOOL_ROUTES = [
     // without a login. The page re-checks isAdmin() itself; this is defence in
     // depth, because this middleware fails OPEN on an auth exception.
     "/admin/credit-report",
+    // Takes an uploaded file and shells out to ffmpeg. The page re-checks
+    // isAdmin() and so does the route — this entry is defence in depth, because
+    // this middleware fails OPEN on an auth exception.
+    "/admin/video-editor",
+    "/api/admin/video-editor",
     "/admin/listing-report",
     // The queue renders customers' names, phones and emails. The page and the
     // route handler both re-check isAdmin() — this entry is defence in depth,
