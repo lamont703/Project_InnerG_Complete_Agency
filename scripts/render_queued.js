@@ -51,6 +51,7 @@ const HEYGEN = "https://api.heygen.com";
  * its own copy again, the board could promise "free" and this could bill $1.16.
  */
 const { AVATAR_PER_SEC, SEED_GRID, VIDEO_TYPES, videoTypeFor } = require("../lib/video-type");
+const { fitBitrate, fitsAtAll } = require("../lib/video-editor/encode.js");
 
 /** Measured on this channel: the avatar reads at ~165 wpm. */
 const WPM = 165;
@@ -388,11 +389,29 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
      * background with a single speaker is visually indistinguishable from the
      * original and roughly a third of the size.
      */
+    /*
+     * THE BITRATE IS CALCULATED FROM THE LENGTH, not fixed.
+     *
+     * It used to be `-maxrate 1100k`, chosen when an avatar short was a static
+     * talking head on a still background — about 1.3MB, comfortably inside the
+     * bucket. Once the avatar path started producing EDITED video (b-roll
+     * cutaways, whip transitions, a music bed) the same setting produced
+     * 6.02MB, and the upload is refused AFTER HeyGen has been paid: a finished
+     * video that cost $1.16 with nowhere to go.
+     *
+     * The ceiling and the duration are both known before encoding starts, so
+     * the bitrate that fits is arithmetic rather than a guess about content.
+     */
+    if (!fitsAtAll({ seconds, limitMB: BUCKET_LIMIT_MB })) {
+      console.log(`  ${seconds}s cannot fit in ${BUCKET_LIMIT_MB}MB at a watchable bitrate — left at ${raw}`);
+      continue;
+    }
+    const vkbps = fitBitrate({ seconds, limitMB: BUCKET_LIMIT_MB });
     const mp4 = path.join(tmp, "v.mp4");
     execFileSync(FFMPEG, [
       "-y", "-hide_banner", "-loglevel", "error", "-i", raw,
       "-c:v", "libx264", "-preset", "slow", "-crf", "26",
-      "-maxrate", "1100k", "-bufsize", "2200k", "-pix_fmt", "yuv420p",
+      "-maxrate", `${vkbps}k`, "-bufsize", `${vkbps * 2}k`, "-pix_fmt", "yuv420p",
       "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", mp4,
     ], { stdio: "ignore" });
 
