@@ -152,6 +152,80 @@ async function renderAvatar(script, title) {
   }
 }
 
+
+/**
+ * Where a grid image has to be for a card to render as a HairStyles Reel.
+ *
+ * THE GRID IMAGE IS THE ONE STEP NOBODY HAS AUTOMATED. reel_hairstyles.js
+ * animates a 6-up composite and queue_v4.js uploads the result, but nothing in
+ * this repo MAKES the composite — the seven that exist were produced by hand.
+ * Image generation over the API is possible and currently capped:
+ * generateContent on the image models returns 429 with quotaId
+ * GenerateRequestsPerDayPerProjectPerModel-FreeTier, which is a billing tier,
+ * not a restriction on the models.
+ *
+ * So the drop folder IS the interface. Put <item_key>.jpg in experiments/grids/
+ * and this renders it as a grid Reel for nothing. Leave it out and the card
+ * falls through to the avatar, which costs $1.16 and is the wrong format for a
+ * listicle — grids produced the channel's best video at 1,799 views.
+ */
+
+/**
+ * Is this title a listicle? Mirrors isWinningTitleShape() in lib/research/types.ts.
+ *
+ * Duplicated rather than imported because this is a plain Node script and that
+ * is TypeScript. Three lines and a regex is a cheaper copy than a build step,
+ * and lib/research/title-shape.test.ts holds the real proof — tested against
+ * the channel's actual titles and their actual view counts.
+ */
+function looksLikeListicle(title) {
+  const m = String(title).trim().match(/^(\d{1,2})\s+\S/);
+  return !!m && Number(m[1]) >= 2 && Number(m[1]) <= 12;
+}
+
+const GRID_INBOX = path.join("experiments", "grids");
+
+function gridImageFor(card) {
+  const key = card.item_key.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+  for (const ext of ["jpg", "jpeg", "png"]) {
+    const p = path.join(GRID_INBOX, `${key}.${ext}`);
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+/**
+ * The six names the reel walks through, pulled out of the card.
+ *
+ * reel_hairstyles.js puts a number on screen while each cut is held, because
+ * the caption asks the viewer to comment a number. So the names are not
+ * decoration — they are what the motion is counting. A title alone does not
+ * carry them, so they are derived from the title and caption. Text generation,
+ * which is not the quota that is capped.
+ */
+async function gridNames(card) {
+  const r = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text:
+`Title: ${card.title}
+Direction: ${card.caption ?? ""}
+
+Return JSON only: {"headline": string, "names": [six short strings]}
+
+headline: three or four words, what the grid is showing.
+names: exactly six, each one to three words, the specific styles in order.
+No numbering, no punctuation at the end, no hashtags.` }] }],
+        generationConfig: { responseMimeType: "application/json" } }) }
+  );
+  const j = await r.json();
+  if (j.error) throw new Error(`gemini: ${j.error.message.slice(0, 140)}`);
+  const text = (j?.candidates?.[0]?.content?.parts || []).map((p) => p.text).filter(Boolean).join("");
+  const out = JSON.parse(text);
+  if (!Array.isArray(out.names) || out.names.length !== 6) throw new Error("did not get six names");
+  return out;
+}
+
 (async () => {
   for (const k of ["HEYGEN_API_KEY", "HEYGEN_AVATAR_ID", "HEYGEN_VOICE_ID", "GEMINI_API_KEY"]) {
     if (!process.env[k]) { console.error(`${k} is not set.`); process.exit(1); }
@@ -171,8 +245,18 @@ async function renderAvatar(script, title) {
   if (error) { console.error(error.message); process.exit(1); }
   if (!cards?.length) { console.log("\nNothing queued without a video.\n"); return; }
 
-  console.log(`\n${cards.length} card${cards.length > 1 ? "s" : ""} to render, ~$${(TARGET_SECONDS * AVATAR_PER_SEC).toFixed(2)} each\n`);
-  for (const c of cards) console.log(`  pos ${String(c.position).padStart(3)}  ${c.title}`);
+  console.log(`\n${cards.length} card${cards.length > 1 ? "s" : ""} to render\n`);
+  let estimate = 0;
+  for (const c of cards) {
+    const grid = gridImageFor(c);
+    const blocked = !grid && looksLikeListicle(c.title);
+    if (!grid && !blocked) estimate += TARGET_SECONDS * AVATAR_PER_SEC;
+    const how = grid ? "GRID    free" : blocked ? "BLOCKED     " : "AVATAR $" + (TARGET_SECONDS * AVATAR_PER_SEC).toFixed(2);
+    console.log(`  pos ${String(c.position).padStart(3)}  ${how}  ${c.title}`);
+    if (blocked) console.log(`${" ".repeat(21)}needs a grid image — a listicle should not be an avatar`);
+  }
+  console.log(`\n  total ~$${estimate.toFixed(2)}  (grid cards cost nothing)`);
+  console.log(`  drop <item_key>.jpg in ${GRID_INBOX}/ to render a card as a grid instead\n`);
 
   if (!has("go")) {
     console.log(`\nDry run — nothing generated, no credit spent. Add --go to render.\n`);
@@ -187,15 +271,56 @@ async function renderAvatar(script, title) {
   let spent = 0;
   for (const c of cards) {
     console.log(`\n${c.title}`);
-    const script = await writeScript(c);
-    console.log(`  ${script.split(/\s+/).length} words`);
-
-    const done = await renderAvatar(script, c.title);
-    spent += (done.duration ?? TARGET_SECONDS) * AVATAR_PER_SEC;
-
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "rq-"));
     const raw = path.join(tmp, "raw.mp4");
-    fs.writeFileSync(raw, Buffer.from(await (await fetch(done.video_url)).arrayBuffer()));
+    const grid = gridImageFor(c);
+    let captionOut = null;
+    let seconds = TARGET_SECONDS;
+
+    if (grid) {
+      /*
+       * GRID PATH — free, nine seconds, and the format that actually wins.
+       * Chosen purely by the presence of the image, so routing needs no field
+       * on the row and no guessing from the title.
+       */
+      console.log(`  grid: ${grid}`);
+      const { headline, names } = await gridNames(c);
+      console.log(`  ${headline} — ${names.join(", ")}`);
+      execFileSync("node", [
+        "scripts/instagram/reel_hairstyles.js",
+        `--in=${grid}`, `--out=${raw}`,
+        `--names=${JSON.stringify(names)}`,
+        `--headline=${headline}`,
+        `--cta=Comment the number and I'll send you shops that do it.`,
+      ], { stdio: ["ignore", "ignore", "pipe"] });
+      seconds = 9;
+      captionOut = [
+        headline, "",
+        names.map((n, i) => `${i + 1}. ${n}`).join("\n"), "",
+        "Comment the number you want and I'll send you shops near you that actually do it.",
+      ].join("\n");
+    } else if (looksLikeListicle(c.title)) {
+      /*
+       * REFUSED, NOT RENDERED. A "6 X for Y" card with no grid image would fall
+       * through to the avatar and become a talking head reciting six names —
+       * $1.16 for the worst version of the format that works best. The grids
+       * produced this channel's top video at 1,799 views; the avatar path is
+       * unproven. Silently paying to make the wrong thing is exactly the
+       * failure the routing exists to prevent.
+       */
+      console.log(`  SKIPPED — listicle with no grid image.`);
+      console.log(`  put a 6-up composite at ${path.join(GRID_INBOX, c.item_key.replace(/[^a-z0-9-]/gi, "-").toLowerCase() + ".jpg")}`);
+      fs.rmSync(tmp, { recursive: true, force: true });
+      continue;
+    } else {
+      const script = await writeScript(c);
+      console.log(`  avatar: ${script.split(/\s+/).length} words`);
+      const done = await renderAvatar(script, c.title);
+      spent += (done.duration ?? TARGET_SECONDS) * AVATAR_PER_SEC;
+      seconds = Math.round(done.duration ?? TARGET_SECONDS);
+      captionOut = script;
+      fs.writeFileSync(raw, Buffer.from(await (await fetch(done.video_url)).arrayBuffer()));
+    }
 
     /*
      * COMPRESSED BEFORE UPLOAD, because the bucket refuses anything over 5MB
@@ -251,8 +376,8 @@ async function renderAvatar(script, title) {
     const { error: updErr } = await db.from("publisher_queue").update({
       video_url: videoUrl,
       thumbnail_url: thumbUrl,
-      duration_secs: Math.round(done.duration ?? TARGET_SECONDS),
-      caption: script,
+      duration_secs: seconds,
+      caption: captionOut,
       updated_at: new Date().toISOString(),
     }).eq("id", c.id);
 
