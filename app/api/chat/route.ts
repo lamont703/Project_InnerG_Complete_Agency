@@ -10,6 +10,7 @@ import { getViewAsContext } from '@/lib/account/view-as';
 import { memberPerformanceContext } from '@/lib/member-performance-context';
 import { ownerConnectContext } from '@/lib/owner-connect-context';
 import { policyForChannel } from '@/lib/agent-policy';
+import { identityForChannel } from '@/lib/agent-identity';
 import { SITE_URL } from '@/lib/site';
 import { OFF_WEB_TEXT_CHANNELS, absolutizeLinksForMessaging } from '@/lib/chat-links';
 import { agentJourneyContext, stateCoverageForChat } from '@/lib/member-journey';
@@ -693,6 +694,8 @@ GET_UPCOMING_EVENTS TOOL RULE: For any question about barber/beauty/wellness ind
 ENTITY LINKING IS NOT OPTIONAL: AI Mode doubles as navigation into the rest of the site, not just an answer — so the LINKING RULE above applies every single time you mention a specific barbershop/barber/school/salon/cosmetologist/store/tool that has a profile_url (or an equivalent href from a tool result like find_professional_employment), with no exceptions. Don't drop a link just because you've already mentioned that entity earlier in the conversation — link it again each time.
 
 ${policyForChannel(channel)}
+
+${identityForChannel(channel)}
 
 Context Data (JSON):
 ${JSON.stringify(slimmedContext).substring(0, 120000)}
