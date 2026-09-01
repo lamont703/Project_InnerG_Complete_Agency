@@ -28,6 +28,7 @@ const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const { buildPrompt, validatePlan } = require("../lib/video-editor/agent.js");
+const { resolveEditorKey, keyFingerprint } = require("../lib/gemini-keys-core.js");
 
 const MUSIC_DIR = path.join("reference", "YouTube Music Tracks");
 const WHISPER = path.join(process.env.HOME, ".venvs", "shearquery-whisper", "bin", "python");
@@ -100,8 +101,20 @@ async function writePlan({ script, words, joins, duration, tracks }) {
 
 async function askForPlan({ script, words, joins, duration, tracks }) {
   const prompt = buildPrompt({ script, words, joins, duration, tracks });
+  /*
+   * RESOLVED BY PURPOSE, not read from GEMINI_API_KEY.
+   *
+   * Google rate limits per PROJECT, so the shared key means this agent competes
+   * with every script and edge function on that project — which is how it hit
+   * "you exceeded your current quota" mid-pipeline, holding a HeyGen render
+   * that had already been paid for. Its own key on its own project means a
+   * backfill script can no longer cost a paid edit.
+   */
+  const resolved = resolveEditorKey(process.env);
+  if (!resolved.key) throw new Error(resolved.note);
+
   const r = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${resolved.key}`,
     {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -165,6 +178,16 @@ async function askForPlan({ script, words, joins, duration, tracks }) {
 
   // 3 — the agent
   console.log("3/6  planning the edit");
+  {
+    const k = resolveEditorKey(process.env);
+    console.log(`     key ${k.source} ${keyFingerprint(k.key)}`);
+    /*
+     * SAID OUT LOUD WHEN IT IS NOT ISOLATED. A silent fallback lets someone set
+     * GEMINI_EDITOR_API_KEY on one machine, believe the editor has its own
+     * allowance everywhere, and be baffled when a batch script exhausts it.
+     */
+    if (!k.isolated && k.key) console.log(`     NOTE ${k.note}`);
+  }
   const tracks = fs.existsSync(MUSIC_DIR)
     ? fs.readdirSync(MUSIC_DIR).filter((f) => /\.(mp3|m4a|wav)$/i.test(f)).sort() : [];
   const plan = await writePlan({
