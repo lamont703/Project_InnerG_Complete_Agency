@@ -47,6 +47,8 @@ const HEYGEN = "https://api.heygen.com";
 const WPM = 165;
 const TARGET_SECONDS = 30;
 const AVATAR_PER_SEC = 0.0386;
+/** social-assets refuses anything larger. Checked, not assumed. */
+const BUCKET_LIMIT_MB = 5;
 
 const arg = (n) => { const i = process.argv.indexOf(`--${n}`); return i === -1 ? null : process.argv[i + 1]; };
 const has = (n) => process.argv.includes(`--${n}`);
@@ -192,8 +194,41 @@ async function renderAvatar(script, title) {
     spent += (done.duration ?? TARGET_SECONDS) * AVATAR_PER_SEC;
 
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "rq-"));
+    const raw = path.join(tmp, "raw.mp4");
+    fs.writeFileSync(raw, Buffer.from(await (await fetch(done.video_url)).arrayBuffer()));
+
+    /*
+     * COMPRESSED BEFORE UPLOAD, because the bucket refuses anything over 5MB
+     * and HeyGen returns far more than that. The first real render came back at
+     * 14.5MB for 32 seconds and the upload was rejected AFTER the credit had
+     * been spent — the video existed, was paid for, and had nowhere to go.
+     *
+     * Nobody hit this before because every other short in that bucket is a
+     * nine-second data card at about 1MB. A talking head is a different animal.
+     *
+     * Smaller is better here anyway, and not merely tolerable: the publisher
+     * FETCHES this URL and re-uploads the bytes to five platforms on every
+     * slot, and every one of them re-encodes on arrival. 1.1 Mbps on a static
+     * background with a single speaker is visually indistinguishable from the
+     * original and roughly a third of the size.
+     */
     const mp4 = path.join(tmp, "v.mp4");
-    fs.writeFileSync(mp4, Buffer.from(await (await fetch(done.video_url)).arrayBuffer()));
+    execFileSync(FFMPEG, [
+      "-y", "-hide_banner", "-loglevel", "error", "-i", raw,
+      "-c:v", "libx264", "-preset", "slow", "-crf", "26",
+      "-maxrate", "1100k", "-bufsize", "2200k", "-pix_fmt", "yuv420p",
+      "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", mp4,
+    ], { stdio: "ignore" });
+
+    const mb = fs.statSync(mp4).size / 1048576;
+    console.log(`  ${(fs.statSync(raw).size / 1048576).toFixed(1)}MB -> ${mb.toFixed(2)}MB`);
+    if (mb > BUCKET_LIMIT_MB) {
+      // Refuse rather than let the upload fail after the credit is gone. The
+      // file is left in tmp so a longer script can be re-encoded by hand
+      // instead of re-rendered.
+      console.log(`  TOO BIG for the ${BUCKET_LIMIT_MB}MB bucket limit — left at ${mp4}`);
+      continue;
+    }
 
     const key = c.item_key.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
     const up = await db.storage.from("social-assets")
