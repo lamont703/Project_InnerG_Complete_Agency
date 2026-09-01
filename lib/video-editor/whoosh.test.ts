@@ -35,8 +35,11 @@ describe("shape", () => {
     expect(chain).toContain("afade=t=out:st=0.850");
   });
 
-  it("keeps the sting well under the voice by default", () => {
-    expect(shape(1, { at: 1 }).chain).toContain("volume=0.550");
+  /*
+   * 0.55 peaked at -17.6dB against a voice peaking at -3.2dB: not subtle, gone.
+   */
+  it("is loud enough to actually hear under speech", () => {
+    expect(shape(1, { at: 1 }).chain).toContain("volume=2.200");
   });
 });
 
@@ -56,5 +59,13 @@ describe("mix", () => {
 
   it("returns nothing to do when there are no stings", () => {
     expect(mix([])).toBeNull();
+  });
+
+  /*
+   * normalize=0 means the sum can exceed full scale; a sting landing on a
+   * stressed word clips, and it is heard as a crackle on the transition.
+   */
+  it("limits the sum so a sting on a loud word cannot clip", () => {
+    expect(mix(["sfx1"])).toContain("alimiter");
   });
 });
