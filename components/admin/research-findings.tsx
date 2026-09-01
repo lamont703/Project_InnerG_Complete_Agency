@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Loader2, Play, Check, X, ChevronDown, FlaskConical, Inbox } from "lucide-react";
+import { Loader2, Play, Check, X, ChevronDown, FlaskConical, Inbox, ListPlus} from "lucide-react";
 import type { ResearchFinding, ResearchAgent } from "@/lib/research/types";
 import type { AgentStats } from "@/lib/research/store";
 import { useRouter } from "next/navigation";
@@ -39,6 +39,7 @@ export function ResearchFindingsPanel({
   stats,
   runAction,
   statusAction,
+  queueAction,
   emptyHint,
 }: {
   agent: ResearchAgent;
@@ -46,6 +47,11 @@ export function ResearchFindingsPanel({
   stats: AgentStats;
   runAction: () => Promise<{ ok: boolean; found?: number; error?: string }>;
   statusAction: (id: string, status: "actioned" | "dismissed" | "new") => Promise<{ ok: boolean; error?: string }>;
+  /**
+   * Optional, because this panel is shared with the CRM agent and a CRM
+   * finding has nowhere to be queued. Present only for content findings.
+   */
+  queueAction?: (id: string) => Promise<{ ok: boolean; error?: string }>;
   emptyHint: string;
 }) {
   const router = useRouter();
@@ -71,6 +77,18 @@ export function ResearchFindingsPanel({
         ? "Ran, and found nothing worth reporting — that's a valid answer, not a failure."
         : `Found ${r.found} new suggestion${r.found === 1 ? "" : "s"}.`,
     );
+    router.refresh();
+  }
+
+  async function queue(id: string) {
+    if (!queueAction) return;
+    setWorking(id);
+    setErr(null);
+    setMsg(null);
+    const r = await queueAction(id);
+    setWorking(null);
+    if (!r.ok) { setErr(r.error ?? "Could not queue it."); return; }
+    setMsg("Queued. It is at the back of the line and waiting on a video.");
     router.refresh();
   }
 
@@ -198,6 +216,17 @@ export function ResearchFindingsPanel({
                   </div>
 
                   <div className="flex flex-wrap gap-2">
+                    {queueAction && f.status === "new" && (
+                      <button
+                        type="button"
+                        disabled={working === f.id}
+                        onClick={() => queue(f.id)}
+                        className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 rounded-md px-3 py-1.5 disabled:opacity-50"
+                      >
+                        {working === f.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <ListPlus className="w-3 h-3" />}
+                        Queue it
+                      </button>
+                    )}
                     {f.status !== "actioned" && (
                       <button
                         type="button"

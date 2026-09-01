@@ -42,6 +42,8 @@ Return a JSON array. Each item:
  "category": string, "evidence": object, "confidence": "high"|"medium"|"low"}
 `.trim();
 
+import { identityForChannel } from "@/lib/agent-identity";
+
 const CONTENT_BRIEF = `
 You are the Content Research Agent for ShearQuery, a directory and toolset for
 the barber, beauty and wellness industry. Your job is to find subjects worth
@@ -66,6 +68,8 @@ What makes a good finding here:
 - a traffic source worth making content specifically for
 - a YouTube search term with volume that the queue does not answer
 - a mismatch between what the channel ranks for and what it now publishes
+
+${identityForChannel("research")}
 `.trim();
 
 const CRM_BRIEF = `

@@ -95,7 +95,49 @@ ${PACKAGING}
 ${RATE_NOT_TOTAL}
 `.trim();
 
+/**
+ * What the Content Research Agent gets — deliberately NOT the voice.
+ *
+ * It chooses topics; it does not write prose. The rhythm rules, the
+ * do-not-compress-into-fragments finding and the calibration sample all govern
+ * how a sentence is built, and none of them help decide what is worth making.
+ * Sending them would be ~3,000 tokens of instruction the agent cannot act on.
+ *
+ * It DOES need the pillars, the packaging formula and who we serve, because a
+ * suggestion that ladders to no pillar, or arrives in a shape the channel has
+ * been shown to reject, is not actionable however good the underlying idea is.
+ *
+ * BELIEFS is included for one reason: pillar 3 is his point of view, and a
+ * finding inside it has to know what he actually thinks.
+ *
+ * THE DISCIPLINE MUST SURVIVE THIS. The agent's own rule is that every finding
+ * carries the counts it came from and one that cannot cite them is discarded.
+ * Handing it a strategy document creates a real risk that it reasons from the
+ * strategy instead — producing on-brand suggestions with no evidence behind
+ * them. Strategy constrains the SHAPE and filters the OUTPUT. The data still
+ * has to drive the CHOICE.
+ */
+const RESEARCH_CONTEXT = `
+${BRAND_FACTS}
+
+=== WHAT WE PUBLISH ===
+${PILLARS}
+
+=== THE SHAPE A SUGGESTION SHOULD ARRIVE IN ===
+${PACKAGING}
+
+=== WHAT HE BELIEVES (for pillar 3 only) ===
+${BELIEFS}
+
+=== HOW TO USE ALL OF THE ABOVE ===
+This is a FILTER and a FORMAT, not a source of ideas. Do not propose something
+because it fits a pillar. Propose it because the numbers say there is demand,
+then check it ladders to a pillar and shape it to the format. A finding that
+cannot cite its counts is still discarded, exactly as before.
+`.trim();
+
 export function identityForChannel(channel?: string | null): string {
+  if (channel === "research") return RESEARCH_CONTEXT;
   if (channel === "content") {
     return `${BRAND_FACTS}\n\n${LAMONT_VOICE}\n\n${OPERATING_CONTEXT}\n\n${CONTENT_STRATEGY}`;
   }
