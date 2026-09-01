@@ -244,3 +244,7 @@ experiments/**/*.mp4
 experiments/**/*.jpg
 experiments/**/*.jpeg
 experiments/**/*.png
+
+# Downloaded b-roll and cached Pixabay search responses (their terms require
+# a 24h cache; none of it belongs in the repo).
+.cache/
