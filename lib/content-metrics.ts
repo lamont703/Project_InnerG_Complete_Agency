@@ -2,6 +2,9 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { googleClient } from "@/lib/google-clients";
 
+/** YouTube Data API v3 — publish dates. Analytics has views but no dates. */
+const YT_DATA_API = "https://www.googleapis.com/youtube/v3";
+
 /**
  * Collecting how the published content actually performed.
  *
@@ -22,7 +25,7 @@ import { googleClient } from "@/lib/google-clients";
  *
  * WHAT EACH PLATFORM CAN AND CANNOT DO
  *
- *   youtube     views, per video, per day        YouTube Analytics API
+ *   youtube     views, per video, LIFETIME       YouTube Analytics + Data API
  *   instagram   views + reach, per media, LIFETIME ONLY
  *   gbp         impressions, per location, per day (no per-post breakdown)
  *   google      impressions, per site, per day    Search Console
@@ -107,38 +110,85 @@ async function youtubeToken(): Promise<string> {
 }
 
 /**
- * Views per video per day.
+ * LIFETIME views per video, stamped at the video's publish date.
  *
- * ONE CALL PER DAY WITH dimensions=video, rather than one call per video with
- * dimensions=day. The second shape looks more natural and returns an empty row
- * set — `dimensions=day&filters=video==ID` answered 200 with zero rows against
- * a video the channel definitely owns. Asking for every video on a single day
- * gives the same information in far fewer calls and actually returns data.
+ * THIS USED TO STORE DAILY ACTIVITY AND THAT WAS A REAL BUG, not a preference.
+ * TikTok and Instagram can only report a per-post lifetime total, so their rows
+ * are lifetime figures filed under the post's publish date. YouTube reported
+ * genuine daily activity, so its rows were only the days inside the collection
+ * window. Both went into the same `value` column and the page summed and
+ * compared them.
+ *
+ * The result was not a rounding error. The page showed YouTube on 5,013 views
+ * against TikTok on 10,990 and I advised a channel strategy on it. The channel
+ * has done 395,192 views lifetime and 11,253 in the last 28 days alone —
+ * YouTube beats TikTok by roughly 36x. The chart was wrong about the single
+ * most important thing it was built to answer, and it was wrong in the
+ * direction that hides the winner.
+ *
+ * So YouTube now matches the shape the other per-post platforms use: one row
+ * per video, lifetime views, filed at publishedAt, is_cumulative true. Every
+ * per-post platform is then measured the same way and the totals mean something
+ * when placed beside each other.
+ *
+ * TWO CALLS, because neither API alone has both halves. Analytics has the views
+ * and no publish date; the Data API has the publish date and no analytics.
+ *
+ * COVERAGE IS 97%, NOT 100%. Analytics reports on 199 videos while the channel
+ * lists 435 — deleted, private and never-public uploads still count toward the
+ * channel total but return no per-video row. 383,235 of 395,192 views are
+ * attributable. Do not "fix" the gap by falling back to the channel total; that
+ * would reintroduce a number that cannot be filed under a publish date.
  */
-export async function collectYouTube(days: number): Promise<MetricRow[]> {
+export async function collectYouTube(_days?: number): Promise<MetricRow[]> {
   const token = await youtubeToken();
-  const out: MetricRow[] = [];
+  const end = isoDay(new Date(Date.now() - 86400000));
 
-  for (let i = 1; i <= days; i++) {
-    const day = isoDay(new Date(Date.now() - i * 86400000));
+  // 1. Lifetime views per video. Paged — maxResults caps at 200.
+  const views = new Map<string, number>();
+  for (let startIndex = 1; startIndex <= 2001; startIndex += 200) {
     const url =
       `https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==MINE` +
-      `&startDate=${day}&endDate=${day}&metrics=views&dimensions=video&sort=-views&maxResults=200`;
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(20000) });
+      `&startDate=2005-01-01&endDate=${end}&metrics=views&dimensions=video` +
+      `&sort=-views&maxResults=200&startIndex=${startIndex}`;
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(25000) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
-      out.push({
-        platform: "youtube", metric_date: day, external_post_id: "", value: null,
+      if (views.size) break;
+      return [{
+        platform: "youtube", metric_date: end, external_post_id: "", value: null,
         metric_kind: "none", unavailable_reason: j?.error?.message?.slice(0, 300) || `HTTP ${r.status}`,
-      });
-      continue;
+      }];
     }
-    for (const [videoId, views] of (j.rows ?? []) as [string, number][]) {
-      out.push({
-        platform: "youtube", metric_date: day, external_post_id: videoId,
-        value: Number(views) || 0, metric_kind: "views",
-      });
+    const rows = (j.rows ?? []) as [string, number][];
+    for (const [id, v] of rows) views.set(id, Number(v) || 0);
+    if (rows.length < 200) break;
+  }
+
+  // 2. Publish dates, 50 ids per request — the Data API's batch limit.
+  const ids = [...views.keys()];
+  const published = new Map<string, string>();
+  for (let i = 0; i < ids.length; i += 50) {
+    const batch = ids.slice(i, i + 50).join(",");
+    const r = await fetch(`${YT_DATA_API}/videos?part=snippet&id=${batch}`, {
+      headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(25000),
+    });
+    const j = await r.json().catch(() => ({}));
+    for (const item of j?.items ?? []) {
+      if (item?.id && item?.snippet?.publishedAt) published.set(item.id, isoDay(new Date(item.snippet.publishedAt)));
     }
+  }
+
+  const out: MetricRow[] = [];
+  for (const [id, v] of views) {
+    const date = published.get(id);
+    // No publish date means the video is gone or hidden. Skipped rather than
+    // filed under today, which would pile years of views onto one day.
+    if (!date) continue;
+    out.push({
+      platform: "youtube", metric_date: date, external_post_id: id,
+      value: v, metric_kind: "views", is_cumulative: true,
+    });
   }
   return out;
 }
