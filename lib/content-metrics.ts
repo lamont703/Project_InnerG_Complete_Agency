@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { googleClient } from "@/lib/google-clients";
 
 /**
  * Collecting how the published content actually performed.
@@ -76,10 +77,27 @@ export function collectionWindow(days = 5): { start: string; end: string } {
 /* ------------------------------------------------------------------ YouTube */
 
 async function youtubeToken(): Promise<string> {
+  /*
+   * RESOLVED THROUGH googleClient("youtube"), NOT FROM process.env DIRECTLY.
+   *
+   * This file used to read YOUTUBE_CLIENT_ID / YOUTUBE_CLIENT_SECRET by hand.
+   * Those are PRE-SPLIT FALLBACK NAMES — lib/google-clients.ts resolves the
+   * youtube purpose as GOOGLE_YOUTUBE_CLIENT_ID first and only falls back to
+   * them, and the fallbacks in this project now hold a stale secret. Reading
+   * them directly therefore authenticated against a dead credential while the
+   * app itself was perfectly healthy.
+   *
+   * That cost real time to diagnose: every direct-env probe returned
+   * `invalid_client`, which reads as "our Google integration is down" rather
+   * than "you are holding the wrong variable". The registry file says the
+   * fallbacks are a migration aid to be deleted — when they go, anything still
+   * reading them breaks silently.
+   */
+  const creds = googleClient("youtube");
   const body = new URLSearchParams({
-    client_id: process.env.YOUTUBE_CLIENT_ID!,
-    client_secret: process.env.YOUTUBE_CLIENT_SECRET!,
-    refresh_token: process.env.YOUTUBE_REFRESH_TOKEN!,
+    client_id: creds.clientId!,
+    client_secret: creds.clientSecret!,
+    refresh_token: creds.refreshToken!,
     grant_type: "refresh_token",
   });
   const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", body });
@@ -223,9 +241,16 @@ export async function collectGbp(days: number): Promise<MetricRow[]> {
   const locationName = conn.config?.locationName;
   if (!locationName) return fail("GBP connection has no locationName in config");
 
+  /*
+   * Client from the registry; the TOKEN stays in publisher_connections. That
+   * split is deliberate and documented in _google_clients.js — the gbp_brand
+   * purpose has no refresh entry precisely because its token lives in the
+   * database, minted by scripts/publisher_connect.js.
+   */
+  const gbpCreds = googleClient("gbp_brand");
   const body = new URLSearchParams({
-    client_id: process.env.GOOGLE_INTERNAL_CLIENT_ID || process.env.GOOGLE_CLIENT_ID!,
-    client_secret: process.env.GOOGLE_INTERNAL_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET!,
+    client_id: gbpCreds.clientId!,
+    client_secret: gbpCreds.clientSecret!,
     refresh_token: conn.refresh_token,
     grant_type: "refresh_token",
   });
@@ -288,13 +313,14 @@ export async function collectGoogleSearch(days: number): Promise<MetricRow[]> {
   }];
 
   const site = process.env.GSC_SITE_URL;
-  const refresh = process.env.GOOGLE_GSC_REFRESH_TOKEN;
-  if (!site || !refresh) return fail("GSC_SITE_URL or GOOGLE_GSC_REFRESH_TOKEN not set");
+  const gscCreds = googleClient("gsc");
+  if (!site || !gscCreds.refreshToken) return fail("GSC_SITE_URL or the Search Console refresh token is not set");
+  if (!gscCreds.clientSecret) return fail("no Search Console OAuth client configured");
 
   const body = new URLSearchParams({
-    client_id: process.env.GOOGLE_INTERNAL_CLIENT_ID || process.env.GOOGLE_CLIENT_ID!,
-    client_secret: process.env.GOOGLE_INTERNAL_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET!,
-    refresh_token: refresh,
+    client_id: gscCreds.clientId!,
+    client_secret: gscCreds.clientSecret,
+    refresh_token: gscCreds.refreshToken,
     grant_type: "refresh_token",
   });
   const tj = await (await fetch("https://oauth2.googleapis.com/token", { method: "POST", body })).json();
