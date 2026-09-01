@@ -20,9 +20,10 @@ require("dotenv").config({ path: ".env.local" });
 const fs = require("fs");
 const path = require("path");
 const { execFileSync, spawnSync } = require("child_process");
-const { planCutaways, coverage, resolveAnchors } = require("../lib/video-editor/broll.js");
+const { planCutaways, coverage, resolveAnchors, expandHold } = require("../lib/video-editor/broll.js");
 const { searchVideos, pickBest, download } = require("../lib/pixabay.js");
-const { cutawayFilters } = require("../lib/video-editor/transitions.js");
+const { cutawayFilters, DEFAULT_DUR } = require("../lib/video-editor/transitions.js");
+const whoosh = require("../lib/video-editor/whoosh.js");
 
 function ffmpegPath() {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
@@ -84,7 +85,13 @@ if (fs.existsSync(wordsFile)) {
   process.exit(1);
 }
 
-const resolved = resolveAnchors(spec.cutaways ?? spec, words);
+/*
+ * `hold` is time at full opacity; the transitions are added AROUND it. A 2.5s
+ * cutaway with a 0.35s dissolve each end is only 1.8s of settled picture, which
+ * is why an honest-looking plan read as "about a second too short".
+ */
+const withHold = expandHold(spec.cutaways ?? spec, spec.transitionSecs ?? DEFAULT_DUR);
+const resolved = resolveAnchors(withHold, words);
 for (const c of resolved.cutaways) {
   if (c._heard) console.log(`  anchor  "${c.anchor}" -> ${c.at}s  (${(c._score * 100).toFixed(0)}% "${c._heard}")`);
 }
@@ -138,6 +145,7 @@ for (const d of dropped) console.log(`  DROPPED  "${d.cutaway?.query ?? "?"}" â€
    * stutters, and it looks like a broken render rather than a rate mismatch.
    */
   const parts = [];
+  const args_lavfi = [];
   let last = "0:v";
   clips.forEach((c, i) => {
     const { chain, label } = cutawayFilters(i, c.cutaway, { W, H, FPS, prevLabel: last });
@@ -145,14 +153,45 @@ for (const d of dropped) console.log(`  DROPPED  "${d.cutaway?.query ?? "?"}" â€
     last = label;
   });
 
+  /*
+   * TRANSITION STINGS, SYNTHESIZED AS EXTRA INPUTS. Each one is a lavfi source
+   * shaped and delayed to its cutaway, then mixed under the voice. They are
+   * generated rather than fetched because a whoosh is cheaper to make than to
+   * licence, and because every sourced sound carries a licence to check â€”
+   * Freesound's vary per sound and CC-BY-NC would poison a monetised video.
+   */
+  const sfxChains = [];
+  const sfxLabels = [];
+  let idx = 1 + clips.length;
+  for (const c of clips) {
+    const sfx = c.cutaway.sfx;
+    if (!sfx) continue;
+    const spec2 = typeof sfx === "string" ? { type: sfx } : sfx;
+    const secs = spec2.seconds ?? 0.45;
+    // Lead the sting slightly, so it peaks ON the cut rather than after it.
+    const at = Math.max(0, c.cutaway.at - secs * 0.35);
+    args_lavfi.push(whoosh.source({ ...spec2, seconds: secs }));
+    const { chain, label } = whoosh.shape(idx, { ...spec2, seconds: secs, at });
+    sfxChains.push(chain);
+    sfxLabels.push(label);
+    idx++;
+  }
+  const mixChain = whoosh.mix(sfxLabels);
+
   const args = ["-y", "-hide_banner", "-loglevel", "error", "-i", input];
   for (const c of clips) args.push("-i", c.path);
+  for (const src of args_lavfi) args.push("-f", "lavfi", "-i", src);
+
+  const graph = [...parts, ...sfxChains, ...(mixChain ? [mixChain] : [])].join(";");
+  args.push("-filter_complex", graph, "-map", `[${last}]`);
+  args.push("-map", mixChain ? "[aout]" : "0:a");
   args.push(
-    "-filter_complex", parts.join(";"),
-    "-map", `[${last}]`, "-map", "0:a",
     "-c:v", "libx264", "-preset", "slow", "-crf", "23", "-pix_fmt", "yuv420p",
-    "-c:a", "copy", "-movflags", "+faststart", out,
+    // Stings mean the audio is re-encoded; without them the original is kept.
+    "-c:a", mixChain ? "aac" : "copy", ...(mixChain ? ["-b:a", "160k"] : []),
+    "-movflags", "+faststart", out,
   );
+  if (sfxLabels.length) console.log(`  ${sfxLabels.length} transition sting(s) mixed under the voice`);
   console.log(`\nrendering ${clips.length} cutaway(s)...`);
   execFileSync(FF, args, { stdio: "inherit" });
 

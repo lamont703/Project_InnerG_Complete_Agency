@@ -1,5 +1,5 @@
 {
-  "_comment": "Worked example of a cutaway plan, and the shape the editing agent must emit. Cutaways ANCHOR on a spoken phrase, not a timestamp: scripts/transcribe_video.py writes <video>.words.json and the phrase is resolved to the moment it is actually said. The first version of this plan used seconds estimated from the script and every cutaway landed 1-6s early, illustrating the following sentence. 'joins' are the jump cuts left by scripts/cut_silence.js; a cutaway snaps to one only if it is already within 0.4s. 'query' is the Pixabay search. 'transition' animates the arrival and exit: dissolve, slide-left/right/up/down, or cut for a hard one. It is capped at half the cutaway so entry and exit cannot overlap.",
+  "_comment": "Worked example of a cutaway plan, and the shape the editing agent must emit. Cutaways ANCHOR on a spoken phrase, not a timestamp: scripts/transcribe_video.py writes <video>.words.json and the phrase is resolved to the moment it is actually said. The first version of this plan used seconds estimated from the script and every cutaway landed 1-6s early, illustrating the following sentence. 'joins' are the jump cuts left by scripts/cut_silence.js; a cutaway snaps to one only if it is already within 0.4s. 'query' is the Pixabay search. 'transition' animates the arrival and exit: dissolve, slide-left/right/up/down, or cut for a hard one. It is capped at half the cutaway so entry and exit cannot overlap. 'hold' is time at FULL opacity \u2014 transitions are added around it, not carved out of it. 'sfx' scores a synthesized sting to the transition (whoosh, riser, thud); they are generated, so there is no licence to track. whip-* is the same geometry as slide-* about three times faster.",
   "joins": [
     0.82,
     7.44,
@@ -20,33 +20,38 @@
   "cutaways": [
     {
       "anchor": "Most booth renters never separated",
-      "seconds": 2.2,
       "query": "barbershop",
-      "transition": "dissolve"
+      "transition": "dissolve",
+      "hold": 2.8
     },
     {
       "anchor": "clippers and gas",
-      "seconds": 2.5,
       "query": "hair clippers",
-      "transition": "slide-up"
+      "transition": "whip-up",
+      "hold": 2.8,
+      "sfx": "whoosh"
     },
     {
       "anchor": "a pile of receipts",
-      "seconds": 2.5,
       "query": "receipts",
-      "transition": "slide-left"
+      "transition": "whip-left",
+      "hold": 2.3,
+      "sfx": "whoosh",
+      "_note": "Shorter on purpose: 'the lender doesn't see' is spoken only 3.4s later, so a 2.8s hold collides with the next cutaway and one of the two gets dropped."
     },
     {
       "anchor": "the lender doesn't see a business",
-      "seconds": 2.5,
       "query": "bank loan",
-      "transition": "dissolve"
+      "transition": "slide-up",
+      "hold": 2.8,
+      "sfx": "whoosh"
     },
     {
       "anchor": "a business account takes an afternoon",
-      "seconds": 2.5,
       "query": "laptop paperwork",
-      "transition": "slide-up"
+      "transition": "whip-right",
+      "hold": 2.8,
+      "sfx": "whoosh"
     }
   ]
 }

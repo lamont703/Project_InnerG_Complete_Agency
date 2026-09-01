@@ -69,3 +69,19 @@ describe("cutawayFilters", () => {
     expect(TRANSITIONS).toContain("cut");
   });
 });
+
+describe("whip", () => {
+  it("moves about three times as fast as a slide", () => {
+    const whip = cutawayFilters(0, { at: 10, seconds: 3, transition: "whip-left" }, OPTS).chain[1];
+    const slide = cutawayFilters(0, { at: 10, seconds: 3, transition: "slide-left" }, OPTS).chain[1];
+    expect(whip).toContain("0.120");
+    expect(slide).toContain("0.350");
+    expect(whip).not.toEqual(slide);
+  });
+
+  it("uses the same geometry as the slide it is named after", () => {
+    const w = cutawayFilters(0, { at: 10, seconds: 3, transition: "whip-up" }, OPTS).chain[1];
+    expect(w).toContain("x='0'");
+    expect(w).toContain("1920*");
+  });
+});

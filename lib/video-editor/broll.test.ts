@@ -109,3 +109,47 @@ describe("resolveAnchors", () => {
     expect(cutaways[0].at).toBe(5);
   });
 });
+
+describe("expandHold", () => {
+  /*
+   * A 2.5s cutaway with a 0.35s dissolve each end is only 1.8s of settled
+   * picture. The plan said 2.5 and meant it; the viewer said "about a second
+   * short", which is the 0.7s the transitions were taking.
+   */
+  it("adds the transitions around the hold instead of carving them out", () => {
+    const [c] = core.expandHold([{ hold: 2.8, transition: "dissolve" }], 0.35);
+    expect(c.seconds).toBeCloseTo(3.5, 3);
+  });
+
+  it("adds nothing for a hard cut", () => {
+    const [c] = core.expandHold([{ hold: 2.8, transition: "cut" }], 0.35);
+    expect(c.seconds).toBeCloseTo(2.8, 3);
+  });
+
+  it("respects a per-cutaway transition length", () => {
+    const [c] = core.expandHold([{ hold: 2, transitionSecs: 0.12 }], 0.35);
+    expect(c.seconds).toBeCloseTo(2.24, 3);
+  });
+
+  it("leaves a cutaway that already states its total alone", () => {
+    const [c] = core.expandHold([{ seconds: 2.5 }], 0.35);
+    expect(c.seconds).toBe(2.5);
+  });
+});
+
+describe("expandHold agrees with the renderer about transition length", () => {
+  /*
+   * These two disagreed: expandHold assumed 0.35s for every transition while
+   * the filter used 0.12s for a whip, so the cutaway rendered 0.46s longer than
+   * planned — enough to collide with its neighbour and get one dropped.
+   */
+  it("pads a whip by the whip's own duration, not the default", () => {
+    const [c] = core.expandHold([{ hold: 2.3, transition: "whip-left" }], 0.35);
+    expect(c.seconds).toBeCloseTo(2.3 + 0.12 * 2, 3);
+  });
+
+  it("pads a dissolve by the default", () => {
+    const [c] = core.expandHold([{ hold: 2.3, transition: "dissolve" }], 0.35);
+    expect(c.seconds).toBeCloseTo(2.3 + 0.35 * 2, 3);
+  });
+});
