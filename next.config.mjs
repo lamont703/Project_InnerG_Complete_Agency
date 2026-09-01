@@ -119,6 +119,13 @@ const nextConfig = {
     // saying nothing about ffmpeg.
     "@ffmpeg-installer/ffmpeg",
     "fluent-ffmpeg",
+    // ffmpeg-static is an 81MB binary added for the LOCAL editing tools, which
+    // need a modern build: the @ffmpeg-installer binary is a 2018 vintage and
+    // does not have xfade, so it cannot do transitions at all. Listed here for
+    // the same reason as the two above and because the base function already
+    // sits near 230MB against a 250MB limit — an untraced 81MB is exactly the
+    // shape of the 307.94MB rejection. No app route imports it; the scripts do.
+    "ffmpeg-static",
   ],
 
   // Externalizing alone is not enough. Both routes reach the package through a

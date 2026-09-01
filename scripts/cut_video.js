@@ -41,27 +41,15 @@ function duration(file) {
   return null;
 }
 
-/** Same rules as lib/video-editor/ranges.ts: merge, clamp, invert. */
-function keepRanges(cuts, total) {
-  const clean = cuts
-    .map((c) => ({ start: Math.max(0, Math.min(c.start, c.end)), end: Math.min(total, Math.max(c.start, c.end)) }))
-    .filter((c) => c.end - c.start > 0.001)
-    .sort((a, b) => a.start - b.start);
-  const merged = [];
-  for (const c of clean) {
-    const last = merged[merged.length - 1];
-    if (last && c.start <= last.end + 0.001) last.end = Math.max(last.end, c.end);
-    else merged.push({ ...c });
-  }
-  const keep = [];
-  let cursor = 0;
-  for (const c of merged) {
-    if (c.start - cursor > 0.001) keep.push({ start: cursor, end: c.start });
-    cursor = Math.max(cursor, c.end);
-  }
-  if (total - cursor > 0.001) keep.push({ start: cursor, end: total });
-  return keep;
-}
+/*
+ * The cut maths comes from the shared core now. This file used to carry its own
+ * copy, with a comment admitting it was "the same rules as
+ * lib/video-editor/ranges.ts" — which is a drift warning written down and then
+ * left in place. The silence cutter would have been the third copy, so the
+ * implementation moved to ranges-core.js and everything reads it: this script,
+ * cut_silence.js, and lib/video-editor/ranges.ts for the TypeScript callers.
+ */
+const { keepRanges } = require("../lib/video-editor/ranges-core.js");
 
 const argv = process.argv.slice(2);
 const outIdx = argv.indexOf("--out");
