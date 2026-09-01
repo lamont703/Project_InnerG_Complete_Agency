@@ -1,5 +1,5 @@
 {
-  "_comment": "Worked example of a cutaway plan, and the shape the editing agent must emit. 'joins' are the jump cuts left behind by scripts/cut_silence.js \u2014 each cutaway snaps to the nearest one so it covers the artefact rather than sitting near it. '_line' records which line of the script the moment belongs to; it is documentation, not read by the tool. Rendered against reference/heygen/booth-rent-3-fix-the-paperwork-*.mp4, which is gitignored along with the rest of reference/.",
+  "_comment": "Worked example of a cutaway plan, and the shape the editing agent must emit. Cutaways ANCHOR on a spoken phrase, not a timestamp: scripts/transcribe_video.py writes <video>.words.json and the phrase is resolved to the moment it is actually said. The first version of this plan used seconds estimated from the script and every cutaway landed 1-6s early, illustrating the following sentence. 'joins' are the jump cuts left by scripts/cut_silence.js; a cutaway snaps to one only if it is already within 0.4s. 'query' is the Pixabay search. 'transition' animates the arrival and exit: dissolve, slide-left/right/up/down, or cut for a hard one. It is capped at half the cutaway so entry and exit cannot overlap.",
   "joins": [
     0.82,
     7.44,
@@ -19,34 +19,34 @@
   ],
   "cutaways": [
     {
-      "at": 7.44,
+      "anchor": "Most booth renters never separated",
       "seconds": 2.2,
       "query": "barbershop",
-      "_line": "Most booth renters never separated the two"
+      "transition": "dissolve"
     },
     {
-      "at": 15.06,
+      "anchor": "clippers and gas",
       "seconds": 2.5,
       "query": "hair clippers",
-      "_line": "rent, groceries, clippers, and gas"
+      "transition": "slide-up"
     },
     {
-      "at": 22.03,
+      "anchor": "a pile of receipts",
       "seconds": 2.5,
       "query": "receipts",
-      "_line": "just you, and a pile of receipts"
+      "transition": "slide-left"
     },
     {
-      "at": 28.91,
+      "anchor": "the lender doesn't see a business",
       "seconds": 2.5,
       "query": "bank loan",
-      "_line": "the lender doesn't see a business"
+      "transition": "dissolve"
     },
     {
-      "at": 36.29,
+      "anchor": "a business account takes an afternoon",
       "seconds": 2.5,
       "query": "laptop paperwork",
-      "_line": "a business account takes an afternoon"
+      "transition": "slide-up"
     }
   ]
 }

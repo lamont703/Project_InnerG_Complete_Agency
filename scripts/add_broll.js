@@ -20,8 +20,9 @@ require("dotenv").config({ path: ".env.local" });
 const fs = require("fs");
 const path = require("path");
 const { execFileSync, spawnSync } = require("child_process");
-const { planCutaways, coverage } = require("../lib/video-editor/broll.js");
+const { planCutaways, coverage, resolveAnchors } = require("../lib/video-editor/broll.js");
 const { searchVideos, pickBest, download } = require("../lib/pixabay.js");
+const { cutawayFilters } = require("../lib/video-editor/transitions.js");
 
 function ffmpegPath() {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
@@ -63,11 +64,45 @@ const W = sm ? Number(sm[1]) : 1080, H = sm ? Number(sm[2]) : 1920;
 const fm = probe.match(/,\s*([\d.]+)\s*fps/);
 const FPS = fm ? Number(fm[1]) : 25;
 
-const { cutaways, dropped } = planCutaways(spec.cutaways ?? spec, {
+/*
+ * ANCHORS BEAT TIMESTAMPS. A cutaway may say WHEN IT IS SPOKEN rather than at
+ * what second; the transcript turns that into a time. Defaults to
+ * <input>.words.json, which scripts/transcribe_video.py writes next to the clip.
+ *
+ * Without a transcript, anchored cutaways are DROPPED rather than guessed at.
+ * Guessing is what produced an edit whose b-roll "felt random" â€” every clip
+ * illustrating the sentence after the one it belonged to.
+ */
+const wordsFile = arg("words", input.replace(/\.mp4$/i, "") + ".words.json");
+let words = [];
+if (fs.existsSync(wordsFile)) {
+  words = JSON.parse(fs.readFileSync(wordsFile, "utf8")).words ?? [];
+  console.log(`words    ${wordsFile} (${words.length})`);
+} else if ((spec.cutaways ?? spec).some((c) => c && c.anchor)) {
+  console.error(`\nThis plan anchors on spoken phrases but there is no transcript at ${wordsFile}.`);
+  console.error(`Run: ~/.venvs/shearquery-whisper/bin/python scripts/transcribe_video.py ${input}\n`);
+  process.exit(1);
+}
+
+const resolved = resolveAnchors(spec.cutaways ?? spec, words);
+for (const c of resolved.cutaways) {
+  if (c._heard) console.log(`  anchor  "${c.anchor}" -> ${c.at}s  (${(c._score * 100).toFixed(0)}% "${c._heard}")`);
+}
+
+const planned = planCutaways(resolved.cutaways, {
   duration,
   joins: spec.joins ?? [],
+  /*
+   * A SMALL SNAP WINDOW WHEN ANCHORED. Snapping exists to cover the jump cuts
+   * silence removal leaves behind, but an anchored time is measured, and
+   * dragging it a full second to reach a join puts it back off the word. Close
+   * joins still win; distant ones no longer pull.
+   */
+  snap: spec.snap ?? (words.length ? 0.4 : 1.0),
   minGap: spec.minGap ?? 0.5,
 });
+const cutaways = planned.cutaways;
+const dropped = [...resolved.dropped, ...planned.dropped];
 
 console.log(`\nin       ${input}`);
 console.log(`base     ${W}x${H} @ ${FPS}fps, ${duration.toFixed(2)}s`);
@@ -87,7 +122,7 @@ for (const d of dropped) console.log(`  DROPPED  "${d.cutaway?.query ?? "?"}" â€
     }
     const got = has("dry") ? { path: "(not downloaded)", credit: { id: pick.hit.id, author: pick.hit.user, resolution: `${pick.file.width}x${pick.file.height}`, pageUrl: pick.hit.pageURL, source: "Pixabay", license: "Pixabay Content License" } }
                            : await download(pick, path.join(".cache", "broll"));
-    console.log(`  ${String(c.at).padStart(6)}s  ${String(c.seconds) + "s"}  "${c.query}" -> #${got.credit.id} ${got.credit.resolution} by ${got.credit.author}`);
+    console.log(`  ${String(c.at).padStart(6)}s  ${String(c.seconds) + "s"}  ${String(c.transition ?? "dissolve").padEnd(11)} "${c.query}" -> #${got.credit.id} ${got.credit.resolution} by ${got.credit.author}`);
     clips.push({ cutaway: c, ...got });
   }
 
@@ -105,13 +140,9 @@ for (const d of dropped) console.log(`  DROPPED  "${d.cutaway?.query ?? "?"}" â€
   const parts = [];
   let last = "0:v";
   clips.forEach((c, i) => {
-    const { at, seconds } = c.cutaway;
-    parts.push(
-      `[${i + 1}:v]trim=start=0:duration=${seconds},setpts=PTS-STARTPTS+${at}/TB,` +
-      `fps=${FPS},scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1[b${i}]`
-    );
-    parts.push(`[${last}][b${i}]overlay=0:0:enable='between(t,${at},${(at + seconds).toFixed(3)})'[v${i}]`);
-    last = `v${i}`;
+    const { chain, label } = cutawayFilters(i, c.cutaway, { W, H, FPS, prevLabel: last });
+    parts.push(...chain);
+    last = label;
   });
 
   const args = ["-y", "-hide_banner", "-loglevel", "error", "-i", input];

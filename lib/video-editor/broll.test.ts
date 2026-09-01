@@ -75,3 +75,37 @@ describe("coverage", () => {
     expect(coverage([], 40)).toBe(0);
   });
 });
+
+describe("resolveAnchors", () => {
+  const WORDS = [
+    { word: "just", start: 17.0, end: 17.2 },
+    { word: "you", start: 17.2, end: 17.4 },
+    { word: "and", start: 17.4, end: 17.6 },
+    { word: "a", start: 17.6, end: 17.7 },
+    { word: "pile", start: 17.7, end: 18.0 },
+    { word: "of", start: 18.0, end: 18.1 },
+    { word: "receipts", start: 18.1, end: 18.7 },
+  ];
+
+  it("turns a phrase into the moment it is spoken", () => {
+    const { cutaways } = core.resolveAnchors(
+      [{ anchor: "a pile of receipts", seconds: 2.5, query: "receipts" }], WORDS);
+    expect(cutaways[0].at).toBeCloseTo(17.6, 1);
+  });
+
+  /*
+   * Falling back to a requested `at` would reintroduce the guess this removes,
+   * invisibly, on the one cutaway whose wording was wrong.
+   */
+  it("drops a cutaway whose anchor is not in the audio", () => {
+    const { cutaways, dropped } = core.resolveAnchors(
+      [{ anchor: "license renewal fee", at: 5, seconds: 2, query: "x" }], WORDS);
+    expect(cutaways).toHaveLength(0);
+    expect(dropped[0].why).toMatch(/anchor not found/);
+  });
+
+  it("leaves an explicit time alone when no anchor is given", () => {
+    const { cutaways } = core.resolveAnchors([{ at: 5, seconds: 2, query: "x" }], WORDS);
+    expect(cutaways[0].at).toBe(5);
+  });
+});
