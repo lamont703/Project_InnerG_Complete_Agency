@@ -94,3 +94,49 @@ export async function skipItem(id: string): Promise<{ ok: boolean; error?: strin
   revalidatePath("/admin/content-publisher");
   return { ok: true };
 }
+
+
+/**
+ * Render one card, on this machine.
+ *
+ * LOCAL ONLY, AND IT SAYS SO RATHER THAN FAILING STRANGELY. Rendering needs
+ * ffmpeg, puppeteer, the HeyGen key and the scripts/ directory — none of which
+ * exist on the hosted function. The Video Cutter learned that the expensive
+ * way: bundling ffmpeg put it at 307.94MB against a 250MB limit and the deploy
+ * was rejected. So this checks for VERCEL and refuses with a plain sentence
+ * instead of throwing ENOENT somewhere the operator cannot see it.
+ *
+ * DETACHED, NOT AWAITED. An avatar render takes two to three minutes and a
+ * server action held open that long is a request waiting to be killed by a
+ * timeout somewhere between the browser and Next. So it starts the job, returns
+ * immediately, and the card updates itself when video_url is written — which
+ * the renderer does LAST, after the file is in storage. Refreshing the board is
+ * how you see it land.
+ *
+ * The spawn target is a plain relative path. Nothing here constructs a path
+ * into node_modules, which is the move that made Turbopack walk directories and
+ * broke two builds today.
+ */
+export async function renderCard(id: string): Promise<{ ok: boolean; error?: string; log?: string }> {
+  if (!(await isAdmin())) return { ok: false, error: "Not authorised." };
+  if (process.env.VERCEL) {
+    return { ok: false, error: "Rendering runs locally only — it needs ffmpeg, puppeteer and the HeyGen key." };
+  }
+
+  const { spawn } = await import("node:child_process");
+  const { openSync } = await import("node:fs");
+  const log = `/tmp/render-${id}.log`;
+
+  try {
+    const out = openSync(log, "a");
+    const child = spawn("node", ["scripts/render_queued.js", "--go", `--id=${id}`], {
+      detached: true,
+      stdio: ["ignore", out, out],
+    });
+    child.unref();
+  } catch (e: any) {
+    return { ok: false, error: e?.message ?? "could not start the renderer" };
+  }
+
+  return { ok: true, log };
+}

@@ -50,7 +50,23 @@ const AVATAR_PER_SEC = 0.0386;
 /** social-assets refuses anything larger. Checked, not assumed. */
 const BUCKET_LIMIT_MB = 5;
 
-const arg = (n) => { const i = process.argv.indexOf(`--${n}`); return i === -1 ? null : process.argv[i + 1]; };
+/**
+ * Accepts BOTH --name value and --name=value.
+ *
+ * It used to accept only the first, while the server action spawns
+ * `--id=<uuid>` and every other script in this repo uses the equals form. So
+ * arg("id") returned null, the filter was never applied, and a click on the
+ * Render button would have rendered whatever sat at the front of the line
+ * rather than the card that was clicked — paying $1.16 for the wrong video and
+ * marking the wrong card done. Caught by passing a UUID that does not exist and
+ * getting a card back anyway.
+ */
+const arg = (n) => {
+  const eq = process.argv.find((a) => a.startsWith(`--${n}=`));
+  if (eq) return eq.slice(n.length + 3);
+  const i = process.argv.indexOf(`--${n}`);
+  return i === -1 ? null : process.argv[i + 1];
+};
 const has = (n) => process.argv.includes(`--${n}`);
 
 /**
@@ -234,13 +250,19 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   const limit = Number(arg("limit") ?? 1);
 
-  const { data: cards, error } = await db
+  /*
+   * --id renders exactly one card. The publisher board's Render button passes
+   * it, so a click renders the card that was clicked rather than whatever
+   * happens to sit at the front of the line.
+   */
+  const only = arg("id");
+  let q = db
     .from("publisher_queue")
     .select("id, item_key, title, caption, position")
     .eq("status", "queued")
-    .is("video_url", null)
-    .order("position", { ascending: true })
-    .limit(limit);
+    .is("video_url", null);
+  if (only) q = q.eq("id", only);
+  const { data: cards, error } = await q.order("position", { ascending: true }).limit(only ? 1 : limit);
 
   if (error) { console.error(error.message); process.exit(1); }
   if (!cards?.length) { console.log("\nNothing queued without a video.\n"); return; }

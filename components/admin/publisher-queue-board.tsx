@@ -7,7 +7,7 @@ import {
   Linkedin, MapPin, Music2, MinusCircle,
 } from "lucide-react";
 import type { PublisherItem, PublisherQueue, PublisherOutcome } from "@/lib/admin/publisher-queue";
-import { reorderQueue, skipItem } from "@/app/admin/content-publisher/actions";
+import { reorderQueue, skipItem, renderCard } from "@/app/admin/content-publisher/actions";
 
 /**
  * The line, draggable, with every video playable.
@@ -73,6 +73,46 @@ function outcomesFor(item: PublisherItem): Record<string, PublisherOutcome> {
     ? { ok: true, id: item.instagramMediaId, url: item.instagramPermalink || undefined }
     : { ok: false, error: item.instagramError || "not published" };
   return legacy;
+}
+
+/**
+ * The card that has no video, and the button that gives it one.
+ *
+ * Rendering starts DETACHED and this cannot watch it — an avatar takes two to
+ * three minutes. So the button reports that it started and asks for a refresh,
+ * rather than pretending to know when it finished. The card stops being a
+ * placeholder the moment video_url is written, which the renderer does last.
+ */
+function RenderPlaceholder({ item }: { item: PublisherItem }) {
+  const router = useRouter();
+  const [state, setState] = React.useState<"idle" | "starting" | "started" | "error">("idle");
+  const [msg, setMsg] = React.useState<string | null>(null);
+
+  async function go() {
+    setState("starting");
+    const r = await renderCard(item.id);
+    if (!r.ok) { setState("error"); setMsg(r.error ?? "could not start"); return; }
+    setState("started");
+    setMsg("Rendering. Refresh in a minute or two.");
+    setTimeout(() => router.refresh(), 45000);
+  }
+
+  return (
+    <div className="w-full aspect-[9/16] bg-slate-100 flex flex-col items-center justify-center gap-3 px-4 text-center">
+      <span className="text-sm text-slate-400">not rendered yet</span>
+      <button
+        type="button"
+        onClick={go}
+        disabled={state === "starting" || state === "started"}
+        className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 rounded-md px-3 py-1.5 disabled:opacity-50"
+      >
+        {state === "starting" ? "Starting…" : state === "started" ? "Rendering…" : "Render"}
+      </button>
+      {msg && (
+        <span className={`text-[11px] leading-snug ${state === "error" ? "text-rose-600" : "text-slate-500"}`}>{msg}</span>
+      )}
+    </div>
+  );
 }
 
 function PlatformResult({ item }: { item: PublisherItem }) {
@@ -217,9 +257,7 @@ function Card({
           className="w-full bg-slate-900 aspect-[9/16] object-contain"
         />
       ) : (
-        <div className="w-full aspect-[9/16] bg-slate-100 flex items-center justify-center text-sm text-slate-400">
-          not rendered yet
-        </div>
+        <RenderPlaceholder item={item} />
       )}
 
       <div className="p-4 flex-1 flex flex-col gap-2">
