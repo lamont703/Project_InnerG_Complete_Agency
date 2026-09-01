@@ -53,6 +53,36 @@ const CONFIDENCES: Confidence[] = ["high", "medium", "low"];
  * write {"searches": 1200} for a query that was run twice, and the finding
  * becomes a lie with a citation attached.
  */
+
+/**
+ * Does this title use the shape that actually earns attention on this channel?
+ *
+ * A SMALL LEADING COUNT, and the boundary is not arbitrary. Measured across the
+ * channel's own 2026 output:
+ *
+ *   "N ___" listicle   15 videos   median 392   RETENTION 154.6%
+ *   everything else     7 videos   median 183   RETENTION  90.6%
+ *
+ * Retention above 100% means viewers loop, which is what Shorts distributes on,
+ * so the gap compounds instead of staying at 2x.
+ *
+ * A LEADING DIGIT IS NOT ENOUGH, and this is the case that defines the rule.
+ * "569 Texas Barbershops Have a Perfect 5.0" starts with a number and died at
+ * 123 views. So it is not the number that works — it is the promise of THINGS
+ * TO LOOK AT. Six is a count of items the viewer will see. 569 is a statistic,
+ * which is a conclusion, and a conclusion gives nobody a reason to keep
+ * watching.
+ *
+ * Hence 2 to 12: large enough to be a list, small enough that it cannot be a
+ * population count. Above that it is a statistic wearing a listicle's clothes.
+ */
+export function isWinningTitleShape(title: string): boolean {
+  const m = title.trim().match(/^(\d{1,2})\s+\S/);
+  if (!m) return false;
+  const n = Number(m[1]);
+  return n >= 2 && n <= 12;
+}
+
 export function validateFindings(
   raw: unknown,
   allowedEvidenceKeys: Set<string>,
@@ -81,16 +111,39 @@ export function validateFindings(
     const keys = Object.keys(evidence);
     if (!keys.every((k) => allowedEvidenceKeys.has(k))) continue;
 
-    const confidence = CONFIDENCES.includes(o.confidence as Confidence)
+    let confidence = CONFIDENCES.includes(o.confidence as Confidence)
       ? (o.confidence as Confidence)
       : "low";
+
+    /*
+     * FLAGGED, NOT DISCARDED — and the asymmetry with the evidence check above
+     * is deliberate. A finding with no numbers behind it contains nothing; it
+     * is an opinion and it is dropped. A finding with a bad TITLE still
+     * contains a real idea that the evidence supports. "The Truth About Rent
+     * Credit Reporting" and "6 Questions to Ask Before You Rent a Booth" are
+     * the same insight in different packaging, and throwing away the insight
+     * to punish the packaging would be the wrong trade.
+     *
+     * So it survives, sorted down and labelled. The label matters: an operator
+     * queued an off-format title straight into the publisher because nothing on
+     * the card said it was off-format, and low confidence alone is too quiet to
+     * stop that.
+     */
+    let rationaleOut = rationale;
+    if (!isWinningTitleShape(title)) {
+      confidence = "low";
+      rationaleOut =
+        `OFF-FORMAT TITLE — this channel's listicles hold 154.6% retention against ` +
+        `90.6% for everything else. Reshape to "N things..." before queueing. ` +
+        rationale;
+    }
 
     const category =
       typeof o.category === "string" && o.category.trim()
         ? o.category.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").slice(0, 40)
         : "uncategorised";
 
-    out.push({ title, suggestion, rationale, category, evidence, confidence });
+    out.push({ title, suggestion, rationale: rationaleOut.slice(0, 1200), category, evidence, confidence });
   }
 
   return out;

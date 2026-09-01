@@ -40,6 +40,23 @@ RULES, all of which are rejections rather than preferences:
 Return a JSON array. Each item:
 {"title": string, "suggestion": string, "rationale": string,
  "category": string, "evidence": object, "confidence": "high"|"medium"|"low"}
+
+THE TITLE IS NOT A LABEL, IT IS THE PACKAGING, and it decides whether anything
+you suggest gets watched at all. It MUST open with a small count of things the
+viewer will actually see:
+
+    "6 Fades, Explained — Low to Drop"
+    "6 Questions to Ask Before You Rent a Booth"
+
+NOT a claim, a promise or a call to action — "The Truth About X", "Claim Your
+Free Y", "How Z Works" all measured at roughly half the retention on this
+channel. A LEADING NUMBER ALONE IS NOT ENOUGH either: "569 Texas Barbershops
+Have a Perfect 5.0" starts with a number and failed, because 569 is a statistic
+and a statistic is a conclusion. Six is a count of things to look at, which is a
+reason to keep watching.
+
+Use 2 to 12. If the idea genuinely cannot be expressed as a small list, it is
+probably a page rather than a short — say so in the rationale.
 `.trim();
 
 import { identityForChannel } from "@/lib/agent-identity";
