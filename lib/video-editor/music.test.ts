@@ -48,6 +48,10 @@ describe("bedGraph", () => {
     expect(graph).toContain("alimiter");
   });
 
+  it("defaults to the level that was settled by listening", () => {
+    expect(bedGraph({ duration: 41 }).graph).toContain("volume=0.280");
+  });
+
   it("names the output the caller maps", () => {
     expect(bedGraph({ duration: 41 }).label).toBe("aout");
   });

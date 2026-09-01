@@ -72,7 +72,7 @@ const duration = Number(dm[1]) * 3600 + Number(dm[2]) * 60 + Number(dm[3]);
 
 const { graph, label } = bedGraph({
   duration,
-  gain: Number(arg("gain", 0.35)),
+  gain: Number(arg("gain", 0.28)),
   fadeIn: Number(arg("fade-in", 1.5)),
   fadeOut: Number(arg("fade-out", 2.5)),
   ratio: Number(arg("ratio", 12)),
@@ -81,7 +81,7 @@ const { graph, label } = bedGraph({
 
 console.log(`\nin       ${input}  ${duration.toFixed(2)}s`);
 console.log(`track    ${path.basename(track)}`);
-console.log(`bed      gain ${arg("gain", 0.35)}, ducked under the voice (ratio ${arg("ratio", 12)})`);
+console.log(`bed      gain ${arg("gain", 0.28)}, ducked under the voice (ratio ${arg("ratio", 12)})`);
 
 if (has("dry")) { console.log(`\nDry run.\n${graph}\n`); process.exit(0); }
 
