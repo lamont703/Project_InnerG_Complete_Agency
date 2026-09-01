@@ -14,3 +14,21 @@ __pycache__/
 
 # Local scratch that has no business in a deployment.
 experiments/
+
+# The Video Cutter is a LOCAL tool and was never meant to ship.
+#
+# The deploy rejected it at 307.94MB against a 250MB limit — the same number as
+# a previous rejection, which is the tell that nothing had actually changed.
+# Removing its outputFileTracingIncludes entry did not help, because nothing was
+# including ffmpeg by configuration: the route locates the binary with
+# join(process.cwd(), "node_modules", "@ffmpeg-installer", ...) and Turbopack
+# resolves that computed path as a directory reference and traces what it finds.
+# Same mechanism as the venv symlink above.
+#
+# Excluding the binary from tracing would have worked and would have been the
+# wrong fix. On the hosted function ffmpegAvailable() already returns false, the
+# upload caps near 100MB and the run at 300s — it could never cut real footage
+# there. So it does not deploy at all. It still runs locally, and
+# scripts/video_assemble.js is the pipeline that actually renders.
+app/admin/video-editor/
+app/api/admin/video-editor/
