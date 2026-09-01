@@ -92,3 +92,36 @@ describe("the raw transcripts never reach the model", () => {
     expect(COMMENT.length).toBeLessThan(22000);
   });
 });
+
+describe("pillars and packaging go only to the content channel", () => {
+  const CONTENT = identityForChannel("content");
+
+  /*
+   * A comment reply does not write titles. Shipping the packaging formula to
+   * the two highest-frequency agents would be ~1,200 tokens each for something
+   * they cannot use.
+   */
+  it("keeps the title formula off comment and DM replies", () => {
+    for (const block of [AI_MODE, COMMENT, DM]) {
+      expect(block).not.toMatch(/THE FORMULA THAT WORKS/);
+      expect(block).not.toMatch(/WHAT WE PUBLISH/);
+    }
+  });
+
+  it("gives the content channel both installs", () => {
+    expect(CONTENT).toMatch(/WHAT WE PUBLISH/);
+    expect(CONTENT).toMatch(/THE FORMULA THAT WORKS/);
+    expect(CONTENT).toMatch(/RULE ZERO/);
+  });
+
+  /*
+   * The two findings most likely to be lost if someone rewrites this file: that
+   * a Short must not open with a statistic, and that content is judged on views
+   * per day rather than lifetime views. Both were counter to the obvious
+   * reading of the raw leaderboard.
+   */
+  it("carries the two counterintuitive findings", () => {
+    expect(CONTENT).toMatch(/DO NOT OPEN A SHORT WITH A STATISTIC/);
+    expect(CONTENT).toMatch(/views per day, not lifetime views/);
+  });
+});

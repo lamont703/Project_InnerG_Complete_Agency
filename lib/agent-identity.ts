@@ -3,6 +3,7 @@ import {
   PRIORITIES, RULES_OF_OPERATION,
 } from "@/lib/business-brain";
 import { VOICE_SUMMARY, BELIEFS, CALIBRATION_SAMPLE } from "@/lib/voice-dna";
+import { PILLARS, PACKAGING, RATE_NOT_TOTAL } from "@/lib/content-strategy";
 
 /**
  * Assemble the identity block the chat route injects, per channel.
@@ -77,7 +78,27 @@ ${RULES_OF_OPERATION}
  */
 const VOICE_CHANNELS = new Set(["instagram_dm", "instagram_comment", "content"]);
 
+/**
+ * Pillars and packaging, for the channel that actually WRITES content.
+ *
+ * Not given to comment and DM replies. Those need his voice and the business
+ * facts; they do not need a title formula, because they are not writing titles.
+ * Sending it anyway would be another 1,200 tokens on the two highest-frequency
+ * agents to no purpose.
+ */
+const CONTENT_STRATEGY = `
+=== WHAT WE PUBLISH ===
+${PILLARS}
+
+=== HOW IT IS PACKAGED ===
+${PACKAGING}
+${RATE_NOT_TOTAL}
+`.trim();
+
 export function identityForChannel(channel?: string | null): string {
+  if (channel === "content") {
+    return `${BRAND_FACTS}\n\n${LAMONT_VOICE}\n\n${OPERATING_CONTEXT}\n\n${CONTENT_STRATEGY}`;
+  }
   if (channel && VOICE_CHANNELS.has(channel)) {
     return `${BRAND_FACTS}\n\n${LAMONT_VOICE}\n\n${OPERATING_CONTEXT}`;
   }
