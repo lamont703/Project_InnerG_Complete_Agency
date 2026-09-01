@@ -173,9 +173,16 @@ __pycache__/
 #
 # They are machine-specific by nature and `python -m venv` regenerates them, so
 # there was never a reason to commit them.
-venv/bin/python
-venv/bin/python3
-venv/bin/python3.11
+# The whole virtualenv, not just its symlinks.
+#
+# Ignoring only venv/bin/python* was never going to fix the build. Turbopack
+# walks the FILESYSTEM, not the git index, so an ignored-but-present symlink
+# pointing outside the project root still killed `next build` with
+# "Symlink venv/bin/python is invalid, it points out of the filesystem root".
+# The 1.1GB directory has been moved to a sibling folder outside the repo and
+# 19,631 tracked files removed from the index. requirements.txt is the manifest
+# to rebuild it: python3 -m venv venv && venv/bin/pip install -r requirements.txt
+venv/
 
 # Regulator reference libraries — mirrored PDFs from state licensing boards.
 # Deliberately NOT committed: the California set alone is several hundred MB of
