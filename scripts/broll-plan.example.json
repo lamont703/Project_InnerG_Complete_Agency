@@ -1,0 +1,52 @@
+{
+  "_comment": "Worked example of a cutaway plan, and the shape the editing agent must emit. 'joins' are the jump cuts left behind by scripts/cut_silence.js \u2014 each cutaway snaps to the nearest one so it covers the artefact rather than sitting near it. '_line' records which line of the script the moment belongs to; it is documentation, not read by the tool. Rendered against reference/heygen/booth-rent-3-fix-the-paperwork-*.mp4, which is gitignored along with the rest of reference/.",
+  "joins": [
+    0.82,
+    7.44,
+    8.64,
+    15.06,
+    17.84,
+    18.62,
+    20.17,
+    22.03,
+    24.68,
+    28.91,
+    30.32,
+    32.44,
+    34.32,
+    36.29,
+    39.36
+  ],
+  "cutaways": [
+    {
+      "at": 7.44,
+      "seconds": 2.2,
+      "query": "barbershop",
+      "_line": "Most booth renters never separated the two"
+    },
+    {
+      "at": 15.06,
+      "seconds": 2.5,
+      "query": "hair clippers",
+      "_line": "rent, groceries, clippers, and gas"
+    },
+    {
+      "at": 22.03,
+      "seconds": 2.5,
+      "query": "receipts",
+      "_line": "just you, and a pile of receipts"
+    },
+    {
+      "at": 28.91,
+      "seconds": 2.5,
+      "query": "bank loan",
+      "_line": "the lender doesn't see a business"
+    },
+    {
+      "at": 36.29,
+      "seconds": 2.5,
+      "query": "laptop paperwork",
+      "_line": "a business account takes an afternoon"
+    }
+  ]
+}
