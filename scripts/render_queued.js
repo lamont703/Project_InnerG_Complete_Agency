@@ -321,11 +321,56 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
     } else {
       const script = await writeScript(c);
       console.log(`  avatar: ${script.split(/\s+/).length} words`);
-      const done = await renderAvatar(script, c.title);
-      spent += (done.duration ?? TARGET_SECONDS) * AVATAR_PER_SEC;
-      seconds = Math.round(done.duration ?? TARGET_SECONDS);
+      const key = c.item_key.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+
+      /*
+       * THE PAID RENDER IS CACHED BEFORE ANYTHING IS DONE TO IT.
+       *
+       * HeyGen is the only step here that costs money, and everything after it
+       * can fail: a busy model, a missing transcriber, a query that finds
+       * nothing. Without this, one of those throws away $1.16 of finished video
+       * and the retry buys it again. With it, a retry re-edits for free.
+       *
+       * Keyed by item_key, so it is the card's render and not a stray temp file.
+       */
+      fs.mkdirSync(path.join(".cache", "avatar"), { recursive: true });
+      const paid = path.join(".cache", "avatar", `${key}.mp4`);
+      if (fs.existsSync(paid)) {
+        console.log(`  reusing the render already paid for: ${paid}`);
+      } else {
+        const done = await renderAvatar(script, c.title);
+        spent += (done.duration ?? TARGET_SECONDS) * AVATAR_PER_SEC;
+        fs.writeFileSync(paid, Buffer.from(await (await fetch(done.video_url)).arrayBuffer()));
+      }
+
+      /*
+       * POST-PRODUCTION, AND IT IS NOT OPTIONAL FOR THIS TYPE. An unedited
+       * avatar is a talking head with HeyGen's pauses left in and nothing to
+       * look at; the whole editing chain exists because that does not hold
+       * attention. It runs for the avatar path ONLY — the hairstyle grid is
+       * already composed and cut to its bed, and is the format that performs
+       * best untouched.
+       *
+       * NO FALLBACK. If the edit fails the card stays unrendered rather than
+       * publishing the raw take, which would be a video nobody chose. The paid
+       * render is safe in .cache/avatar, so fixing the cause and clicking
+       * Render again costs nothing.
+       */
+      const scriptFile = path.join(tmp, "script.txt");
+      fs.writeFileSync(scriptFile, script);
+      console.log(`  editing (silence, b-roll, captions, music)`);
+      try {
+        execFileSync("node", ["scripts/edit_avatar.js", paid, "--script", scriptFile, "--out", raw],
+          { stdio: "inherit" });
+      } catch (e) {
+        throw new Error(`post-production failed — the paid render is kept at ${paid}, so a retry does not buy it again`);
+      }
+
+      // The edit changes the length, so the duration is read back off the result.
+      const info = require("child_process").spawnSync(FFMPEG, ["-hide_banner", "-i", raw], { encoding: "utf8" }).stderr || "";
+      const dm = info.match(/Duration:\s*(\d+):(\d\d):(\d\d(?:\.\d+)?)/);
+      seconds = dm ? Math.round(Number(dm[1]) * 3600 + Number(dm[2]) * 60 + Number(dm[3])) : TARGET_SECONDS;
       captionOut = script;
-      fs.writeFileSync(raw, Buffer.from(await (await fetch(done.video_url)).arrayBuffer()));
     }
 
     /*

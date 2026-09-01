@@ -119,8 +119,23 @@ for (const d of dropped) console.log(`  DROPPED  "${d.cutaway?.query ?? "?"}" �
 (async () => {
   const clips = [];
   for (const c of cutaways) {
-    const hits = await searchVideos(c.query, { perPage: 20 });
-    const pick = pickBest(hits, { seconds: c.seconds });
+    /*
+     * TRY THE ALTERNATES BEFORE GIVING UP. The picker is deliberately strict —
+     * every word of a two-word query must appear in a clip's tags, which is what
+     * stops "signing paper" matching a paper boat — and strictness costs recall:
+     * "hair clippers" finds nothing even though clipper footage exists under
+     * "barber haircut". The agent proposes two fallbacks per moment so the
+     * filter can stay strict without the edit losing a beat.
+     */
+    let pick = null;
+    let used = c.query;
+    for (const q of [c.query, ...(c.alternates ?? [])]) {
+      const hits = await searchVideos(q, { perPage: 20 });
+      pick = pickBest(hits, { seconds: c.seconds, query: q });
+      if (pick) { used = q; break; }
+      if (q !== c.query) console.log(`  ${String(c.at).padStart(6)}s  "${q}" found nothing either`);
+    }
+    c.query = used;
     if (!pick) {
       // NO FALLBACK to a random clip: showing unrelated footage is worse than
       // showing the speaker, and a silent substitution is unreviewable.

@@ -119,5 +119,28 @@ execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-i", input,
   "-c:v", "libx264", "-preset", "slow", "-crf", "23", "-pix_fmt", "yuv420p",
   "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", out], { stdio: "inherit" });
 
+/*
+ * THE JOINS ARE OUTPUT, NOT JUST A LOG LINE. Every cut leaves a jump in the
+ * result, and the b-roll planner snaps cutaways onto them so the artefact is
+ * covered rather than merely neighboured. Recomputing them downstream would
+ * mean re-deriving this script's decisions from the finished file, which is
+ * impossible — the silence is gone. So they are written beside the video.
+ */
+let t = 0;
+const joins = [];
+for (let i = 0; i < keep.length - 1; i++) {
+  t += keep[i].end - keep[i].start;
+  joins.push(Number(t.toFixed(3)));
+}
+const joinsFile = out.replace(/\.mp4$/i, "") + ".joins.json";
+fs.writeFileSync(joinsFile, JSON.stringify({
+  source: path.basename(input),
+  originalSecs: Number(duration.toFixed(3)),
+  resultSecs: Number(kept.toFixed(3)),
+  removedSecs: Number(span(cuts).toFixed(3)),
+  joins,
+}, null, 2));
+
 const mb = (p) => (fs.statSync(p).size / 1048576).toFixed(2);
-console.log(`\nout     ${out}  ${mb(input)}MB -> ${mb(out)}MB\n`);
+console.log(`\nout     ${out}  ${mb(input)}MB -> ${mb(out)}MB`);
+console.log(`joins   ${joinsFile}  (${joins.length})\n`);
