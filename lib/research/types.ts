@@ -6,6 +6,8 @@
  * the thing that stops an unfalsifiable suggestion reaching the operator.
  */
 
+import { isListicleTitle } from "@/lib/video-type";
+
 export type ResearchAgent = "content" | "crm";
 export type Confidence = "high" | "medium" | "low";
 export type FindingStatus = "new" | "actioned" | "dismissed";
@@ -76,12 +78,15 @@ const CONFIDENCES: Confidence[] = ["high", "medium", "low"];
  * Hence 2 to 12: large enough to be a list, small enough that it cannot be a
  * population count. Above that it is a statistic wearing a listicle's clothes.
  */
-export function isWinningTitleShape(title: string): boolean {
-  const m = title.trim().match(/^(\d{1,2})\s+\S/);
-  if (!m) return false;
-  const n = Number(m[1]);
-  return n >= 2 && n <= 12;
-}
+/*
+ * ONE DEFINITION, shared with the renderer. This used to be the rule's third
+ * copy — here, and again in scripts/render_queued.js, which could not import
+ * TypeScript. The copies decided the same thing in two places, and the
+ * publisher board now PRICES a card from that decision, so a drift between
+ * them would misquote what a click costs. lib/video-type.js is plain
+ * JavaScript for exactly that reason: Node requires it, Next bundles it.
+ */
+export const isWinningTitleShape: (title: string) => boolean = isListicleTitle;
 
 export function validateFindings(
   raw: unknown,

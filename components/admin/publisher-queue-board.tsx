@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { PublisherItem, PublisherQueue, PublisherOutcome } from "@/lib/admin/publisher-queue";
 import { reorderQueue, skipItem, renderCard } from "@/app/admin/content-publisher/actions";
+import { videoTypeFor } from "@/lib/video-type";
 
 /**
  * The line, draggable, with every video playable.
@@ -82,11 +83,18 @@ function outcomesFor(item: PublisherItem): Record<string, PublisherOutcome> {
  * three minutes. So the button reports that it started and asks for a refresh,
  * rather than pretending to know when it finished. The card stops being a
  * placeholder the moment video_url is written, which the renderer does last.
+ *
+ * IT SAYS WHAT THE CLICK BUYS. A Render button that does not name the renderer
+ * asks an operator to spend money blind — the two paths differ by $1.16 a card
+ * and produce completely different videos. The type and price come from
+ * videoTypeFor(), the SAME call scripts/render_queued.js routes on, so this
+ * cannot advertise one thing and render another.
  */
 function RenderPlaceholder({ item }: { item: PublisherItem }) {
   const router = useRouter();
   const [state, setState] = React.useState<"idle" | "starting" | "started" | "error">("idle");
   const [msg, setMsg] = React.useState<string | null>(null);
+  const kind = videoTypeFor({ title: item.title });
 
   async function go() {
     setState("starting");
@@ -108,6 +116,13 @@ function RenderPlaceholder({ item }: { item: PublisherItem }) {
       >
         {state === "starting" ? "Starting…" : state === "started" ? "Rendering…" : "Render"}
       </button>
+      <span className="flex flex-col items-center gap-0.5 leading-tight">
+        <span className="text-[11px] font-semibold text-slate-700">{kind.label}</span>
+        <span className={`text-[11px] font-bold ${kind.costUsd > 0 ? "text-amber-700" : "text-emerald-700"}`}>
+          {kind.costLabel}
+          <span className="font-normal text-slate-400"> · {kind.seconds}s</span>
+        </span>
+      </span>
       {msg && (
         <span className={`text-[11px] leading-snug ${state === "error" ? "text-rose-600" : "text-slate-500"}`}>{msg}</span>
       )}

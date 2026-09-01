@@ -43,10 +43,18 @@ const { createClient } = require("@supabase/supabase-js");
 const FFMPEG = require("@ffmpeg-installer/ffmpeg").path;
 const HEYGEN = "https://api.heygen.com";
 
+/*
+ * THE ROUTING RULE IS NOT IN THIS FILE. lib/video-type.js decides which video a
+ * card becomes, and the publisher board's Render button reads the SAME call to
+ * print the type and price before anyone clicks. It is plain JavaScript so both
+ * a CommonJS script and a React component can require it; if this script grew
+ * its own copy again, the board could promise "free" and this could bill $1.16.
+ */
+const { AVATAR_PER_SEC, SEED_GRID, VIDEO_TYPES, videoTypeFor } = require("../lib/video-type");
+
 /** Measured on this channel: the avatar reads at ~165 wpm. */
 const WPM = 165;
-const TARGET_SECONDS = 30;
-const AVATAR_PER_SEC = 0.0386;
+const TARGET_SECONDS = VIDEO_TYPES.avatar.seconds;
 /** social-assets refuses anything larger. Checked, not assumed. */
 const BUCKET_LIMIT_MB = 5;
 
@@ -170,45 +178,18 @@ async function renderAvatar(script, title) {
 
 
 /**
- * Where a grid image has to be for a card to render as a HairStyles Reel.
+ * WHY THERE IS ONE SEED GRID AND NOT A DROP FOLDER.
  *
- * THE GRID IMAGE IS THE ONE STEP NOBODY HAS AUTOMATED. reel_hairstyles.js
- * animates a 6-up composite and queue_v4.js uploads the result, but nothing in
- * this repo MAKES the composite — the seven that exist were produced by hand.
- * Image generation over the API is possible and currently capped:
- * generateContent on the image models returns 429 with quotaId
- * GenerateRequestsPerDayPerProjectPerModel-FreeTier, which is a billing tier,
- * not a restriction on the models.
+ * This used to look for experiments/grids/<item_key>.jpg and render a card as a
+ * grid only if that file existed. Two things were wrong with it. The folder was
+ * never filled — it is still empty — so every listicle sat permanently blocked
+ * while the only format proven to work on this channel was unreachable. And a
+ * MISSING FILE decided the renderer, which meant an absent image quietly became
+ * "bill for the avatar instead": a fallback dressed up as routing.
  *
- * So the drop folder IS the interface. Put <item_key>.jpg in experiments/grids/
- * and this renders it as a grid Reel for nothing. Leave it out and the card
- * falls through to the avatar, which costs $1.16 and is the wrong format for a
- * listicle — grids produced the channel's best video at 1,799 views.
+ * Now the seed is committed and shared, so the grid path is always available and
+ * the type is a property of the CARD. Nothing on disk changes what a click buys.
  */
-
-/**
- * Is this title a listicle? Mirrors isWinningTitleShape() in lib/research/types.ts.
- *
- * Duplicated rather than imported because this is a plain Node script and that
- * is TypeScript. Three lines and a regex is a cheaper copy than a build step,
- * and lib/research/title-shape.test.ts holds the real proof — tested against
- * the channel's actual titles and their actual view counts.
- */
-function looksLikeListicle(title) {
-  const m = String(title).trim().match(/^(\d{1,2})\s+\S/);
-  return !!m && Number(m[1]) >= 2 && Number(m[1]) <= 12;
-}
-
-const GRID_INBOX = path.join("experiments", "grids");
-
-function gridImageFor(card) {
-  const key = card.item_key.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
-  for (const ext of ["jpg", "jpeg", "png"]) {
-    const p = path.join(GRID_INBOX, `${key}.${ext}`);
-    if (fs.existsSync(p)) return p;
-  }
-  return null;
-}
 
 /**
  * The six names the reel walks through, pulled out of the card.
@@ -270,15 +251,16 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
   console.log(`\n${cards.length} card${cards.length > 1 ? "s" : ""} to render\n`);
   let estimate = 0;
   for (const c of cards) {
-    const grid = gridImageFor(c);
-    const blocked = !grid && looksLikeListicle(c.title);
-    if (!grid && !blocked) estimate += TARGET_SECONDS * AVATAR_PER_SEC;
-    const how = grid ? "GRID    free" : blocked ? "BLOCKED     " : "AVATAR $" + (TARGET_SECONDS * AVATAR_PER_SEC).toFixed(2);
-    console.log(`  pos ${String(c.position).padStart(3)}  ${how}  ${c.title}`);
-    if (blocked) console.log(`${" ".repeat(21)}needs a grid image — a listicle should not be an avatar`);
+    // The same call the Render button prints from, so this listing and the
+    // button can never quote a different price for the same card.
+    const kind = videoTypeFor(c);
+    estimate += kind.costUsd;
+    console.log(
+      `  pos ${String(c.position).padStart(3)}  ${kind.label.padEnd(15)} ${kind.costLabel.padEnd(7)}  ${c.title}`
+    );
   }
   console.log(`\n  total ~$${estimate.toFixed(2)}  (grid cards cost nothing)`);
-  console.log(`  drop <item_key>.jpg in ${GRID_INBOX}/ to render a card as a grid instead\n`);
+  console.log(`  seed grid: ${SEED_GRID}\n`);
 
   if (!has("go")) {
     console.log(`\nDry run — nothing generated, no credit spent. Add --go to render.\n`);
@@ -291,26 +273,41 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
   }
 
   let spent = 0;
+  let failed = 0;
   for (const c of cards) {
     console.log(`\n${c.title}`);
+    /*
+     * ONE CARD'S FAILURE IS THAT CARD'S FAILURE. It is caught so a batch does
+     * not abort on the first bad row, and it is caught HERE — outside the
+     * renderer choice — so nothing downstream can respond to a failure by
+     * trying the other video type. The row keeps its null video_url, the board
+     * keeps showing a Render button, and the fix is a fix, not a retry with a
+     * cheaper renderer.
+     */
+    try {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "rq-"));
     const raw = path.join(tmp, "raw.mp4");
-    const grid = gridImageFor(c);
+    const kind = videoTypeFor(c);
     let captionOut = null;
     let seconds = TARGET_SECONDS;
 
-    if (grid) {
+    if (kind.id === "grid") {
+      /* GRID PATH — free, nine seconds, and the format that actually wins. */
       /*
-       * GRID PATH — free, nine seconds, and the format that actually wins.
-       * Chosen purely by the presence of the image, so routing needs no field
-       * on the row and no guessing from the title.
+       * NO FALLBACK. If the seed is missing this card fails and stays failed.
+       * The tempting alternative — render the avatar instead — is how a
+       * listicle becomes a talking head reciting six names: $1.16 for the worst
+       * version of the format that works best.
        */
-      console.log(`  grid: ${grid}`);
+      if (!fs.existsSync(SEED_GRID)) {
+        throw new Error(`seed grid missing at ${SEED_GRID} — fix the seed, do not render an avatar instead`);
+      }
+      console.log(`  grid: ${SEED_GRID}`);
       const { headline, names } = await gridNames(c);
       console.log(`  ${headline} — ${names.join(", ")}`);
       execFileSync("node", [
         "scripts/instagram/reel_hairstyles.js",
-        `--in=${grid}`, `--out=${raw}`,
+        `--in=${SEED_GRID}`, `--out=${raw}`,
         `--names=${JSON.stringify(names)}`,
         `--headline=${headline}`,
         `--cta=Comment the number and I'll send you shops that do it.`,
@@ -321,19 +318,6 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
         names.map((n, i) => `${i + 1}. ${n}`).join("\n"), "",
         "Comment the number you want and I'll send you shops near you that actually do it.",
       ].join("\n");
-    } else if (looksLikeListicle(c.title)) {
-      /*
-       * REFUSED, NOT RENDERED. A "6 X for Y" card with no grid image would fall
-       * through to the avatar and become a talking head reciting six names —
-       * $1.16 for the worst version of the format that works best. The grids
-       * produced this channel's top video at 1,799 views; the avatar path is
-       * unproven. Silently paying to make the wrong thing is exactly the
-       * failure the routing exists to prevent.
-       */
-      console.log(`  SKIPPED — listicle with no grid image.`);
-      console.log(`  put a 6-up composite at ${path.join(GRID_INBOX, c.item_key.replace(/[^a-z0-9-]/gi, "-").toLowerCase() + ".jpg")}`);
-      fs.rmSync(tmp, { recursive: true, force: true });
-      continue;
     } else {
       const script = await writeScript(c);
       console.log(`  avatar: ${script.split(/\s+/).length} words`);
@@ -406,6 +390,12 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
     fs.rmSync(tmp, { recursive: true, force: true });
     if (updErr) { console.log(`  queue update failed: ${updErr.message}`); continue; }
     console.log(`  ready — ${videoUrl}`);
+    } catch (e) {
+      failed++;
+      console.error(`  FAILED — ${e.message}`);
+      console.error(`  left unrendered. Fix the cause and click Render again; nothing else was substituted.`);
+    }
   }
-  console.log(`\nspent ~$${spent.toFixed(2)}\n`);
+  console.log(`\nspent ~$${spent.toFixed(2)}${failed ? `  ${failed} failed` : ""}\n`);
+  if (failed) process.exit(1);
 })().catch((e) => { console.error(`\n${e.message}\n`); process.exit(1); });
