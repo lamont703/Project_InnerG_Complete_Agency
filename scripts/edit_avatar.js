@@ -49,54 +49,17 @@ const run = (args, label) => {
   }
 };
 
-/**
- * Transient model failures must not cost a paid render.
- *
- * THIS STEP RUNS AFTER THE AVATAR IS BOUGHT. By the time the agent is asked for
- * a plan, HeyGen has already been paid roughly $1.16, so a "currently
- * experiencing high demand" — which is what happened on the first real run —
- * would throw away a rendered video over a condition that clears in seconds.
- *
- * Retried on OVERLOAD AND RATE LIMITS ONLY. A bad prompt or a bad key fails the
- * same way every time; retrying those just spends money and time to arrive at
- * the same error.
- */
 /*
- * "quota" IS NOT ON THIS LIST, DELIBERATELY. It was, and it cost 24 seconds of
- * backing off against a limit that does not clear on that timescale: "You
- * exceeded your current quota" is the daily allowance being gone, not a spike.
- * Waiting 4s, 8s, 12s and failing anyway is worse than failing at once, because
- * it reads as a flaky network rather than as an exhausted budget.
- *
- * A per-minute RATE LIMIT is genuinely transient and stays.
+ * Retry lives in lib/video-editor/retry.js now — render_queued.js needed the
+ * same classification and had none, so a demand spike killed a clicked render
+ * on its first call. One copy, both callers.
  */
-const TRANSIENT = /high demand|overload|unavailable|try again|rate limit|timed out|503/i;
-const EXHAUSTED = /exceeded your current quota|billing/i;
-
-async function withRetry(fn, { tries = 4, waitMs = 4000 } = {}) {
-  let last;
-  for (let i = 1; i <= tries; i++) {
-    try { return await fn(); }
-    catch (e) {
-      last = e;
-      if (EXHAUSTED.test(e.message)) {
-        throw new Error(
-          `${e.message}\n\nThe Gemini quota for today is spent — retrying will not help. ` +
-          `The paid avatar render, if there was one, is kept in .cache/avatar so a retry costs nothing.`
-        );
-      }
-      if (!TRANSIENT.test(e.message) || i === tries) throw e;
-      const wait = waitMs * i;
-      console.log(`     model busy (${i}/${tries}) — waiting ${wait / 1000}s`);
-      await new Promise((r) => setTimeout(r, wait));
-    }
-  }
-  throw last;
-}
+const { withRetry } = require("../lib/video-editor/retry.js");
 
 /** Ask the model where the pictures go. Validation is in lib/video-editor/agent.js. */
 async function writePlan({ script, words, joins, duration, tracks }) {
-  return withRetry(() => askForPlan({ script, words, joins, duration, tracks }));
+  return withRetry(() => askForPlan({ script, words, joins, duration, tracks }),
+    { onWait: (n, ms) => console.log(`     model busy (${n}/4) — waiting ${ms / 1000}s`) });
 }
 
 async function askForPlan({ script, words, joins, duration, tracks }) {

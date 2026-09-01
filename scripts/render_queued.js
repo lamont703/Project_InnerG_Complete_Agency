@@ -52,6 +52,35 @@ const HEYGEN = "https://api.heygen.com";
  */
 const { AVATAR_PER_SEC, SEED_GRID, VIDEO_TYPES, videoTypeFor } = require("../lib/video-type");
 const { fitBitrate, fitsAtAll } = require("../lib/video-editor/encode.js");
+const { withRetry } = require("../lib/video-editor/retry.js");
+const { resolveEditorKey, keyFingerprint } = require("../lib/gemini-keys-core.js");
+
+/**
+ * Every Gemini call this script makes, through one door.
+ *
+ * TWO THINGS IT FIXES, BOTH FOUND BY A CLICKED RENDER FAILING. The calls read
+ * GEMINI_API_KEY directly, so the dedicated editor key wired into
+ * edit_avatar.js did not cover the script-writing step that runs BEFORE it —
+ * the whole video pipeline is one purpose and should sit on one project. And
+ * there was no retry at all, so "This model is currently experiencing high
+ * demand" killed the run on its first call, which is exactly the condition
+ * withRetry exists to wait out.
+ */
+async function callGemini(body, label) {
+  const k = resolveEditorKey(process.env);
+  if (!k.key) throw new Error(k.note);
+  return withRetry(async () => {
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${k.key}`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+    );
+    const j = await r.json();
+    if (j.error) throw new Error(`gemini: ${j.error.message.slice(0, 160)}`);
+    const text = (j?.candidates?.[0]?.content?.parts || []).map((p) => p.text).filter(Boolean).join("").trim();
+    if (!text) throw new Error(`gemini returned nothing for ${label}`);
+    return text;
+  }, { onWait: (n, ms) => console.log(`    model busy (${n}/4) — waiting ${ms / 1000}s`) });
+}
 
 /** Measured on this channel: the avatar reads at ~165 wpm. */
 const WPM = 165;
@@ -127,16 +156,7 @@ RULES
 
 Output only the script.`;
 
-  const r = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
-  );
-  const j = await r.json();
-  if (j.error) throw new Error(`gemini: ${j.error.message.slice(0, 160)}`);
-  const text = (j?.candidates?.[0]?.content?.parts || []).map((p) => p.text).filter(Boolean).join("").trim();
-  if (!text) throw new Error("gemini returned no script");
-  return text;
+  return callGemini({ contents: [{ parts: [{ text: prompt }] }] }, "the script");
 }
 
 async function heygen(pathname, init = {}) {
@@ -202,10 +222,7 @@ async function renderAvatar(script, title) {
  * which is not the quota that is capped.
  */
 async function gridNames(card) {
-  const r = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text:
+  const text = await callGemini({ contents: [{ parts: [{ text:
 `Title: ${card.title}
 Direction: ${card.caption ?? ""}
 
@@ -214,19 +231,21 @@ Return JSON only: {"headline": string, "names": [six short strings]}
 headline: three or four words, what the grid is showing.
 names: exactly six, each one to three words, the specific styles in order.
 No numbering, no punctuation at the end, no hashtags.` }] }],
-        generationConfig: { responseMimeType: "application/json" } }) }
-  );
-  const j = await r.json();
-  if (j.error) throw new Error(`gemini: ${j.error.message.slice(0, 140)}`);
-  const text = (j?.candidates?.[0]?.content?.parts || []).map((p) => p.text).filter(Boolean).join("");
+    generationConfig: { responseMimeType: "application/json" } }, "the grid names");
   const out = JSON.parse(text);
   if (!Array.isArray(out.names) || out.names.length !== 6) throw new Error("did not get six names");
   return out;
 }
 
 (async () => {
-  for (const k of ["HEYGEN_API_KEY", "HEYGEN_AVATAR_ID", "HEYGEN_VOICE_ID", "GEMINI_API_KEY"]) {
+  for (const k of ["HEYGEN_API_KEY", "HEYGEN_AVATAR_ID", "HEYGEN_VOICE_ID"]) {
     if (!process.env[k]) { console.error(`${k} is not set.`); process.exit(1); }
+  }
+  {
+    const k = resolveEditorKey(process.env);
+    if (!k.key) { console.error(k.note); process.exit(1); }
+    console.log(`gemini  ${k.source} ${keyFingerprint(k.key)}`);
+    if (!k.isolated) console.log(`        NOTE ${k.note}`);
   }
 
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
