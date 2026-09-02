@@ -26,7 +26,7 @@ const path = require("path");
 const { execFileSync, spawnSync } = require("child_process");
 const { createClient } = require("@supabase/supabase-js");
 const FF = require("ffmpeg-static");
-const { NEWSDESK } = require("../lib/newsdesk-config.js");
+const { PROFILES } = require("../lib/newsdesk-config.js");
 
 const has = (n) => process.argv.includes(`--${n}`);
 const arg = (n, d) => {
@@ -40,6 +40,16 @@ const run = (args, label) => {
   if (r.status !== 0) throw new Error(`${label} failed:\n${(r.stderr || r.stdout || "").trim().slice(0, 400)}`);
   return r.stdout || "";
 };
+/*
+ * THE PROFILE MUST MATCH THE ONE THAT RENDERED. It decides the bucket prefix and
+ * the video_type written to the queue, so publishing a Hot Take under the News
+ * Desk profile files it as the wrong format — the exact mislabelling the stated
+ * video_type column exists to stop, arriving through the back door.
+ */
+const PROFILE_ID = arg("profile", "newsdesk");
+const NEWSDESK = PROFILES[PROFILE_ID];
+if (!NEWSDESK) { console.error(`Unknown --profile "${PROFILE_ID}". One of: ${Object.keys(PROFILES).join(", ")}`); process.exit(1); }
+
 const probe = (f) => {
   const err = spawnSync(FF, ["-hide_banner", "-i", f], { encoding: "utf8" }).stderr || "";
   const d = err.match(/Duration:\s*(\d+):(\d+):([\d.]+)/);
@@ -63,7 +73,7 @@ const probe = (f) => {
   if (!fs.existsSync(rendered)) throw new Error(`no render at ${rendered} — run render_news_short.js first`);
   if (!fs.existsSync(words)) throw new Error(`no word timings at ${words} — re-run render_news_short.js; captions are silently empty without them`);
 
-  console.log(`\n${spec.slug}`);
+  console.log(`\n${spec.slug}   profile: ${PROFILE_ID} -> ${NEWSDESK.publish.videoType}`);
 
   /* ---- 1. captions ------------------------------------------------------ */
   const c = NEWSDESK.captions;

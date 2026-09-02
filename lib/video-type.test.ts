@@ -9,8 +9,8 @@ import { AGENT_VIDEO_TYPE_IDS, LEGACY_VIDEO_TYPE_IDS, SEED_GRID, VIDEO_TYPES, VI
  * trustworthy enough to put a dollar figure in front of an operator.
  */
 describe("videoTypeFor", () => {
-  it("offers the four pipelines that exist", () => {
-    expect(VIDEO_TYPE_IDS.sort()).toEqual(["figure", "hottake", "lookbook", "newsdesk"]);
+  it("offers the five pipelines that exist", () => {
+    expect(VIDEO_TYPE_IDS.sort()).toEqual(["figure", "hottake", "lookbook", "newsdesk", "reaction"]);
   });
 
   /*
@@ -23,9 +23,13 @@ describe("videoTypeFor", () => {
    * The agent may only ask for a format the board can actually render from a
    * card. Letting it pick `news` would queue an idea no button can render.
    */
-  it("keeps the News Desk out of what the research agent may choose", () => {
+  it("keeps the hand-authored formats out of what the research agent may choose", () => {
+    // Both render from a hand-written spec rather than from a queue card, so an
+    // agent picking one would queue an idea no button can render.
     expect(AGENT_VIDEO_TYPE_IDS.sort()).toEqual(["figure", "hottake", "lookbook"]);
     expect(VIDEO_TYPE_IDS).toContain("newsdesk");
+    expect(VIDEO_TYPE_IDS).toContain("reaction");
+    expect(AGENT_VIDEO_TYPE_IDS).not.toContain("reaction");
     for (const id of AGENT_VIDEO_TYPE_IDS) expect(VIDEO_TYPE_IDS).toContain(id);
   });
 
@@ -37,6 +41,7 @@ describe("videoTypeFor", () => {
       "569 Texas Barbershops Have a Perfect 5.0",
     ]) {
       expect(videoTypeFor({ title }).id).not.toBe("newsdesk");
+      expect(videoTypeFor({ title }).id).not.toBe("reaction");
     }
     expect(videoTypeFor({ title: "anything at all", video_type: "newsdesk" }).id).toBe("newsdesk");
     // A stated News Desk outranks a stat, the same way every stated type does.
@@ -159,6 +164,12 @@ describe("videoTypeFor", () => {
     expect(VIDEO_TYPES.newsdesk.costUsd).toBeCloseTo(1.31, 2);
     expect(VIDEO_TYPES.newsdesk.costLabel).toBe("~$1.31");
     expect(VIDEO_TYPES.newsdesk.seconds).toBe(90);
+    /*
+     * The cheapest paid format, because a quarter to a third of a reaction is
+     * somebody else's clip playing as itself. Measured, not assumed.
+     */
+    expect(VIDEO_TYPES.reaction.costUsd).toBeCloseTo(1.12, 2);
+    expect(VIDEO_TYPES.reaction.costUsd).toBeLessThan(VIDEO_TYPES.hottake.costUsd);
     // A free label must never sit on a type that spends money.
     for (const t of Object.values(VIDEO_TYPES)) {
       expect(t.costLabel === "free").toBe(t.costUsd === 0);

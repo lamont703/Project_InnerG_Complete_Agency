@@ -47,10 +47,22 @@ const path = require("path");
 const { execFileSync, spawnSync } = require("child_process");
 const { createClient } = require("@supabase/supabase-js");
 const { findClips, markUsed } = require("../lib/broll-library.js");
-const { NEWSDESK, withinBudget } = require("../lib/newsdesk-config.js");
+const { PROFILES, withinBudget } = require("../lib/newsdesk-config.js");
 
 const FF = require("ffmpeg-static");
 const HEYGEN = "https://api.heygen.com";
+/*
+ * WHICH PROFILE THIS RUN IS. `newsdesk` reacts to a headline and sits the avatar
+ * over the article; `hottake` is an opinion piece with no article, so the face
+ * fills the frame. Same production method, different content and framing —
+ * see lib/newsdesk-config.js.
+ */
+const PROFILE_ID = (process.argv.find((a) => a.startsWith("--profile=")) || "").split("=")[1]
+  || (process.argv.includes("--profile") ? process.argv[process.argv.indexOf("--profile") + 1] : null)
+  || "newsdesk";
+const NEWSDESK = PROFILES[PROFILE_ID];
+if (!NEWSDESK) { console.error(`Unknown --profile "${PROFILE_ID}". One of: ${Object.keys(PROFILES).join(", ")}`); process.exit(1); }
+
 const W = NEWSDESK.video.width, H = NEWSDESK.video.height, FPS = NEWSDESK.video.fps;
 const AVATAR_PER_SEC = NEWSDESK.avatar.perSec;
 
@@ -119,6 +131,29 @@ function segmentTimes(words, segments) {
     }
     return { start, end };
   });
+}
+
+/**
+ * A CACHED FILE IS ONLY USABLE IF IT DECODES. `fs.existsSync` is not a cache
+ * check, it is a filename check, and the difference has cost real money twice:
+ *
+ *   - a machine shutdown killed ffmpeg mid-write, leaving a background clip with
+ *     no moov atom that the next run happily reused;
+ *   - a 10-minute timeout killed the closing composite the same way, and the
+ *     re-run "cached" a 2.3MB file with a duration of zero, producing a video
+ *     that was 13 seconds short and looked finished.
+ *
+ * Neither failed loudly. Both produced a file of plausible size that no longer
+ * decodes, which is the worst shape a cache entry can take.
+ */
+function usable(file) {
+  if (!fs.existsSync(file) || fs.statSync(file).size === 0) return false;
+  try {
+    execFileSync(FF, ["-v", "error", "-i", file, "-f", "null", "-"], { stdio: ["ignore", "ignore", "pipe"] });
+  } catch { return false; }
+  const err = spawnSync(FF, ["-hide_banner", "-i", file], { encoding: "utf8" }).stderr || "";
+  const m = err.match(/Duration:\s*(\d+):(\d+):([\d.]+)/);
+  return !!m && (Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3])) > 0.05;
 }
 
 /**
@@ -197,6 +232,17 @@ function shotLengths(seconds) {
   const specFile = process.argv[2];
   if (!specFile || !fs.existsSync(specFile)) { console.error("Usage: render_news_short.js <script.json>"); process.exit(1); }
   const spec = JSON.parse(fs.readFileSync(specFile, "utf8"));
+  /*
+   * A Hot Take has no article screenshot, so `headline` is optional — but a spec
+   * that ASKS for a headline or chart shot without one would fail deep inside
+   * the render loop, after the avatar was already bought. Check it up front.
+   */
+  const needsImage = spec.segments.some((sg) => sg.mode !== "avatar" && ["headline", "chart"].includes(sg.visual))
+    || !PROFILES[PROFILE_ID].avatar.fullScreen;
+  if (needsImage && (!spec.headline || !fs.existsSync(spec.headline))) {
+    console.error(`this spec needs a headline image and ${spec.headline ? `"${spec.headline}" is not there` : "none is set"}.`);
+    process.exit(1);
+  }
   const work = arg("work", path.join(".cache", "news", spec.slug));
   fs.mkdirSync(work, { recursive: true });
   const out = arg("out", path.join(work, `${spec.slug}.mp4`));
@@ -225,7 +271,13 @@ function shotLengths(seconds) {
     console.log("1/5  narration — reusing the one already generated");
   } else {
     console.log("1/5  generating the narration (one pass, one voice)");
-    const full = spec.segments.map((s) => s.text).join(" ");
+    /*
+     * ONLY OUR WORDS GO TO TTS. A reaction video interleaves segments we
+     * SPEAK with segments that are somebody else's clip playing with its own
+     * audio. Sending the clip text too would generate narration nobody uses,
+     * push every later timestamp out, and silently misalign the whole edit.
+     */
+    const full = spec.segments.filter((sg) => sg.mode !== "clip").map((s) => s.text).join(" ");
     const tts = await heygen("/v3/voices/speech", {
       method: "POST",
       body: JSON.stringify({ voice_id: process.env[NEWSDESK.avatar.voiceEnv], text: full }),
@@ -238,14 +290,26 @@ function shotLengths(seconds) {
     console.log(`     ${tts.data.duration?.toFixed(1)}s, ${words.length} word timings`);
   }
 
-  const times = segmentTimes(words, spec.segments);
+  /*
+   * `times` is indexed like spec.segments, but a `clip` segment has no place in
+   * the narration at all — it carries its own audio. So the walk runs over the
+   * SPOKEN segments and the results are scattered back onto the full index, with
+   * clips holding their own in/out points instead.
+   */
+  const spoken = spec.segments.filter((sg) => sg.mode !== "clip");
+  const spokenTimes = segmentTimes(words, spoken);
+  let sp = 0;
+  const times = spec.segments.map((sg) =>
+    sg.mode === "clip" ? { start: sg.from, end: sg.to, clip: true } : spokenTimes[sp++]);
   times.forEach((t, i) => console.log(
-    `     ${String(i).padStart(2)} ${spec.segments[i].mode.padEnd(6)} ${t.start.toFixed(1)}–${t.end.toFixed(1)}s  ${spec.segments[i].text.slice(0, 44)}…`));
+    `     ${String(i).padStart(2)} ${spec.segments[i].mode.padEnd(6)} ${t.start.toFixed(1)}–${t.end.toFixed(1)}s  ` +
+    `${spec.segments[i].mode === "clip" ? `[source ${spec.segments[i].from}s–${spec.segments[i].to}s]` : spec.segments[i].text.slice(0, 44) + "…"}`));
   if (has("dry")) { console.log("\nDry run — narration and timings only, no video bought.\n"); return; }
 
   /* ---- 2. slice the narration ------------------------------------------ */
   console.log("\n2/5  slicing");
   const slices = times.map((t, i) => {
+    if (spec.segments[i].mode === "clip") return null;   // carries its own audio
     const p = path.join(work, `seg-${i}.wav`);
     if (!fs.existsSync(p)) {
       execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-i", narrationFile,
@@ -262,9 +326,44 @@ function shotLengths(seconds) {
 
   for (let i = 0; i < spec.segments.length; i++) {
     const seg = spec.segments[i];
-    const dur = (times[i].end + 0.12) - times[i].start;
+    const dur = seg.mode === "clip"
+      ? seg.to - seg.from                       // the clip's own length
+      : (times[i].end + 0.12) - times[i].start;
     const piece = path.join(work, `piece-${i}.mp4`);
-    if (fs.existsSync(piece)) { pieces.push(piece); console.log(`  ${i} cached`); continue; }
+    if (usable(piece)) { pieces.push(piece); console.log(`  ${i} cached`); continue; }
+    if (fs.existsSync(piece)) console.log(`  ${i} cached piece does not decode — rebuilding`);
+
+    if (seg.mode === "clip") {
+      /*
+       * SOMEBODY ELSE'S FOOTAGE, WITH THEIR AUDIO. This is the segment type a
+       * reaction video is built from: the source plays as itself, and the piece
+       * that follows is us talking over ours. Nothing here touches the
+       * narration — see the note where `full` is built.
+       *
+       * NORMALISED TO THE SAME LADDER as every other piece (fps, size, sample
+       * rate, codec), because concat demuxer joins streams without re-encoding
+       * and a piece that differs in any of those produces a file that plays for
+       * some players and stutters or desyncs on others.
+       *
+       * LOUDNESS MATCHED, NOT LEFT ALONE. Podcast audio recorded somewhere else
+       * sits at a different level to our narration, and a reaction video that
+       * jumps volume at every cut is unwatchable on a phone. -17 LUFS is where
+       * the TTS narration lands, measured.
+       */
+      const src = seg.source ?? spec.clipSource;
+      if (!src || !fs.existsSync(src)) throw new Error(`clip segment ${i} has no source file (${src})`);
+      console.log(`  ${i} clip   ${dur.toFixed(1)}s  ${path.basename(src)} ${seg.from}s–${seg.to}s`);
+      execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error",
+        "-ss", String(seg.from), "-to", String(seg.to), "-i", src,
+        "-filter_complex",
+        `[0:v]fps=${FPS},scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1[v];` +
+        `[0:a]loudnorm=I=-17:TP=-1.5:LRA=11,aresample=44100[a]`,
+        "-map", "[v]", "-map", "[a]",
+        "-c:v", "libx264", "-preset", NEWSDESK.video.preset, "-crf", String(NEWSDESK.video.crfPiece), "-pix_fmt", "yuv420p",
+        "-c:a", "aac", "-b:a", `${NEWSDESK.video.audioKbps}k`, "-ac", "1", piece], { stdio: ["ignore", "ignore", "pipe"] });
+      pieces.push(piece);
+      continue;
+    }
 
     if (seg.mode === "avatar") {
       /*
@@ -293,6 +392,16 @@ function shotLengths(seconds) {
       if (up.error) throw new Error(`audio upload failed: ${up.error.message}`);
       const audioUrl = db.storage.from(NEWSDESK.publish.bucket).getPublicUrl(key).data.publicUrl;
 
+      /*
+       * THE PAID RENDER IS THE EXPENSIVE ARTEFACT, so it gets its own cache
+       * ahead of the composite. A composite can fail for a dozen free reasons —
+       * a bad filter, a killed process — and re-buying the avatar to fix one of
+       * them is paying twice for the same seconds.
+       */
+      const raw = path.join(work, `avatar-${i}.mp4`);
+      if (usable(raw)) {
+        console.log(`  ${i} avatar — reusing the render already paid for`);
+      } else {
       console.log(`  ${i} avatar ${dur.toFixed(1)}s ≈ $${(dur * AVATAR_PER_SEC).toFixed(2)}`);
       const created = await heygen("/v3/videos", {
         method: "POST",
@@ -320,8 +429,8 @@ function shotLengths(seconds) {
       }
       spent += dur * AVATAR_PER_SEC;
 
-      const raw = path.join(work, `avatar-${i}.mp4`);
       fs.writeFileSync(raw, Buffer.from(await (await fetch(done.video_url)).arrayBuffer()));
+      }
 
       /*
        * HEADLINE BEHIND, HIM IN FRONT. The article is the hook and has to stay
@@ -329,6 +438,20 @@ function shotLengths(seconds) {
        * width rather than filling the frame. A thin light edge separates him
        * from a page that is mostly white, which otherwise blends.
        */
+      if (NEWSDESK.avatar.fullScreen) {
+        /*
+         * FULL FRAME. A Hot Take has no article to keep readable — the argument
+         * is the hook — so the face fills the screen. Scaled to COVER and then
+         * cropped, never padded: bars around a talking head read as a mistake,
+         * and HeyGen already returns 9:16 so the crop takes almost nothing.
+         */
+        execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-i", raw, "-i", slices[i],
+          "-filter_complex",
+          `[0:v]fps=${FPS},scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1[v]`,
+          "-map", "[v]", "-map", "1:a", "-t", String(dur),
+          "-c:v", "libx264", "-preset", NEWSDESK.video.preset, "-crf", String(NEWSDESK.video.crfPiece), "-pix_fmt", "yuv420p",
+          "-c:a", "aac", "-b:a", `${NEWSDESK.video.audioKbps}k`, piece], { stdio: ["ignore", "ignore", "pipe"] });
+      } else {
       const bg = path.join(work, `bg-${i}.mp4`);
       headlineClip(spec.headline, dur, bg, 1.0, 1.04);
       execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-i", bg, "-i", raw, "-i", slices[i],
@@ -339,6 +462,7 @@ function shotLengths(seconds) {
         "-map", "[v]", "-map", "2:a", "-r", String(FPS), "-t", String(dur),
         "-c:v", "libx264", "-preset", NEWSDESK.video.preset, "-crf", String(NEWSDESK.video.crfPiece), "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", `${NEWSDESK.video.audioKbps}k`, piece], { stdio: ["ignore", "ignore", "pipe"] });
+      }
     } else {
       /*
        * A VOICE SEGMENT IS AS MANY SHOTS AS ITS LENGTH DEMANDS. This is the fix
@@ -467,12 +591,24 @@ function shotLengths(seconds) {
   const offsets = pieces.map((pth) => { const o = acc; acc += pieceDur(pth); return o; });
 
   const mapped = [];
+  /*
+   * CLIP SEGMENTS ARE EXCLUDED FROM THE MATCH, and leaving them in is a subtle
+   * corruption rather than a crash. A clip's `times` entry holds SOURCE
+   * timecodes — 0s to 9s of the podcast — which overlap the narration's own
+   * timeline, so a narration word at 5s would match the clip's range and be
+   * placed on a piece that never speaks it. Captions would then sit over
+   * somebody else's footage saying something they did not say.
+   *
+   * A clip carries no narration, so it simply has no captions. That is correct:
+   * the podcast's own speech is not in our transcript.
+   */
+  const spokenIdx = spec.segments.map((sg, i) => (sg.mode === "clip" ? -1 : i)).filter((i) => i >= 0);
   for (const w of words) {
     if (!w.word || /^<.*>$/.test(w.word)) continue;
-    let si = times.findIndex((t) => w.start >= t.start - 0.001 && w.start <= t.end + 0.2);
-    if (si === -1) {                       // inside a dropped gap — clamp forward
-      si = times.findIndex((t) => t.start > w.start);
-      if (si === -1) si = times.length - 1;
+    let si = spokenIdx.find((i) => w.start >= times[i].start - 0.001 && w.start <= times[i].end + 0.2);
+    if (si === undefined) {                // inside a dropped gap — clamp forward
+      si = spokenIdx.find((i) => times[i].start > w.start);
+      if (si === undefined) si = spokenIdx[spokenIdx.length - 1];
     }
     const base = offsets[si] ?? 0;
     const lim = pieceDur(pieces[si]);
