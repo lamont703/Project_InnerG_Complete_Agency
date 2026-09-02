@@ -263,7 +263,20 @@
   // a figure worth a Short is usually one that should not be true.
   if ((q.get("tone") || "") === "good") f.classList.add("good");
 
-  const set = (id, key) => { const v = q.get(key); if (v) document.getElementById(id).textContent = v; };
+  /*
+   * PRESENT-BUT-EMPTY MUST BLANK THE FIELD, and `if (v)` did not.
+   *
+   * The markup below carries a fully populated example card so this file can be
+   * opened on its own and looked at. That is useful and it was also a landmine:
+   * a caller that omitted `punch` and `source` inherited the EXAMPLE's text, so
+   * a card about eyelash licences rendered "They pass the hands-on exam at
+   * 92.34%" and cited a PSI roster it was never built from. Nothing errored —
+   * the card just quietly asserted someone else's number.
+   *
+   * `v !== null` is the fix: an explicitly empty parameter now clears the field,
+   * so a caller can say "this card has no punch line" and be believed.
+   */
+  const set = (id, key) => { const v = q.get(key); if (v !== null) document.getElementById(id).textContent = v; };
   ["chip","date","stat","label","punch","source","brand","question"].forEach((k) => set(k, k));
 
   /**

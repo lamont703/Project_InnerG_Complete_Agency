@@ -58,6 +58,18 @@ const arg = (name, fallback) => {
 
 const FIELDS = ["chip", "date", "stat", "label", "punch", "source", "brand", "tone", "question"];
 
+/**
+ * The fields that carry a CLAIM, as opposed to styling.
+ *
+ * These are always sent, empty when the caller omits them, so a card can never
+ * inherit the template's example text. `brand` and `tone` are deliberately not
+ * here: they are presentation and their defaults are correct for every card.
+ *
+ * This is the other half of a fix; shorts-news.html has to honour an empty
+ * value for it to mean anything. See the note on set() there.
+ */
+const CLAIM_FIELDS = ["chip", "date", "stat", "label", "punch", "source", "question"];
+
 async function main() {
   const name = arg("name", "short");
   const seconds = Number(arg("seconds", 8));
@@ -69,7 +81,8 @@ async function main() {
   const params = new URLSearchParams();
   for (const k of FIELDS) {
     const v = arg(k, null);
-    if (v) params.set(k, v);
+    if (v !== null) params.set(k, v);
+    else if (CLAIM_FIELDS.includes(k)) params.set(k, "");
   }
   params.set("w", String(W));
   params.set("h", String(H));

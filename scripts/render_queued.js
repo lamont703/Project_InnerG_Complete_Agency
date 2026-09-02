@@ -50,7 +50,7 @@ const HEYGEN = "https://api.heygen.com";
  * a CommonJS script and a React component can require it; if this script grew
  * its own copy again, the board could promise "free" and this could bill $1.16.
  */
-const { AVATAR_PER_SEC, DATA_SECONDS, SEED_GRID, VIDEO_TYPES, videoTypeFor } = require("../lib/video-type");
+const { AVATAR_PER_SEC, FIGURE_SECONDS, SEED_GRID, VIDEO_TYPES, videoTypeFor } = require("../lib/video-type");
 const { fitBitrate, fitsAtAll } = require("../lib/video-editor/encode.js");
 const { withRetry } = require("../lib/video-editor/retry.js");
 const { resolveEditorKey, keyFingerprint } = require("../lib/gemini-keys-core.js");
@@ -84,7 +84,7 @@ async function callGemini(body, label) {
 
 /** Measured on this channel: the avatar reads at ~165 wpm. */
 const WPM = 165;
-const TARGET_SECONDS = VIDEO_TYPES.avatar.seconds;
+const TARGET_SECONDS = VIDEO_TYPES.hottake.seconds;
 /** social-assets refuses anything larger. Checked, not assumed. */
 const BUCKET_LIMIT_MB = 5;
 
@@ -259,7 +259,7 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
   const only = arg("id");
   let q = db
     .from("publisher_queue")
-    .select("id, item_key, title, caption, position, video_type, stat, label, question")
+    .select("id, item_key, title, caption, position, video_type, stat, label, question, chip, punch, source")
     .eq("status", "queued")
     .is("video_url", null);
   if (only) q = q.eq("id", only);
@@ -312,7 +312,7 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
     let seconds = TARGET_SECONDS;
 
     /*
-     * NEWS SHORTS ARE NOT RENDERED FROM A QUEUE CARD, and this refuses rather
+     * A NEWS DESK IS NOT RENDERED FROM A QUEUE CARD, and this refuses rather
      * than falling through. Every branch below ends in an avatar or a template,
      * so an unhandled type would quietly buy a talking head — the exact
      * substitution the video_type column was added to stop, just one type
@@ -320,13 +320,13 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
      * segments, which of them are avatar, and the b-roll queries. None of that
      * is in publisher_queue and none of it can be inferred from a title.
      */
-    if (kind.id === "news") {
-      console.log(`  news shorts render from a script JSON, not from a card.`);
+    if (kind.id === "newsdesk") {
+      console.log(`  a News Desk renders from a script JSON, not from a card.`);
       console.log(`  node scripts/render_news_short.js <script.json>, then queue the finished mp4.`);
       continue;
     }
 
-    if (kind.id === "data") {
+    if (kind.id === "figure") {
       /*
        * DATA REEL — free, nine seconds, and the number IS the content.
        *
@@ -348,17 +348,30 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
       console.log(`  data: ${c.stat} — ${String(c.label).slice(0, 60)}`);
       const args = ["scripts/render_short_video.js", "--name", name, "--seconds", "9"];
       if (fs.existsSync(bed)) args.push("--audio", bed);
-      for (const f of ["stat", "label", "question"]) if (c[f]) args.push(`--${f}`, String(c[f]));
+      /*
+       * EVERY CLAIM FIELD THE CARD HAS, not just the three this used to pass.
+       * Omitting chip/punch/source used to leave the template's EXAMPLE card
+       * showing — a card about eyelash licences asserting "They pass the
+       * hands-on exam at 92.34%" over a PSI roster it was never built from.
+       * The renderer now blanks an absent field rather than inheriting one, so
+       * the worst case here is a missing line instead of a borrowed lie; these
+       * columns are what make it a complete card instead.
+       */
+      for (const f of ["chip", "stat", "label", "punch", "source", "question"]) {
+        if (c[f]) args.push(`--${f}`, String(c[f]));
+      }
+      // The date beside the chip is when the card was made, not when it renders.
+      args.push("--date", new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase());
       execFileSync("node", args, { stdio: ["ignore", "ignore", "pipe"] });
 
       // render_short_video.js writes into its own output directory by --name.
       const produced = path.join("reference", "Podcast Visuals", "Shorts", `${name}.mp4`);
       if (!fs.existsSync(produced)) throw new Error(`the data renderer produced nothing at ${produced}`);
       fs.copyFileSync(produced, raw);
-      seconds = DATA_SECONDS;
+      seconds = FIGURE_SECONDS;
       captionOut = [c.stat, c.label, "", c.question ?? ""].filter(Boolean).join("\n");
-    } else if (kind.id === "grid") {
-      /* GRID PATH — free, nine seconds, and the format that actually wins. */
+    } else if (kind.id === "lookbook") {
+      /* LOOKBOOK — free, nine seconds, and the format that actually wins. */
       /*
        * NO FALLBACK. If the seed is missing this card fails and stays failed.
        * The tempting alternative — render the avatar instead — is how a
