@@ -41,6 +41,132 @@ If a clone doesn't have the hooks active, run:
 
     git config core.hooksPath .githooks
 
+## Video formats — say the name, not the machinery
+
+**Four formats. Call them by name. `lib/video-type.js` is the registry and the
+one place that prices them.**
+
+| id | say | what it is | length | cost |
+|---|---|---|---|---|
+| `lookbook` | **Lookbook** | six looks panned across a grid, comment-the-number CTA | 9s | free |
+| `figure` | **Data Reel** | one number from our own data, animated | 9s | free |
+| `hottake` | **Hot Take** | opinion on an evergreen topic, one continuous avatar take | 30s | ~$1.16 |
+| `newsdesk` | **News Desk** | reaction to a headline that actually broke | 90s | ~$1.31 |
+
+### Why the names changed
+
+They used to be `grid` / `data` / `avatar` / `news`, named after their
+machinery, and two of them could not be told apart in conversation: **a Hot
+Take and a News Desk are BOTH avatar videos, and both are about something
+topical.** "How did the avatar video do?" did not identify a video. These names
+say what the viewer gets, so no two overlap.
+
+Old ids still resolve — `LEGACY_VIDEO_TYPE_IDS` in `lib/video-type.js` maps
+them forward. That map is deletable once nothing writes the old spellings; it
+is not a second vocabulary to keep alive.
+
+### The distinction that actually matters
+
+- A **Hot Take** is ONE continuous 30s HeyGen take on an evergreen topic,
+  written from a queue card by `scripts/render_queued.js`, then edited (silence
+  cut, b-roll, captions, music). It renders from the board's Render button.
+- A **News Desk** is a reaction to a story that broke, ~90s, from a
+  hand-written script JSON, run by `scripts/render_news_short.js`. The avatar is
+  bought only for the beats that need a face — the open, the pivot, the thesis,
+  the close — and the middle is that same narration over the article screenshot
+  and b-roll. **It does not render from a queue card**, and `render_queued.js`
+  refuses it explicitly rather than falling through and buying a Hot Take.
+
+`newsdesk` is therefore excluded from `AGENT_VIDEO_TYPE_IDS`: the research agent
+must not be able to queue a card no button can render. Adding a format means
+adding it to `VIDEO_TYPES`, and only moving it into the agent's list once it can
+render from a card.
+
+### Two avatars, one voice
+
+`HEYGEN_AVATAR_ID` (grey hoodie) is the Hot Take. `HEYGEN_NEWS_AVATAR_ID`
+(black hoodie) is the News Desk. Different talking photos on purpose, so the
+formats differ on sight as well as by name. Both use the same
+`HEYGEN_VOICE_ID`. **Never point one format at the other's avatar id.**
+
+## Making a News Desk — two commands, and the config decides everything else
+
+**`lib/newsdesk-config.js` is the format. Do not pass settings at the prompt.**
+
+    node scripts/render_news_short.js  "reference/AI News Video Shorts/<spec>.json"
+    node scripts/publish_news_short.js "reference/AI News Video Shorts/<spec>.json"
+
+Add `--dry` to either. The first buys the HeyGen avatar and assembles the cut;
+the second burns captions, lays the music bed, uploads and queues the row.
+
+### The spec IS the episode
+
+One file carries `slug`, `title`, `caption`, `cta_word`, the article screenshot
+path, and the segments. Each segment is `mode: "avatar" | "voice"`, and a voice
+segment takes `visual: "headline" | "chart" | "broll"` — b-roll segments carry
+`tags` that are looked up in the library, never a free-text query.
+
+`publish_news_short.js` refuses a spec with no title or caption, because those
+are part of the episode rather than of the run.
+
+### What is pinned, and why touching it is deliberate
+
+`lib/newsdesk-config.test.ts` asserts the agreed values, so changing the format
+means editing a test — visible in review — rather than typing a different flag.
+Pinned: the $1.50 cap, the 6s visual-hold cap, both chart crops, the avatar
+composite, the encode ladder, the caption style, the music bed, and the bucket.
+
+- **The budget gate runs BEFORE anything is bought.** Over the cap, the render
+  exits 1. `--over-budget` is the override and has to be typed.
+- **The estimate uses a MEASURED 175 wpm**, the slow end of 174-197 observed
+  across the two shipped episodes. The old assumed 165 wpm over-predicted by
+  13% and would have refused episode one, which really cost $1.32 — and a gate
+  that blocks work it should allow gets switched off. Re-measure as episodes
+  accumulate.
+- **One music bed for the series**, so it sounds like one show. Choosing a track
+  at the prompt is how episode three sounds like a different channel.
+
+### The failure that is silent, and stays fixed
+
+The renderer writes `<slug>.words.json` rebased onto the ASSEMBLED timeline.
+Captions driven off `narration.words.json` produce **an uncaptioned video and
+exit 0** — three separate reasons: it is a bare array where add_captions.js
+reads `.words`, it carries `<start>`/`<end>` marker tokens, and its timings are
+on the narration clock, which still contains the pauses between segments that
+the cut removed. `publish_news_short.js` refuses to run without the rebased
+file for exactly this reason.
+
+## B-roll — search the library before you generate anything
+
+**`broll_assets` is the library and `lib/broll-library.js` is the way in. Call
+`findClips()` BEFORE generating.** Higgsfield generations cost credits; a
+library that is only ever written to is an expense report, and the saving is
+entirely in the read path.
+
+- **Search by TAGS, never by prompt.** A generation prompt is a paragraph
+  written for a video model and no two are alike, so matching on it finds
+  nothing while the library sits full. Tags are what is visibly IN the clip —
+  `barbershop`, `phone`, `hands`, `night` — chosen so a later search can
+  describe the shot it needs.
+- **Files go to `entity-photos`, not `social-assets`.** That bucket caps at 5MB
+  and b-roll is routinely larger.
+- **`credits` and `use_count` are the point.** Cost makes reuse an argument
+  rather than a preference; use_count is the only evidence the library is being
+  pulled from rather than just filled.
+
+### Generating new clips
+
+`kling3_0_turbo` at 1080p, 9:16, 5s = **10 credits** — native 1080×1920, which
+is what the renders output, so no upscale. Veo 3.1 Lite is cheaper (6 credits
+for 6s) but its resolution is fixed and undocumented. Do NOT price these from
+memory or from blog posts: preflight with `get_cost: true`, which submits
+nothing. Published third-party numbers for Veo 3.1 were off by roughly 7×
+against the Lite variant we actually use.
+
+Prompt for **no legible text in frame** — generated on-screen text is where
+these models fall apart. Kling Turbo emits an audio track regardless; the
+renderer maps only our narration, so it is discarded.
+
 ## TDLR claims — cite the page, don't carry the number across
 
 **`lib/tdlr-sources.ts` lists every TDLR page this site treats as authoritative

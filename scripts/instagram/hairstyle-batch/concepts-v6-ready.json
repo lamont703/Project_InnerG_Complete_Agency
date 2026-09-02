@@ -1,0 +1,22 @@
+[
+ {
+  "k": "m-pompadour",
+  "h": "Six ways to wear it back.",
+  "n": ["Pompadour", "Textured quiff", "Slick back", "Hard side part", "Comb over", "Faux hawk"]
+ },
+ {
+  "k": "m-mullet",
+  "h": "Six modern mullets.",
+  "n": ["Classic mullet", "Wolf cut", "Burst fade mullet", "Curly mullet", "Textured mullet", "Shag mullet"]
+ },
+ {
+  "k": "w-bangs",
+  "h": "Six fringe shapes.",
+  "n": ["Blunt bangs", "Curtain bangs", "Wispy bangs", "Side-swept bangs", "Micro bangs", "Curly bangs"]
+ },
+ {
+  "k": "w-updos",
+  "h": "Six event updos.",
+  "n": ["High top knot", "Low chignon", "French twist", "Braided crown", "Sleek ponytail", "Half-up"]
+ }
+]
