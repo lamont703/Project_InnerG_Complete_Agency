@@ -6,7 +6,7 @@
  * the thing that stops an unfalsifiable suggestion reaching the operator.
  */
 
-import { isListicleTitle, VIDEO_TYPE_IDS } from "@/lib/video-type";
+import { isListicleTitle, AGENT_VIDEO_TYPE_IDS } from "@/lib/video-type";
 
 export type VideoTypeId = "grid" | "data" | "avatar";
 
@@ -150,7 +150,10 @@ export function validateFindings(
      * not exist. `stat` marks a data reel; a small leading count marks a grid.
      */
     const askedFor = [o.videoType, o.video_type, o.format].find(
-      (v) => typeof v === "string" && VIDEO_TYPE_IDS.includes(v),
+      // AGENT_ list, not the full registry: `news` is a real format but it
+      // cannot be rendered from a card, so an agent must not be able to ask
+      // for one and leave an unrenderable row in the queue.
+      (v) => typeof v === "string" && AGENT_VIDEO_TYPE_IDS.includes(v),
     ) as VideoTypeId | undefined;
 
     const stat = typeof o.stat === "string" && o.stat.trim() ? o.stat.trim().slice(0, 24) : null;

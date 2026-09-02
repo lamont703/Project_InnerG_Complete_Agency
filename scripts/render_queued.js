@@ -311,6 +311,21 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
     let captionOut = null;
     let seconds = TARGET_SECONDS;
 
+    /*
+     * NEWS SHORTS ARE NOT RENDERED FROM A QUEUE CARD, and this refuses rather
+     * than falling through. Every branch below ends in an avatar or a template,
+     * so an unhandled type would quietly buy a talking head — the exact
+     * substitution the video_type column was added to stop, just one type
+     * later. render_news_short.js needs a hand-written script JSON: the
+     * segments, which of them are avatar, and the b-roll queries. None of that
+     * is in publisher_queue and none of it can be inferred from a title.
+     */
+    if (kind.id === "news") {
+      console.log(`  news shorts render from a script JSON, not from a card.`);
+      console.log(`  node scripts/render_news_short.js <script.json>, then queue the finished mp4.`);
+      continue;
+    }
+
     if (kind.id === "data") {
       /*
        * DATA REEL — free, nine seconds, and the number IS the content.

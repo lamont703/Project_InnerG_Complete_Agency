@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { isWinningTitleShape } from "@/lib/research/types";
-import { SEED_GRID, VIDEO_TYPES, VIDEO_TYPE_IDS, isListicleTitle, videoTypeFor } from "@/lib/video-type";
+import { AGENT_VIDEO_TYPE_IDS, SEED_GRID, VIDEO_TYPES, VIDEO_TYPE_IDS, isListicleTitle, videoTypeFor } from "@/lib/video-type";
 
 /**
  * The publisher board prices a card from videoTypeFor(). scripts/render_queued.js
@@ -9,8 +9,38 @@ import { SEED_GRID, VIDEO_TYPES, VIDEO_TYPE_IDS, isListicleTitle, videoTypeFor }
  * trustworthy enough to put a dollar figure in front of an operator.
  */
 describe("videoTypeFor", () => {
-  it("offers the three pipelines that exist", () => {
-    expect(VIDEO_TYPE_IDS.sort()).toEqual(["avatar", "data", "grid"]);
+  it("offers the four pipelines that exist", () => {
+    expect(VIDEO_TYPE_IDS.sort()).toEqual(["avatar", "data", "grid", "news"]);
+  });
+
+  /*
+   * `news` IS STATED-ONLY. No headline shape means "this is a news short" —
+   * the format is a decision about a story, not a property of the words. If it
+   * ever became derivable, an ordinary avatar topic would start routing at a
+   * pipeline the board cannot reach, and the card would sit unrenderable.
+   */
+  /*
+   * The agent may only ask for a format the board can actually render from a
+   * card. Letting it pick `news` would queue an idea no button can render.
+   */
+  it("keeps news out of what the research agent may choose", () => {
+    expect(AGENT_VIDEO_TYPE_IDS.sort()).toEqual(["avatar", "data", "grid"]);
+    expect(VIDEO_TYPE_IDS).toContain("news");
+    for (const id of AGENT_VIDEO_TYPE_IDS) expect(VIDEO_TYPE_IDS).toContain(id);
+  });
+
+  it("never derives news, only honours it when stated", () => {
+    for (const title of [
+      "OpenAI Says Its Next Model Crossed a Cyber Threshold",
+      "The Truth About Rent Credit Reporting",
+      "6 Fades Every Barber Should Know",
+      "569 Texas Barbershops Have a Perfect 5.0",
+    ]) {
+      expect(videoTypeFor({ title }).id).not.toBe("news");
+    }
+    expect(videoTypeFor({ title: "anything at all", video_type: "news" }).id).toBe("news");
+    // Stated news outranks a stat, the same way every stated type does.
+    expect(videoTypeFor({ title: "x", stat: "130,165", video_type: "news" }).id).toBe("news");
   });
 
   /*
@@ -101,6 +131,14 @@ describe("videoTypeFor", () => {
     expect(VIDEO_TYPES.grid.costLabel).toBe("free");
     expect(VIDEO_TYPES.avatar.costUsd).toBeCloseTo(1.16, 2);
     expect(VIDEO_TYPES.avatar.costLabel).toBe("~$1.16");
+    /*
+     * A news short is 90 seconds but only ~34 of them are bought. Pricing it
+     * at its RUNTIME would quote $3.47 for a $1.31 video and make the cheaper
+     * format look like the expensive one.
+     */
+    expect(VIDEO_TYPES.news.costUsd).toBeCloseTo(1.31, 2);
+    expect(VIDEO_TYPES.news.costLabel).toBe("~$1.31");
+    expect(VIDEO_TYPES.news.seconds).toBe(90);
     // A free label must never sit on a type that spends money.
     for (const t of Object.values(VIDEO_TYPES)) {
       expect(t.costLabel === "free").toBe(t.costUsd === 0);
@@ -132,6 +170,17 @@ describe("the renderer honours the shared rule", () => {
     expect(src).not.toMatch(/gridImageFor/);
     expect(src).not.toMatch(/existsSync\(.*GRID_INBOX/);
     expect(src).toContain("videoTypeFor");
+  });
+
+  /*
+   * THE SUBSTITUTION THIS STOPS. Every branch in the renderer ends in an avatar
+   * or a template, so a type it does not handle falls through and buys a
+   * talking head. That is exactly what the video_type column was added to
+   * prevent — one type later.
+   */
+  it("refuses a news card rather than rendering something else", () => {
+    expect(src).toContain('kind.id === "news"');
+    expect(src).toContain("render_news_short.js");
   });
 
   it("uses the one seed grid", () => {
