@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { isWinningTitleShape } from "@/lib/research/types";
-import { AGENT_VIDEO_TYPE_IDS, SEED_GRID, VIDEO_TYPES, VIDEO_TYPE_IDS, isListicleTitle, videoTypeFor } from "@/lib/video-type";
+import { AGENT_VIDEO_TYPE_IDS, LEGACY_VIDEO_TYPE_IDS, SEED_GRID, VIDEO_TYPES, VIDEO_TYPE_IDS, isListicleTitle, videoTypeFor } from "@/lib/video-type";
 
 /**
  * The publisher board prices a card from videoTypeFor(). scripts/render_queued.js
@@ -10,7 +10,7 @@ import { AGENT_VIDEO_TYPE_IDS, SEED_GRID, VIDEO_TYPES, VIDEO_TYPE_IDS, isListicl
  */
 describe("videoTypeFor", () => {
   it("offers the four pipelines that exist", () => {
-    expect(VIDEO_TYPE_IDS.sort()).toEqual(["avatar", "data", "grid", "news"]);
+    expect(VIDEO_TYPE_IDS.sort()).toEqual(["figure", "hottake", "lookbook", "newsdesk"]);
   });
 
   /*
@@ -23,24 +23,24 @@ describe("videoTypeFor", () => {
    * The agent may only ask for a format the board can actually render from a
    * card. Letting it pick `news` would queue an idea no button can render.
    */
-  it("keeps news out of what the research agent may choose", () => {
-    expect(AGENT_VIDEO_TYPE_IDS.sort()).toEqual(["avatar", "data", "grid"]);
-    expect(VIDEO_TYPE_IDS).toContain("news");
+  it("keeps the News Desk out of what the research agent may choose", () => {
+    expect(AGENT_VIDEO_TYPE_IDS.sort()).toEqual(["figure", "hottake", "lookbook"]);
+    expect(VIDEO_TYPE_IDS).toContain("newsdesk");
     for (const id of AGENT_VIDEO_TYPE_IDS) expect(VIDEO_TYPE_IDS).toContain(id);
   });
 
-  it("never derives news, only honours it when stated", () => {
+  it("never derives a News Desk, only honours it when stated", () => {
     for (const title of [
       "OpenAI Says Its Next Model Crossed a Cyber Threshold",
       "The Truth About Rent Credit Reporting",
       "6 Fades Every Barber Should Know",
       "569 Texas Barbershops Have a Perfect 5.0",
     ]) {
-      expect(videoTypeFor({ title }).id).not.toBe("news");
+      expect(videoTypeFor({ title }).id).not.toBe("newsdesk");
     }
-    expect(videoTypeFor({ title: "anything at all", video_type: "news" }).id).toBe("news");
-    // Stated news outranks a stat, the same way every stated type does.
-    expect(videoTypeFor({ title: "x", stat: "130,165", video_type: "news" }).id).toBe("news");
+    expect(videoTypeFor({ title: "anything at all", video_type: "newsdesk" }).id).toBe("newsdesk");
+    // A stated News Desk outranks a stat, the same way every stated type does.
+    expect(videoTypeFor({ title: "x", stat: "130,165", video_type: "newsdesk" }).id).toBe("newsdesk");
   });
 
   /*
@@ -51,16 +51,16 @@ describe("videoTypeFor", () => {
    */
   it("recognises a data reel by its stat, not its headline", () => {
     const card = { title: "130,165 Texas Beauty Licences Are Nails or Skin", stat: "130,165" };
-    expect(videoTypeFor(card).id).toBe("data");
+    expect(videoTypeFor(card).id).toBe("figure");
     expect(videoTypeFor(card).costUsd).toBe(0);
     // Without the stat the same headline is just a statistic: an avatar topic.
-    expect(videoTypeFor({ title: card.title }).id).toBe("avatar");
+    expect(videoTypeFor({ title: card.title }).id).toBe("hottake");
   });
 
   it("lets a stated type override anything derived", () => {
-    expect(videoTypeFor({ title: "6 Fades", video_type: "avatar" }).id).toBe("avatar");
-    expect(videoTypeFor({ title: "The Truth About X", video_type: "grid" }).id).toBe("grid");
-    expect(videoTypeFor({ title: "x", stat: "12", video_type: "avatar" }).id).toBe("avatar");
+    expect(videoTypeFor({ title: "6 Fades", video_type: "hottake" }).id).toBe("hottake");
+    expect(videoTypeFor({ title: "The Truth About X", video_type: "lookbook" }).id).toBe("lookbook");
+    expect(videoTypeFor({ title: "x", stat: "12", video_type: "hottake" }).id).toBe("hottake");
   });
 
   /*
@@ -68,13 +68,13 @@ describe("videoTypeFor", () => {
    * exist. Ignoring it and deriving is the safe failure.
    */
   it("ignores an unrecognised stated type rather than trusting it", () => {
-    expect(videoTypeFor({ title: "6 Fades", video_type: "reel-v2" }).id).toBe("grid");
-    expect(videoTypeFor({ title: "The Truth", video_type: "" }).id).toBe("avatar");
+    expect(videoTypeFor({ title: "6 Fades", video_type: "reel-v2" }).id).toBe("lookbook");
+    expect(videoTypeFor({ title: "The Truth", video_type: "" }).id).toBe("hottake");
   });
 
   it("treats a blank stat as no stat", () => {
-    expect(videoTypeFor({ title: "The Truth About X", stat: "   " }).id).toBe("avatar");
-    expect(videoTypeFor({ title: "The Truth About X", stat: null }).id).toBe("avatar");
+    expect(videoTypeFor({ title: "The Truth About X", stat: "   " }).id).toBe("hottake");
+    expect(videoTypeFor({ title: "The Truth About X", stat: null }).id).toBe("hottake");
   });
 
   it("is total — every card gets exactly one renderer, never none", () => {
@@ -89,14 +89,14 @@ describe("videoTypeFor", () => {
       expect(VIDEO_TYPE_IDS).toContain(t.id);
     }
     // A card with no title at all still resolves rather than throwing.
-    expect(videoTypeFor({}).id).toBe("avatar");
-    expect(videoTypeFor({ title: null }).id).toBe("avatar");
+    expect(videoTypeFor({}).id).toBe("hottake");
+    expect(videoTypeFor({ title: null }).id).toBe("hottake");
   });
 
-  it("sends numbered listicles to the grid and everything else to the avatar", () => {
-    expect(videoTypeFor({ title: "6 Fades Every Barber Should Know" }).id).toBe("grid");
-    expect(videoTypeFor({ title: "2 Ways to Fill Your Chair" }).id).toBe("grid");
-    expect(videoTypeFor({ title: "The Truth About Rent Credit Reporting" }).id).toBe("avatar");
+  it("sends numbered listicles to the Lookbook and everything else to a Hot Take", () => {
+    expect(videoTypeFor({ title: "6 Fades Every Barber Should Know" }).id).toBe("lookbook");
+    expect(videoTypeFor({ title: "2 Ways to Fill Your Chair" }).id).toBe("lookbook");
+    expect(videoTypeFor({ title: "The Truth About Rent Credit Reporting" }).id).toBe("hottake");
   });
 
   /*
@@ -106,7 +106,7 @@ describe("videoTypeFor", () => {
    */
   it("treats a large leading number as a statistic, not a list", () => {
     expect(isListicleTitle("569 Texas Barbershops Have a Perfect 5.0")).toBe(false);
-    expect(videoTypeFor({ title: "569 Texas Barbershops Have a Perfect 5.0" }).id).toBe("avatar");
+    expect(videoTypeFor({ title: "569 Texas Barbershops Have a Perfect 5.0" }).id).toBe("hottake");
     expect(isListicleTitle("13 Things")).toBe(false);
     expect(isListicleTitle("1 Thing")).toBe(false);
   });
@@ -120,25 +120,45 @@ describe("videoTypeFor", () => {
     ]) {
       expect(isWinningTitleShape(title)).toBe(isListicleTitle(title));
       // The validator flags exactly what the renderer sends to the grid.
-      expect(isWinningTitleShape(title)).toBe(videoTypeFor({ title }).id === "grid");
+      expect(isWinningTitleShape(title)).toBe(videoTypeFor({ title }).id === "lookbook");
     }
   });
 
+  /*
+   * THE RENAME'S ONE REAL RISK. A row stored before the rename says "news",
+   * and an ignored value derives — which for that row means a News Desk gets
+   * priced and rendered as a Hot Take. The alias map is what stops a recorded
+   * rename being treated like a typo.
+   */
+  it("still resolves the ids the formats used to have", () => {
+    expect(videoTypeFor({ title: "x", video_type: "news" }).id).toBe("newsdesk");
+    expect(videoTypeFor({ title: "x", video_type: "avatar" }).id).toBe("hottake");
+    expect(videoTypeFor({ title: "x", video_type: "data" }).id).toBe("figure");
+    expect(videoTypeFor({ title: "x", video_type: "grid" }).id).toBe("lookbook");
+    // Every alias points at a type that actually exists.
+    for (const [was, now] of Object.entries(LEGACY_VIDEO_TYPE_IDS)) {
+      expect(VIDEO_TYPE_IDS).toContain(now);
+      expect(VIDEO_TYPE_IDS).not.toContain(was);
+    }
+    // An unknown value is still ignored and derived, alias map or not.
+    expect(videoTypeFor({ title: "6 Fades", video_type: "reel-v2" }).id).toBe("lookbook");
+  });
+
   it("prices the types the way the button promises", () => {
-    expect(VIDEO_TYPES.grid.costUsd).toBe(0);
-    expect(VIDEO_TYPES.data.costUsd).toBe(0);
-    expect(VIDEO_TYPES.data.costLabel).toBe("free");
-    expect(VIDEO_TYPES.grid.costLabel).toBe("free");
-    expect(VIDEO_TYPES.avatar.costUsd).toBeCloseTo(1.16, 2);
-    expect(VIDEO_TYPES.avatar.costLabel).toBe("~$1.16");
+    expect(VIDEO_TYPES.lookbook.costUsd).toBe(0);
+    expect(VIDEO_TYPES.figure.costUsd).toBe(0);
+    expect(VIDEO_TYPES.figure.costLabel).toBe("free");
+    expect(VIDEO_TYPES.lookbook.costLabel).toBe("free");
+    expect(VIDEO_TYPES.hottake.costUsd).toBeCloseTo(1.16, 2);
+    expect(VIDEO_TYPES.hottake.costLabel).toBe("~$1.16");
     /*
-     * A news short is 90 seconds but only ~34 of them are bought. Pricing it
+     * A News Desk is 90 seconds but only ~34 of them are bought. Pricing it
      * at its RUNTIME would quote $3.47 for a $1.31 video and make the cheaper
      * format look like the expensive one.
      */
-    expect(VIDEO_TYPES.news.costUsd).toBeCloseTo(1.31, 2);
-    expect(VIDEO_TYPES.news.costLabel).toBe("~$1.31");
-    expect(VIDEO_TYPES.news.seconds).toBe(90);
+    expect(VIDEO_TYPES.newsdesk.costUsd).toBeCloseTo(1.31, 2);
+    expect(VIDEO_TYPES.newsdesk.costLabel).toBe("~$1.31");
+    expect(VIDEO_TYPES.newsdesk.seconds).toBe(90);
     // A free label must never sit on a type that spends money.
     for (const t of Object.values(VIDEO_TYPES)) {
       expect(t.costLabel === "free").toBe(t.costUsd === 0);
@@ -178,8 +198,8 @@ describe("the renderer honours the shared rule", () => {
    * talking head. That is exactly what the video_type column was added to
    * prevent — one type later.
    */
-  it("refuses a news card rather than rendering something else", () => {
-    expect(src).toContain('kind.id === "news"');
+  it("refuses a News Desk card rather than rendering something else", () => {
+    expect(src).toContain('kind.id === "newsdesk"');
     expect(src).toContain("render_news_short.js");
   });
 

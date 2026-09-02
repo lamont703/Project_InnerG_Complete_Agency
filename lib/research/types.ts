@@ -8,7 +8,7 @@
 
 import { isListicleTitle, AGENT_VIDEO_TYPE_IDS } from "@/lib/video-type";
 
-export type VideoTypeId = "grid" | "data" | "avatar";
+export type VideoTypeId = "lookbook" | "figure" | "hottake";
 
 export type ResearchAgent = "content" | "crm";
 export type Confidence = "high" | "medium" | "low";
@@ -147,10 +147,10 @@ export function validateFindings(
     /*
      * THE FORMAT IS CHOSEN, NOT INFERRED. An unrecognised value is ignored and
      * derived instead — a typo must not route a render at a pipeline that does
-     * not exist. `stat` marks a data reel; a small leading count marks a grid.
+     * not exist. `stat` marks a Data Reel; a small leading count marks a Lookbook.
      */
     const askedFor = [o.videoType, o.video_type, o.format].find(
-      // AGENT_ list, not the full registry: `news` is a real format but it
+      // AGENT_ list, not the full registry: `newsdesk` is a real format but it
       // cannot be rendered from a card, so an agent must not be able to ask
       // for one and leave an unrenderable row in the queue.
       (v) => typeof v === "string" && AGENT_VIDEO_TYPE_IDS.includes(v),
@@ -160,7 +160,7 @@ export function validateFindings(
     const label = typeof o.label === "string" && o.label.trim() ? o.label.trim().slice(0, 120) : null;
 
     let videoType: VideoTypeId =
-      askedFor ?? (stat ? "data" : isWinningTitleShape(title) ? "grid" : "avatar");
+      askedFor ?? (stat ? "figure" : isWinningTitleShape(title) ? "lookbook" : "hottake");
 
     let rationaleOut = rationale;
 
@@ -170,14 +170,14 @@ export function validateFindings(
      * dropped, because the idea survives even when the packaging does not — but
      * loudly, because a silent demotion is a plan nobody reviewed.
      */
-    if (videoType === "data" && (!stat || !label)) {
-      videoType = "avatar";
+    if (videoType === "figure" && (!stat || !label)) {
+      videoType = "hottake";
       confidence = "low";
       rationaleOut =
         `ASKED FOR A DATA REEL WITH NO FIGURE — a data reel animates a number and a ` +
         `line under it, and this finding supplied ${stat ? "no label" : "no stat"}. ` +
         `Routed to the avatar instead. ` + rationale;
-    } else if (videoType === "grid" && !isWinningTitleShape(title)) {
+    } else if (videoType === "lookbook" && !isWinningTitleShape(title)) {
       /*
        * A CONTRADICTION, not a style note. The grid walks six cuts with a number
        * on screen, and the caption asks the viewer to comment one. A title that
@@ -188,7 +188,7 @@ export function validateFindings(
         `GRID WITH NO COUNT — the hairstyle grid shows six items and puts the number ` +
         `on screen, so the title has to say how many. Reshape to "N things..." or ` +
         `pick another format. ` + rationale;
-    } else if (videoType === "avatar" && !isWinningTitleShape(title)) {
+    } else if (videoType === "hottake" && !isWinningTitleShape(title)) {
       /*
        * Still worth saying, but it is a packaging nudge rather than an error:
        * an avatar can carry a title of any shape, it just tends to do worse.
@@ -206,7 +206,7 @@ export function validateFindings(
 
     out.push({
       title, suggestion, rationale: rationaleOut.slice(0, 1200), category, evidence, confidence,
-      videoType, stat: videoType === "data" ? stat : null, label: videoType === "data" ? label : null,
+      videoType, stat: videoType === "figure" ? stat : null, label: videoType === "figure" ? label : null,
     });
   }
 

@@ -78,8 +78,8 @@ describe("the format is chosen, not inferred from the headline", () => {
   const keys = new Set(["a"]);
 
   it("honours the format the agent asked for", () => {
-    const [f] = validateFindings([{ ...ok, videoType: "avatar" }], keys);
-    expect(f.videoType).toBe("avatar");
+    const [f] = validateFindings([{ ...ok, videoType: "hottake" }], keys);
+    expect(f.videoType).toBe("hottake");
   });
 
   /*
@@ -91,9 +91,9 @@ describe("the format is chosen, not inferred from the headline", () => {
     const [f] = validateFindings([{
       title: "47,674 Licensed Estheticians in Texas",
       suggestion: "s", rationale: "r", evidence: { a: 1 },
-      videoType: "data", stat: "47,674", label: "licensed estheticians in Texas",
+      videoType: "figure", stat: "47,674", label: "licensed estheticians in Texas",
     }], keys);
-    expect(f.videoType).toBe("data");
+    expect(f.videoType).toBe("figure");
     expect(f.stat).toBe("47,674");
   });
 
@@ -104,9 +104,9 @@ describe("the format is chosen, not inferred from the headline", () => {
   it("demotes a data reel that supplied no figure, and says why", () => {
     const [f] = validateFindings([{
       title: "Something About Licences", suggestion: "s", rationale: "r",
-      evidence: { a: 1 }, videoType: "data",
+      evidence: { a: 1 }, videoType: "figure",
     }], keys);
-    expect(f.videoType).toBe("avatar");
+    expect(f.videoType).toBe("hottake");
     expect(f.rationale).toMatch(/NO FIGURE/);
     expect(f.confidence).toBe("low");
   });
@@ -115,7 +115,7 @@ describe("the format is chosen, not inferred from the headline", () => {
   it("flags a grid whose title does not say how many", () => {
     const [f] = validateFindings([{
       title: "The Best Fades Around", suggestion: "s", rationale: "r",
-      evidence: { a: 1 }, videoType: "grid",
+      evidence: { a: 1 }, videoType: "lookbook",
     }], keys);
     expect(f.rationale).toMatch(/GRID WITH NO COUNT/);
     expect(f.confidence).toBe("low");
@@ -123,11 +123,11 @@ describe("the format is chosen, not inferred from the headline", () => {
 
   it("ignores a format it does not have a pipeline for", () => {
     const [f] = validateFindings([{ ...ok, videoType: "hologram" }], keys);
-    expect(f.videoType).toBe("grid");
+    expect(f.videoType).toBe("lookbook");
   });
 
   it("derives when the agent says nothing", () => {
-    expect(validateFindings([ok], keys)[0].videoType).toBe("grid");
-    expect(validateFindings([{ ...ok, title: "The Truth About X" }], keys)[0].videoType).toBe("avatar");
+    expect(validateFindings([ok], keys)[0].videoType).toBe("lookbook");
+    expect(validateFindings([{ ...ok, title: "The Truth About X" }], keys)[0].videoType).toBe("hottake");
   });
 });
