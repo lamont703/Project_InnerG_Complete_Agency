@@ -21,7 +21,8 @@ const fs = require("fs");
 const path = require("path");
 const { execFileSync, spawnSync } = require("child_process");
 const { planCutaways, coverage, resolveAnchors, expandHold } = require("../lib/video-editor/broll.js");
-const { searchVideos, pickBest, download } = require("../lib/pixabay.js");
+const { findClips, markUsed } = require("../lib/broll-library.js");
+const { createClient } = require("@supabase/supabase-js");
 const { cutawayFilters, DEFAULT_DUR } = require("../lib/video-editor/transitions.js");
 const whoosh = require("../lib/video-editor/whoosh.js");
 
@@ -117,7 +118,9 @@ console.log(`plan     ${cutaways.length} cutaway(s), ${(coverage(cutaways, durat
 for (const d of dropped) console.log(`  DROPPED  "${d.cutaway?.query ?? "?"}" — ${d.why}`);
 
 (async () => {
+  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   const clips = [];
+  const usedIds = [];   // so one edit does not cut to the same clip twice
   for (const c of cutaways) {
     /*
      * TRY THE ALTERNATES BEFORE GIVING UP. The picker is deliberately strict —
@@ -127,24 +130,44 @@ for (const d of dropped) console.log(`  DROPPED  "${d.cutaway?.query ?? "?"}" �
      * "barber haircut". The agent proposes two fallbacks per moment so the
      * filter can stay strict without the edit losing a beat.
      */
-    let pick = null;
-    let used = c.query;
-    for (const q of [c.query, ...(c.alternates ?? [])]) {
-      const hits = await searchVideos(q, { perPage: 20 });
-      pick = pickBest(hits, { seconds: c.seconds, query: q });
-      if (pick) { used = q; break; }
-      if (q !== c.query) console.log(`  ${String(c.at).padStart(6)}s  "${q}" found nothing either`);
-    }
-    c.query = used;
-    if (!pick) {
-      // NO FALLBACK to a random clip: showing unrelated footage is worse than
-      // showing the speaker, and a silent substitution is unreviewable.
-      console.log(`  ${String(c.at).padStart(6)}s  NO CLIP for "${c.query}" — leaving the speaker on screen`);
+    /*
+     * THE LIBRARY, NOT A STOCK SEARCH. Cutaways used to come from a live
+     * Pixabay query per moment. They now come from broll_assets — footage we
+     * already own and already paid for, which is the entire reason the library
+     * exists: search before you generate.
+     *
+     * QUERY WORDS BECOME TAGS. The agent still writes "barber cutting hair"
+     * because that is how it describes a filmable moment, and findClips()
+     * matches on ANY tag, ranked by overlap. So a two-word query that would
+     * have failed a strict stock filter still lands here, and the alternates
+     * are a widening of the tag set rather than a second network call.
+     */
+    const wordsOf = (q) => String(q).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
+    const tags = [...new Set([c.query, ...(c.alternates ?? [])].flatMap(wordsOf))];
+    const hits = await findClips(db, { tags, limit: 8, exclude: usedIds });
+    const clip = hits[0] ?? null;
+
+    if (!clip) {
+      // NO FALLBACK to an unrelated clip: showing the wrong picture is worse
+      // than showing the speaker, and a silent substitution is unreviewable.
+      console.log(`  ${String(c.at).padStart(6)}s  NOTHING IN THE LIBRARY for [${tags.join(", ")}] — leaving the speaker on screen`);
       continue;
     }
-    const got = has("dry") ? { path: "(not downloaded)", credit: { id: pick.hit.id, author: pick.hit.user, resolution: `${pick.file.width}x${pick.file.height}`, pageUrl: pick.hit.pageURL, source: "Pixabay", license: "Pixabay Content License" } }
-                           : await download(pick, path.join(".cache", "broll"));
-    console.log(`  ${String(c.at).padStart(6)}s  ${String(c.seconds) + "s"}  ${String(c.transition ?? "dissolve").padEnd(11)} "${c.query}" -> #${got.credit.id} ${got.credit.resolution} by ${got.credit.author}`);
+    usedIds.push(clip.id);
+
+    let got;
+    if (has("dry")) {
+      got = { path: "(not downloaded)", credit: { id: clip.id, author: clip.model ?? clip.source, resolution: `${clip.width}x${clip.height}`, pageUrl: clip.url, source: clip.source, license: "owned" } };
+    } else {
+      const local = path.join(".cache", "broll-hf", path.basename(clip.storage_path || `${clip.id}.mp4`));
+      if (!fs.existsSync(local)) {
+        fs.mkdirSync(path.dirname(local), { recursive: true });
+        fs.writeFileSync(local, Buffer.from(await (await fetch(clip.url)).arrayBuffer()));
+      }
+      await markUsed(db, clip.id);
+      got = { path: local, credit: { id: clip.id, author: clip.model ?? clip.source, resolution: `${clip.width}x${clip.height}`, pageUrl: clip.url, source: clip.source, license: "owned" } };
+    }
+    console.log(`  ${String(c.at).padStart(6)}s  ${String(c.seconds) + "s"}  ${String(c.transition ?? "dissolve").padEnd(11)} [${clip.tags.slice(0, 3).join(", ")}] <- "${c.query}"`);
     clips.push({ cutaway: c, ...got });
   }
 
