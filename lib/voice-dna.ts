@@ -90,6 +90,17 @@ Everything below is read off it.
      "doing well" -> "doing very well". "attached" -> "emotionally attached".
      Same instinct as "very, very, very good" in the transcripts.
 
+  6. HE CONTRACTS BY DEFAULT. Counted across the transcripts: 111 contractions
+     against 10 expanded forms, 92%. Write "I'm going to tell you why", never
+     "I am". Expanded forms are the fastest way to make an otherwise-his
+     line read like a press release; he flagged this himself.
+
+     The few expansions left are all principled. Some cannot contract at all
+     ("whatever it is", "who I am", "I have faith"). The rest are EMPHASIS, and
+     both sit inside concede-then-sharpen: "I'm not saying that doesn't work.
+     But what I am saying is..." and "it is a job. It's just that you own it."
+     Contracted then expanded IS the stress. So expand only to lean on a word.
+
   5. WHAT HE DID NOT TOUCH is as informative. The entire middle paragraph
      survived verbatim: the ceiling framing, the $83,000, and the triple
      "smaller, and smaller, and smaller". Data plus repetition, as written,
@@ -217,7 +228,15 @@ THE SHAPE OF A LAMONT ARGUMENT — reusable as a script structure
   6. Close on a short imperative
 `;
 
-/** What he believes, in his framing. Drawn from the raw answers below. */
+/**
+ * What he believes, in his framing.
+ *
+ * MOST OF THIS IS DRAWN FROM THE RAW INTERVIEW ANSWERS BELOW. The sections
+ * added later carry their own date and source, because a position stated while
+ * approving a script is not the same evidence as fourteen minutes of recorded
+ * speech — it is still his, but it has not been through the same round trip.
+ * Where a later belief and a transcript disagree, the transcript wins.
+ */
 export const BELIEFS = `
 ON WHO WINS THE INDUSTRY
 The future belongs to the barbers, hairstylists and cosmetologists who know how
@@ -258,6 +277,44 @@ self-employed trade time AND knowledge, and have to teach themselves
 acquisition, service and fulfilment. His instruction is to apply the management
 structure of every job you ever had to the job you now own. "You own your own
 job instead of working at someone else's job."
+
+ON ROBOTS AND HAIR — a minority position he holds on purpose
+Robots will be able to do human hair, and he knows most of the industry does not
+believe it. In his words: "i definitely think robots will be able to do human
+hair and i know most of the industry does not believe this but based on the
+robots and artificial intelligence ive seen i am convinced as a 20 year veteran
+barber and instructor." Stated 2026-09-02, reacting to an ABC7 segment on a San
+Jose barber wearing a five-camera motion-capture rig to teach a robot his hand
+movements.
+
+The argument that carries it is NOT that a machine will be better than a barber.
+It is that a machine does not have to be better, it only has to get good enough
+— and that his standing to say so comes from twenty years inside the trade as a
+barber AND an instructor, not from outside it. This is the same shape as his Q1
+answer about AI: a technological conviction his peers reject, argued from
+experience rather than hype.
+
+ON ACCOUNTABILITY WHEN A CHILD IS HARMED
+"it is my belief that people men and women should be held accountable for
+unaliving children" — his words, 2026-09-02, on the criminal-responsibility
+question. He notes that some children have been killed in mental-health crises
+and that in other such cases people were held accountable.
+
+THE GUARDRAIL IS HIS OWN AND MUST BE KEPT. On the Lindsay Clancy case
+specifically he said "i don't know all the details of the case so i cant speak
+on it too much." He is right, and at the time he said it the jury was in its
+fifth day of deliberating. Do not write him commenting on a named defendant in
+an undecided case, and do not place an ordinary parenting lapse — a mother who
+left a child at a barbershop for two hours — on the same spectrum as a homicide.
+He did not draw that line and the juxtaposition reads as monstrous in a format
+too short to hold nuance. The principle is publishable; the case is not.
+
+ON A SHOP'S DUTY TO A CHILD IN IT — endorsed, not recorded
+"A barbershop is not a daycare, and the minute you don't know whose child is
+sitting in your shop, that stopped being a haircut question." Written for the
+reaction Short on 2026-09-02 and approved by him, so it is a position he stands
+behind rather than one he volunteered. Marked as such because the rest of this
+section comes from his own mouth.
 
 ON CAREERS, TO HIS OWN CHILDREN
 Whatever field you enter, enter its technology side. Medical field, medical
