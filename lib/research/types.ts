@@ -6,7 +6,9 @@
  * the thing that stops an unfalsifiable suggestion reaching the operator.
  */
 
-import { isListicleTitle } from "@/lib/video-type";
+import { isListicleTitle, VIDEO_TYPE_IDS } from "@/lib/video-type";
+
+export type VideoTypeId = "grid" | "data" | "avatar";
 
 export type ResearchAgent = "content" | "crm";
 export type Confidence = "high" | "medium" | "low";
@@ -36,6 +38,14 @@ export interface DraftFinding {
   category: string;
   evidence: Record<string, unknown>;
   confidence: Confidence;
+  /**
+   * Which pipeline this idea is for. Chosen deliberately rather than inferred
+   * from the headline — see the note on validateFindings.
+   */
+  videoType: VideoTypeId;
+  /** Data reels only: the figure and the line under it. */
+  stat: string | null;
+  label: string | null;
 }
 
 const CONFIDENCES: Confidence[] = ["high", "medium", "low"];
@@ -134,12 +144,55 @@ export function validateFindings(
      * the card said it was off-format, and low confidence alone is too quiet to
      * stop that.
      */
+    /*
+     * THE FORMAT IS CHOSEN, NOT INFERRED. An unrecognised value is ignored and
+     * derived instead — a typo must not route a render at a pipeline that does
+     * not exist. `stat` marks a data reel; a small leading count marks a grid.
+     */
+    const askedFor = [o.videoType, o.video_type, o.format].find(
+      (v) => typeof v === "string" && VIDEO_TYPE_IDS.includes(v),
+    ) as VideoTypeId | undefined;
+
+    const stat = typeof o.stat === "string" && o.stat.trim() ? o.stat.trim().slice(0, 24) : null;
+    const label = typeof o.label === "string" && o.label.trim() ? o.label.trim().slice(0, 120) : null;
+
+    let videoType: VideoTypeId =
+      askedFor ?? (stat ? "data" : isWinningTitleShape(title) ? "grid" : "avatar");
+
     let rationaleOut = rationale;
-    if (!isWinningTitleShape(title)) {
+
+    /*
+     * A DATA REEL WITHOUT A FIGURE CANNOT RENDER. render_short_video.js animates
+     * the number; there is nothing to animate without one. Demoted rather than
+     * dropped, because the idea survives even when the packaging does not — but
+     * loudly, because a silent demotion is a plan nobody reviewed.
+     */
+    if (videoType === "data" && (!stat || !label)) {
+      videoType = "avatar";
       confidence = "low";
       rationaleOut =
+        `ASKED FOR A DATA REEL WITH NO FIGURE — a data reel animates a number and a ` +
+        `line under it, and this finding supplied ${stat ? "no label" : "no stat"}. ` +
+        `Routed to the avatar instead. ` + rationale;
+    } else if (videoType === "grid" && !isWinningTitleShape(title)) {
+      /*
+       * A CONTRADICTION, not a style note. The grid walks six cuts with a number
+       * on screen, and the caption asks the viewer to comment one. A title that
+       * does not say how many is a title for a different video.
+       */
+      confidence = "low";
+      rationaleOut =
+        `GRID WITH NO COUNT — the hairstyle grid shows six items and puts the number ` +
+        `on screen, so the title has to say how many. Reshape to "N things..." or ` +
+        `pick another format. ` + rationale;
+    } else if (videoType === "avatar" && !isWinningTitleShape(title)) {
+      /*
+       * Still worth saying, but it is a packaging nudge rather than an error:
+       * an avatar can carry a title of any shape, it just tends to do worse.
+       */
+      rationaleOut =
         `OFF-FORMAT TITLE — this channel's listicles hold 154.6% retention against ` +
-        `90.6% for everything else. Reshape to "N things..." before queueing. ` +
+        `90.6% for everything else. A number-first reshape is usually worth it. ` +
         rationale;
     }
 
@@ -148,7 +201,10 @@ export function validateFindings(
         ? o.category.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").slice(0, 40)
         : "uncategorised";
 
-    out.push({ title, suggestion, rationale: rationaleOut.slice(0, 1200), category, evidence, confidence });
+    out.push({
+      title, suggestion, rationale: rationaleOut.slice(0, 1200), category, evidence, confidence,
+      videoType, stat: videoType === "data" ? stat : null, label: videoType === "data" ? label : null,
+    });
   }
 
   return out;

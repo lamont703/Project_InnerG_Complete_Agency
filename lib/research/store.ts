@@ -38,6 +38,11 @@ export async function saveFindings(
       category: f.category,
       evidence: f.evidence,
       confidence: f.confidence,
+      // The format the agent chose, and the two fields a data reel needs to be
+      // renderable at all. Carried to publisher_queue when the card is queued.
+      video_type: f.videoType,
+      stat: f.stat,
+      label: f.label,
     })),
   );
   if (error) throw new Error(`Could not save findings: ${error.message}`);

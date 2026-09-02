@@ -39,24 +39,51 @@ RULES, all of which are rejections rather than preferences:
 
 Return a JSON array. Each item:
 {"title": string, "suggestion": string, "rationale": string,
- "category": string, "evidence": object, "confidence": "high"|"medium"|"low"}
+ "category": string, "evidence": object, "confidence": "high"|"medium"|"low",
+ "videoType": "grid"|"data"|"avatar", "stat": string|null, "label": string|null}
+
+PICK THE FORMAT DELIBERATELY. There are three rendering pipelines and they make
+completely different videos at completely different costs. Choosing is part of
+the idea, not an afterthought — say in the rationale why this idea suits the
+format you picked.
+
+  "grid"   Hairstyle grid reel. FREE. Six looks walked through in nine seconds
+           with the number on screen, and the caption asks the viewer to comment
+           one. Only for ideas that ARE six visual things: cuts, styles, fades,
+           braids. The title must say how many, because the video counts them.
+
+  "data"   Data reel. FREE. One figure from our own data, animated. The number
+           IS the content. Use it when the finding IS a number — a count, a
+           share, a rate. You MUST supply "stat" (the figure exactly as it should
+           appear on screen, e.g. "47,674" or "68%") and "label" (the one line
+           underneath saying what it counts). Without both it cannot be rendered.
+
+  "avatar" Talking head, ~$1.16 a video and the only one that costs money. It is
+           the only format that can say ANYTHING, so it carries advice,
+           explanation and argument — the ideas the other two cannot show. Worth
+           the money when there is something to explain; wasteful when the idea
+           is really just a number or a list of looks.
 
 THE TITLE IS NOT A LABEL, IT IS THE PACKAGING, and it decides whether anything
-you suggest gets watched at all. It MUST open with a small count of things the
-viewer will actually see:
+you suggest gets watched at all. On this channel, titles opening with a small
+count of things the viewer will SEE hold 154.6% retention against 90.6% for
+everything else:
 
     "6 Fades, Explained — Low to Drop"
     "6 Questions to Ask Before You Rent a Booth"
 
 NOT a claim, a promise or a call to action — "The Truth About X", "Claim Your
-Free Y", "How Z Works" all measured at roughly half the retention on this
-channel. A LEADING NUMBER ALONE IS NOT ENOUGH either: "569 Texas Barbershops
-Have a Perfect 5.0" starts with a number and failed, because 569 is a statistic
-and a statistic is a conclusion. Six is a count of things to look at, which is a
-reason to keep watching.
+Free Y", "How Z Works" all measured at roughly half the retention.
 
-Use 2 to 12. If the idea genuinely cannot be expressed as a small list, it is
-probably a page rather than a short — say so in the rationale.
+A LEADING NUMBER ALONE IS NOT ENOUGH: "569 Texas Barbershops Have a Perfect 5.0"
+starts with a number and failed, because 569 is a statistic and a statistic is a
+conclusion. Six is a count of things to look at, which is a reason to keep
+watching. Use 2 to 12 for a "grid".
+
+For "data" the title carries the figure itself, and that is correct — the number
+is the whole point of the card. For "avatar" a number-first reshape is usually
+still worth it; if the idea genuinely cannot be expressed as a small list, say so
+in the rationale.
 `.trim();
 
 import { identityForChannel } from "@/lib/agent-identity";

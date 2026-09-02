@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { isWinningTitleShape } from "@/lib/research/types";
-import { SEED_GRID, VIDEO_TYPES, isListicleTitle, videoTypeFor } from "@/lib/video-type";
+import { SEED_GRID, VIDEO_TYPES, VIDEO_TYPE_IDS, isListicleTitle, videoTypeFor } from "@/lib/video-type";
 
 /**
  * The publisher board prices a card from videoTypeFor(). scripts/render_queued.js
@@ -9,6 +9,44 @@ import { SEED_GRID, VIDEO_TYPES, isListicleTitle, videoTypeFor } from "@/lib/vid
  * trustworthy enough to put a dollar figure in front of an operator.
  */
 describe("videoTypeFor", () => {
+  it("offers the three pipelines that exist", () => {
+    expect(VIDEO_TYPE_IDS.sort()).toEqual(["avatar", "data", "grid"]);
+  });
+
+  /*
+   * THE BUG THE video_type COLUMN EXISTS FOR. Every data reel carries a figure
+   * like "130,165" — not a small leading count — so the title rule sent all six
+   * in the queue to `avatar`. Clicking Render would have bought a $1.16 talking
+   * head instead of the free animated card the row was written to be.
+   */
+  it("recognises a data reel by its stat, not its headline", () => {
+    const card = { title: "130,165 Texas Beauty Licences Are Nails or Skin", stat: "130,165" };
+    expect(videoTypeFor(card).id).toBe("data");
+    expect(videoTypeFor(card).costUsd).toBe(0);
+    // Without the stat the same headline is just a statistic: an avatar topic.
+    expect(videoTypeFor({ title: card.title }).id).toBe("avatar");
+  });
+
+  it("lets a stated type override anything derived", () => {
+    expect(videoTypeFor({ title: "6 Fades", video_type: "avatar" }).id).toBe("avatar");
+    expect(videoTypeFor({ title: "The Truth About X", video_type: "grid" }).id).toBe("grid");
+    expect(videoTypeFor({ title: "x", stat: "12", video_type: "avatar" }).id).toBe("avatar");
+  });
+
+  /*
+   * A typo in a column must not route a render at a pipeline that does not
+   * exist. Ignoring it and deriving is the safe failure.
+   */
+  it("ignores an unrecognised stated type rather than trusting it", () => {
+    expect(videoTypeFor({ title: "6 Fades", video_type: "reel-v2" }).id).toBe("grid");
+    expect(videoTypeFor({ title: "The Truth", video_type: "" }).id).toBe("avatar");
+  });
+
+  it("treats a blank stat as no stat", () => {
+    expect(videoTypeFor({ title: "The Truth About X", stat: "   " }).id).toBe("avatar");
+    expect(videoTypeFor({ title: "The Truth About X", stat: null }).id).toBe("avatar");
+  });
+
   it("is total — every card gets exactly one renderer, never none", () => {
     for (const title of [
       "6 Fades Every Barber Should Know",
@@ -18,7 +56,7 @@ describe("videoTypeFor", () => {
       "!!!",
     ]) {
       const t = videoTypeFor({ title });
-      expect(["grid", "avatar"]).toContain(t.id);
+      expect(VIDEO_TYPE_IDS).toContain(t.id);
     }
     // A card with no title at all still resolves rather than throwing.
     expect(videoTypeFor({}).id).toBe("avatar");
@@ -56,8 +94,10 @@ describe("videoTypeFor", () => {
     }
   });
 
-  it("prices the two types the way the button promises", () => {
+  it("prices the types the way the button promises", () => {
     expect(VIDEO_TYPES.grid.costUsd).toBe(0);
+    expect(VIDEO_TYPES.data.costUsd).toBe(0);
+    expect(VIDEO_TYPES.data.costLabel).toBe("free");
     expect(VIDEO_TYPES.grid.costLabel).toBe("free");
     expect(VIDEO_TYPES.avatar.costUsd).toBeCloseTo(1.16, 2);
     expect(VIDEO_TYPES.avatar.costLabel).toBe("~$1.16");

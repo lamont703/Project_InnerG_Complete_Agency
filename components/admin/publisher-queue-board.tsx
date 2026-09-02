@@ -94,7 +94,12 @@ function RenderPlaceholder({ item }: { item: PublisherItem }) {
   const router = useRouter();
   const [state, setState] = React.useState<"idle" | "starting" | "started" | "error">("idle");
   const [msg, setMsg] = React.useState<string | null>(null);
-  const kind = videoTypeFor({ title: item.title });
+  /*
+   * The WHOLE row, not just the title. Stated intent wins, `stat` marks a data
+   * reel, and the title shape is the last resort — passing only the title made
+   * every data reel read as an avatar and quote $1.16 for a free render.
+   */
+  const kind = videoTypeFor({ title: item.title, video_type: item.videoType, stat: item.stat });
 
   async function go() {
     setState("starting");

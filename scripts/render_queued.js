@@ -50,7 +50,7 @@ const HEYGEN = "https://api.heygen.com";
  * a CommonJS script and a React component can require it; if this script grew
  * its own copy again, the board could promise "free" and this could bill $1.16.
  */
-const { AVATAR_PER_SEC, SEED_GRID, VIDEO_TYPES, videoTypeFor } = require("../lib/video-type");
+const { AVATAR_PER_SEC, DATA_SECONDS, SEED_GRID, VIDEO_TYPES, videoTypeFor } = require("../lib/video-type");
 const { fitBitrate, fitsAtAll } = require("../lib/video-editor/encode.js");
 const { withRetry } = require("../lib/video-editor/retry.js");
 const { resolveEditorKey, keyFingerprint } = require("../lib/gemini-keys-core.js");
@@ -259,7 +259,7 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
   const only = arg("id");
   let q = db
     .from("publisher_queue")
-    .select("id, item_key, title, caption, position")
+    .select("id, item_key, title, caption, position, video_type, stat, label, question")
     .eq("status", "queued")
     .is("video_url", null);
   if (only) q = q.eq("id", only);
@@ -311,7 +311,38 @@ No numbering, no punctuation at the end, no hashtags.` }] }],
     let captionOut = null;
     let seconds = TARGET_SECONDS;
 
-    if (kind.id === "grid") {
+    if (kind.id === "data") {
+      /*
+       * DATA REEL — free, nine seconds, and the number IS the content.
+       *
+       * IT REACHES THIS BRANCH ONLY BECAUSE THE TYPE IS STATED OR THE ROW
+       * CARRIES A stat. Deriving from the title sent every one of these to the
+       * avatar: a headline like "130,165 Texas Beauty Licences Are Nails or
+       * Skin" opens with a number far too large to be a count of things to
+       * look at, so the listicle rule read it as prose and the renderer bought
+       * a $1.16 talking head instead of animating the figure.
+       *
+       * NO FALLBACK. Without the figure and its label there is nothing to
+       * animate, so it fails rather than quietly becoming something else.
+       */
+      if (!c.stat || !c.label) {
+        throw new Error(`data reel needs both stat and label — this row has ${c.stat ? "no label" : "no stat"}`);
+      }
+      const bed = path.join("reference", "Podcast Visuals", "Shorts", "_bed-9s.m4a");
+      const name = `queue-${c.item_key.replace(/[^a-z0-9-]/gi, "-").toLowerCase()}`.slice(0, 60);
+      console.log(`  data: ${c.stat} — ${String(c.label).slice(0, 60)}`);
+      const args = ["scripts/render_short_video.js", "--name", name, "--seconds", "9"];
+      if (fs.existsSync(bed)) args.push("--audio", bed);
+      for (const f of ["stat", "label", "question"]) if (c[f]) args.push(`--${f}`, String(c[f]));
+      execFileSync("node", args, { stdio: ["ignore", "ignore", "pipe"] });
+
+      // render_short_video.js writes into its own output directory by --name.
+      const produced = path.join("reference", "Podcast Visuals", "Shorts", `${name}.mp4`);
+      if (!fs.existsSync(produced)) throw new Error(`the data renderer produced nothing at ${produced}`);
+      fs.copyFileSync(produced, raw);
+      seconds = DATA_SECONDS;
+      captionOut = [c.stat, c.label, "", c.question ?? ""].filter(Boolean).join("\n");
+    } else if (kind.id === "grid") {
       /* GRID PATH — free, nine seconds, and the format that actually wins. */
       /*
        * NO FALLBACK. If the seed is missing this card fails and stays failed.

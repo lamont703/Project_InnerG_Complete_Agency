@@ -67,7 +67,7 @@ export async function queueFinding(
 
   const { data: finding, error: readErr } = await db
     .from("research_findings")
-    .select("id, title, suggestion, agent")
+    .select("id, title, suggestion, agent, video_type, stat, label")
     .eq("id", id)
     .single();
 
@@ -91,6 +91,18 @@ export async function queueFinding(
     caption: finding.suggestion ?? null,
     position,
     status: "queued",
+    /*
+     * THE FORMAT TRAVELS WITH THE IDEA. Without this the publisher re-derives
+     * the pipeline from the headline, which chose a renderer and a price by
+     * accident and got a whole category wrong: every data reel carries a figure
+     * like "130,165", which is not a small leading count, so all of them derived
+     * to the $1.16 avatar.
+     *
+     * stat and label come along because a data reel cannot render without them.
+     */
+    video_type: (finding as { video_type?: string | null }).video_type ?? null,
+    stat: (finding as { stat?: string | null }).stat ?? null,
+    label: (finding as { label?: string | null }).label ?? null,
   });
 
   if (insErr) {
