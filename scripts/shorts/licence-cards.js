@@ -5,7 +5,7 @@
  * WHY A THIRD CARD SOURCE. card-sources.js covers exam outcomes,
  * derived-cards.js covers figures that move on their own, entity-cards.js
  * covers the directory. None of them describe the licensed population itself —
- * how many of each licence exist, where they are, and how lopsided the mix is.
+ * how many of each license exist, where they are, and how lopsided the mix is.
  * That is 432,725 rows nobody outside TDLR holds in a queryable form.
  *
  * COUNTS ONLY, AND EXACT ONES. Every figure here is a `count(*)` with a filter,
@@ -19,7 +19,7 @@
  * `continuing_education_flag` IS DELIBERATELY UNUSED. It splits 107,677 Y to
  * 324,151 N, which is a striking ratio and completely unpublishable: nothing
  * states whether the flag means CE is required, completed, or outstanding.
- * CLAUDE.md already records that whether specialty licence holders need CE at
+ * CLAUDE.md already records that whether specialty license holders need CE at
  * all is unresolved. A number whose meaning is unknown is not a fact.
  *
  * Usage:
@@ -80,7 +80,7 @@ async function build() {
       key: "lic-manicurists-beat-barbers", chip: "Texas · Licensing", tone: "bad",
       stat: n(mani),
       label: `licensed manicurists in Texas — more than double the barbers.`,
-      punch: `Barbers hold ${n(barber)} licences. Nails is the bigger trade.`,
+      punch: `Barbers hold ${n(barber)} licenses. Nails is the bigger trade.`,
       source: SRC, question: "Surprised nails is bigger than barbering?",
       seoTitle: `Texas Has ${n(mani)} Manicurists and Only ${n(barber)} Barbers #Shorts`,
     },
@@ -89,16 +89,16 @@ async function build() {
       stat: n(esth),
       label: `estheticians are licensed in Texas.`,
       punch: `Also more than the ${n(barber)} Class A barbers.`,
-      source: SRC, question: "Is skincare the fastest-growing licence?",
+      source: SRC, question: "Is skincare the fastest-growing license?",
       seoTitle: `${n(esth)} Licensed Estheticians in Texas — More Than Barbers #Shorts`,
     },
     {
       key: "lic-specialty-share", chip: "Texas · Licensing", tone: "good",
       stat: n(specialty),
-      label: `Texas licences are specialty ones — nails, skin, or both.`,
-      punch: `That is ${((specialty / total) * 100).toFixed(0)}% of every licence on file.`,
-      source: SRC, question: "Would you add a specialty licence to yours?",
-      seoTitle: `${n(specialty)} Texas Beauty Licences Are Nails or Skin #Shorts`,
+      label: `Texas licenses are specialty ones — nails, skin, or both.`,
+      punch: `That is ${((specialty / total) * 100).toFixed(0)}% of every license on file.`,
+      source: SRC, question: "Would you add a specialty license to yours?",
+      seoTitle: `${n(specialty)} Texas Beauty Licenses Are Nails or Skin #Shorts`,
     },
     {
       key: "lic-barber-schools", chip: "Texas · Schools", tone: "bad",
@@ -119,18 +119,18 @@ async function build() {
     {
       key: "lic-harris-share", chip: "Texas · Licensing", tone: "good",
       stat: `${((harris / total) * 100).toFixed(1)}%`,
-      label: `of every Texas beauty licence sits in Harris County.`,
-      punch: `${n(harris)} licences in one county.`,
+      label: `of every Texas beauty license sits in Harris County.`,
+      punch: `${n(harris)} licenses in one county.`,
       source: SRC, question: "Is Houston oversaturated, or underserved?",
-      seoTitle: `Harris County Holds ${((harris / total) * 100).toFixed(1)}% of Texas Beauty Licences #Shorts`,
+      seoTitle: `Harris County Holds ${((harris / total) * 100).toFixed(1)}% of Texas Beauty Licenses #Shorts`,
     },
     {
       key: "lic-top-three-counties", chip: "Texas · Licensing", tone: "good",
       stat: `${(((harris + dallas + tarrant) / total) * 100).toFixed(0)}%`,
-      label: `of Texas beauty licences are in just three counties.`,
+      label: `of Texas beauty licenses are in just three counties.`,
       punch: `Harris, Dallas and Tarrant. 254 counties in the state.`,
       source: SRC, question: "Where is the least crowded market?",
-      seoTitle: `3 Counties Hold ${(((harris + dallas + tarrant) / total) * 100).toFixed(0)}% of Texas Beauty Licences #Shorts`,
+      seoTitle: `3 Counties Hold ${(((harris + dallas + tarrant) / total) * 100).toFixed(0)}% of Texas Beauty Licenses #Shorts`,
     },
     {
       key: "lic-establishments", chip: "Texas · Shops", tone: "good",
@@ -145,7 +145,7 @@ async function build() {
       stat: n(weaveEst),
       label: `hair weaving establishments are licensed in all of Texas.`,
       punch: `Eighty. In a state of thirty million people.`,
-      source: SRC, question: "Underserved market, or wrong licence?",
+      source: SRC, question: "Underserved market, or wrong license?",
       seoTitle: `Only ${n(weaveEst)} Hair Weaving Shops Are Licensed in Texas #Shorts`,
     },
   ].map((c) => ({ ...c, date: todayLabel() }));
