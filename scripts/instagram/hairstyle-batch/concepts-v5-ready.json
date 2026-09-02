@@ -1,0 +1,38 @@
+[
+ {
+  "k": "b-shapes",
+  "h": "Six beard shapes.",
+  "n": [
+   "Full beard",
+   "Van Dyke",
+   "Goatee",
+   "Chinstrap",
+   "Garibaldi",
+   "Boxed beard"
+  ]
+ },
+ {
+  "k": "b-mustache",
+  "h": "Six mustache styles.",
+  "n": [
+   "Chevron",
+   "Horseshoe",
+   "Handlebar",
+   "Pencil",
+   "Walrus",
+   "English"
+  ]
+ },
+ {
+  "k": "w-color",
+  "h": "Six ways to place color.",
+  "n": [
+   "Balayage",
+   "Ombre",
+   "Money piece",
+   "Highlights",
+   "Lowlights",
+   "Root shadow"
+  ]
+ }
+]
